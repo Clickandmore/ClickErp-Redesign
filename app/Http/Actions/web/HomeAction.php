@@ -31,6 +31,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+use App\Models\NewSettings;
+use App\Models\Setting;
 
 class HomeAction extends MainAction
 {
@@ -56,6 +58,11 @@ class HomeAction extends MainAction
         $data['steps'] = $this->stepAction->get();
         $data['statistics'] = $this->statisticAction->get();
         $data['icons'] = ['fa-sharp fa-regular fa-fire','fa-solid fa-face-thinking','fa-light fa-hand-point-up'];
+
+        // Add settings data
+        $new_settings = new NewSettings();
+        $data['show_popup'] = $new_settings->getSetting('show_popup') === '1';
+        $data['popup_image'] = $new_settings->getSetting('popup_image');
 
         return $data;
     }

@@ -775,5 +775,10 @@
   'phone_exists' => 'رقم الهاتف مستخدم من قبل',
   'marital_status' => 'الحالة الإجتماعية',
   'add_new_contract' => 'تحويل إلى عقد',
+  'popup_settings' => 'إعدادات النافذة المنبثقة',
+  'show_popup' => 'إظهار النافذة المنبثقة',
+  'popup_image' => 'صورة النافذة المنبثقة',
+  'settings_updated_successfully' => 'تم تحديث الإعدادات بنجاح',
+  'settings_update_failed' => 'فشل تحديث الإعدادات',
 
 );

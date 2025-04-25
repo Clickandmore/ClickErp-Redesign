@@ -760,5 +760,7 @@ return [
     'phone_exists' => 'Phone number already exists',
     'marital_status' => 'Marital Status',
     'add_new_contract' => 'Add New Contract',
+    'settings_updated_successfully' => 'Settings updated successfully',
+    'settings_update_failed' => 'Failed to update settings',
 
 ];

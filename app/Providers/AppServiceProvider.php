@@ -43,6 +43,8 @@ class AppServiceProvider extends ServiceProvider
         $new_settings = new NewSettings();
         $setting['bank_transfer_data'] = $new_settings->getSetting('bank_transfer_data');
         $setting['sadad_transfer_data'] = $new_settings->getSetting('sadad_transfer_data');
+        $setting['show_popup'] = $new_settings->getSetting('show_popup') === '1';
+        $setting['popup_image'] = $new_settings->getSetting('popup_image');
         //now make this setting vars accisible everywhere
         View::share('setting', $setting);
 
