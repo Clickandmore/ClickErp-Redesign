@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    @include("admin.layout.inc._meta")
+    <title>@yield('page-title')</title>
+
+
+    @include("admin.layout.inc._css")
+
+    <link href="{{ asset('admin/custom/style.css') }}" rel="stylesheet" type="text/css" />
+    @if (App::getLocale() == 'ar')
+        <link href="{{ asset('admin/custom/style-rtl.css') }}" rel="stylesheet" type="text/css" />
+    @endif
+
+    @yield("style")
+    @yield("css")
+    @stack("style")
+    @stack("css")
+
+
+</head>
+<body class="layout-1  @if (app()->getLocale() == 'ar') rtl_mode @endif " data-luno="theme-blue"> <!-- h-menu  -->
+
+@include("admin.layout.inc.sidebar")
+
+
+<div class="wrapper">
+
+    @include("admin.layout.inc.header")
+
+     {{--@include("admin.layout.inc.top_menu")--}}
+    @include('admin.layout.inc.page_loader')
+    @yield('up-card')
+
+
+    @include("admin.layout.inc.footer")
+</div>
+@include("admin.layout.inc.global_modals")
+@include("admin.layout.inc.siderbar_models")
+
+
+@include("admin.layout.inc._js")
+@include("admin.layout.inc._js_custom")
+
+
+@yield("js")
+@stack("js")
+</body>
+</html>

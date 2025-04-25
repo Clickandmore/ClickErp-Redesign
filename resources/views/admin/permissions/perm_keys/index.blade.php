@@ -1,0 +1,159 @@
+@extends('admin.layout.indexs.index')
+
+@section('content')
+
+    @if (@AdminGuardHasPerm(\App\PermKeys::DEVELOPERS_PERMS))
+
+    <div class="page_content">
+        <div class="card">
+            <div class="row card-body ">
+
+                <div class="alert alert-warning text-center">
+                    <b>{{__('admin.perms_keys_devs_only')}}</b>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card-body">
+
+                        <form method="post" action='{{ route("dash.developers.perms.store") }}'
+                            enctype="multipart/form-data">
+                            {{ csrf_field() }}
+
+                            <div><b>{{ __('admin.add') }}</b></div>
+                            <hr>
+
+                            <div class="row col-md-12 mb-3">
+                                <div class="col-md-2">
+                                    <label for="name" class="active mt-3">{{__('admin.perms_name')}}</label>
+                                </div>
+                                <div class="col-md-10">
+                                    <input id="name" name="name" type="text" class="form-control cu-form-design"
+                                    @if (@$editData) value="{{ @$editData->name }}" @endif required>
+                                </div>
+                                @if (@$editData)
+                                    <input type="hidden" name="edit_id"
+                                        @if (@$editData) value="{{ @$editData->id }}" @endif>
+                                @endif
+                            </div>
+
+                            <div class="row col-md-12 mb-3">
+                                <div class="col-md-2">
+                                    <label for="group_name" class="active mt-3">{{__('admin.perms_group_name')}}</label>
+                                </div>
+                                <div class="col-md-10">
+                                    <input id="group_name" name="group_name" type="text" class="form-control cu-form-design"
+                                    @if (@$editData) value="{{ @$editData->group_name }}" @endif required>
+                                </div>
+                            </div>
+
+
+                            <div class="row col-md-12 mb-3">
+                                <div class="col-md-2">
+                                    <label for="section_name" class="active mt-3">{{__('admin.perms_section_name')}}</label>
+                                </div>
+                                <div class="col-md-10">
+                                    <input id="section_name" name="section_name" type="text" class="form-control cu-form-design"
+                                    @if (@$editData) value="{{ @$editData->section_name }}" @endif required>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3 col-md-12 text-center mt-5">
+                                <div class="col-sm-12 text-sm-end text-center mt-10">
+                                    @if(@$edit)
+                                        <a href="{{ route('dash.developers.perms.index') }}" class="btn btn-fr-bg-light">{{ __('admin.cancel') }}</a>
+                                    @endif
+                                    <button type="submit" class="btn btn-fr-bg">{{ __('admin.confirm') }}</button>
+                                </div>
+                            </div>
+
+                        </form>
+
+
+
+                    </div>
+
+
+                </div>
+
+
+                <div class="col-md-8">
+
+                    <div class="text-center card-body border " style="border-radius: 20px">
+                        @include('components.session-messages')
+                        <table class="table border table-rounded table-striped table-row-bordered cu-table-adj">
+                            <thead>
+                            <tr class="seal-dark-bg">
+                                    <th style="width:5%">#</th>
+                                    <th>{{ __('admin.perms_name') }}</th>
+                                    <th>{{ __('admin.perms_group_name') }}</th>
+                                    <th>{{ __('admin.perms_section_name') }}</th>
+                                    <th>{{ __('admin.perms_translation') }}</th>
+                                    <th style="width:5%">{{ __('admin.edit') }}</th>
+                                    <th style="width:5%">{{ __('admin.delete') }}</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                @if (!empty(@$data))
+                                    @foreach ($data as $k => $singleRow)
+                                        <tr>
+                                            <td>{{ @$singleRow->id }}</td>
+                                            <td>{{ @$singleRow->name }}</td>
+                                            <td>{{ @$singleRow->group_name }}</td>
+                                            <td>{{ @$singleRow->section_name }}</td>
+                                            <td>{{ __("permissions.$singleRow->name") }}</td>
+                                            <td><a href="{{ route('dash.developers.perms.index', ['id' => $singleRow->id]) }}">
+                                                    <li class="fa fa-edit"></li>
+                                                </a>
+                                            </td>
+                                            <td>
+                                                <form
+                                                    action="{{ route('dash.developers.perms.delete', ['id' => $singleRow->id]) }}"
+                                                    method="post">
+                                                    {!! csrf_field() !!}
+                                                    <input type="hidden" name="_method" value="delete">
+                                                    <a onclick="delete_confirm($(this),event)" class=""
+                                                        style="color:#dd2c2c">
+                                                        <li class="fa fa-trash"></li>
+                                                    </a>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                @endif
+                            </tbody>
+
+                        </table>
+                    </div>
+
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function delete_confirm(element, event) {
+            var form = $(element).closest("form");
+            event.preventDefault();
+            swal.fire({
+                title: `{!! __('admin.confirm') !!}`,
+                text: `{!! __('admin.perms_keys_devs_only') !!}`,
+                icon: "warning",
+                buttons: true,
+                dangerMode: true,
+                showCloseButton: true,
+            }).then((willDelete) => {
+                if (willDelete.isConfirmed) {
+                    form.submit();
+                }
+            });
+        }
+    </script>
+
+    @else
+        @include('components.no_permissions')
+    @endif
+
+@endsection
