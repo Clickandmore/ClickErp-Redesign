@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Redirect;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
+
 class WebLocalizationMiddleware
 {
     /**
@@ -18,9 +19,13 @@ class WebLocalizationMiddleware
      */
     public function handle(Request $request, Closure $next)
     {
-        // if (LaravelLocalization::getCurrentLocale() != "en" ) {
-        //     return redirect(LaravelLocalization::getLocalizedURL("en", null, [], true));
-        // }
+        // Get locale from URL or default to Arabic
+        $locale = $request->segment(1);
+        if (!in_array($locale, ['ar', 'en'])) {
+            $locale = 'ar';
+        }
+
+        App::setLocale($locale);
         return $next($request);
     }
 }
