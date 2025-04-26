@@ -68,14 +68,13 @@
                 </li>
                 @guest
                     <li class="bttns">
-                        <a href="{{ route('web.auth') }}">{{ helperTrans('web.register') }}</a>
+                        <a href="{{ route('web.auth') }}">{{ helperTrans('web.auth') }}</a>
                     </li>
                 @endguest
             </ul>
             @guest
-
                 <div class="btns">
-                    <a href="{{ route('web.login') }}">{{ helperTrans('web.login') }}</a>
+                    <a href="{{ route('web.auth') }}">{{ helperTrans('web.login') }}</a>
                     <a href="{{ route('web.auth') }}">{{ helperTrans('web.register') }}</a>
                 </div>
             @endguest

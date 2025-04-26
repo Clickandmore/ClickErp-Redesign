@@ -254,7 +254,7 @@
             </div>
         </section> --}}
     </main>
-@if($show_popup)
+@if($show_popup == 1)
     <!-- Modal -->
     <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">

@@ -3,22 +3,20 @@
 @section('content')
     <main>
         <!-- page header -->
-
         <section class="page_header">
-            <h1>{{helperTrans('web.register')}}</h1>
-            <h6><a href="{{route('web.home')}}">{{helperTrans('web.Home')}}</a> / {{helperTrans('web.register')}}</h6>
+            <h1>{{helperTrans('web.auth')}}</h1>
+            <h6><a href="{{route('web.home')}}">{{helperTrans('web.Home')}}</a> / {{helperTrans('web.auth')}}</h6>
         </section>
 
-        <!-- auth-login section -->
-
+        <!-- auth section -->
         <section class="auth_section">
             <div class="container">
                 <div class="row justify-content-center">
                     <div class="col-lg-8 col-12">
-                        <form action="{{route('web.sendOtp')}}" method="get"  class="auth_form">
+                        <form action="{{route('web.sendOtp')}}" method="get" class="auth_form">
                             @csrf
-                            <h2>{{helperTrans('web.register')}}</h2>
-                            <p>{{helperTrans('web.register')}}</p>
+                            <h2>{{helperTrans('web.welcome')}}</h2>
+                            <p>{{helperTrans('web.enter_phone_to_continue')}}</p>
                             <div class="input_filed phone">
                                 <label for="phone"><i class="fa-light fa-mobile-notch"></i>
                                     {{helperTrans('web.Phone')}}
@@ -26,8 +24,7 @@
                                 <input type="hidden" name="phone_code" value="+966">
                                 <input type="hidden" name="reset" value="0">
 
-                                <div class="d-flex gap-2" >
-
+                                <div class="d-flex gap-2">
                                     <input type="tel" data-validation="required,number" id="phone" name="phone" placeholder="5xxxxxxxxxxx+">
                                     <div class="phone_code">
                                         <img src="{{asset('web')}}/assets/images/Flag_of_Saudi_Arabia.png" alt="Flag_of_Saudi_Arabia">
@@ -36,19 +33,18 @@
                             </div>
                             <span class="help-block form-error" id="yourErrorDiv"></span>
                             <p class="w-100 mb-2">
-                              {{helperTrans('web.by_continuing_you_agree')}}
+                                {{helperTrans('web.by_continuing_you_agree')}}
                                 <a href="{{route('web.privacyPolicy')}}">{{helperTrans('web.privacyPolicy')}}</a> و
                                 <a href="{{route('web.termsConditions')}}">{{helperTrans('web.termsConditions')}}</a> {{helperTrans('web.for_our_website')}}
                             </p>
                             <button class="log">
-                                {{helperTrans('web.send')}}
+                                {{helperTrans('web.continue')}}
                             </button>
                         </form>
                     </div>
                 </div>
             </div>
         </section>
-
     </main>
 @endsection
 
@@ -79,15 +75,7 @@
         },
         errorMessage : '{{helperTrans('web.phone_number_invalid')}}',
         errorMessageKey: 'badEvenNumber',
-        errorDiv: 'yourErrorDiv', // Specify the ID or selector of your error div
-
+        errorDiv: 'yourErrorDiv'
     });
-
-</script>
-<script>
-
-
-
-</script>
-
+    </script>
 @endsection

@@ -72,14 +72,13 @@
                 </li>
                 <?php if(auth()->guard()->guest()): ?>
                     <li class="bttns">
-                        <a href="<?php echo e(route('web.auth')); ?>"><?php echo e(helperTrans('web.register')); ?></a>
+                        <a href="<?php echo e(route('web.auth')); ?>"><?php echo e(helperTrans('web.auth')); ?></a>
                     </li>
                 <?php endif; ?>
             </ul>
             <?php if(auth()->guard()->guest()): ?>
-
                 <div class="btns">
-                    <a href="<?php echo e(route('web.login')); ?>"><?php echo e(helperTrans('web.login')); ?></a>
+                    <a href="<?php echo e(route('web.auth')); ?>"><?php echo e(helperTrans('web.login')); ?></a>
                     <a href="<?php echo e(route('web.auth')); ?>"><?php echo e(helperTrans('web.register')); ?></a>
                 </div>
             <?php endif; ?>

@@ -8,7 +8,6 @@ use App\Http\Traits\SendSMSTrait;
 use App\Models\ingaz\PhoneVerification;
 use App\Models\ingaz\User;
 use Illuminate\Support\Facades\Auth;
-use Tymon\JWTAuth\Facades\JWTAuth;
 
 class PhoneVerificationAction extends MainAction
 {
@@ -33,8 +32,8 @@ class PhoneVerificationAction extends MainAction
             $phone_isset->update(["code" => $code]);
         } else {
             $data['code'] = $code;
-            $storedData = $this->store(data: $data);  // Store the data
-            $code = $storedData->code;  // Ensure $code is a string, not an object
+            $storedData = $this->store(data: $data);
+            $code = $storedData->code;
         }
 
         $msg = "رمز التحقق  : $code  لدخول منصة ussusalenjaz.sa";
@@ -43,34 +42,27 @@ class PhoneVerificationAction extends MainAction
         return ["code" => $code];
     }
 
-
     public function confirmCode($request)
     {
-
         $code_isset = $this->model->where('phone', $request->phone)
             ->where('phone_code', $request->phone_code)
             ->where('code', $request->code)
             ->first();
-        if (isset($code_isset)) {
-            $user = User::where('phone', $request->phone)->where('phone_code', $request->phone_code)->first();
-            if ($user) {
-                Auth::guard(getGuardedUser())->login($user);
-                $token = $this->generateToken();
-                $user->token = $token;
-                $users = UserResource::make($user);
-                return jsonSuccess($users);
-            }
-            return jsonSuccess();
-        } else {
+
+        if (!$code_isset) {
             return false;
         }
-    }
 
-    protected function generateToken()
-    {
-        $user = auth()->user();
-        $token = JWTAuth::fromUser($user);
-        return $token;
+        $user = User::where('phone', $request->phone)
+            ->where('phone_code', $request->phone_code)
+            ->first();
+
+        if ($user) {
+            $users = UserResource::make($user);
+            return jsonSuccess($users);
+        }
+
+        return jsonSuccess();
     }
 
     public function updatePassword($request)

@@ -71,31 +71,24 @@
                     </div>
                 </div>
 
-                @if (Auth::check())
-                    @if ($type->id == 1)
-                        <div class="button">
-                            <a href="{{ route('web.maids.show', ['maid' => $maid->id, 'order_type' => 1]) }}">{{ $type->title }}</a>
-                        </div>
-                    @elseif($type->id == 2)
-                        <div class="button">
-                            <a href="{{ route('web.maids.show', ['maid' => $maid->id, 'order_type' => 2]) }}">إيجار العمالة</a>
-                        </div>
-                    @elseif ($type->id == 3)
-                        <div class="button">
-                            <a href="{{ route('web.maids.show', ['maid' => $maid->id, 'order_type' => 3]) }}">{{ $type->title }}</a>
-                        </div>
-                    @else
-                        <div class="button">
-                            <a type="su" href="https://wa.me/" class="whatsapp" target="_blank">
-                                نقل خدمات
-                                <i class="fa-brands fa-whatsapp"></i>
-                            </a>
-                        </div>
-                    @endif
+                @if ($type->id == 1)
+                    <div class="button">
+                        <a href="{{ route('web.maids.show', ['maid' => $maid->id, 'order_type' => 1]) }}">{{ $type->title }}</a>
+                    </div>
+                @elseif($type->id == 2)
+                    <div class="button">
+                        <a href="{{ route('web.maids.show', ['maid' => $maid->id, 'order_type' => 2]) }}">إيجار العمالة</a>
+                    </div>
+                @elseif ($type->id == 3)
+                    <div class="button">
+                        <a href="{{ route('web.maids.show', ['maid' => $maid->id, 'order_type' => 3]) }}">{{ $type->title }}</a>
+                    </div>
                 @else
                     <div class="button">
-                        <a
-                            href="{{ route('web.login', ['maid_id' => $maid->id, 'order_type' => $type->id]) }}">{{ $type->title }}</a>
+                        <a type="su" href="https://wa.me/" class="whatsapp" target="_blank">
+                            نقل خدمات
+                            <i class="fa-brands fa-whatsapp"></i>
+                        </a>
                     </div>
                 @endif
 

@@ -1,4 +1,4 @@
-<?php return array(
+<?php return array (
   'Home' => 'الرئيسية',
   'About' => 'عنا',
   'Business' => 'أعمالنا',
@@ -276,4 +276,12 @@
   'marital_status_single' => 'أعزب',
   'marital_status_married' => 'متزوج',
   'download_cv' => 'تحميل السيرة الذاتية',
+  'cancel' => 'الغاء',
+  'please_login_to_continue' => 'برجاء تسجيل الدخول للمتابعة',
+  'selected_agent' => 'اختيار الوكيل',
+  'order_confirmation' => 'تأكيد الطلب',
+  'auth' => 'التسجيل',
+  'continue' => 'استمرار',
+  'enter_phone_to_continue' => 'أدخل رقم الهاتف للمتابعة',
+  'thank_you_for_trust' => 'نشكركم على ثقتكم الغالية ونتشرف بتقديم خدمة متميزة تلبي جميع احتياجاتك'
 );

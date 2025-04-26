@@ -8,9 +8,8 @@
         }
     </style>
     <main>
-
         <section class="page_header">
-            <h1>{{helperTrans('web.register')}}</h1>
+            <h1>{{helperTrans('web.auth')}}</h1>
             <h6><a href="{{route('web.home')}}">{{helperTrans('web.Home')}}</a> / {{helperTrans('web.enter_verification_code')}}</h6>
         </section>
 
@@ -89,71 +88,34 @@
                     code += inputElement.value;
                 });
 
-                // Log or use the concatenated value as needed
-                // console.log(concatenatedValue);
-
                 const url = $(this).attr('action');
                 var token = '{{csrf_token()}}';
                 var phone_code = '{{$user->phone_code}}';
                 var phone = '{{$user->phone}}';
-                var type = '{{request()->type}}';
                 $.ajax({
                     url: url,
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': token
+                    type: 'POST',
+                    data: {
+                        _token: token,
+                        phone_code: phone_code,
+                        phone: phone,
+                        code: code
                     },
-                    data: {'code': code,'phone_code': phone_code,'phone': phone,'_token':token},
-
-                    success: function (response) {
-
-                        // $("#form_contact")[0].reset();
-                        console.log(response);
-                        // setTimeout(function() {
-                        //  Swal.fire('تم تاكيد الكود بنجاج', '', 'success');
-                        if(response.data == null){
-                            {{--                                --}}{{--if(type == '{{\App\Enums\UserType::Store->value}}'){--}}
-                            {{--                                    return window.location.href = '{{route('web.register-store')}}?code='+code;--}}
-                            {{--                                }--}}
-                                return window.location.href = '{{route('web.register')}}?code='+code+'&phone='+phone;
+                    success: function(response) {
+                        if (response.code === 200) {
+                            window.location.href = '/';
+                        } else {
+                            toastr.error(response.message);
                         }
-
-                        Swal.fire({
-                            icon: 'success',
-                            title: '{{helperTrans('web.data_updated_successfully')}}',
-                            html: response.message,
-                            showConfirmButton: false,
-                            timer: 1500
-                        })
-                        {{--if(response.data.type == '{{\App\Enums\UserType::Store->value}}'){--}}
-                        {{--    return window.location.href = '{{route('store.dashboard.index')}}';--}}
-                        {{--}--}}
-                            return window.location.href = '{{route('web.home')}}';
-
-
-                        // }, 1000);
-
                     },
-                    error: function (xhr, status, error) {
-
-                        let errors = xhr.responseJSON.data;
-                        console.log(xhr);
-
-                        let errorMessage = '';
-                        $.each(errors, function (key, value) {
-                            errorMessage += value[0] + '<br>';
-                        });
-                        if(xhr.responseJSON.code === 422){
-                            errorMessage += xhr.responseJSON.message;
+                    error: function(xhr) {
+                        if (xhr.status === 422) {
+                            toastr.error(xhr.responseJSON.message);
+                        } else {
+                            toastr.error('حدث خطأ ما');
                         }
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Validation Error',
-                            html: errorMessage,
-                        });
                     }
                 });
-
             });
         });
     </script>

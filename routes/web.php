@@ -83,7 +83,7 @@ Route::get('apis-generate', function () {
     }
 });
 
-// update contracts when status is tazker and travel_histories 
+// update contracts when status is tazker and travel_histories
 
 
 Route::group(
@@ -105,10 +105,6 @@ Route::group(
         //================ authanticaion  =============
         Route::get('auth', [AuthController::class, 'index'])->name('auth');
         Route::get('reset-password', [AuthController::class, 'resetPassword'])->name('reset_password');
-        Route::get('login', [AuthController::class, 'login'])->name('login');
-        Route::get('register', [AuthController::class, 'register'])->name('register');
-        Route::post('sendRegister', [AuthController::class, 'sendRegister'])->name('sendRegister');
-        Route::post('sendLogin', [AuthController::class, 'sendLogin'])->name('sendLogin');
         Route::get('sendOtp', [AuthController::class, 'sendOtp'])->name('sendOtp');
         Route::get('otp', [AuthController::class, 'otp'])->name('otp');
         Route::post('confirm-code', [AuthController::class, 'confirm_code'])->name('confirm-code');

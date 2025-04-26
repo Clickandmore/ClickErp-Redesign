@@ -227,24 +227,32 @@
         <!-- *** how we work section *** -->
         
     </main>
-
+<?php if($show_popup == 1): ?>
     <!-- Modal -->
     <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content" style="background: transparent; border: none;">
                 <!-- Close Button -->
                 <button type="button" class="close position-absolute custom-close-btn"
-                    style="right: 10px; top: 10px; z-index: 1;" data-dismiss="modal" aria-label="close" aria-hidden="true">
+                    style="right: 10px; top: 10px; z-index: 1;" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
                 <!-- Image with Link -->
                 <a href="<?php echo e(route('web.contact-us.index')); ?>" target="_blank">
-                    <img src="<?php echo e(asset('web/assets/images/ussus-popup.png')); ?>" class="img-fluid" alt="Popup Image">
+                    <img src="<?php echo e($popup_image ? showFile($popup_image) : asset('web/assets/images/ussus-popup.png')); ?>" class="img-fluid" alt="Popup Image">
                 </a>
             </div>
         </div>
     </div>
 
+    <?php $__env->startPush('js'); ?>
+    <script>
+        $(document).ready(function() {
+            $('#imageModal').modal('show');
+        });
+    </script>
+    <?php $__env->stopPush(); ?>
+<?php endif; ?>
     <!-- footer -->
 <?php $__env->stopSection(); ?>
 

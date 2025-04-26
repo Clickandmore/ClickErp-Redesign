@@ -92,7 +92,7 @@
                             </button>
                         @endauth
                         @guest
-                            <a href="https://ussusalenjaz.sa/ar/auth" class="btns" style="
+                            <a href="{{ route('web.auth') }}" class="btns" style="
                                                                                             display: block;
                                                                                             text-align: center;
                                                                                             width: 100%;
