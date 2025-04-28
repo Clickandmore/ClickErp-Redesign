@@ -7,6 +7,12 @@
 @endsection
 @section('content')
 @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW))
+    <div class="mb-3">
+        <a href="{{ route('clients.create') }}" class="btn btn-primary">
+            <i class="fa fa-plus"></i> {{helperTrans("ingaz.add_client")}}
+        </a>
+    </div>
+
     <p>{{helperTrans('ingaz.Toggle account status by clicking on an active or blocked button')}}</p>
     <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
         <thead>

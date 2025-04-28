@@ -72,7 +72,7 @@ Route::group(
             //** PRINT CONTRACT **//
             Route::get('/print_contract/{contractId?}', [PrintContractController::class, 'contract'])->name('print.contract');
             //** END NEW *//
-    
+
             Route::resource('settings', SettingController::class);
             Route::resource('develop-settings', DevelopSettingController::class);
             Route::resource('job-titles', JobTitleController::class);

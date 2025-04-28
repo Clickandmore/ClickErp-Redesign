@@ -23,6 +23,7 @@ class PermKeys
     //** ***********************************************/
 
     const CLIENTS_VIEW = 'clients_view';
+    const CLIENTS_CREATE = 'clients_create';
     const CLIENTS_DELETE = 'clients_delete';
     const FULL_CONTRACT = 'full_contract';
     const MAIDS_VIEW = 'maids_view';

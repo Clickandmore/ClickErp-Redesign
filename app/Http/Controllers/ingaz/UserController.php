@@ -49,14 +49,20 @@ class UserController extends Controller
                     return ($row->created_at->format('Y-m-d h:i A'));
                 })
                 ->addColumn('actions', function ($row) {
-                    $deleteButton = '';
+                    $buttons = '';
 
-                    if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE)){
-                        $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                    if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW)) {
+                        $buttons .= '<a href="' . route($this->mainRoute . '.edit', $row->id) . '" class="btn btn-sm btn-primary">' . __('ingaz.edit') . '</a> ';
                     }
 
-                    return $deleteButton;
-                })->escapeColumns([])->make(true);
+                    if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE)) {
+                        $buttons .= deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                    }
+
+                    return $buttons;
+                })
+                ->escapeColumns([])
+                ->make(true);
         }
         $data["createRoute"] = route($this->mainRoute . ".create");
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
@@ -74,7 +80,8 @@ class UserController extends Controller
      */
     public function create(Request $request)
     {
-
+        $nationalities = \App\Models\ingaz\Nationality::all();
+        return view($this->folderPath . '.create', compact('nationalities'));
     }
 
     /**
@@ -85,8 +92,33 @@ class UserController extends Controller
      */
     public function store(Request $request, objAction $action)
     {
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'password' => 'required|string|min:6',
+            'nationality_id' => 'nullable|integer',
+            'national_num' => 'nullable|string|max:50',
+            'birthdate' => 'nullable|date',
+            'phone2' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:100',
+            'rooms_num' => 'nullable|integer|min:0',
+            'family_num' => 'nullable|integer|min:0',
+            'children' => 'nullable|integer|min:0',
+            'job' => 'nullable|string|max:100'
+        ]);
 
+        $data['password'] = bcrypt($data['password']);
+        $data['is_blocked'] = 0;
 
+        $client = objModel::create($data);
+
+        return response()->json([
+            'code' => 200,
+            'message' => __('ingaz.client_created_successfully'),
+            'url' => route($this->mainRoute . '.index')
+        ]);
     }
 
     /**
@@ -104,28 +136,48 @@ class UserController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
-     * @param int $id
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function edit(Request $request, $id)
+    public function edit($id)
     {
-
+        $client = objModel::findOrFail($id);
+        return view($this->folderPath . '.edit', compact('client'));
     }
 
     /**
      * Update the specified resource in storage.
      *
-     * @param \Illuminate\Http\Request $request
-     * @param int $id
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update($id)
+    public function update(Request $request, $id)
     {
-        $model = objModel::find($id);
-        $model->is_blocked = !$model->is_blocked;
-        $model->update();
-        return response()->json(['success' => true]);
+        $client = objModel::findOrFail($id);
 
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'phone_code' => 'required|string|max:10',
+            'phone' => 'required|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'nationality_id' => 'nullable|exists:nationalities,id',
+            'national_num' => 'nullable|string|max:50',
+            'birthdate' => 'nullable|date',
+            'phone2' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:100',
+            'rooms_num' => 'nullable|integer|min:0',
+            'family_num' => 'nullable|integer|min:0',
+            'children' => 'nullable|integer|min:0',
+            'job' => 'nullable|string|max:100',
+            'is_blocked' => 'required|boolean'
+        ]);
+
+        $client->update($data);
+
+        return redirect()->route($this->mainRoute . '.index')
+            ->with('success', __('ingaz.client_updated_successfully'));
     }
 
     /**

@@ -78,6 +78,12 @@ return [
         'guard_name' => 'admin',
     ],
     [
+        'name' => 'clients_create',
+        'group_name' => 'clients',
+        'section_name' => 'users_management',
+        'guard_name' => 'admin',
+    ],
+    [
         'name' => 'clients_delete',
         'group_name' => 'clients',
         'section_name' => 'users_management',

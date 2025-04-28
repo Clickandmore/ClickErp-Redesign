@@ -39,13 +39,22 @@ class OrderController extends Controller
     }
     public function store(OrderRequest $request, objAction $action)
     {
-        // dd('store func');
-        $dataInsert = $request->only($this->postData);
+        // Check if user has more than 2 active orders
+        $activeOrdersCount = Order::where('user_id', Auth::user()->id)
+            ->whereNotIn('status', ['done', 'refused'])
+            ->count();
+
+        if ($activeOrdersCount >= 2) {
+            return jsonSuccess(null, ' يوجد اكثر من طلبين مفعلين ', 410);
+        }
+
+        // Check if maid is already booked
         $order = Order::where('maid_id', $request->maid_id)->whereNotIn('status', ['done', 'refused'])->first();
         if ($order){
             return jsonSuccess(null, 'هذه العامله محجوزة', 410);
         }
 
+        $dataInsert = $request->only($this->postData);
         $data = $action->storeOrder($dataInsert, $request);
         $orderID = $data->id; // Capture the created order ID
 

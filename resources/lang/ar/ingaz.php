@@ -1,4 +1,4 @@
-<?php return array(
+<?php return array (
   'users' => 'المستخدمين',
   'job_titles' => 'الوظائف',
   'title' => 'العنوان',
@@ -286,4 +286,12 @@
   'completed_contract' => 'Completed contract',
   'the_order' => 'الطلب',
   'select_order' => 'اختيار الطلب',
+  'cancel' => 'الغاء',
+  'edit' => 'تعديل',
+  'edit_client' => 'تعديل بيانات العميل',
+  'client_updated_successfully' => 'تم تحديث بيانات العميل بنجاح',
+  'blocked' => ' محظور',
+  'active' => 'مفعل',
+  'add_client' => 'اضافة عميل',
+  'select_nationality' => 'اختيار الجنسية',
 );

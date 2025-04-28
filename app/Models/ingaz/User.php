@@ -14,6 +14,7 @@ class User extends Authenticatable implements JWTSubject
 {
     use HasFactory, Notifiable, LogsActivity;
 
+    protected $table = 'users';
     protected $guarded = [];
 
 
