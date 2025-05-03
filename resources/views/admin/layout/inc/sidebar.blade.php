@@ -489,13 +489,27 @@
                     </li>
                 @endif
                 @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_VIEW))
-                    <li>
-                        <a class="m-link {{ (Route::currentRouteName() == 'complaints.index') ? 'active' : '' }}"
-                            href="{{route('complaints.index')}}">
-                            <i class="fa fa-paper-plane"></i>
-                            <span class="ms-2"> {{ helperTrans('ingaz.complaints') }}</span>
-                        </a>
-                    </li>
+                <li class="collapsed">
+                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#complaintsMenu" href="#">
+                        <i class="fa fa-exclamation-triangle"></i>
+                        <span class="ms-2">إدارة الشكاوى</span>
+                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                    </a>
+                    <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['complaints.index', 'complaint-types.index'])) ? 'show' : '' }}" id="complaintsMenu">
+                        <li>
+                            <a class="m-link {{ Route::currentRouteName() == 'complaints.index' ? 'active' : '' }}" href="{{ route('complaints.index') }}">
+                                <i class="fa fa-list"></i>
+                                <span class="ms-2">الشكاوى</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="m-link {{ Route::currentRouteName() == 'complaint-types.index' ? 'active' : '' }}" href="{{ route('complaint-types.index') }}">
+                                <i class="fa fa-tags"></i>
+                                <span class="ms-2">أنواع الشكاوى</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
                 @endif
                 @if (@AdminGuardHasPerm(\App\PermKeys::STAT_VIEW))
                     <li>
@@ -558,6 +572,8 @@
                         </a>
                     </li>
                 @endif
+
+
             </ul>
         </div>
 

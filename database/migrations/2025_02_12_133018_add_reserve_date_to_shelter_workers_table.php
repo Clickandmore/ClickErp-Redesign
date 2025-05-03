@@ -13,9 +13,7 @@ class AddReserveDateToShelterWorkersTable extends Migration
      */
     public function up()
     {
-        Schema::table('shelter_workers', function (Blueprint $table) {
-            $table->date('reserve_date')->nullable()->after('reserve');
-        });
+        // تم نقل إضافة العمود إلى migration آخر لتجنب التكرار
     }
 
     /**
@@ -25,8 +23,6 @@ class AddReserveDateToShelterWorkersTable extends Migration
      */
     public function down()
     {
-        Schema::table('shelter_workers', function (Blueprint $table) {
-            $table->dropColumn('reserve_date');
-        });
+        // تم نقل حذف العمود إلى migration آخر لتجنب التكرار
     }
 }

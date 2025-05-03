@@ -13,9 +13,18 @@ class AddSortAtAdminsTable extends Migration
      */
     public function up()
     {
-        Schema::table('admins', function (Blueprint $table) {
-            $table->integer('sort')->default(999)->after('admin_type');
-        });
+        // تحقق إذا كان العمود موجود مسبقًا
+        if (!Schema::hasColumn('admins', 'sort')) {
+            Schema::table('admins', function (Blueprint $table) {
+                $table->integer('sort')->default(999)->after('admin_type');
+            });
+        }
+
+        if (!Schema::hasColumn('shelter_workers', 'reserve_date')) {
+            Schema::table('shelter_workers', function (Blueprint $table) {
+                $table->date('reserve_date')->nullable()->after('reserve');
+            });
+        }
     }
 
     /**
@@ -25,8 +34,16 @@ class AddSortAtAdminsTable extends Migration
      */
     public function down()
     {
-        Schema::table('admins', function (Blueprint $table) {
-            $table->dropColumn('sort');
-        });
+        if (Schema::hasColumn('admins', 'sort')) {
+            Schema::table('admins', function (Blueprint $table) {
+                $table->dropColumn('sort');
+            });
+        }
+
+        if (Schema::hasColumn('shelter_workers', 'reserve_date')) {
+            Schema::table('shelter_workers', function (Blueprint $table) {
+                $table->dropColumn('reserve_date');
+            });
+        }
     }
 }

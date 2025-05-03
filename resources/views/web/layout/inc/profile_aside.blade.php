@@ -18,11 +18,14 @@
             <li class="{{ (Route::currentRouteName() == 'web.contracts.index') ? 'active' : '' }}">
                 <a href="{{route('web.contracts.index')}}"><i class="fa-regular fa-list-check"></i> {{ helperTrans('web.my_contracts') }}</a>
             </li>
-            <li class="">
+            <li class="{{ (Route::currentRouteName() == 'web.complaints.index') ? 'active' : '' }}">
+                <a href="{{route('web.complaints.index')}}"><i class="fa-light fa-triangle-exclamation"></i> {{ helperTrans('web.my_complaints') }}</a>
+            </li>
+           {{-- <li class="">
                 <button class="complain" data-bs-toggle="modal" data-bs-target="#complain">
                     <i class="fa-light fa-triangle-exclamation"></i>{{helperTrans('web.complaint_or_inquiry')}}
                 </button>
-            </li>
+            </li> --}}
 
             <li>
                 <a href="{{route('web.logout')}}">

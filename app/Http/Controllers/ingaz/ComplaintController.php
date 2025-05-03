@@ -8,6 +8,7 @@ use App\Models\ingaz\Complaint as objModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
+use App\Models\ingaz\ComplaintType;
 
 class ComplaintController extends Controller
 {
@@ -24,29 +25,64 @@ class ComplaintController extends Controller
 
     public function index(Request $request)
     {
-
         if ($request->ajax()) {
-            $contacts = objModel::query()->latest();
-            return DataTables::of($contacts)
+            $query = objModel::query()->with('user');
+
+            return DataTables::of($query)
                 ->addIndexColumn()
-                ->editColumn('user_id',function($rows){
-                    return ($rows->user) ? $rows->user->name : '';
+                ->editColumn('user_id', function($row) {
+                    return $row->user ? $row->user->name : 'غير معروف';
+                })
+                ->editColumn('status', function($row) {
+                    $status = $row->status;
+                    $badgeClass = '';
+                    switch($status) {
+                        case 'pending':
+                            $badgeClass = 'bg-warning';
+                            break;
+                        case 'resolved':
+                            $badgeClass = 'bg-success';
+                            break;
+                        case 'rejected':
+                            $badgeClass = 'bg-danger';
+                            break;
+                    }
+                    return '<span class="badge ' . $badgeClass . '">' . helperTrans('ingaz.' . $status) . '</span>';
                 })
                 ->addColumn('actions', function ($row) {
-                    $deleteButton = '';
-                    if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_DELETE)) {
-                        $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
-                    }
-                    return $deleteButton;
-                })->escapeColumns([])->make(true);
+                    $buttons = '<div class="btn-group" role="group" aria-label="Actions">';
+                    $buttons .= '<button class="btn btn-sm btn-primary response-btn" data-id="' . $row->id . '" data-response="' . htmlspecialchars($row->response ?? '', ENT_QUOTES) . '" data-status="' . $row->status . '">
+                        <i class="fa fa-reply"></i> ' . helperTrans('ingaz.respond') . '
+                    </button>';
+                    $buttons .= deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                    $buttons .= '</div>';
+                    return $buttons;
+                })
+                ->rawColumns(['status', 'actions'])
+                ->make(true);
         }
-        $data["dataTableRoute"] = route($this->mainRoute . ".index");
-        return view($this->folderPath . '.index', $data);
+
+        return view($this->folderPath . '.index');
     }
 
-    public function destroy($id,ComplaintAction $action)
+    public function response(Request $request)
+    {
+        $complaint = objModel::findOrFail($request->complaint_id);
+        $complaint->response = $request->response;
+        $complaint->status = $request->status;
+        $complaint->save();
+
+        return jsonSuccess(null, 'تم حفظ الرد بنجاح');
+    }
+
+    public function destroy($id, ComplaintAction $action)
     {
         $action->delete($id);
         return jsonSuccess();
+    }
+
+    public function type()
+    {
+        return $this->belongsTo(ComplaintType::class, 'complaint_type_id');
     }
 }

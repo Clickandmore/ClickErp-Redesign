@@ -66,13 +66,13 @@ class AdminController extends Controller
                     // if (Auth::guard('admin')->user()->hasPermission('المستخدمون-تعديل')) {
                     $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
                     // }
-    
+
                     // if (Auth::guard('admin')->user()->hasPermission('المستخدمون-حذف')) {
                     if ($row->id != Auth::guard('admin')->user()->id) {
                         $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
                     }
                     // }
-    
+
                     return $editButton . " " . $deleteButton;
                 })->escapeColumns([])->make(true);
         }

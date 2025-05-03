@@ -72,7 +72,7 @@ Route::group(
             //** PRINT CONTRACT **//
             Route::get('/print_contract/{contractId?}', [PrintContractController::class, 'contract'])->name('print.contract');
             //** END NEW *//
-    
+
             Route::resource('settings', SettingController::class);
             Route::resource('develop-settings', DevelopSettingController::class);
             Route::resource('job-titles', JobTitleController::class);
@@ -121,6 +121,8 @@ Route::group(
             Route::get('/order_file/{id}/download', [App\Http\Controllers\ingaz\OrderController::class, 'download'])->name('order_files.download');
             Route::get('/cancel_contracts', [App\Http\Controllers\ingaz\ContractsController::class, 'cancel_contracts'])->name('cancel_contracts');
 
+            Route::resource('complaint-types', ComplaintTypeController::class);
+            Route::post('complaints/response', [ComplaintController::class, 'response'])->name('complaints.response');
         });
 
     }
@@ -166,3 +168,4 @@ Route::group(
 
     }
 );
+

@@ -21,7 +21,8 @@ class ComplaintController extends Controller
          */
         public function index(Request $request, objAction $action)
         {
-            //
+            $complaints = objModel::where('user_id', getGuardedUser()->id)->latest()->get();
+            return view('web.ingaz.complaints.index', compact('complaints'));
         }
 
         /**

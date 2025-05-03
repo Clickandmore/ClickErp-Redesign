@@ -283,5 +283,14 @@
   'auth' => 'التسجيل',
   'continue' => 'استمرار',
   'enter_phone_to_continue' => 'أدخل رقم الهاتف للمتابعة',
-  'thank_you_for_trust' => 'نشكركم على ثقتكم الغالية ونتشرف بتقديم خدمة متميزة تلبي جميع احتياجاتك'
+  'thank_you_for_trust' => 'نشكركم على ثقتكم الغالية ونتشرف بتقديم خدمة متميزة تلبي جميع احتياجاتك',
+  'my_complaints' => ' الشكاوي والاستفسارات',
+  'all_complaints' => ' الشكاوي والاستفسارات',
+  'add_complaint' => 'إضافة شكوى جديدة',
+  'date' => 'التاريخ',
+  'complaint_status' => 'حالة الشكوى',
+  'complaint_status_pending' => 'قيد المعالجة',
+  'complaint_status_resolved' => 'محلول',
+  'complaint_status_rejected' => 'مرفوض',
+  'response' => 'Response',
 );
