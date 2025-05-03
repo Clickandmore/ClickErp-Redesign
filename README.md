@@ -2,7 +2,7 @@
    bash
    Copy code
 
-##    **git clone https://github.com/Nami-BackEnd/empty-project-8**
+
 
    cd your-project-name
    Save to grepper

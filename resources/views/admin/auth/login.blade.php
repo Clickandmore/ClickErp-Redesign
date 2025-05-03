@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{isset($developSettings) ? $developSettings->name : 'Nami'}} | {{__("auth.login")}}</title>
+    <title>{{isset($developSettings) ? $developSettings->name : 'اسس الانجاز للاستقدام'}} | {{__("auth.login")}}</title>
     <link rel="stylesheet" href="{{asset('admin/login')}}/css/style.css">
     <link rel="stylesheet" href="{{asset('admin/login')}}/css/fontawesome.min.css">
     <link rel="stylesheet" href="{{asset('admin')}}/assets/vendor/toster/css/jquery.toast.css">
