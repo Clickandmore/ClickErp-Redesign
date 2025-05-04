@@ -302,6 +302,248 @@ class MaidController extends Controller
         return jsonSuccess();
     }
 
+    public function exportPdf()
+    {
+        $maids = objModel::with('nationality', 'religion', 'jobTypes', 'jobTitles')->get();
+
+        // Create HTML content with RTL support and better styling
+        $html = '<!DOCTYPE html>
+        <html dir="rtl">
+        <head>
+            <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+            <title>قائمة السيرة الذاتية</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    direction: rtl;
+                    margin: 20px;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    padding: 10px;
+                    background-color: #f8f9fa;
+                    border-radius: 5px;
+                }
+                .header h1 {
+                    color: #333;
+                    margin-bottom: 10px;
+                }
+                .print-button {
+                    display: inline-block;
+                    padding: 10px 20px;
+                    background-color: #4CAF50;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 5px;
+                    margin-bottom: 20px;
+                    cursor: pointer;
+                    border: none;
+                    font-size: 16px;
+                }
+                .print-button:hover {
+                    background-color: #45a049;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 20px;
+                    font-size: 12px;
+                }
+                th, td {
+                    border: 1px solid #ddd;
+                    padding: 8px;
+                    text-align: right;
+                }
+                th {
+                    background-color: #f2f2f2;
+                    color: #333;
+                    font-weight: bold;
+                }
+                tr:nth-child(even) {
+                    background-color: #f9f9f9;
+                }
+                .status-active {
+                    color: green;
+                }
+                .status-blocked {
+                    color: red;
+                }
+                @media print {
+                    .print-button {
+                        display: none;
+                    }
+                    body {
+                        margin: 0;
+                        padding: 20px;
+                    }
+                    table {
+                        page-break-inside: auto;
+                    }
+                    tr {
+                        page-break-inside: avoid;
+                        page-break-after: auto;
+                    }
+                }
+            </style>
+            <script>
+                function printDocument() {
+                    window.print();
+                }
+                window.onload = function() {
+                    window.print();
+                }
+            </script>
+        </head>
+        <body>
+            <div class="header">
+                <h1>قائمة السيرة الذاتية</h1>
+                <p>تم التصدير في: ' . date('Y-m-d H:i:s') . '</p>
+                <button class="print-button" onclick="printDocument()">طباعة</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>رقم السيرة الذاتية</th>
+                        <th>الاسم</th>
+                        <th>رقم جواز السفر</th>
+                        <th>الجنسية</th>
+                        <th>الدين</th>
+                        <th>العمر</th>
+                        <th>سنوات الخبرة</th>
+                        <th>الراتب</th>
+                        <th>السعر</th>
+                        <th>أنواع الوظائف</th>
+                        <th>الوظائف</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>';
+
+        foreach ($maids as $maid) {
+            $jobTypes = $maid->jobTypes->pluck('title')->implode(', ');
+            $jobTitles = $maid->jobTitles->pluck('title')->implode(', ');
+            $statusText = $maid->available ? 'متاح' : 'غير متاح';
+
+            $html .= '<tr>
+                <td>' . $maid->id . '</td>
+                <td>' . $maid->name . '</td>
+                <td>' . $maid->passport_num . '</td>
+                <td>' . ($maid->nationality->title ?? '') . '</td>
+                <td>' . ($maid->religion->title ?? '') . '</td>
+                <td>' . $maid->age . '</td>
+                <td>' . $maid->experience_years . '</td>
+                <td>' . $maid->salary . '</td>
+                <td>' . $maid->price . '</td>
+                <td>' . $jobTypes . '</td>
+                <td>' . $jobTitles . '</td>
+                <td>' . $statusText . '</td>
+            </tr>';
+        }
+
+        $html .= '</tbody></table></body></html>';
+
+        // Return HTML with print styles
+        $headers = [
+            'Content-Type' => 'text/html',
+            'Content-Disposition' => 'inline; filename="maids.html"',
+        ];
+
+        return response($html, 200, $headers);
+    }
+
+    public function exportExcel()
+    {
+        $maids = objModel::with('nationality', 'religion', 'jobTypes', 'jobTitles')->get();
+
+        // Create new Spreadsheet object
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Set RTL direction
+        $sheet->setRightToLeft(true);
+
+        // Set headers
+        $headers = [
+            'رقم السيرة الذاتية',
+            'الاسم',
+            'رقم جواز السفر',
+            'الجنسية',
+            'الدين',
+            'العمر',
+            'سنوات الخبرة',
+            'الراتب',
+            'السعر',
+            'أنواع الوظائف',
+            'الوظائف',
+            'الحالة'
+        ];
+
+        // Set headers in first row
+        $sheet->fromArray($headers, NULL, 'A1');
+
+        // Style headers
+        $headerStyle = [
+            'font' => [
+                'bold' => true,
+                'size' => 12,
+            ],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => [
+                    'rgb' => 'F2F2F2',
+                ],
+            ],
+        ];
+        $sheet->getStyle('A1:L1')->applyFromArray($headerStyle);
+
+        // Set data
+        $row = 2;
+        foreach ($maids as $maid) {
+            $jobTypes = $maid->jobTypes->pluck('title')->implode(', ');
+            $jobTitles = $maid->jobTitles->pluck('title')->implode(', ');
+            $statusText = $maid->available ? 'متاح' : 'غير متاح';
+
+            $sheet->setCellValue('A' . $row, $maid->id);
+            $sheet->setCellValue('B' . $row, $maid->name);
+            $sheet->setCellValue('C' . $row, $maid->passport_num);
+            $sheet->setCellValue('D' . $row, $maid->nationality->title ?? '');
+            $sheet->setCellValue('E' . $row, $maid->religion->title ?? '');
+            $sheet->setCellValue('F' . $row, $maid->age);
+            $sheet->setCellValue('G' . $row, $maid->experience_years);
+            $sheet->setCellValue('H' . $row, $maid->salary);
+            $sheet->setCellValue('I' . $row, $maid->price);
+            $sheet->setCellValue('J' . $row, $jobTypes);
+            $sheet->setCellValue('K' . $row, $jobTitles);
+            $sheet->setCellValue('L' . $row, $statusText);
+            $row++;
+        }
+
+        // Auto-size columns
+        foreach(range('A','L') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        // Create Excel writer
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+
+        // Set headers for download
+        $headers = [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="maids.xlsx"',
+        ];
+
+        // Save to temporary file
+        $tempFile = tempnam(sys_get_temp_dir(), 'xlsx');
+        $writer->save($tempFile);
+
+        // Return file
+        return response()->download($tempFile, 'maids.xlsx', $headers)->deleteFileAfterSend(true);
+    }
+
     private function createAjaxResponse(NationalityAction $act, RecruitmentOfficeAction $officeAction, ReligionAction $relAct, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction, $viewName, $additionalData = [])
     {
         $nationalities = $act->getNationalities();

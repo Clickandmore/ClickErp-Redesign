@@ -301,4 +301,7 @@
   'response' => 'الرد',
   'respond' => 'رد',
   'response_to_complaint' => 'الرد على الشكوى',
+  'export_pdf' => 'تصدير PDF',
+  'export_excel' => 'تصدير Excel',
+  'add_maid' => 'Add maid',
 );

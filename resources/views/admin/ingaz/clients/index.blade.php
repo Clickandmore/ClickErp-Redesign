@@ -11,6 +11,12 @@
         <a href="{{ route('clients.create') }}" class="btn btn-primary">
             <i class="fa fa-plus"></i> {{helperTrans("ingaz.add_client")}}
         </a>
+        <a href="{{ route('clients.export.pdf') }}" class="btn btn-danger" target="_blank">
+            <i class="fa fa-file-pdf"></i> {{helperTrans("ingaz.export_pdf")}}
+        </a>
+        <a href="{{ route('clients.export.excel') }}" class="btn btn-success">
+            <i class="fa fa-file-excel"></i> {{helperTrans("ingaz.export_excel")}}
+        </a>
     </div>
 
     <p>{{helperTrans('ingaz.Toggle account status by clicking on an active or blocked button')}}</p>

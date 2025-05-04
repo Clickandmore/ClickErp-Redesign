@@ -18,6 +18,7 @@ use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Admin\AdminContractController;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use App\Http\Controllers\ingaz\MaidController as IngazMaidController;
+use App\Http\Controllers\ingaz\UserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -132,6 +133,15 @@ Route::group(
         );
         Route::resource('contact-us', ContactUs::class);
         Route::get('/about-us', [\App\Http\Controllers\Web\AboutUsController::class, 'index'])->name('about-us');
+        Route::get('/clients/export/pdf', [UserController::class, 'exportPdf'])->name('clients.export.pdf');
+        Route::get('/clients/export/excel', [UserController::class, 'exportExcel'])->name('clients.export.excel');
     }
 );
+
+Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () {
+    Route::group(['prefix' => 'ingaz'], function () {
+        Route::get('/clients/export/pdf', [UserController::class, 'exportPdf'])->name('clients.export.pdf');
+        Route::get('/clients/export/excel', [UserController::class, 'exportExcel'])->name('clients.export.excel');
+    });
+});
 

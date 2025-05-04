@@ -191,4 +191,378 @@ class UserController extends Controller
         $action->delete($id);
         return jsonSuccess();
     }
+
+    public function exportPdf()
+    {
+        $clients = objModel::all();
+
+        // Create HTML content with RTL support and better styling
+        $html = '<!DOCTYPE html>
+        <html dir="rtl">
+        <head>
+            <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+            <title>قائمة العملاء</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    direction: rtl;
+                    margin: 20px;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    padding: 10px;
+                    background-color: #f8f9fa;
+                    border-radius: 5px;
+                }
+                .header h1 {
+                    color: #333;
+                    margin-bottom: 10px;
+                }
+                .print-button {
+                    display: inline-block;
+                    padding: 10px 20px;
+                    background-color: #4CAF50;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 5px;
+                    margin-bottom: 20px;
+                    cursor: pointer;
+                    border: none;
+                    font-size: 16px;
+                }
+                .print-button:hover {
+                    background-color: #45a049;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 20px;
+                    font-size: 12px;
+                }
+                th, td {
+                    border: 1px solid #ddd;
+                    padding: 8px;
+                    text-align: right;
+                }
+                th {
+                    background-color: #f2f2f2;
+                    color: #333;
+                    font-weight: bold;
+                }
+                tr:nth-child(even) {
+                    background-color: #f9f9f9;
+                }
+                .status-active {
+                    color: green;
+                }
+                .status-blocked {
+                    color: red;
+                }
+                @media print {
+                    .print-button {
+                        display: none;
+                    }
+                    body {
+                        margin: 0;
+                        padding: 20px;
+                    }
+                    table {
+                        page-break-inside: auto;
+                    }
+                    tr {
+                        page-break-inside: avoid;
+                        page-break-after: auto;
+                    }
+                }
+            </style>
+            <script>
+                function printDocument() {
+                    window.print();
+                }
+                window.onload = function() {
+                    window.print();
+                }
+            </script>
+        </head>
+        <body>
+            <div class="header">
+                <h1>قائمة العملاء</h1>
+                <p>تم التصدير في: ' . date('Y-m-d H:i:s') . '</p>
+                <button class="print-button" onclick="printDocument()">طباعة</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>رقم العميل</th>
+                        <th>الاسم</th>
+                        <th>رقم الهاتف</th>
+                        <th>البريد الإلكتروني</th>
+                        <th>الجنسية</th>
+                        <th>رقم الهوية</th>
+                        <th>تاريخ الميلاد</th>
+                        <th>العنوان</th>
+                        <th>المدينة</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>';
+
+        foreach ($clients as $client) {
+            $statusClass = $client->is_blocked ? 'status-blocked' : 'status-active';
+            $statusText = $client->is_blocked ? 'محظور' : 'مفعل';
+
+            $html .= '<tr>
+                <td>' . $client->id . '</td>
+                <td>' . $client->name . '</td>
+                <td>' . $client->phone_code . $client->phone . '</td>
+                <td>' . $client->email . '</td>
+                <td>' . ($client->nationality->title ?? '') . '</td>
+                <td>' . $client->national_num . '</td>
+                <td>' . $client->birthdate . '</td>
+                <td>' . $client->address . '</td>
+                <td>' . $client->city . '</td>
+                <td class="' . $statusClass . '">' . $statusText . '</td>
+            </tr>';
+        }
+
+        $html .= '</tbody></table></body></html>';
+
+        // Return HTML with print styles
+        $headers = [
+            'Content-Type' => 'text/html',
+            'Content-Disposition' => 'inline; filename="clients.html"',
+        ];
+
+        return response($html, 200, $headers);
+    }
+
+    public function exportPdfNewWindow()
+    {
+        $clients = objModel::all();
+
+        // Create HTML content with RTL support and better styling
+        $html = '<!DOCTYPE html>
+        <html dir="rtl">
+        <head>
+            <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+            <title>قائمة العملاء</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    direction: rtl;
+                    margin: 20px;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    padding: 10px;
+                    background-color: #f8f9fa;
+                    border-radius: 5px;
+                }
+                .header h1 {
+                    color: #333;
+                    margin-bottom: 10px;
+                }
+                .print-button {
+                    display: inline-block;
+                    padding: 10px 20px;
+                    background-color: #4CAF50;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 5px;
+                    margin-bottom: 20px;
+                    cursor: pointer;
+                    border: none;
+                    font-size: 16px;
+                }
+                .print-button:hover {
+                    background-color: #45a049;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 20px;
+                    font-size: 12px;
+                }
+                th, td {
+                    border: 1px solid #ddd;
+                    padding: 8px;
+                    text-align: right;
+                }
+                th {
+                    background-color: #f2f2f2;
+                    color: #333;
+                    font-weight: bold;
+                }
+                tr:nth-child(even) {
+                    background-color: #f9f9f9;
+                }
+                .status-active {
+                    color: green;
+                }
+                .status-blocked {
+                    color: red;
+                }
+                @media print {
+                    .print-button {
+                        display: none;
+                    }
+                    body {
+                        margin: 0;
+                        padding: 20px;
+                    }
+                    table {
+                        page-break-inside: auto;
+                    }
+                    tr {
+                        page-break-inside: avoid;
+                        page-break-after: auto;
+                    }
+                }
+            </style>
+            <script>
+                function printDocument() {
+                    window.print();
+                }
+                window.onload = function() {
+                    window.print();
+                }
+            </script>
+        </head>
+        <body>
+            <div class="header">
+                <h1>قائمة العملاء</h1>
+                <p>تم التصدير في: ' . date('Y-m-d H:i:s') . '</p>
+                <button class="print-button" onclick="printDocument()">طباعة</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>رقم العميل</th>
+                        <th>الاسم</th>
+                        <th>رقم الهاتف</th>
+                        <th>البريد الإلكتروني</th>
+                        <th>الجنسية</th>
+                        <th>رقم الهوية</th>
+                        <th>تاريخ الميلاد</th>
+                        <th>العنوان</th>
+                        <th>المدينة</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>';
+
+        foreach ($clients as $client) {
+            $statusClass = $client->is_blocked ? 'status-blocked' : 'status-active';
+            $statusText = $client->is_blocked ? 'محظور' : 'مفعل';
+
+            $html .= '<tr>
+                <td>' . $client->id . '</td>
+                <td>' . $client->name . '</td>
+                <td>' . $client->phone_code . $client->phone . '</td>
+                <td>' . $client->email . '</td>
+                <td>' . ($client->nationality->title ?? '') . '</td>
+                <td>' . $client->national_num . '</td>
+                <td>' . $client->birthdate . '</td>
+                <td>' . $client->address . '</td>
+                <td>' . $client->city . '</td>
+                <td class="' . $statusClass . '">' . $statusText . '</td>
+            </tr>';
+        }
+
+        $html .= '</tbody></table></body></html>';
+
+        // Return HTML with print styles
+        $headers = [
+            'Content-Type' => 'text/html',
+            'Content-Disposition' => 'inline; filename="clients.html"',
+        ];
+
+        return response($html, 200, $headers);
+    }
+
+    public function exportExcel()
+    {
+        $clients = objModel::all();
+
+        // Create new Spreadsheet object
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Set RTL direction
+        $sheet->setRightToLeft(true);
+
+        // Set headers
+        $headers = [
+            'رقم العميل',
+            'الاسم',
+            'رقم الهاتف',
+            'البريد الإلكتروني',
+            'الجنسية',
+            'رقم الهوية',
+            'تاريخ الميلاد',
+            'العنوان',
+            'المدينة',
+            'الحالة'
+        ];
+
+        // Set headers in first row
+        $sheet->fromArray($headers, NULL, 'A1');
+
+        // Style headers
+        $headerStyle = [
+            'font' => [
+                'bold' => true,
+                'size' => 12,
+            ],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => [
+                    'rgb' => 'F2F2F2',
+                ],
+            ],
+        ];
+        $sheet->getStyle('A1:J1')->applyFromArray($headerStyle);
+
+        // Set data
+        $row = 2;
+        foreach ($clients as $client) {
+            $sheet->setCellValue('A' . $row, $client->id);
+            $sheet->setCellValue('B' . $row, $client->name);
+            $sheet->setCellValue('C' . $row, $client->phone_code . $client->phone);
+            $sheet->setCellValue('D' . $row, $client->email);
+            $sheet->setCellValue('E' . $row, $client->nationality->title ?? '');
+            $sheet->setCellValue('F' . $row, $client->national_num);
+            $sheet->setCellValue('G' . $row, $client->birthdate);
+            $sheet->setCellValue('H' . $row, $client->address);
+            $sheet->setCellValue('I' . $row, $client->city);
+            $sheet->setCellValue('J' . $row, $client->is_blocked ? 'محظور' : 'مفعل');
+            $row++;
+        }
+
+        // Auto-size columns
+        foreach(range('A','J') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        // Create Excel writer
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+
+        // Set headers for download
+        $headers = [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="clients.xlsx"',
+        ];
+
+        // Save to temporary file
+        $tempFile = tempnam(sys_get_temp_dir(), 'xlsx');
+        $writer->save($tempFile);
+
+        // Return file
+        return response()->download($tempFile, 'clients.xlsx', $headers)->deleteFileAfterSend(true);
+    }
 }

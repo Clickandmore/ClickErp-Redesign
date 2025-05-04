@@ -86,12 +86,27 @@
                     <button id="btnSubmit" class="btn btn-light-info">بحث</button>
                     <a href="{{route('maids.index')}}" class="btn btn-danger cancel_request_add "> إلغاء البحث </a>
                 </div>
-                @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CONTROL))
-                    <div class="col-sm-4">
+
+            </div>
+        </div>
+    </div>
+
+
+        <div class="row">
+        @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CONTROL))
+                    <div class="col-sm-3">
                         {!! addButton(route("maids.create") ,helperTrans("ingaz.maid")) !!}
                     </div>
                 @endif
-            </div>
+                <div class="col-sm-2">
+                <a href="{{ route('maids.export.pdf') }}" class="btn btn-danger" target="_blank">
+            <i class="fa fa-file-pdf"></i> {{helperTrans("ingaz.export_pdf")}}
+        </a>
+        </div>
+        <div class="col-sm-3">
+        <a href="{{ route('maids.export.excel') }}" class="btn btn-success">
+                <i class="fa fa-file-excel"></i> {{helperTrans("ingaz.export_excel")}}
+            </a>
         </div>
     </div>
 
