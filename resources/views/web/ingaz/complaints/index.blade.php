@@ -28,6 +28,7 @@
                                     <thead>
                                         <tr>
                                             <th>#</th>
+                                            <th>{{helperTrans('web.complaint_type')}}</th>
                                             <th>{{helperTrans('web.complaint_title')}}</th>
                                             <th>{{helperTrans('web.complaint_details')}}</th>
                                             <th>{{helperTrans('web.complaint_status')}}</th>
@@ -39,6 +40,7 @@
                                         @foreach($complaints as $complaint)
                                         <tr>
                                             <td>{{$loop->iteration}}</td>
+                                            <td>{{$complaint->complaintType->name ?? '-'}}</td>
                                             <td>{{$complaint->address}}</td>
                                             <td>{{$complaint->message}}</td>
                                             <td>
@@ -84,36 +86,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form class="form-wrap from-submit-global" action="{{route('web.complaints.store')}}" method="post" id="complaintForm">
-                    @csrf
-                    <div class="row">
-                        <div class="col-12 p-2">
-                            <div class="form-group">
-                                <label for="locationName">
-                                    <i class="fa-light fa-clipboard"></i>
-                                    {{helperTrans('web.complaint_title')}}
-                                </label>
-                                <input id="address" name="address" type="text" placeholder="{{helperTrans('web.house_example')}}">
-                            </div>
-                        </div>
-                        <div class="col-lg-12 p-2">
-                            <div class="form-group">
-                                <label for="details">
-                                    <i class="fa-regular fa-comment-dots"></i>
-                                    {{helperTrans('web.complaint_details')}}
-                                </label>
-                                <textarea name="message" id="message" placeholder="{{helperTrans('web.complaint_details')}} "></textarea>
-                            </div>
-                        </div>
-                        <div class="col-lg-12 p-2">
-                            <div class="form-group mb-0">
-                                <button type="submit">
-                                    {{helperTrans('web.save')}}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
+                @include('web.ingaz.complaints._form')
             </div>
         </div>
     </div>

@@ -292,5 +292,8 @@
   'complaint_status_pending' => 'قيد المعالجة',
   'complaint_status_resolved' => 'محلول',
   'complaint_status_rejected' => 'مرفوض',
-  'response' => 'Response',
+  'response' => 'الرد',
+  'select_complaint_type' => 'اختر نوع الشكوى',
+  'complaint_type' => 'نوع الشكوى',
+  'complaint_response' => 'الرد على الشكوى',
 );

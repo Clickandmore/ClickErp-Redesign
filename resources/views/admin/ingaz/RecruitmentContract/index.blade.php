@@ -8,6 +8,18 @@
 
 @section('content')
 @if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACT_VIEW))
+    <div class="row mb-3">
+        <div class="col-sm-2">
+            <a href="{{ route('RecruitmentContract.export.pdf') }}" class="btn btn-danger" target="_blank">
+                <i class="fa fa-file-pdf"></i> {{helperTrans("ingaz.export_pdf")}}
+            </a>
+        </div>
+        <div class="col-sm-2">
+            <a href="{{ route('RecruitmentContract.export.excel') }}" class="btn btn-success">
+                <i class="fa fa-file-excel"></i> {{helperTrans("ingaz.export_excel")}}
+            </a>
+        </div>
+    </div>
 
     <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
         <thead>

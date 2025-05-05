@@ -266,4 +266,232 @@ class OrderController extends Controller
         }
         return jsonError(['error' => 'Order not Found!']);
     }
+
+    public function exportPdf()
+    {
+        $orders = objModel::with('user', 'maid', 'jobType', 'details.admin')->get();
+
+        // Create HTML content with RTL support and better styling
+        $html = '<!DOCTYPE html>
+        <html dir="rtl">
+        <head>
+            <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+            <title>قائمة طلبات الاستقدام</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    direction: rtl;
+                    margin: 20px;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 30px;
+                    padding: 10px;
+                    background-color: #f8f9fa;
+                    border-radius: 5px;
+                }
+                .header h1 {
+                    color: #333;
+                    margin-bottom: 10px;
+                }
+                .print-button {
+                    display: inline-block;
+                    padding: 10px 20px;
+                    background-color: #4CAF50;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 5px;
+                    margin-bottom: 20px;
+                    cursor: pointer;
+                    border: none;
+                    font-size: 16px;
+                }
+                .print-button:hover {
+                    background-color: #45a049;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 20px;
+                    font-size: 12px;
+                }
+                th, td {
+                    border: 1px solid #ddd;
+                    padding: 8px;
+                    text-align: right;
+                }
+                th {
+                    background-color: #f2f2f2;
+                    color: #333;
+                    font-weight: bold;
+                }
+                tr:nth-child(even) {
+                    background-color: #f9f9f9;
+                }
+                .status-active {
+                    color: green;
+                }
+                .status-blocked {
+                    color: red;
+                }
+                @media print {
+                    .print-button {
+                        display: none;
+                    }
+                    body {
+                        margin: 0;
+                        padding: 20px;
+                    }
+                    table {
+                        page-break-inside: auto;
+                    }
+                    tr {
+                        page-break-inside: avoid;
+                        page-break-after: auto;
+                    }
+                }
+            </style>
+            <script>
+                function printDocument() {
+                    window.print();
+                }
+                window.onload = function() {
+                    window.print();
+                }
+            </script>
+        </head>
+        <body>
+            <div class="header">
+                <h1>قائمة طلبات الاستقدام</h1>
+                <p>تم التصدير في: ' . date('Y-m-d H:i:s') . '</p>
+                <button class="print-button" onclick="printDocument()">طباعة</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>رقم الطلب</th>
+                        <th>كود الطلب</th>
+                        <th>العميل</th>
+                        <th>رقم هاتف العميل</th>
+                        <th>العاملة</th>
+                        <th>رقم جواز العامل</th>
+                        <th>نوع الوظيفة</th>
+                        <th>طريقة الدفع</th>
+                        <th>الحالة</th>
+                        <th>تاريخ الإنشاء</th>
+                    </tr>
+                </thead>
+                <tbody>';
+
+        foreach ($orders as $order) {
+            $statusText = getEnumValue('orders_statuses', $order->status);
+            $html .= '<tr>
+                <td>' . $order->id . '</td>
+                <td>' . $order->order_code . '</td>
+                <td>' . ($order->user ? $order->user->name : '') . '</td>
+                <td>' . ($order->user ? getPhoneWithTag($order->user->phone_code . $order->user->phone) : '') . '</td>
+                <td>' . ($order->maid ? $order->maid->name : '') . '</td>
+                <td>' . ($order->maid ? $order->maid->passport_num : '') . '</td>
+                <td>' . ($order->jobType ? $order->jobType->title : '') . '</td>
+                <td>' . $order->payment_method . '</td>
+                <td>' . $statusText . '</td>
+                <td>' . $order->created_at->format('Y-m-d H:i A') . '</td>
+            </tr>';
+        }
+
+        $html .= '</tbody></table></body></html>';
+
+        // Return HTML with print styles
+        $headers = [
+            'Content-Type' => 'text/html',
+            'Content-Disposition' => 'inline; filename="orders.html"',
+        ];
+
+        return response($html, 200, $headers);
+    }
+
+    public function exportExcel()
+    {
+        $orders = objModel::with('user', 'maid', 'jobType', 'details.admin')->get();
+
+        // Create new Spreadsheet object
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Set RTL direction
+        $sheet->setRightToLeft(true);
+
+        // Set headers
+        $headers = [
+            'رقم الطلب',
+            'كود الطلب',
+            'العميل',
+            'رقم هاتف العميل',
+            'العاملة',
+            'رقم جواز العامل',
+            'نوع الوظيفة',
+            'طريقة الدفع',
+            'الحالة',
+            'تاريخ الإنشاء'
+        ];
+
+        // Set headers in first row
+        $sheet->fromArray($headers, NULL, 'A1');
+
+        // Style headers
+        $headerStyle = [
+            'font' => [
+                'bold' => true,
+                'size' => 12,
+            ],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => [
+                    'rgb' => 'F2F2F2',
+                ],
+            ],
+        ];
+        $sheet->getStyle('A1:J1')->applyFromArray($headerStyle);
+
+        // Set data
+        $row = 2;
+        foreach ($orders as $order) {
+            $statusText = getEnumValue('orders_statuses', $order->status);
+            $sheet->setCellValue('A' . $row, $order->id);
+            $sheet->setCellValue('B' . $row, $order->order_code);
+            $sheet->setCellValue('C' . $row, $order->user ? $order->user->name : '');
+            $sheet->setCellValue('D' . $row, $order->user ? $order->user->phone_code . $order->user->phone : '');
+            $sheet->setCellValue('E' . $row, $order->maid ? $order->maid->name : '');
+            $sheet->setCellValue('F' . $row, $order->maid ? $order->maid->passport_num : '');
+            $sheet->setCellValue('G' . $row, $order->jobType ? $order->jobType->title : '');
+            $sheet->setCellValue('H' . $row, $order->payment_method);
+            $sheet->setCellValue('I' . $row, $statusText);
+            $sheet->setCellValue('J' . $row, $order->created_at->format('Y-m-d H:i A'));
+            $row++;
+        }
+
+        // Auto-size columns
+        foreach(range('A','J') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        // Create Excel writer
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+
+        // Set headers for download
+        $headers = [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="orders.xlsx"',
+        ];
+
+        // Save to temporary file
+        $tempFile = tempnam(sys_get_temp_dir(), 'xlsx');
+        $writer->save($tempFile);
+
+        // Return file
+        return response()->download($tempFile, 'orders.xlsx', $headers)->deleteFileAfterSend(true);
+    }
 }

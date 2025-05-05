@@ -18,6 +18,11 @@ class Complaint extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function complaintType()
+    {
+        return $this->belongsTo(ComplaintType::class, 'complaint_type_id');
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

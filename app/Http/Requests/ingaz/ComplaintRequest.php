@@ -27,6 +27,7 @@ class ComplaintRequest extends MainRequest
         return [
             'address' => 'required',
             'message' => 'required',
+            'complaint_type_id' => 'required|exists:complaint_types,id',
         ];
     }
 }

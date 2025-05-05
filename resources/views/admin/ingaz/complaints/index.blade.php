@@ -1,6 +1,42 @@
 @extends('admin.layout.indexs.index')
 @section("style")
     <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
+    <style>
+        .truncate-text {
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            direction: rtl;
+        }
+        .show-all-btn {
+            background: none;
+            border: none;
+            color: #007bff;
+            cursor: pointer;
+            padding: 0;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+        .show-all-btn:hover {
+            text-decoration: underline;
+        }
+        .modal-content {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .full-text {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            direction: rtl;
+        }
+        .text-container {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            direction: rtl;
+        }
+    </style>
 @endsection
 @section('page-title')
     {{helperTrans("ingaz.complaints")}}
@@ -64,6 +100,24 @@
     </div>
 </div>
 
+<!-- Full Text Modal -->
+<div class="modal fade" id="fullTextModal" tabindex="-1" aria-labelledby="fullTextModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="fullTextModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="fullTextContent" class="full-text"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{helperTrans("ingaz.close")}}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 @section('js')
 
@@ -73,8 +127,30 @@
             let columns = [
                 {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                 {"data": "user_id", orderable: true, searchable: true},
-                {"data": "address", orderable: true, searchable: true},
-                {"data": "message", orderable: true, searchable: true},
+                {"data": "address", orderable: true, searchable: true,
+                    render: function(data) {
+                        if (!data) return '';
+                        let html = '<div class="text-container">';
+                        html += '<div class="truncate-text">' + data + '</div>';
+                        if (data.length > 30) {
+                            html += '<button class="show-all-btn" title="عرض الكل" onclick="showFullText(\'subject\', \'' + data.replace(/'/g, "\\'").replace(/"/g, '&quot;') + '\')"><i class="fa fa-eye"></i></button>';
+                        }
+                        html += '</div>';
+                        return html;
+                    }
+                },
+                {"data": "message", orderable: true, searchable: true,
+                    render: function(data) {
+                        if (!data) return '';
+                        let html = '<div class="text-container">';
+                        html += '<div class="truncate-text">' + data + '</div>';
+                        if (data.length > 30) {
+                            html += '<button class="show-all-btn" title="عرض الكل" onclick="showFullText(\'message\', \'' + data.replace(/'/g, "\\'").replace(/"/g, '&quot;') + '\')"><i class="fa fa-eye"></i></button>';
+                        }
+                        html += '</div>';
+                        return html;
+                    }
+                },
                 {"data": "response", orderable: true, searchable: true},
                 {"data": "status", orderable: true, searchable: true},
                 {"data": "actions", orderable: false, searchable: false}
@@ -95,7 +171,10 @@
                 language: {
                     url: "{{asset('admin/assets/js/bundle/ar.json')}}"
                 },
-                order: [[0, 'desc']]
+                order: [[0, 'desc']],
+                createdRow: function(row, data, dataIndex) {
+                    $(row).find('td').css('direction', 'rtl');
+                }
             });
 
             // Handle response button click
@@ -120,10 +199,14 @@
                     type: 'POST',
                     data: formData,
                     success: function(response) {
-                        if(response.success) {
+                        if(response.code === 200) {
                             $('#responseModal').modal('hide');
                             toastr.success(response.message);
-                            $('#dataTableObject').DataTable().ajax.reload();
+                            $('#dataTableObject').DataTable().ajax.reload(null, false);
+                            // Reset the form
+                            $('#responseForm')[0].reset();
+                        } else {
+                            toastr.error(response.message || 'حدث خطأ أثناء حفظ الرد');
                         }
                     },
                     error: function(xhr) {
@@ -132,5 +215,11 @@
                 });
             });
         });
+
+        function showFullText(type, text) {
+            $('#fullTextModalLabel').text(type === 'subject' ? 'الموضوع' : 'الرسالة');
+            $('#fullTextContent').text(text);
+            $('#fullTextModal').modal('show');
+        }
     </script>
 @endsection

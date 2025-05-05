@@ -100,8 +100,11 @@ Route::group(
             Route::resource('orders', OrderController::class);
             Route::get('orders/current', [OrderController::class, 'index'])->name('orders.current');
             Route::get('orders/ended', [OrderController::class, 'index'])->name('orders.ended');
+            Route::get('orders/export/pdf', [\App\Http\Controllers\ingaz\OrderController::class, 'exportPdf'])->name('orders.export.pdf');
+            Route::get('orders/export/excel', [\App\Http\Controllers\ingaz\OrderController::class, 'exportExcel'])->name('orders.export.excel');
             Route::resource('RecruitmentContract', RecruitmentContractController::class);
-
+            Route::get('RecruitmentContract/export/pdf', [\App\Http\Controllers\ingaz\RecruitmentContractController::class, 'exportPdf'])->name('RecruitmentContract.export.pdf');
+            Route::get('RecruitmentContract/export/excel', [\App\Http\Controllers\ingaz\RecruitmentContractController::class, 'exportExcel'])->name('RecruitmentContract.export.excel');
             Route::get('RecruitmentContractBack/{id}', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'back'])->name('RecruitmentContract.back');
             Route::get('contractsDetails/{id}', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'details'])->name('contracts.details');
             Route::resource('RentContract', RentContractController::class);
@@ -124,7 +127,7 @@ Route::group(
             Route::get('/cancel_contracts', [App\Http\Controllers\ingaz\ContractsController::class, 'cancel_contracts'])->name('cancel_contracts');
 
             Route::resource('complaint-types', ComplaintTypeController::class);
-            Route::post('complaints/response', [ComplaintController::class, 'response'])->name('complaints.response');
+            Route::post('complaints/response', [\App\Http\Controllers\ingaz\ComplaintController::class, 'response'])->name('complaints.response');
         });
 
     }

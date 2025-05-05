@@ -22,7 +22,8 @@ class ComplaintController extends Controller
         public function index(Request $request, objAction $action)
         {
             $complaints = objModel::where('user_id', getGuardedUser()->id)->latest()->get();
-            return view('web.ingaz.complaints.index', compact('complaints'));
+            $complaintTypes = \App\Models\ingaz\ComplaintType::all();
+            return view('web.ingaz.complaints.index', compact('complaints', 'complaintTypes'));
         }
 
         /**
@@ -32,7 +33,8 @@ class ComplaintController extends Controller
          */
         public function create(Request $request)
         {
-            //
+            $complaintTypes = \App\Models\ingaz\ComplaintType::all();
+            return view('web.ingaz.complaints.create', compact('complaintTypes'));
         }
 
         /**
@@ -43,11 +45,10 @@ class ComplaintController extends Controller
          */
         public function store(ComplaintRequest $request, objAction $action)
         {
-            $dataInsert = $request->only($this->postData);
+            $dataInsert = $request->only(array_merge($this->postData, ['complaint_type_id']));
             $dataInsert['user_id'] = getGuardedUser()->id;
             $data = $action->store($dataInsert);
             return jsonSuccess(null,'تم ارسال الشكوي بنجاح');
-
         }
 
         /**
