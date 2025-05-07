@@ -304,4 +304,5 @@
   'export_pdf' => 'تصدير PDF',
   'export_excel' => 'تصدير Excel',
   'add_maid' => 'Add maid',
+  'attachment' => 'Attachment',
 );

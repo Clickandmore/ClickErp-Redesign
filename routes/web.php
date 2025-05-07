@@ -145,3 +145,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () 
     });
 });
 
+// Notification routes
+Route::prefix('admin')->middleware(['auth:admin'])->group(function () {
+    Route::get('/notifications', [App\Http\Controllers\Admin\NotificationController::class, 'index']);
+    Route::post('/notifications/{id}/mark-as-read', [App\Http\Controllers\Admin\NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [App\Http\Controllers\Admin\NotificationController::class, 'markAllAsRead']);
+});
+

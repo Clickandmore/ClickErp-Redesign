@@ -4,7 +4,6 @@
     <link rel="stylesheet" href="{{ asset('web') }}/assets/css/bootstrap.min.css">
 @endif
 
-<link rel="stylesheet" href="{{ asset('web') }}/assets/css/bootstrap-select.css">
 <link rel="stylesheet" href="{{ asset('web') }}/assets/css/main.css">
 
 @if (app()->getLocale() == 'ar')
@@ -13,7 +12,10 @@
 @else
     <link rel="stylesheet" href="{{ asset('web') }}/assets/css/styleEN.css">
 @endif
-<link rel="stylesheet" href="{{ asset('admin') }}/assets/vendor/toster/css/jquery.toast.css">
+
+<!-- ملفات CSS الثانوية فقط هي التي يمكن تحميلها بشكل غير متزامن -->
+<link rel="stylesheet" href="{{ asset('web') }}/assets/css/bootstrap-select.css" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="{{ asset('admin/assets/vendor/toster/css/jquery.toast.css') }}">
 
 <style>
     .toast-success {
@@ -26,3 +28,6 @@
 </style>
 
 @stack('css')
+
+@section('css')
+@endsection

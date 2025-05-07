@@ -14,19 +14,15 @@
 @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW))
 
     <div class="card">
-        <div class=" card-body show">
-            <div class="row">
-                <div class="col-md-3 ">
-                    <div class="input-group mb-3">
-                        <input type="text" class="form-control" id="passport_num" name="passport_num"
-                               value="{{$request->passport_num}}"
-                               placeholder="رقم الجواز">
+        <div class="card-body show">
+            <form id="filterForm">
+                <div class="row align-items-end">
+                    <div class="col-md-2 mb-2">
+                        <input type="text" class="form-control" id="passport_num" name="passport_num" value="{{$request->passport_num}}" placeholder="رقم الجواز">
                     </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="input-group mb-3">
+                    <div class="col-md-2 mb-2">
                         <select class="form-control" name="nationality_id" id="nationality_id">
-                            <option value="" selected="">الجنسية</option>
+                            <option value="" selected>الجنسية</option>
                             @foreach($filter['nationalities'] as $nationality)
                                 <option value="{{ $nationality->id }}" {{ ($request->nationality_id == $nationality->id) ? 'selected' : '' }}>
                                     {{ $nationality->title }}
@@ -34,82 +30,56 @@
                             @endforeach
                         </select>
                     </div>
-                </div>
-                <div class="col-md-3 ">
-                    <div class="input-group mb-3">
-                        <select class="form-control " name="office_id" id="office_id">
-                            <option value="" selected="">مكتب الاستقدام</option>
+                    <div class="col-md-2 mb-2">
+                        <select class="form-control" name="office_id" id="office_id">
+                            <option value="" selected>مكتب الاستقدام</option>
                             @foreach($filter['offices'] as $office)
                                 <option value="{{$office->id}}" {{ ($request->office_id == $office->id) ? 'selected' : '' }}>{{$office->title}}</option>
                             @endforeach
                         </select>
                     </div>
-                </div>
-                <div class="col-lg-3 ml-auto">
-                    <select class="form-control " name="job_type" id="type">
-                        <option value="" selected="">نوع السيرة الذاتية</option>
-                        @foreach($filter['job_types'] as $jobtype)
-                            <option value="{{$jobtype->id}}" {{ ($request->job_type == $jobtype->id) ? 'selected' : '' }}>{{$jobtype->title}}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-3 ">
-                    <div class="input-group mb-3">
-                        <input type="text" name="experience_years" value="{{$request->experience_years}}"
-                               class="form-control" placeholder="سنوات الخبرة">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="input-group mb-3">
-                        <input type="text" class="form-control" name="daterange"
-                               placeholder="مدى التاريخ" data-separator=" - " autocomplete="off"
-                               data-advanced-range="true">
-                        <span class="input-group-text">
-                            <i class="feather-sm fa fa-calendar"></i>
-                        </span>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="input-group mb-3">
-                        <select name="order_by" class="form-control">
-                            <option value="">ترتيب حسب</option>
-                            <option value="low_price" {{ ($request->order_by ?? '') == 'low_price' ? 'selected' : '' }}>
-                                الاقل سعرا
-                            </option>
-                            <option value="low_salary" {{ ($request->order_by ?? '') == 'low_salary' ? 'selected' : '' }}>
-                                الاقل راتب
-                            </option>
+                    <div class="col-md-2 mb-2">
+                        <select class="form-control" name="job_type" id="type">
+                            <option value="" selected>نوع السيرة الذاتية</option>
+                            @foreach($filter['job_types'] as $jobtype)
+                                <option value="{{$jobtype->id}}" {{ ($request->job_type == $jobtype->id) ? 'selected' : '' }}>{{$jobtype->title}}</option>
+                            @endforeach
                         </select>
                     </div>
-                </div>
-                <div class="col-md-3 text-end">
-                    <button id="btnSubmit" class="btn btn-light-info">بحث</button>
-                    <a href="{{route('maids.index')}}" class="btn btn-danger cancel_request_add "> إلغاء البحث </a>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
-
-        <div class="row">
-        @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CONTROL))
-                    <div class="col-sm-3">
-                        {!! addButton(route("maids.create") ,helperTrans("ingaz.maid")) !!}
+                    <div class="col-md-2 mb-2">
+                        <input type="text" name="experience_years" value="{{$request->experience_years}}" class="form-control" placeholder="سنوات الخبرة">
                     </div>
-                @endif
-                <div class="col-sm-2">
-                <a href="{{ route('maids.export.pdf') }}" class="btn btn-danger" target="_blank">
-            <i class="fa fa-file-pdf"></i> {{helperTrans("ingaz.export_pdf")}}
-        </a>
-        </div>
-        <div class="col-sm-3">
-        <a href="{{ route('maids.export.excel') }}" class="btn btn-success">
-                <i class="fa fa-file-excel"></i> {{helperTrans("ingaz.export_excel")}}
-            </a>
+                    <div class="col-md-2 mb-2">
+                        <input type="text" class="form-control" name="daterange" placeholder="مدى التاريخ" data-separator=" - " autocomplete="off" data-advanced-range="true">
+                    </div>
+                    <div class="col-md-2 mb-2">
+                        <select name="order_by" class="form-control">
+                            <option value="">ترتيب حسب</option>
+                            <option value="low_price" {{ ($request->order_by ?? '') == 'low_price' ? 'selected' : '' }}>الاقل سعرا</option>
+                            <option value="low_salary" {{ ($request->order_by ?? '') == 'low_salary' ? 'selected' : '' }}>الاقل راتب</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-2 text-end">
+                        <button id="btnSubmit" type="button" class="btn btn-info">بحث</button>
+                        <a href="{{route('maids.index')}}" class="btn btn-danger">إلغاء البحث</a>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-8 d-flex gap-2">
+                        @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CONTROL))
+                            <a href="{{ route('maids.create') }}" class="btn btn-success me-2">+ أضف عاملة</a>
+                        @endif
+                        <a href="{{ route('maids.export.pdf') }}" class="btn btn-danger me-2" target="_blank">
+                            <i class="fa fa-file-pdf"></i> {{helperTrans("ingaz.export_pdf")}}
+                        </a>
+                        <a href="{{ route('maids.export.excel') }}" class="btn btn-success">
+                            <i class="fa fa-file-excel"></i> {{helperTrans("ingaz.export_excel")}}
+                        </a>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
-
 
     <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
         <thead>

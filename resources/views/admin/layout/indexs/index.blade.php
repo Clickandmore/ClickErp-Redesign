@@ -43,6 +43,15 @@
 @include("admin.layout.inc._js_custom")
 
 
+@section('js')
+    <script src="{{asset('admin/assets/js/notifications.js')}}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/locale/ar.js"></script>
+    <script>
+        moment.locale('ar');
+    </script>
+@endsection
+
 @yield("js")
 @stack("js")
 </body>

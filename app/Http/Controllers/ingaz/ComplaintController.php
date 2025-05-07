@@ -9,9 +9,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
 use App\Models\ingaz\ComplaintType;
+use Illuminate\Support\Facades\Storage;
+use App\Http\Traits\SendSMSTrait;
 
 class ComplaintController extends Controller
 {
+    use SendSMSTrait;
+
     public $folderPath = "admin.ingaz.complaints";
     public $mainRoute = "complaints";
 
@@ -36,18 +40,25 @@ class ComplaintController extends Controller
                 ->editColumn('status', function($row) {
                     $status = $row->status;
                     $badgeClass = '';
+                    $statusText = '';
                     switch($status) {
                         case 'pending':
                             $badgeClass = 'bg-warning';
+                            $statusText = 'قيد الانتظار';
                             break;
                         case 'resolved':
                             $badgeClass = 'bg-success';
+                            $statusText = 'تم الحل';
                             break;
                         case 'rejected':
                             $badgeClass = 'bg-danger';
+                            $statusText = 'مرفوض';
                             break;
                     }
-                    return '<span class="badge ' . $badgeClass . '">' . helperTrans('ingaz.' . $status) . '</span>';
+                    return '<span class="badge ' . $badgeClass . '">' . $statusText . '</span>';
+                })
+                ->editColumn('file', function($row) {
+                    return $row->file ? Storage::url($row->file) : null;
                 })
                 ->addColumn('actions', function ($row) {
                     $buttons = '<div class="btn-group" role="group" aria-label="Actions">';
@@ -71,6 +82,27 @@ class ComplaintController extends Controller
         $complaint->response = $request->response;
         $complaint->status = $request->status;
         $complaint->save();
+
+        // Send SMS notification to the user
+        if ($complaint->user && $complaint->user->phone) {
+            $statusText = '';
+            switch($request->status) {
+                case 'resolved':
+                    $statusText = 'تم حل الشكوى';
+                    break;
+                case 'rejected':
+                    $statusText = 'تم رفض الشكوى';
+                    break;
+                default:
+                    $statusText = 'تم تحديث حالة الشكوى';
+            }
+
+            $message = "مرحباً {$complaint->user->name}\n";
+            $message .= "{$statusText}\n";
+            $message .= "الرد: {$request->response}";
+
+            $this->sendSMS($complaint->user->phone, $message);
+        }
 
         return jsonSuccess(null, 'تم حفظ الرد بنجاح');
     }

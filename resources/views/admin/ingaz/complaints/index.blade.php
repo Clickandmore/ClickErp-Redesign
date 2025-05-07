@@ -54,6 +54,7 @@
             <th>{{helperTrans("ingaz.message")}}</th>
             <th>{{helperTrans("ingaz.response")}}</th>
             <th>{{helperTrans("ingaz.status")}}</th>
+            <th>المرفق</th>
             <th>{{helperTrans("ingaz.actions")}}</th>
         </tr>
         </thead>
@@ -153,6 +154,12 @@
                 },
                 {"data": "response", orderable: true, searchable: true},
                 {"data": "status", orderable: true, searchable: true},
+                {"data": "file", orderable: false, searchable: false,
+                    render: function(data) {
+                        if (!data) return '-';
+                        return '<a href="' + data + '" target="_blank" class="btn btn-sm btn-primary"><i class="fa fa-file"></i> عرض المرفق</a>';
+                    }
+                },
                 {"data": "actions", orderable: false, searchable: false}
             ];
 

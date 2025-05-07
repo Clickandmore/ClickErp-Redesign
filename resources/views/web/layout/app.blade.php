@@ -11,8 +11,34 @@
             {{ $settings->website_name }}
         @endif
     </title>
-    @include('web.layout.inc._meta')
 
+    <!-- Preload critical CSS -->
+    <link rel="preload" href="{{ asset('web') }}/assets/css/bootstrap.rtl.min.css" as="style">
+    <link rel="preload" href="{{ asset('web') }}/assets/css/main.css" as="style">
+    <link rel="preload" href="{{ asset('web') }}/assets/css/style.css" as="style">
+
+    <!-- Loading indicator styles -->
+    <style>
+        .page-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .page-loader.fade-out {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s, visibility 0.5s;
+        }
+    </style>
+
+    @include('web.layout.inc._meta')
     @include('web.layout.inc._css')
     @yield('css')
     @stack('css')
@@ -60,6 +86,12 @@
 </head>
 
 <body>
+    <!-- Loading indicator -->
+    <div class="page-loader">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
 
     <!-- ================ loader ================= -->
     <div class="preloader">
@@ -83,9 +115,18 @@
         @include('web.layout.inc._js_custom')
     </div>
 
+    @include('web.layout.inc._js')
+    @include('web.layout.inc._js_custom')
+
+    <!-- Add script to remove loader -->
+    <script>
+        window.addEventListener('load', function() {
+            document.querySelector('.page-loader').classList.add('fade-out');
+        });
+    </script>
+
     @yield('js')
     @stack('js')
-
 </body>
 
 </html>

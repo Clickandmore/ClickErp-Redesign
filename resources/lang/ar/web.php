@@ -296,4 +296,9 @@
   'select_complaint_type' => 'اختر نوع الشكوى',
   'complaint_type' => 'نوع الشكوى',
   'complaint_response' => 'الرد على الشكوى',
+  'allowed_file_types' => 'الملفات المسموحة',
+  'choose_file' => 'اختيار ملف',
+  'attachment' => 'المرفق',
+  'status' => 'الحالة',
+  'view_attachment' => 'عرض المرفق',
 );
