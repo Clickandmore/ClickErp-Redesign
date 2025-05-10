@@ -13,8 +13,23 @@ class Nationality extends Model
     use Translatable, HasFactory, LogsActivity;
 
     protected $guarded = [];
+    protected $fillable = [
+        'logo',
+        'phone_code',
+        'price',
+        'service_transportation_cost',
+        'rental_cost',
+        'monthly_salary'
+    ];
 
-    public $translatedAttributes = ['title', 'sub_title'];
+    protected $casts = [
+        'price' => 'decimal:2',
+        'service_transportation_cost' => 'decimal:2',
+        'rental_cost' => 'decimal:2',
+        'monthly_salary' => 'decimal:2'
+    ];
+
+    public $translatedAttributes = ['sub_title'];
     protected $translationForeignKey = 'nationality_id';
     public $translationModel = NationalitiesTranslation::class;
     protected $with = ['translations'];
@@ -25,5 +40,4 @@ class Nationality extends Model
             ->logOnly(['*'])
             ->logOnlyDirty();
     }
-
 }

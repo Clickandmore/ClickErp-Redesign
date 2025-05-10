@@ -19,7 +19,7 @@
         <tr>
             <th>#</th>
             <th>{{helperTrans("ingaz.title")}}</th>
-            <th>{{helperTrans("ingaz.country")}}</th>
+            <th>{{helperTrans("ingaz.nationality")}}</th>
             <th>{{helperTrans("ingaz.created_at")}}</th>
             <th>{{helperTrans("ingaz.actions")}}</th>
         </tr>

@@ -88,7 +88,7 @@ $user = getAuthUser();
                 <li>
                     <div class="dropdown morphing {{$scaleDirection}} notifications">
                         <a class="nav-link dropdown-toggle after-none" href="#" role="button" data-bs-toggle="dropdown">
-                            <span class="d-none d-xl-block me-2">الإشعارات</span>
+
                             <i class="fa fa-bell"></i>
                             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge" style="display: none;">
                                 0

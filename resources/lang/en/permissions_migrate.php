@@ -548,4 +548,24 @@ return [
         'guard_name' => 'admin',
     ],
 
+    // Skills Permissions
+    [
+        'name' => 'skills_view',
+        'group_name' => 'skills',
+        'section_name' => 'organization_management',
+        'guard_name' => 'admin',
+    ],
+    [
+        'name' => 'skills_control',
+        'group_name' => 'skills',
+        'section_name' => 'organization_management',
+        'guard_name' => 'admin',
+    ],
+    [
+        'name' => 'skills_delete',
+        'group_name' => 'skills',
+        'section_name' => 'organization_management',
+        'guard_name' => 'admin',
+    ],
+
 ];

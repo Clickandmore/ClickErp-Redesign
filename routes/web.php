@@ -135,6 +135,8 @@ Route::group(
         Route::get('/about-us', [\App\Http\Controllers\Web\AboutUsController::class, 'index'])->name('about-us');
         Route::get('/clients/export/pdf', [UserController::class, 'exportPdf'])->name('clients.export.pdf');
         Route::get('/clients/export/excel', [UserController::class, 'exportExcel'])->name('clients.export.excel');
+        Route::resource('skills', 'ingaz\SkillController');
+        Route::get('/get-offices-by-nationality', [App\Http\Controllers\ingaz\MaidController::class, 'getOfficesByNationality'])->name('getOfficesByNationality');
     }
 );
 
@@ -142,6 +144,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () 
     Route::group(['prefix' => 'ingaz'], function () {
         Route::get('/clients/export/pdf', [UserController::class, 'exportPdf'])->name('clients.export.pdf');
         Route::get('/clients/export/excel', [UserController::class, 'exportExcel'])->name('clients.export.excel');
+        Route::get('/get-offices-by-nationality', [App\Http\Controllers\ingaz\MaidController::class, 'getOfficesByNationality'])->name('getOfficesByNationality');
     });
 });
 

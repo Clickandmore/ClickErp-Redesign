@@ -11,18 +11,21 @@ class RoleSeeder extends Seeder
     public function run()
     {
         // Create admin role if it doesn't exist
-        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'admin']);
 
         // Create basic permissions
         $permissions = [
-            'complaints-read',
-            'complaints-create',
-            'complaints-update',
-            'complaints-delete',
+            'complaint_view',
+            'complaint_delete',
         ];
 
         foreach ($permissions as $permission) {
-            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
+            Permission::firstOrCreate([
+                'name' => $permission,
+                'guard_name' => 'admin',
+                'group_name' => 'complaints',
+                'section_name' => 'customer_service'
+            ]);
         }
 
         // Assign all permissions to admin role

@@ -15,15 +15,15 @@ class MaidAction extends MainAction
 
     public function storeMaid($data, $request)
     {
-        if ($data['cv_file']) {
+        if (isset($data['cv_file']) && $data['cv_file'] instanceof \Illuminate\Http\UploadedFile) {
             $image = $data['cv_file'];
             $data['cv_file'] = uploadFile($image, $this->fileFolder);
         }
-        if (isset($data['image'])) {
+        if (isset($data['image']) && $data['image'] instanceof \Illuminate\Http\UploadedFile) {
             $image = $data['image'];
             $data['image'] = uploadFile($image, $this->fileFolder);
         }
-        if (isset($data['cv_preview'])) {
+        if (isset($data['cv_preview']) && $data['cv_preview'] instanceof \Illuminate\Http\UploadedFile) {
             $image = $data['cv_preview'];
             $data['cv_preview'] = uploadFile($image, $this->fileFolder);
         }

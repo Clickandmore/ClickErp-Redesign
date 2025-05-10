@@ -49,7 +49,7 @@
     'maids' => 'Maids',
     'cv_file' => 'Cv file',
     'nationality_id' => 'Nationality id',
-    'passport_num' => 'Passport num',
+    'passport_num' => 'Passport Number',
     'price' => 'Price',
     'salary' => 'Salary',
     'religion_id' => 'Religion id',
@@ -113,7 +113,7 @@
     'counter icon' => 'Counter icon',
     'steps' => 'Steps',
     'icon' => 'Icon',
-    'experience_years' => 'Experience years',
+    'experience_years' => 'Experience Years',
     'return_request_sent' => 'Your return request for manpower has been successfully submitted. Please wait for communication from the administration.',
     'return_requests' => 'return requests',
     'languages she talk' => 'Languages she talk',
@@ -169,7 +169,7 @@
     'client_name' => 'Client name',
     'client_phone' => 'Client phone',
 
-    'maid_name' => 'Maid name',
+    'maid_name' => 'Maid Name',
     'maid_passport' => 'Maid passport',
     'maid_job' => 'Maid job',
     'contract duration' => 'Contract duration',
@@ -269,6 +269,9 @@
     'monthly_cost' => 'Monthly Cost',
     'job_2' => 'Job',
     'job_types_2' => 'Job Type',
+    'id_number' => 'ID Number',
+    'id_expiry_date' => 'ID Expiry Date',
+    'skills' => 'Skills',
 
 
 );

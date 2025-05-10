@@ -16,9 +16,9 @@ return [
     'users_control' => 'التحكم في المستخدمين',
     'settings_view' => 'الاطلاع على الإعدادات',
     'settings_control' => 'التحكم في الإعدادات',
-    'roles_view' => 'الاطلاع على التصاريح',
-    'roles_control' => 'التحكم في التصاريح',
-    'set_perms' => 'تعيين الصلاحيات',
+    'roles_view' => 'الاطلاع على الاذونات',
+    'roles_control' => 'التحكم في الاذونات',
+    'set_perms' => 'تعيين الاذونات',
     'developers_perms' => 'صلاحية المطورين لإدارة الصلاحيات',
 
     //******************** */
@@ -164,4 +164,10 @@ return [
         'services_control' => 'التحكم في الخدمات',
         'services_delete' => 'حذف الخدمات',
 
+        'skills_view' => 'عرض المهارات',
+        'skills_control' => 'التحكم في المهارات',
+        'skills_delete' => 'حذف المهارات',
+        'skills_add' => 'إضافة المهارات',
+        'skills_edit' => 'تعديل المهارات',
+        'skills' => ' المهارات',
 ];

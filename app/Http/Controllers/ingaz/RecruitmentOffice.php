@@ -33,7 +33,7 @@ class RecruitmentOffice extends Controller
             return DataTables::of($rows)
                 ->addIndexColumn()
                 ->editColumn('nationality_id', function ($row) {
-                    return $row->nationality->title;
+                    return $row->nationality ? $row->nationality->sub_title : '';
                 })
                 ->editColumn('created_at', function ($row) {
                     return ($row->created_at->format('Y-m-d h:i A'));
@@ -63,8 +63,8 @@ class RecruitmentOffice extends Controller
     public function create(Request $request)
     {
         if ($request->ajax()) {
-            $countries = Nationality::all();
-            $returnHTML = view($this->folderPath . ".create", compact('countries'))->render();
+            $nationalities = Nationality::all();
+            $returnHTML = view($this->folderPath . ".create", compact('nationalities'))->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
     }
@@ -82,8 +82,8 @@ class RecruitmentOffice extends Controller
     {
         if ($request->ajax()) {
             $obj = objModel::findorfail($id);
-            $countries = Nationality::all();
-            $returnHTML = view($this->folderPath . '.edit', compact('countries'))
+            $nationalities = Nationality::all();
+            $returnHTML = view($this->folderPath . '.edit', compact('nationalities'))
                 ->with(['obj' => $obj])->render();
             return jsonSuccess(["html" => $returnHTML]);
         }

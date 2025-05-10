@@ -20,7 +20,7 @@ class JopTypesSeeder extends Seeder
             [
                 'id' => 1,
                 'image' => 'images/image.png',
-                'title:ar' => 'طلب استقدام',
+                'title:ar' => ' استقدام',
                 'title:en' => 'Recruitment request',
             ],
             [

@@ -84,6 +84,7 @@ Route::group(
             Route::resource('services', ServiceController::class);
             Route::resource('about-us', AboutUsController::class);
             Route::resource('clients', UserController::class);
+            Route::resource('skills', SkillController::class);
             Route::get('show-maid-details/{id}', [\App\Http\Controllers\ingaz\MaidController::class, 'showMaidDetails'])->name('showMaidDetails');
             Route::get('maids-not-available', [\App\Http\Controllers\ingaz\MaidController::class, 'noneAvailableMaids'])->name('noneAvailableMaids');
             Route::resource('maids', MaidController::class);
@@ -173,4 +174,6 @@ Route::group(
 
     }
 );
+
+Route::get('/get-offices-by-nationality', [App\Http\Controllers\ingaz\MaidController::class, 'getOfficesByNationality'])->name('getOfficesByNationality');
 

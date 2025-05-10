@@ -106,19 +106,53 @@
             </select>
         </div>
 
-        @foreach (config('translatable.locales') as $locale)
-            <div class="col-6">
-                <label for="TextInput" class="form-label">{{helperTrans("ingaz.languages she talk")}} ({{helperTrans('ingaz.'.$locale)}}) </label>
-                <input type="text" name="languages:{{ $locale }}" value="{{($obj->translate($locale)->languages) ?? ''}}" class="form-control" data-validation="required">
+        <div class="col-12">
+            <label class="form-label">{{helperTrans("ingaz.languages she talk")}}</label>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="languages[arabic]" id="arabic" value="نعم" {{ str_contains($obj->translate('ar')->languages, 'العربية') ? 'checked' : '' }}>
+                        <label class="form-check-label" for="arabic">
+                            اللغة العربية
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="languages[english]" id="english" value="نعم" {{ str_contains($obj->translate('ar')->languages, 'الإنجليزية') ? 'checked' : '' }}>
+                        <label class="form-check-label" for="english">
+                            اللغة الإنجليزية
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="languages[amharic]" id="amharic" value="نعم" {{ str_contains($obj->translate('ar')->languages, 'الأمهرية') ? 'checked' : '' }}>
+                        <label class="form-check-label" for="amharic">
+                            اللغة الأمهرية
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="languages[mother]" id="mother" value="نعم" {{ str_contains($obj->translate('ar')->languages, 'الأم') ? 'checked' : '' }}>
+                        <label class="form-check-label" for="mother">
+                            اللغة الأم
+                        </label>
+                    </div>
+                </div>
             </div>
-        @endforeach
+        </div>
 
-        @foreach (config('translatable.locales') as $locale)
-            <div class="col-6">
-                <label for="TextInput" class="form-label">{{helperTrans("ingaz.marital status")}} ({{helperTrans('ingaz.'.$locale)}}) </label>
-                <input type="text" name="marital_status:{{ $locale }}" value="{{($obj->translate($locale)->marital_status) ?? ''}}" class="form-control" data-validation="required">
-            </div>
-        @endforeach
+        <div class="col-6">
+            <label for="TextInput" class="form-label">{{helperTrans("ingaz.marital status")}} </label>
+            <select name="marital_status:ar" class="form-control" data-validation="required">
+                <option value="عازبة" {{($obj->translate('ar')->marital_status == 'عازبة') ? 'selected' : ''}}>عازبة</option>
+                <option value="أعزب" {{($obj->translate('ar')->marital_status == 'أعزب') ? 'selected' : ''}}>أعزب</option>
+                <option value="متزوجة" {{($obj->translate('ar')->marital_status == 'متزوجة') ? 'selected' : ''}}>متزوجة</option>
+                <option value="متزوج" {{($obj->translate('ar')->marital_status == 'متزوج') ? 'selected' : ''}}>متزوج</option>
+            </select>
+        </div>
 
         <div class="col-12">
             <label for="TextInput" class="form-label">{{helperTrans("ingaz.recruitment office")}} </label>

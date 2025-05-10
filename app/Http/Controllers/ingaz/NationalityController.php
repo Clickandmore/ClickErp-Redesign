@@ -16,7 +16,16 @@ class NationalityController extends Controller
 {
 
     public $folderPath = "admin.ingaz.nationalities";
-    public $postData = ["logo", "phone_code", 'title:ar', 'title:en', "sub_title:ar", "sub_title:en",'price'];
+    public $postData = [
+        "logo",
+        "phone_code",
+        "sub_title:ar",
+        "sub_title:en",
+        "price",
+        "service_transportation_cost",
+        "rental_cost",
+        "monthly_salary"
+    ];
     public $mainRoute = "nationalities";
 
     function __construct()

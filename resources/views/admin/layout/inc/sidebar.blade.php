@@ -81,22 +81,39 @@
                         </a>
                     </li>
                 @endif
-                @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW))
-                    <li>
-                        <a class="m-link {{ (Route::currentRouteName() == 'maids.index') ? 'active' : '' }}"
-                            href="{{route('maids.index')}}">
-                            <i class="fa fa-female"></i>
-                            <span class="ms-2"> {{ helperTrans('ingaz.maids') }}</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a class="m-link {{ (Route::currentRouteName() == 'noneAvailableMaids') ? 'active' : '' }}"
-                            href="{{route('noneAvailableMaids')}}">
-                            <i class="fa fa-female"></i>
-                            <span class="ms-2"> {{ helperTrans('ingaz.maids_none_available') }}</span>
-                        </a>
-                    </li>
-                @endif
+
+                <!-- CV Management Section -->
+                <li class="collapsed">
+                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#cvManagement" href="#">
+                        <i class="fa fa-file-text"></i>
+                        <span class="ms-2">إدارة السير الذاتية</span>
+                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                    </a>
+                    <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['maids.index', 'noneAvailableMaids', 'maids.create'])) ? 'show' : '' }}" id="cvManagement">
+                        <li>
+                            <a class="m-link {{ (Route::currentRouteName() == 'maids.create') ? 'active' : '' }}"
+                                href="{{route('maids.create')}}">
+                                <i class="fa fa-plus"></i>
+                                <span class="ms-2">إضافة سيرة ذاتية</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="m-link {{ (Route::currentRouteName() == 'maids.index') ? 'active' : '' }}"
+                                href="{{route('maids.index')}}">
+                                <i class="fa fa-list"></i>
+                                <span class="ms-2">السير الذاتية</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="m-link {{ (Route::currentRouteName() == 'noneAvailableMaids') ? 'active' : '' }}"
+                                href="{{route('noneAvailableMaids')}}">
+                                <i class="fa fa-times-circle"></i>
+                                <span class="ms-2">سير غير متاحة</span>
+                            </a>
+                        </li>
+
+                    </ul>
+                </li>
 
                 <!-- Orders Section -->
                 <li class="divider py-2 lh-sm"><span class="small">الطلبات</span></li>
@@ -328,15 +345,6 @@
                                 </a>
                             </li>
                         @endif
-                        @if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACT_VIEW))
-                            <li>
-                                <a class="m-link {{ (Route::currentRouteName() == 'recruitment-offices.index') ? 'active' : '' }}"
-                                    href="{{route('recruitment-offices.index')}}">
-                                    <i class="fa fa-building"></i>
-                                    <span class="ms-2"> {{ helperTrans('ingaz.recruitment-offices') }}</span>
-                                </a>
-                            </li>
-                        @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_PLACES_VIEW))
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'shelter-places.index') ? 'active' : '' }}"
@@ -423,6 +431,15 @@
                         </a>
                     </li>
                 @endif
+                @if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACT_VIEW))
+                    <li>
+                        <a class="m-link {{ (Route::currentRouteName() == 'recruitment-offices.index') ? 'active' : '' }}"
+                            href="{{route('recruitment-offices.index')}}">
+                            <i class="fa fa-building"></i>
+                            <span class="ms-2"> {{ helperTrans('ingaz.recruitment-offices') }}</span>
+                        </a>
+                    </li>
+                @endif
 
                 <!-- Maids Settings Section -->
                 <li class="collapsed">
@@ -462,6 +479,14 @@
                                 <a class="m-link" href="{{ route('religions.index') }}">
                                     <i class="fa fa-arrow-left"></i>
                                     <span class="ms-2">{{ helperTrans('ingaz.religions') }}</span>
+                                </a>
+                            </li>
+                        @endif
+                        @if (@AdminGuardHasPerm(\App\PermKeys::SKILLS_VIEW))
+                            <li>
+                                <a class="m-link" href="{{ route('skills.index') }}">
+                                    <i class="fa fa-arrow-left"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.skills') }}</span>
                                 </a>
                             </li>
                         @endif

@@ -31,9 +31,12 @@ class NationalityRequest extends MainRequest
             'logo' => [$this->isMethod('post') ? 'required' : 'nullable'],
             'phone_code' => "required",
             'price' => "nullable|numeric|min:0",
-            ];
+            'service_transportation_cost' => "nullable|numeric|min:0",
+            'rental_cost' => "nullable|numeric|min:0",
+            'monthly_salary' => "nullable|numeric|min:0",
+        ];
+
         foreach (config('translatable.locales') as $locale) {
-            $rules["title:$locale"] = ['required', Rule::unique('nationalities_translations', 'title')->where('locale', $locale)->ignore($updateId, 'nationality_id')];
             $rules["sub_title:$locale"] = ['required', Rule::unique('nationalities_translations', 'sub_title')->where('locale', $locale)->ignore($updateId, 'nationality_id')];
         }
 

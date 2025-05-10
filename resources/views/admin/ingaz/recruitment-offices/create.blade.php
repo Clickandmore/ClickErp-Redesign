@@ -9,11 +9,16 @@
         </div>
     @endforeach
 
-    <select name="nationality_id" class="form-select form-control">
-        @foreach($countries as $country)
-            <option value="{{$country->id}}">{{$country->title}}</option>
-        @endforeach
-    </select>
+    <div class="col-6">
+        <label for="nationality_id" class="form-label">{{helperTrans("ingaz.nationality")}}</label>
+        <select name="nationality_id" id="nationality_id" class="form-select form-control" data-validation="required">
+            <option value="">{{helperTrans('ingaz.choose')}}</option>
+            @foreach($nationalities as $nationality)
+                <option value="{{$nationality->id}}">{{$nationality->sub_title}}</option>
+            @endforeach
+        </select>
+    </div>
+
     <div class="col-12 modal-footer">
         <button class="btn btn-primary" type="submit">{{__("buttons.save")}}</button>
         <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">{{__("buttons.close")}}</button>

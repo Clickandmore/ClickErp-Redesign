@@ -94,4 +94,9 @@ class PermKeys
     const SERVICES_CONTROL = 'services_control';
     const SERVICES_DELETE = 'services_delete';
 
+    // Skills Permissions
+    const SKILLS_VIEW = 'skills_view';
+    const SKILLS_CONTROL = 'skills_control';
+    const SKILLS_DELETE = 'skills_delete';
+
 }

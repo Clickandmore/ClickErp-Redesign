@@ -8,6 +8,7 @@ use App\Http\Actions\ingaz\MaidAction as objAction;
 use App\Http\Actions\ingaz\NationalityAction;
 use App\Http\Actions\ingaz\RecruitmentOfficeAction;
 use App\Http\Actions\ingaz\ReligionAction;
+use App\Http\Actions\ingaz\SkillAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ingaz\MaidRequest;
 use App\Models\ingaz\JobType;
@@ -240,11 +241,21 @@ class MaidController extends Controller
         return view($this->folderPath . '.details', compact('maid'));
     }
 
-    public function create(NationalityAction $act, RecruitmentOfficeAction $officeAct, ReligionAction $relAct, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction, Request $request)
+    public function create(NationalityAction $act, RecruitmentOfficeAction $officeAct, ReligionAction $relAct, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction, SkillAction $skillAction, Request $request)
     {
         if ($request->ajax()) {
             return $this->createAjaxResponse($act, $officeAct, $relAct, $jobTitleAction, $jobTypesAction, 'create');
         }
+
+        // Handle direct request
+        $nationalities = $act->getNationalities();
+        $religions = $relAct->getReligions();
+        $jobs = $jobTitleAction->getJobsTitles();
+        $types = $jobTypesAction->getJobsTypes();
+        $offices = $officeAct->getAllOffices();
+        $skills = $skillAction->get();
+
+        return view("{$this->folderPath}.create", compact('nationalities', 'offices', 'religions', 'jobs', 'types', 'skills'));
     }
 
     public function store(MaidRequest $request, objAction $action)
@@ -412,7 +423,7 @@ class MaidController extends Controller
                         <th>العمر</th>
                         <th>سنوات الخبرة</th>
                         <th>الراتب</th>
-                        <th>السعر</th>
+                        <th>التكلفة</th>
                         <th>أنواع الوظائف</th>
                         <th>الوظائف</th>
                         <th>الحالة</th>
@@ -473,7 +484,7 @@ class MaidController extends Controller
             'العمر',
             'سنوات الخبرة',
             'الراتب',
-            'السعر',
+            'التكلفة',
             'أنواع الوظائف',
             'الوظائف',
             'الحالة'
@@ -622,6 +633,21 @@ class MaidController extends Controller
         $maid->religion_title = $regTitle;
 
         return response()->json($maid);
+    }
+
+    public function getOfficesByNationality(Request $request)
+    {
+        $offices = RecruitmentOffices::where('nationality_id', $request->nationality_id)
+            ->with('translations')
+            ->get()
+            ->map(function ($office) {
+                return [
+                    'id' => $office->id,
+                    'title' => $office->title
+                ];
+            });
+
+        return response()->json($offices);
     }
 
 }

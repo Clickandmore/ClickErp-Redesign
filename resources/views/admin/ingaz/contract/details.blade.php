@@ -130,7 +130,7 @@
                             </tr>
                             <tr class="item-row">
                                 <td>
-                                    السعر
+                                    {{helperTrans('ingaz.price')}}
                                 </td>
                                 <td>
                                     {{@$contract->maid->price}}
@@ -138,7 +138,7 @@
                             </tr>
                             <tr class="item-row">
                                 <td>
-                                    الراتب
+                                    {{helperTrans('ingaz.salary')}}
                                 </td>
                                 <td>
                                     {{@$contract->maid->salary}}
