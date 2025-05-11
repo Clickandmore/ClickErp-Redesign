@@ -77,7 +77,7 @@ class PermissionsController extends Controller
                 'name' => $request->name,
                 'group_name' => $request->group_name,
                 'section_name' => $request->section_name,
-                'guard_name' => 'web',
+                'guard_name' => 'admin',
         ]);
 
         return redirect(route('dash.developers.perms.index'))->with('msg',__('admin.success'));
