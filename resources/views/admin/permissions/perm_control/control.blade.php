@@ -101,8 +101,12 @@
                                                                 <input class="form-check-input" name="perms[]" type="checkbox" value="{{ $permRow['name'] }}"
                                                                     @php
                                                                         try {
-                                                                            if(@$role->hasPermissionTo($permRow['name'])) {
+                                                                            if($role->name === 'super_admin') {
                                                                                 echo 'checked="checked"';
+                                                                            } else {
+                                                                                if(@$role->hasPermissionTo($permRow['name'])) {
+                                                                                    echo 'checked="checked"';
+                                                                                }
                                                                             }
                                                                         } catch (\Exception $e) {
                                                                             // Ignore permission not found error
