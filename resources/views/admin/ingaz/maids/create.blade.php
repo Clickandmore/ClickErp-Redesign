@@ -18,8 +18,8 @@
                 @csrf
                 <!-- الملفات -->
                 <div class="col-6">
-                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.cv_file")}}   </label>
-                    <input type="file" data-default-file="" name="cv_file" class="dropify" required>
+                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.cv_file")}} <small class="text-muted">(اختياري)</small></label>
+                    <input type="file" data-default-file="" name="cv_file" class="dropify">
                 </div>
                 <div class="col-6">
                     <label for="TextInput" class="form-label">صورة العامله   </label>
@@ -45,7 +45,8 @@
                         @foreach($nationalities as $nationality)
                         <option value="{{$nationality->id}}"
                             data-price="{{$nationality->price}}"
-                            data-salary="{{$nationality->monthly_salary}}">
+                            data-salary="{{$nationality->monthly_salary}}"
+                            data-service_transfer_cost="{{$nationality->service_transfer_cost}}">
                             {{$nationality->sub_title}}
                         </option>
                         @endforeach
@@ -53,9 +54,10 @@
                 </div>
 
                 <!-- مكتب الاستقدام -->
-                <div class="col-4">
-                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.recruitment office")}} </label>
-                    <select name="office_id" class="form-control" required>
+                <div class="col-4 office-field">
+                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.recruitment office")}} <small class="text-muted">(اختياري)</small></label>
+                    <select name="office_id" class="form-control">
+                        <option value="">اختر مكتب الاستقدام</option>
                         {!! showSelectElement($offices , 'title') !!}
                     </select>
                 </div>
@@ -90,7 +92,7 @@
                     <label for="TextInput" class="form-label">
                         {{helperTrans("ingaz.salary")}}
                     </label>
-                    <input type="number" name="salary" class="form-control" required>
+                    <input type="number" name="salary" class="form-control">
                 </div>
 
                 <!-- البيانات الشخصية -->
@@ -123,8 +125,9 @@
                 </div>
 
                 <div class="col-4">
-                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.religion")}} </label>
+                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.religion")}}</label>
                     <select name="religion_id" class="form-control" required>
+                        <option value=""> غير محدد</option>
                         {!! showSelectElement($religions , 'title') !!}
                     </select>
                 </div>
@@ -164,8 +167,8 @@
 
                 <!-- المهارات -->
                 <div class="col-4">
-                    <label for="skills" class="form-label">{{helperTrans("ingaz.skills")}}</label>
-                    <select name="skills[]" class="form-control js-example-basic-multiple" multiple required>
+                    <label for="skills" class="form-label">{{helperTrans("ingaz.skills")}} <small class="text-muted">(اختياري)</small></label>
+                    <select name="skills[]" class="form-control js-example-basic-multiple" multiple>
                         @foreach($skills as $skill)
                             <option value="{{$skill->id}}">{{$skill->title}}</option>
                         @endforeach
@@ -174,9 +177,9 @@
 
                 <div class="col-4">
                     <label for="TextInput" class="form-label">
-                        {{helperTrans("ingaz.experience_years")}}
+                        {{helperTrans("ingaz.experience_years")}} <small class="text-muted">(اختياري)</small>
                     </label>
-                    <select name="experience_years" class="form-control" required>
+                    <select name="experience_years" class="form-control">
                         <option value="">اختر سنوات الخبرة</option>
                         @for($i = 1; $i <= 10; $i++)
                             <option value="{{$i}}">{{$i}} {{$i == 1 ? 'سنة' : 'سنوات'}}</option>
@@ -253,14 +256,28 @@
                 var idFields = $('input[name="id_number"], input[name="id_expiry_date"]').closest('.col-4');
                 var heightWeightFields = $('input[name="height"], input[name="weight"]').closest('.col-4');
                 var maritalStatusField = $('select[name="marital_status:ar"]').closest('.col-4');
+                var officeField = $('.office-field');
+                var salaryField = $('input[name="salary"]').closest('.col-4');
+                var jobField = $('select[name="job_id[]"]').closest('.col-4');
+                var languagesField = $('.col-12:has(label:contains("اللغات"))');
 
                 // Reset all fields to default state
                 idFields.show();
                 heightWeightFields.show();
                 maritalStatusField.show();
+                officeField.show();
+                salaryField.show();
+                jobField.show();
+                languagesField.show();
                 $('input[name="id_number"], input[name="id_expiry_date"]').attr('required', 'required');
                 $('input[name="height"], input[name="weight"]').attr('required', 'required');
                 $('select[name="marital_status:ar"]').attr('required', 'required');
+                $('select[name="office_id"]').attr('required', 'required');
+                $('input[name="salary"]').attr('required', 'required');
+                $('select[name="job_id[]"]').attr('required', 'required');
+
+                // Set price to 0 in all cases
+                $('#price').val('0');
 
                 // Handle specific cases
                 if (selectedType === 'طلب استقدام') {
@@ -273,11 +290,29 @@
                     idFields.hide();
                     heightWeightFields.hide();
                     maritalStatusField.hide();
+                    officeField.hide();
 
                     // Remove required attribute from hidden fields
                     $('input[name="id_number"], input[name="id_expiry_date"]').removeAttr('required');
                     $('input[name="height"], input[name="weight"]').removeAttr('required');
                     $('select[name="marital_status:ar"]').removeAttr('required');
+                    $('select[name="office_id"]').removeAttr('required');
+                } else if (selectedType.trim() === 'ايجار عمالة' || selectedType.trim() === 'تأجير') {
+                    console.log('Hiding fields for ايجار/تأجير');
+                    // Hide fields for ايجار
+                    heightWeightFields.hide();
+                    maritalStatusField.hide();
+                    salaryField.hide();
+                    officeField.hide();
+                    languagesField.hide();
+                    idFields.hide();
+
+                    // Remove required attribute from hidden fields
+                    $('input[name="height"], input[name="weight"]').removeAttr('required');
+                    $('select[name="marital_status:ar"]').removeAttr('required');
+                    $('input[name="salary"]').removeAttr('required');
+                    $('select[name="office_id"]').removeAttr('required');
+                    $('input[name="id_number"], input[name="id_expiry_date"]').removeAttr('required');
                 }
             }
 
@@ -309,18 +344,7 @@
                     age--;
                 }
 
-                if (age >= 18 && age <= 90) {
-                    $('#age').val(age);
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'خطأ',
-                        text: 'يجب أن يكون عمر العاملة بين 18 و 90 سنة',
-                        confirmButtonText: 'حسناً'
-                    });
-                    $(this).val('');
-                    $('#age').val('');
-                }
+                $('#age').val(age);
             });
 
             // Handle nationality change to filter offices and set price/salary
@@ -342,12 +366,11 @@
 
                             // Set default price and salary based on nationality
                             var selectedOption = $('#Pnationality_id option:selected');
-                            var price = selectedOption.data('price');
                             var salary = selectedOption.data('salary');
 
-                            if (price) {
-                                $('#price').val(price);
-                            }
+                            // Always set price to 0
+                            $('#price').val('0');
+
                             if (salary) {
                                 $('input[name="salary"]').val(salary);
                             }
@@ -363,7 +386,7 @@
                     });
                 } else {
                     // Clear fields if no nationality is selected
-                    $('#price').val('');
+                    $('#price').val('0');
                     $('input[name="salary"]').val('');
                 }
             });
@@ -374,18 +397,13 @@
 
                 var isValid = true;
                 var errors = [];
+                var selectedType = $('select[name="type_id"] option:selected').text().trim();
 
                 // التحقق من الملفات
                 var image = $('input[name="image"]').get(0).files.length;
-                var cvFile = $('input[name="cv_file"]').get(0).files.length;
 
                 if (!image) {
                     errors.push('الرجاء اختيار صورة العاملة');
-                    isValid = false;
-                }
-
-                if (!cvFile) {
-                    errors.push('الرجاء اختيار ملف السيرة الذاتية');
                     isValid = false;
                 }
 
@@ -396,54 +414,54 @@
                     isValid = false;
                 }
 
-                // التحقق من رقم الهوية
-                var idNumber = $('#id_number').val();
-                if (!idNumber || idNumber.length !== 10 || !/^\d{10}$/.test(idNumber)) {
-                    errors.push('يجب أن يتكون رقم الهوية من 10 أرقام');
-                    isValid = false;
-                }
-
-                // التحقق من الحقول المطلوبة
-                var requiredFields = {
-                    'nationality_id': 'الجنسية',
-                    'experience_years': 'سنوات الخبرة',
-                    'salary': 'الراتب',
-                    'religion_id': 'الدين',
-                    'passport_num': 'رقم جواز السفر',
-                    'office_id': 'مكتب التوظيف'
-                };
-
-                // التحقق من الحقول النصية والرقمية
-                for (var field in requiredFields) {
-                    var value = $('[name="' + field + '"]').val();
-                    if (!value || value.trim() === '') {
-                        errors.push(requiredFields[field] + ' مطلوب');
+                // التحقق من رقم الهوية فقط إذا لم يكن نوع السيرة "طلب استقدام" أو "إستلام فورى" أو "ايجار عمالة" أو "تأجير"
+                if (selectedType !== 'طلب استقدام' && selectedType !== 'إستلام فورى' && selectedType !== 'ايجار عمالة' && selectedType !== 'تأجير') {
+                    var idNumber = $('#id_number').val();
+                    if (!idNumber || idNumber.length !== 10 || !/^\d{10}$/.test(idNumber)) {
+                        errors.push('يجب أن يتكون رقم الهوية من 10 أرقام');
                         isValid = false;
                     }
                 }
 
-                // التحقق من الوظائف
-                var jobs = $('select[name="job_id[]"]').val();
-                if (!jobs || jobs.length === 0) {
-                    errors.push('معرف الوظيفة مطلوب');
-                    isValid = false;
-                }
+                // التحقق من الحقول المطلوبة فقط إذا لم يكن نوع السيرة "إستلام فورى" أو "ايجار عمالة" أو "تأجير"
+                if (selectedType !== 'إستلام فورى' && selectedType !== 'ايجار عمالة' && selectedType !== 'تأجير') {
+                    var requiredFields = {
+                        'nationality_id': 'الجنسية',
+                        'office_id': 'مكتب التوظيف'
+                    };
 
-                // التحقق من اللغات والحالة الاجتماعية
-                var languages = $('input[name="languages[arabic]"]').is(':checked') &&
-                                $('input[name="languages[english]"]').is(':checked') &&
-                                $('input[name="languages[amharic]"]').is(':checked') &&
-                                $('input[name="languages[mother]"]').is(':checked');
-                var maritalStatus = $('input[name="marital_status:ar"]').val();
+                    // التحقق من الحقول النصية والرقمية المطلوبة فقط
+                    for (var field in requiredFields) {
+                        var value = $('[name="' + field + '"]').val();
+                        if (!value || value.trim() === '') {
+                            errors.push(requiredFields[field] + ' مطلوب');
+                            isValid = false;
+                        }
+                    }
 
-                if (!languages) {
-                    errors.push('اللغات مطلوبة');
-                    isValid = false;
-                }
+                    // التحقق من الوظائف
+                    var jobs = $('select[name="job_id[]"]').val();
+                    if (!jobs || jobs.length === 0) {
+                        errors.push('معرف الوظيفة مطلوب');
+                        isValid = false;
+                    }
 
-                if (!maritalStatus || maritalStatus.trim() === '') {
-                    errors.push('الحالة الاجتماعية مطلوبة');
-                    isValid = false;
+                    // التحقق من اللغات
+                    var languages = $('input[name="languages[arabic]"]').is(':checked') ||
+                                  $('input[name="languages[english]"]').is(':checked') ||
+                                  $('input[name="languages[amharic]"]').is(':checked') ||
+                                  $('input[name="languages[mother]"]').is(':checked');
+
+                    if (!languages) {
+                        errors.push('اللغات مطلوبة');
+                        isValid = false;
+                    }
+
+                    var maritalStatus = $('select[name="marital_status:ar"]').val();
+                    if (!maritalStatus || maritalStatus.trim() === '') {
+                        errors.push('الحالة الاجتماعية مطلوبة');
+                        isValid = false;
+                    }
                 }
 
                 if (!isValid) {
@@ -458,6 +476,41 @@
 
                 // إرسال النموذج باستخدام AJAX
                 var formData = new FormData(this);
+
+                // إضافة قيم افتراضية للحقول الاختيارية
+                if (!formData.get('cv_file')) {
+                    formData.append('cv_file', '');
+                }
+                if (!formData.get('experience_years')) {
+                    formData.append('experience_years', '0');
+                }
+                if (!formData.get('religion_id')) {
+                    formData.append('religion_id', '0');
+                }
+                if (!formData.get('age')) {
+                    formData.append('age', '0');
+                }
+                if (!formData.get('skills[]')) {
+                    formData.append('skills[]', '');
+                }
+                if (!formData.get('height')) {
+                    formData.append('height', '0');
+                }
+                if (!formData.get('weight')) {
+                    formData.append('weight', '0');
+                }
+                if (!formData.get('salary')) {
+                    formData.append('salary', '0');
+                }
+                if (!formData.get('price')) {
+                    formData.append('price', '0');
+                }
+
+                // إضافة type_id إذا لم يكن محدداً
+                if (!formData.get('type_id')) {
+                    var defaultType = $('select[name="type_id"] option:selected').val();
+                    formData.append('type_id', defaultType);
+                }
 
                 $.ajax({
                     url: $(this).attr('action'),

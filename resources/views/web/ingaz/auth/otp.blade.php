@@ -10,16 +10,28 @@
     <main>
         <section class="page_header">
             <h1>{{helperTrans('web.auth')}}</h1>
-            <h6><a href="{{route('web.home')}}">{{helperTrans('web.Home')}}</a> / {{helperTrans('web.enter_verification_code')}}</h6>
+            <h6><a href="{{route('web.home')}}">{{helperTrans('web.Home')}}</a> / التحقق واكمال البيانات</h6>
         </section>
 
         <section class="auth_section">
             <div class="container">
                 <div class="row justify-content-center">
                     <div class="col-lg-8 col-12">
-                        <form action="{{route('web.confirm-code')}}" class="auth_form"  id="form_otp">
-                            <h2>{{helperTrans('web.enter_verification_code')}}</h2>
+                        <form action="{{route('web.confirm-code')}}" class="auth_form" id="form_otp">
+                            <h2>التحقق واكمال البيانات</h2>
                             <p>  {{helperTrans('web.please_enter_verification_code_sent_to_phone')}} <span>+966{{$user->phone}}</span></p>
+
+                            <!-- Name fields for new users -->
+                            <div class="input_filed hidden" id="nameFields">
+                                <label for="first_name"><i class="fa-light fa-user"></i> الاسم الأول</label>
+                                <input type="text" id="first_name" name="first_name" placeholder="ادخل الاسم الأول" required>
+                            </div>
+
+                            <div class="input_filed hidden" id="lastNameFields">
+                                <label for="last_name"><i class="fa-light fa-user"></i> الاسم الأخير</label>
+                                <input type="text" id="last_name" name="last_name" placeholder="ادخل الاسم الأخير" required>
+                            </div>
+
                             <div class="otp-container">
                                 <input class="otp-input" type="number" value="{{env('MESSAGE_Live')? "":"1"}}" maxlength="1" inputmode="numeric" pattern="[0-9]"
                                        required id="finput">
@@ -38,7 +50,8 @@
                                     <p id="countdown">01:00</p>
                                 </div>
                             </div>
-                            <button class="log">
+
+                            <button class="log" id="submitButton">
                                 {{helperTrans("web.confirmation")}}
                             </button>
                         </form>
@@ -92,6 +105,9 @@
                 var token = '{{csrf_token()}}';
                 var phone_code = '{{$user->phone_code}}';
                 var phone = '{{$user->phone}}';
+                var first_name = $('#first_name').val();
+                var last_name = $('#last_name').val();
+
                 $.ajax({
                     url: url,
                     type: 'POST',
@@ -99,20 +115,36 @@
                         _token: token,
                         phone_code: phone_code,
                         phone: phone,
-                        code: code
+                        code: code,
+                        first_name: first_name,
+                        last_name: last_name
                     },
                     success: function(response) {
                         if (response.code === 200) {
                             window.location.href = '/';
+                        } else if (response.is_new_user) {
+                            // Show name fields for new user
+                            $('#nameFields').removeClass('hidden');
+                            $('#lastNameFields').removeClass('hidden');
+                            $('#submitButton').text('إكمال التسجيل');
+                            toastr.info('الرجاء إدخال الاسم');
                         } else {
                             toastr.error(response.message);
                         }
                     },
                     error: function(xhr) {
                         if (xhr.status === 422) {
-                            toastr.error(xhr.responseJSON.message);
+                            if (xhr.responseJSON.is_new_user) {
+                                // Show name fields for new user
+                                $('#nameFields').removeClass('hidden');
+                                $('#lastNameFields').removeClass('hidden');
+                                $('#submitButton').text('إكمال التسجيل');
+                                toastr.info('الرجاء إدخال الاسم');
+                            } else {
+                                toastr.error(xhr.responseJSON.message);
+                            }
                         } else {
-                            toastr.error('حدث خطأ ما');
+                            toastr.error('{{helperTrans("web.error_occurred")}}');
                         }
                     }
                 });
@@ -181,12 +213,5 @@
             errorMessage : '{{helperTrans('web.phone_number_invalid')}}',
             errorMessageKey: 'badEvenNumber'
         });
-
     </script>
-    <script>
-
-
-
-    </script>
-
 @endsection

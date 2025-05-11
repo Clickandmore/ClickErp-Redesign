@@ -17,5 +17,6 @@ class DatabaseSeeder extends Seeder
         $this->call(UsersTableSeeder::class);
         $this->call(JopTypesSeeder::class);
         $this->call(RoleSeeder::class);
+        $this->call(AdminRoleSeeder::class);
     }
 }

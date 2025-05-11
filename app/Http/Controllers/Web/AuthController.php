@@ -70,10 +70,13 @@ class AuthController extends Controller
             ]);
         }
 
-        // If user doesn't exist, create new user
+        // Create new user with first and last name
         $user = User::create([
             'phone' => $request->phone,
             'phone_code' => $request->phone_code,
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'name' => $request->first_name . ' ' . $request->last_name,
             'status' => 1
         ]);
 

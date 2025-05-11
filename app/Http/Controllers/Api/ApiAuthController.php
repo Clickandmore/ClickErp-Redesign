@@ -36,7 +36,16 @@ class ApiAuthController extends Controller
      */
     public function register(RegisterRequest $request, ObjAction $action) {
         $dataInsert = $request->only($this->postData);
-        $user  = $action->storeUser($dataInsert);
+
+        // Check if this is first time registration
+        $isFirstTime = !User::where('phone', $request->phone)->exists();
+
+        // If not first time, remove name from dataInsert
+        if (!$isFirstTime) {
+            unset($dataInsert['name']);
+        }
+
+        $user = $action->storeUser($dataInsert);
         $credentials = request(['phone', 'password']);
         if (! $token = JWTAuth::attempt($credentials)) {
             return jsonSuccess( null,['error' => 'Unauthorized'],401);
@@ -98,6 +107,30 @@ class ApiAuthController extends Controller
     public function login(LoginRequest $request)
     {
         $user = User::where('phone', $request->phone)->first();
+
+        // If user doesn't exist, this is a new registration
+        if (!$user) {
+            // Check if name is provided for new registration
+            if (!$request->has('name')) {
+                return response()->json([
+                    'code' => 422,
+                    'data' => null,
+                    'message' => 'يرجى إدخال الاسم للمستخدم الجديد',
+                    'is_new_user' => true
+                ], 422);
+            }
+
+            // Create new user
+            $dataInsert = $request->only(['name', 'phone', 'password']);
+            $dataInsert['register_from'] = 'app';
+            $dataInsert['phone_code'] = '966'; // Default phone code
+
+            $user = (new ObjAction)->storeUser($dataInsert);
+            $token = JWTAuth::fromUser($user);
+            return $this->respondWithToken1($token, $user);
+        }
+
+        // Existing user - verify password
         if (!Hash::check($request->password, $user->password)) {
             return response()->json([
                 'code' => 401,

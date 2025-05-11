@@ -301,4 +301,7 @@
   'attachment' => 'المرفق',
   'status' => 'الحالة',
   'view_attachment' => 'عرض المرفق',
+  'error_occurred' => 'Error occurred',
+  'enter_last_name' => 'Enter last name',
+  'please_enter_your_name' => 'Please enter your name',
 );

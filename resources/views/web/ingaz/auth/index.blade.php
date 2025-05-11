@@ -13,10 +13,11 @@
             <div class="container">
                 <div class="row justify-content-center">
                     <div class="col-lg-8 col-12">
-                        <form action="{{route('web.sendOtp')}}" method="get" class="auth_form">
+                        <form action="{{route('web.sendOtp')}}" method="get" class="auth_form" id="authForm">
                             @csrf
                             <h2>{{helperTrans('web.welcome')}}</h2>
                             <p>{{helperTrans('web.enter_phone_to_continue')}}</p>
+
                             <div class="input_filed phone">
                                 <label for="phone"><i class="fa-light fa-mobile-notch"></i>
                                     {{helperTrans('web.Phone')}}

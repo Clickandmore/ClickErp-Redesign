@@ -17,8 +17,9 @@ class LoginRequest extends MainRequest
     public function rules()
     {
         return [
-            'phone' => 'required|exists:users,phone',
+            'phone' => 'required',
             'password' => 'required|min:6',
+            'name' => 'nullable|string|min:2|max:255',
         ];
     }
 }
