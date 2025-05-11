@@ -18,5 +18,6 @@ class DatabaseSeeder extends Seeder
         $this->call(JopTypesSeeder::class);
         $this->call(RoleSeeder::class);
         $this->call(AdminRoleSeeder::class);
+        $this->call(PermissionSeeder::class);
     }
 }
