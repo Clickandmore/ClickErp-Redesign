@@ -309,5 +309,6 @@
   'attachment' => 'Attachment',
   'id_number' => 'رقم الهوية',
   'id_expiry_date' => 'تاريخ انتهاء الهوية',
-  'birth_date' => 'Birth date',
+  'birth_date' => 'تاريخ الميلاد',
+  'job_type' => 'نوع السيرة الذاتية',
 );

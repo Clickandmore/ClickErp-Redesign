@@ -43,8 +43,10 @@ class AuthController extends Controller
 
     public function otp(objAction $action)
     {
+        $user = User::where('phone', request()->phone)->first();
         $data['user'] = $action->getWhere(['phone'=>request()->phone])->first();
-        return view('web.ingaz.auth.otp',$data);
+        $data['is_existing_user'] = $user ? true : false;
+        return view('web.ingaz.auth.otp', $data);
     }
 
     public function confirm_code(ConfirmCodeRequest $request, objAction $action)
@@ -58,16 +60,41 @@ class AuthController extends Controller
             ], 422);
         }
 
+        // Log the request data
+        \Log::info('Confirm Code Request:', [
+            'phone' => $request->phone,
+            'phone_code' => $request->phone_code,
+            'has_first_name' => $request->has('first_name'),
+            'has_last_name' => $request->has('last_name')
+        ]);
+
         $user = User::where('phone', $request->phone)
             ->where('phone_code', $request->phone_code)
             ->first();
 
+        // Log the user check result
+        \Log::info('User Check:', [
+            'user_found' => $user ? true : false,
+            'user_id' => $user ? $user->id : null,
+            'user_name' => $user ? $user->name : null
+        ]);
+
         if ($user) {
+            // Existing user - login directly
             Auth::guard('web')->login($user);
             return response()->json([
                 'code' => 200,
                 'message' => __('api.Code verified successfully')
             ]);
+        }
+
+        // New user - check if name is provided
+        if (!$request->has('first_name') || !$request->has('last_name')) {
+            return response()->json([
+                'code' => 422,
+                'message' => __('api.Please enter your name'),
+                'is_new_user' => true
+            ], 422);
         }
 
         // Create new user with first and last name

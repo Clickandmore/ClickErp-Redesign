@@ -25,7 +25,7 @@
                             <option value="" selected>الجنسية</option>
                             @foreach($filter['nationalities'] as $nationality)
                                 <option value="{{ $nationality->id }}" {{ ($request->nationality_id == $nationality->id) ? 'selected' : '' }}>
-                                    {{ $nationality->title }}
+                                    {{ $nationality->sub_title }}
                                 </option>
                             @endforeach
                         </select>
@@ -87,16 +87,13 @@
             <th>ID</th>
             <th>{{helperTrans("ingaz.cv_file")}}</th>
             <th>{{helperTrans("ingaz.nationality_id")}}</th>
+            <th>{{helperTrans("ingaz.job_type")}}</th>
             <th>{{helperTrans("ingaz.passport_num")}}</th>
             <th>{{helperTrans("ingaz.price")}}</th>
             <th>{{helperTrans("ingaz.salary")}}</th>
             <th>{{helperTrans("ingaz.religion_id")}}</th>
             <th>{{helperTrans("ingaz.age")}}</th>
-            <th>{{helperTrans("ingaz.height")}}</th>
-            <th>{{helperTrans("ingaz.weight")}}</th>
             <th>{{helperTrans("ingaz.maidContractRemaining")}}</th>
-            <th>{{helperTrans("ingaz.available")}}</th>
-            <th>{{helperTrans("ingaz.available_at")}}</th>
             <th>{{helperTrans("ingaz.is_show")}}</th>
             <th>{{helperTrans("ingaz.created_at")}}</th>
             <th>{{helperTrans("ingaz.actions")}}</th>
@@ -136,16 +133,13 @@
                 {"data": 'id', name: 'DT_RowIndex', orderable: true, searchable: false},
                 {"data": "cv_file", orderable: false, searchable: false},
                 {"data": "nationality_id", orderable: true, searchable: true},
+                {"data": "job_type", orderable: true, searchable: true},
                 {"data": "passport_num", orderable: true, searchable: true},
                 {"data": "price", orderable: true, searchable: true},
                 {"data": "salary", orderable: true, searchable: true},
                 {"data": "religion_id", orderable: true, searchable: true},
                 {"data": "age", orderable: true, searchable: true},
-                {"data": "height", orderable: true, searchable: true},
-                {"data": "weight", orderable: true, searchable: true},
                 {"data": "maidContractRemaining", orderable: true, searchable: false},
-                {"data": "available", orderable: true, searchable: false},
-                {"data": "available_at", orderable: true, searchable: false},
                 {"data": "is_show", orderable: false, searchable: false},
                 {"data": "created_at", orderable: false, searchable: false},
                 {"data": "actions", orderable: false, searchable: false}

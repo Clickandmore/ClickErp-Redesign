@@ -21,16 +21,18 @@
                             <h2>التحقق واكمال البيانات</h2>
                             <p>  {{helperTrans('web.please_enter_verification_code_sent_to_phone')}} <span>+966{{$user->phone}}</span></p>
 
+                            @if(!isset($is_existing_user) || !$is_existing_user)
                             <!-- Name fields for new users -->
-                            <div class="input_filed hidden" id="nameFields">
+                            <div class="input_filed" id="nameFields">
                                 <label for="first_name"><i class="fa-light fa-user"></i> الاسم الأول</label>
                                 <input type="text" id="first_name" name="first_name" placeholder="ادخل الاسم الأول" required>
                             </div>
 
-                            <div class="input_filed hidden" id="lastNameFields">
+                            <div class="input_filed" id="lastNameFields">
                                 <label for="last_name"><i class="fa-light fa-user"></i> الاسم الأخير</label>
                                 <input type="text" id="last_name" name="last_name" placeholder="ادخل الاسم الأخير" required>
                             </div>
+                            @endif
 
                             <div class="otp-container">
                                 <input class="otp-input" type="number" value="{{env('MESSAGE_Live')? "":"1"}}" maxlength="1" inputmode="numeric" pattern="[0-9]"

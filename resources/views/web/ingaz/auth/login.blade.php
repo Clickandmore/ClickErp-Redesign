@@ -13,7 +13,7 @@
             <div class="container">
                 <div class="row justify-content-center">
                     <div class="col-lg-8 col-12">
-                        <form action="{{route('web.sendLogin')}}" method="post" class="auth_form">
+                        <form action="{{route('web.sendLogin')}}" method="post" class="auth_form" id="loginForm">
                             @csrf
                             <h2>{{helperTrans('web.welcome_back')}}</h2>
                             <p>{{helperTrans('web.login_now_and_request_employees_easily')}}</p>
@@ -22,7 +22,6 @@
                                     {{helperTrans('web.Phone')}}
                                 </label>
                                 <div class="d-flex gap-2">
-
                                     <input type="hidden" name="phone_code" value="+966">
                                     <input type="tel" data-validation="required,number" value="{{old('phone')}}" id="phone" name="phone" placeholder="5xxxxxxxxxxx+">
                                     <div class="phone_code">
@@ -42,11 +41,20 @@
                                     </button>
                                 </div>
                             </div>
+
+                            <!-- Name fields for returning users -->
+                            <div class="input_filed hidden" id="nameFields">
+                                <label for="name"><i class="fa-light fa-user"></i> {{helperTrans('web.Full_name')}}</label>
+                                <div class="d-flex gap-2">
+                                    <input type="text" id="name" name="name" placeholder="{{helperTrans('web.Full_name')}}">
+                                </div>
+                            </div>
+
                             <input type="hidden" name="code" value="{{request()->code}}">
                             <div class="d-flex justify-content-end w-100">
                                 <a href="{{route('web.reset_password')}}">نسيت كلمة المرور ؟</a>
                             </div>
-                            <button class="log">
+                            <button class="log" type="submit">
                                 {{helperTrans('web.login')}}
                             </button>
 
@@ -105,6 +113,46 @@
         }
     });
 
+</script>
+
+<script>
+    $(document).ready(function() {
+        $('#loginForm').on('submit', function(e) {
+            e.preventDefault();
+            const formData = $(this).serialize();
+            const url = $(this).attr('action');
+
+            $.ajax({
+                url: url,
+                method: 'POST',
+                data: formData,
+                success: function(response) {
+                    if (response.code === 200) {
+                        window.location.href = '/';
+                    } else if (response.code === 422 && response.is_returning_user) {
+                        // Show name field for returning user
+                        $('#nameFields').removeClass('hidden');
+                        toastr.info('الرجاء إدخال الاسم');
+                    } else {
+                        toastr.error(response.message);
+                    }
+                },
+                error: function(xhr) {
+                    if (xhr.status === 422) {
+                        if (xhr.responseJSON.is_returning_user) {
+                            // Show name field for returning user
+                            $('#nameFields').removeClass('hidden');
+                            toastr.info('الرجاء إدخال الاسم');
+                        } else {
+                            toastr.error(xhr.responseJSON.message);
+                        }
+                    } else {
+                        toastr.error('{{helperTrans("web.error_occurred")}}');
+                    }
+                }
+            });
+        });
+    });
 </script>
 
 @endsection

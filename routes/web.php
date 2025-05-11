@@ -109,6 +109,7 @@ Route::group(
         Route::get('sendOtp', [AuthController::class, 'sendOtp'])->name('sendOtp');
         Route::get('otp', [AuthController::class, 'otp'])->name('otp');
         Route::post('confirm-code', [AuthController::class, 'confirm_code'])->name('confirm-code');
+        Route::post('sendLogin', [AuthController::class, 'sendLogin'])->name('sendLogin');
         Route::group(
             [
                 'middleware' => ["auth_web"]

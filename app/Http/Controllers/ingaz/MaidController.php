@@ -88,7 +88,7 @@ class MaidController extends Controller
                     return ($row->religion) ? $row->religion->title : '';
                 })
                 ->editColumn('nationality_id', function ($row) {
-                    return ($row->nationality) ? $row->nationality->title : '';
+                    return ($row->nationality) ? $row->nationality->sub_title : '';
                 })
                 ->addColumn('maidContractRemaining', function ($row) {
                     $hasRemainingContracts = ahxMaidContractRemaining($row->id);
@@ -97,6 +97,9 @@ class MaidController extends Controller
                     } else {
                         return $hasRemainingContracts . ' ' . __('ingaz.days');
                     }
+                })
+                ->addColumn('job_type', function ($row) {
+                    return $row->jobTypes->pluck('title')->implode(', ');
                 })
                 ->addColumn('actions', function ($row) {
                     $showButton = '';
@@ -193,6 +196,9 @@ class MaidController extends Controller
                     } else {
                         return $hasRemainingContracts . ' ' . __('ingaz.days');
                     }
+                })
+                ->addColumn('job_type', function ($row) {
+                    return $row->jobTypes->pluck('title')->implode(', ');
                 })
                 ->addColumn('actions', function ($row) {
                     $showButton = '';

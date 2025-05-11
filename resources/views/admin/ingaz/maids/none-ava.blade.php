@@ -29,7 +29,7 @@
                             @foreach($filter['nationalities'] as $nationality)
                             <option value="{{ $nationality->id }}" {{ ($request->nationality_id == $nationality->id) ?
                                 'selected' : '' }}>
-                                {{ $nationality->title }}
+                                {{ $nationality->sub_title }}
                             </option>
                             @endforeach
                         </select>
