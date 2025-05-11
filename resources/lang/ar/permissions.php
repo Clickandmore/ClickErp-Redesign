@@ -170,4 +170,9 @@ return [
         'skills_add' => 'إضافة المهارات',
         'skills_edit' => 'تعديل المهارات',
         'skills' => ' المهارات',
+
+    'complaints-read' => 'قراءة الشكاوى',
+    'complaints-create' => 'إنشاء الشكاوى',
+    'complaints-update' => 'تحديث الشكاوى',
+    'complaints-delete' => 'حذف الشكاوى',
 ];
