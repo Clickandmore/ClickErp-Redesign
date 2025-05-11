@@ -14,8 +14,11 @@ class PermissionsController extends Controller
 
     public function setPerms($id){
         $role = Role::find($id);
-        $data = Permission::all();
-        $getPermissionsGroups = Permission::groupBy('group_name')->pluck('group_name')->all();
+        $data = Permission::where('guard_name', 'admin')->get();
+        $getPermissionsGroups = Permission::where('guard_name', 'admin')
+            ->groupBy('group_name')
+            ->pluck('group_name')
+            ->all();
         //BUILD ARRAY--------------------
         $buildPermissionsArray = [];
         if($data){
