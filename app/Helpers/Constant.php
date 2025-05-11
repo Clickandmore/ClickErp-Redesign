@@ -151,7 +151,7 @@ class Constant
 //                "en" => "global manager"
 //            ],
             'super_admin' => [
-                "ar" => " المدير العام",
+                "ar" => "الادارة ",
                 "en" => "Super Admin"
             ],
             'call_center' => [
