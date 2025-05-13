@@ -43,14 +43,42 @@ class MaidController extends Controller
      */
     public function index(Request $request, objAction $Action)
     {
-        $rows = objModel::latest()
-        // ->take(40)
-        // ->where('passport_num', 'EP8002663')
-        ;
+        $query = objModel::query()
+            ->with(['nationality', 'religion', 'jobTypes']) // Eager load relationships
+            ->select(['id', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at']); // Select only needed columns
+
         if ($request->ajax()) {
-            $this->applyMaidFilter($request, $rows);
-            $dataTable = DataTables::of($rows)
+            $this->applyMaidFilter($request, $query);
+
+            return DataTables::of($query)
                 ->addIndexColumn()
+                ->orderColumn('id', function ($query, $order) {
+                    $query->orderBy('id', $order);
+                })
+                ->orderColumn('nationality_id', function ($query, $order) {
+                    $query->orderBy('nationality_id', $order);
+                })
+                ->orderColumn('job_type', function ($query, $order) {
+                    $query->orderBy('id', $order);
+                })
+                ->orderColumn('passport_num', function ($query, $order) {
+                    $query->orderBy('passport_num', $order);
+                })
+                ->orderColumn('price', function ($query, $order) {
+                    $query->orderBy('price', $order);
+                })
+                ->orderColumn('salary', function ($query, $order) {
+                    $query->orderBy('salary', $order);
+                })
+                ->orderColumn('religion_id', function ($query, $order) {
+                    $query->orderBy('religion_id', $order);
+                })
+                ->orderColumn('age', function ($query, $order) {
+                    $query->orderBy('age', $order);
+                })
+                ->orderColumn('created_at', function ($query, $order) {
+                    $query->orderBy('created_at', $order);
+                })
                 ->editColumn('is_show', function ($row) {
                     return $row->is_show == 1 ?
                     '<button class="btn btn-sm btn-success update-status" id="update-status" data-id="' . $row->id . '">ظاهر</button>' :
@@ -66,61 +94,46 @@ class MaidController extends Controller
                     $row->available_at;
                 })
                 ->editColumn('cv_file', function ($row) {
-                    // Check if the `image` property is not null
                     if ($row->image) {
-                        // Generate the image tag with the `image` property
                         $imgTag = '<img src="' . showFile($row->image) . '" alt="cv1" style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">';
                     } else {
-                        // Use `cv_preview` if available, otherwise fall back to `cv_file`
                         $imgUrl = $row->cv_preview ? showFile($row->cv_preview) : showFile($row->cv_file);
                         $imgTag = '<img src="' . $imgUrl . '" alt="cv1" style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">';
                     }
-
-                    // Wrap the image tag in a link
-                    $link = '<a href="#" class="maidViewData" data-id="' . $row->id . '">' . $imgTag . '</a>';
-
-                    return $link;
+                    return '<a href="#" class="maidViewData" data-id="' . $row->id . '">' . $imgTag . '</a>';
                 })
                 ->editColumn('created_at', function ($row) {
-                    return ($row->created_at->format('Y-m-d h:i A'));
+                    return $row->created_at->format('Y-m-d h:i A');
                 })
                 ->editColumn('religion_id', function ($row) {
-                    return ($row->religion) ? $row->religion->title : '';
+                    return $row->religion ? $row->religion->title : '';
                 })
                 ->editColumn('nationality_id', function ($row) {
-                    return ($row->nationality) ? $row->nationality->sub_title : '';
+                    return $row->nationality ? $row->nationality->sub_title : '';
                 })
                 ->addColumn('maidContractRemaining', function ($row) {
                     $hasRemainingContracts = ahxMaidContractRemaining($row->id);
-                    if ($hasRemainingContracts == 0) {
-                        return __('ingaz.none');
-                    } else {
-                        return $hasRemainingContracts . ' ' . __('ingaz.days');
-                    }
+                    return $hasRemainingContracts == 0 ? __('ingaz.none') : $hasRemainingContracts . ' ' . __('ingaz.days');
                 })
                 ->addColumn('job_type', function ($row) {
                     return $row->jobTypes->pluck('title')->implode(', ');
                 })
                 ->addColumn('actions', function ($row) {
-                    $showButton = '';
+                    $showButton = viewSingleButton(route('showMaidDetails', $row->id));
                     $editButton = '';
                     $deleteButton = '';
 
-                    $showButton = viewSingleButton(route('showMaidDetails', $row->id));
-
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CONTROL)) {
-                    $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
+                        $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_DELETE)) {
-                    $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                        $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
                     }
                     return $showButton . " " . $editButton . " " . $deleteButton;
                 })
-                ->escapeColumns([])
+                ->rawColumns(['is_show', 'available', 'available_at', 'cv_file', 'actions'])
                 ->make(true);
-
-            return $dataTable;
         }
 
         // Fetch filter options for dropdowns
@@ -135,7 +148,6 @@ class MaidController extends Controller
         $data["addButtonText"] = helperTrans("ingaz.maid");
         $data["modalType"] = "modal-lg";
 
-        // Pass filter options to the view
         return view($this->folderPath . '.index', $data, compact('filter', 'request'));
     }
 

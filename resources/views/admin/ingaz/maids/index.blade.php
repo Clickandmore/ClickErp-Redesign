@@ -130,7 +130,7 @@
                 $('input[name="daterange"]').val('');
             })
             let columns = [
-                {"data": 'id', name: 'DT_RowIndex', orderable: true, searchable: false},
+                {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                 {"data": "cv_file", orderable: false, searchable: false},
                 {"data": "nationality_id", orderable: true, searchable: true},
                 {"data": "job_type", orderable: true, searchable: true},
@@ -139,9 +139,9 @@
                 {"data": "salary", orderable: true, searchable: true},
                 {"data": "religion_id", orderable: true, searchable: true},
                 {"data": "age", orderable: true, searchable: true},
-                {"data": "maidContractRemaining", orderable: true, searchable: false},
+                {"data": "maidContractRemaining", orderable: false, searchable: false},
                 {"data": "is_show", orderable: false, searchable: false},
-                {"data": "created_at", orderable: false, searchable: false},
+                {"data": "created_at", orderable: true, searchable: false},
                 {"data": "actions", orderable: false, searchable: false}
             ];
 
@@ -190,84 +190,117 @@
                 updateDataTable(filters);
             });
 
-            showDataTable("{{ route("maids.index") }}", columns);
-        });
+            function showDataTable(url, columns) {
+                $('#dataTableObject').DataTable({
+                    processing: true,
+                    serverSide: true,
+                    ajax: {
+                        url: url,
+                        type: 'GET',
+                        error: function (xhr, error, thrown) {
+                            console.error('DataTables error:', error);
+                            $.toast({
+                                heading: 'خطأ',
+                                text: 'حدث خطأ أثناء تحميل البيانات',
+                                showHideTransition: 'slide',
+                                icon: 'error',
+                                hideAfter: 3000,
+                                position: 'top-right',
+                                stack: 1
+                            });
+                        }
+                    },
+                    columns: columns,
+                    pageLength: 10,
+                    order: [[0, 'desc']], // Order by ID column by default
+                    language: {
+                        processing: '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">جاري التحميل...</span></div>'
+                    },
+                    drawCallback: function() {
+                        // Reinitialize any event handlers after table redraw
+                        initializeEventHandlers();
+                    }
+                });
+            }
 
-        // ِChange Status Using Ajax
-        $(document).on('click', '.update-status', function (event) {
-            var rowId = $(this).data('id');
-            var url = "{{ route('maids.show', ':id') }}";
-            url = url.replace(':id', rowId);
-            $.ajax({
-                type: 'Get',
-                url: url,
-                success: function (data) {
-                    if (data.success) {
+            function initializeEventHandlers() {
+                // Reinitialize any event handlers that need to be bound to the table
+                $('.update-status').off('click').on('click', function(event) {
+                    var rowId = $(this).data('id');
+                    var url = "{{ route('maids.show', ':id') }}";
+                    url = url.replace(':id', rowId);
+                    $.ajax({
+                        type: 'Get',
+                        url: url,
+                        success: function (data) {
+                            if (data.success) {
+                                reloadDataTable();
+                                $.toast({
+                                    heading: 'نجاح',
+                                    text: 'تم تغيير الحالة بنجاح!',
+                                    showHideTransition: 'slide',
+                                    icon: 'success',
+                                    hideAfter: 2000,
+                                    position: 'top-right',
+                                    stack: 1
+                                });
+                            } else {
+                                alert('فشل في تحديث الحالة.');
+                            }
+                        }
+                    });
+                });
+            }
+
+            $(document).on('submit', '.from-submit-global-maid', function (e) {
+                e.preventDefault();
+                let formData = new FormData(this);
+                let url = $(this).attr('action');
+                let submitButton = $(e.originalEvent.submitter);
+                let buttonText = submitButton.text();
+                let modalResult = $("#createModal");
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: formData,
+                    cache: false,
+                    contentType: false,
+                    processData: false,
+                    beforeSend: function () {
+                        $('#loading-wrapper').fadeIn();
+                        submitButton.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>' + buttonText);
+                    },
+                    complete: function () {
+                        $('#loading-wrapper').fadeOut();
+                    },
+                    success: function (result) {
+
+                        console.log(200)
+
                         reloadDataTable();
-                        $.toast({
-                            heading: 'نجاح',
-                            text: 'تم تغيير الحالة بنجاح!',
-                            showHideTransition: 'slide',
-                            icon: 'success',
-                            hideAfter: 2000,
-                            position: 'top-right',
-                            stack: 1
-                        });
-                    } else {
-                        alert('فشل في تحديث الحالة.');
+                        submitButton.html(buttonText)
+                        if (modalResult.is(":visible")) {
+                            modalResult.modal('toggle');
+                        }
+                        window.setTimeout(function () {
+
+                            handleSuccessResponce(result);
+                            // window.location.href = '{{route('maids.index')}}';
+                            var id = result.data.id;
+                            // console.log(id);
+                            window.location.href = "{{ route('convert_page', ':id') }}".replace(':id', id);
+                            $('.loader-ajax').hide()
+                        }, 20);
+                        // modalResult.modal('toggle');
+                        console.log(modalResult.is(':visible'));
+                    },
+                    error: function (errorObj, errorText, errorThrown) {
+                        console.log(500)
+                        console.log(errorObj)
+                        handleErrorResponce(errorObj);
                     }
-                }
-            });
-        });
+                });
 
-
-        $(document).on('submit', '.from-submit-global-maid', function (e) {
-            e.preventDefault();
-            let formData = new FormData(this);
-            let url = $(this).attr('action');
-            let submitButton = $(e.originalEvent.submitter);
-            let buttonText = submitButton.text();
-            let modalResult = $("#createModal");
-            $.ajax({
-                url: url,
-                type: 'POST',
-                data: formData,
-                cache: false,
-                contentType: false,
-                processData: false,
-                beforeSend: function () {
-                    $('#loading-wrapper').fadeIn();
-                    submitButton.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>' + buttonText);
-                },
-                complete: function () {
-                    $('#loading-wrapper').fadeOut();
-                },
-                success: function (result) {
-
-                    console.log(200)
-
-                    reloadDataTable();
-                    submitButton.html(buttonText)
-                    if (modalResult.is(":visible")) {
-                        modalResult.modal('toggle');
-                    }
-                    window.setTimeout(function () {
-
-                        handleSuccessResponce(result);
-                        // window.location.href = '{{route('maids.index')}}';
-                        var id = result.data.id;
-                        // console.log(id);
-                        window.location.href = "{{ route('convert_page', ':id') }}".replace(':id', id);
-                        $('.loader-ajax').hide()
-                    }, 20);
-                    // modalResult.modal('toggle');
-                    console.log(modalResult.is(':visible'));
-                },
-                error: function (errorObj, errorText, errorThrown) {
-                    console.log(500)
-                    console.log(errorObj)
-                    handleErrorResponce(errorObj);
-                }
             });
 
         });
