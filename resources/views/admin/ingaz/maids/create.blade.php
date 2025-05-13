@@ -46,7 +46,8 @@
                         <option value="{{$nationality->id}}"
                             data-price="{{$nationality->price}}"
                             data-salary="{{$nationality->monthly_salary}}"
-                            data-service_transfer_cost="{{$nationality->service_transfer_cost}}">
+                            data-service_transfer_cost="{{$nationality->service_transfer_cost}}"
+                            data-rental_cost="{{$nationality->rental_cost}}">
                             {{$nationality->sub_title}}
                         </option>
                         @endforeach
@@ -83,7 +84,7 @@
 
                 <!-- السعر والراتب -->
                 <div class="col-4">
-                    <label for="TextInput" class="form-label">
+                    <label for="TextInput" class="form-label price-label">
                         {{helperTrans("ingaz.price")}}
                     </label>
                     <input type="number" name="price" id="price" class="form-control">
@@ -260,6 +261,7 @@
                 var salaryField = $('input[name="salary"]').closest('.col-4');
                 var jobField = $('select[name="job_id[]"]').closest('.col-4');
                 var languagesField = $('.col-12:has(label:contains("اللغات"))');
+                var priceLabel = $('.price-label');
 
                 // Reset all fields to default state
                 idFields.show();
@@ -269,6 +271,7 @@
                 salaryField.show();
                 jobField.show();
                 languagesField.show();
+                priceLabel.text('{{helperTrans("ingaz.price")}}');
                 $('input[name="id_number"], input[name="id_expiry_date"]').attr('required', 'required');
                 $('input[name="height"], input[name="weight"]').attr('required', 'required');
                 $('select[name="marital_status:ar"]').attr('required', 'required');
@@ -291,12 +294,22 @@
                     heightWeightFields.hide();
                     maritalStatusField.hide();
                     officeField.hide();
+                    priceLabel.text('تكلفة نقل الخدمات');
 
                     // Remove required attribute from hidden fields
                     $('input[name="id_number"], input[name="id_expiry_date"]').removeAttr('required');
                     $('input[name="height"], input[name="weight"]').removeAttr('required');
                     $('select[name="marital_status:ar"]').removeAttr('required');
                     $('select[name="office_id"]').removeAttr('required');
+
+                    // Set service transfer cost from nationality if selected
+                    var selectedNationality = $('#Pnationality_id option:selected');
+                    if (selectedNationality.length) {
+                        var serviceTransferCost = selectedNationality.data('service_transfer_cost');
+                        if (serviceTransferCost) {
+                            $('#price').val(serviceTransferCost);
+                        }
+                    }
                 } else if (selectedType.trim() === 'ايجار عمالة' || selectedType.trim() === 'تأجير') {
                     console.log('Hiding fields for ايجار/تأجير');
                     // Hide fields for ايجار
@@ -306,6 +319,7 @@
                     officeField.hide();
                     languagesField.hide();
                     idFields.hide();
+                    priceLabel.text('تكلفه الايجار الشهري');
 
                     // Remove required attribute from hidden fields
                     $('input[name="height"], input[name="weight"]').removeAttr('required');
@@ -313,6 +327,15 @@
                     $('input[name="salary"]').removeAttr('required');
                     $('select[name="office_id"]').removeAttr('required');
                     $('input[name="id_number"], input[name="id_expiry_date"]').removeAttr('required');
+
+                    // Set rental cost from nationality if selected
+                    var selectedNationality = $('#Pnationality_id option:selected');
+                    if (selectedNationality.length) {
+                        var rentalCost = selectedNationality.data('rental_cost');
+                        if (rentalCost) {
+                            $('#price').val(rentalCost);
+                        }
+                    }
                 }
             }
 
@@ -350,6 +373,8 @@
             // Handle nationality change to filter offices and set price/salary
             $('#Pnationality_id').change(function() {
                 var nationalityId = $(this).val();
+                var selectedType = $('select[name="type_id"] option:selected').text().trim();
+
                 if (nationalityId) {
                     $.ajax({
                         url: "{{ route('getOfficesByNationality') }}",
@@ -367,9 +392,23 @@
                             // Set default price and salary based on nationality
                             var selectedOption = $('#Pnationality_id option:selected');
                             var salary = selectedOption.data('salary');
+                            var rentalCost = selectedOption.data('rental_cost');
+                            var serviceTransferCost = selectedOption.data('service_transfer_cost');
 
-                            // Always set price to 0
-                            $('#price').val('0');
+                            if (selectedType === 'ايجار عمالة' || selectedType === 'تأجير') {
+                                // Set rental cost for rental types
+                                if (rentalCost) {
+                                    $('#price').val(rentalCost);
+                                }
+                            } else if (selectedType === 'إستلام فورى') {
+                                // Set service transfer cost for immediate delivery
+                                if (serviceTransferCost) {
+                                    $('#price').val(serviceTransferCost);
+                                }
+                            } else {
+                                // Set default price to 0 for other types
+                                $('#price').val('0');
+                            }
 
                             if (salary) {
                                 $('input[name="salary"]').val(salary);
