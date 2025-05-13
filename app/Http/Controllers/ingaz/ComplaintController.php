@@ -60,6 +60,9 @@ class ComplaintController extends Controller
                 ->editColumn('file', function($row) {
                     return $row->file ? Storage::url($row->file) : null;
                 })
+                ->editColumn('response', function($row) {
+                    return $row->response ?? '-';
+                })
                 ->addColumn('actions', function ($row) {
                     $buttons = '<div class="btn-group" role="group" aria-label="Actions">';
                     $buttons .= '<button class="btn btn-sm btn-primary response-btn" data-id="' . $row->id . '" data-response="' . htmlspecialchars($row->response ?? '', ENT_QUOTES) . '" data-status="' . $row->status . '">
@@ -69,7 +72,7 @@ class ComplaintController extends Controller
                     $buttons .= '</div>';
                     return $buttons;
                 })
-                ->rawColumns(['status', 'actions'])
+                ->rawColumns(['status', 'actions', 'response'])
                 ->make(true);
         }
 
