@@ -45,7 +45,8 @@ class MaidController extends Controller
     {
         $query = objModel::query()
             ->with(['nationality', 'religion', 'jobTypes']) // Eager load relationships
-            ->select(['id', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at']); // Select only needed columns
+            ->select(['id', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at']) // Select only needed columns
+            ->orderBy('created_at', 'desc'); // Default ordering by created_at descending
 
         if ($request->ajax()) {
             $this->applyMaidFilter($request, $query);

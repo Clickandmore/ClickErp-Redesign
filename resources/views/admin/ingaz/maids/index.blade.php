@@ -212,7 +212,7 @@
                     },
                     columns: columns,
                     pageLength: 10,
-                    order: [[0, 'desc']], // Order by ID column by default
+                    order: [[11, 'desc']], // Order by created_at column by default in descending order
                     language: {
                         processing: '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">جاري التحميل...</span></div>'
                     },
