@@ -55,6 +55,8 @@ class Kernel extends ConsoleKernel
             $controller = new AdminContractController();
             $controller->checkWarrantyContracts();
         })->daily();
+
+        $schedule->command('orders:handle-expired')->everyMinute();
     }
 
     /**

@@ -15,6 +15,10 @@ class Order extends Model
 
     protected $with = ['details'];
 
+    protected $casts = [
+        'expiration_time' => 'datetime'
+    ];
+
     public function transfers()
     {
         return $this->hasMany(OrderTransfers::class);
@@ -87,6 +91,17 @@ class Order extends Model
         return LogOptions::defaults()
             ->logOnly(['*'])
             ->logOnlyDirty();
+    }
+
+    public function setExpirationTime($hours = 24)
+    {
+        $this->expiration_time = now()->addHours($hours);
+        $this->save();
+    }
+
+    public function isExpired()
+    {
+        return $this->expiration_time && $this->expiration_time->isPast();
     }
 
 }

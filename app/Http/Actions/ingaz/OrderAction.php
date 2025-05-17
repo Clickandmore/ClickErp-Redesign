@@ -43,8 +43,11 @@ class OrderAction extends MainAction
         $data['user_id'] = Auth::user()->id;
         $data['order_code'] = $this->model::generateUniqueCode();
 
-        // dd($data['user_id']);
         $order = $this->store($data);
+
+        // Set expiration time (default 24 hours)
+        $order->setExpirationTime(24);
+
         if ($request->details_list) {
             $this->StoreOrderDetails($request, $order);
         }

@@ -17,6 +17,10 @@ class AddOrderIdToContractsTable extends Migration
             $table->unsignedBigInteger('order_id')->nullable();
             $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
         });
+
+        Schema::table('orders', function (Blueprint $table) {
+            $table->timestamp('expiration_time')->nullable();
+        });
     }
 
     /**
