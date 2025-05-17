@@ -206,7 +206,7 @@
   'Rent contracts' => 'عقود الايجار',
   'Previous sponsor' => 'الكفيل السابق',
   'Shelter contracts' => ' الايواء',
-  'add Shelter contract' => 'اضافة إيواء',
+  'add Shelter contract' => 'تسجيل حالة إيواء ',
   'All Shelter contracts' => ' الإيواء',
   'contracts' => 'العقود',
   'contract of' => ' العميل ',
