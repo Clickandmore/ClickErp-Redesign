@@ -99,16 +99,16 @@
                 <!-- البيانات الشخصية -->
                 <div class="col-4">
                     <label for="TextInput" class="form-label">
-                        تاريخ الميلاد
+                        تاريخ الميلاد <small class="text-muted">(اختياري)</small>
                     </label>
-                    <input type="date" name="birth_date" id="birth_date" class="form-control" required>
+                    <input type="date" name="birth_date" id="birth_date" class="form-control">
                 </div>
 
                 <div class="col-4">
                     <label for="TextInput" class="form-label">
-                        {{helperTrans("ingaz.age")}}
+                        {{helperTrans("ingaz.age")}} <small class="text-muted">(اختياري)</small>
                     </label>
-                    <input type="number" min="18" max="90" name="age" id="age" class="form-control" readonly required>
+                    <input type="number" min="18" max="90" name="age" id="age" class="form-control" readonly>
                 </div>
 
                 <div class="col-4">
@@ -127,8 +127,8 @@
 
                 <div class="col-4">
                     <label for="TextInput" class="form-label">{{helperTrans("ingaz.religion")}}</label>
-                    <select name="religion_id" class="form-control" required>
-                        <option value=""> غير محدد</option>
+                    <select name="religion_id" class="form-control">
+                        <option value="">غير محدد</option>
                         {!! showSelectElement($religions , 'title') !!}
                     </select>
                 </div>
@@ -190,7 +190,7 @@
 
                 <!-- اللغات والحالة الاجتماعية -->
                 <div class="col-12">
-                    <label class="form-label">{{helperTrans("ingaz.languages she talk")}}</label>
+                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.languages")}} <small class="text-muted">(اختياري)</small></label>
                     <div class="row">
                         <div class="col-md-3">
                             <div class="form-check">
@@ -446,13 +446,6 @@
                     isValid = false;
                 }
 
-                // التحقق من تاريخ الميلاد
-                var birthDate = $('#birth_date').val();
-                if (!birthDate) {
-                    errors.push('تاريخ الميلاد مطلوب');
-                    isValid = false;
-                }
-
                 // التحقق من رقم الهوية فقط إذا لم يكن نوع السيرة "طلب استقدام" أو "إستلام فورى" أو "ايجار عمالة" أو "تأجير"
                 if (selectedType !== 'طلب استقدام' && selectedType !== 'إستلام فورى' && selectedType !== 'ايجار عمالة' && selectedType !== 'تأجير') {
                     var idNumber = $('#id_number').val();
@@ -485,17 +478,6 @@
                         isValid = false;
                     }
 
-                    // التحقق من اللغات
-                    var languages = $('input[name="languages[arabic]"]').is(':checked') ||
-                                  $('input[name="languages[english]"]').is(':checked') ||
-                                  $('input[name="languages[amharic]"]').is(':checked') ||
-                                  $('input[name="languages[mother]"]').is(':checked');
-
-                    if (!languages) {
-                        errors.push('اللغات مطلوبة');
-                        isValid = false;
-                    }
-
                     var maritalStatus = $('select[name="marital_status:ar"]').val();
                     if (!maritalStatus || maritalStatus.trim() === '') {
                         errors.push('الحالة الاجتماعية مطلوبة');
@@ -524,7 +506,7 @@
                     formData.append('experience_years', '0');
                 }
                 if (!formData.get('religion_id')) {
-                    formData.append('religion_id', '0');
+                    formData.append('religion_id', ''); // Default to غير محدد
                 }
                 if (!formData.get('age')) {
                     formData.append('age', '0');

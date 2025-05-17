@@ -35,12 +35,14 @@ class MaidRequest extends MainRequest
             'price' => 'nullable|numeric',
             'salary' => 'nullable|numeric',
             'experience_years' => 'nullable',
-            'religion_id' => 'required|exists:religions,id',
+            'religion_id' => 'nullable|exists:religions,id',
             'age' => 'nullable|numeric',
+            'birth_date' => 'nullable|date',
             'job_id' => 'required|array',
             'job_id.*' => 'required|exists:job_titles,id',
             'type_id' => 'required|exists:job_types,id',
             'office_id' => 'nullable|exists:recruitment_offices,id',
+            'languages' => 'nullable|array',
         ];
     }
 

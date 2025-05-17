@@ -311,4 +311,5 @@
   'id_expiry_date' => 'تاريخ انتهاء الهوية',
   'birth_date' => 'تاريخ الميلاد',
   'job_type' => 'نوع السيرة الذاتية',
+  'languages' => 'Languages',
 );
