@@ -40,6 +40,22 @@
                 </div>
 
                 <div class="mb-3 row">
+                    <label class="col-sm-3 col-form-label">{{ __('admin.order_expiration_hours') }}</label>
+                    <div class="col-sm-5">
+                        <input type="number"
+                               name="order_expiration_hours"
+                               value="{{ old('order_expiration_hours', \App\Models\ingaz\Setting::getValue('order_expiration_hours', 24)) }}"
+                               class="form-control @error('order_expiration_hours') is-invalid @enderror"
+                               min="1"
+                               max="720">
+                        @error('order_expiration_hours')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                        <small class="form-text text-muted">{{ __('admin.order_expiration_hint') }}</small>
+                    </div>
+                </div>
+
+                <div class="mb-3 row">
                     <label class="col-sm-3 col-form-label">{{ __('admin.bank_transfer_data') }}</label>
                     <div class="col-sm-5">
                         <textarea id="editor" name="bank_transfer_data">{{ @$data['bank_transfer_data'] }}</textarea>

@@ -121,13 +121,20 @@ class RecruitmentContractController extends Controller
 
     public function create()
     {
-        $orderId = request()->orderId;
-        // عقد الاستقدام بيكون للطلبات من نوع استقدام ومنتهية
-        $endedOrders = Order::where('job_type_id', 1)->whereIn('status', [OrderEnum::Done->value])->latest()->get();
-        $countries = Nationality::all();
-        // select maids
-        $all_available_maids = Maid::Shown()->latest()->get();
-        return view($this->folderPath . '.create', compact('endedOrders', 'countries', 'all_available_maids', 'orderId'));
+        $orders = \App\Models\ingaz\Order::where('status', \App\Enums\ingaz\OrderEnum::New->value)
+            ->with(['user', 'maid'])
+            ->latest()
+            ->get();
+
+        $endedOrders = \App\Models\ingaz\Order::where('job_type_id', 1)
+            ->whereIn('status', [\App\Enums\ingaz\OrderEnum::Done->value])
+            ->latest()
+            ->get();
+
+        $countries = \App\Models\ingaz\Nationality::all();
+        $all_available_maids = \App\Models\ingaz\Maid::Shown()->latest()->get();
+
+        return view($this->folderPath . '.create', compact('orders', 'endedOrders', 'countries', 'all_available_maids'));
     }
 
 
@@ -191,6 +198,15 @@ class RecruitmentContractController extends Controller
             'status' => ContractStatusEnum::New ->value,
             'date' => $request->contract_date,
         ]);
+
+        // Update order status to completed if this was created from an order
+        if ($request->order_id) {
+            $order = Order::find($request->order_id);
+            if ($order) {
+                $order->status = OrderEnum::Completed->value;
+                $order->save();
+            }
+        }
 
         return jsonSuccess();
     }

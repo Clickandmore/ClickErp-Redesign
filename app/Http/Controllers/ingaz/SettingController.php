@@ -4,6 +4,7 @@ namespace App\Http\Controllers\ingaz;
 
 use App\Http\Controllers\Controller;
 use App\Http\Actions\dashboard\SettingAction as objAction;
+use App\Models\Setting;
 
 use App\Http\Requests\ingaz\SettingRequest;
 use Illuminate\Http\Request;
@@ -35,14 +36,8 @@ class SettingController extends Controller
      */
     public function index(Request $request, objAction $objAction)
     {
-
-        $data = [
-            "bladeTitle" => __('skaeeb.settings'),
-            "addButtonText" => __('skaeeb.settings'),
-            'settings' => $objAction->getSetting(),
-        ];
-
-        return view($this->folderPath . '.index', $data);
+        $settings = Setting::where('group', 'orders')->get();
+        return view('admin.ingaz.settings.index', compact('settings'));
     }
 
     /**
@@ -98,11 +93,45 @@ class SettingController extends Controller
         }
     }
 
-    public function update(SettingRequest $request, $id, ObjAction $action)
+    public function update(Request $request)
     {
-        $dataInsert = $request->only($this->postData);
-        $data = $action->updateSetting($id, $dataInsert);
-        return jsonSuccess($data,null,201);
+        $request->validate([
+            'order_expiration_hours' => 'required|integer|min:1|max:720',
+            'warrenty_period' => 'nullable|integer|min:1',
+            'bank_transfer_data' => 'nullable|string',
+            'sadad_transfer_data' => 'nullable|string',
+            'show_popup' => 'nullable|boolean',
+            'popup_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+        ]);
+
+        // تحديث مدة الحجز
+        Setting::setValue('order_expiration_hours', $request->order_expiration_hours, 'orders');
+
+        // تحديث فترة الضمان
+        if ($request->has('warrenty_period')) {
+            Setting::setValue('warrenty_period', $request->warrenty_period, 'orders');
+        }
+
+        // تحديث بيانات التحويل البنكي
+        if ($request->has('bank_transfer_data')) {
+            Setting::setValue('bank_transfer_data', $request->bank_transfer_data, 'payment');
+        }
+
+        // تحديث بيانات تحويل سداد
+        if ($request->has('sadad_transfer_data')) {
+            Setting::setValue('sadad_transfer_data', $request->sadad_transfer_data, 'payment');
+        }
+
+        // تحديث إعدادات النافذة المنبثقة
+        Setting::setValue('show_popup', $request->show_popup ? '1' : '0', 'popup');
+
+        // معالجة صورة النافذة المنبثقة
+        if ($request->hasFile('popup_image')) {
+            $path = $request->file('popup_image')->store('public/settings');
+            Setting::setValue('popup_image', $path, 'popup');
+        }
+
+        return redirect()->back()->with('success', __('admin.settings_updated_successfully'));
     }
 
     /**

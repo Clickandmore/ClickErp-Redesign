@@ -762,5 +762,7 @@ return [
     'add_new_contract' => 'Add New Contract',
     'settings_updated_successfully' => 'Settings updated successfully',
     'settings_update_failed' => 'Failed to update settings',
+    'order_expiration_hours' => 'Order Expiration Duration (Hours)',
+    'order_expiration_hint' => 'Minimum: 1 hour, Maximum: 720 hours (30 days)',
 
 ];

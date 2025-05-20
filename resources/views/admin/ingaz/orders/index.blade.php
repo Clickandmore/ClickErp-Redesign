@@ -85,26 +85,7 @@
                     var orderId = $(this).data('id'); // Get the data-id attribute
 
                     if (orderId) {
-                        // Replace ':id' in the URL with the actual orderId
-                        var url = '{{ route('orders.completeOrder', ['id' => ':id']) }}'.replace(':id', orderId);
-
-                        $.ajax({
-                            url: url,
-                            type: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                            },
-                            success: function (data) {
-                                if (data.code == 200) {
-                                    window.location.href = '{{ route('RecruitmentContract.create') }}?orderId=' + orderId;
-                                }
-                            },
-                            error: function (xhr, status, error) {
-                                // Handle AJAX errors
-                                alert('An error occurred while completing the order. Please try again.');
-                                console.error(xhr.responseText); // Log the error for debugging
-                            }
-                        });
+                        window.location.href = '{{ route('RecruitmentContract.create') }}?orderId=' + orderId;
                     } else {
                         console.error('data-id attribute is missing!'); // Log an error if data-id is missing
                     }

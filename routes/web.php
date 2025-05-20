@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\AdminContractController;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use App\Http\Controllers\ingaz\MaidController as IngazMaidController;
 use App\Http\Controllers\ingaz\UserController;
+use App\Http\Controllers\Admin\CountryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -146,6 +147,19 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () 
         Route::get('/clients/export/pdf', [UserController::class, 'exportPdf'])->name('clients.export.pdf');
         Route::get('/clients/export/excel', [UserController::class, 'exportExcel'])->name('clients.export.excel');
         Route::get('/get-offices-by-nationality', [App\Http\Controllers\ingaz\MaidController::class, 'getOfficesByNationality'])->name('getOfficesByNationality');
+
+        // تحديث مسارات الإعدادات
+        Route::get('settings', [App\Http\Controllers\ingaz\SettingController::class, 'index'])->name('admin.ingaz.settings.index');
+        Route::put('settings', [App\Http\Controllers\ingaz\SettingController::class, 'update'])->name('admin.ingaz.settings.update');
+
+        // مسارات الدول
+        Route::get('countries', [CountryController::class, 'index'])->name('countries.index');
+        Route::get('countries/create', [CountryController::class, 'create'])->name('countries.create');
+        Route::post('countries', [CountryController::class, 'store'])->name('countries.store');
+        Route::get('countries/{country}/edit', [CountryController::class, 'edit'])->name('countries.edit');
+        Route::put('countries/{country}', [CountryController::class, 'update'])->name('countries.update');
+        Route::delete('countries/{country}', [CountryController::class, 'destroy'])->name('countries.destroy');
+        Route::patch('countries/{country}/toggle-status', [CountryController::class, 'toggleStatus'])->name('countries.toggle-status');
     });
 });
 

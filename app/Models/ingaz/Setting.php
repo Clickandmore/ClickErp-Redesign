@@ -39,6 +39,21 @@ class Setting extends Model
 //        $this->translatedAttributes = array_diff($this->fillable, ['setting_id','locale','created_at','updated_at']);
 //    }
 
+    protected $fillable = ['key', 'value', 'group'];
+
+    public static function getValue($key, $default = null)
+    {
+        $setting = static::where('key', $key)->first();
+        return $setting ? $setting->value : $default;
+    }
+
+    public static function setValue($key, $value, $group = 'general')
+    {
+        return static::updateOrCreate(
+            ['key' => $key],
+            ['value' => $value, 'group' => $group]
+        );
+    }
 
     public function getActivitylogOptions(): LogOptions
     {
@@ -46,6 +61,4 @@ class Setting extends Model
             ->logOnly(['*'])
             ->logOnlyDirty();
     }
-
-
 }

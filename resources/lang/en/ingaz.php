@@ -272,6 +272,6 @@
     'id_number' => 'ID Number',
     'id_expiry_date' => 'ID Expiry Date',
     'skills' => 'Skills',
-
-
+    'authorize' => 'Authorize',
+    'contract_status' => 'Contract Status',
 );

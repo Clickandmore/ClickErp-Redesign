@@ -83,6 +83,7 @@ class OrderController extends Controller
                     $showButton = '';
                     $editButton = '';
                     $deleteButton = '';
+                    $authorizeButton = '';
 
                     if ($row->payment_type == 'bank_transfer') {
                         $showButton = viewSingleButton(route('showSingleOrder', $row->id));
@@ -90,13 +91,20 @@ class OrderController extends Controller
 
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CONTROL)) {
                         $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
+
+                        // Add authorization button only for new orders
+                        if ($row->status == OrderEnum::New->value) {
+                            $authorizeButton = '<button class="btn btn-sm btn-primary addNewContract" data-id="' . $row->id . '">
+                                <i class="fa fa-check"></i> ' . __('ingaz.authorize') . '
+                            </button>';
+                        }
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE)) {
                         $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
                     }
 
-                    return $showButton . " " . $editButton . " " . $deleteButton;
+                    return $showButton . " " . $editButton . " " . $authorizeButton . " " . $deleteButton;
                 })
                 ->escapeColumns([])
                 ->make(true);
@@ -251,8 +259,6 @@ class OrderController extends Controller
     {
         $order = objModel::find($id);
         if ($order) {
-            $order->status = 'completed';
-            $order->save();
             return jsonSuccess($order);
         }
         return jsonError(['error' => 'Order not Found!']);

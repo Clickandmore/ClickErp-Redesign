@@ -45,8 +45,9 @@ class OrderAction extends MainAction
 
         $order = $this->store($data);
 
-        // Set expiration time (default 24 hours)
-        $order->setExpirationTime(24);
+        // استخدام مدة الحجز من الإعدادات
+        $expirationHours = \App\Models\ingaz\Setting::getValue('order_expiration_hours', 24);
+        $order->setExpirationTime($expirationHours);
 
         if ($request->details_list) {
             $this->StoreOrderDetails($request, $order);

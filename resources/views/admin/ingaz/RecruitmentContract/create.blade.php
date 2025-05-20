@@ -2,63 +2,88 @@
 @section('page-title')
 {{helperTrans("ingaz.add Recruitment contract")}}
 @endsection
+
+@section('style')
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+@endsection
+
 @section('content')
 
 @if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACT_CONTROL))
 
     <form id="maidForm" class="row g-3 contractForm" method="post" action="{{route("RecruitmentContract.store")}}">
         @csrf
-        @include('admin.ingaz.contract.client-section')
-        @include('admin.ingaz.contract.maid-section')
 
-
-        <div id="step-3" class="step d-none">
-            <div id="contract-section" class="row">
-
-                <div class="col-6">
-                    <label class="form-label">{{helperTrans("ingaz.contract date")}}</label>
-                    <input type="date" id="contract_date" name="contract_date" class="form-control"
-                        data-validation="required">
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">معلومات العميل</h4>
                 </div>
+                <div class="card-body">
+                    <div id="order_selection" class="col-12 mb-4">
+                        <label class="form-label">{{helperTrans("ingaz.select_order")}}</label>
+                        <select name="order_id" id="order_id" class="form-select form-control select2" data-validation="required">
+                            <option disabled selected>{{helperTrans('ingaz.choose')}}</option>
+                            @foreach($orders as $order)
+                                <option value="{{$order->id}}"
+                                    data-client-name="{{$order->user->name}}"
+                                    data-client-phone="{{$order->user->phone}}"
+                                    data-maid-name="{{$order->maid->name}}"
+                                    data-maid-passport="{{$order->maid->passport_num}}"
+                                    data-client-nationality="{{$order->user->nationality}}">
+                                    {{$order->user->name}} - {{$order->user->phone}} - {{$order->maid->name}} ({{$order->maid->passport_num}})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                <div class="col-6">
-                    <label class="form-label">{{helperTrans("ingaz.msaned number")}}</label>
-                    <input type="text" id="msaned_number" name="msaned_number" class="form-control"
-                        data-validation="required">
+                    <div class="col-12 mb-4">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="client_type" id="ex_client" value="ex_client" checked>
+                            <label class="form-check-label" for="ex_client">{{helperTrans("ingaz.ex_client")}}</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="client_type" id="new_client" value="new_client">
+                            <label class="form-check-label" for="new_client">{{helperTrans("ingaz.new_client")}}</label>
+                        </div>
+                    </div>
+
+                    @include('admin.ingaz.contract.client-section')
                 </div>
-
-                {{-- <div class="col-6">
-                    <label class="form-label">{{helperTrans("ingaz.tafwed number")}}</label>
-                    <input type="text" id="tafwed_number" name="tafwed_number" class="form-control"
-                        data-validation="required">
-                </div> --}}
-
-                <div class="col-6">
-                    <label class="form-label">{{helperTrans("ingaz.visa number")}}</label>
-                    <input type="text" id="visa_number" name="visa_number" class="form-control" data-validation="required">
-                </div>
-                {{-- <div class="col-6">
-                    <label class="form-label">{{helperTrans("ingaz.visa hijry date")}}</label>
-                    <input type="date" id="visa_milad_date" name="visa_milad_date" class="form-control"
-                        data-validation="required">
-                </div>
-                <div class="col-6">
-                    <label class="form-label">{{helperTrans("ingaz.visa milad date")}}</label>
-                    <input type="date" id="visa_hijry_date" name="visa_hijry_date" class="form-control"
-                        data-validation="required">
-                </div> --}}
-
-
             </div>
         </div>
 
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">معلومات الخادمة</h4>
+                </div>
+                <div class="card-body">
+                    @include('admin.ingaz.contract.maid-section')
+                </div>
+            </div>
+        </div>
 
-        <div class="col-12 modal-footer">
-            <button id="prevBtn" type="button" class="btn btn-default d-none"
-                style="margin-left: 3px">{{__('buttons.prev')}}</button>
-            <button id="nextBtn" type="button" class="btn btn-primary"
-                style="margin-left: 3px">{{__('buttons.next')}}</button>
-            <button id="submitBtnn" class="btn btn-primary d-none" type="submit">{{__('buttons.save')}}</button>
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">معلومات العقد</h4>
+                </div>
+                <div class="card-body">
+                    @include('admin.ingaz.contract.contract-section')
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center">
+                    <button class="btn btn-primary btn-lg px-5" type="submit">
+                        <i class="fa-solid fa-floppy-disk me-2"></i>
+                        {{__('buttons.save')}}
+                    </button>
+                </div>
+            </div>
         </div>
     </form>
 
@@ -67,101 +92,132 @@
 @endif
 
 @endsection
+
 @section('js')
 <script>
     var indexRoute = "{{ route('RecruitmentContract.index') }}";
 </script>
 
 <script>
-
-    $(document).ready(function () {
-
-        const orderId = '{{ $orderId }}';
-        if (orderId) {
-            var url = '{{ route('orders.getOrderById', ['id' => ':id']) }}'.replace(':id', orderId);
-            $.ajax({
-                url,
-                type: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                success: function (data) {
-                    if (data.code == 200) {
-                        setTimeout(function () {
-                            $('select#order_id').html('<option value="' + data.data.id + '" selected>' + data.data.user.name + '</option>');
-                            $('#order_id').val(orderId).trigger('change').trigger('select2:select');
-                        }, 1000);
-                    }
-                },
-                error: function (xhr, status, error) {
-                    // Handle AJAX errors
-                    alert('An error occurred while completing the order. Please try again.');
-                    console.error(xhr.responseText); // Log the error for debugging
+    $(document).ready(function() {
+        // Initialize select2 with search functionality
+        $('.select2').select2({
+            placeholder: '{{helperTrans("ingaz.search_order")}}',
+            allowClear: true,
+            language: {
+                noResults: function() {
+                    return "{{helperTrans('ingaz.no_results')}}";
                 }
-            })
-        }
-
-        $('#client_nationality_id').change(function () {
-            console.log($(this).val());
-            let nationalityId = $(this).val();
-            var url = "{{ route('getMaidByNationality', ['nationalityId' => ':nationalityId']) }}".replace(':nationalityId', nationalityId);
-            $.ajax({
-                url: url,
-                type: 'GET',
-                data: { nationalityId: $(this).val() },
-                success: function (data) {
-                    $('#maid_id').empty();
-                    // loop to the object
-                    $('#maid_id').append('<option selected disabled>{{helperTrans('ingaz.choose')}}</option>');
-                    data.forEach(function (item) {
-                        $('#maid_id').append('<option value="' + item.id + '">' + item.passport_num + '</option>');
-                    });
-                }
-            });
+            }
         });
-        // submit form
-        $(document).on('submit', '.contractForm', function (e) {
+
+        // Initialize nationality select2 specifically
+        $('#client_nationality_id').select2({
+            placeholder: '{{helperTrans("ingaz.choose_nationality")}}',
+            allowClear: true,
+            language: {
+                noResults: function() {
+                    return "{{helperTrans('ingaz.no_results')}}";
+                }
+            }
+        });
+
+        // Handle client type selection
+        $('input[name="client_type"]').on('change', function() {
+            if ($(this).val() === 'new_client') {
+                $('#order_selection').hide();
+                $('#order_id').prop('required', false);
+                // Clear and enable nationality field for new client
+                $('#client_nationality_id').val('').trigger('change');
+                $('#client_nationality_id').prop('disabled', false);
+            } else {
+                $('#order_selection').show();
+                $('#order_id').prop('required', true);
+                // Disable nationality field for existing client
+                $('#client_nationality_id').prop('disabled', true);
+            }
+        });
+
+        // Handle order selection
+        $('#order_id').on('change', function() {
+            var selectedOption = $(this).find('option:selected');
+            var clientName = selectedOption.data('client-name');
+            var clientPhone = selectedOption.data('client-phone');
+            var maidName = selectedOption.data('maid-name');
+            var maidPassport = selectedOption.data('maid-passport');
+            var clientNationality = selectedOption.data('client-nationality');
+
+            // Fill in the form fields
+            $('#client_name').val(clientName);
+            $('#client_phone').val(clientPhone);
+            $('#maid_name').val(maidName);
+            $('#maid_passport').val(maidPassport);
+            if (clientNationality) {
+                $('#client_nationality_id').val(clientNationality).trigger('change');
+            }
+        });
+
+        // Form validation before submission
+        $('#maidForm').on('submit', function(e) {
             e.preventDefault();
-            let formData = new FormData(this);
-            let url = $(this).attr('action');
-            let submitButton = $(e.originalEvent.submitter);
-            let buttonText = submitButton.text();
-            let modalResult = $("#createModal");
-            $.ajax({
-                url: url,
-                type: 'POST',
-                data: formData,
-                cache: false,
-                contentType: false,
-                processData: false,
-                beforeSend: function () {
-                    $('#loading-wrapper').fadeIn();
-                    submitButton.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' + buttonText)
-                },
-                complete: function () {
-                    $('#loading-wrapper').fadeOut();
-                },
-                success: function (result) {
-                    console.log(200)
-                    window.location.href = indexRoute;
-                    submitButton.html(buttonText)
-                    if (modalResult.is(":visible")) {
-                        modalResult.modal('toggle');
+
+            // Reset previous error messages
+            $('.is-invalid').removeClass('is-invalid');
+            $('.invalid-feedback').remove();
+
+            var isValid = true;
+            var firstInvalidField = null;
+
+            // Check required fields
+            $('[data-validation="required"]').each(function() {
+                if (!$(this).val()) {
+                    isValid = false;
+                    $(this).addClass('is-invalid');
+
+                    // Add error message
+                    var fieldName = $(this).attr('name');
+                    var errorMessage = '';
+
+                    switch(fieldName) {
+                        case 'contract_date':
+                            errorMessage = 'يرجى ادخال تاريخ العقد';
+                            break;
+                        case 'msaned_number':
+                            errorMessage = 'يرجى ادخال رقم مساند';
+                            break;
+                        case 'visa_number':
+                            errorMessage = 'يرجى ادخال رقم التأشيرة';
+                            break;
+                        case 'client_nationality_id':
+                            errorMessage = 'يرجى اختيار الجنسية';
+                            break;
+                        default:
+                            errorMessage = 'هذا الحقل مطلوب';
                     }
-                    console.log(modalResult.is(':visible'));
-                },
-                error: function (errorObj, errorText, errorThrown) {
-                    console.log(500)
-                    console.log(errorObj)
-                    handleErrorResponce(errorObj);
-                    alert(errorObj.responseJSON.message);
+
+                    $(this).after('<div class="invalid-feedback">' + errorMessage + '</div>');
+
+                    if (!firstInvalidField) {
+                        firstInvalidField = $(this);
+                    }
                 }
             });
+
+            if (!isValid) {
+                // Scroll to first invalid field
+                if (firstInvalidField) {
+                    $('html, body').animate({
+                        scrollTop: firstInvalidField.offset().top - 100
+                    }, 500);
+                }
+                return false;
+            }
+
+            // If all validations pass, submit the form
+            this.submit();
         });
     });
-
-
-
 </script>
+
 @include('admin.ingaz.contract.js')
 @endsection

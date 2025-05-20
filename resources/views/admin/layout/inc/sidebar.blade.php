@@ -89,7 +89,7 @@
                         <span class="ms-2">إدارة السير الذاتية</span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
-                    <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['maids.index', 'noneAvailableMaids', 'maids.create'])) ? 'show' : '' }}" id="cvManagement">
+                    <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['maids.index', 'noneAvailableMaids', 'maids.create', 'countries.index'])) ? 'show' : '' }}" id="cvManagement">
                         <li>
                             <a class="m-link {{ (Route::currentRouteName() == 'maids.create') ? 'active' : '' }}"
                                 href="{{route('maids.create')}}">
@@ -111,7 +111,12 @@
                                 <span class="ms-2">سير غير متاحة</span>
                             </a>
                         </li>
-
+                        <li>
+                            <a class="m-link {{ (Route::currentRouteName() == 'countries.index') ? 'active' : '' }}" href="{{ route('countries.index') }}">
+                                <i class="fas fa-globe"></i>
+                                <span class="ms-2">إعدادات الدول</span>
+                            </a>
+                        </li>
                     </ul>
                 </li>
 
@@ -428,6 +433,12 @@
                             href="{{route('dash.settings')}}">
                             <i class="fa fa-sliders"></i>
                             <span class="ms-2"> {{ __('admin.other_settings') }}</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('admin.ingaz.settings.index') }}">
+                            <i class="fas fa-cog"></i>
+                            <span>إعدادات السيرة</span>
                         </a>
                     </li>
                 @endif

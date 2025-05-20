@@ -780,5 +780,7 @@
   'popup_image' => 'صورة النافذة المنبثقة',
   'settings_updated_successfully' => 'تم تحديث الإعدادات بنجاح',
   'settings_update_failed' => 'فشل تحديث الإعدادات',
+  'order_expiration_hours' => 'مدة صلاحية الطلب (بالساعات)',
+  'order_expiration_hint' => 'الحد الأدنى: 1 ساعة، الحد الأقصى: 720 ساعة (30 يوم)',
 
 );
