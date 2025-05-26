@@ -782,5 +782,13 @@
   'settings_update_failed' => 'فشل تحديث الإعدادات',
   'order_expiration_hours' => 'مدة صلاحية الطلب (بالساعات)',
   'order_expiration_hint' => 'الحد الأدنى: 1 ساعة، الحد الأقصى: 720 ساعة (30 يوم)',
+  'trip_completed' => 'اكتملت الرحلة',
+  'trip_pending' => 'قيد الانتظار',
+  'mark_trip_completed' => 'تحديد اكتمال الرحلة',
+  'mark_trip_completed_confirmation' => 'هل أنت متأكد من تحديد اكتمال الرحلة؟',
+  'trip_already_exists' => 'يوجد رحلة مسجلة بالفعل لهذا العقد',
+  'trip_completed_success' => 'تم اكتمال الرحلة بنجاح والانتقال إلى مرحلة تحت الضمان',
+  'remaining_warranty_days' => 'متبقي :days يوم في الضمان',
+  'warranty_expired' => 'انتهى الضمان',
 
 );

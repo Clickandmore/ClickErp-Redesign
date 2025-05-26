@@ -28,9 +28,13 @@
                    data-validation="required">
         </div> --}}
         <div class="col-6">
-            <label class="form-label">{{helperTrans("ingaz.visa_date_is")}} <span class="text-danger">*</span></label>
-            <input type="date" id="visa_milad_date" name="visa_milad_date" class="form-control"
-                   data-validation="required">
+            <label class="form-label">{{helperTrans("ingaz.visa_date_is")}} <small class="text-muted">(اختياري)</small></label>
+            <input type="date" id="visa_milad_date" name="visa_milad_date" class="form-control">
+        </div>
+
+        <div class="col-6">
+            <label class="form-label">{{helperTrans("ingaz.visa_hijry_date")}} <small class="text-muted">(اختياري)</small></label>
+            <input type="date" id="visa_hijry_date" name="visa_hijry_date" class="form-control">
         </div>
 
         <div class="col-6">

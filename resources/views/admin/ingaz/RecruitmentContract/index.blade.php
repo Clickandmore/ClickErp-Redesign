@@ -179,4 +179,68 @@
             });
         });
     </script>
+
+    <script>
+    $(document).ready(function() {
+        // Handle complete trip button click
+        $(document).on('click', '.complete-trip-btn', function() {
+            var tripId = $(this).data('trip-id');
+            var button = $(this);
+
+            console.log('Complete trip button clicked for trip ID:', tripId);
+
+            Swal.fire({
+                title: '{{ __("admin.confirm") }}',
+                text: '{{ __("admin.mark_trip_completed_confirmation") }}',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: '{{ __("admin.confirm") }}',
+                cancelButtonText: '{{ __("admin.cancel") }}'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    console.log('Sending complete trip request for trip ID:', tripId);
+
+                    $.ajax({
+                        url: '/admin/travel/complete/' + tripId,
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        success: function(response) {
+                            console.log('Complete trip response:', response);
+
+                            if (response.success) {
+                                // Update the status badge
+                                button.closest('td').find('.badge').removeClass('bg-warning').addClass('bg-success').text('{{ __("admin.trip_completed") }}');
+                                // Remove the complete button
+                                button.remove();
+                                // Show success message
+                                Swal.fire('{{ __("admin.success") }}', response.message, 'success');
+                                // Reload the table to reflect the new contract status
+                                $('#dataTableObject').DataTable().ajax.reload(null, false);
+
+                                // If we're on the tazker status page, redirect to under warranty page
+                                if (window.location.href.includes('status=tazker')) {
+                                    setTimeout(function() {
+                                        window.location.href = '{{ route("RecruitmentContract.index", ["status" => "under_warranty"]) }}';
+                                    }, 1500);
+                                }
+                            } else {
+                                Swal.fire('{{ __("admin.error") }}', response.message, 'error');
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Complete trip error:', {
+                                status: status,
+                                error: error,
+                                response: xhr.responseText
+                            });
+                            Swal.fire('{{ __("admin.error") }}', '{{ __("admin.something_went_wrong") }}', 'error');
+                        }
+                    });
+                }
+            });
+        });
+    });
+    </script>
 @endsection

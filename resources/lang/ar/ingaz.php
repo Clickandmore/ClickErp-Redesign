@@ -318,4 +318,5 @@
   'contract_status' => 'حالة العقد',
   'contract_information' => 'Contract information',
   'choose_nationality' => 'Choose nationality',
+  'visa_hijry_date' => 'Visa hijry date',
 );

@@ -40,15 +40,47 @@ class AdminTravelHistoryController extends Controller
     {
         $userId = $request->get('userId');
         $maidId = $request->get('maidId');
+        $orderId = $request->get('orderId');
         $data = null;
+        $order = null;
+
         if ($id != null) {
-            $data = TravelHistory::find($id);
+            $data = TravelHistory::with([
+                'user',
+                'maid',
+                'order.user',
+                'order.maid'
+            ])->find($id);
+
+            if ($data) {
+                $userId = $data->user_id;
+                $maidId = $data->maid_id;
+                $orderId = $data->order_id;
+                $order = $data->order;
+            }
         }
+
         $clientsList = $this->usersList();
         $maidsList = $this->maidsList();
-        $contracts = Contract::where('status', 'tazker')->with('user')->get();
+
+        // Get all contracts with status 'tazker' and their relationships
+        $contracts = Contract::where('status', 'tazker')
+            ->with(['user', 'maid', 'info'])
+            ->get();
+
+        // If we have an order from the travel record or from the request, get it
+        if ($orderId) {
+            $selectedOrder = Contract::with(['user', 'maid', 'info'])
+                ->where('id', $orderId)
+                ->first();
+
+            if ($selectedOrder && !$contracts->contains('id', $selectedOrder->id)) {
+                $contracts->push($selectedOrder);
+            }
+        }
+
         $ordersList = [];
-        return view('admin.travel_history.control', compact('data', 'clientsList', 'maidsList', 'ordersList', 'contracts', 'id', 'userId', 'maidId'));
+        return view('admin.travel_history.control', compact('data', 'clientsList', 'maidsList', 'ordersList', 'contracts', 'id', 'userId', 'maidId', 'order', 'orderId'));
     }
 
     public function store(Request $request, $id = null)
@@ -101,9 +133,10 @@ class AdminTravelHistoryController extends Controller
 
         return redirect(route('travel'))->with('success', __('admin.success'));
     }
-    public function edit($id)
+
+    public function edit(Request $request, $id)
     {
-        return $this->create($id);
+        return $this->create($request, $id);
     }
 
     public function update(Request $request, $id)

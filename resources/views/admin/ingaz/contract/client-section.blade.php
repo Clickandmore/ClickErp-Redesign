@@ -14,12 +14,12 @@
 
         <div class="col-md-6">
             <label for="client_nationality_id"
-                   class="form-label">{{helperTrans("ingaz.nationality_id")}} <span class="text-danger">*</span></label>
+                   class="form-label">{{helperTrans("ingaz.nationality_id")}}</label>
             <select id="client_nationality_id" name="client_nationality_id"
-                    class="form-select form-control select2" data-validation="required">
+                    class="form-select form-control select2">
                 <option value="">{{helperTrans('ingaz.choose')}}</option>
                 @foreach($countries as $country)
-                    <option value="{{$country->id}}">{{$country->title}}</option>
+                    <option value="{{$country->id}}" {{ $country->code === 'SA' ? 'selected' : '' }}>{{$country->name_ar}}</option>
                 @endforeach
             </select>
         </div>

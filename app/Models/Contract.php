@@ -34,7 +34,7 @@ class Contract extends Model
 
     public function info()
     {
-        return $this->belongsTo(\App\Models\ContractInfo::class, 'contract_id');
+        return $this->hasOne(\App\Models\ContractInfo::class, 'contract_id');
     }
 
     public function get_info()
@@ -56,6 +56,12 @@ class Contract extends Model
     public function scopeRecruitmentContract($query)
     {
         return $query->whereNotIn('status', [ContractStatusEnum::Sari->value, ContractStatusEnum::Closed->value]);
+    }
+
+    public function scopeUnderWarranty($query)
+    {
+        return $query->where('status', ContractStatusEnum::Arrival->value)
+            ->where('updated_at', '>=', now()->subDays(90));
     }
 
     public function scopeRentContract($query)

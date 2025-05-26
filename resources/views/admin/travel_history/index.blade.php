@@ -92,7 +92,12 @@
                         <td>{{ __('travel_types.status.'.@$singleRow->status) }}</td>
                         <td class="PrintHide">
                             <div class="d-flex justify-content-center">
-                                <a class="btn btn-sm" href="{{ route('travel.update', $singleRow->id) . '/edit' }}">
+                                <a class="btn btn-sm" href="{{ route('travel.control', [
+                                    'id' => $singleRow->id,
+                                    'userId' => $singleRow->user_id,
+                                    'maidId' => $singleRow->maid_id,
+                                    'orderId' => $singleRow->order_id
+                                ]) }}">
                                     <li class="fa fa-edit"></li>
                                 </a>
                                 <form action="{{ route('travel.delete', $singleRow->id) }}" method="POST"

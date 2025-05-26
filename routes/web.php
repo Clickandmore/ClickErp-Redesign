@@ -20,6 +20,7 @@ use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use App\Http\Controllers\ingaz\MaidController as IngazMaidController;
 use App\Http\Controllers\ingaz\UserController;
 use App\Http\Controllers\Admin\CountryController;
+use App\Http\Controllers\ingaz\RecruitmentContractController;
 
 /*
 |--------------------------------------------------------------------------
@@ -161,6 +162,9 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () 
         Route::delete('countries/{country}', [CountryController::class, 'destroy'])->name('countries.destroy');
         Route::patch('countries/{country}/toggle-status', [CountryController::class, 'toggleStatus'])->name('countries.toggle-status');
     });
+
+    // Add the travel complete route inside the admin group
+    Route::post('/travel/complete/{tripId}', [RecruitmentContractController::class, 'completeTrip'])->name('travel.complete');
 });
 
 // Notification routes

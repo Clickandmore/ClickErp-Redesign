@@ -69,8 +69,14 @@
             <select name="order_id" id="order_id" class="form-control cu-form-design select2">
                 <option value="">@lang('ingaz.select_order')</option>
                 @forelse ($contracts as $contract)
-                    <option value="{{$contract->id}}" @if (request()->get('id') == $contract->id || @$data->order_id == $contract->id) selected @endif>
-                        @lang('ingaz.the_order'): {{@$contract->id ?? ''}} - @lang('ingaz.maid_id'): {{@$contract->user->name ?? ''}}
+                    <option value="{{$contract->id}}"
+                        @if ((@$data && @$data->order_id == $contract->id) ||
+                            (request()->get('id') == $contract->id) ||
+                            (@$order && @$order->id == $contract->id) ||
+                            (@$orderId == $contract->id))
+                            selected
+                        @endif>
+                        @lang('ingaz.the_order'): {{$contract->id}} - @lang('ingaz.maid_id'): {{@$contract->user->name}}
                     </option>
                 @empty
                 @endforelse
@@ -87,8 +93,14 @@
         <label for="" class="col-sm-3 col-form-label">{{ __('admin.client_id') }}</label>
         <div class="col-sm-5">
             <select name="user_id" id="user_id" class="form-control cu-form-design select2">
-                @forelse ( @$clientsList ?? [] as $id => $name)
-                <option value="{{$id}}" @if (@$data->user_id == $id) selected @endif>
+                <option value="">@lang('admin.select_client')</option>
+                @forelse (@$clientsList ?? [] as $id => $name)
+                <option value="{{$id}}"
+                    @if ((@$data && @$data->user_id == $id) ||
+                        @$userId == $id ||
+                        (@$order && @$order->user_id == $id))
+                        selected
+                    @endif>
                     {{ $name }}
                 </option>
                 @empty
@@ -106,8 +118,14 @@
         <label for="" class="col-sm-3 col-form-label">{{ __('admin.maid_id') }}</label>
         <div class="col-sm-5">
             <select name="maid_id" id="maid_id" class="form-control cu-form-design select2">
-                @forelse ( @$maidsList ?? [] as $id => $name)
-                <option value="{{$id}}" @if (@$data->maid_id == $id) selected @endif>
+                <option value="">@lang('admin.select_maid')</option>
+                @forelse (@$maidsList ?? [] as $id => $name)
+                <option value="{{$id}}"
+                    @if ((@$data && @$data->maid_id == $id) ||
+                        @$maidId == $id ||
+                        (@$order && @$order->maid_id == $id))
+                        selected
+                    @endif>
                     {{ $name }}
                 </option>
                 @empty
@@ -175,6 +193,18 @@
                 <div class="text-danger">{{ $message }}</div>
                 @enderror
             </div>
+        </div>
+        <div class="col-sm-4">
+            @if(@$data)
+                @if(@$data->status != 'completed')
+                    <button type="button" class="btn btn-success mb-2" id="markCompletedBtn">
+                        {{ __('admin.mark_trip_completed') }}
+                    </button>
+                @endif
+                <button type="button" class="btn btn-primary" id="reviewTripBtn">
+                    {{ __('admin.review_trip') }}
+                </button>
+            @endif
         </div>
     </div>
 
@@ -331,8 +361,113 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 <script>
     $(document).ready(function () {
-            $('.select2').select2();
+        // Initialize select2 with specific options
+        $('.select2').select2({
+            allowClear: false,
+            width: '100%'
         });
+
+        // Function to set select2 value
+        function setSelect2Value(selector, value) {
+            if (value) {
+                $(selector).val(value).trigger('change');
+            }
+        }
+
+        // Set initial values after a short delay to ensure select2 is fully initialized
+        setTimeout(function() {
+            // Set order
+            var orderId = "{{ @$orderId }}";
+            if(orderId) {
+                setSelect2Value('#order_id', orderId);
+            }
+
+            // Set user
+            var userId = "{{ @$userId }}";
+            if(userId) {
+                setSelect2Value('#user_id', userId);
+            }
+
+            // Set maid
+            var maidId = "{{ @$maidId }}";
+            if(maidId) {
+                setSelect2Value('#maid_id', maidId);
+            }
+        }, 100);
+
+        // Prevent order selection from being cleared
+        $('#order_id').on('select2:unselecting', function(e) {
+            e.preventDefault();
+        });
+
+        // Additional event handler to ensure selection persists
+        $('#order_id').on('change', function(e) {
+            var currentValue = $(this).val();
+            if (!currentValue && "{{ @$orderId }}") {
+                $(this).val("{{ @$orderId }}").trigger('change');
+            }
+        });
+
+        // Handle mark as completed button click
+        $('#markCompletedBtn').click(function() {
+            $('#status').val('completed').trigger('change');
+        });
+
+        // Handle review trip button click
+        $('#reviewTripBtn').click(function() {
+            // Add your review trip logic here
+            swal({
+                title: '{{ __("admin.review_trip") }}',
+                text: '{{ __("admin.review_trip_confirmation") }}',
+                icon: 'info',
+                buttons: {
+                    cancel: '{{ __("admin.cancel") }}',
+                    confirm: '{{ __("admin.confirm") }}'
+                }
+            }).then((willReview) => {
+                if (willReview) {
+                    // Add your review trip API call here
+                    // For example:
+                    // $.ajax({
+                    //     url: '/api/trip/review',
+                    //     method: 'POST',
+                    //     data: {
+                    //         trip_id: "{{ @$data->id }}"
+                    //     },
+                    //     success: function(response) {
+                    //         swal('{{ __("admin.success") }}', response.message, 'success');
+                    //     }
+                    // });
+                }
+            });
+        });
+
+        // Check if trip already exists for this order
+        @if(!@$data)
+        $('#order_id').on('change', function() {
+            var orderId = $(this).val();
+            if (orderId) {
+                $.ajax({
+                    url: '/api/check-trip-exists',
+                    method: 'GET',
+                    data: {
+                        order_id: orderId
+                    },
+                    success: function(response) {
+                        if (response.exists) {
+                            swal({
+                                title: '{{ __("admin.error") }}',
+                                text: '{{ __("admin.trip_already_exists") }}',
+                                icon: 'error'
+                            });
+                            $('#order_id').val('').trigger('change');
+                        }
+                    }
+                });
+            }
+        });
+        @endif
+    });
 </script>
 @endpush
 

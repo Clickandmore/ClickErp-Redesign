@@ -17,18 +17,18 @@ class CreateContractInfosTable extends Migration
             $table->id();
             $table->unsignedBigInteger('contract_id');
             $table->foreign('contract_id')->references('id')->on('contracts')->onDelete('cascade');
-            $table->string('visa_number')->comment('رقم التأشيرة')->default('');
-            $table->date('visa_hijry_date')->comment('تاريخ التأشيرة الهجري')->default(null);
-            $table->date('visa_milad_date')->comment('تاريخ التأشيرة الميلادي')->default(null);
-            $table->string('working_hours_num')->comment('نوع string علشان لو هيدخل مثلا 3 ساعات')->default('');
+            $table->string('visa_number')->comment('رقم التأشيرة')->nullable();
+            $table->date('visa_hijry_date')->comment('تاريخ التأشيرة الهجري')->nullable();
+            $table->date('visa_milad_date')->comment('تاريخ التأشيرة الميلادي')->nullable();
+            $table->string('working_hours_num')->comment('نوع string علشان لو هيدخل مثلا 3 ساعات')->nullable();
             $table->double('sponsorship_price')->comment('مبلغ نقل الكفالة')->nullable();
             $table->double('salary_after_sponsorship')->comment('الراتب بعد الكفالة')->nullable();
             $table->double('monthly_cost')->comment('التكلفة الشهرية')->nullable();
             $table->integer('contract_duration')->comment('مدة العقد')->nullable();
             $table->double('contract_value')->comment('قيمة العقد')->nullable();
             $table->date('contract_date')->comment('تاريخ العقد')->nullable();
-            $table->date('ingaz_from')->comment('الانجاز من')->default(null);
-            $table->date('ingaz_to')->comment('الانجاز الي')->default(null);
+            $table->date('ingaz_from')->comment('الانجاز من')->nullable();
+            $table->date('ingaz_to')->comment('الانجاز الي')->nullable();
             $table->foreignId('previous_sponsorship')->comment('الكفيل السابق')
                 ->nullable()
                 ->constrained('recruitment_offices')

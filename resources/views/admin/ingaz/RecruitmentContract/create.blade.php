@@ -30,7 +30,8 @@
                                     data-client-phone="{{$order->user->phone}}"
                                     data-maid-name="{{$order->maid->name}}"
                                     data-maid-passport="{{$order->maid->passport_num}}"
-                                    data-client-nationality="{{$order->user->nationality}}">
+                                    data-client-nationality="{{$order->user->nationality}}"
+                                    data-maid-id="{{$order->maid->id}}">
                                     {{$order->user->name}} - {{$order->user->phone}} - {{$order->maid->name}} ({{$order->maid->passport_num}})
                                 </option>
                             @endforeach
@@ -100,41 +101,41 @@
 
 <script>
     $(document).ready(function() {
-        // Initialize select2 with search functionality
         $('.select2').select2({
-            placeholder: '{{helperTrans("ingaz.search_order")}}',
-            allowClear: true,
-            language: {
-                noResults: function() {
-                    return "{{helperTrans('ingaz.no_results')}}";
-                }
-            }
+            placeholder: 'Search for an order...',
+            allowClear: true
         });
 
-        // Initialize nationality select2 specifically
-        $('#client_nationality_id').select2({
-            placeholder: '{{helperTrans("ingaz.choose_nationality")}}',
-            allowClear: true,
-            language: {
-                noResults: function() {
-                    return "{{helperTrans('ingaz.no_results')}}";
-                }
-            }
-        });
-
-        // Handle client type selection
-        $('input[name="client_type"]').on('change', function() {
+        $('#client_type').change(function () {
             if ($(this).val() === 'new_client') {
-                $('#order_selection').hide();
-                $('#order_id').prop('required', false);
-                // Clear and enable nationality field for new client
-                $('#client_nationality_id').val('').trigger('change');
-                $('#client_nationality_id').prop('disabled', false);
+                $('#new-client-section').show();
+                $('#order-selection').hide();
+                $('#maid-selection').show();
+                $('#maid_id').prop('required', true);
             } else {
-                $('#order_selection').show();
-                $('#order_id').prop('required', true);
-                // Disable nationality field for existing client
-                $('#client_nationality_id').prop('disabled', true);
+                $('#new-client-section').hide();
+                $('#order-selection').show();
+                $('#maid-selection').hide();
+                $('#maid_id').prop('required', false);
+            }
+        });
+
+        $('#maid_id').change(function () {
+            var maidId = $(this).val();
+            if (maidId) {
+                $.ajax({
+                    url: '/admin/maids/' + maidId + '/details',
+                    type: 'GET',
+                    success: function (data) {
+                        $('#maid_passport').val(data.passport_num);
+                        $('#maid_religion').val(data.religion.title);
+                        $('#maid_job').val(data.job_type);
+                        $('#maid_nationality').val(data.nationality.title);
+                        $('#maid_salary').val(data.salary);
+                        $('#experience_years').val(data.experience_years);
+                        $('#age').val(data.age);
+                    }
+                });
             }
         });
 
@@ -146,6 +147,7 @@
             var maidName = selectedOption.data('maid-name');
             var maidPassport = selectedOption.data('maid-passport');
             var clientNationality = selectedOption.data('client-nationality');
+            var maidId = selectedOption.data('maid-id');
 
             // Fill in the form fields
             $('#client_name').val(clientName);
@@ -155,9 +157,12 @@
             if (clientNationality) {
                 $('#client_nationality_id').val(clientNationality).trigger('change');
             }
+            if (maidId) {
+                $('#maid_id').val(maidId).trigger('change');
+            }
         });
 
-        // Form validation before submission
+        // Form submission handling
         $('#maidForm').on('submit', function(e) {
             e.preventDefault();
 
@@ -167,8 +172,39 @@
 
             var isValid = true;
             var firstInvalidField = null;
+            var clientType = $('input[name="client_type"]:checked').val();
 
-            // Check required fields
+            // Check required fields based on client type
+            if (clientType === 'ex_client') {
+                if (!$('#order_id').val()) {
+                    isValid = false;
+                    $('#order_id').addClass('is-invalid');
+                    $('#order_id').after('<div class="invalid-feedback">يرجى اختيار الطلب</div>');
+                    firstInvalidField = $('#order_id');
+                }
+            } else {
+                // Check new client required fields
+                if (!$('#client_name').val()) {
+                    isValid = false;
+                    $('#client_name').addClass('is-invalid');
+                    $('#client_name').after('<div class="invalid-feedback">يرجى ادخال اسم العميل</div>');
+                    firstInvalidField = $('#client_name');
+                }
+                if (!$('#client_phone').val()) {
+                    isValid = false;
+                    $('#client_phone').addClass('is-invalid');
+                    $('#client_phone').after('<div class="invalid-feedback">يرجى ادخال رقم هاتف العميل</div>');
+                    if (!firstInvalidField) firstInvalidField = $('#client_phone');
+                }
+                if (!$('#client_nationality_id').val()) {
+                    isValid = false;
+                    $('#client_nationality_id').addClass('is-invalid');
+                    $('#client_nationality_id').after('<div class="invalid-feedback">يرجى اختيار جنسية العميل</div>');
+                    if (!firstInvalidField) firstInvalidField = $('#client_nationality_id');
+                }
+            }
+
+            // Check other required fields
             $('[data-validation="required"]').each(function() {
                 if (!$(this).val()) {
                     isValid = false;
@@ -188,8 +224,8 @@
                         case 'visa_number':
                             errorMessage = 'يرجى ادخال رقم التأشيرة';
                             break;
-                        case 'client_nationality_id':
-                            errorMessage = 'يرجى اختيار الجنسية';
+                        case 'contract_duration':
+                            errorMessage = 'يرجى ادخال مدة العقد';
                             break;
                         default:
                             errorMessage = 'هذا الحقل مطلوب';
@@ -213,8 +249,45 @@
                 return false;
             }
 
-            // If all validations pass, submit the form
-            this.submit();
+            // If all validations pass, submit the form via AJAX
+            let formData = new FormData(this);
+            let url = $(this).attr('action');
+            let submitButton = $(e.originalEvent.submitter);
+            let buttonText = submitButton.text();
+
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: formData,
+                cache: false,
+                contentType: false,
+                processData: false,
+                beforeSend: function () {
+                    $('#loading-wrapper').fadeIn();
+                    submitButton.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' + buttonText);
+                },
+                complete: function () {
+                    $('#loading-wrapper').fadeOut();
+                    submitButton.html(buttonText);
+                },
+                success: function (response) {
+                    if (response.code === 200) {
+                        // Show success message
+                        Swal.fire({
+                            title: 'نجاح',
+                            text: response.data.message,
+                            icon: 'success',
+                            confirmButtonText: 'حسناً'
+                        }).then((result) => {
+                            // Redirect to index page
+                            window.location.href = indexRoute;
+                        });
+                    }
+                },
+                error: function (errorObj) {
+                    handleErrorResponce(errorObj);
+                }
+            });
         });
     });
 </script>

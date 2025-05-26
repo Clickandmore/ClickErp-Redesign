@@ -19,6 +19,7 @@ use App\Models\TravelHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
+use App\Models\Country;
 
 class RecruitmentContractController extends Controller
 {
@@ -49,14 +50,33 @@ class RecruitmentContractController extends Controller
     {
         if ($request->ajax()) {
             $status = $request->get('status', $status);
-            if ($status)
+            if ($status === 'under_warranty') {
+                $rows = Contract::RecruitmentContract()->underWarranty()->latest();
+            } else if ($status) {
                 $rows = Contract::RecruitmentContract()->where('status', $status)->latest();
-            else
+            } else {
                 $rows = Contract::RecruitmentContract()->latest();
+            }
 
             return DataTables::of($rows)
                 ->addIndexColumn()
                 ->editColumn('status', function ($row) {
+                    if ($row->status === ContractStatusEnum::Arrival->value) {
+                        $warrantyEndDate = $row->updated_at->addDays(90);
+                        $remainingDays = now()->diffInDays($warrantyEndDate, false);
+
+                        if ($remainingDays > 0) {
+                            return getEnumValue('contract_statuses', $row->status) .
+                                   ' <span class="badge bg-info">' .
+                                   __('admin.remaining_warranty_days', ['days' => $remainingDays]) .
+                                   '</span>';
+                        } else {
+                            return getEnumValue('contract_statuses', $row->status) .
+                                   ' <span class="badge bg-danger">' .
+                                   __('admin.warranty_expired') .
+                                   '</span>';
+                        }
+                    }
                     return getEnumValue('contract_statuses', $row->status);
                 })
                 ->editColumn('user_id', function ($row) {
@@ -79,7 +99,21 @@ class RecruitmentContractController extends Controller
                         // check if there is a travel history for this contract
                         $travelHistory = TravelHistory::where('order_id', $row->id)->first();
                         if ($travelHistory) {
-                            return '<a class="btn btn-primary" href="' . route('travel.control', ['id' => $row->id, 'userId' => $row->user_id, 'maidId' => $row->maid_id]) . '">' . __("admin.show_travel") . ' <i class="fa fa-eye"></i></a>';
+                            $tripStatus = $travelHistory->status === 'completed' ?
+                                '<span class="badge bg-success">' . __('admin.trip_completed') . '</span>' :
+                                '<span class="badge bg-warning">' . __('admin.trip_pending') . '</span>';
+
+                            $buttons = $tripStatus;
+
+                            // Add complete trip button if trip is not completed
+                            if ($travelHistory->status !== 'completed') {
+                                $buttons .= ' <button class="btn btn-success complete-trip-btn" data-trip-id="' . $travelHistory->id . '">' . __('admin.mark_trip_completed') . '</button>';
+                            }
+
+                            // Add show travel button
+                            $buttons .= ' <a class="btn btn-primary" href="' . route('travel.control', ['id' => $row->id, 'userId' => $row->user_id, 'maidId' => $row->maid_id]) . '">' . __("admin.show_travel") . ' <i class="fa fa-eye"></i></a>';
+
+                            return $buttons;
                         } else {
                             return '<a class="btn btn-success" href="' . route('travel.control', ['id' => $row->id, 'userId' => $row->user_id, 'maidId' => $row->maid_id]) . '">' . __("admin.add_travel") . ' <i class="fa fa-plus"></i></a>';
                         }
@@ -131,7 +165,13 @@ class RecruitmentContractController extends Controller
             ->latest()
             ->get();
 
-        $countries = \App\Models\ingaz\Nationality::all();
+        // Get Arab countries
+        $countries = \App\Models\Country::whereIn('code', ['SA', 'EG', 'AE', 'KW', 'QA', 'BH', 'OM', 'JO', 'MA', 'TN'])
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name_ar')
+            ->get();
+
         $all_available_maids = \App\Models\ingaz\Maid::Shown()->latest()->get();
 
         return view($this->folderPath . '.create', compact('orders', 'endedOrders', 'countries', 'all_available_maids'));
@@ -140,75 +180,61 @@ class RecruitmentContractController extends Controller
 
     public function store(StoreContractRequest $request)
     {
-        // Initialize contract data array
         $contractData = [
-            'status' => ContractStatusEnum::New ->value,
+            'status' => ContractStatusEnum::New->value,
             'maid_id' => $request->maid_id,
         ];
 
-        // Scenario 1: User selects an existing order to create a contract
         if ($request->order_id) {
-            $order = Order::find($request->order_id);
-            $contractData['order_id'] = $order->id;
+            $order = Order::findOrFail($request->order_id);
             $contractData['user_id'] = $order->user_id;
             $contractData['maid_id'] = $order->maid_id;
-        } // Scenario 2: Admin creates a contract for a new client
-        else {
-            $phoneExists = User::where('phone', $request->client_phone)->first();
-            if ($phoneExists) {
-                return jsonError(__("admin.phone_exists"));
+        } else {
+            $user = User::where('phone', $request->client_phone)->first();
+            if (!$user) {
+                $user = User::create([
+                    'name' => $request->client_name,
+                    'phone' => $request->client_phone,
+                    'nationality_id' => $request->client_nationality_id,
+                    'national_num' => $request->client_national_num,
+                    'email' => $request->client_email,
+                    'phone2' => $request->phone2,
+                    'city' => $request->city,
+                    'beds_num' => $request->beds_num,
+                    'family_num' => $request->family_num,
+                    'children' => $request->children,
+                    'job' => $request->job,
+                    'address' => $request->address,
+                ]);
             }
-            // Create new user
-            $newUser = User::create([
-                'name' => $request->client_name,
-                'phone_code' => "+966",
-                'phone' => $request->client_phone,
-                'nationality_id' => $request->nationality_id,
-                'email' => $request->client_email,
-                'national_num' => $request->client_national_num,
-                'phone2' => $request->phone2,
-                'city' => $request->city,
-                'rooms_num' => $request->beds_num,
-                'family_num' => $request->family_num,
-                'children' => $request->children,
-                'job' => $request->job,
-            ]);
-
-            // Create user address
-            UserAddress::create([
-                'user_id' => $newUser->id,
-                'address' => $request->address,
-            ]);
-
-            // Assign user id to contract data
-            $contractData['user_id'] = $newUser->id;
+            $contractData['user_id'] = $user->id;
         }
 
-        // Create contract
         $contract = Contract::create($contractData);
 
-        // Save contract info
-        $contractInfo = $request->only($this->contractInfoData);
-        $contractInfo['contract_id'] = $contract->id;
-        ContractInfo::create($contractInfo);
-
-        // Save contract status log
-        ContractStatusLog::create([
-            'contract_id' => $contract->id,
-            'status' => ContractStatusEnum::New ->value,
-            'date' => $request->contract_date,
+        // حفظ معلومات العقد
+        $contract->info()->create([
+            'contract_date' => $request->contract_date,
+            'msaned_number' => $request->msaned_number,
+            'tafwed_number' => $request->tafwed_number,
+            'visa_number' => $request->visa_number,
+            'visa_milad_date' => $request->visa_milad_date,
+            'visa_hijry_date' => $request->visa_hijry_date,
+            'contract_duration' => $request->contract_duration,
         ]);
 
-        // Update order status to completed if this was created from an order
+        // حفظ سجل حالة العقد
+        $contract->contract_status_logs()->create([
+            'status' => ContractStatusEnum::New->value,
+            'notes' => 'تم إنشاء العقد',
+        ]);
+
+        // تحديث حالة الطلب إذا كان العقد من طلب
         if ($request->order_id) {
-            $order = Order::find($request->order_id);
-            if ($order) {
-                $order->status = OrderEnum::Completed->value;
-                $order->save();
-            }
+            $order->update(['status' => OrderEnum::Completed->value]);
         }
 
-        return jsonSuccess();
+        return jsonSuccess($contract->load(['user', 'maid', 'info']), 'تم إنشاء العقد بنجاح');
     }
 
 
@@ -506,5 +532,63 @@ class RecruitmentContractController extends Controller
 
         // Return file
         return response()->download($tempFile, 'contracts.xlsx', $headers)->deleteFileAfterSend(true);
+    }
+
+    public function completeTrip($tripId)
+    {
+        try {
+            \Log::info('Starting trip completion process for trip ID: ' . $tripId);
+
+            $travelHistory = TravelHistory::findOrFail($tripId);
+            \Log::info('Found travel history:', ['travel' => $travelHistory->toArray()]);
+
+            $contract = Contract::where('id', $travelHistory->order_id)->first();
+            \Log::info('Found contract:', ['contract' => $contract ? $contract->toArray() : null]);
+
+            if (!$contract) {
+                \Log::error('Contract not found for travel history ID: ' . $tripId);
+                return response()->json([
+                    'success' => false,
+                    'message' => __('admin.contract_not_found')
+                ]);
+            }
+
+            // Update travel history status
+            $travelHistory->status = 'completed';
+            $travelHistory->save();
+            \Log::info('Updated travel history status to completed');
+
+            // Update contract status to Arrival
+            $contract->status = ContractStatusEnum::Arrival->value;
+            $contract->save();
+            \Log::info('Updated contract status to Arrival');
+
+            // Create contract status log
+            $contract->contract_status_logs()->create([
+                'status' => ContractStatusEnum::Arrival->value,
+                'notes' => 'تم اكتمال الرحلة والانتقال إلى مرحلة تحت الضمان',
+                'date' => now()
+            ]);
+            \Log::info('Created contract status log');
+
+            // Force refresh the contract status
+            $contract->refresh();
+
+            return response()->json([
+                'success' => true,
+                'message' => __('admin.trip_completed_success'),
+                'contract_status' => $contract->status
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in completeTrip: ' . $e->getMessage(), [
+                'tripId' => $tripId,
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => __('admin.something_went_wrong')
+            ]);
+        }
     }
 }
