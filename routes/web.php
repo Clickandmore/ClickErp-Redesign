@@ -161,6 +161,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () 
         Route::put('countries/{country}', [CountryController::class, 'update'])->name('countries.update');
         Route::delete('countries/{country}', [CountryController::class, 'destroy'])->name('countries.destroy');
         Route::patch('countries/{country}/toggle-status', [CountryController::class, 'toggleStatus'])->name('countries.toggle-status');
+        Route::post('countries/update-order', [CountryController::class, 'updateOrder'])->name('countries.update-order');
     });
 
     // Add the travel complete route inside the admin group

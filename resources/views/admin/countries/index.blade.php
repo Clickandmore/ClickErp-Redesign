@@ -3,6 +3,27 @@
     {{__('countries.manage_countries')}}
 @endsection
 
+@section('styles')
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <style>
+        .ui-sortable-helper {
+            display: table;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .ui-sortable-placeholder {
+            visibility: visible !important;
+            background: #f8f9fa;
+            height: 50px;
+        }
+        .sort-handle {
+            cursor: move;
+            color: #999;
+            padding: 0 10px;
+        }
+    </style>
+@endsection
+
 @section('content')
     <div class="card">
         <div class="card-header">
@@ -15,9 +36,10 @@
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-bordered table-hover">
+                <table class="table table-bordered table-hover" id="countries-table">
                     <thead>
                     <tr>
+                        <th style="width: 50px"></th>
                         <th>{{__('countries.name')}}</th>
                         <th>{{__('countries.code')}}</th>
                         <th>{{__('countries.phone_code')}}</th>
@@ -29,7 +51,8 @@
                     </thead>
                     <tbody>
                     @foreach($countries as $country)
-                        <tr>
+                        <tr data-id="{{ $country->id }}">
+                            <td><i class="fa fa-arrows-alt sort-handle"></i></td>
                             <td>{{ $country->title }}</td>
                             <td>{{ $country->code }}</td>
                             <td>{{ $country->phone_code }}</td>
@@ -63,4 +86,41 @@
             </div>
         </div>
     </div>
+@endsection
+
+@section('scripts')
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $("#countries-table tbody").sortable({
+                handle: '.sort-handle',
+                update: function(event, ui) {
+                    let order = [];
+                    $('tr[data-id]').each(function(index) {
+                        order.push({
+                            id: $(this).data('id'),
+                            sort_order: index + 1
+                        });
+                    });
+
+                    $.ajax({
+                        url: '{{ route("countries.update-order") }}',
+                        method: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            order: order
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                // Update the sort_order column values
+                                $('tr[data-id]').each(function(index) {
+                                    $(this).find('td:eq(6)').text(index + 1);
+                                });
+                            }
+                        }
+                    });
+                }
+            });
+        });
+    </script>
 @endsection

@@ -88,4 +88,15 @@ class CountryController extends Controller
         return redirect()->route('countries.index')
             ->with('success', 'تم تحديث حالة الدولة بنجاح');
     }
+
+    public function updateOrder(Request $request)
+    {
+        $order = $request->input('order');
+
+        foreach ($order as $item) {
+            Country::where('id', $item['id'])->update(['sort_order' => $item['sort_order']]);
+        }
+
+        return response()->json(['success' => true]);
+    }
 }
