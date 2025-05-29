@@ -44,20 +44,29 @@ class AdminTravelHistoryController extends Controller
         $data = null;
         $order = null;
 
-        if ($id != null) {
+        // First check if there's an existing travel record for this order
+        if ($orderId) {
+            $data = TravelHistory::where('order_id', $orderId)
+                ->with(['user', 'maid', 'order.user', 'order.maid'])
+                ->first();
+        }
+
+        // If no data found by order_id, check by id parameter
+        if (!$data && $id) {
             $data = TravelHistory::with([
                 'user',
                 'maid',
                 'order.user',
                 'order.maid'
             ])->find($id);
+        }
 
-            if ($data) {
-                $userId = $data->user_id;
-                $maidId = $data->maid_id;
-                $orderId = $data->order_id;
-                $order = $data->order;
-            }
+        // If we found data, use its values
+        if ($data) {
+            $userId = $data->user_id;
+            $maidId = $data->maid_id;
+            $orderId = $data->order_id;
+            $order = $data->order;
         }
 
         $clientsList = $this->usersList();
@@ -93,15 +102,46 @@ class AdminTravelHistoryController extends Controller
             'travel_with' => 'required',
         ]);
 
-        if ($id != null) {
-            $data = TravelHistory::find($id);
-        }
+        // First check if there's an existing travel record for this order
+        if ($request->order_id) {
+            $existingTravel = TravelHistory::where('order_id', $request->order_id)->first();
 
-        $data = TravelHistory::updateOrCreate(
-            [
-                'id' => $id,
-            ],
-            [
+            if ($existingTravel) {
+                // Update existing record
+                $data = $existingTravel;
+                $data->update([
+                    'user_id' => $request->user_id,
+                    'maid_id' => $request->maid_id,
+                    'travel_type' => $request->travel_type,
+                    'travel_with' => $request->travel_with,
+                    'status' => $request->status ?? 'pending',
+                    'notes' => $request->notes,
+                    'arrival_airport' => $request->arrival_airport,
+                    'arrival_date' => $request->arrival_date,
+                    'arrival_time' => $request->arrival_time,
+                    'flight_company' => $request->flight_company,
+                    'flight_number' => $request->flight_number,
+                ]);
+            } else {
+                // Create new record only if no existing record found
+                $data = TravelHistory::create([
+                    'user_id' => $request->user_id,
+                    'maid_id' => $request->maid_id,
+                    'order_id' => $request->order_id,
+                    'travel_type' => $request->travel_type,
+                    'travel_with' => $request->travel_with,
+                    'status' => $request->status ?? 'pending',
+                    'notes' => $request->notes,
+                    'arrival_airport' => $request->arrival_airport,
+                    'arrival_date' => $request->arrival_date,
+                    'arrival_time' => $request->arrival_time,
+                    'flight_company' => $request->flight_company,
+                    'flight_number' => $request->flight_number,
+                ]);
+            }
+        } else {
+            // If no order_id provided, create new record
+            $data = TravelHistory::create([
                 'user_id' => $request->user_id,
                 'maid_id' => $request->maid_id,
                 'order_id' => $request->order_id,
@@ -109,19 +149,18 @@ class AdminTravelHistoryController extends Controller
                 'travel_with' => $request->travel_with,
                 'status' => $request->status ?? 'pending',
                 'notes' => $request->notes,
-                //** */
                 'arrival_airport' => $request->arrival_airport,
                 'arrival_date' => $request->arrival_date,
                 'arrival_time' => $request->arrival_time,
                 'flight_company' => $request->flight_company,
                 'flight_number' => $request->flight_number,
-            ]
-        );
+            ]);
+        }
 
         //** FILES */
         if (!empty($request->file('files'))) {
             foreach ($request->file('files') as $k => $file) {
-                $originalFileName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME); // Get the original filename without extension
+                $originalFileName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
                 $fileName = $originalFileName . '-' . time() . $k . '.' . $file->extension();
                 $file->move(Constants::PUBLIC_TRAVEL_DIR, $fileName);
                 TravelHistoryFiles::create([
