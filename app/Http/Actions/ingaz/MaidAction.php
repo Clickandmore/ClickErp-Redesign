@@ -35,26 +35,34 @@ class MaidAction extends MainAction
 
     public function getMaids($request)
     {
-        return $this->model
-            ->when($request->filled('nationality_id'), function ($q) use ($request) {
-                $q->where('nationality_id', $request->nationality_id);
-            })
-            ->when($request->filled('religion_id'), function ($q) use ($request) {
-                $q->where('religion_id', $request->religion_id);
-            })
-            ->when($request->filled('job_type_id') && is_array($request->job_type_id), function ($q) use ($request) {
-                $q->whereHas('jobTypes', function ($subQ) use ($request) {
-                    $subQ->whereIn('job_type_id', $request->job_type_id);
-                });
-            })
-            ->when($request->filled('job_title_id') && is_array($request->job_title_id), function ($q) use ($request) {
-                $q->whereHas('jobTitles', function ($subQ) use ($request) {
-                    $subQ->whereIn('job_title_id', $request->job_title_id);
-                });
-            })
-            ->when($request->filled('age_from') && $request->filled('age_to'), function ($q) use ($request) {
-                $q->whereBetween('age', [$request->age_from, $request->age_to]);
+        $query = $this->model->query();
+
+        if ($request->nationality_id) {
+            $query->where('nationality_id', $request->nationality_id);
+        }
+
+        if ($request->religion_id) {
+            $query->where('religion_id', $request->religion_id);
+        }
+
+        if ($request->job_type_id) {
+            $query->whereHas('jobTypes', function ($q) use ($request) {
+                $q->where('job_type_id', $request->job_type_id);
             });
+        }
+
+        if ($request->job_title_id) {
+            $query->whereHas('jobTitles', function ($q) use ($request) {
+                $q->where('job_title_id', $request->job_title_id);
+            });
+        }
+
+        if ($request->age_from && $request->age_to) {
+            $query->whereBetween('age', [$request->age_from, $request->age_to]);
+        }
+
+        return $query->orderBy('is_pinned', 'desc')
+                    ->orderBy('created_at', 'desc');
     }
 
     /**
@@ -110,5 +118,13 @@ class MaidAction extends MainAction
             $maid->jobTypes()->sync($request->type_id);
         }
         return parent::find($id);
+    }
+
+    public function togglePin($id)
+    {
+        $maid = parent::find($id);
+        $maid->is_pinned = !$maid->is_pinned;
+        $maid->save();
+        return $maid;
     }
 }

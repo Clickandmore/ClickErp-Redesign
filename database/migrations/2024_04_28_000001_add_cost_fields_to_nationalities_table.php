@@ -4,31 +4,26 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class AddCostFieldsToNationalitiesTable extends Migration
+return new class extends Migration
 {
     /**
      * Run the migrations.
-     *
-     * @return void
      */
-    public function up()
+    public function up(): void
     {
         Schema::table('nationalities', function (Blueprint $table) {
-            $table->decimal('service_transportation_cost', 10, 2)->nullable()->comment('تكلفة نقل الخدمات');
-            $table->decimal('rental_cost', 10, 2)->nullable()->comment('تكلفة التأجير');
-            $table->decimal('monthly_salary', 10, 2)->nullable()->comment('الراتب الشهري');
+            $table->decimal('price', 10, 2)->nullable()->after('logo');
+            $table->decimal('salary', 10, 2)->nullable()->after('price');
         });
     }
 
     /**
      * Reverse the migrations.
-     *
-     * @return void
      */
-    public function down()
+    public function down(): void
     {
         Schema::table('nationalities', function (Blueprint $table) {
-            $table->dropColumn(['service_transportation_cost', 'rental_cost', 'monthly_salary']);
+            $table->dropColumn(['price', 'salary']);
         });
     }
-}
+};

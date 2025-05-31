@@ -45,8 +45,9 @@ class MaidController extends Controller
     {
         $query = objModel::query()
             ->with(['nationality', 'religion', 'jobTypes']) // Eager load relationships
-            ->select(['id', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at']) // Select only needed columns
-            ->orderBy('created_at', 'desc'); // Default ordering by created_at descending
+            ->select(['id', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at', 'is_pinned']) // Added is_pinned
+            ->orderBy('is_pinned', 'desc')
+            ->orderBy('created_at', 'desc');
 
         if ($request->ajax()) {
             $this->applyMaidFilter($request, $query);
@@ -123,15 +124,19 @@ class MaidController extends Controller
                     $showButton = viewSingleButton(route('showMaidDetails', $row->id));
                     $editButton = '';
                     $deleteButton = '';
+                    $pinButton = '';
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CONTROL)) {
                         $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
+                        $pinButton = '<button class="btn btn-sm ' . ($row->is_pinned ? 'btn-warning' : 'btn-secondary') . ' toggle-pin" data-id="' . $row->id . '" title="' . ($row->is_pinned ? 'إلغاء التثبيت' : 'تثبيت') . '">
+                             <i class="fa fa-star"></i>
+                        </button>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_DELETE)) {
                         $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
                     }
-                    return $showButton . " " . $editButton . " " . $deleteButton;
+                    return $showButton . " " . $editButton . " " . $pinButton . " " . $deleteButton;
                 })
                 ->rawColumns(['is_show', 'available', 'available_at', 'cv_file', 'actions'])
                 ->make(true);
@@ -320,6 +325,22 @@ class MaidController extends Controller
         $data = $action->updateMaid($id, $data, $request);
         return jsonSuccess($data);
     }
+
+    public function togglePin($id)
+    {
+        $maid = objModel::findOrFail($id);
+        $maid->is_pinned = !$maid->is_pinned;
+        $maid->save();
+
+        $message = $maid->is_pinned ? 'تم تثبيت العاملة بنجاح' : 'تم إلغاء التثبيت بنجاح';
+
+        return response()->json([
+            'success' => true,
+            'data' => $maid,
+            'message' => $message,
+        ]);
+    }
+
     /**
      * Remove the specified resource from storage.
      *

@@ -2,6 +2,8 @@
 @section("style")
     <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
     <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/daterangepicker.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 @endsection
 @section('page-title')
     {{helperTrans("ingaz.maids")}}
@@ -95,6 +97,7 @@
             <th>{{helperTrans("ingaz.age")}}</th>
             <th>{{helperTrans("ingaz.maidContractRemaining")}}</th>
             <th>{{helperTrans("ingaz.is_show")}}</th>
+            <th>مثبتة</th>
             <th>{{helperTrans("ingaz.created_at")}}</th>
             <th>{{helperTrans("ingaz.actions")}}</th>
         </tr>
@@ -115,6 +118,7 @@
 @section('js')
     <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
     <script src="{{asset("admin")}}/assets/js/bundle/daterangepicker.bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function () {
             @if ($request)
@@ -141,8 +145,36 @@
                 {"data": "age", orderable: true, searchable: true},
                 {"data": "maidContractRemaining", orderable: false, searchable: false},
                 {"data": "is_show", orderable: false, searchable: false},
+                {
+                    "data": "is_pinned",
+                    "render": function(data, type, row) {
+                        if (row.is_pinned) {
+                            return '<span title="مثبتة"><i class="fa fa-thumb-tack text-warning"></i> مثبتة</span>';
+                        } else {
+                            return '<span title="غير مثبتة"><i class="fa fa-thumb-tack text-secondary"></i> غير مثبتة</span>';
+                        }
+                    },
+                    orderable: false,
+                    searchable: false
+                },
                 {"data": "created_at", orderable: true, searchable: false},
-                {"data": "actions", orderable: false, searchable: false}
+                {
+                    "data": "actions",
+                    "render": function(data, type, row) {
+                        let actions = data;
+                        if (row.available == 1) {
+                            let pinButton = `<button class="btn btn-sm toggle-pin ${row.is_pinned ? 'btn-warning' : 'btn-secondary'}"
+                                data-id="${row.id}"
+                                title="${row.is_pinned ? 'إلغاء التثبيت' : 'تثبيت'}">
+                                <i class="fa fa-thumb-tack"></i>
+                            </button>`;
+                            actions = pinButton + actions;
+                        }
+                        return actions;
+                    },
+                    orderable: false,
+                    searchable: false
+                }
             ];
 
             function updateDataTable(filters) {
@@ -224,29 +256,48 @@
             }
 
             function initializeEventHandlers() {
-                // Reinitialize any event handlers that need to be bound to the table
-                $('.update-status').off('click').on('click', function(event) {
-                    var rowId = $(this).data('id');
-                    var url = "{{ route('maids.show', ':id') }}";
-                    url = url.replace(':id', rowId);
-                    $.ajax({
-                        type: 'Get',
-                        url: url,
-                        success: function (data) {
-                            if (data.success) {
-                                reloadDataTable();
-                                $.toast({
-                                    heading: 'نجاح',
-                                    text: 'تم تغيير الحالة بنجاح!',
-                                    showHideTransition: 'slide',
-                                    icon: 'success',
-                                    hideAfter: 2000,
-                                    position: 'top-right',
-                                    stack: 1
-                                });
-                            } else {
-                                alert('فشل في تحديث الحالة.');
-                            }
+                // Add click handler for pin button
+                $('.toggle-pin').on('click', function() {
+                    let button = $(this);
+                    let id = button.data('id');
+                    let isPinned = button.hasClass('btn-warning');
+                    let confirmMsg = isPinned ? 'هل أنت متأكد من إلغاء التثبيت؟' : 'هل أنت متأكد من تثبيت هذه العاملة؟';
+
+                    Swal.fire({
+                        title: 'تأكيد',
+                        text: confirmMsg,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'نعم',
+                        cancelButtonText: 'إلغاء'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            $.ajax({
+                                url: `/admin/maids/${id}/toggle-pin`,
+                                type: 'POST',
+                                data: {
+                                    _token: '{{ csrf_token() }}'
+                                },
+                                success: function(response) {
+                                    if (response.success) {
+                                        $('#dataTableObject').DataTable().ajax.reload();
+                                        Swal.fire({
+                                            icon: 'success',
+                                            title: 'تم بنجاح',
+                                            text: isPinned ? 'تم إلغاء التثبيت بنجاح' : 'تم تثبيت العاملة بنجاح',
+                                            timer: 2000,
+                                            showConfirmButton: false
+                                        });
+                                    }
+                                },
+                                error: function(xhr, status, error) {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'خطأ',
+                                        text: 'حدث خطأ أثناء تحديث حالة التثبيت'
+                                    });
+                                }
+                            });
                         }
                     });
                 });
