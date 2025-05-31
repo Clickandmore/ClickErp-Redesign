@@ -765,5 +765,6 @@ return [
     'order_expiration_hours' => 'Order Expiration Duration (Hours)',
     'order_expiration_hint' => 'Minimum: 1 hour, Maximum: 720 hours (30 days)',
     'incomplete_travel_exists' => 'Cannot create new travel record. There is an incomplete travel record for this contract.',
+    'search_by_client_maid_order' => 'Search by client name, maid passport or order ID',
 
 ];

@@ -790,5 +790,6 @@
   'trip_completed_success' => 'تم اكتمال الرحلة بنجاح والانتقال إلى مرحلة تحت الضمان',
   'remaining_warranty_days' => 'متبقي :days يوم في الضمان',
   'warranty_expired' => 'انتهى الضمان',
+  'search_by_client_maid_order' => 'البحث باسم العميل أو رقم جواز العامل أو رقم الطلب',
 
 );

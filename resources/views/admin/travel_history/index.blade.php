@@ -9,22 +9,46 @@
 @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_VIEW))
 
     <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-12">
             <form id="" action="{{ route('travel') }}" method="GET" class="row">
-                <div class="col-md-7">
+                <div class="col-md-3">
                     <input type="text" class="form-control" name="search" value="{{ @$search }}"
-                        placeholder="{{ __('admin.search') }}">
+                        placeholder="{{ __('admin.search_by_client_maid_order') }}">
                 </div>
-                <div class="col-md-2 mt-1">
-                    <button type="submit" class="btn btn-sm btn-primary">
+                <div class="col-md-3">
+                    <select name="travel_type" class="form-control select2">
+                        <option value="">{{ __('admin.travel_type') }}</option>
+                        @forelse (__('travel_types.travel_types') ?? [] as $k => $name)
+                            <option value="{{$k}}" @if(request()->get('travel_type') == $k) selected @endif>{{ $name }}</option>
+                        @empty
+                        @endforelse
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="status" class="form-control select2">
+                        <option value="">{{ __('admin.status') }}</option>
+                        @forelse (__('travel_types.status') ?? [] as $k => $name)
+                            <option value="{{$k}}" @if(request()->get('status') == $k) selected @endif>{{ $name }}</option>
+                        @empty
+                        @endforelse
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <input type="date" class="form-control" name="arrival_date" value="{{ request()->get('arrival_date') }}"
+                        placeholder="{{ __('admin.arrival_date') }}">
+                </div>
+                <div class="col-md-12 mt-3">
+                    <button type="submit" class="btn btn-primary">
                         @lang('admin.filter')
                     </button>
+                    <a href="{{ route('travel') }}" class="btn btn-secondary">
+                        @lang('admin.cancel_filters')
+                    </a>
                 </div>
             </form>
         </div>
 
-        <div class="col-md-6 col-sm-12 d-flex justify-content-center justify-content-md-end align-items-center">
-
+        <div class="col-md-12 col-sm-12 d-flex justify-content-center justify-content-md-end align-items-center mt-3">
             <a onclick="htmlTableToExcel('xlsx', '{{ __('admin.travel') }}')" class="btn btn-fr-bg mx-1">{{__('admin.export_to_xlxs') }}</a>
             @include('components.table_to_excel')
 
@@ -113,14 +137,17 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="11" class="text-center">{{ __('admin.no_data') }}</td>
+                        <td colspan="13" class="text-center">{{ __('admin.no_data') }}</td>
                     </tr>
                     @endforelse
                 </tbody>
             </table>
 
-            {{ @$data->links() }}
-
+            <div class="d-flex justify-content-center mt-4">
+                <div class="pagination-wrapper">
+                    {{ $data->appends(request()->query())->links('pagination::bootstrap-4') }}
+                </div>
+            </div>
         </div>
     </div>
 
@@ -132,24 +159,58 @@
 
 @include('components.sweetalert')
 
+@push('css')
+<style>
+    .pagination-wrapper {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+    }
+    .pagination {
+        margin: 0;
+        padding: 0;
+    }
+    .pagination li {
+        display: inline-block;
+        margin: 0 2px;
+    }
+    .pagination li a,
+    .pagination li span {
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        color: #333;
+        text-decoration: none;
+    }
+    .pagination li.active span {
+        background-color: #007bff;
+        border-color: #007bff;
+        color: white;
+    }
+    .pagination li a:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+@endpush
+
 @push('js')
     <script>
         $(document).ready(function(){
-    $('.PrintTable').on('click', function(e){
-        e.preventDefault();
+            $('.PrintTable').on('click', function(e){
+                e.preventDefault();
 
-        // Temporarily remove the PrintHide columns
-        var printHideElements = $('.PrintHide').remove();
+                // Temporarily remove the PrintHide columns
+                var printHideElements = $('.PrintHide').remove();
 
-        // Trigger the print dialog
-        window.print();
+                // Trigger the print dialog
+                window.print();
 
-        // Reattach the PrintHide columns after printing
-        $(printHideElements).each(function(index, element) {
-            var parentRow = $(element).closest('tr');
-            $(parentRow).append(element);
+                // Reattach the PrintHide columns after printing
+                $(printHideElements).each(function(index, element) {
+                    var parentRow = $(element).closest('tr');
+                    $(parentRow).append(element);
+                });
+            });
         });
-    });
-});
     </script>
 @endpush

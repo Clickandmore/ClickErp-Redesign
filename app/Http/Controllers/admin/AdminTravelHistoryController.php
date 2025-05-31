@@ -18,7 +18,12 @@ class AdminTravelHistoryController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search');
-        $data = TravelHistory::orderBy('id', 'desc');
+        $travelType = $request->input('travel_type');
+        $status = $request->input('status');
+        $arrivalDate = $request->input('arrival_date');
+
+        $data = TravelHistory::with(['user', 'maid'])->orderBy('id', 'desc');
+
         if ($search) {
             $data = $data->where(function ($query) use ($search) {
                 $query->where('travel_type', 'like', '%' . $search . '%')
@@ -29,10 +34,36 @@ class AdminTravelHistoryController extends Controller
                     ->orWhere('arrival_date', 'like', '%' . $search . '%')
                     ->orWhere('arrival_time', 'like', '%' . $search . '%')
                     ->orWhere('flight_company', 'like', '%' . $search . '%')
-                    ->orWhere('flight_number', 'like', '%' . $search . '%');
+                    ->orWhere('flight_number', 'like', '%' . $search . '%')
+                    ->orWhere('order_id', 'like', '%' . $search . '%')
+                    ->orWhereHas('user', function($q) use ($search) {
+                        $q->where('name', 'like', '%' . $search . '%');
+                    })
+                    ->orWhereHas('maid', function($q) use ($search) {
+                        $q->where('passport_num', 'like', '%' . $search . '%');
+                    });
             });
         }
-        $data = $data->paginate(15)->appends(['search' => $search]);
+
+        if ($travelType) {
+            $data = $data->where('travel_type', $travelType);
+        }
+
+        if ($status) {
+            $data = $data->where('status', $status);
+        }
+
+        if ($arrivalDate) {
+            $data = $data->whereDate('arrival_date', $arrivalDate);
+        }
+
+        $data = $data->paginate(15)->appends([
+            'search' => $search,
+            'travel_type' => $travelType,
+            'status' => $status,
+            'arrival_date' => $arrivalDate
+        ]);
+
         return view('admin.travel_history.index', compact('data', 'search'));
     }
 
