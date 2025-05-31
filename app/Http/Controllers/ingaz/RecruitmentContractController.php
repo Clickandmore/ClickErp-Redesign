@@ -20,6 +20,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
 use App\Models\Country;
+use App\Actions\OrderAction;
+use App\Actions\MaidAction;
+use App\Actions\ClientAction;
+use App\Actions\NationalityAction;
+use App\Actions\ReligionAction;
+use App\Actions\JobTitleAction;
+use App\Actions\JobTypeAction;
+use Illuminate\Support\Facades\DB;
 
 class RecruitmentContractController extends Controller
 {
@@ -155,86 +163,158 @@ class RecruitmentContractController extends Controller
 
     public function create()
     {
-        $orders = \App\Models\ingaz\Order::where('status', \App\Enums\ingaz\OrderEnum::New->value)
-            ->with(['user', 'maid'])
-            ->latest()
-            ->get();
+        $orderId = request('orderId');
+        \Log::info('Loading create page with orderId: ' . $orderId);
 
-        $endedOrders = \App\Models\ingaz\Order::where('job_type_id', 1)
-            ->whereIn('status', [\App\Enums\ingaz\OrderEnum::Done->value])
-            ->latest()
-            ->get();
+        // Load the selected order with all necessary relationships
+        $selectedOrder = null;
+        if ($orderId) {
+            $selectedOrder = Order::with([
+                'user.nationality',
+                'maid.nationality',
+                'maid.religion',
+                'maid.job_types',
+                'jobType.translations'
+            ])->find($orderId);
+            \Log::info('Selected order loaded:', ['order' => $selectedOrder ? $selectedOrder->toArray() : null]);
+        }
 
-        // Get Arab countries
-        $countries = \App\Models\Country::whereIn('code', ['SA', 'EG', 'AE', 'KW', 'QA', 'BH', 'OM', 'JO', 'MA', 'TN'])
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->orderBy('name_ar')
-            ->get();
+        // Get new orders with relationships
+        $orders = Order::with([
+            'user.nationality',
+            'maid.nationality',
+            'maid.religion',
+            'maid.job_types',
+            'jobType.translations'
+        ])
+        ->where('status', 'new')
+        ->get();
 
-        $all_available_maids = \App\Models\ingaz\Maid::Shown()->latest()->get();
+        // Get ended orders with relationships
+        $endedOrders = Order::with([
+            'user.nationality',
+            'maid.nationality',
+            'maid.religion',
+            'maid.job_types',
+            'jobType.translations'
+        ])
+        ->where('status', 'ended')
+        ->get();
 
-        return view($this->folderPath . '.create', compact('orders', 'endedOrders', 'countries', 'all_available_maids'));
+        // Get all available maids with relationships
+        $all_available_maids = Maid::with([
+            'nationality',
+            'religion',
+            'job_types'
+        ])->get();
+
+        // If we have a selected order and it's not in the new orders list, add it
+        if ($selectedOrder && !$orders->contains('id', $selectedOrder->id)) {
+            $orders->prepend($selectedOrder);
+        }
+
+        $countries = Country::all();
+        return view('admin.ingaz.RecruitmentContract.create', compact('orders', 'endedOrders', 'countries', 'all_available_maids', 'selectedOrder', 'orderId'));
     }
 
 
     public function store(StoreContractRequest $request)
     {
-        $contractData = [
-            'status' => ContractStatusEnum::New->value,
-            'maid_id' => $request->maid_id,
-        ];
+        \Log::info('Recruitment Contract Creation Request:', $request->all());
 
-        if ($request->order_id) {
-            $order = Order::findOrFail($request->order_id);
-            $contractData['user_id'] = $order->user_id;
-            $contractData['maid_id'] = $order->maid_id;
-        } else {
-            $user = User::where('phone', $request->client_phone)->first();
-            if (!$user) {
-                $user = User::create([
-                    'name' => $request->client_name,
-                    'phone' => $request->client_phone,
-                    'nationality_id' => $request->client_nationality_id,
-                    'national_num' => $request->client_national_num,
-                    'email' => $request->client_email,
-                    'phone2' => $request->phone2,
-                    'city' => $request->city,
-                    'beds_num' => $request->beds_num,
-                    'family_num' => $request->family_num,
-                    'children' => $request->children,
-                    'job' => $request->job,
-                    'address' => $request->address,
-                ]);
+        try {
+            DB::beginTransaction();
+
+            $contractData = [
+                'status' => ContractStatusEnum::New->value,
+                'maid_id' => $request->maid_id,
+            ];
+
+            if ($request->order_id) {
+                $order = Order::findOrFail($request->order_id);
+                \Log::info('Found order:', ['order' => $order->toArray()]);
+
+                $contractData['user_id'] = $order->user_id;
+                $contractData['maid_id'] = $order->maid_id;
+
+                \Log::info('Contract data from order:', $contractData);
+            } else {
+                $user = User::where('phone', $request->client_phone)->first();
+                if (!$user) {
+                    $user = User::create([
+                        'name' => $request->client_name,
+                        'phone' => $request->client_phone,
+                        'nationality_id' => $request->client_nationality_id,
+                        'national_num' => $request->client_national_num,
+                        'email' => $request->client_email,
+                        'phone2' => $request->phone2,
+                        'city' => $request->city,
+                        'beds_num' => $request->beds_num,
+                        'family_num' => $request->family_num,
+                        'children' => $request->children,
+                        'job' => $request->job,
+                        'address' => $request->address,
+                    ]);
+                    \Log::info('Created new user:', ['user' => $user->toArray()]);
+                }
+                $contractData['user_id'] = $user->id;
             }
-            $contractData['user_id'] = $user->id;
+
+            \Log::info('Creating contract with data:', $contractData);
+
+            $contract = Contract::create($contractData);
+            \Log::info('Contract created:', ['contract' => $contract->toArray()]);
+
+            // حفظ معلومات العقد
+            $contractInfo = [
+                'contract_date' => $request->contract_date,
+                'msaned_number' => $request->msaned_number,
+                'tafwed_number' => $request->tafwed_number,
+                'visa_number' => $request->visa_number,
+                'visa_milad_date' => $request->visa_milad_date,
+                'visa_hijry_date' => $request->visa_hijry_date,
+                'contract_duration' => $request->contract_duration,
+            ];
+
+            \Log::info('Creating contract info:', $contractInfo);
+
+            $contract->info()->create($contractInfo);
+            \Log::info('Contract info created');
+
+            // حفظ سجل حالة العقد
+            $contract->contract_status_logs()->create(['status' => ContractStatusEnum::New->value]);
+            \Log::info('Contract status log created');
+
+            // تحديث حالة الطلب إذا كان العقد من طلب
+            if ($request->order_id) {
+                $order->update(['status' => OrderEnum::Completed->value]);
+                \Log::info('Order status updated to completed');
+            }
+
+            DB::commit();
+
+            \Log::info('Contract created successfully', ['contract_id' => $contract->id]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إنشاء العقد بنجاح',
+                'contract' => $contract->load(['user', 'maid', 'info'])
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            \Log::error('Error creating contract:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء إنشاء العقد: ' . $e->getMessage()
+            ], 500);
         }
-
-        $contract = Contract::create($contractData);
-
-        // حفظ معلومات العقد
-        $contract->info()->create([
-            'contract_date' => $request->contract_date,
-            'msaned_number' => $request->msaned_number,
-            'tafwed_number' => $request->tafwed_number,
-            'visa_number' => $request->visa_number,
-            'visa_milad_date' => $request->visa_milad_date,
-            'visa_hijry_date' => $request->visa_hijry_date,
-            'contract_duration' => $request->contract_duration,
-        ]);
-
-        // حفظ سجل حالة العقد
-        $contract->contract_status_logs()->create([
-            'status' => ContractStatusEnum::New->value,
-            'notes' => 'تم إنشاء العقد',
-        ]);
-
-        // تحديث حالة الطلب إذا كان العقد من طلب
-        if ($request->order_id) {
-            $order->update(['status' => OrderEnum::Completed->value]);
-        }
-
-        return jsonSuccess($contract->load(['user', 'maid', 'info']), 'تم إنشاء العقد بنجاح');
     }
 
 

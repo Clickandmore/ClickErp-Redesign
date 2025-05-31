@@ -228,6 +228,18 @@ class Constant
                 'ar' => 'تم التسليم',
                 'en' => 'delivered',
             ],
+            'under_process' => [
+                'ar' => 'تحت الإجراء',
+                'en' => 'Under Process',
+            ],
+            'contracted' => [
+                'ar' => 'تم التعاقد',
+                'en' => 'Contracted',
+            ],
+            'contracted_without_contract' => [
+                'ar' => 'تم التعاقد بدون عقد',
+                'en' => 'Contracted Without Contract',
+            ],
         ],
 
         "contract_statuses" => [

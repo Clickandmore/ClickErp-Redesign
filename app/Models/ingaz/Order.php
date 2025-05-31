@@ -69,6 +69,11 @@ class Order extends Model
         );
     }
 
+    public function contracts()
+    {
+        return $this->hasMany(\App\Models\Contract::class, 'order_id');
+    }
+
     protected static function generateUniqueCode()
     {
         $code = mt_rand(10000, 99999);

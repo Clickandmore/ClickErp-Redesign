@@ -21,6 +21,7 @@ use App\Http\Controllers\ingaz\MaidController as IngazMaidController;
 use App\Http\Controllers\ingaz\UserController;
 use App\Http\Controllers\Admin\CountryController;
 use App\Http\Controllers\ingaz\RecruitmentContractController;
+use App\Http\Controllers\ingaz\RecruitmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -162,6 +163,12 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () 
         Route::delete('countries/{country}', [CountryController::class, 'destroy'])->name('countries.destroy');
         Route::patch('countries/{country}/toggle-status', [CountryController::class, 'toggleStatus'])->name('countries.toggle-status');
         Route::post('countries/update-order', [CountryController::class, 'updateOrder'])->name('countries.update-order');
+
+        // Recruitment routes
+        Route::get('/recruitment/select-maid/{client_id}', [RecruitmentController::class, 'create'])->name('admin.recruitment.select.maid');
+        Route::get('/recruitment/show-maid-form/{client_id}/{maid_id}', [RecruitmentController::class, 'showMaidForm'])->name('admin.recruitment.show.maid.form');
+        Route::post('/recruitment/store', [RecruitmentController::class, 'store'])->name('admin.recruitment.store');
+        Route::get('/recruitment/show-employee-modal/{maid_id}/{client_id}', [RecruitmentController::class, 'showEmployeeModal'])->name('admin.recruitment.show.employee.modal');
     });
 
     // Add the travel complete route inside the admin group

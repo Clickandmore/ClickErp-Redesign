@@ -39,18 +39,68 @@ class OrderController extends Controller
     public function index(Request $request, $status = null)
     {
         if ($request->ajax()) {
-            $status = $request->get('status', $status);
-            $selectedStatus = $this->getSelectedStatus($status);
-            if (getGuardedUser('admin_type') == AdminTypeis::CustomerService->value) {
-                $rows = objModel::whereIn('status', $selectedStatus)->whereHas('details', function ($q) {
-                    $q->where('admin_id', getGuardedUser('admin_type'));
-                })->latest();
-            } else {
-                $rows = objModel::whereIn('status', $selectedStatus)->latest();
+            $query = objModel::query();
+
+            // Apply status filter
+            if ($status) {
+                $query->whereIn('status', $this->getSelectedStatus($status));
             }
 
-            return DataTables::of($rows)
+            // Apply date range filter
+            if ($request->filled('from_date')) {
+                $query->whereDate('created_at', '>=', $request->from_date);
+            }
+            if ($request->filled('to_date')) {
+                $query->whereDate('created_at', '<=', $request->to_date);
+            }
+
+            // Apply status filter from form
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+
+            // Apply job type filter
+            if ($request->filled('job_type')) {
+                $query->where('job_type_id', $request->job_type);
+            }
+
+            // Apply admin filter
+            if ($request->filled('admin_id')) {
+                $query->whereHas('details', function($q) use ($request) {
+                    $q->where('admin_id', $request->admin_id);
+                });
+            }
+
+            // Apply client name search
+            if ($request->filled('client_name')) {
+                $query->whereHas('user', function($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->client_name . '%');
+                });
+            }
+
+            // Apply phone search
+            if ($request->filled('phone')) {
+                $query->whereHas('user', function($q) use ($request) {
+                    $q->where('phone', 'like', '%' . $request->phone . '%')
+                      ->orWhere('phone_code', 'like', '%' . $request->phone . '%');
+                });
+            }
+
+            // Apply passport number search
+            if ($request->filled('passport_num')) {
+                $query->whereHas('maid', function($q) use ($request) {
+                    $q->where('passport_num', 'like', '%' . $request->passport_num . '%');
+                });
+            }
+
+            return DataTables::of($query)
                 ->addIndexColumn()
+                ->addColumn('admin_name', function ($row) {
+                    return $row->details->admin->name ?? '-';
+                })
+                ->addColumn('created_at', function ($row) {
+                    return $row->created_at->format('Y-m-d H:i:s');
+                })
                 ->editColumn('status', function ($row) {
                     return $this->getStatusHtml($row->status);
                 })
@@ -79,6 +129,12 @@ class OrderController extends Controller
                         return '<span class="badge bg-danger">' . __('web.no') . '</span>';
                     }
                 })
+                ->addColumn('contract_status', function ($row) {
+                    if ($row->contracts()->exists()) {
+                        return '<span class="badge bg-success">' . __('ingaz.has_contract') . '</span>';
+                    }
+                    return '<span class="badge bg-warning">' . __('ingaz.no_contract') . '</span>';
+                })
                 ->addColumn('actions', function ($row) {
                     $showButton = '';
                     $editButton = '';
@@ -90,10 +146,14 @@ class OrderController extends Controller
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CONTROL)) {
-                        $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
+                        // Only show edit button if order is not completed
+                        if ($row->status != OrderEnum::Completed->value) {
+                            $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
+                        }
 
-                        // Add authorization button only for new orders
-                        if ($row->status == OrderEnum::New->value) {
+                        // Add authorization button for orders under process or contracted without contract
+                        if ($row->status == OrderEnum::UnderProcess->value ||
+                            ($row->status == OrderEnum::Contracted->value && !$row->contracts()->exists())) {
                             $authorizeButton = '<button class="btn btn-sm btn-primary addNewContract" data-id="' . $row->id . '">
                                 <i class="fa fa-check"></i> ' . __('ingaz.authorize') . '
                             </button>';
@@ -107,9 +167,10 @@ class OrderController extends Controller
                     return $showButton . " " . $editButton . " " . $authorizeButton . " " . $deleteButton;
                 })
                 ->escapeColumns([])
+                ->rawColumns(['actions'])
                 ->make(true);
         }
-        //
+
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["modalType"] = "modal-lg";
         return view($this->folderPath . '.index', $data);
@@ -118,15 +179,14 @@ class OrderController extends Controller
     private function getSelectedStatus($status)
     {
         if ($status == 'current') {
-            return [OrderEnum::New ->value, OrderEnum::Completed->value];
+            return [OrderEnum::New->value, OrderEnum::UnderProcess->value];
         } elseif ($status == 'ended') {
-            return [OrderEnum::Done->value];
+            return [OrderEnum::Completed->value, OrderEnum::Contracted->value];
         } elseif ($status == 'not_completed') {
-            return [OrderEnum::Refused->value, OrderEnum::Return ->value];
+            return [OrderEnum::Refused->value, OrderEnum::Return->value];
         } else {
             return OrderEnum::cases();
         }
-
     }
 
     public function edit(Request $request, $id)
@@ -174,6 +234,9 @@ class OrderController extends Controller
             'escape' => 'danger',
             'deportation' => 'info',
             'delivered' => 'success',
+            'under_process' => 'info',
+            'contracted' => 'success',
+            'contracted_without_contract' => 'warning',
         ];
 
         $arabicTranslation = getEnumValue('orders_statuses', $status);

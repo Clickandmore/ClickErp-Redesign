@@ -650,11 +650,8 @@ class MaidController extends Controller
 
     public function getMaidDetails($maidId)
     {
-        $maid = Maid::findOrFail($maidId);
-
-        // Access the related nationality and religion
-        $maid->nationality;
-        $maid->religion;
+        $maid = Maid::with(['nationality', 'religion', 'job_types.job_type'])
+            ->findOrFail($maidId);
 
         // Ensure the image URL is correctly formatted
         $maid->image = $maid->image ? showFile($maid->image) : null;
@@ -662,17 +659,51 @@ class MaidController extends Controller
 
         // Determine the locale from the URL
         $locale = request()->segment(1); // Assuming language segment is the first part of the URL
-        // dd($locale);
+
         // Set the translated religion title based on the detected locale
-        if ($maid->religion->title == 'muslim') {
-            $regTitle = $locale == 'ar' ? 'مسلم' : 'مسلم';
+        if ($maid->religion && $maid->religion->title == 'muslim') {
+            $regTitle = $locale == 'ar' ? 'مسلم' : 'Muslim';
         } else {
-            $regTitle = $locale == 'ar' ? 'غير مسلم' : 'غير مسلم';
+            $regTitle = $locale == 'ar' ? 'غير مسلم' : 'Non-Muslim';
         }
 
-        $maid->religion_title = $regTitle;
+        // Get nationality title based on locale
+        $nationalityTitle = '';
+        if ($maid->nationality) {
+            $nationalityTitle = $locale == 'ar' ? $maid->nationality->title : $maid->nationality->sub_title;
+        }
 
-        return response()->json($maid);
+        // Get job type title
+        $jobTypeTitle = '';
+        if ($maid->job_types && $maid->job_types->isNotEmpty()) {
+            $jobType = $maid->job_types->first()->job_type;
+            if ($jobType) {
+                $jobTypeTitle = $jobType->title;
+            }
+        }
+
+        // Ensure all required fields are present
+        $response = [
+            'id' => $maid->id,
+            'name' => $maid->name,
+            'passport_num' => $maid->passport_num,
+            'religion_title' => $regTitle,
+            'nationality' => [
+                'id' => $maid->nationality ? $maid->nationality->id : null,
+                'title' => $nationalityTitle
+            ],
+            'job_types' => [
+                [
+                    'id' => $maid->job_types->first()->job_type->id ?? null,
+                    'title' => $jobTypeTitle
+                ]
+            ],
+            'salary' => $maid->salary,
+            'experience_years' => $maid->experience_years,
+            'age' => $maid->age
+        ];
+
+        return response()->json($response);
     }
 
     public function getOfficesByNationality(Request $request)

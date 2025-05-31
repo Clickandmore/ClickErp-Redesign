@@ -5,7 +5,10 @@ function toggleFullScreen(e) {
 }
 
 window.addEventListener("load", () => {
-    document.getElementById("Changelog").outerHTML = '<span class="badge bg-primary ms-auto">v1.2.3</span>'
+    const changelogElement = document.getElementById("Changelog");
+    if (changelogElement) {
+        changelogElement.outerHTML = '<span class="badge bg-primary ms-auto">v1.2.3</span>';
+    }
 }), $(function () {
     "use strict";
     document.documentElement;

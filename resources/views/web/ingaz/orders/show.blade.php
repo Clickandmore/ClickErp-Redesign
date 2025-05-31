@@ -287,7 +287,7 @@
                                 <ul>
                                     <li>
                                         <span>{{helperTrans('web.nationality')}}</span>
-                                        <h3>{{$order->maid->nationality->title}}</h3>
+                                        <h3>{{$order->maid->nationality->sub_title}}</h3>
                                     </li>
                                     <li>
                                         <span>{{helperTrans('web.salary')}}</span>
@@ -307,7 +307,7 @@
                                     </li>
                                     <li>
                                         <span>{{helperTrans('web.occupation')}}</span>
-                                        <h3>{{$order->jobType->title}}</h3>
+                                        <h3>{{$order->maid->jobTitles->pluck('title')->implode(', ')}}</h3>
                                     </li>
                                 </ul>
                             </div>

@@ -129,19 +129,45 @@
 
         {{-- @endif--}}
         <div class="row pt-2">
-            @foreach(\App\Enums\ingaz\OrderEnum::cases() as $value)
+            @if($obj->status == 'new')
                 <div class="col-4 p-1">
-                    <input class="form-check-input" type="radio" name="status" value="{{ $value->value }}">
-                    <label class="form-check-label">{{ getEnumValue('orders_statuses', $value->value) }}</label>
+                    <input class="form-check-input" type="radio" name="status" value="under_process">
+                    <label class="form-check-label">{{ getEnumValue('orders_statuses', 'under_process') }}</label>
                 </div>
-            @endforeach
+                <div class="col-4 p-1">
+                    <input class="form-check-input" type="radio" name="status" value="refused">
+                    <label class="form-check-label">{{ getEnumValue('orders_statuses', 'refused') }}</label>
+                </div>
+            @elseif($obj->status == 'under_process')
+                <div class="col-4 p-1">
+                    <input class="form-check-input" type="radio" name="status" value="contracted">
+                    <label class="form-check-label">{{ getEnumValue('orders_statuses', 'contracted') }}</label>
+                </div>
+                <div class="col-4 p-1">
+                    <input class="form-check-input" type="radio" name="status" value="contracted_without_contract">
+                    <label class="form-check-label">{{ getEnumValue('orders_statuses', 'contracted_without_contract') }}</label>
+                </div>
+                <div class="col-4 p-1">
+                    <input class="form-check-input" type="radio" name="status" value="refused">
+                    <label class="form-check-label">{{ getEnumValue('orders_statuses', 'refused') }}</label>
+                </div>
+            @else
+                @foreach(\App\Enums\ingaz\OrderEnum::cases() as $value)
+                    <div class="col-4 p-1">
+                        <input class="form-check-input" type="radio" name="status" value="{{ $value->value }}">
+                        <label class="form-check-label">{{ getEnumValue('orders_statuses', $value->value) }}</label>
+                    </div>
+                @endforeach
+            @endif
         </div>
 
         <div class="col-12 modal-footer">
             @if($obj->status != 'refused' && $obj->status != 'done')
                 <button class="btn btn-primary" type="submit">{{__("buttons.save")}}</button>
             @endif
-            <a class="btn btn-danger addNewContract" href="#" data-id="{{ $obj->id }}">{{__("admin.add_new_contract")}}</a>
+            @if($obj->status == 'under_process')
+                <a class="btn btn-danger addNewContract" href="#" data-id="{{ $obj->id }}">{{__("admin.add_new_contract")}}</a>
+            @endif
             <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">{{__("buttons.close")}}</button>
         </div>
     </form>

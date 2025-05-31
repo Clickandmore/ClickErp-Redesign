@@ -126,24 +126,24 @@
                         id="my_dashboard2">
                         @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW))
                             <li>
+                                <a class="m-link {{ !request()->input('status') ? 'active' : '' }}"
+                                    href="{{ route('orders.index') }}">
+                                    <i class="fa fa-arrow-left"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.all orders') }}</span>
+                                </a>
+                            </li>
+                            <li>
                                 <a class="m-link {{ request()->input('status') === 'current' ? 'active' : '' }}"
                                     href="{{ route('orders.index', ['status' => 'current']) }}">
                                     <i class="fa fa-arrow-left"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.current orders') }}</span>
+                                    <span class="ms-2">{{ helperTrans('ingaz.new orders') }}</span>
                                 </a>
                             </li>
                             <li>
                                 <a class="m-link {{ request()->input('status') === 'ended' ? 'active' : '' }}"
                                     href="{{ route('orders.index', ['status' => 'ended']) }}">
                                     <i class="fa fa-arrow-left"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.ended orders') }}</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="m-link {{ request()->input('status') === 'not_completed' ? 'active' : '' }}"
-                                    href="{{ route('orders.index', ['status' => 'not_completed']) }}">
-                                    <i class="fa fa-arrow-left"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.not completed orders') }}</span>
+                                    <span class="ms-2">{{ helperTrans('ingaz.contracted orders') }}</span>
                                 </a>
                             </li>
                         @endif

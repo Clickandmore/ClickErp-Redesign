@@ -19,7 +19,7 @@
                         <ul>
                             <li>
                                 <span>{{ helperTrans('web.nationality') }}</span>
-                                <h3>{{ $maid->nationality->title }}</h3>
+                                <h3>{{ $maid->nationality->sub_title }}</h3>
                             </li>
                             <li>
                                 <span>{{ helperTrans('web.salary') }}</span>

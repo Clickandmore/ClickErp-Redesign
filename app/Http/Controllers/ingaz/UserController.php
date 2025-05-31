@@ -33,7 +33,7 @@ class UserController extends Controller
     {
         if ($request->ajax()) {
             $units = objModel::query()->orderBy("id", "ASC");
-            //->query()->orderBy("id", "DESC")->get()
+
             return DataTables::of($units)
                 ->addIndexColumn()
                 ->editColumn('is_blocked', function ($row) {
@@ -51,8 +51,13 @@ class UserController extends Controller
                 ->addColumn('actions', function ($row) {
                     $buttons = '';
 
+                    // Add recruitment request button first
                     if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW)) {
-                        $buttons .= '<a href="' . route($this->mainRoute . '.edit', $row->id) . '" class="btn btn-sm btn-primary">' . __('ingaz.edit') . '</a> ';
+                        $buttons .= '<a href="' . route('admin.recruitment.select.maid', ['client_id' => $row->id]) . '" class="btn btn-sm btn-success me-1">' . __('ingaz.create_recruitment') . '</a> ';
+                    }
+
+                    if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW)) {
+                        $buttons .= '<a href="' . route($this->mainRoute . '.edit', $row->id) . '" class="btn btn-sm btn-primary me-1">' . __('ingaz.edit') . '</a> ';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE)) {
@@ -61,7 +66,7 @@ class UserController extends Controller
 
                     return $buttons;
                 })
-                ->escapeColumns([])
+                ->rawColumns(['actions', 'is_blocked', 'phone'])
                 ->make(true);
         }
         $data["createRoute"] = route($this->mainRoute . ".create");
@@ -70,7 +75,6 @@ class UserController extends Controller
         $data["addButtonText"] = __("auth.clients");
         $data["modalType"] = "";
         return view($this->folderPath . '.index', $data);
-
     }
 
     /**

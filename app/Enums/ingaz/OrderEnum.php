@@ -9,6 +9,9 @@ enum OrderEnum: string
     case Done = 'done'; // مكتملة
     case Refused = 'refused'; // مرفوضه
     case Return = 'return'; // طلبات الاسترجاع
+    case UnderProcess = 'under_process'; // تحت الإجراء
+    case Contracted = 'contracted'; // تم التعاقد
+    case ContractedWithoutContract = 'contracted_without_contract'; // تم التعاقد بدون عقد
 
 
     // case Paid = 'paid';  // مدفوع

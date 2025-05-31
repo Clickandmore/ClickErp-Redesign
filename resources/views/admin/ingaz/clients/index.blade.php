@@ -41,47 +41,49 @@
 
 @endsection
 @section('js')
-
 <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
 <script>
-    $(document).ready(function () {
-            let columns = [
-                {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: true, searchable: false},
-                {"data": "name", orderable: true, searchable: true},
-                {"data": "phone", orderable: true, searchable: true},
-                {"data": "is_blocked", orderable: false, searchable: false},
-                {"data": "created_at", orderable: false, searchable: false},
-                {"data": "actions", orderable: false, searchable: false}
-            ];
-            showDataTable("{{route("clients.index")}}", columns);
+    $(document).ready(function() {
+        $('#dataTableObject').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: "{{ route('clients.index') }}",
+            columns: [
+                {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
+                {data: 'name', name: 'name'},
+                {data: 'phone', name: 'phone', orderable: false},
+                {data: 'is_blocked', name: 'is_blocked', orderable: false},
+                {data: 'created_at', name: 'created_at'},
+                {data: 'actions', name: 'actions', orderable: false, searchable: false}
+            ],
+            order: [[1, 'asc']], // Order by name column by default
+            language: {
+                url: "{{ asset('admin/assets/js/datatable-ar.json') }}"
+            }
         });
-        // ِChange Status Using Ajax
-        $(document).on('click', '.update-status', function (event) {
+
+        // Handle status update
+        $(document).on('click', '.update-status', function() {
             var rowId = $(this).data('id');
             var url = "{{ route('clients.update', ':id') }}";
             url = url.replace(':id', rowId);
+
             $.ajax({
                 type: 'PUT',
                 url: url,
-                success: function (data) {
-                    if (data.success) {
-                        reloadDataTable();
-                        $.toast({
-                            heading: 'نجاح',
-                            text: 'تم تغيير الحالة بنجاح!',
-                            showHideTransition: 'slide',
-                            icon: 'success',
-                            hideAfter: 2000,
-                            position: 'top-right',
-                            stack: 1
-                        });
+                success: function(response) {
+                    if (response.success) {
+                        $('#dataTableObject').DataTable().ajax.reload();
+                        toastr.success('تم تحديث الحالة بنجاح');
+                    } else {
+                        toastr.error('حدث خطأ أثناء تحديث الحالة');
                     }
-                    else {
-                        alert('فشل في تحديث الحالة.');
-                    }
+                },
+                error: function() {
+                    toastr.error('حدث خطأ أثناء تحديث الحالة');
                 }
             });
         });
-
+    });
 </script>
 @endsection

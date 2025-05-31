@@ -39,6 +39,11 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(Complaint::class, 'user_id');
     }
 
+    public function nationality()
+    {
+        return $this->belongsTo(Nationality::class, 'nationality_id');
+    }
+
     public function getJWTIdentifier()
     {
         return $this->getKey();
