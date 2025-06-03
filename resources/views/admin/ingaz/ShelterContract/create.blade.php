@@ -9,7 +9,7 @@
         @csrf
         <div class="row p-3">
 
-            <div class="col-6">
+            <div class="col-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.contracts")}}</label>
                 <select name="contract_id" class="form-select form-control select2" data-validation="required">
                     <option disabled selected>{{helperTrans('ingaz.choose')}}</option>
@@ -19,13 +19,23 @@
                 </select>
             </div>
 
-            <div class="col-6">
+            <div class="col-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.shelter-places")}}</label>
                 <select name="shelter_id" class="form-select form-control select2" data-validation="required">
                     <option disabled selected>{{helperTrans('ingaz.choose')}}</option>
                     @foreach($shelters as $shelter)
                     <option value="{{$shelter->id}}"> {{$shelter->title }} </option>
                     @endforeach
+                </select>
+            </div>
+
+            <div class="col-4">
+                <label for="TextInput" class="form-label">مصدر الاستلام</label>
+                <select name="receipt_source" class="form-select form-control select2" data-validation="required">
+                    <option disabled selected>{{helperTrans('ingaz.choose')}}</option>
+                    <option value="company_headquarters">مقر الشركة</option>
+                    <option value="salsk">سلسك</option>
+                    <option value="other">أخرى</option>
                 </select>
             </div>
 
@@ -36,19 +46,22 @@
 
             <div class="col-4 mt-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.salary_final_status")}}</label>
-                <input type="text" name="salary_final_status" class="form-control" data-validation="required">
+                <select name="salary_final_status" class="form-select form-control select2" data-validation="required">
+                    <option disabled selected>{{helperTrans('ingaz.choose')}}</option>
+                    <option value="received">تم استلام الراتب</option>
+                    <option value="not_received">لم يتم استلام الراتب</option>
+                </select>
             </div>
 
             <div class="col-4 mt-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.duration_from_enter")}}</label>
-                <input type="text" name="duration_from_enter" class="form-control" data-validation="required">
+                <input type="text" name="duration_from_enter" class="form-control" readonly>
             </div>
 
             <div class="col-12 mt-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.back_reasons")}}</label>
                 <textarea name="back_reasons" rows="4" class="form-control" data-validation="required"></textarea>
             </div>
-
 
         </div>
 
@@ -72,6 +85,61 @@
 
 <script>
     var indexRoute = "{{ route('ShelterContract.index') }}";
+</script>
+
+<script>
+    // Calculate duration from enter automatically
+    $(document).ready(function() {
+        $('select[name="contract_id"]').on('change', function() {
+            let contractId = $(this).val();
+            if (contractId) {
+                $.ajax({
+                    url: "{{ route('get.contract.details') }}",
+                    type: 'GET',
+                    data: { contract_id: contractId },
+                    success: function(response) {
+                        console.log('Contract Details Response:', response);
+
+                        // Get the arrival date from the response
+                        let arrivalDate = response.arrival_date;
+                        console.log('Arrival Date from Response:', arrivalDate);
+
+                        if (arrivalDate) {
+                            // Parse the date string to a Date object
+                            let arrivalDateObj = new Date(arrivalDate);
+                            let today = new Date();
+
+                            console.log('Parsed Arrival Date:', arrivalDateObj);
+                            console.log('Today:', today);
+
+                            // Calculate the difference in days
+                            let diffTime = Math.abs(today - arrivalDateObj);
+                            let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            console.log('Difference in days:', diffDays);
+
+                            // Format the duration text
+                            let durationText = diffDays + ' يوم';
+                            console.log('Duration Text:', durationText);
+
+                            // Update the input field
+                            $('input[name="duration_from_enter"]').val(durationText);
+                        } else {
+                            console.log('No valid arrival date found in response');
+                            console.log('Debug Info:', response.debug_info);
+                            $('input[name="duration_from_enter"]').val('');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error fetching contract details:', error);
+                        console.log('Response:', xhr.responseText);
+                        $('input[name="duration_from_enter"]').val('');
+                    }
+                });
+            } else {
+                $('input[name="duration_from_enter"]').val('');
+            }
+        });
+    });
 </script>
 
 <script>

@@ -125,4 +125,55 @@ class ShelterContractController extends Controller
     {
         //
     }
+
+    public function getContractDetails(Request $request)
+    {
+        $contract = Contract::with('info')->find($request->contract_id);
+        if (!$contract) {
+            return response()->json(['error' => 'Contract not found'], 404);
+        }
+
+        // Log the entire contract object for debugging
+        \Log::info('Full Contract Object', [
+            'contract' => $contract->toArray(),
+            'info' => $contract->info ? $contract->info->toArray() : null
+        ]);
+
+        // Try to get arrival date from different possible locations
+        $arrivalDate = null;
+        if ($contract->info) {
+            // Check all possible date fields
+            $arrivalDate = $contract->info->arrival_date ??
+                          $contract->info->visa_milad_date ??
+                          $contract->info->contract_date ??
+                          $contract->info->ingaz_from;
+        }
+
+        // Log the found arrival date
+        \Log::info('Found Arrival Date', [
+            'arrival_date' => $arrivalDate,
+            'contract_id' => $request->contract_id,
+            'all_dates' => $contract->info ? [
+                'arrival_date' => $contract->info->arrival_date,
+                'visa_milad_date' => $contract->info->visa_milad_date,
+                'contract_date' => $contract->info->contract_date,
+                'ingaz_from' => $contract->info->ingaz_from
+            ] : null
+        ]);
+
+        return response()->json([
+            'arrival_date' => $arrivalDate,
+            'contract_info' => $contract->info,
+            'debug_info' => [
+                'has_info' => $contract->info ? true : false,
+                'info_fields' => $contract->info ? array_keys($contract->info->toArray()) : [],
+                'all_dates' => $contract->info ? [
+                    'arrival_date' => $contract->info->arrival_date,
+                    'visa_milad_date' => $contract->info->visa_milad_date,
+                    'contract_date' => $contract->info->contract_date,
+                    'ingaz_from' => $contract->info->ingaz_from
+                ] : null
+            ]
+        ]);
+    }
 }
