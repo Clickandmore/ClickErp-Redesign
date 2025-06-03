@@ -21,30 +21,21 @@ class ContractsController extends Controller
         $previous = [];
 
         foreach ($data as $contract){
-            // Assuming getContractInfo() fetches additional contract information
-            $info = getContractInfo($contract->id);
-            if(!empty($info->contract_date)){
-                $contractDate = Carbon::parse($info->contract_date);
-                $contractDurationInDays = $info->contract_duration;
-
-                // Calculate the end date of the contract
-                $contractEndDate = $contractDate->copy()->addDays($contractDurationInDays);
-
-                // Determine if the contract is still active
-                if (Carbon::now()->lessThanOrEqualTo($contractEndDate)) {
-                    $current[] = $contract;
-                } else {
-                    $previous[] = $contract;
-                }
+            // Check if the contract status is one of the "previous" statuses
+            if (in_array($contract->status, ['arrival', 'closed', 'shelter', 'under_warranty'])) {
+                $previous[] = $contract;
+            } else {
+                $current[] = $contract;
             }
-
         }
 
         return view('web.ingaz.contracts.index', compact('data', 'current', 'previous'));
     }
 
     public function show($id){
-        $data = Contract::where('user_id', Auth::user()->id)->first();
+        $data = Contract::where('user_id', Auth::user()->id)
+            ->where('id', $id)
+            ->first();
         if(!$data)
             return  redirect()->back();
         $info = getContractInfo($id);

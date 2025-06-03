@@ -43,7 +43,7 @@
                                         @foreach($current as $current_contract)
                                         <div class="col-lg-6 col-md-6 col-12 p-2">
                                             <div class="order_card">
-                                                <h4>{{$current_contract->status}}</h4>
+                                                <h4>{{ getContractStatus($current_contract->status) }}</h4>
                                                 <div class="title">
                                                     <p>#{{$current_contract->id}}</p>
                                                     <a href="{{route('web.contracts.show',$current_contract->id)}}">{{helperTrans('web.details')}}</a>
@@ -53,6 +53,20 @@
                                                         <p>@lang('web.current_contract')</p>
                                                     </div>
                                                 </div>
+                                                @if($current_contract->maid && $current_contract->maid->passport_num)
+                                                <div class="pro">
+                                                    <div class="staus">
+                                                        <p>{{helperTrans('web.passport_number')}}: {{$current_contract->maid->passport_num}}</p>
+                                                    </div>
+                                                </div>
+                                                @endif
+                                                @if($current_contract->info && $current_contract->info->visa_number)
+                                                <div class="pro">
+                                                    <div class="staus">
+                                                        <p>{{helperTrans('web.visa_number')}}: {{$current_contract->info->visa_number}}</p>
+                                                    </div>
+                                                </div>
+                                                @endif
                                                 <span class="time">{{@$current_contract->created_at->translatedFormat('d F , Y h:i a')}}</span>
                                             </div>
                                         </div>
@@ -66,7 +80,7 @@
                                         @foreach($previous as $previous_contract)
                                         <div class="col-lg-6 col-md-6 col-12 p-2">
                                             <div class="order_card">
-                                                <h4>{{$previous_contract->status}}</h4>
+                                                <h4>{{ getContractStatus($previous_contract->status) }}</h4>
                                                 <div class="title">
                                                     <p>#{{$previous_contract->id}}</p>
                                                     <a href="{{route('web.contracts.show',$previous_contract->id)}}">{{helperTrans('web.details')}}</a>
@@ -76,6 +90,20 @@
                                                         <p>@lang('web.previous_contract')</p>
                                                     </div>
                                                 </div>
+                                                @if($previous_contract->maid && $previous_contract->maid->passport_num)
+                                                <div class="pro">
+                                                    <div class="staus">
+                                                        <p>{{helperTrans('web.passport_number')}}: {{$previous_contract->maid->passport_num}}</p>
+                                                    </div>
+                                                </div>
+                                                @endif
+                                                @if($previous_contract->info && $previous_contract->info->visa_number)
+                                                <div class="pro">
+                                                    <div class="staus">
+                                                        <p>{{helperTrans('web.visa_number')}}: {{$previous_contract->info->visa_number}}</p>
+                                                    </div>
+                                                </div>
+                                                @endif
                                                 <span class="time">{{@$previous_contract->created_at->translatedFormat('d F , Y h:i a')}}</span>
                                             </div>
                                         </div>

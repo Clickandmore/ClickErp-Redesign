@@ -256,7 +256,7 @@ class Constant
                 "en" => "tafwed"
             ],
             'taffez' => [
-                "ar" => "تفييذ",
+                "ar" => "التفييز ",
                 "en" => "taffez"
             ],
             'tazker' => [

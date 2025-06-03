@@ -676,3 +676,57 @@ if (!function_exists('ahxWorkerContractRemaining')) {
         return 0;
     }
 }
+
+if (!function_exists('getContractStatus')) {
+    function getContractStatus($status)
+    {
+        $statuses = [
+            'new' => [
+                'ar' => 'عقد جديد',
+                'en' => 'New Contract'
+            ],
+            'msaned' => [
+                'ar' => 'عقود مساند',
+                'en' => 'Msaned Contract'
+            ],
+            'tafwed' => [
+                'ar' => 'تفويض',
+                'en' => 'Tafwed'
+            ],
+            'taffez' => [
+                'ar' => 'التفييز ',
+                'en' => 'Taffez'
+            ],
+            'tazker' => [
+                'ar' => 'تذكرة',
+                'en' => 'Tazker'
+            ],
+            'under_warranty' => [
+                'ar' => 'تحت الضمان',
+                'en' => 'Under Warranty'
+            ],
+            'back' => [
+                'ar' => 'مرتجع',
+                'en' => 'Back'
+            ],
+            'arrival' => [
+                'ar' => 'مرحلة الوصول',
+                'en' => 'Arrival'
+            ],
+            'sari' => [
+                'ar' => 'عقد ساري',
+                'en' => 'Active Contract'
+            ],
+            'closed' => [
+                'ar' => 'عقد مغلق',
+                'en' => 'Closed Contract'
+            ],
+            'shelter' => [
+                'ar' => 'عقد إيواء',
+                'en' => 'Shelter Contract'
+            ]
+        ];
+
+        return $statuses[$status]['ar'] ?? $status;
+    }
+}

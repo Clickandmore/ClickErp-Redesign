@@ -24,160 +24,172 @@
             @endif
 
             <div class="row justify-content-center">
-                <div class="col-lg-10 col-12 mb-1">
-                    <div class="order_status">
-                        <div class="progress_state">
-                            <div class="d-flex gap-2 align-items-center">
-                                <!-- Add any progress information here if needed -->
+                <!-- Contract Status Section -->
+                <div class="col-lg-10 col-12 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="order_status">
+                                <div class="progress_state text-center">
+                                    <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
+                                        <div class="status-badge">
+                                            <span class="badge bg-primary fs-5">{{ getContractStatus($data->status) }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="contract-stage">
+                                        <strong>{{ helperTrans('web.current_stage') }}:</strong>
+                                        <span class="text-primary">{{ getContractStatus($data->status) }}</span>
+                                    </div>
+                                    <div class="contract-duration mt-2">
+                                        <strong>{{ helperTrans('web.contract_duration') }}:</strong>
+                                        <span>{{ $info->duration_from_enter ?? 0 }} {{ helperTrans('web.days') }}</span>
+                                    </div>
+                                </div>
                             </div>
-                            <h6>
-                                <!-- Add any status text here if needed -->
-                            </h6>
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-10 col-12 mb-4 d-flex justify-content-end">
-                    @if(!$cancelExists)
-                        <a class="btn btn-danger me-1" style="color:#fff" data-bs-toggle="modal"
-                            data-bs-target="#cancelContractModal">
-                            <i class="fa-light fa-ban"></i> {{ helperTrans('web.cancel_contract') }}
-                        </a>
-                    @else
-                        <a class="btn btn-success me-1" style="color:#fff">
-                            {{ helperTrans('web.cancel_contract_requested') }}
-                        </a>
-                    @endif
 
-                    <button class="complain" data-bs-toggle="modal" data-bs-target="#complain">
-                        <i class="fa-light fa-triangle-exclamation"></i>{{helperTrans('web.complaint_or_inquiry')}}
-                    </button>
+                <!-- Action Buttons -->
+                <div class="col-lg-10 col-12 mb-4">
+                    <div class="d-flex justify-content-end gap-2">
+                        @if(!$cancelExists)
+                            <a class="btn btn-danger" style="color:#fff" data-bs-toggle="modal" data-bs-target="#cancelContractModal">
+                                <i class="fa-light fa-ban"></i> {{ helperTrans('web.cancel_contract') }}
+                            </a>
+                        @else
+                            <a class="btn btn-success" style="color:#fff">
+                                {{ helperTrans('web.cancel_contract_requested') }}
+                            </a>
+                        @endif
+
+                        <button class="btn btn-warning complain" data-bs-toggle="modal" data-bs-target="#complain">
+                            <i class="fa-light fa-triangle-exclamation"></i> {{helperTrans('web.complaint_or_inquiry')}}
+                        </button>
+                    </div>
                 </div>
-                <div class="col-lg-10 col-12 p-2">
-                    <div class="cv">
-                        <div class="cv_details text-center">
+
+                <!-- Contract Details -->
+                <div class="col-lg-10 col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">{{ helperTrans('web.contract_details') }}</h5>
+                        </div>
+                        <div class="card-body">
                             <div class="row">
-                                @if($data->id)
-                                    <div class="col-md-6 mb-3">
-                                        <strong>{{helperTrans('web.contract_id')}}:</strong> {{ $data->id }}
+                                <!-- Basic Information -->
+                                <div class="col-md-6">
+                                    <h6 class="mb-3">{{ helperTrans('web.basic_information') }}</h6>
+                                    <div class="mb-3">
+                                        @if($data->id)
+                                            <div class="mb-2">
+                                                <strong>{{helperTrans('web.contract_id')}}:</strong> {{ $data->id }}
+                                            </div>
+                                        @endif
+                                        @if($info->contract_date)
+                                            <div class="mb-2">
+                                                <strong>{{helperTrans('web.contract_date')}}:</strong> {{ \Carbon\Carbon::parse($info->contract_date)->format('Y-m-d') }}
+                                            </div>
+                                        @endif
+                                        @if($info->visa_number)
+                                            <div class="mb-2">
+                                                <strong>{{helperTrans('web.visa_number')}}:</strong> {{ $info->visa_number }}
+                                            </div>
+                                        @endif
+                                        @if($info->visa_milad_date)
+                                            <div class="mb-2">
+                                                <strong>{{helperTrans('web.visa_milad_date')}}:</strong> {{ \Carbon\Carbon::parse($info->visa_milad_date)->format('Y-m-d') }}
+                                            </div>
+                                        @endif
+                                        @if($data->maid && $data->maid->passport_num)
+                                            <div class="mb-2">
+                                                <strong>{{helperTrans('web.passport_number')}}:</strong> {{ $data->maid->passport_num }}
+                                            </div>
+                                        @endif
                                     </div>
-                                @endif
-                                @if($info->contract_date)
-                                    <div class="col-md-6 mb-3">
-                                        <strong>{{helperTrans('web.contract_date')}}:</strong> {{ $info->contract_date }}
-                                    </div>
-                                @endif
-                                @if($info->visa_number)
-                                    <div class="col-md-6 mb-3">
-                                        <strong>{{helperTrans('web.visa_number')}}:</strong> {{ $info->visa_number }}
-                                    </div>
-                                @endif
-                                {{-- @if($info->visa_hijry_date)
-                                <div class="col-md-6 mb-3">
-                                    <strong>{{helperTrans('web.visa_hijry_date')}}:</strong> {{ $info->visa_hijry_date
-                                    }}
                                 </div>
-                                @endif --}}
-                                @if($info->visa_milad_date)
-                                    <div class="col-md-6 mb-3">
-                                        <strong>{{helperTrans('web.visa_milad_date')}}:</strong>
-                                        {{ $info->visa_milad_date }}
+
+                                <!-- Financial Information -->
+                                <div class="col-md-6">
+                                    <h6 class="mb-3">{{ helperTrans('web.financial_information') }}</h6>
+                                    <div class="mb-3">
+                                        @if($info->sponsorship_price)
+                                            <div class="mb-2">
+                                                <strong>{{helperTrans('web.sponsorship_price')}}:</strong> {{ number_format($info->sponsorship_price, 2) }} {{ helperTrans('web.currency') }}
+                                            </div>
+                                        @endif
+                                        @if($info->salary_after_sponsorship)
+                                            <div class="mb-2">
+                                                <strong>{{helperTrans('web.salary_after_sponsorship')}}:</strong> {{ number_format($info->salary_after_sponsorship, 2) }} {{ helperTrans('web.currency') }}
+                                            </div>
+                                        @endif
+                                        @if($info->monthly_cost)
+                                            <div class="mb-2">
+                                                <strong>{{helperTrans('web.monthly_cost')}}:</strong> {{ number_format($info->monthly_cost, 2) }} {{ helperTrans('web.currency') }}
+                                            </div>
+                                        @endif
+                                        @if($info->contract_value)
+                                            <div class="mb-2">
+                                                <strong>{{helperTrans('web.contract_value')}}:</strong> {{ number_format($info->contract_value, 2) }} {{ helperTrans('web.currency') }}
+                                            </div>
+                                        @endif
                                     </div>
-                                @endif
-                                @if($info->working_hours_num)
-                                    <div class="col-md-6 mb-3">
-                                        <strong>{{helperTrans('web.working_hours_num')}}:</strong>
-                                        {{ $info->working_hours_num }}
-                                    </div>
-                                @endif
-                                @if($info->sponsorship_price)
-                                    <div class="col-md-6 mb-3">
-                                        <strong>{{helperTrans('web.sponsorship_price')}}:</strong>
-                                        {{ $info->sponsorship_price }}
-                                    </div>
-                                @endif
-                                @if($info->salary_after_sponsorship)
-                                    <div class="col-md-6 mb-3">
-                                        <strong>{{helperTrans('web.salary_after_sponsorship')}}:</strong>
-                                        {{ $info->salary_after_sponsorship }}
-                                    </div>
-                                @endif
-                                @if($info->monthly_cost)
-                                    <div class="col-md-6 mb-3">
-                                        <strong>{{helperTrans('web.monthly_cost')}}:</strong> {{ $info->monthly_cost }}
-                                    </div>
-                                @endif
-                                @if($info->contract_duration)
-                                    <div class="col-md-6 mb-3">
-                                        <strong>{{helperTrans('web.contract_duration')}}:</strong>
-                                        {{ $info->contract_duration }} days
-                                    </div>
-                                @endif
-                                @if($info->contract_value)
-                                    <div class="col-md-6 mb-3">
-                                        <strong>{{helperTrans('web.contract_value')}}:</strong> {{ $info->contract_value }}
-                                    </div>
-                                @endif
-                                {{-- @if($info->ingaz_from)
-                                <div class="col-md-6 mb-3">
-                                    <strong>{{helperTrans('web.ingaz_from')}}:</strong> {{ $info->ingaz_from }}
                                 </div>
-                                @endif
-                                @if($info->ingaz_to)
-                                <div class="col-md-6 mb-3">
-                                    <strong>{{helperTrans('web.ingaz_to')}}:</strong> {{ $info->ingaz_to }}
+
+                                <!-- Additional Information -->
+                                <div class="col-12 mt-4">
+                                    <h6 class="mb-3">{{ helperTrans('web.additional_information') }}</h6>
+                                    <div class="row">
+                                        @if($info->working_hours_num)
+                                            <div class="col-md-6 mb-2">
+                                                <strong>{{helperTrans('web.working_hours_num')}}:</strong> {{ $info->working_hours_num }} {{ helperTrans('web.hours') }}
+                                            </div>
+                                        @endif
+                                        @if($info->previous_sponsorship)
+                                            <div class="col-md-6 mb-2">
+                                                <strong>{{helperTrans('web.previous_sponsorship')}}:</strong> {{ $info->previous_sponsorship }}
+                                            </div>
+                                        @endif
+                                        @if($info->msaned_number)
+                                            <div class="col-md-6 mb-2">
+                                                <strong>{{helperTrans('web.msaned_number')}}:</strong> {{ $info->msaned_number }}
+                                            </div>
+                                        @endif
+                                        @if($info->tafwed_number)
+                                            <div class="col-md-6 mb-2">
+                                                <strong>{{helperTrans('web.tafwed_number')}}:</strong> {{ $info->tafwed_number }}
+                                            </div>
+                                        @endif
+                                        @if($info->maid_date_back)
+                                            <div class="col-md-6 mb-2">
+                                                <strong>{{helperTrans('web.maid_date_back')}}:</strong> {{ \Carbon\Carbon::parse($info->maid_date_back)->format('Y-m-d') }}
+                                            </div>
+                                        @endif
+                                        @if($info->salary_final_status)
+                                            <div class="col-md-6 mb-2">
+                                                <strong>{{helperTrans('web.salary_final_status')}}:</strong> {{ $info->salary_final_status }}
+                                            </div>
+                                        @endif
+                                        @if($info->duration_from_enter)
+                                            <div class="col-md-6 mb-2">
+                                                <strong>{{helperTrans('web.duration_from_enter')}}:</strong> {{ $info->duration_from_enter }} {{ helperTrans('web.days') }}
+                                            </div>
+                                        @endif
+                                        @if($info->back_reasons)
+                                            <div class="col-md-6 mb-2">
+                                                <strong>{{helperTrans('web.back_reasons')}}:</strong> {{ $info->back_reasons }}
+                                            </div>
+                                        @endif
+                                        @if($info->shelter_id)
+                                            <div class="col-md-6 mb-2">
+                                                <strong>{{helperTrans('web.shelter_id')}}:</strong> {{ $info->shelter_id }}
+                                            </div>
+                                        @endif
+                                    </div>
                                 </div>
-                                @endif --}}
-                                @if($info->previous_sponsorship)
-                                    <div class="col-md-6 mb-3">
-                                        <strong>{{helperTrans('web.previous_sponsorship')}}:</strong>
-                                        {{ $info->previous_sponsorship }}
-                                    </div>
-                                @endif
-                                @if($info->msaned_number)
-                                    <div class="col-md-6 mb-3">
-                                        <strong>{{helperTrans('web.msaned_number')}}:</strong> {{ $info->msaned_number }}
-                                    </div>
-                                @endif
-                                @if($info->tafwed_number)
-                                    <div class="col-md-6 mb-3">
-                                        <strong>{{helperTrans('web.tafwed_number')}}:</strong> {{ $info->tafwed_number }}
-                                    </div>
-                                @endif
-                                @if($info->maid_date_back)
-                                    <div class="col-md-6 mb-3">
-                                        <strong>{{helperTrans('web.maid_date_back')}}:</strong> {{ $info->maid_date_back }}
-                                    </div>
-                                @endif
-                                @if($info->salary_final_status)
-                                    <div class="col-md-6 mb-3">
-                                        <strong>{{helperTrans('web.salary_final_status')}}:</strong>
-                                        {{ $info->salary_final_status }}
-                                    </div>
-                                @endif
-                                @if($info->duration_from_enter)
-                                    <div class="col-md-6 mb-3">
-                                        <strong>{{helperTrans('web.duration_from_enter')}}:</strong>
-                                        {{ $info->duration_from_enter }}
-                                    </div>
-                                @endif
-                                @if($info->back_reasons)
-                                    <div class="col-md-6 mb-3">
-                                        <strong>{{helperTrans('web.back_reasons')}}:</strong> {{ $info->back_reasons }}
-                                    </div>
-                                @endif
-                                @if($info->shelter_id)
-                                    <div class="col-md-6 mb-3">
-                                        <strong>{{helperTrans('web.shelter_id')}}:</strong> {{ $info->shelter_id }}
-                                    </div>
-                                @endif
                             </div>
                         </div>
                     </div>
-
                 </div>
-            </div>
-            <div class="row justify-content-center">
-                <!-- Additional content if needed -->
             </div>
         </div>
     </section>
@@ -186,17 +198,32 @@
 @include('web.ingaz.maids.sub.maid_modal_view')
 
 @push('js')
-    {{--
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> --}}
     <script>
         $(document).ready(function () {
+            // تحديث حالة العقد كل 30 ثانية
+            setInterval(function() {
+                $.ajax({
+                    url: window.location.href,
+                    method: 'GET',
+                    success: function(response) {
+                        // تحديث حالة العقد فقط
+                        var newStatus = $(response).find('.status-badge .badge').text();
+                        var currentStatus = $('.status-badge .badge').text();
+
+                        if (newStatus !== currentStatus) {
+                            location.reload();
+                        }
+                    }
+                });
+            }, 30000);
+
             $('#cancelContractForm').off('submit').on('submit', function (event) {
                 event.preventDefault();
 
-                var formData = $(this).serialize(); // Serialize the form data
+                var formData = $(this).serialize();
                 let submitButton = $(event.originalEvent.submitter);
                 let buttonText = submitButton.text();
-                submitButton.prop('disabled', true); // Disable the button
+                submitButton.prop('disabled', true);
 
                 $.ajax({
                     type: 'POST',
@@ -207,20 +234,14 @@
                     },
                     complete: function () {
                         submitButton.html(buttonText);
-                        submitButton.prop('disabled', false); // Re-enable the button
+                        submitButton.prop('disabled', false);
                     },
                     success: function (response) {
-                        // Show alert message
                         alert(response.message);
-
-                        // Reload the page after showing the alert
                         location.reload();
                     },
                     error: function () {
-                        // Show error alert
-                        alert('An error occurred. Please try again.');
-
-                        // Re-enable the submit button
+                        alert('{{ helperTrans("web.error_occurred") }}');
                         submitButton.prop('disabled', false);
                     }
                 });
@@ -229,11 +250,12 @@
     </script>
 @endpush
 
-
+<!-- Modals -->
 <div class="modal fade add_location" id="complain" tabindex="-1" aria-labelledby="complainLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
+                <h5 class="modal-title">{{ helperTrans('web.complaint_or_inquiry') }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -243,12 +265,11 @@
     </div>
 </div>
 
-<div class="modal fade" id="cancelContractModal" tabindex="-1" aria-labelledby="cancelContractModalLabel"
-    aria-hidden="true">
+<div class="modal fade" id="cancelContractModal" tabindex="-1" aria-labelledby="cancelContractModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="cancelContractModalLabel">@lang('web.cancel_contract')</h5>
+                <h5 class="modal-title" id="cancelContractModalLabel">{{ helperTrans('web.cancel_contract') }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -258,19 +279,17 @@
                     <div class="mb-3">
                         <label for="notes" class="form-label">
                             <i class="fa-light fa-clipboard"></i>
-                            @lang('web.notes')
+                            {{ helperTrans('web.notes') }}
                         </label>
-                        <textarea name="notes" id="notes" class="form-control"
-                            placeholder="@lang('web.enter_cancel_reason')"></textarea>
+                        <textarea name="notes" id="notes" class="form-control" placeholder="{{ helperTrans('web.enter_cancel_reason') }}"></textarea>
                     </div>
-                    <button type="submit" class="btn btn-danger">@lang('web.save')</button>
+                    <button type="submit" class="btn btn-danger">{{ helperTrans('web.save') }}</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
 
-<!-- JS -->
 @endsection
 
 @push('js')
