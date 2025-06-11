@@ -32,7 +32,7 @@ class UserController extends Controller
     public function index(Request $request, objAction $Action)
     {
         if ($request->ajax()) {
-            $units = objModel::query()->orderBy("id", "ASC");
+            $units = objModel::query()->orderBy("id", "desc");
 
             return DataTables::of($units)
                 ->addIndexColumn()

@@ -41,6 +41,9 @@ class OrderController extends Controller
         if ($request->ajax()) {
             $query = objModel::query();
 
+            // Order by created_at desc to show newest orders first
+            $query->orderBy('created_at', 'desc');
+
             // Apply status filter
             if ($status) {
                 $query->whereIn('status', $this->getSelectedStatus($status));
