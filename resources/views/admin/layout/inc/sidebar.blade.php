@@ -225,7 +225,7 @@
                                 <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $underWarrantyStatus->value]) }}">
                                     <i class="icon-star"></i>
                                     <span class="ms-2">{{ helperTrans('ingaz.under_warranty') }}</span>&nbsp;
-                                    <span class="badge bg-primary">{{ $contractsCount['under_warranty'] }}</span>
+                                    <span class="badge bg-primary">{{ $contractsCount['arrival'] }}</span>
                                 </a>
                             </li>
                             <li>

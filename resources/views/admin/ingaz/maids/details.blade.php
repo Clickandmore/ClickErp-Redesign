@@ -29,10 +29,35 @@
             <!-- Details Section -->
             <div class="col-md-12">
                 <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="p-3 border rounded">
+                            <span class="fw-bold">اسم العاملة:</span>
+                            <h5 class="d-inline">{{ $maid->name }}</h5>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="p-3 border rounded">
+                            <span class="fw-bold">مكتب الاستقدام:</span>
+                            <h5 class="d-inline">{{ $maid->office->title }}</h5>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 border rounded">
+                            <span class="fw-bold">نوع السيرة الذاتية:</span>
+                            <h5 class="d-inline">{{ $maid->jobTypes->first() ? $maid->jobTypes->first()->title : '-' }}</h5>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="p-3 border rounded">
+                            <span class="fw-bold">العمر:</span>
+                            <h5 class="d-inline">{{ $maid->age }} سنة</h5>
+                        </div>
+                    </div>
+
                     <div class="col-md-4 mb-3">
                         <div class="p-3 border rounded">
                             <span class="fw-bold">{{ helperTrans('web.nationality') }}:</span>
-                            <h5 class="d-inline">{{ $maid->nationality->title }}</h5>
+                            <h5 class="d-inline">{{ $maid->nationality->sub_title }}</h5>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
@@ -62,9 +87,10 @@
                     <div class="col-md-4 mb-3">
                         <div class="p-3 border rounded">
                             <span class="fw-bold">{{ helperTrans('web.recruitment_price') }}:</span>
-                            <h5 class="d-inline">{{ $maid->price }} ر.س</h5>
+                            <h5 class="d-inline">{{ $maid->nationality->price }} ر.س</h5>
                         </div>
                     </div>
+
                     @if (@$maid->height)
                     <div class="col-md-4 mb-3">
                         <div class="p-3 border rounded">

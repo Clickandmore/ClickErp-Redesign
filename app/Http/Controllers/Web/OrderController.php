@@ -41,11 +41,11 @@ class OrderController extends Controller
     {
         // Check if user has more than 2 active orders
         $activeOrdersCount = Order::where('user_id', Auth::user()->id)
-            ->whereNotIn('status', ['done', 'refused'])
+            ->whereNotIn('status', ['done', 'refused','canceled','completed'])
             ->count();
 
-        if ($activeOrdersCount >= 2) {
-            return jsonSuccess(null, ' يوجد اكثر من طلبين مفعلين ', 410);
+        if ($activeOrdersCount >= 3) {
+            return jsonSuccess(null, ' يوجد اكثر من ثلاث طلبات مفعلة ', 410);
         }
 
         // Check if maid is already booked
@@ -57,6 +57,13 @@ class OrderController extends Controller
         $dataInsert = $request->only($this->postData);
         $data = $action->storeOrder($dataInsert, $request);
         $orderID = $data->id; // Capture the created order ID
+
+        // Update maid availability status
+        \App\Models\ingaz\Maid::where('id', $request->maid_id)->update([
+            'status' => \App\Models\ingaz\Maid::STATUS_RESERVED['en'],
+            'available' => 0,
+            'updated_at' => now()
+        ]);
 
         if ($request->payment_method == "online") {
             $data = [

@@ -14,7 +14,7 @@
                     <!-- Filters Section -->
                     <form action="{{ route('admin.recruitment.select.maid', $client->id) }}" method="GET" class="mb-4">
                         <div class="row">
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="nationality_id">الجنسية</label>
                                     <select name="nationality_id" id="nationality_id" class="form-control select2">
@@ -27,9 +27,9 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="religion_id">الدين</label>
+                                    <label for="religion_id">الديانة</label>
                                     <select name="religion_id" id="religion_id" class="form-control select2">
                                         <option value="">الكل</option>
                                         @foreach($religions as $religion)
@@ -40,7 +40,7 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="job_type_id">نوع الوظيفة</label>
                                     <select name="job_type_id" id="job_type_id" class="form-control select2">
@@ -53,7 +53,9 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label for="experience_years">سنوات الخبرة</label>
                                     <select name="experience_years" id="experience_years" class="form-control select2">
@@ -64,6 +66,28 @@
                                         <option value="4" {{ request('experience_years') == '4' ? 'selected' : '' }}>4 سنوات</option>
                                         <option value="5" {{ request('experience_years') == '5' ? 'selected' : '' }}>5 سنوات وأكثر</option>
                                     </select>
+                                </div>
+                            </div>
+
+
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="office_id">مكتب الاستقدام</label>
+                                    <select name="office_id" id="office_id" class="form-control select2">
+                                        <option value="">الكل</option>
+                                        @foreach($offices as $office)
+                                            <option value="{{ $office->id }}" {{ request('office_id') == $office->id ? 'selected' : '' }}>
+                                                {{ $office->title }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="office_id">رقم الجواز</label>
+                                    <input type="text" name="passport_num" id="passport_num" class="form-control" value="{{ request('passport_num') }}">
                                 </div>
                             </div>
                         </div>
@@ -80,7 +104,7 @@
                         @foreach($available_maids as $maid)
                         <div class="col-md-4 col-lg-3 mb-4">
                             <div class="card h-100">
-                                <img src="{{ $maid->photo_url ?? asset('images/no-image.png') }}"
+                                <img src="{{ $maid->photo_url }}"
                                      class="card-img-top maid-image"
                                      alt="{{ $maid->name }}"
                                      onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\' ry=\'2\'/><circle cx=\'8.5\' cy=\'8.5\' r=\'1.5\'/><polyline points=\'21 15 16 10 5 21\'/></svg>';">
@@ -92,7 +116,7 @@
                                             {{ $maid->nationality->sub_title ?? '' }}
                                         </p>
                                         <p class="mb-1">
-                                            <strong>الدين:</strong>
+                                            <strong>الديانة:</strong>
                                             {{ $maid->religion->title ?? '' }}
                                         </p>
                                         <p class="mb-1">
@@ -125,6 +149,11 @@
                             </div>
                         </div>
                         @endforeach
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="d-flex justify-content-center mt-4">
+                        {{ $available_maids->appends(request()->query())->links('pagination::bootstrap-4') }}
                     </div>
                 </div>
             </div>
@@ -296,6 +325,37 @@
         background-repeat: no-repeat;
         background-position: center;
         background-size: 50px;
+    }
+    /* Pagination Styles */
+    .pagination {
+        margin: 0;
+        padding: 0;
+    }
+    .pagination .page-item {
+        margin: 0 2px;
+    }
+    .pagination .page-link {
+        color: #007bff;
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        padding: 0.5rem 0.75rem;
+        border-radius: 4px;
+    }
+    .pagination .page-item.active .page-link {
+        background-color: #007bff;
+        border-color: #007bff;
+        color: #fff;
+    }
+    .pagination .page-link:hover {
+        background-color: #e9ecef;
+        border-color: #dee2e6;
+        color: #0056b3;
+    }
+    .pagination .page-item.disabled .page-link {
+        color: #6c757d;
+        pointer-events: none;
+        background-color: #fff;
+        border-color: #dee2e6;
     }
 </style>
 @endpush

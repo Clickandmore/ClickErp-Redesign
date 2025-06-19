@@ -32,7 +32,7 @@
                     <select name="type_id" class="form-control" required>
                         <option value="">اختر نوع السيرة</option>
                         @foreach($types as $type)
-                            <option value="{{$type->id}}" {{$type->title == 'طلب استقدام' ? 'selected' : ''}}>{{$type->title}}</option>
+                            <option value="{{$type->id}}" {{$type->title == 'استقدام' ? 'selected' : ''}}>{{$type->title}}</option>
                         @endforeach
                     </select>
                 </div>
@@ -56,7 +56,7 @@
 
                 <!-- مكتب الاستقدام -->
                 <div class="col-4 office-field">
-                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.recruitment office")}} <small class="text-muted">(اختياري)</small></label>
+                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.recruitment office")}} </label>
                     <select name="office_id" class="form-control">
                         <option value="">اختر مكتب الاستقدام</option>
                         {!! showSelectElement($offices , 'title') !!}
@@ -128,8 +128,9 @@
                 <div class="col-4">
                     <label for="TextInput" class="form-label">{{helperTrans("ingaz.religion")}}</label>
                     <select name="religion_id" class="form-control">
-                        <option value="">غير محدد</option>
-                        {!! showSelectElement($religions , 'title') !!}
+                        @foreach($religions as $religion)
+                            <option value="{{$religion->id}}" {{$religion->id == 4 ? 'selected' : ''}}>{{$religion->title}}</option>
+                        @endforeach
                     </select>
                 </div>
 
@@ -283,8 +284,8 @@
                 $('#price').val('0');
 
                 // Handle specific cases
-                if (selectedType === 'طلب استقدام') {
-                    // Hide ID fields for طلب استقدام
+                if (selectedType === 'استقدام') {
+                    // Hide ID fields for استقدام
                     idFields.hide();
                     $('input[name="id_number"], input[name="id_expiry_date"]').removeAttr('required');
                 } else if (selectedType === 'إستلام فورى') {
@@ -446,8 +447,8 @@
                     isValid = false;
                 }
 
-                // التحقق من رقم الهوية فقط إذا لم يكن نوع السيرة "طلب استقدام" أو "إستلام فورى" أو "ايجار عمالة" أو "تأجير"
-                if (selectedType !== 'طلب استقدام' && selectedType !== 'إستلام فورى' && selectedType !== 'ايجار عمالة' && selectedType !== 'تأجير') {
+                // التحقق من رقم الهوية فقط إذا لم يكن نوع السيرة "استقدام" أو "إستلام فورى" أو "ايجار عمالة" أو "تأجير"
+                if (selectedType !== 'استقدام' && selectedType !== 'إستلام فورى' && selectedType !== 'ايجار عمالة' && selectedType !== 'تأجير') {
                     var idNumber = $('#id_number').val();
                     if (!idNumber || idNumber.length !== 10 || !/^\d{10}$/.test(idNumber)) {
                         errors.push('يجب أن يتكون رقم الهوية من 10 أرقام');

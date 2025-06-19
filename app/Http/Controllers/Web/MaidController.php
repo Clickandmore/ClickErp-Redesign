@@ -22,7 +22,8 @@ class MaidController extends Controller
 {
     public function index(Request $request, MaidAction $action, JobTypeAction $jobTypeAction)
     {
-        $data['maids'] = $action->getMaids($request);
+        $data['maids'] = $action->getMaids($request)
+            ->where('status', \App\Models\ingaz\Maid::STATUS_AVAILABLE['en']);
         $reservedMaids = Order::whereNotIn('status', ['done', 'refused'])->pluck('maid_id');
         $data['maids'] = $data['maids']->whereNotIn('id', $reservedMaids)->paginate(20);
 

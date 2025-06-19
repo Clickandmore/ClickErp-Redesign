@@ -13,7 +13,7 @@
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.contracts")}}</label>
                 <select name="contract_id" class="form-select form-control select2" data-validation="required">
                     <option disabled selected>{{helperTrans('ingaz.choose')}}</option>
-                    @foreach($contracts as $contract)
+                    @foreach(($contracts ?? []) as $contract)
                     <option value="{{$contract->id}}"> {{$contract->desc }} </option>
                     @endforeach
                 </select>
@@ -23,7 +23,7 @@
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.shelter-places")}}</label>
                 <select name="shelter_id" class="form-select form-control select2" data-validation="required">
                     <option disabled selected>{{helperTrans('ingaz.choose')}}</option>
-                    @foreach($shelters as $shelter)
+                    @foreach(($shelters ?? []) as $shelter)
                     <option value="{{$shelter->id}}"> {{$shelter->title }} </option>
                     @endforeach
                 </select>
@@ -32,10 +32,12 @@
             <div class="col-4">
                 <label for="TextInput" class="form-label">مصدر الاستلام</label>
                 <select name="receipt_source" class="form-select form-control select2" data-validation="required">
-                    <option disabled selected>{{helperTrans('ingaz.choose')}}</option>
-                    <option value="company_headquarters">مقر الشركة</option>
-                    <option value="salsk">سلسك</option>
-                    <option value="other">أخرى</option>
+                    @forelse (__('shelter_worker_statuses.received_by') ?? [] as $k => $name)
+                    <option value="{{$k}}" @if (@$data->receipt_source == $k) selected @endif>
+                        {{ $name }}
+                    </option>
+                    @empty
+                    @endforelse
                 </select>
             </div>
 

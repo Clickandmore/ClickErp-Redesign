@@ -15,7 +15,26 @@ class Maid extends Model
 {
     use HasFactory, Translatable, LogsActivity;
 
+    // Status constants with translations
+    const STATUS_AVAILABLE = [
+        'ar' => 'متاحة',
+        'en' => 'Available'
+    ];
+    const STATUS_RESERVED = [
+        'ar' => 'محجوزة',
+        'en' => 'Reserved'
+    ];
+    const STATUS_CONTRACTED = [
+        'ar' => 'تم التعاقد',
+        'en' => 'Contracted'
+    ];
+    const STATUS_IN_ACCOMMODATION = [
+        'ar' => 'داخل الايواء',
+        'en' => 'In Accommodation'
+    ];
+
     protected $guarded = [];
+    protected $fillable = ['status'];
     public $translatedAttributes = ['languages', 'marital_status'];
     protected $translationForeignKey = 'maid_id';
     public $translationModel = MaidTranslation::class;
@@ -92,5 +111,11 @@ class Maid extends Model
             ->logOnlyDirty();
     }
 
-
+    public function getPhotoUrlAttribute()
+    {
+        if ($this->image) {
+            return asset('storage/' . $this->image);
+        }
+        return asset('images/no-image.png');
+    }
 }

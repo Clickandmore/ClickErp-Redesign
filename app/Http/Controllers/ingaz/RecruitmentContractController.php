@@ -100,7 +100,7 @@ class RecruitmentContractController extends Controller
                     return ($row->maid) ? getImgTag($row->maid->cv_file, "80px", "80px") : '';
                 })
                 ->addColumn('updateStatus', function ($row) {
-                    if ($row->status != ContractStatusEnum::Back->value && $row->status != ContractStatusEnum::Arrival->value && $row->status != ContractStatusEnum::Tazker->value) {
+                    if ($row->status != ContractStatusEnum::Back->value && $row->status != ContractStatusEnum::Arrival->value && $row->status != ContractStatusEnum::Tazker->value && $row->status != ContractStatusEnum::Closed->value && $row->status != ContractStatusEnum::Shelter->value) {
                         $lastContractStatusLog = $row->getLastContractStatusLog();
                         return '<button class="btn btn-success update-status-btn" data-bs-toggle="modal" data-bs-target="#updateStatusModal" data-row-id="' . $row->id . '" data-status="' . $row->status . '" data-date="' . ($lastContractStatusLog ? $lastContractStatusLog->date : \Carbon\Carbon::now()->format('Y-m-d')) . '">' . contractStatusConfirmBtnText($row->status) . '</button>';
                     } else if ($row->status == ContractStatusEnum::Tazker->value) {

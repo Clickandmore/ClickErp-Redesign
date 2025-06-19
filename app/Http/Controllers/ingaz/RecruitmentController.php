@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use App\Models\ingaz\Client;
 use App\Models\ingaz\RecruitmentRequest;
+use App\Models\RecruitmentOffices;
 
 class RecruitmentController extends Controller
 {
@@ -26,11 +27,24 @@ class RecruitmentController extends Controller
         $religion_id = request('religion_id');
         $job_type_id = request('job_type_id');
         $experience_years = request('experience_years');
+        $passport_num = request('passport_num');
+        $office_id = request('office_id');
 
-        // Base query for available maids
-        $query = Maid::with(['nationality', 'religion', 'jobTypes'])
-            ->where('available', true)
-            ->where('is_show', true);
+        // Base query for available maids with eager loading
+        $query = Maid::with([
+            'nationality',
+            'religion',
+            'jobTypes',
+            'translations'
+        ])
+        ->where('status', 'available')
+        ->where('is_show', true)
+        ->whereDoesntHave('contracts', function($q) {
+            $q->whereIn('status', ['active', 'pending']);
+        })
+        ->whereDoesntHave('orders', function($q) {
+            $q->whereIn('status', ['pending', 'approved', 'in_progress']);
+        });
 
         // Apply filters
         if ($nationality_id) {
@@ -47,13 +61,23 @@ class RecruitmentController extends Controller
         if ($experience_years) {
             $query->where('experience_years', '>=', $experience_years);
         }
+        if ($passport_num) {
+            $query->where('passport_num', 'like', '%' . $passport_num . '%');
+        }
+        if ($office_id) {
+            $query->where('office_id', $office_id);
+        }
 
-        $available_maids = $query->get();
+        // Order by latest first and paginate
+        $available_maids = $query->latest()
+            ->paginate(20)
+            ->withQueryString();
 
         // Get data for filters
         $nationalities = Nationality::all();
         $religions = Religion::all();
         $job_types = JobType::all();
+        $offices = RecruitmentOffices::all();
 
         // Get employees
         $employees = Admin::where('admin_type', 'customer_service')->get();
@@ -64,7 +88,8 @@ class RecruitmentController extends Controller
             'nationalities',
             'religions',
             'job_types',
-            'employees'
+            'employees',
+            'offices'
         ));
     }
 
@@ -98,7 +123,7 @@ class RecruitmentController extends Controller
                 'employee_id' => 'required|exists:admins,id',
                 'job_title' => 'required|string|max:255',
                 'nationality' => 'required|string|max:255',
-                'experience_years' => 'required|integer|min:0',
+                'experience_years' => 'nullable|string',
                 'salary' => 'required|numeric|min:0',
                 'notes' => 'nullable|string',
             ]);
@@ -112,7 +137,13 @@ class RecruitmentController extends Controller
             $recruitment = RecruitmentRequest::create([
                 'user_id' => $request->client_id,
                 'maid_id' => $request->maid_id,
-                'job_type_id' => $jobType->id
+                'job_type_id' => $jobType->id,
+                'job_title' => $request->job_title,
+                'nationality' => $request->nationality,
+                'experience_years' => $request->experience_years,
+                'salary' => $request->salary,
+                'notes' => $request->notes,
+                'status' => 'pending'
             ]);
 
             // Create order details
@@ -120,6 +151,12 @@ class RecruitmentController extends Controller
                 'order_id' => $recruitment->id,
                 'admin_id' => $request->employee_id,
                 'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            // Update maid availability status
+            Maid::where('id', $request->maid_id)->update([
+                'status' => 'reserved',
                 'updated_at' => now()
             ]);
 

@@ -25,7 +25,7 @@ class MaidController extends Controller
 {
 
     public $folderPath = "admin.ingaz.maids";
-    public $postData = ["nationality_id", 'image', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages:ar', 'languages:en', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id'];
+    public $postData = ["nationality_id", 'image', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages:ar', 'languages:en', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en'];
     public $mainRoute = "maids";
 
     public function __construct()
@@ -284,10 +284,69 @@ class MaidController extends Controller
 
     public function store(MaidRequest $request, objAction $action)
     {
+        $data = $request->all();
+        // Set default status in Arabic
+        $data['status'] = Maid::STATUS_AVAILABLE['ar'];
+        $row = $action->store($data);
+        return response()->json(['code' => 200, 'message' => 'تم إضافة العاملة بنجاح']);
+    }
 
-        $data = $request->only($this->postData);
-        $data = $action->storeMaid($data, $request);
-        return jsonSuccess($data);
+    // Helper method to get status in current language
+    private function getStatusInCurrentLanguage($status)
+    {
+        $currentLocale = App::getLocale();
+        foreach (Maid::STATUS_AVAILABLE as $key => $value) {
+            if ($value === $status) {
+                return Maid::STATUS_AVAILABLE[$currentLocale];
+            }
+        }
+        foreach (Maid::STATUS_RESERVED as $key => $value) {
+            if ($value === $status) {
+                return Maid::STATUS_RESERVED[$currentLocale];
+            }
+        }
+        foreach (Maid::STATUS_CONTRACTED as $key => $value) {
+            if ($value === $status) {
+                return Maid::STATUS_CONTRACTED[$currentLocale];
+            }
+        }
+        foreach (Maid::STATUS_IN_ACCOMMODATION as $key => $value) {
+            if ($value === $status) {
+                return Maid::STATUS_IN_ACCOMMODATION[$currentLocale];
+            }
+        }
+        return $status;
+    }
+
+    // Update status method
+    public function updateStatus(Request $request, $id)
+    {
+        $maid = Maid::findOrFail($id);
+        $newStatus = $request->input('status');
+
+        // Validate status
+        $validStatuses = [
+            Maid::STATUS_AVAILABLE['ar'],
+            Maid::STATUS_RESERVED['ar'],
+            Maid::STATUS_CONTRACTED['ar'],
+            Maid::STATUS_IN_ACCOMMODATION['ar']
+        ];
+
+        if (!in_array($newStatus, $validStatuses)) {
+            return response()->json([
+                'code' => 400,
+                'message' => 'حالة غير صالحة'
+            ], 400);
+        }
+
+        $maid->status = $newStatus;
+        $maid->save();
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'تم تحديث الحالة بنجاح',
+            'status' => $this->getStatusInCurrentLanguage($newStatus)
+        ]);
     }
 
     public function convert_page($id)
@@ -459,7 +518,7 @@ class MaidController extends Controller
                         <th>الاسم</th>
                         <th>رقم جواز السفر</th>
                         <th>الجنسية</th>
-                        <th>الدين</th>
+                        <th>الديانة</th>
                         <th>العمر</th>
                         <th>سنوات الخبرة</th>
                         <th>الراتب</th>
@@ -520,7 +579,7 @@ class MaidController extends Controller
             'الاسم',
             'رقم جواز السفر',
             'الجنسية',
-            'الدين',
+            'الديانة',
             'العمر',
             'سنوات الخبرة',
             'الراتب',
