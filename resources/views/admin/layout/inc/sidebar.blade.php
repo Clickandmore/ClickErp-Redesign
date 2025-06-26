@@ -72,7 +72,7 @@
 
                 <!-- Clients & Maids Section -->
                 <li class="divider py-2 lh-sm"><span class="small">العملاء والخادمات</span></li>
-                @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW))
+                @if (auth()->check() && @AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW))
                     <li>
                         <a class="m-link {{ (Route::currentRouteName() == 'clients.index') ? 'active' : '' }}"
                             href="{{route('clients.index')}}">
@@ -312,7 +312,7 @@
                         <span class="ms-2"> {{ helperTrans('ingaz.Shelter contracts') }} </span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
-                    <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['ShelterContract.index'])) ? 'show' : '' }}"
+                    <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['ShelterContract.index', 'ShelterContract.availableForTransfer', 'ShelterContract.deportationStage', 'ShelterContract.generalShelter'])) ? 'show' : '' }}"
                         id="sheltercontracts">
                         @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_CONTRACT_CONTROL))
                             <li>
@@ -324,11 +324,29 @@
                         @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_CONTRACT_VIEW))
                             <li>
-                                <a class="m-link" href="{{ route('ShelterContract.index') }}">
+                                <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.index' ? 'active' : '' }}" href="{{ route('ShelterContract.index') }}">
                                     <i class="icon-loop"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.All Shelter contracts') }}</span>
+                                    <span class="ms-2"> داخل الإيواء</span>
                                 </a>
                             </li>
+                            <li>
+                                <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.availableForTransfer' ? 'active' : '' }}" href="{{ route('ShelterContract.availableForTransfer') }}">
+                                    <i class="fa fa-user"></i>
+                                    <span class="ms-2">متاح للنقل</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.deportationStage' ? 'active' : '' }}" href="{{ route('ShelterContract.deportationStage') }}">
+                                    <i class="fa fa-plane"></i>
+                                    <span class="ms-2">مرحلة الترحيل</span>
+                                </a>
+                            </li>
+                            {{-- <li>
+                                <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.generalShelter' ? 'active' : '' }}" href="{{ route('ShelterContract.generalShelter') }}">
+                                    <i class="fa fa-home"></i>
+                                    <span class="ms-2">داخل الإيواء</span>
+                                </a>
+                            </li> --}}
                         @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_WORKERS_VIEW))
                             <li>

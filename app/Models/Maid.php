@@ -25,4 +25,9 @@ class Maid extends Model
         'created_at',
         'updated_at',
     ];
+
+    public function nationality()
+    {
+        return $this->belongsTo(\App\Models\ingaz\Nationality::class, 'nationality_id');
+    }
 }

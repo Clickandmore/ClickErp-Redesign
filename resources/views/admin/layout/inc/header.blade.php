@@ -195,40 +195,47 @@ $user = getAuthUser();
                         <a class="nav-link dropdown-toggle rounded-circle after-none p-0" href="#" role="button"
                             data-bs-toggle="dropdown">
                             <img class="avatar img-thumbnail rounded-circle shadow"
-                                src="{{ showFile($user->image==null ? '../admin/assets/img/profile_av.png':$user->image )}}"
+                                src="{{ showFile(($user && $user->image) ? $user->image : '../admin/assets/img/profile_av.png') }}"
                                 alt="">
                         </a>
                         <div class="dropdown-menu border-0 rounded-4 shadow p-0">
                             <div class="card border-0 w240">
                                 <div class="card-body border-bottom d-flex">
                                     <img class="avatar rounded-circle"
-                                        src="{{showFile($user->image==null ? '../admin/assets/img/profile_av.png':$user->image )}}"
+                                        src="{{showFile(($user && $user->image) ? $user->image : '../admin/assets/img/profile_av.png') }}"
                                         alt="">
                                     <div class="flex-fill ms-3">
-                                        <h6 class="card-title mb-0">{{$user->name}}</h6>
+                                        <h6 class="card-title mb-0">{{$user ? $user->name : 'Guest'}}</h6>
                                         <span class="text-muted">
                                             {{--<a href="#" class="__cf_email__"
                                                 data-cfemail="a8c9c4c4c1cdcfdac9dccddae8c4ddc6c786cbc7c5">--}}
-                                                {{$user->phone}}{{--</a>--}}
+                                                {{$user ? $user->phone : 'N/A'}}{{--</a>--}}
                                         </span>
                                     </div>
                                 </div>
                                 <div class="list-group m-2 mb-3">
-                                    <a class="list-group-item list-group-item-action border-0"
-                                        href="{{route('profile.index')}}"><i class="w30 fa fa-user"></i>ملفي الشخصي</a>
-                                    {{-- @if (Auth::guard('admin')->user()->hasPermission('settings-read')) --}}
-                                    <a class="list-group-item list-group-item-action border-0" href="{{route('settings.index')}}"><i
-                                            class="w30 fa fa-gear"></i>{{ __('skaeeb.settings') }}</a>
-                                    {{-- @endif --}}
-                                    {{-- @if(Auth::guard('admin')->user()->hasPermission('users-read')) --}}
-                                    <a class="list-group-item list-group-item-action border-0" href="{{route('admins.index')}}"><i
-                                            class="w30 fa fa-users"></i>{{ __('auth.users') }}</a>
-                                    {{-- @endif --}}
-                                    {{--<a class="list-group-item list-group-item-action border-0" href="#"><i
-                                            class="w30 fa fa-tag"></i>Support Ticket</a>--}}
+                                    @if($user)
+                                        <a class="list-group-item list-group-item-action border-0"
+                                            href="{{route('profile.index')}}"><i class="w30 fa fa-user"></i>ملفي الشخصي</a>
+                                        {{-- @if (Auth::guard('admin')->user()->hasPermission('settings-read')) --}}
+                                        <a class="list-group-item list-group-item-action border-0" href="{{route('settings.index')}}"><i
+                                                class="w30 fa fa-gear"></i>{{ __('skaeeb.settings') }}</a>
+                                        {{-- @endif --}}
+                                        {{-- @if(Auth::guard('admin')->user()->hasPermission('users-read')) --}}
+                                        <a class="list-group-item list-group-item-action border-0" href="{{route('admins.index')}}"><i
+                                                class="w30 fa fa-users"></i>{{ __('auth.users') }}</a>
+                                        {{-- @endif --}}
+                                        {{--<a class="list-group-item list-group-item-action border-0" href="#"><i
+                                                class="w30 fa fa-tag"></i>Support Ticket</a>--}}
+                                    @else
+                                        <a class="list-group-item list-group-item-action border-0"
+                                            href="{{route('admin.login')}}"><i class="w30 fa fa-sign-in"></i>تسجيل الدخول</a>
+                                    @endif
                                 </div>
-                                <a href="{{route('admin.logout')}}"
-                                    class="btn bg-secondary text-light text-uppercase rounded-0">تسجيل الخروج</a>
+                                @if($user)
+                                    <a href="{{route('admin.logout')}}"
+                                        class="btn bg-secondary text-light text-uppercase rounded-0">تسجيل الخروج</a>
+                                @endif
                             </div>
                         </div>
                     </div>

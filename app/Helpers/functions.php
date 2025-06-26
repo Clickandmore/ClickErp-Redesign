@@ -250,7 +250,11 @@ function convertArabicToEnglishNumbers($arabicNumber)
 
 function AdminGuardHasPerm($perm_name)
 {
-    return Auth::guard('admin')->user()->can($perm_name) ?? false;
+    $user = Auth::guard('admin')->user();
+    if (!$user) {
+        return false;
+    }
+    return $user->can($perm_name) ?? false;
 }
 
 function contractBackStatus($status)

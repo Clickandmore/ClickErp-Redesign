@@ -9,12 +9,18 @@
         @csrf
         <div class="row p-3">
 
+
+
             <div class="col-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.contracts")}}</label>
-                <select name="contract_id" class="form-select form-control select2" data-validation="required">
+                <select name="contract_id" id="contract_id" class="form-select form-control select2" data-validation="required">
                     <option disabled selected>{{helperTrans('ingaz.choose')}}</option>
                     @foreach(($contracts ?? []) as $contract)
-                    <option value="{{$contract->id}}"> {{$contract->desc }} </option>
+                    <option value="{{$contract->id}}"
+                            data-passport="{{$contract->maid ? $contract->maid->passport_num : ''}}"
+                            data-maid-name="{{$contract->maid ? $contract->maid->name : ''}}">
+                        {{$contract->desc }} @if($contract->maid && $contract->maid->passport_num) - {{$contract->maid->passport_num}} @endif
+                    </option>
                     @endforeach
                 </select>
             </div>
@@ -30,10 +36,11 @@
             </div>
 
             <div class="col-4">
-                <label for="TextInput" class="form-label">مصدر الاستلام</label>
+                <label for="TextInput" class="form-label">{{helperTrans("ingaz.receipt_source")}}</label>
                 <select name="receipt_source" class="form-select form-control select2" data-validation="required">
+                    <option disabled selected>{{helperTrans('ingaz.choose')}}</option>
                     @forelse (__('shelter_worker_statuses.received_by') ?? [] as $k => $name)
-                    <option value="{{$k}}" @if (@$data->receipt_source == $k) selected @endif>
+                    <option value="{{$k}}">
                         {{ $name }}
                     </option>
                     @empty
@@ -58,6 +65,16 @@
             <div class="col-4 mt-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.duration_from_enter")}}</label>
                 <input type="text" name="duration_from_enter" class="form-control" readonly>
+            </div>
+
+            <div class="col-4 mt-4">
+                <label for="TextInput" class="form-label">{{helperTrans("ingaz.work_willingness")}}</label>
+                <select name="wants_to_work" class="form-select form-control select2" data-validation="required">
+                    <option disabled selected>{{helperTrans('ingaz.choose')}}</option>
+                    <option value="yes">{{helperTrans('ingaz.work_willingness_yes')}}</option>
+                    <option value="no">{{helperTrans('ingaz.work_willingness_no')}}</option>
+                    <option value="unknown">{{helperTrans('ingaz.work_willingness_unknown')}}</option>
+                </select>
             </div>
 
             <div class="col-12 mt-4">
@@ -87,6 +104,108 @@
 
 <script>
     var indexRoute = "{{ route('ShelterContract.index') }}";
+</script>
+
+<script>
+    // Passport search functionality
+    $(document).ready(function() {
+        // Search button click handler
+        $('#search_passport_btn').on('click', function() {
+            searchContractsByPassport();
+        });
+
+        // Enter key press handler for search input
+        $('#passport_search').on('keypress', function(e) {
+            if (e.which === 13) { // Enter key
+                searchContractsByPassport();
+            }
+        });
+
+        // Clear search button click handler
+        $('#clear_search_btn').on('click', function() {
+            $('#passport_search').val('');
+            loadAllContracts();
+        });
+
+        // Function to search contracts by passport
+        function searchContractsByPassport() {
+            let passportNumber = $('#passport_search').val().trim();
+
+            if (!passportNumber) {
+                loadAllContracts();
+                return;
+            }
+
+            $.ajax({
+                url: "{{ route('search.contracts.by.passport') }}",
+                type: 'GET',
+                data: { passport_number: passportNumber },
+                beforeSend: function() {
+                    $('#search_passport_btn').html('<i class="fa fa-spinner fa-spin"></i> {{helperTrans("ingaz.searching")}}');
+                },
+                success: function(response) {
+                    updateContractDropdown(response.contracts);
+                    $('#search_passport_btn').html('<i class="fa fa-search"></i> {{helperTrans("ingaz.search")}}');
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error searching contracts:', error);
+                    $('#search_passport_btn').html('<i class="fa fa-search"></i> {{helperTrans("ingaz.search")}}');
+                    // Show error message
+                    alert('{{helperTrans("ingaz.error_searching_contracts")}}');
+                }
+            });
+        }
+
+        // Function to update contract dropdown with search results
+        function updateContractDropdown(contracts) {
+            let $select = $('#contract_id');
+            $select.empty();
+            $select.append('<option disabled selected>{{helperTrans("ingaz.choose")}}</option>');
+
+            if (contracts.length === 0) {
+                $select.append('<option disabled>{{helperTrans("ingaz.no_contracts_found")}}</option>');
+            } else {
+                contracts.forEach(function(contract) {
+                    let optionText = contract.desc;
+                    if (contract.passport_number) {
+                        optionText += ' - ' + contract.passport_number;
+                    }
+
+                    $select.append(
+                        '<option value="' + contract.id + '" ' +
+                        'data-passport="' + (contract.passport_number || '') + '" ' +
+                        'data-maid-name="' + (contract.maid_name || '') + '">' +
+                        optionText +
+                        '</option>'
+                    );
+                });
+            }
+
+            // Reinitialize Select2
+            $select.select2('destroy').select2({
+                placeholder: '{{helperTrans("ingaz.choose")}}',
+                allowClear: true
+            });
+        }
+
+        // Function to load all contracts (clear search)
+        function loadAllContracts() {
+            $.ajax({
+                url: "{{ route('ShelterContract.create') }}",
+                type: 'GET',
+                success: function(response) {
+                    // Extract the contracts from the response
+                    // This is a simplified approach - in a real implementation,
+                    // you might want to create a separate endpoint for getting all contracts
+                    location.reload();
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading contracts:', error);
+                    location.reload();
+                }
+            });
+        }
+    });
 </script>
 
 <script>

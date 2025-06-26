@@ -76,9 +76,14 @@
         margin-bottom: 1rem;
     }
     .alert-warning {
-        color: #856404;
         background-color: #fff3cd;
         border-color: #ffeaa7;
+        color: #856404;
+    }
+    .alert-info {
+        background-color: #d1ecf1;
+        border-color: #bee5eb;
+        color: #0c5460;
     }
     .fa-exclamation-triangle {
         margin-right: 0.5rem;
@@ -109,6 +114,102 @@
     .badge.bg-secondary {
         background-color: #6c757d !important;
     }
+    .filter-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border: 1px solid #e9ecef;
+    }
+
+    .filter-row {
+        margin-bottom: 15px;
+    }
+
+    .filter-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 5px;
+    }
+
+    .form-control, .form-select {
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    .btn-filter {
+        border-radius: 6px;
+        font-weight: 500;
+    }
+
+    .dataTables_wrapper {
+        margin-top: 20px;
+    }
+
+    .table th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    .text-success {
+        color: #28a745 !important;
+    }
+
+    .text-danger {
+        color: #dc3545 !important;
+    }
+
+    .text-warning {
+        color: #ffc107 !important;
+    }
+
+    .text-muted {
+        color: #6c757d !important;
+    }
+
+    .text-primary {
+        color: #007bff !important;
+    }
+
+    .custom-notification {
+        margin-top: 15px;
+        border-radius: 8px;
+        border: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .custom-notification .btn-close {
+        font-size: 0.8rem;
+    }
+
+    .dataTables_wrapper .dataTables_filter {
+        display: none; /* Hide default search box */
+    }
+
+    .dataTables_processing {
+        background: rgba(255, 255, 255, 0.9) !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+    }
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
 </style>
 @endsection
 
@@ -120,14 +221,117 @@
 @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_CONTRACT_VIEW))
     <div class="card">
         <div class="card-header">
-            <h4 class="card-title">{{helperTrans("ingaz.All Shelter contracts")}}</h4>
+            <h4 class="card-title">جميع العقود داخل الإيواء</h4>
             <div class="card-tools">
                 <a href="{{ route('ShelterContract.create') }}" class="btn btn-primary">
-                    <i class="fa fa-plus"></i> إضافة عقد إيواء جديد
+                    <i class="fa fa-plus"></i> إضافة عقد داخل الإيواء جديد
                 </a>
             </div>
         </div>
         <div class="card-body">
+            <!-- Custom Filters -->
+            <div class="filter-section">
+                <h5>فلتر البيانات</h5>
+                <div class="row filter-row">
+                    <div class="col-md-2">
+                        <label for="filterMaidName" class="form-label">اسم العاملة</label>
+                        <input type="text" id="filterMaidName" class="form-control" placeholder="ابحث برقم العاملة">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filterPassport" class="form-label">رقم الجواز</label>
+                        <input type="text" id="filterPassport" class="form-control" placeholder="ابحث برقم الجواز">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filterMaidType" class="form-label">نوع العاملة</label>
+                        <select id="filterMaidType" class="form-select">
+                            <option value="">الكل</option>
+                            @foreach($jobTypes as $type)
+                                @php
+                                    $locale = app()->getLocale();
+                                    $translation = $type->translations->where('locale', $locale)->first();
+                                    $title = $translation ? $translation->title : $type->title;
+                                @endphp
+                                <option value="{{ $type->id }}">{{ $title }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filterNationality" class="form-label">الجنسية</label>
+                        <select id="filterNationality" class="form-select">
+                            <option value="">الكل</option>
+                            @foreach($nationalities as $nationality)
+                                @php
+                                    $locale = app()->getLocale();
+                                    $translation = $nationality->translations->where('locale', $locale)->first();
+                                    $name = $translation ? $translation->sub_title : $nationality->title ?? 'غير محدد';
+                                @endphp
+                                <option value="{{ $nationality->id }}">{{ $name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filterShelter" class="form-label">مكان الإيواء</label>
+                        <select id="filterShelter" class="form-select">
+                            <option value="">الكل</option>
+                            @foreach($shelterPlaces as $shelter)
+                                @php
+                                    $locale = app()->getLocale();
+                                    $translation = $shelter->translations->where('locale', $locale)->first();
+                                    $name = $translation ? $translation->title : $shelter->name ?? 'غير محدد';
+                                @endphp
+                                <option value="{{ $shelter->id }}">{{ $name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filterReceiptSource" class="form-label">مصدر الاستلام</label>
+                        <select id="filterReceiptSource" class="form-select">
+                            <option value="">الكل</option>
+                            @foreach(__('shelter_worker_statuses.received_by') ?? [] as $k => $name)
+                                <option value="{{ $k }}">{{ $name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+
+                </div>
+                <div class="row filter-row mt-2">
+                    <div class="col-md-2">
+                        <label for="filterStatus" class="form-label">حالة الضمان</label>
+                        <select id="filterStatus" class="form-select">
+                            <option value="">الكل</option>
+                            <option value="within_guarantee">ضمن الضمان</option>
+                            <option value="expired_guarantee">منتهي الضمان</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filterWorkWillingness" class="form-label">رغبة العمل</label>
+                        <select id="filterWorkWillingness" class="form-select">
+                            <option value="">الكل</option>
+                            <option value="yes">ترغب بالعمل</option>
+                            <option value="no">لا ترغب بالعمل</option>
+                            <option value="unknown">غير محدد</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filterArrivalDate" class="form-label">تاريخ الوصول</label>
+                        <input type="date" id="filterArrivalDate" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="filterReturnDate" class="form-label">تاريخ العودة</label>
+                        <input type="date" id="filterReturnDate" class="form-control">
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="button" id="clearFilters" class="btn btn-secondary me-2">
+                            <i class="fas fa-times"></i> مسح الفلاتر
+                        </button>
+                        <button type="button" id="exportData" class="btn btn-success">
+                            <i class="fas fa-download"></i> تصدير البيانات
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div class="table-responsive">
                 <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
                     <thead>
@@ -138,7 +342,9 @@
                             <th>{{helperTrans("ingaz.maid_type")}}</th>
                             <th>{{helperTrans("ingaz.nationality")}}</th>
                             <th>{{helperTrans("ingaz.shelter_location")}}</th>
+                            <th>{{helperTrans("ingaz.receipt_source")}}</th>
                             <th>{{helperTrans("ingaz.guarantee_status")}}</th>
+                            <th>{{helperTrans("ingaz.work_willingness")}}</th>
                             <th>{{helperTrans("ingaz.arrival_date")}}</th>
                             <th>{{helperTrans("ingaz.return_date")}}</th>
                             <th>{{helperTrans("ingaz.status")}}</th>
@@ -231,24 +437,39 @@
 $(document).ready(function () {
     let columns = [
         {"data": 'id', name: 'id', orderable: false, searchable: false, width: '5%'},
-        {"data": "maid_name", orderable: true, searchable: true, width: '10%'},
-        {"data": "passport_number", orderable: true, searchable: true, width: '10%'},
+        {"data": "maid_name", orderable: false, searchable: false, width: '10%'},
+        {"data": "passport_number", orderable: false, searchable: false, width: '10%'},
         {"data": "maid_type", orderable: true, searchable: true, width: '10%'},
-        {"data": "nationality", orderable: true, searchable: true, width: '10%'},
-        {"data": "shelter_location", orderable: true, searchable: true, width: '15%'},
-        {"data": "guarantee_status", orderable: true, searchable: true, width: '15%'},
+        {"data": "nationality", orderable: false, searchable: false, width: '10%'},
+        {"data": "shelter_location", orderable: false, searchable: false, width: '15%'},
+        {"data": "receipt_source", orderable: false, searchable: false, width: '10%'},
+        {"data": "guarantee_status", orderable: false, searchable: false, width: '15%'},
+        {"data": "work_willingness", orderable: false, searchable: false, width: '10%'},
         {"data": "arrival_date", orderable: true, searchable: true, width: '10%'},
         {"data": "return_date", orderable: true, searchable: true, width: '10%'},
         {"data": "status", orderable: true, searchable: true, width: '10%'},
         {"data": "actions", orderable: false, searchable: false, width: '15%'},
     ];
 
-    $('#dataTableObject').DataTable({
+    let dataTable = $('#dataTableObject').DataTable({
         processing: true,
         serverSide: true,
         ajax: {
             url: "{{ route('ShelterContract.index') }}",
             type: 'GET',
+            data: function(d) {
+                // Add filter parameters to the request
+                d.maid_name = $('#filterMaidName').val();
+                d.passport_number = $('#filterPassport').val();
+                d.maid_type = $('#filterMaidType').val();
+                d.nationality = $('#filterNationality').val();
+                d.shelter_location = $('#filterShelter').val();
+                d.receipt_source = $('#filterReceiptSource').val();
+                d.guarantee_status = $('#filterStatus').val();
+                d.work_willingness = $('#filterWorkWillingness').val();
+                d.arrival_date = $('#filterArrivalDate').val();
+                d.return_date = $('#filterReturnDate').val();
+            },
             headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
             },
@@ -280,11 +501,148 @@ $(document).ready(function () {
             if (settings.json) {
                 console.log('Data loaded successfully');
             }
+
+            // Hide loading indicator
+            $('.dataTables_processing').hide();
         },
         initComplete: function () {
             // Add custom filters if needed
             console.log('DataTable initialized successfully');
+
+            // Hide default search box
+            $('.dataTables_filter').hide();
         }
+    });
+
+    // Global helper function to extract text from HTML
+    function extractText(htmlString) {
+        if (!htmlString) return '';
+
+        // If it's already a string without HTML, return it
+        if (typeof htmlString === 'string' && !htmlString.includes('<')) {
+            return htmlString;
+        }
+
+        // If it's a jQuery object, get the text
+        if (htmlString && typeof htmlString.text === 'function') {
+            return htmlString.text().trim();
+        }
+
+        // If it's a DOM element, get the text content
+        if (htmlString && htmlString.textContent) {
+            return htmlString.textContent.trim();
+        }
+
+        // Create a temporary div to parse HTML
+        let tempDiv = document.createElement('div');
+        tempDiv.innerHTML = htmlString;
+        let text = tempDiv.textContent || tempDiv.innerText || '';
+
+        // Clean up the text
+        return text.trim();
+    }
+
+    // Apply filters function
+    function applyFilters() {
+        const filters = {
+            maid_name: $('#filterMaidName').val(),
+            passport_number: $('#filterPassport').val(),
+            maid_type: $('#filterMaidType').val(),
+            nationality: $('#filterNationality').val(),
+            shelter_location: $('#filterShelter').val(),
+            receipt_source: $('#filterReceiptSource').val(),
+            guarantee_status: $('#filterStatus').val(),
+            work_willingness: $('#filterWorkWillingness').val(),
+            arrival_date: $('#filterArrivalDate').val(),
+            return_date: $('#filterReturnDate').val()
+        };
+
+        // Remove empty filters
+        Object.keys(filters).forEach(key => {
+            if (!filters[key]) {
+                delete filters[key];
+            }
+        });
+
+        // Show loading indicator
+        if (dataTable) {
+            dataTable.ajax.reload();
+        }
+    }
+
+    // Filter event listeners with debouncing for text inputs
+    let filterTimeout;
+    $('#filterMaidName, #filterPassport').on('keyup', function() {
+        clearTimeout(filterTimeout);
+        filterTimeout = setTimeout(function() {
+            applyFilters();
+        }, 500);
+    });
+
+    // Immediate filter for dropdowns and dates
+    $('#filterMaidType, #filterNationality, #filterShelter, #filterReceiptSource, #filterStatus, #filterWorkWillingness, #filterArrivalDate, #filterReturnDate').on('change', function() {
+        applyFilters();
+    });
+
+    // Clear filters
+    $('#clearFilters').on('click', function() {
+        $('#filterMaidName, #filterPassport, #filterArrivalDate, #filterReturnDate').val('');
+        $('#filterMaidType, #filterNationality, #filterShelter, #filterReceiptSource, #filterStatus, #filterWorkWillingness').val('');
+        applyFilters();
+    });
+
+    // Simple notification function
+    function showNotification(message, type = 'info') {
+        // Remove existing notifications
+        $('.custom-notification').remove();
+
+        let alertClass = type === 'success' ? 'alert-success' : 'alert-info';
+        let notification = $(`
+            <div class="alert ${alertClass} alert-dismissible fade show custom-notification" role="alert">
+                <i class="fa fa-info-circle"></i> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `);
+
+        $('.filter-section').after(notification);
+
+        // Auto hide after 3 seconds
+        setTimeout(function() {
+            notification.fadeOut();
+        }, 3000);
+    }
+
+    // Export filtered data
+    $('#exportData').on('click', function() {
+        // Get current filter values
+        let filters = {
+            maid_name: $('#filterMaidName').val(),
+            passport_number: $('#filterPassport').val(),
+            maid_type: $('#filterMaidType').val(),
+            nationality: $('#filterNationality').val(),
+            shelter_location: $('#filterShelter').val(),
+            receipt_source: $('#filterReceiptSource').val(),
+            guarantee_status: $('#filterStatus').val(),
+            work_willingness: $('#filterWorkWillingness').val(),
+            arrival_date: $('#filterArrivalDate').val(),
+            return_date: $('#filterReturnDate').val()
+        };
+
+        // Show loading state
+        $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> جاري التصدير...');
+
+        // Create export URL with filters
+        let exportUrl = "{{ route('ShelterContract.index') }}?" + $.param(filters) + "&export=1";
+
+        // Download the filtered data
+        window.open(exportUrl, '_blank');
+
+        // Reset button state
+        setTimeout(() => {
+            $(this).prop('disabled', false).html('<i class="fas fa-download"></i> تصدير البيانات');
+        }, 2000);
+
+        showNotification('تم بدء التصدير', 'success');
     });
 
     // Add keyboard shortcuts
@@ -341,7 +699,7 @@ $('#saveStatusBtn').click(function () {
         },
         error: function (xhr, status, error) {
             console.error('AJAX request failed:', error);
-            alert('حدث خطأ في تحديث الحالة');
+            alert('حدث خطأ في تحديث حالة العقد داخل الإيواء');
         },
         complete: function () {
             // Reset button state

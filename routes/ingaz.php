@@ -38,6 +38,7 @@ Route::group(
             Route::get('getContractEdit/{id}', [AdminContractController::class, 'getContractEdit'])->name('getContractEdit');
             Route::post('updateContractInfo', [AdminContractController::class, 'updateContractInfo'])->name('updateContractInfo');
             Route::get('get-contract-details', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'getContractDetails'])->name('get.contract.details');
+            Route::get('search-contracts-by-passport', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'searchByPassport'])->name('search.contracts.by.passport');
             //** */
             Route::get('viewFullOrderContract', [AdminFullOrderContractController::class, 'viewFullOrderContract'])->name('viewFullOrderContract');
             Route::post('createFullOrderContract', [AdminFullOrderContractController::class, 'createFullOrderContract'])->name('createFullOrderContract');
@@ -123,6 +124,12 @@ Route::group(
             Route::resource('recruitment-offices', RecruitmentOffice::class);
             Route::resource('shelter-places', ShelterPlaces::class);
             // Route::resource('roles', RoleController::class);
+
+            // Custom routes for different shelter contract stages - MUST come before resource route
+            Route::get('ShelterContract/available-for-transfer', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'availableForTransfer'])->name('ShelterContract.availableForTransfer');
+            Route::get('ShelterContract/deportation-stage', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'deportationStage'])->name('ShelterContract.deportationStage');
+            Route::get('ShelterContract/general-shelter', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'generalShelter'])->name('ShelterContract.generalShelter');
+
             Route::resource('ShelterContract', ShelterContractController::class);
 
             //** New */
@@ -177,6 +184,4 @@ Route::group(
 
     }
 );
-
-Route::get('/get-offices-by-nationality', [App\Http\Controllers\ingaz\MaidController::class, 'getOfficesByNationality'])->name('getOfficesByNationality');
 

@@ -27,9 +27,11 @@ class ShelterContactStore extends MainRequest
         return [
             'contract_id' => 'required|exists:contracts,id',
             'shelter_id'  => 'required|exists:shelter_places,id',
+            'receipt_source' => 'required|string',
             'maid_date_back' => 'required',
             'salary_final_status' => 'required',
             'duration_from_enter' => 'required',
+            'wants_to_work' => 'required|in:yes,no,unknown',
             'back_reasons' => 'nullable',
         ];
     }
