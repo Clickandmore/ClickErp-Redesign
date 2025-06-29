@@ -333,9 +333,11 @@
                                 class="btn btn-sm btn-success m-2">
                                 {{ __('admin.download') }}
                             </a>
+                            @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_DELETE))
                             <button class="btn btn-sm btn-danger m-2 delete-file" data-id="{{ $fileRow->id }}">
-                                {{ __('admin.delete') }}
+                                حذف الملف
                             </button>
+                            @endif
                         </div>
                     </td>
                 </tr>

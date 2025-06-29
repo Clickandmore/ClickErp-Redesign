@@ -123,7 +123,7 @@
                                                 @csrf
                                                 @method('DELETE')
                                                 <a class="btn btn-sm btnDeleteTrgt" data-id="{{ $singleRow->id }}" href="javascript:{}">
-                                                    <li class="fa fa-trash"></li>
+                                                    حذف
                                                 </a>
                                             </form>
                                         </div>

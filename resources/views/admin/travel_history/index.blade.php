@@ -124,6 +124,7 @@
                                 ]) }}">
                                     <li class="fa fa-edit"></li>
                                 </a>
+                                @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CONTROL))
                                 <form action="{{ route('travel.delete', $singleRow->id) }}" method="POST"
                                     id="dataDeleteForm-{{ $singleRow->id }}">
                                     @csrf
@@ -132,6 +133,7 @@
                                         <li class="fa fa-trash"></li>
                                     </a>
                                 </form>
+                                @endif
                             </div>
                         </td>
                     </tr>

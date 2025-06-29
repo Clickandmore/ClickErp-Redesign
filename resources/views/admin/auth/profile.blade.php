@@ -56,7 +56,9 @@
                                     </div>
                                     <div class="card-footer text-end">
                                         <button class="btn btn-lg btn-light me-2" type="reset">الغاء</button>
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::USERS_EDIT) || auth()->guard('admin')->id() == $user->id)
                                         <button class="btn btn-lg btn-primary" type="submit">حفظ التعديلات</button>
+                                        @endif
                                     </div>
 
                                 </form>
@@ -95,7 +97,9 @@
                             </div>
                             <div class="card-footer text-end">
                                 <button class="btn btn-lg btn-light me-2" type="reset">الغاء</button>
+                                @if (@AdminGuardHasPerm(\App\PermKeys::USERS_EDIT) || auth()->guard('admin')->id() == $user->id)
                                 <button class="btn btn-lg btn-primary" type="submit">تعديل كلمه المرور</button>
+                                @endif
                             </div>
                         </div>
                         </form>

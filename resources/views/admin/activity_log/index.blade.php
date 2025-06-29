@@ -38,13 +38,15 @@
                         <td>{{ @$singleRow->created_at->diffForHumans() }}</td>
 
                         {{-- <td>{{ @$singleRow->properties }}</td> --}}
-                        {{-- <td>
+                        @if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACT_EDIT))
+                        <td>
                             <div class="d-flex justify-content-center">
                                 <a class="btn btn-sm" href="{{ route('dash.contracts.update', $singleRow->id) . '/edit' }}">
                                     <img height="16" src="{{ asset('admin/custom/actions/edit.svg') }}" alt="Edit">
                                 </a>
                             </div>
-                        </td> --}}
+                        </td>
+                        @endif
                     </tr>
                 @empty
                     <tr>

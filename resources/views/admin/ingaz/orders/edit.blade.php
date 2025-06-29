@@ -166,7 +166,9 @@
                 <button class="btn btn-primary" type="submit">{{__("buttons.save")}}</button>
             @endif
             @if($obj->status == 'under_process')
-                <a class="btn btn-danger addNewContract" href="#" data-id="{{ $obj->id }}">{{__("admin.add_new_contract")}}</a>
+                @if (@AdminGuardHasPerm(\App\PermKeys::FULL_CONTRACT))
+                    <a class="btn btn-danger addNewContract" href="#" data-id="{{ $obj->id }}">{{__("admin.add_new_contract")}}</a>
+                @endif
             @endif
             <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">{{__("buttons.close")}}</button>
         </div>

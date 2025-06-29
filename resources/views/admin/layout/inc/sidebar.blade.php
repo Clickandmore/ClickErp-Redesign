@@ -62,6 +62,7 @@
             <ul class="menu-list">
                 <!-- Dashboard Section -->
                 <li class="divider py-2 lh-sm"><span class="small">لوحة التحكم </span></li>
+                @if (@AdminGuardHasPerm(\App\PermKeys::DASHBOARD_VIEW))
                 <li>
                     <a class="m-link {{ (Route::currentRouteName() == 'dashboard.index') ? 'active' : '' }}"
                         href="{{route('dashboard.index')}}">
@@ -69,6 +70,7 @@
                         <span class="ms-2">الرئيسية </span>
                     </a>
                 </li>
+                @endif
 
                 <!-- Clients & Maids Section -->
                 <li class="divider py-2 lh-sm"><span class="small">العملاء والخادمات</span></li>
@@ -90,6 +92,7 @@
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
                     <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['maids.index', 'noneAvailableMaids', 'maids.create'])) ? 'show' : '' }}" id="cvManagement">
+                        @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CONTROL))
                         <li>
                             <a class="m-link {{ (Route::currentRouteName() == 'maids.create') ? 'active' : '' }}"
                                 href="{{route('maids.create')}}">
@@ -97,6 +100,8 @@
                                 <span class="ms-2">إضافة سيرة ذاتية</span>
                             </a>
                         </li>
+                        @endif
+                        @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW))
                         <li>
                             <a class="m-link {{ (Route::currentRouteName() == 'maids.index') ? 'active' : '' }}"
                                 href="{{route('maids.index')}}">
@@ -111,6 +116,7 @@
                                 <span class="ms-2">سير غير متاحة</span>
                             </a>
                         </li>
+                        @endif
                     </ul>
                 </li>
 
@@ -500,12 +506,14 @@
                                 </a>
                             </li>
                         @endif
+                        @if (@AdminGuardHasPerm(\App\PermKeys::USERS_VIEW))
                         <li>
                             <a class="m-link {{ (Route::currentRouteName() == 'countries.index') ? 'active' : '' }}" href="{{ route('countries.index') }}">
                                 <i class="fa fa-arrow-left"></i>
                                 <span class="ms-2">إعدادات الدول</span>
                             </a>
                         </li>
+                        @endif
                     </ul>
                 </li>
 

@@ -257,6 +257,114 @@ function AdminGuardHasPerm($perm_name)
     return $user->can($perm_name) ?? false;
 }
 
+/**
+ * التحقق من وجود أي صلاحية من مجموعة صلاحيات
+ */
+function AdminGuardHasAnyPerm($permissions)
+{
+    if (is_string($permissions)) {
+        $permissions = [$permissions];
+    }
+
+    foreach ($permissions as $permission) {
+        if (AdminGuardHasPerm($permission)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
+ * التحقق من وجود جميع الصلاحيات المطلوبة
+ */
+function AdminGuardHasAllPerms($permissions)
+{
+    if (is_string($permissions)) {
+        $permissions = [$permissions];
+    }
+
+    foreach ($permissions as $permission) {
+        if (!AdminGuardHasPerm($permission)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
+ * التحقق من وجود صلاحية إدارة قسم معين
+ */
+function AdminGuardCanManage($section)
+{
+    $managePermission = $section . '_manage';
+    return AdminGuardHasPerm($managePermission);
+}
+
+/**
+ * التحقق من وجود صلاحية عرض قسم معين
+ */
+function AdminGuardCanView($section)
+{
+    $viewPermission = $section . '_view';
+    return AdminGuardHasPerm($viewPermission);
+}
+
+/**
+ * التحقق من وجود صلاحية إنشاء في قسم معين
+ */
+function AdminGuardCanCreate($section)
+{
+    $createPermission = $section . '_create';
+    return AdminGuardHasPerm($createPermission);
+}
+
+/**
+ * التحقق من وجود صلاحية تعديل في قسم معين
+ */
+function AdminGuardCanEdit($section)
+{
+    $editPermission = $section . '_edit';
+    return AdminGuardHasPerm($editPermission);
+}
+
+/**
+ * التحقق من وجود صلاحية حذف في قسم معين
+ */
+function AdminGuardCanDelete($section)
+{
+    $deletePermission = $section . '_delete';
+    return AdminGuardHasPerm($deletePermission);
+}
+
+/**
+ * التحقق من وجود صلاحية تصدير في قسم معين
+ */
+function AdminGuardCanExport($section)
+{
+    $exportPermission = $section . '_export';
+    return AdminGuardHasPerm($exportPermission);
+}
+
+/**
+ * التحقق من وجود صلاحية موافقة في قسم معين
+ */
+function AdminGuardCanApprove($section)
+{
+    $approvePermission = $section . '_approve';
+    return AdminGuardHasPerm($approvePermission);
+}
+
+/**
+ * التحقق من وجود صلاحية رفض في قسم معين
+ */
+function AdminGuardCanReject($section)
+{
+    $rejectPermission = $section . '_reject';
+    return AdminGuardHasPerm($rejectPermission);
+}
+
 function contractBackStatus($status)
 {
     switch ($status) {

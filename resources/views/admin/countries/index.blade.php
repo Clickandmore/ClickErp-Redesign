@@ -71,13 +71,13 @@
                                 <a href="{{ route('countries.edit', $country) }}" class="btn btn-sm btn-primary">
                                     <i class="fa fa-edit"></i>
                                 </a>
-                                <form action="{{ route('countries.destroy', $country) }}" method="POST" class="d-inline">
+                                @if (@AdminGuardHasPerm(\App\PermKeys::USERS_DELETE))
+                                <form action="{{ route('countries.destroy', $country->id) }}" method="POST" style="display:inline-block">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('{{__('countries.confirm_delete')}}')">
-                                        <i class="fa fa-trash"></i>
-                                    </button>
+                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('{{__('countries.confirm_delete')}}')">حذف</button>
                                 </form>
+                                @endif
                             </td>
                         </tr>
                     @endforeach
