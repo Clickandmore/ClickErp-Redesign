@@ -82,9 +82,13 @@ class MaidController extends Controller
                     $query->orderBy('created_at', $order);
                 })
                 ->editColumn('is_show', function ($row) {
-                    return $row->is_show == 1 ?
-                    '<button class="btn btn-sm btn-success update-status" id="update-status" data-id="' . $row->id . '">ظاهر</button>' :
-                    '<button class="btn btn-sm btn-dark update-status" data-id="' . $row->id . '">مخفي </button>';
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_STATUS)) {
+                        return $row->is_show == 1 ?
+                        '<button class="btn btn-sm btn-success update-status" data-id="' . $row->id . '">ظاهر</button>' :
+                        '<button class="btn btn-sm btn-dark update-status" data-id="' . $row->id . '">مخفي</button>';
+                    } else {
+                        return $row->is_show == 1 ? '<span class="badge bg-success">ظاهر</span>' : '<span class="badge bg-dark">مخفي</span>';
+                    }
                 })
                 ->editColumn('available', function ($row) {
                     return $row->available == 1 ?
@@ -121,22 +125,31 @@ class MaidController extends Controller
                     return $row->jobTypes->pluck('title')->implode(', ');
                 })
                 ->addColumn('actions', function ($row) {
-                    $showButton = viewSingleButton(route('showMaidDetails', $row->id));
-                    $editButton = '';
-                    $deleteButton = '';
-                    $pinButton = '';
+                    $buttons = '';
 
-                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CONTROL)) {
-                        $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
-                        $pinButton = '<button class="btn btn-sm ' . ($row->is_pinned ? 'btn-warning' : 'btn-secondary') . ' toggle-pin" data-id="' . $row->id . '" title="' . ($row->is_pinned ? 'إلغاء التثبيت' : 'تثبيت') . '">
+                    // Show CV details
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHOW)) {
+                        $buttons .= viewSingleButton(route('showMaidDetails', $row->id));
+                    }
+
+                    // Edit CV
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
+                        $buttons .= editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
+                    }
+
+                    // Toggle pin status
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_PIN)) {
+                        $buttons .= '<button class="btn btn-sm ' . ($row->is_pinned ? 'btn-warning' : 'btn-secondary') . ' toggle-pin" data-id="' . $row->id . '" title="' . ($row->is_pinned ? 'إلغاء التثبيت' : 'تثبيت') . '">
                              <i class="fa fa-star"></i>
                         </button>';
                     }
 
+                    // Delete CV
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_DELETE)) {
-                        $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                        $buttons .= deleteButton(route($this->mainRoute . ".destroy", $row->id));
                     }
-                    return $showButton . " " . $editButton . " " . $pinButton . " " . $deleteButton;
+
+                    return $buttons;
                 })
                 ->rawColumns(['is_show', 'available', 'available_at', 'cv_file', 'actions'])
                 ->make(true);
@@ -169,9 +182,13 @@ class MaidController extends Controller
             $dataTable = DataTables::of($rows)
                 ->addIndexColumn()
                 ->editColumn('is_show', function ($row) {
-                    return $row->is_show == 1 ?
-                    '<button class="btn btn-sm btn-success update-status" id="update-status" data-id="' . $row->id . '">ظاهر</button>' :
-                    '<button class="btn btn-sm btn-dark update-status" data-id="' . $row->id . '">مخفي </button>';
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_STATUS)) {
+                        return $row->is_show == 1 ?
+                        '<button class="btn btn-sm btn-success update-status" data-id="' . $row->id . '">ظاهر</button>' :
+                        '<button class="btn btn-sm btn-dark update-status" data-id="' . $row->id . '">مخفي</button>';
+                    } else {
+                        return $row->is_show == 1 ? '<span class="badge bg-success">ظاهر</span>' : '<span class="badge bg-dark">مخفي</span>';
+                    }
                 })
                 ->editColumn('available', function ($row) {
                     return $row->available == 1 ?

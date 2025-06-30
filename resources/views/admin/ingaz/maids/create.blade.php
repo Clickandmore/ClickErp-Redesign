@@ -11,7 +11,7 @@
 @endsection
 
 @section('content')
-@if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CONTROL))
+@if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
     <div class="card">
         <div class="card-body">
             <form class="row g-3 from-submit-global-maid" method="post" action="{{route("maids.store")}}" enctype="multipart/form-data" id="maidForm">

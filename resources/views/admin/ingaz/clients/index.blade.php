@@ -8,18 +8,25 @@
 @section('content')
 @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW))
     <div class="mb-3">
+        @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_CREATE))
         <a href="{{ route('clients.create') }}" class="btn btn-primary">
             <i class="fa fa-plus"></i> {{helperTrans("ingaz.add_client")}}
         </a>
+        @endif
+        @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EXPORT_PDF))
         <a href="{{ route('clients.export.pdf') }}" class="btn btn-danger" target="_blank">
             <i class="fa fa-file-pdf"></i> {{helperTrans("ingaz.export_pdf")}}
         </a>
+        @endif
+        @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EXPORT_EXCEL))
         <a href="{{ route('clients.export.excel') }}" class="btn btn-success">
             <i class="fa fa-file-excel"></i> {{helperTrans("ingaz.export_excel")}}
         </a>
+        @endif
+
+
     </div>
 
-    <p>{{helperTrans('ingaz.Toggle account status by clicking on an active or blocked button')}}</p>
     <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
         <thead>
             <tr>
@@ -60,29 +67,6 @@
             language: {
                 url: "{{ asset('admin/assets/js/datatable-ar.json') }}"
             }
-        });
-
-        // Handle status update
-        $(document).on('click', '.update-status', function() {
-            var rowId = $(this).data('id');
-            var url = "{{ route('clients.update', ':id') }}";
-            url = url.replace(':id', rowId);
-
-            $.ajax({
-                type: 'PUT',
-                url: url,
-                success: function(response) {
-                    if (response.success) {
-                        $('#dataTableObject').DataTable().ajax.reload();
-                        toastr.success('تم تحديث الحالة بنجاح');
-                    } else {
-                        toastr.error('حدث خطأ أثناء تحديث الحالة');
-                    }
-                },
-                error: function() {
-                    toastr.error('حدث خطأ أثناء تحديث الحالة');
-                }
-            });
         });
     });
 </script>

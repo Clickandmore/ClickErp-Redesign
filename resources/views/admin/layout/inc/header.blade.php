@@ -219,7 +219,7 @@ $user = getAuthUser();
                                             href="{{route('profile.index')}}"><i class="w30 fa fa-user"></i>ملفي الشخصي</a>
                                         {{-- @if (Auth::guard('admin')->user()->hasPermission('settings-read')) --}}
                                         <a class="list-group-item list-group-item-action border-0" href="{{route('settings.index')}}"><i
-                                                class="w30 fa fa-gear"></i>{{ __('skaeeb.settings') }}</a>
+                                                class="w30 fa fa-gear"></i>{{ __('ingaz.settings') }}</a>
                                         {{-- @endif --}}
                                         {{-- @if(Auth::guard('admin')->user()->hasPermission('users-read')) --}}
                                         <a class="list-group-item list-group-item-action border-0" href="{{route('admins.index')}}"><i

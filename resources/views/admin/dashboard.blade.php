@@ -10,9 +10,10 @@
 @endsection
 @section('content')
 
-@if (@AdminGuardHasPerm(\App\PermKeys::DASHBOARD_VIEW))
+@if (@AdminGuardHasPerm(\App\PermKeys::DASHBOARD_VIEW_STATISTICS))
 
     <div class="row  g-3 row-deck">
+        @if (@AdminGuardHasPerm(\App\PermKeys::DASHBOARD_CLIENTS_COUNT))
         <div class="col-lg-4 col-md-6 col-sm-6">
             <div class="card overflow-hidden">
                 <div class="card-body">
@@ -38,6 +39,9 @@
                 </div>
             </div>
         </div>
+        @endif
+
+        @if (@AdminGuardHasPerm(\App\PermKeys::DASHBOARD_CONTACTS_COUNT))
         <div class="col-lg-4 col-md-6 col-sm-6">
             <div class="card overflow-hidden">
                 <div class="card-body">
@@ -57,6 +61,9 @@
                 </div>
             </div>
         </div>
+        @endif
+
+        @if (@AdminGuardHasPerm(\App\PermKeys::DASHBOARD_CURRENT_ORDERS_COUNT))
         <div class="col-lg-4 col-md-6 col-sm-6">
             <div class="card overflow-hidden">
                 <div class="card-body">
@@ -80,6 +87,9 @@
                 </div>
             </div>
         </div>
+        @endif
+
+        @if (@AdminGuardHasPerm(\App\PermKeys::DASHBOARD_CV_COUNT))
         <div class="col-lg-4 col-md-6 col-sm-6">
             <div class="card overflow-hidden">
                 <div class="card-body">
@@ -93,6 +103,9 @@
                 </div>
             </div>
         </div>
+        @endif
+
+        @if (@AdminGuardHasPerm(\App\PermKeys::DASHBOARD_EMPLOYEES_COUNT))
         <div class="col-lg-4 col-md-6 col-sm-6">
             <div class="card overflow-hidden">
                 <div class="card-body">
@@ -106,6 +119,9 @@
                 </div>
             </div>
         </div>
+        @endif
+
+        @if (@AdminGuardHasPerm(\App\PermKeys::DASHBOARD_COMPLETED_CV_COUNT))
         <div class="col-lg-4 col-md-6 col-sm-6">
             <div class="card overflow-hidden">
                 <div class="card-body">
@@ -119,9 +135,9 @@
                 </div>
             </div>
         </div>
+        @endif
 
-
-
+        @if (@AdminGuardHasPerm(\App\PermKeys::DASHBOARD_ORDERS_STATISTICS))
         <div class="col-xxl-12 col-xl-12 col-lg-12">
             <div class="card">
                 <div class="card-header">
@@ -146,6 +162,9 @@
                 </div>
             </div>
         </div>
+        @endif
+
+        @if (@AdminGuardHasPerm(\App\PermKeys::DASHBOARD_TOP_CUSTOMER_SERVICES))
         <div class="col-xxl-6 col-xl-6 col-lg-6 col-md-6">
             <div class="card">
                 <div class="card-body d-flex flex-column">
@@ -170,7 +189,9 @@
             </div>
 
         </div>
+        @endif
 
+        @if (@AdminGuardHasPerm(\App\PermKeys::DASHBOARD_ORDERS_TYPES))
         <div class="col-6">
             <div class="card-body">
                 <div class="card-header">
@@ -181,6 +202,7 @@
                 </div>
             </div>
         </div>
+        @endif
     </div>
 
 @endif

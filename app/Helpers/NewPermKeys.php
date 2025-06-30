@@ -63,6 +63,7 @@ class NewPermKeys
     // ========================================
     // إدارة العملاء (Clients Management)
     // ========================================
+    // الصلاحيات الأساسية للعملاء
     const CLIENTS_VIEW = 'clients_view';
     const CLIENTS_CREATE = 'clients_create';
     const CLIENTS_EDIT = 'clients_edit';
@@ -72,6 +73,9 @@ class NewPermKeys
     const CLIENTS_MANAGE = 'clients_manage';
     const CLIENTS_ACTIVATE = 'clients_activate';
     const CLIENTS_DEACTIVATE = 'clients_deactivate';
+
+    // صلاحيات خاصة بالعملاء
+    const CLIENTS_CREATE_RECRUITMENT = 'clients_create_recruitment';
 
     // ========================================
     // إدارة العقود (Contracts Management)
@@ -86,14 +90,52 @@ class NewPermKeys
     const CONTRACTS_EXPORT = 'contracts_export';
     const CONTRACTS_MANAGE = 'contracts_manage';
 
-    // عقود التوظيف (Recruitment Contracts)
+    // ========================================
+    // إدارة عقود الاستقدام (Recruitment Contracts Management)
+    // ========================================
+    // الصلاحيات الأساسية للعقود
     const REC_CONTRACTS_VIEW = 'rec_contracts_view';
     const REC_CONTRACTS_CREATE = 'rec_contracts_create';
     const REC_CONTRACTS_EDIT = 'rec_contracts_edit';
     const REC_CONTRACTS_DELETE = 'rec_contracts_delete';
-    const REC_CONTRACTS_APPROVE = 'rec_contracts_approve';
-    const REC_CONTRACTS_REJECT = 'rec_contracts_reject';
+    const REC_CONTRACTS_EXPORT = 'rec_contracts_export';
+    const REC_CONTRACTS_PRINT = 'rec_contracts_print';
+
+    // صلاحيات تغيير حالة العقد (مرحلة بمرحلة)
+    const REC_CONTRACTS_CHANGE_TO_MSANED = 'rec_contracts_change_to_msaned'; // من بانتظار الاعتماد إلى عقود مساند
+    const REC_CONTRACTS_CHANGE_TO_TAFWED = 'rec_contracts_change_to_tafwed'; // من عقود مساند إلى التفويض
+    const REC_CONTRACTS_CHANGE_TO_TAFFEZ = 'rec_contracts_change_to_taffez'; // من التفويض إلى التفييز
+    const REC_CONTRACTS_CHANGE_TO_TAZKER = 'rec_contracts_change_to_tazker'; // من التفييز إلى التذكرة
+
+    // صلاحيات إدارة الرحلات (في مرحلة التذكرة)
+    const REC_CONTRACTS_ADD_TRAVEL = 'rec_contracts_add_travel';
+    const REC_CONTRACTS_EDIT_TRAVEL = 'rec_contracts_edit_travel';
+    const REC_CONTRACTS_DELETE_TRAVEL = 'rec_contracts_delete_travel';
+    const REC_CONTRACTS_COMPLETE_TRAVEL = 'rec_contracts_complete_travel';
+    const REC_CONTRACTS_VIEW_TRAVEL = 'rec_contracts_view_travel';
+
+    // صلاحيات إدارة الضمان
+    const REC_CONTRACTS_WARRANTY_VIEW = 'rec_contracts_warranty_view';
+    const REC_CONTRACTS_WARRANTY_MANAGE = 'rec_contracts_warranty_manage';
+    const REC_CONTRACTS_CLOSE_AFTER_WARRANTY = 'rec_contracts_close_after_warranty';
+
+    // صلاحيات طلبات الإلغاء
+    const REC_CONTRACTS_CANCEL_VIEW = 'rec_contracts_cancel_view';
+    const REC_CONTRACTS_CANCEL_CREATE = 'rec_contracts_cancel_create';
+    const REC_CONTRACTS_CANCEL_EDIT = 'rec_contracts_cancel_edit';
+    const REC_CONTRACTS_CANCEL_DELETE = 'rec_contracts_cancel_delete';
+    const REC_CONTRACTS_CANCEL_APPROVE = 'rec_contracts_cancel_approve';
+    const REC_CONTRACTS_CANCEL_REJECT = 'rec_contracts_cancel_reject';
+
+    // صلاحيات المرتجعات
+    const REC_CONTRACTS_RETURN = 'rec_contracts_return';
+    const REC_CONTRACTS_RETURN_VIEW = 'rec_contracts_return_view';
+    const REC_CONTRACTS_RETURN_MANAGE = 'rec_contracts_return_manage';
+
+    // صلاحيات الإدارة العامة
     const REC_CONTRACTS_MANAGE = 'rec_contracts_manage';
+    const REC_CONTRACTS_REPORTS = 'rec_contracts_reports';
+    const REC_CONTRACTS_ANALYTICS = 'rec_contracts_analytics';
 
     // عقود الإيجار (Rent Contracts)
     const RENT_CONTRACTS_VIEW = 'rent_contracts_view';
@@ -125,38 +167,69 @@ class NewPermKeys
     // ========================================
     // إدارة الطلبات (Orders Management)
     // ========================================
+    // الصلاحيات الأساسية للطلبات
     const ORDERS_VIEW = 'orders_view';
     const ORDERS_CREATE = 'orders_create';
     const ORDERS_EDIT = 'orders_edit';
     const ORDERS_DELETE = 'orders_delete';
-    const ORDERS_APPROVE = 'orders_approve';
-    const ORDERS_REJECT = 'orders_reject';
-    const ORDERS_ASSIGN = 'orders_assign';
     const ORDERS_EXPORT = 'orders_export';
+
+    // صلاحيات تغيير حالة الطلب
+    const ORDERS_CHANGE_STATUS = 'orders_change_status';
+    const ORDERS_MARK_IN_PROGRESS = 'orders_mark_in_progress';
+    const ORDERS_MARK_CANCELLED = 'orders_mark_cancelled';
+    const ORDERS_MARK_COMPLETED = 'orders_mark_completed';
+
+    // صلاحيات إدارة العقود
+    const ORDERS_ADD_CONTRACT = 'orders_add_contract';
+    const ORDERS_VIEW_CONTRACT = 'orders_view_contract';
+
+    // صلاحيات التقارير
+    const ORDERS_REPORTS = 'orders_reports';
+    const ORDERS_ANALYTICS = 'orders_analytics';
+
+    // صلاحيات الإدارة
     const ORDERS_MANAGE = 'orders_manage';
 
+    // ========================================
     // طلبات الاسترجاع (Return Requests)
+    // ========================================
+    // الصلاحيات الأساسية لطلبات الاسترجاع
     const RETURN_REQUESTS_VIEW = 'return_requests_view';
     const RETURN_REQUESTS_CREATE = 'return_requests_create';
     const RETURN_REQUESTS_EDIT = 'return_requests_edit';
     const RETURN_REQUESTS_DELETE = 'return_requests_delete';
+    const RETURN_REQUESTS_EXPORT = 'return_requests_export';
+
+    // صلاحيات تغيير حالة طلب الاسترجاع
+    const RETURN_REQUESTS_CHANGE_STATUS = 'return_requests_change_status';
     const RETURN_REQUESTS_APPROVE = 'return_requests_approve';
     const RETURN_REQUESTS_REJECT = 'return_requests_reject';
+
+    // صلاحيات التقارير
+    const RETURN_REQUESTS_REPORTS = 'return_requests_reports';
+
+    // صلاحيات الإدارة
     const RETURN_REQUESTS_MANAGE = 'return_requests_manage';
 
     // ========================================
-    // إدارة الخادمات (Maids Management)
+    // إدارة السير الذاتية (CV Management)
     // ========================================
+    // الصلاحيات الأساسية للسير الذاتية
     const MAIDS_VIEW = 'maids_view';
     const MAIDS_CREATE = 'maids_create';
     const MAIDS_EDIT = 'maids_edit';
     const MAIDS_DELETE = 'maids_delete';
-    const MAIDS_APPROVE = 'maids_approve';
-    const MAIDS_REJECT = 'maids_reject';
-    const MAIDS_ASSIGN = 'maids_assign';
     const MAIDS_EXPORT = 'maids_export';
-    const MAIDS_IMPORT = 'maids_import';
-    const MAIDS_MANAGE = 'maids_manage';
+
+    // صلاحيات التصدير المتقدمة
+    const MAIDS_EXPORT_PDF = 'maids_export_pdf';
+    const MAIDS_EXPORT_EXCEL = 'maids_export_excel';
+
+    // صلاحيات العرض والتحكم
+    const MAIDS_SHOW = 'maids_show';
+    const MAIDS_TOGGLE_STATUS = 'maids_toggle_status';
+    const MAIDS_TOGGLE_PIN = 'maids_toggle_pin';
 
     // ========================================
     // إدارة الباقات (Packages Management)

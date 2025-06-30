@@ -19,7 +19,7 @@
                     </li>
                     {{-- @if (Auth::guard('admin')->user()->hasPermission('الإعدادات-انشاء')) --}}
                     <li><a class="dropdown-item" href="{{route('settings.index')}}" aria-current="page">
-                            {{ __('skaeeb.settings') }}</a>
+                            {{ __('ingaz.settings') }}</a>
                     </li>
                     {{-- @endif --}}
                     <li>
@@ -61,43 +61,40 @@
             @endphp
             <ul class="menu-list">
                 <!-- Dashboard Section -->
-                <li class="divider py-2 lh-sm"><span class="small">لوحة التحكم </span></li>
+                <li class="divider py-2 lh-sm"><span class="small">{{ helperTrans('ingaz.dashboard') }}</span></li>
                 @if (@AdminGuardHasPerm(\App\PermKeys::DASHBOARD_VIEW))
                 <li>
                     <a class="m-link {{ (Route::currentRouteName() == 'dashboard.index') ? 'active' : '' }}"
                         href="{{route('dashboard.index')}}">
                         <i class="fa fa-home"></i>
-                        <span class="ms-2">الرئيسية </span>
+                        <span class="ms-2">{{ helperTrans('ingaz.home') }}</span>
                     </a>
                 </li>
                 @endif
 
-                <!-- Clients & Maids Section -->
-                <li class="divider py-2 lh-sm"><span class="small">العملاء والخادمات</span></li>
-                @if (auth()->check() && @AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW))
-                    <li>
-                        <a class="m-link {{ (Route::currentRouteName() == 'clients.index') ? 'active' : '' }}"
-                            href="{{route('clients.index')}}">
-                            <i class="fa fa-user"></i>
-                            <span class="ms-2"> {{ helperTrans('ingaz.clients') }}</span>
-                        </a>
-                    </li>
-                @endif
+                <!-- Clients Section -->
+                <li>
+                    <a class="m-link {{ (Route::currentRouteName() == 'clients.index') ? 'active' : '' }}"
+                        href="{{route('clients.index')}}">
+                        <i class="fa fa-user"></i>
+                        <span class="ms-2"> {{ helperTrans('ingaz.clients') }}</span>
+                    </a>
+                </li>
 
                 <!-- CV Management Section -->
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#cvManagement" href="#">
                         <i class="fa fa-file-text"></i>
-                        <span class="ms-2">إدارة السير الذاتية</span>
+                        <span class="ms-2">{{ helperTrans('ingaz.cv_management') }}</span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
                     <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['maids.index', 'noneAvailableMaids', 'maids.create'])) ? 'show' : '' }}" id="cvManagement">
-                        @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CONTROL))
+                        @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
                         <li>
                             <a class="m-link {{ (Route::currentRouteName() == 'maids.create') ? 'active' : '' }}"
                                 href="{{route('maids.create')}}">
                                 <i class="fa fa-plus"></i>
-                                <span class="ms-2">إضافة سيرة ذاتية</span>
+                                <span class="ms-2">{{ helperTrans('ingaz.add_cv') }}</span>
                             </a>
                         </li>
                         @endif
@@ -106,14 +103,14 @@
                             <a class="m-link {{ (Route::currentRouteName() == 'maids.index') ? 'active' : '' }}"
                                 href="{{route('maids.index')}}">
                                 <i class="fa fa-list"></i>
-                                <span class="ms-2">السير الذاتية</span>
+                                <span class="ms-2">{{ helperTrans('ingaz.cvs') }}</span>
                             </a>
                         </li>
                         <li>
                             <a class="m-link {{ (Route::currentRouteName() == 'noneAvailableMaids') ? 'active' : '' }}"
                                 href="{{route('noneAvailableMaids')}}">
                                 <i class="fa fa-times-circle"></i>
-                                <span class="ms-2">سير غير متاحة</span>
+                                <span class="ms-2">{{ helperTrans('ingaz.unavailable_cvs') }}</span>
                             </a>
                         </li>
                         @endif
@@ -121,7 +118,7 @@
                 </li>
 
                 <!-- Orders Section -->
-                <li class="divider py-2 lh-sm"><span class="small">الطلبات</span></li>
+
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#my_dashboard2" href="#">
                         <i class="fa fa-shopping-cart"></i>
@@ -165,9 +162,7 @@
                     </ul>
                 </li>
 
-                <!-- Contracts Section -->
-                <li class="divider py-2 lh-sm"><span class="small">العقود</span></li>
-                <!-- Recruitment Contracts -->
+
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#contracts" href="#">
                         <i class="fa fa-file"></i>
@@ -258,6 +253,15 @@
                                 </a>
                             </li>
                         @endif
+                        @if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACT_VIEW))
+                    <li>
+                        <a class="m-link {{ (Route::currentRouteName() == 'RecruitmentContract.index' && request()->input('status') == $backStatus->value) ? 'active' : '' }}"
+                            href="{{ route('RecruitmentContract.index', ['status' => $backStatus->value]) }}">
+                            <i class="fa fa-undo"></i>
+                            <span class="ms-2">{{ helperTrans('ingaz.back') }}</span>
+                        </a>
+                    </li>
+                @endif
                     </ul>
                 </li>
 
@@ -385,87 +389,110 @@
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#complaintsMenu" href="#">
                         <i class="fa fa-exclamation-triangle"></i>
-                        <span class="ms-2">إدارة الشكاوى</span>
+                        <span class="ms-2">{{ helperTrans('ingaz.complaints_management') }}</span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
                     <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['complaints.index', 'complaint-types.index'])) ? 'show' : '' }}" id="complaintsMenu">
                         <li>
                             <a class="m-link {{ Route::currentRouteName() == 'complaints.index' ? 'active' : '' }}" href="{{ route('complaints.index') }}">
                                 <i class="fa fa-list"></i>
-                                <span class="ms-2">الشكاوى</span>
+                                <span class="ms-2">{{ helperTrans('ingaz.complaints') }}</span>
                                 @if(isset($unreadComplaintsCount) && $unreadComplaintsCount > 0)
                                     <span class="badge bg-primary">{{ $unreadComplaintsCount }}</span>
                                 @endif
                             </a>
                         </li>
+                        @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_TYPE_VIEW))
                         <li>
                             <a class="m-link {{ Route::currentRouteName() == 'complaint-types.index' ? 'active' : '' }}" href="{{ route('complaint-types.index') }}">
                                 <i class="fa fa-tags"></i>
-                                <span class="ms-2">أنواع الشكاوى</span>
+                                <span class="ms-2">{{ helperTrans('ingaz.complaint_types') }}</span>
                             </a>
                         </li>
+                        @endif
                     </ul>
                 </li>
                 @endif
 
                 <!-- Additional Services Section -->
-                <li class="divider py-2 lh-sm"><span class="small">خدمات إضافية</span></li>
-                @if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACT_VIEW))
-                    <li>
-                        <a class="m-link {{ (Route::currentRouteName() == 'RecruitmentContract.index' && request()->input('status') == $backStatus->value) ? 'active' : '' }}"
-                            href="{{ route('RecruitmentContract.index', ['status' => $backStatus->value]) }}">
-                            <i class="fa fa-undo"></i>
-                            <span class="ms-2">{{ helperTrans('ingaz.back') }}</span>
-                        </a>
-                    </li>
-                @endif
+
                 @if (@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_VIEW))
-                    <li>
-                        <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.create') ? 'active' : '' }}"
-                            href="{{ route('SponsorshipTransfer.create') }}">
+                    <li class="collapsed">
+                        <a class="m-link" data-bs-toggle="collapse" data-bs-target="#sponsorshipTransfer" href="#">
                             <i class="icon-directions"></i>
-                            <span class="ms-2">{{ helperTrans('ingaz.SponsorshipTransfer') }}</span>
+                            <span class="ms-2">{{ helperTrans('ingaz.sponsorship_transfer') }}</span>
+                            <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
+                        <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['SponsorshipTransfer.create', 'SponsorshipTransfer.available', 'SponsorshipTransfer.trial', 'SponsorshipTransfer.failed', 'SponsorshipTransfer.transferred'])) ? 'show' : '' }}" id="sponsorshipTransfer">
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.create') ? 'active' : '' }}"
+                                    href="{{ route('SponsorshipTransfer.create') }}">
+                                    <i class="fa fa-plus"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.add_transfer_request') }}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.available') ? 'active' : '' }}"
+                                    href="{{ route('SponsorshipTransfer.create') }}">
+                                    <i class="fa fa-check-circle"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.available_for_transfer') }}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.trial') ? 'active' : '' }}"
+                                    href="{{ route('SponsorshipTransfer.create') }}">
+                                    <i class="fa fa-clock-o"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.trial_period') }}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.failed') ? 'active' : '' }}"
+                                    href="{{ route('SponsorshipTransfer.create') }}">
+                                    <i class="fa fa-times-circle"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.trial_failed') }}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.transferred') ? 'active' : '' }}"
+                                    href="{{ route('SponsorshipTransfer.create') }}">
+                                    <i class="fa fa-check"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.transferred') }}</span>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 @endif
 
                 <!-- Settings Section -->
-                <li class="divider py-2 lh-sm"><span class="small">الإعدادات</span></li>
-                @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
-                    <li>
-                        <a class="m-link {{ (Route::currentRouteName() == 'settings.index') ? 'active' : '' }}"
-                            href="{{route('settings.index')}}">
-                            <i class="fa fa-cogs"></i>
-                            <span class="ms-2"> {{ __('skaeeb.settings') }}</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a class="m-link {{ (Route::currentRouteName() == 'dash.activity.log') ? 'active' : '' }}"
-                            href="{{route('dash.activity.log')}}">
-                            <i class="fa fa-history"></i>
-                            <span class="ms-2"> {{ __('skaeeb.activity_log') }}</span>
-                        </a>
-                    </li>
-                @endif
-                @if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACT_VIEW))
-                    <li>
-                        <a class="m-link {{ (Route::currentRouteName() == 'recruitment-offices.index') ? 'active' : '' }}"
-                            href="{{route('recruitment-offices.index')}}">
-                            <i class="fa fa-building"></i>
-                            <span class="ms-2"> {{ helperTrans('ingaz.recruitment-offices') }}</span>
-                        </a>
-                    </li>
-                @endif
+                {{-- <li class="divider py-2 lh-sm"><span class="small">الإعدادات</span></li> --}}
+
 
                 <!-- Maids Settings Section -->
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#my_dashboard3" href="#">
                         <i class="fa fa-cog"></i>
-                        <span class="ms-2"> {{ helperTrans('ingaz.maids setting') }} </span>
+                        <span class="ms-2">{{ helperTrans('ingaz.maids_data_management') }}</span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
                     <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['job-titles.index', 'packages.index', 'nationalities.index', 'religions.index', 'countries.index'])) ? 'show' : '' }}"
                         id="my_dashboard3">
+                        @if (@AdminGuardHasPerm(\App\PermKeys::NATIONALITIES_VIEW))
+                            <li>
+                                <a class="m-link" href="{{ route('nationalities.index') }}">
+                                    <i class="fa fa-arrow-left"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.nationalities') }}</span>
+                                </a>
+                            </li>
+                        @endif
+                        @if (@AdminGuardHasPerm(\App\PermKeys::REC_OFFICES_VIEW))
+                        <li>
+                            <a class="m-link {{ (Route::currentRouteName() == 'recruitment-offices.index') ? 'active' : '' }}"
+                                href="{{route('recruitment-offices.index')}}">
+                                <i class="fa fa-building"></i>
+                                <span class="ms-2"> {{ helperTrans('ingaz.recruitment-offices') }}</span>
+                            </a>
+                        </li>
+                    @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::JOB_TITLES_VIEW))
                             <li>
                                 <a class="m-link" href="{{ route('job-titles.index') }}">
@@ -482,14 +509,7 @@
                                 </a>
                             </li>
                         @endif
-                        @if (@AdminGuardHasPerm(\App\PermKeys::NATIONALITIES_VIEW))
-                            <li>
-                                <a class="m-link" href="{{ route('nationalities.index') }}">
-                                    <i class="fa fa-arrow-left"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.nationalities') }}</span>
-                                </a>
-                            </li>
-                        @endif
+
                         @if (@AdminGuardHasPerm(\App\PermKeys::RELEGIONS_VIEW))
                             <li>
                                 <a class="m-link" href="{{ route('religions.index') }}">
@@ -510,37 +530,100 @@
                         <li>
                             <a class="m-link {{ (Route::currentRouteName() == 'countries.index') ? 'active' : '' }}" href="{{ route('countries.index') }}">
                                 <i class="fa fa-arrow-left"></i>
-                                <span class="ms-2">إعدادات الدول</span>
+                                <span class="ms-2">{{ helperTrans('ingaz.countries') }}</span>
                             </a>
                         </li>
                         @endif
+
                     </ul>
                 </li>
 
-                <!-- Users Management Section -->
-                <li class="divider py-2 lh-sm"><span class="small">إدارة المستخدمين</span></li>
-                @if (@AdminGuardHasPerm(\App\PermKeys::USERS_VIEW))
-                    <li>
-                        <a class="m-link {{ (Route::currentRouteName() == 'admins.index') ? 'active' : '' }}"
-                            href="{{route('admins.index')}}">
-                            <i class="fa fa-users"></i>
-                            <span class="ms-2"> {{ __('auth.users') }}</span>
-                        </a>
-                    </li>
-                @endif
-                @if (@AdminGuardHasPerm(\App\PermKeys::ROLES_VIEW))
-                    <li>
-                        <a href="{{ route('dash.roles.index') }}"
-                            class="m-link @if (Route::currentRouteName() == 'dash.roles.index') active @endif">
-                            <i class="fa fa-user-lock"></i>
-                            <span class="ms-2">@lang('admin.roles')</span>
-                        </a>
-                    </li>
-                @endif
+                <!-- Staff Management Section -->
+                <li class="collapsed">
+                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#staffManagement" href="#">
+                        <i class="fa fa-users"></i>
+                        <span class="ms-2">{{ helperTrans('ingaz.staff_management') }}</span>
+                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                    </a>
+                    <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['admins.index', 'dash.roles.index', 'dash.activity.log'])) ? 'show' : '' }}" id="staffManagement">
+                        @if (@AdminGuardHasPerm(\App\PermKeys::USERS_VIEW))
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'admins.index') ? 'active' : '' }}"
+                                    href="{{route('admins.index')}}">
+                                    <i class="fa fa-users"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.users') }}</span>
+                                </a>
+                            </li>
+                        @endif
+                        @if (@AdminGuardHasPerm(\App\PermKeys::ROLES_VIEW))
+                            <li>
+                                <a href="{{ route('dash.roles.index') }}"
+                                    class="m-link @if (Route::currentRouteName() == 'dash.roles.index') active @endif">
+                                    <i class="fa fa-user"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.permissions') }}</span>
+                                </a>
+                            </li>
+                        @endif
+                        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
+                        <li>
+                            <a class="m-link {{ (Route::currentRouteName() == 'dash.activity.log') ? 'active' : '' }}"
+                                href="{{route('dash.activity.log')}}">
+                                <i class="fa fa-history"></i>
+                                <span class="ms-2">{{ __('admin.activity_log') }}</span>
+                            </a>
+                        </li>
+                    @endif
+                    </ul>
+                </li>
 
                 <!-- Content Management Section -->
-                <li class="divider py-2 lh-sm"><span class="small">إدارة المحتوى</span></li>
-                @if (@AdminGuardHasPerm(\App\PermKeys::STAT_VIEW))
+                {{-- <li class="divider py-2 lh-sm"><span class="small">إدارة المحتوى</span></li> --}}
+
+                  <!-- Website Management Section -->
+                  <li class="collapsed">
+                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#websiteManagement" href="#">
+                        <i class="fa fa-globe"></i>
+                        <span class="ms-2">{{ helperTrans('ingaz.website_management') }}</span>
+                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                    </a>
+                    <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['settings.index', 'about-us.index', 'questions.index', 'dash.settings'])) ? 'show' : '' }}" id="websiteManagement">
+                        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'settings.index') ? 'active' : '' }}"
+                                    href="{{route('settings.index')}}">
+                                    <i class="fa fa-cogs"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.website_settings') }}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'dash.settings') ? 'active' : '' }}"
+                                    href="{{route('dash.settings')}}">
+                                    <i class="fa fa-cog"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.additional_settings') }}</span>
+                                </a>
+                            </li>
+                        @endif
+                        @if (@AdminGuardHasPerm(\App\PermKeys::ABOUT_US_VIEW))
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'about-us.index') ? 'active' : '' }}"
+                                    href="{{route('about-us.index')}}">
+                                    <i class="fa fa-info"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.about_us') }}</span>
+                                </a>
+                            </li>
+                        @endif
+
+                        @if (@AdminGuardHasPerm(\App\PermKeys::SLIDERS_VIEW))
+                        <li>
+                            <a class="m-link {{ (Route::currentRouteName() == 'sliders.index') ? 'active' : '' }}"
+                                href="{{route('sliders.index')}}">
+                                <i class="fa fa-image"></i>
+                                <span class="ms-2"> {{ helperTrans('ingaz.sliders') }}</span>
+                            </a>
+                        </li>
+                    @endif
+
+                    @if (@AdminGuardHasPerm(\App\PermKeys::STATISTICS_VIEW))
                     <li>
                         <a class="m-link {{ (Route::currentRouteName() == 'statistics.index') ? 'active' : '' }}"
                             href="{{route('statistics.index')}}">
@@ -548,7 +631,20 @@
                             <span class="ms-2"> {{ helperTrans('ingaz.statistics') }}</span>
                         </a>
                     </li>
+                    @endif
+
+                    @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))
+                    <li>
+                        <a class="m-link {{ (Route::currentRouteName() == 'questions.index') ? 'active' : '' }}"
+                            href="{{route('questions.index')}}">
+                            <i class="fa fa-question"></i>
+                            <span class="ms-2">{{ helperTrans('ingaz.faq') }}</span>
+                        </a>
+                    </li>
                 @endif
+                    </ul>
+                </li>
+
                 @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
                     <li>
                         <a class="m-link {{ (Route::currentRouteName() == 'notifications.index') ? 'active' : '' }}"
@@ -558,33 +654,7 @@
                         </a>
                     </li>
                 @endif
-                @if (@AdminGuardHasPerm(\App\PermKeys::SLIDERS_VIEW))
-                    <li>
-                        <a class="m-link {{ (Route::currentRouteName() == 'sliders.index') ? 'active' : '' }}"
-                            href="{{route('sliders.index')}}">
-                            <i class="fa fa-image"></i>
-                            <span class="ms-2"> {{ helperTrans('ingaz.sliders') }}</span>
-                        </a>
-                    </li>
-                @endif
-                @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))
-                    <li>
-                        <a class="m-link {{ (Route::currentRouteName() == 'questions.index') ? 'active' : '' }}"
-                            href="{{route('questions.index')}}">
-                            <i class="fa fa-question"></i>
-                            <span class="ms-2"> {{ helperTrans('ingaz.questions') }}</span>
-                        </a>
-                    </li>
-                @endif
-                @if (@AdminGuardHasPerm(\App\PermKeys::ABOUT_US_VIEW))
-                    <li>
-                        <a class="m-link {{ (Route::currentRouteName() == 'about-us.index') ? 'active' : '' }}"
-                            href="{{route('about-us.index')}}">
-                            <i class="fa fa-info"></i>
-                            <span class="ms-2"> {{ helperTrans('ingaz.about_us') }}</span>
-                        </a>
-                    </li>
-                @endif
+
                 @if (@AdminGuardHasPerm(\App\PermKeys::CONTACT_VIEW))
                     <li>
                         <a class="m-link {{ (Route::currentRouteName() == 'contact.index') ? 'active' : '' }}"

@@ -36,10 +36,19 @@ class ReturnRequestController extends Controller
                 ->addIndexColumn()
                 ->editColumn('status', function ($row) {
                     $status = $row->status =="accept"? 'مقبول' : "مرفوض";
-                    return
-                        $row->status =='new'  ? '
-                        <button class="btn btn-sm btn-success update-status" data-value="accept" id="update-status"  data-id="' . $row->id . '">قبول</button>
-                            <button class="btn btn-sm btn-danger update-status" data-value="refuse" data-id="' . $row->id . '">رفض </button>' : ' <button class="btn btn-sm btn-info "   data-id="' . $row->id . '">'. $status .'</button>';
+
+                    if ($row->status == 'new') {
+                        $buttons = '';
+                        if (@AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_APPROVE)) {
+                            $buttons .= '<button class="btn btn-sm btn-success update-status" data-value="accept" data-id="' . $row->id . '">قبول</button>';
+                        }
+                        if (@AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_REJECT)) {
+                            $buttons .= '<button class="btn btn-sm btn-danger update-status" data-value="refuse" data-id="' . $row->id . '">رفض</button>';
+                        }
+                        return $buttons;
+                    } else {
+                        return '<button class="btn btn-sm btn-info" data-id="' . $row->id . '">'. $status .'</button>';
+                    }
                 })
                 ->editColumn('user_id', function ($row) {
                     return ($row->user) ? $row->user->name : '';
@@ -61,11 +70,23 @@ class ReturnRequestController extends Controller
                 ->addColumn('actions', function ($row) {
                     $editButton = '';
                     $deleteButton = '';
+                    $approveButton = '';
+                    $rejectButton = '';
+
+                    if ($row->status == 'new') {
+                        if (@AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_APPROVE)) {
+                            $approveButton = '<button class="btn btn-sm btn-success update-status" data-value="accept" data-id="' . $row->id . '">قبول</button>';
+                        }
+                        if (@AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_REJECT)) {
+                            $rejectButton = '<button class="btn btn-sm btn-danger update-status" data-value="refuse" data-id="' . $row->id . '">رفض</button>';
+                        }
+                    }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_DELETE)) {
                         $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
                     }
-                    return $editButton . " " . $deleteButton;
+
+                    return $approveButton . " " . $rejectButton . " " . $editButton . " " . $deleteButton;
                 })->escapeColumns([])->make(true);
         }
         $data["createRoute"] = route($this->mainRoute . ".create");

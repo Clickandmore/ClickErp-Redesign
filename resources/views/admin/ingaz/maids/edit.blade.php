@@ -1,4 +1,4 @@
-@if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CONTROL))
+@if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT))
 
     <form class="row g-3 from-submit-global-maid" method="post" action="{{route("maids.update",$obj->id)}}">
         @csrf

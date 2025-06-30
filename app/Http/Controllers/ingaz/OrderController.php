@@ -148,12 +148,14 @@ class OrderController extends Controller
                         $showButton = viewSingleButton(route('showSingleOrder', $row->id));
                     }
 
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CONTROL)) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT)) {
                         // Only show edit button if order is not completed
                         if ($row->status != OrderEnum::Completed->value) {
                             $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
                         }
+                    }
 
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_ADD_CONTRACT)) {
                         // Add authorization button for orders under process or contracted without contract
                         if ($row->status == OrderEnum::UnderProcess->value ||
                             ($row->status == OrderEnum::Contracted->value && !$row->contracts()->exists())) {

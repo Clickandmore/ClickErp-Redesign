@@ -14,39 +14,95 @@ class PermKeys
     const DASHBOARD_VIEW = 'dashboard_view';
     const DASHBOARD_ANALYTICS = 'dashboard_analytics';
     const DASHBOARD_EXPORT = 'dashboard_export';
+    const DASHBOARD_VIEW_STATISTICS = 'dashboard_view_statistics';
+
+    // صلاحيات أقسام الصفحة الرئيسية
+    const DASHBOARD_CLIENTS_COUNT = 'dashboard_clients_count';
+    const DASHBOARD_CONTACTS_COUNT = 'dashboard_contacts_count';
+    const DASHBOARD_CURRENT_ORDERS_COUNT = 'dashboard_current_orders_count';
+    const DASHBOARD_CV_COUNT = 'dashboard_cv_count';
+    const DASHBOARD_EMPLOYEES_COUNT = 'dashboard_employees_count';
+    const DASHBOARD_COMPLETED_CV_COUNT = 'dashboard_completed_cv_count';
+    const DASHBOARD_ORDERS_STATISTICS = 'dashboard_orders_statistics';
+    const DASHBOARD_TOP_CUSTOMER_SERVICES = 'dashboard_top_customer_services';
+    const DASHBOARD_ORDERS_TYPES = 'dashboard_orders_types';
 
     // ========================================
-    // العملاء والخادمات
+    // إدارة العملاء (Clients Management)
     // ========================================
     const CLIENTS_VIEW = 'clients_view';
     const CLIENTS_CREATE = 'clients_create';
     const CLIENTS_EDIT = 'clients_edit';
     const CLIENTS_DELETE = 'clients_delete';
     const CLIENTS_EXPORT = 'clients_export';
+    const CLIENTS_EXPORT_PDF = 'clients_export_pdf';
+    const CLIENTS_EXPORT_EXCEL = 'clients_export_excel';
+    const CLIENTS_TOGGLE_STATUS = 'clients_toggle_status';
+    const CLIENTS_SHOW = 'clients_show';
+    const CLIENTS_CREATE_RECRUITMENT = 'clients_create_recruitment';
+    const CLIENTS_SETTINGS = 'clients_settings';
 
-    // إدارة السير الذاتية
+    // ========================================
+    // إدارة السير الذاتية (CV Management)
+    // ========================================
     const MAIDS_VIEW = 'maids_view';
     const MAIDS_CREATE = 'maids_create';
     const MAIDS_EDIT = 'maids_edit';
     const MAIDS_DELETE = 'maids_delete';
     const MAIDS_EXPORT = 'maids_export';
+    const MAIDS_EXPORT_PDF = 'maids_export_pdf';
+    const MAIDS_EXPORT_EXCEL = 'maids_export_excel';
+    const MAIDS_SHOW = 'maids_show';
+    const MAIDS_TOGGLE_STATUS = 'maids_toggle_status';
+    const MAIDS_TOGGLE_PIN = 'maids_toggle_pin';
     const MAIDS_CONTROL = 'maids_control';
 
     // ========================================
-    // الطلبات
+    // إدارة الطلبات (Orders Management)
     // ========================================
+    // الصلاحيات الأساسية للطلبات
     const ORDERS_VIEW = 'orders_view';
     const ORDERS_CREATE = 'orders_create';
     const ORDERS_EDIT = 'orders_edit';
     const ORDERS_DELETE = 'orders_delete';
     const ORDERS_EXPORT = 'orders_export';
+
+    // صلاحيات تغيير حالة الطلب
+    const ORDERS_CHANGE_STATUS = 'orders_change_status';
+    const ORDERS_MARK_IN_PROGRESS = 'orders_mark_in_progress';
+    const ORDERS_MARK_CANCELLED = 'orders_mark_cancelled';
+    const ORDERS_MARK_COMPLETED = 'orders_mark_completed';
+
+    // صلاحيات إدارة العقود
+    const ORDERS_ADD_CONTRACT = 'orders_add_contract';
+    const ORDERS_VIEW_CONTRACT = 'orders_view_contract';
+
+    // صلاحيات التقارير
+    const ORDERS_REPORTS = 'orders_reports';
+    const ORDERS_ANALYTICS = 'orders_analytics';
+
+    // صلاحيات الإدارة
     const ORDERS_CONTROL = 'orders_control';
 
-    // طلبات الاسترجاع
+    // ========================================
+    // طلبات الاسترجاع (Return Requests)
+    // ========================================
+    // الصلاحيات الأساسية لطلبات الاسترجاع
     const RETURN_REQUEST_VIEW = 'return_request_view';
     const RETURN_REQUEST_CREATE = 'return_request_create';
     const RETURN_REQUEST_EDIT = 'return_request_edit';
     const RETURN_REQUEST_DELETE = 'return_request_delete';
+    const RETURN_REQUEST_EXPORT = 'return_request_export';
+
+    // صلاحيات تغيير حالة طلب الاسترجاع
+    const RETURN_REQUEST_CHANGE_STATUS = 'return_request_change_status';
+    const RETURN_REQUEST_APPROVE = 'return_request_approve';
+    const RETURN_REQUEST_REJECT = 'return_request_reject';
+
+    // صلاحيات التقارير
+    const RETURN_REQUEST_REPORTS = 'return_request_reports';
+
+    // صلاحيات الإدارة
     const RETURN_REQUEST_CONTROL = 'return_request_control';
 
     // ========================================
@@ -279,4 +335,21 @@ class PermKeys
     const REC_OFFIICES_VIEW = 'rec_offices_view'; // تم تصحيحها إلى REC_OFFICES_VIEW
     const REC_OFFIICES_CONTROL = 'rec_offices_control'; // تم تصحيحها إلى REC_OFFICES_CONTROL
     const REC_OFFIICES_DELETE = 'rec_offices_delete'; // تم تصحيحها إلى REC_OFFICES_DELETE
+
+    // ========================================
+    // صلاحيات إضافية مطلوبة للقائمة الجانبية
+    // ========================================
+    // إدارة الشكاوى
+    const COMPLAINT_TYPES_VIEW = 'complaint_types_view';
+    const COMPLAINT_TYPES_CREATE = 'complaint_types_create';
+    const COMPLAINT_TYPES_EDIT = 'complaint_types_edit';
+    const COMPLAINT_TYPES_DELETE = 'complaint_types_delete';
+    const COMPLAINT_TYPES_CONTROL = 'complaint_types_control';
+
+    // إدارة مكاتب التوظيف
+    const RECRUITMENT_OFFICES_VIEW = 'recruitment_offices_view';
+    const RECRUITMENT_OFFICES_CREATE = 'recruitment_offices_create';
+    const RECRUITMENT_OFFICES_EDIT = 'recruitment_offices_edit';
+    const RECRUITMENT_OFFICES_DELETE = 'recruitment_offices_delete';
+    const RECRUITMENT_OFFICES_CONTROL = 'recruitment_offices_control';
 }

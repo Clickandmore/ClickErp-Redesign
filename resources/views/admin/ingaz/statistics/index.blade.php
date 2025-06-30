@@ -9,7 +9,7 @@
 {{--    <li class="breadcrumb-item active" aria-current="page"> {{__("finance.clients")}}</li>--}}
 {{--@endsection--}}
 @section('content')
-@if (@AdminGuardHasPerm(\App\PermKeys::STAT_VIEW))
+
 
     @if (@AdminGuardHasPerm(\App\PermKeys::STAT_CONTROL))
         {!! addButton(route("statistics.create") ,helperTrans("ingaz.statistics")) !!}
@@ -30,9 +30,7 @@
         </tbody>
     </table>
 
-@else
-    @include('components.no_permissions')
-@endif
+
 
 @endsection
 @section('js')

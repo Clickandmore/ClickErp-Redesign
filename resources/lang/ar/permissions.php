@@ -5,7 +5,7 @@ return [
     // أقسام لوحة التحكم الرئيسية
     // ========================================
     'dashboard' => 'لوحة التحكم',
-    'clients_maids' => 'العملاء والسير الذاتية',
+    'clients_maids' => 'العملاء',
     'orders' => 'الطلبات',
     'contracts' => 'العقود',
     'complaints' => 'الشكاوى',
@@ -19,8 +19,20 @@ return [
     // لوحة التحكم
     // ========================================
     'dashboard_view' => 'عرض لوحة التحكم',
+    'dashboard_view_statistics' => 'عرض إحصائيات لوحة التحكم',
     'dashboard_analytics' => 'إحصائيات لوحة التحكم',
     'dashboard_export' => 'تصدير بيانات لوحة التحكم',
+
+    // صلاحيات أقسام الصفحة الرئيسية
+    'dashboard_clients_count' => 'عرض عدد العملاء',
+    'dashboard_contacts_count' => 'عرض عدد رسائل التواصل',
+    'dashboard_current_orders_count' => 'عرض عدد الطلبات الحالية',
+    'dashboard_cv_count' => 'عرض عدد السير الذاتية',
+    'dashboard_employees_count' => 'عرض عدد الموظفين',
+    'dashboard_completed_cv_count' => 'عرض عدد السير الذاتية المكتملة',
+    'dashboard_orders_statistics' => 'عرض إحصائيات الطلبات',
+    'dashboard_top_customer_services' => 'عرض أفضل خدمة عملاء',
+    'dashboard_orders_types' => 'عرض أنواع الطلبات',
 
     // ========================================
     // العملاء والسير الذاتية
@@ -30,30 +42,42 @@ return [
     'clients_edit' => 'تعديل العملاء',
     'clients_delete' => 'حذف العملاء',
     'clients_export' => 'تصدير بيانات العملاء',
-
-    // إدارة السير الذاتية
-    'maids_view' => 'عرض السير الذاتية',
-    'maids_create' => 'إضافة سيرة ذاتية',
-    'maids_edit' => 'تعديل السير الذاتية',
-    'maids_delete' => 'حذف السير الذاتية',
-    'maids_export' => 'تصدير السير الذاتية',
-    'maids_control' => 'التحكم في السير الذاتية',
+    'clients_export_pdf' => 'تصدير العملاء بصيغة PDF',
+    'clients_export_excel' => 'تصدير العملاء بصيغة Excel',
+    'clients_toggle_status' => 'تغيير حالة العميل',
+    'clients_show' => 'عرض تفاصيل العميل',
+    'clients_manage' => 'إدارة العملاء',
+    'clients_import' => 'استيراد بيانات العملاء',
+    'clients_create_recruitment' => 'إنشاء طلب استقدام',
 
     // ========================================
     // الطلبات
     // ========================================
     'orders_view' => 'عرض الطلبات',
-    'orders_create' => 'إضافة طلب',
+    'orders_create' => 'إنشاء طلب',
     'orders_edit' => 'تعديل الطلبات',
     'orders_delete' => 'حذف الطلبات',
     'orders_export' => 'تصدير الطلبات',
+    'orders_change_status' => 'تغيير حالة الطلب',
+    'orders_mark_in_progress' => 'تحديد الطلب تحت الإجراء',
+    'orders_mark_cancelled' => 'إلغاء الطلب',
+    'orders_mark_completed' => 'إكمال الطلب',
+    'orders_add_contract' => 'إضافة عقد للطلب',
+    'orders_view_contract' => 'عرض عقد الطلب',
+    'orders_reports' => 'تقارير الطلبات',
+    'orders_analytics' => 'تحليلات الطلبات',
     'orders_control' => 'التحكم في الطلبات',
 
     // طلبات الاسترجاع
     'return_request_view' => 'عرض طلبات الاسترجاع',
-    'return_request_create' => 'إضافة طلب استرجاع',
+    'return_request_create' => 'إنشاء طلب استرجاع',
     'return_request_edit' => 'تعديل طلبات الاسترجاع',
     'return_request_delete' => 'حذف طلبات الاسترجاع',
+    'return_request_export' => 'تصدير طلبات الاسترجاع',
+    'return_request_change_status' => 'تغيير حالة طلب الاسترجاع',
+    'return_request_approve' => 'الموافقة على طلبات الاسترجاع',
+    'return_request_reject' => 'رفض طلبات الاسترجاع',
+    'return_request_reports' => 'تقارير طلبات الاسترجاع',
     'return_request_control' => 'التحكم في طلبات الاسترجاع',
 
     // ========================================
@@ -275,10 +299,10 @@ return [
     // ========================================
     // أسماء المجموعات (للتنظيم)
     // ========================================
-        'general' => 'عام',
+        'general' => 'الرئيسية',
         'clients' => 'العملاء',
         'contracts' => 'العقود',
-    'maids' => 'السير الذاتية',
+        'maids' => 'السير الذاتية',
         'job_titles' => 'المسميات الوظيفية',
         'packages' => 'الباقات',
         'nationalities' => 'الجنسيات',
@@ -315,4 +339,68 @@ return [
         'communications' => 'الاتصالات',
         'customer_service' => 'خدمة العملاء',
         'process_management' => 'إدارة العمليات',
+
+    // إدارة السير الذاتية
+    'maids_view' => 'عرض السير الذاتية',
+    'maids_create' => 'إضافة سيرة ذاتية',
+    'maids_edit' => 'تعديل السير الذاتية',
+    'maids_delete' => 'حذف السير الذاتية',
+    'maids_export' => 'تصدير السير الذاتية',
+    'maids_export_pdf' => 'تصدير السير الذاتية بصيغة PDF',
+    'maids_export_excel' => 'تصدير السير الذاتية بصيغة Excel',
+    'maids_show' => 'عرض تفاصيل السيرة الذاتية',
+    'maids_toggle_status' => 'تغيير حالة الظهور',
+    'maids_toggle_pin' => 'تثبيت/إلغاء تثبيت',
+    'maids_control' => 'التحكم في السير الذاتية',
+
+    // ========================================
+    // عقود الاستقدام (Recruitment Contracts)
+    // ========================================
+    // الصلاحيات الأساسية للعقود
+    'rec_contracts_view' => 'عرض عقود الاستقدام',
+    'rec_contracts_create' => 'إنشاء عقد استقدام جديد',
+    'rec_contracts_edit' => 'تعديل عقد الاستقدام',
+    'rec_contracts_delete' => 'حذف عقد الاستقدام',
+    'rec_contracts_export' => 'تصدير عقود الاستقدام',
+    'rec_contracts_print' => 'طباعة عقد الاستقدام',
+
+    // صلاحيات تغيير حالة العقد (مرحلة بمرحلة)
+    'rec_contracts_change_to_msaned' => 'تغيير من بانتظار الاعتماد إلى عقود مساند',
+    'rec_contracts_change_to_tafwed' => 'تغيير من عقود مساند إلى التفويض',
+    'rec_contracts_change_to_taffez' => 'تغيير من التفويض إلى التفييز',
+    'rec_contracts_change_to_tazker' => 'تغيير من التفييز إلى التذكرة',
+
+    // صلاحيات إدارة الرحلات (في مرحلة التذكرة)
+    'rec_contracts_add_travel' => 'إضافة رحلة للعقد',
+    'rec_contracts_edit_travel' => 'تعديل رحلة العقد',
+    'rec_contracts_delete_travel' => 'حذف رحلة العقد',
+    'rec_contracts_complete_travel' => 'تحديد اكتمال الرحلة',
+    'rec_contracts_view_travel' => 'عرض تفاصيل الرحلة',
+
+    // صلاحيات إدارة الضمان
+    'rec_contracts_warranty_view' => 'عرض العقود تحت الضمان',
+    'rec_contracts_warranty_manage' => 'إدارة فترة الضمان',
+    'rec_contracts_close_after_warranty' => 'إغلاق العقد بعد انتهاء الضمان',
+
+    // صلاحيات طلبات الإلغاء
+    'rec_contracts_cancel_view' => 'عرض طلبات إلغاء العقود',
+    'rec_contracts_cancel_create' => 'إنشاء طلب إلغاء عقد',
+    'rec_contracts_cancel_edit' => 'تعديل طلب إلغاء العقد',
+    'rec_contracts_cancel_delete' => 'حذف طلب إلغاء العقد',
+    'rec_contracts_cancel_approve' => 'الموافقة على إلغاء العقد',
+    'rec_contracts_cancel_reject' => 'رفض إلغاء العقد',
+
+    // صلاحيات المرتجعات
+    'rec_contracts_return' => 'إرجاع عقد الاستقدام',
+    'rec_contracts_return_view' => 'عرض العقود المرتجعة',
+    'rec_contracts_return_manage' => 'إدارة المرتجعات',
+
+    // صلاحيات الإدارة العامة
+    'rec_contracts_manage' => 'إدارة عقود الاستقدام',
+    'rec_contracts_reports' => 'تقارير عقود الاستقدام',
+    'rec_contracts_analytics' => 'إحصائيات عقود الاستقدام',
+
+    // ========================================
+    // عقود التوظيف (Legacy - للتوافق)
+    // ========================================
 ];

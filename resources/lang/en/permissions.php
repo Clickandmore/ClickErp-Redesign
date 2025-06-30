@@ -19,8 +19,20 @@ return [
     // Dashboard
     // ========================================
     'dashboard_view' => 'View Dashboard',
+    'dashboard_view_statistics' => 'View Dashboard Statistics',
     'dashboard_analytics' => 'Dashboard Analytics',
     'dashboard_export' => 'Export Dashboard Data',
+
+    // Dashboard Section Permissions
+    'dashboard_clients_count' => 'View Clients Count',
+    'dashboard_contacts_count' => 'View Contacts Count',
+    'dashboard_current_orders_count' => 'View Current Orders Count',
+    'dashboard_cv_count' => 'View CV Count',
+    'dashboard_employees_count' => 'View Employees Count',
+    'dashboard_completed_cv_count' => 'View Completed CV Count',
+    'dashboard_orders_statistics' => 'View Orders Statistics',
+    'dashboard_top_customer_services' => 'View Top Customer Services',
+    'dashboard_orders_types' => 'View Orders Types',
 
     // ========================================
     // Clients & CVs
@@ -30,6 +42,13 @@ return [
     'clients_edit' => 'Edit Clients',
     'clients_delete' => 'Delete Clients',
     'clients_export' => 'Export Clients Data',
+    'clients_export_pdf' => 'Export Clients as PDF',
+    'clients_export_excel' => 'Export Clients as Excel',
+    'clients_toggle_status' => 'Toggle Client Status',
+    'clients_show' => 'Show Client Details',
+    'clients_manage' => 'Manage Clients',
+    'clients_import' => 'Import Clients Data',
+    'clients_create_recruitment' => 'Create Recruitment Request',
 
     // CV Management
     'maids_view' => 'View CVs',
@@ -37,6 +56,11 @@ return [
     'maids_edit' => 'Edit CVs',
     'maids_delete' => 'Delete CVs',
     'maids_export' => 'Export CVs',
+    'maids_export_pdf' => 'Export CVs as PDF',
+    'maids_export_excel' => 'Export CVs as Excel',
+    'maids_show' => 'Show CV Details',
+    'maids_toggle_status' => 'Toggle Visibility Status',
+    'maids_toggle_pin' => 'Toggle Pin Status',
     'maids_control' => 'Control CVs',
 
     // ========================================
@@ -47,6 +71,14 @@ return [
     'orders_edit' => 'Edit Orders',
     'orders_delete' => 'Delete Orders',
     'orders_export' => 'Export Orders',
+    'orders_change_status' => 'Change Order Status',
+    'orders_mark_in_progress' => 'Mark Order In Progress',
+    'orders_mark_cancelled' => 'Cancel Order',
+    'orders_mark_completed' => 'Complete Order',
+    'orders_add_contract' => 'Add Contract to Order',
+    'orders_view_contract' => 'View Order Contract',
+    'orders_reports' => 'Orders Reports',
+    'orders_analytics' => 'Orders Analytics',
     'orders_control' => 'Control Orders',
 
     // Return Requests
@@ -54,6 +86,11 @@ return [
     'return_request_create' => 'Create Return Request',
     'return_request_edit' => 'Edit Return Requests',
     'return_request_delete' => 'Delete Return Requests',
+    'return_request_export' => 'Export Return Requests',
+    'return_request_change_status' => 'Change Return Request Status',
+    'return_request_approve' => 'Approve Return Requests',
+    'return_request_reject' => 'Reject Return Requests',
+    'return_request_reports' => 'Return Requests Reports',
     'return_request_control' => 'Control Return Requests',
 
     // ========================================
@@ -315,4 +352,55 @@ return [
     'communications' => 'Communications',
     'customer_service' => 'Customer Service',
     'process_management' => 'Process Management',
+
+    // ========================================
+    // Recruitment Contracts
+    // ========================================
+    // Basic Contract Permissions
+    'rec_contracts_view' => 'View Recruitment Contracts',
+    'rec_contracts_create' => 'Create Recruitment Contract',
+    'rec_contracts_edit' => 'Edit Recruitment Contract',
+    'rec_contracts_delete' => 'Delete Recruitment Contract',
+    'rec_contracts_export' => 'Export Recruitment Contracts',
+    'rec_contracts_print' => 'Print Recruitment Contract',
+
+    // Contract Status Change Permissions (Step by Step)
+    'rec_contracts_change_to_msaned' => 'Change from Pending Approval to Msaned',
+    'rec_contracts_change_to_tafwed' => 'Change from Msaned to Tafwed',
+    'rec_contracts_change_to_taffez' => 'Change from Tafwed to Taffez',
+    'rec_contracts_change_to_tazker' => 'Change from Taffez to Tazker',
+
+    // Travel Management Permissions (in Tazker stage)
+    'rec_contracts_add_travel' => 'Add Travel to Contract',
+    'rec_contracts_edit_travel' => 'Edit Contract Travel',
+    'rec_contracts_delete_travel' => 'Delete Contract Travel',
+    'rec_contracts_complete_travel' => 'Mark Travel as Complete',
+    'rec_contracts_view_travel' => 'View Travel Details',
+
+    // Warranty Management Permissions
+    'rec_contracts_warranty_view' => 'View Contracts Under Warranty',
+    'rec_contracts_warranty_manage' => 'Manage Warranty Period',
+    'rec_contracts_close_after_warranty' => 'Close Contract After Warranty',
+
+    // Cancel Request Permissions
+    'rec_contracts_cancel_view' => 'View Contract Cancel Requests',
+    'rec_contracts_cancel_create' => 'Create Contract Cancel Request',
+    'rec_contracts_cancel_edit' => 'Edit Contract Cancel Request',
+    'rec_contracts_cancel_delete' => 'Delete Contract Cancel Request',
+    'rec_contracts_cancel_approve' => 'Approve Contract Cancellation',
+    'rec_contracts_cancel_reject' => 'Reject Contract Cancellation',
+
+    // Return Permissions
+    'rec_contracts_return' => 'Return Recruitment Contract',
+    'rec_contracts_return_view' => 'View Returned Contracts',
+    'rec_contracts_return_manage' => 'Manage Returns',
+
+    // General Management Permissions
+    'rec_contracts_manage' => 'Manage Recruitment Contracts',
+    'rec_contracts_reports' => 'Recruitment Contracts Reports',
+    'rec_contracts_analytics' => 'Recruitment Contracts Analytics',
+
+    // ========================================
+    // Legacy Recruitment Contracts (for compatibility)
+    // ========================================
 ];

@@ -45,7 +45,8 @@
             "app/Helpers/functions.php",
             "app/Helpers/Constants.php",
             "app/Helpers/Keys.php",
-            "app/Helpers/PermKeys.php"
+            "app/Helpers/PermKeys.php",
+            "app/Helpers/NewPermKeys.php"
         ]
     },
     "autoload-dev": {

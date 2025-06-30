@@ -20,14 +20,10 @@ class NewPermissionsSeeder extends Seeder
         $this->createContractsPermissions();
         $this->createOrdersPermissions();
         $this->createMaidsPermissions();
-        $this->createPackagesPermissions();
         $this->createContentPermissions();
-        $this->createOrganizationPermissions();
-        $this->createCustomerServicePermissions();
         $this->createReportsPermissions();
-        $this->createProcessPermissions();
-        $this->createCommunicationsPermissions();
-        $this->createSystemPermissions();
+        $this->createSettingsPermissions();
+        $this->createActivityLogPermissions();
     }
 
     /**
@@ -190,6 +186,85 @@ class NewPermissionsSeeder extends Seeder
             ],
             [
                 'name' => NewPermKeys::CLIENTS_DEACTIVATE,
+                'group_name' => 'clients',
+                'section_name' => 'users_management',
+                'guard_name' => 'admin',
+            ],
+            // صلاحيات إضافية للعملاء
+            [
+                'name' => NewPermKeys::CLIENTS_APPROVE,
+                'group_name' => 'clients',
+                'section_name' => 'users_management',
+                'guard_name' => 'admin',
+            ],
+            [
+                'name' => NewPermKeys::CLIENTS_REJECT,
+                'group_name' => 'clients',
+                'section_name' => 'users_management',
+                'guard_name' => 'admin',
+            ],
+            [
+                'name' => NewPermKeys::CLIENTS_BLOCK,
+                'group_name' => 'clients',
+                'section_name' => 'users_management',
+                'guard_name' => 'admin',
+            ],
+            [
+                'name' => NewPermKeys::CLIENTS_UNBLOCK,
+                'group_name' => 'clients',
+                'section_name' => 'users_management',
+                'guard_name' => 'admin',
+            ],
+            [
+                'name' => NewPermKeys::CLIENTS_VERIFY,
+                'group_name' => 'clients',
+                'section_name' => 'users_management',
+                'guard_name' => 'admin',
+            ],
+            [
+                'name' => NewPermKeys::CLIENTS_ASSIGN,
+                'group_name' => 'clients',
+                'section_name' => 'users_management',
+                'guard_name' => 'admin',
+            ],
+            [
+                'name' => NewPermKeys::CLIENTS_TRANSFER,
+                'group_name' => 'clients',
+                'section_name' => 'users_management',
+                'guard_name' => 'admin',
+            ],
+            [
+                'name' => NewPermKeys::CLIENTS_BACKUP,
+                'group_name' => 'clients',
+                'section_name' => 'users_management',
+                'guard_name' => 'admin',
+            ],
+            [
+                'name' => NewPermKeys::CLIENTS_RESTORE,
+                'group_name' => 'clients',
+                'section_name' => 'users_management',
+                'guard_name' => 'admin',
+            ],
+            [
+                'name' => NewPermKeys::CLIENTS_ANALYTICS,
+                'group_name' => 'clients',
+                'section_name' => 'users_management',
+                'guard_name' => 'admin',
+            ],
+            [
+                'name' => NewPermKeys::CLIENTS_REPORTS,
+                'group_name' => 'clients',
+                'section_name' => 'users_management',
+                'guard_name' => 'admin',
+            ],
+            [
+                'name' => NewPermKeys::CLIENTS_NOTIFICATIONS,
+                'group_name' => 'clients',
+                'section_name' => 'users_management',
+                'guard_name' => 'admin',
+            ],
+            [
+                'name' => NewPermKeys::CLIENTS_SETTINGS,
                 'group_name' => 'clients',
                 'section_name' => 'users_management',
                 'guard_name' => 'admin',
@@ -398,61 +473,6 @@ class NewPermissionsSeeder extends Seeder
             [
                 'name' => NewPermKeys::MAIDS_MANAGE,
                 'group_name' => 'maids',
-                'section_name' => 'contract_management',
-                'guard_name' => 'admin',
-            ],
-        ];
-
-        foreach ($permissions as $permission) {
-            Permission::firstOrCreate($permission);
-        }
-    }
-
-    /**
-     * إنشاء صلاحيات إدارة الباقات
-     */
-    private function createPackagesPermissions(): void
-    {
-        $permissions = [
-            [
-                'name' => NewPermKeys::PACKAGES_VIEW,
-                'group_name' => 'packages',
-                'section_name' => 'contract_management',
-                'guard_name' => 'admin',
-            ],
-            [
-                'name' => NewPermKeys::PACKAGES_CREATE,
-                'group_name' => 'packages',
-                'section_name' => 'contract_management',
-                'guard_name' => 'admin',
-            ],
-            [
-                'name' => NewPermKeys::PACKAGES_EDIT,
-                'group_name' => 'packages',
-                'section_name' => 'contract_management',
-                'guard_name' => 'admin',
-            ],
-            [
-                'name' => NewPermKeys::PACKAGES_DELETE,
-                'group_name' => 'packages',
-                'section_name' => 'contract_management',
-                'guard_name' => 'admin',
-            ],
-            [
-                'name' => NewPermKeys::PACKAGES_PUBLISH,
-                'group_name' => 'packages',
-                'section_name' => 'contract_management',
-                'guard_name' => 'admin',
-            ],
-            [
-                'name' => NewPermKeys::PACKAGES_UNPUBLISH,
-                'group_name' => 'packages',
-                'section_name' => 'contract_management',
-                'guard_name' => 'admin',
-            ],
-            [
-                'name' => NewPermKeys::PACKAGES_MANAGE,
-                'group_name' => 'packages',
                 'section_name' => 'contract_management',
                 'guard_name' => 'admin',
             ],
@@ -826,6 +846,68 @@ class NewPermissionsSeeder extends Seeder
             [
                 'name' => NewPermKeys::BACKUP_MANAGE,
                 'group_name' => 'backup',
+                'section_name' => 'system_management',
+                'guard_name' => 'admin',
+            ],
+        ];
+
+        foreach ($permissions as $permission) {
+            Permission::firstOrCreate($permission);
+        }
+    }
+
+    /**
+     * إنشاء صلاحيات إدارة النظام
+     */
+    private function createSettingsPermissions(): void
+    {
+        $permissions = [
+            [
+                'name' => NewPermKeys::SETTINGS_VIEW,
+                'group_name' => 'settings',
+                'section_name' => 'system_management',
+                'guard_name' => 'admin',
+            ],
+            [
+                'name' => NewPermKeys::SETTINGS_EDIT,
+                'group_name' => 'settings',
+                'section_name' => 'system_management',
+                'guard_name' => 'admin',
+            ],
+            [
+                'name' => NewPermKeys::SETTINGS_MANAGE,
+                'group_name' => 'settings',
+                'section_name' => 'system_management',
+                'guard_name' => 'admin',
+            ],
+        ];
+
+        foreach ($permissions as $permission) {
+            Permission::firstOrCreate($permission);
+        }
+    }
+
+    /**
+     * إنشاء صلاحيات إدارة النظام
+     */
+    private function createActivityLogPermissions(): void
+    {
+        $permissions = [
+            [
+                'name' => NewPermKeys::ACTIVITY_LOG_VIEW,
+                'group_name' => 'activity_log',
+                'section_name' => 'system_management',
+                'guard_name' => 'admin',
+            ],
+            [
+                'name' => NewPermKeys::ACTIVITY_LOG_EXPORT,
+                'group_name' => 'activity_log',
+                'section_name' => 'system_management',
+                'guard_name' => 'admin',
+            ],
+            [
+                'name' => NewPermKeys::ACTIVITY_LOG_MANAGE,
+                'group_name' => 'activity_log',
                 'section_name' => 'system_management',
                 'guard_name' => 'admin',
             ],
