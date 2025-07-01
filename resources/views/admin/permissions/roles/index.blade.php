@@ -34,6 +34,8 @@
                                     <button type="submit" class="btn btn-primary">{{ __('admin.confirm') }}</button>
                                 </div>
                             </form>
+                        @else
+                            @include('components.no_permissions')
                         @endif
                     </div>
                 </div>

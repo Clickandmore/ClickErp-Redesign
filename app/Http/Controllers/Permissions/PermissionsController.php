@@ -11,6 +11,13 @@ use Illuminate\Support\Facades\Validator;
 
 class PermissionsController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:permissions_view,admin', ['only' => ['setPerms']]);
+        $this->middleware('permission:permissions_assign,admin', ['only' => ['storePerms']]);
+        $this->middleware('permission:permissions_create,admin', ['only' => ['store']]);
+        $this->middleware('permission:permissions_delete,admin', ['only' => ['delete']]);
+    }
 
     public function setPerms($id){
         $role = Role::find($id);
@@ -75,32 +82,26 @@ class PermissionsController extends Controller
             } elseif (str_starts_with($name, 'return_request_')) {
                 $section = 'orders';
                 $group = 'return_request';
-            } elseif (str_starts_with($name, 'rec_contract_')) {
-                $section = 'contracts';
-                $group = 'rec_contract';
-            } elseif (str_starts_with($name, 'rec_contracts_')) {
-                $section = 'contracts';
+            } elseif (str_starts_with($name, 'rec_contract_') || str_starts_with($name, 'rec_contracts_') || str_starts_with($name, 'cancel_contract_')) {
+                $section = 'recruitment_contracts';
                 $group = 'rec_contracts';
-            } elseif (str_starts_with($name, 'cancel_contract_')) {
-                $section = 'contracts';
-                $group = 'cancel_contract';
             } elseif (str_starts_with($name, 'rent_contract_')) {
-                $section = 'contracts';
+                $section = 'rent_contracts';
                 $group = 'rent_contract';
             } elseif (str_starts_with($name, 'shelter_contract_')) {
-                $section = 'contracts';
+                $section = 'shelter_management';
                 $group = 'shelter_contract';
             } elseif (str_starts_with($name, 'shelter_workers_')) {
-                $section = 'contracts';
+                $section = 'shelter_management';
                 $group = 'shelter_workers';
             } elseif (str_starts_with($name, 'shelter_places_')) {
-                $section = 'contracts';
+                $section = 'shelter_management';
                 $group = 'shelter_places';
             } elseif (str_starts_with($name, 'travel_')) {
-                $section = 'contracts';
+                $section = 'travel_management';
                 $group = 'travel';
             } elseif (str_starts_with($name, 'rec_offices_')) {
-                $section = 'contracts';
+                $section = 'maids_settings';
                 $group = 'rec_offices';
             } elseif (str_starts_with($name, 'complaint_')) {
                 $section = 'complaints';
@@ -199,6 +200,10 @@ class PermissionsController extends Controller
             'clients' => 'إدارة العملاء',
             'cv_management' => 'إدارة السير الذاتية',
             'orders' => 'الطلبات',
+            'recruitment_contracts' => 'عقود الاستقدام ',
+            'rent_contracts' => 'عقود الإيجار',
+            'shelter_management' => 'إدارة الإيواء',
+            'travel_management' => 'الرحلات',
             'contracts' => 'العقود',
             'complaints' => 'الشكاوى',
             'additional_services' => 'خدمات إضافية',
@@ -246,7 +251,7 @@ class PermissionsController extends Controller
             'shelter_contract' => 'عقود الإيواء',
             'shelter_workers' => 'عمال الإيواء',
             'shelter_places' => 'أماكن الإيواء',
-            'travel' => 'السفر',
+            'travel' => 'الرحلات',
             'rec_offices' => 'مكاتب التوظيف',
             'complaint' => 'الشكاوى',
             'complaint_type' => 'أنواع الشكاوى',

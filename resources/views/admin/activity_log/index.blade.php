@@ -38,7 +38,7 @@
                         <td>{{ @$singleRow->created_at->diffForHumans() }}</td>
 
                         {{-- <td>{{ @$singleRow->properties }}</td> --}}
-                        @if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACT_EDIT))
+                        @if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACTS_EDIT))
                         <td>
                             <div class="d-flex justify-content-center">
                                 <a class="btn btn-sm" href="{{ route('dash.contracts.update', $singleRow->id) . '/edit' }}">

@@ -27,10 +27,10 @@ class AdminController extends Controller
 
     function __construct()
     {
-        // $this->middleware('permission:المستخدمون-قراءة,admin', ['only' => ['index']]);
-        // $this->middleware('permission:المستخدمون-انشاء,admin', ['only' => ['create', 'store']]);
-        // $this->middleware('permission:المستخدمون-تعديل,admin', ['only' => ['edit', 'update']]);
-        // $this->middleware('permission:المستخدمون-حذف,admin', ['only' => ['destroy']]);
+        $this->middleware('permission:users_view,admin', ['only' => ['index']]);
+        $this->middleware('permission:users_create,admin', ['only' => ['create', 'store']]);
+        $this->middleware('permission:users_edit,admin', ['only' => ['edit', 'update']]);
+        $this->middleware('permission:users_delete,admin', ['only' => ['destroy']]);
     }
 
 
@@ -63,15 +63,15 @@ class AdminController extends Controller
                     $editButton = '';
                     $deleteButton = '';
 
-                    // if (Auth::guard('admin')->user()->hasPermission('المستخدمون-تعديل')) {
-                    $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
-                    // }
-
-                    // if (Auth::guard('admin')->user()->hasPermission('المستخدمون-حذف')) {
-                    if ($row->id != Auth::guard('admin')->user()->id) {
-                        $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                    if (Auth::guard('admin')->user()->can('users_edit')) {
+                        $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
                     }
-                    // }
+
+                    if (Auth::guard('admin')->user()->can('users_delete')) {
+                        if ($row->id != Auth::guard('admin')->user()->id) {
+                            $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                        }
+                    }
 
                     return $editButton . " " . $deleteButton;
                 })->escapeColumns([])->make(true);

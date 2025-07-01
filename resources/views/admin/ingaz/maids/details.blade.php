@@ -189,7 +189,7 @@
                         <td>{{ @ahxCalcContractRemaining(@$contract->id) ?? '-' }}</td>
                         <td>{{ @getContractInfo($contract->id) ? getContractInfo($contract->id)->contract_date : '-'  }}</td>
                         <td>
-                            @if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACT_EDIT))
+                            @if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACTS_EDIT))
                             <a class="btn btn-primary" href="{{ route('getContractEdit', $contract->id) }}">
                                 تعديل العقد
                             </a>

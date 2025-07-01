@@ -72,14 +72,14 @@
                             <a href="{{ route('maids.create') }}" class="btn btn-success me-2">+ أضف عاملة</a>
                         @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF))
-                            <a href="{{ route('maids.export.pdf') }}" class="btn btn-danger me-2" target="_blank">
-                                <i class="fa fa-file-pdf"></i> {{helperTrans("ingaz.export_pdf")}}
-                            </a>
+                        <a href="{{ route('maids.export.pdf') }}" class="btn btn-danger me-2" target="_blank">
+                            <i class="fa fa-file-pdf"></i> {{helperTrans("ingaz.export_pdf")}}
+                        </a>
                         @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_EXCEL))
-                            <a href="{{ route('maids.export.excel') }}" class="btn btn-success">
-                                <i class="fa fa-file-excel"></i> {{helperTrans("ingaz.export_excel")}}
-                            </a>
+                        <a href="{{ route('maids.export.excel') }}" class="btn btn-success">
+                            <i class="fa fa-file-excel"></i> {{helperTrans("ingaz.export_excel")}}
+                        </a>
                         @endif
                     </div>
                 </div>

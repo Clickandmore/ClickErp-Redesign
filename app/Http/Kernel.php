@@ -78,6 +78,8 @@ class Kernel extends HttpKernel
         'adminLocale'          =>\App\Http\Middleware\AdminLocalizationMiddleware::class ,
         'lang' => \App\Http\Middleware\lang::class,
         'RevalidateBackHistory' => RevalidateBackHistory::class,
-
+        'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+        'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
+        'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
     ];
 }

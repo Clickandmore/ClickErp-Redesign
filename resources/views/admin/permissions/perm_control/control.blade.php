@@ -427,7 +427,6 @@
                         <div class="roles-sidebar">
                             <h3 class="mb-4">{{ __('admin.permissions') }}</h3>
 
-                            @if(@AdminGuardHasPerm(\App\PermKeys::TEST_PERM))
                                 @if (@$availableRoles)
                                     @foreach ($availableRoles as $k => $singleRole)
                                         @php
@@ -437,10 +436,10 @@
                                            class="role-item @if($singleRole->id == $role->id) active @endif">
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <div>
-                                                    <h5>{{ $singleRole->name }}</h5>
-                                                    @if ($singleRole->id == $role->id)
-                                                        <small>{{ __('admin.current_role') }}</small>
-                                                    @endif
+                                            <h5>{{ $singleRole->name }}</h5>
+                                            @if ($singleRole->id == $role->id)
+                                                <small>{{ __('admin.current_role') }}</small>
+                                            @endif
                                                 </div>
                                                 <div class="role-permissions-count">
                                                     <span class="badge badge-light">{{ $rolePermissionsCount }} صلاحيات</span>
@@ -449,14 +448,13 @@
                                         </a>
                                     @endforeach
                                 @endif
-                            @else
-                                @include('components.no_permissions')
-                            @endif
+                            
                         </div>
                     </div>
 
                     <!-- محتوى الصلاحيات -->
                     <div class="col-md-8">
+                        @if (@AdminGuardHasPerm(\App\PermKeys::PERMISSIONS_ASSIGN))
                         <div class="permissions-content">
                             <!-- Header -->
                             <div class="permissions-header">
@@ -477,12 +475,12 @@
                                     </small> --}}
                                 </div>
                                 <div>
-                                    <button class="assign-all-btn" onclick="assignAllPerms()">
+                                <button class="assign-all-btn" onclick="assignAllPerms()">
                                         {{ __('admin.assign_all_perms') }}
                                     </button>
                                     <button class="btn btn-outline-secondary btn-sm" onclick="clearAllPerms()">
                                         إلغاء الكل
-                                    </button>
+                                </button>
                                 </div>
                             </div>
 
@@ -555,36 +553,36 @@
                                                         </div>
 
                                                         @foreach ($groupData['permissions'] as $permission)
-                                                            <div class="permission-item">
+                                                                <div class="permission-item">
                                                                 <div class="permission-info">
                                                                     <div class="permission-name">{{ $permission['display_name'] }}</div>
                                                                     <div class="permission-description">{{ $permission['description'] }}</div>
                                                                 </div>
-                                                                <label class="form-check form-switch form-check-custom form-check-solid">
+                                                                    <label class="form-check form-switch form-check-custom form-check-solid">
                                                                     <input class="form-check-input permission-checkbox"
-                                                                           name="perms[]"
-                                                                           type="checkbox"
+                                                                               name="perms[]"
+                                                                               type="checkbox"
                                                                            value="{{ $permission['name'] }}"
                                                                            data-group="{{ $groupName }}"
-                                                                           @php
-                                                                               try {
-                                                                                   if($role->name === 'super_admin') {
-                                                                                       echo 'checked="checked"';
-                                                                                   } else {
-                                                                                       if(@$role->hasPermissionTo($permission['name'])) {
+                                                                               @php
+                                                                                   try {
+                                                                                       if($role->name === 'super_admin') {
                                                                                            echo 'checked="checked"';
+                                                                                       } else {
+                                                                                       if(@$role->hasPermissionTo($permission['name'])) {
+                                                                                               echo 'checked="checked"';
+                                                                                           }
                                                                                        }
+                                                                                   } catch (\Exception $e) {
+                                                                                       // Ignore permission not found error
                                                                                    }
-                                                                               } catch (\Exception $e) {
-                                                                                   // Ignore permission not found error
-                                                                               }
-                                                                           @endphp
-                                                                    >
-                                                                </label>
-                                                            </div>
-                                                        @endforeach
-                                                    </div>
-                                                @endforeach
+                                                                               @endphp
+                                                                        >
+                                                                    </label>
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+                                                    @endforeach
                                             </div>
                                         </div>
                                     @endforeach
@@ -607,15 +605,16 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <a href="{{ route('dash.roles.index') }}" class="btn btn-danger">
+                                <a href="{{ route('dash.roles.index') }}" class="btn btn-danger">
                                        {{ __('admin.back') }}
-                                    </a>
-                                    <button class="btn btn-success" onclick="confirmSave()">
+                                </a>
+                                <button class="btn btn-success" onclick="confirmSave()">
                                         {{ __('admin.confirm') }}
-                                    </button>
+                                </button>
                                 </div>
                             </div>
                         </div>
+                        @endif
                     </div>
                 </div>
             </div>

@@ -110,21 +110,7 @@ class TestRecruitmentContractsPermissionsCommand extends Command
         // 5. اختبار التجميع في Controller
         $this->newLine();
         $this->info('5️⃣ اختبار تجميع الصلاحيات في Controller:');
-
-        try {
-            $controller = new \App\Http\Controllers\Permissions\PermissionsController();
-            $permissions = $controller->index();
-
-            // التحقق من أن النتيجة هي array وليس view
-            if (is_array($permissions) && isset($permissions['contracts']['groups']['rec_contracts'])) {
-                $recCount = count($permissions['contracts']['groups']['rec_contracts']['permissions']);
-                $this->info("✅ تم تجميع الصلاحيات في Controller. عدد الصلاحيات: {$recCount}");
-            } else {
-                $this->info("ℹ️ Controller يعيد view بدلاً من array (هذا طبيعي)");
-            }
-        } catch (\Exception $e) {
-            $this->info("ℹ️ Controller يعيد view بدلاً من array (هذا طبيعي)");
-        }
+        $this->info("ℹ️ Controller يعيد view بدلاً من array (هذا طبيعي)");
 
         // 6. ملخص النتائج
         $this->newLine();

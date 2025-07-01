@@ -108,63 +108,14 @@ class PermKeys
     // ========================================
     // العقود
     // ========================================
-    // عقود التوظيف
-    const REC_CONTRACT_VIEW = 'rec_contract_view';
-    const REC_CONTRACT_CREATE = 'rec_contract_create';
-    const REC_CONTRACT_EDIT = 'rec_contract_edit';
-    const REC_CONTRACT_DELETE = 'rec_contract_delete';
-    const REC_CONTRACT_CONTROL = 'rec_contract_control';
-
-    // عقود الإلغاء
-    const CANCEL_CONTRACT_VIEW = 'cancel_contract_view';
-    const CANCEL_CONTRACT_CREATE = 'cancel_contract_create';
-    const CANCEL_CONTRACT_EDIT = 'cancel_contract_edit';
-    const CANCEL_CONTRACT_DELETE = 'cancel_contract_delete';
-
-    // عقود الإيجار
-    const RENT_CONTRACT_VIEW = 'rent_contract_view';
-    const RENT_CONTRACT_CREATE = 'rent_contract_create';
-    const RENT_CONTRACT_EDIT = 'rent_contract_edit';
-    const RENT_CONTRACT_DELETE = 'rent_contract_delete';
-    const RENT_CONTRACT_CONTROL = 'rent_contract_control';
-
-    // عقود الإيواء
-    const SHELTER_CONTRACT_VIEW = 'shelter_contract_view';
-    const SHELTER_CONTRACT_CREATE = 'shelter_contract_create';
-    const SHELTER_CONTRACT_EDIT = 'shelter_contract_edit';
-    const SHELTER_CONTRACT_DELETE = 'shelter_contract_delete';
-    const SHELTER_CONTRACT_CONTROL = 'shelter_contract_control';
-
-    // عمال الإيواء
-    const SHELTER_WORKERS_VIEW = 'shelter_workers_view';
-    const SHELTER_WORKERS_CREATE = 'shelter_workers_create';
-    const SHELTER_WORKERS_EDIT = 'shelter_workers_edit';
-    const SHELTER_WORKERS_DELETE = 'shelter_workers_delete';
-    const SHELTER_WORKERS_CONTROL = 'shelter_workers_control';
-
-    // أماكن الإيواء
-    const SHELTER_PLACES_VIEW = 'shelter_places_view';
-    const SHELTER_PLACES_CREATE = 'shelter_places_create';
-    const SHELTER_PLACES_EDIT = 'shelter_places_edit';
-    const SHELTER_PLACES_DELETE = 'shelter_places_delete';
-    const SHELTER_PLACES_CONTROL = 'shelter_places_control';
-
-    // السفر
-    const TRAVEL_VIEW = 'travel_view';
-    const TRAVEL_CREATE = 'travel_create';
-    const TRAVEL_EDIT = 'travel_edit';
-    const TRAVEL_DELETE = 'travel_delete';
-    const TRAVEL_CONTROL = 'travel_control';
-
-    // مكاتب التوظيف
-    const REC_OFFICES_VIEW = 'rec_offices_view';
-    const REC_OFFICES_CREATE = 'rec_offices_create';
-    const REC_OFFICES_EDIT = 'rec_offices_edit';
-    const REC_OFFICES_DELETE = 'rec_offices_delete';
-    const REC_OFFICES_CONTROL = 'rec_offices_control';
-
-    // إعدادات العقد
-    const CONTRACT_SETTINGS = 'contract_settings';
+    // عقود الاستقدام (الجديدة فقط)
+    const REC_CONTRACTS_VIEW = 'rec_contracts_view';
+    const REC_CONTRACTS_CREATE = 'rec_contracts_create';
+    const REC_CONTRACTS_EDIT = 'rec_contracts_edit';
+    const REC_CONTRACTS_DELETE = 'rec_contracts_delete';
+    const REC_CONTRACTS_EXPORT = 'rec_contracts_export';
+    const REC_CONTRACTS_PRINT = 'rec_contracts_print';
+    const REC_CONTRACTS_MANAGE = 'rec_contracts_manage';
 
     // ========================================
     // الشكاوى
@@ -326,15 +277,12 @@ class PermKeys
     // ========================================
     // هذه الصلاحيات موجودة للتوافق مع النظام الحالي
     // يمكن إزالتها لاحقاً بعد التأكد من عدم استخدامها
-    const RELEGIONS_VIEW = 'religions_view'; // تم تغييرها إلى RELIGIONS_VIEW
-    const RELEGIONS_CONTROL = 'religions_control'; // تم تغييرها إلى RELIGIONS_CONTROL
-    const RELEGIONS_DELETE = 'religions_delete'; // تم تغييرها إلى RELIGIONS_DELETE
     const STAT_VIEW = 'statistics_view'; // تم تغييرها إلى STATISTICS_VIEW
     const STAT_CONTROL = 'statistics_control'; // تم تغييرها إلى STATISTICS_CONTROL
     const STAT_DELETE = 'statistics_delete'; // تم تغييرها إلى STATISTICS_DELETE
-    const REC_OFFIICES_VIEW = 'rec_offices_view'; // تم تصحيحها إلى REC_OFFICES_VIEW
-    const REC_OFFIICES_CONTROL = 'rec_offices_control'; // تم تصحيحها إلى REC_OFFICES_CONTROL
-    const REC_OFFIICES_DELETE = 'rec_offices_delete'; // تم تصحيحها إلى REC_OFFICES_DELETE
+    const REC_OFFICES_VIEW = 'rec_offices_view';
+    const REC_OFFICES_CONTROL = 'rec_offices_control';
+    const REC_OFFICES_DELETE = 'rec_offices_delete';
 
     // ========================================
     // صلاحيات إضافية مطلوبة للقائمة الجانبية
@@ -352,4 +300,54 @@ class PermKeys
     const RECRUITMENT_OFFICES_EDIT = 'recruitment_offices_edit';
     const RECRUITMENT_OFFICES_DELETE = 'recruitment_offices_delete';
     const RECRUITMENT_OFFICES_CONTROL = 'recruitment_offices_control';
+
+    // ========================================
+    // عقود الإيجار (Rent Contracts)
+    // ========================================
+    const RENT_CONTRACT_VIEW = 'rent_contract_view';
+    const RENT_CONTRACT_CREATE = 'rent_contract_create';
+    const RENT_CONTRACT_EDIT = 'rent_contract_edit';
+    const RENT_CONTRACT_DELETE = 'rent_contract_delete';
+    const RENT_CONTRACT_CONTROL = 'rent_contract_control';
+
+    // ========================================
+    // إعدادات العقود (Contract Settings)
+    // ========================================
+    const CONTRACT_SETTINGS = 'contract_settings';
+
+    // ========================================
+    // عقود الإيواء (Shelter Contracts)
+    // ========================================
+    const SHELTER_CONTRACT_VIEW = 'shelter_contract_view';
+    const SHELTER_CONTRACT_CREATE = 'shelter_contract_create';
+    const SHELTER_CONTRACT_EDIT = 'shelter_contract_edit';
+    const SHELTER_CONTRACT_DELETE = 'shelter_contract_delete';
+    const SHELTER_CONTRACT_CONTROL = 'shelter_contract_control';
+
+    // ========================================
+    // عمال الإيواء (Shelter Workers)
+    // ========================================
+    const SHELTER_WORKERS_VIEW = 'shelter_workers_view';
+    const SHELTER_WORKERS_CREATE = 'shelter_workers_create';
+    const SHELTER_WORKERS_EDIT = 'shelter_workers_edit';
+    const SHELTER_WORKERS_DELETE = 'shelter_workers_delete';
+    const SHELTER_WORKERS_CONTROL = 'shelter_workers_control';
+
+    // ========================================
+    // أماكن الإيواء (Shelter Places)
+    // ========================================
+    const SHELTER_PLACES_VIEW = 'shelter_places_view';
+    const SHELTER_PLACES_CREATE = 'shelter_places_create';
+    const SHELTER_PLACES_EDIT = 'shelter_places_edit';
+    const SHELTER_PLACES_DELETE = 'shelter_places_delete';
+    const SHELTER_PLACES_CONTROL = 'shelter_places_control';
+
+    // ========================================
+    // السفر (Travel)
+    // ========================================
+    const TRAVEL_VIEW = 'travel_view';
+    const TRAVEL_CREATE = 'travel_create';
+    const TRAVEL_EDIT = 'travel_edit';
+    const TRAVEL_DELETE = 'travel_delete';
+    const TRAVEL_CONTROL = 'travel_control';
 }

@@ -9,7 +9,7 @@
 
 @section('content')
 
-@if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACT_CONTROL))
+@if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE))
 
     <form id="maidForm" class="row g-3 contractForm" method="post" action="{{route("RecruitmentContract.store")}}">
         @csrf

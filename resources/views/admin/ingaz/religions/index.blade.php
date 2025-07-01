@@ -9,8 +9,8 @@
 {{--    <li class="breadcrumb-item active" aria-current="page"> {{__("finance.clients")}}</li>--}}
 {{--@endsection--}}
 @section('content')
-@if (@AdminGuardHasPerm(\App\PermKeys::RELEGIONS_VIEW))
-    @if (@AdminGuardHasPerm(\App\PermKeys::RELEGIONS_CONTROL))
+@if (@AdminGuardHasPerm(\App\PermKeys::RELIGIONS_VIEW))
+    @if (@AdminGuardHasPerm(\App\PermKeys::RELIGIONS_CONTROL))
         {!! addButton(route("religions.create") ,helperTrans("ingaz.religion")) !!}
     @endif
     <p>{{helperTrans('ingaz.click in the show button to change appearance status')}}</p>

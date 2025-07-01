@@ -56,6 +56,14 @@ class RecruitmentContractController extends Controller
 
     public function index(Request $request, $status = null)
     {
+        // التحقق من صلاحية عرض العقود
+        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ليس لديك صلاحية لعرض العقود'
+            ], 403);
+        }
+
         if ($request->ajax()) {
             $status = $request->get('status', $status);
             if ($status === 'under_warranty') {
@@ -101,9 +109,38 @@ class RecruitmentContractController extends Controller
                 })
                 ->addColumn('updateStatus', function ($row) {
                     if ($row->status != ContractStatusEnum::Back->value && $row->status != ContractStatusEnum::Arrival->value && $row->status != ContractStatusEnum::Tazker->value && $row->status != ContractStatusEnum::Closed->value && $row->status != ContractStatusEnum::Shelter->value) {
-                        $lastContractStatusLog = $row->getLastContractStatusLog();
-                        return '<button class="btn btn-success update-status-btn" data-bs-toggle="modal" data-bs-target="#updateStatusModal" data-row-id="' . $row->id . '" data-status="' . $row->status . '" data-date="' . ($lastContractStatusLog ? $lastContractStatusLog->date : \Carbon\Carbon::now()->format('Y-m-d')) . '">' . contractStatusConfirmBtnText($row->status) . '</button>';
+                        // التحقق من الصلاحيات حسب حالة العقد
+                        $hasPermission = false;
+                        switch ($row->status) {
+                            case ContractStatusEnum::New->value:
+                                $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED);
+                                break;
+                            case ContractStatusEnum::Msaned->value:
+                                $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED);
+                                break;
+                            case ContractStatusEnum::Tafwed->value:
+                                $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ);
+                                break;
+                            case ContractStatusEnum::Taffez->value:
+                                $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER);
+                                break;
+                            case ContractStatusEnum::Sari->value:
+                                $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CLOSE_AFTER_WARRANTY);
+                                break;
+                        }
+
+                        if ($hasPermission) {
+                            $lastContractStatusLog = $row->getLastContractStatusLog();
+                            return '<button class="btn btn-success update-status-btn" data-bs-toggle="modal" data-bs-target="#updateStatusModal" data-row-id="' . $row->id . '" data-status="' . $row->status . '" data-date="' . ($lastContractStatusLog ? $lastContractStatusLog->date : \Carbon\Carbon::now()->format('Y-m-d')) . '">' . contractStatusConfirmBtnText($row->status) . '</button>';
+                        } else {
+                            return '<span class="text-muted">لا توجد صلاحية</span>';
+                        }
                     } else if ($row->status == ContractStatusEnum::Tazker->value) {
+                        // التحقق من صلاحيات إدارة الرحلات
+                        $hasTravelPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW_TRAVEL);
+                        $hasAddTravelPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_ADD_TRAVEL);
+                        $hasCompleteTravelPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL);
+
                         // check if there is a travel history for this contract
                         $travelHistory = TravelHistory::where('order_id', $row->id)->first();
                         if ($travelHistory) {
@@ -113,17 +150,23 @@ class RecruitmentContractController extends Controller
 
                             $buttons = $tripStatus;
 
-                            // Add complete trip button if trip is not completed
-                            if ($travelHistory->status !== 'completed') {
+                            // Add complete trip button if trip is not completed and user has permission
+                            if ($travelHistory->status !== 'completed' && $hasCompleteTravelPermission) {
                                 $buttons .= ' <button class="btn btn-success complete-trip-btn" data-trip-id="' . $travelHistory->id . '">' . __('admin.mark_trip_completed') . '</button>';
                             }
 
-                            // Add show travel button
-                            $buttons .= ' <a class="btn btn-primary" href="' . route('travel.control', ['id' => $row->id, 'userId' => $row->user_id, 'maidId' => $row->maid_id]) . '">' . __("admin.show_travel") . ' <i class="fa fa-eye"></i></a>';
+                            // Add show travel button if user has permission
+                            if ($hasTravelPermission) {
+                                $buttons .= ' <a class="btn btn-primary" href="' . route('travel.control', ['id' => $row->id, 'userId' => $row->user_id, 'maidId' => $row->maid_id]) . '">' . __("admin.show_travel") . ' <i class="fa fa-eye"></i></a>';
+                            }
 
                             return $buttons;
                         } else {
-                            return '<a class="btn btn-success" href="' . route('travel.control', ['id' => $row->id, 'userId' => $row->user_id, 'maidId' => $row->maid_id]) . '">' . __("admin.add_travel") . ' <i class="fa fa-plus"></i></a>';
+                            if ($hasAddTravelPermission) {
+                                return '<a class="btn btn-success" href="' . route('travel.control', ['id' => $row->id, 'userId' => $row->user_id, 'maidId' => $row->maid_id]) . '">' . __("admin.add_travel") . ' <i class="fa fa-plus"></i></a>';
+                            } else {
+                                return '<span class="text-muted">لا توجد صلاحية لإضافة رحلة</span>';
+                            }
                         }
                     } else {
                         return '<span class="text-danger">--</span>';
@@ -133,12 +176,17 @@ class RecruitmentContractController extends Controller
                     if ($row->status == ContractStatusEnum::Back->value) {
                         return '<span class="text-danger">مرتجع</span>';
                     } else {
-                        return '<button class="btn btn-danger backContract" data-id="' . $row->id . '">ارجاع العقد <i class="fa fa-undo"></i> </button>';
+                        // التحقق من صلاحية إرجاع العقد
+                        if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
+                            return '<button class="btn btn-danger backContract" data-id="' . $row->id . '">ارجاع العقد <i class="fa fa-undo"></i> </button>';
+                        } else {
+                            return '<span class="text-muted">لا توجد صلاحية للإرجاع</span>';
+                        }
                     }
                 })
                 ->addColumn('actions', function ($row) {
                     $deleteButton = '';
-                    if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACT_DELETE)) {
+                    if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
                         $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
                     }
                     return $deleteButton;
@@ -155,6 +203,14 @@ class RecruitmentContractController extends Controller
 
     public function details($id)
     {
+        // التحقق من صلاحية عرض تفاصيل العقد
+        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ليس لديك صلاحية لعرض تفاصيل العقد'
+            ], 403);
+        }
+
         $contract = Contract::with('user', 'maid', 'info', 'contract_status_logs')->findOrFail($id);
         $info = ContractInfo::where('contract_id', $contract->id)->first();
         //        return $contract;
@@ -163,6 +219,14 @@ class RecruitmentContractController extends Controller
 
     public function create()
     {
+        // التحقق من صلاحية إنشاء عقد جديد
+        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ليس لديك صلاحية لإنشاء عقد جديد'
+            ], 403);
+        }
+
         $orderId = request('orderId');
         \Log::info('Loading create page with orderId: ' . $orderId);
 
@@ -220,6 +284,14 @@ class RecruitmentContractController extends Controller
 
     public function store(StoreContractRequest $request)
     {
+        // التحقق من صلاحية إنشاء العقد
+        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ليس لديك صلاحية لإنشاء عقد جديد'
+            ], 403);
+        }
+
         \Log::info('Recruitment Contract Creation Request:', $request->all());
 
         try {
@@ -322,27 +394,62 @@ class RecruitmentContractController extends Controller
     {
         $row = Contract::find($id);
 
+        // التحقق من الصلاحيات حسب حالة العقد الحالية
+        $hasPermission = false;
+        $permissionRequired = '';
+
         switch ($row->status) {
-            case ContractStatusEnum::New ->value:
-                $row->status = ContractStatusEnum::Msaned->value;
+            case ContractStatusEnum::New->value:
+                $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED;
+                if (@AdminGuardHasPerm($permissionRequired)) {
+                    $row->status = ContractStatusEnum::Msaned->value;
+                    $hasPermission = true;
+                }
                 break;
             case ContractStatusEnum::Msaned->value:
-                $row->status = ContractStatusEnum::Tafwed->value;
+                $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED;
+                if (@AdminGuardHasPerm($permissionRequired)) {
+                    $row->status = ContractStatusEnum::Tafwed->value;
+                    $hasPermission = true;
+                }
                 break;
             case ContractStatusEnum::Tafwed->value:
-                $row->status = ContractStatusEnum::Taffez->value;
+                $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ;
+                if (@AdminGuardHasPerm($permissionRequired)) {
+                    $row->status = ContractStatusEnum::Taffez->value;
+                    $hasPermission = true;
+                }
                 break;
             case ContractStatusEnum::Taffez->value:
-                $row->status = ContractStatusEnum::Tazker->value;
+                $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER;
+                if (@AdminGuardHasPerm($permissionRequired)) {
+                    $row->status = ContractStatusEnum::Tazker->value;
+                    $hasPermission = true;
+                }
                 break;
             case ContractStatusEnum::Tazker->value:
-                $row->status = ContractStatusEnum::Arrival->value;
+                // التحقق من صلاحية إكمال الرحلة
+                if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
+                    $row->status = ContractStatusEnum::Arrival->value;
+                    $hasPermission = true;
+                }
                 break;
             case ContractStatusEnum::Sari->value:
-                $row->status = ContractStatusEnum::Closed->value;
+                // التحقق من صلاحية إغلاق العقد بعد الضمان
+                if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CLOSE_AFTER_WARRANTY)) {
+                    $row->status = ContractStatusEnum::Closed->value;
+                    $hasPermission = true;
+                }
                 break;
             default:
                 break;
+        }
+
+        if (!$hasPermission) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ليس لديك صلاحية لتغيير حالة العقد من ' . getContractStatus($row->status) . ' إلى المرحلة التالية'
+            ], 403);
         }
 
         // Save the updated contract status
@@ -354,15 +461,38 @@ class RecruitmentContractController extends Controller
             'date' => $request->date,
         ]);
 
-        return jsonSuccess();
+        return response()->json([
+            'success' => true,
+            'message' => 'تم تغيير حالة العقد بنجاح إلى ' . getContractStatus($row->status)
+        ]);
     }
 
     public function back($id)
     {
+        // التحقق من صلاحية إرجاع العقد
+        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ليس لديك صلاحية لإرجاع العقد'
+            ], 403);
+        }
+
         $contract = Contract::find($id);
+        if (!$contract) {
+            return response()->json([
+                'success' => false,
+                'message' => 'العقد غير موجود'
+            ], 404);
+        }
+
         $newStatus = contractBackStatus($contract->status);
         $contract->update(['status' => $newStatus->value]);
         $contract->contract_status_logs()->create(['status' => $newStatus->value]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم إرجاع العقد بنجاح إلى ' . getContractStatus($newStatus->value)
+        ]);
     }
 
     /**
@@ -388,8 +518,27 @@ class RecruitmentContractController extends Controller
 
     public function destroy($id)
     {
-        Contract::find($id)->delete();
-        return jsonSuccess();
+        // التحقق من صلاحية حذف العقد
+        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ليس لديك صلاحية لحذف العقد'
+            ], 403);
+        }
+
+        $contract = Contract::find($id);
+        if (!$contract) {
+            return response()->json([
+                'success' => false,
+                'message' => 'العقد غير موجود'
+            ], 404);
+        }
+
+        $contract->delete();
+        return response()->json([
+            'success' => true,
+            'message' => 'تم حذف العقد بنجاح'
+        ]);
     }
 
     public function getMaidByNationality($nationalityId)
@@ -400,6 +549,14 @@ class RecruitmentContractController extends Controller
 
     public function exportPdf()
     {
+        // التحقق من صلاحية تصدير العقود
+        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EXPORT)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ليس لديك صلاحية لتصدير العقود'
+            ], 403);
+        }
+
         $contracts = Contract::RecruitmentContract()->with('user', 'maid', 'info')->get();
 
         // Create HTML content with RTL support and better styling
@@ -534,6 +691,14 @@ class RecruitmentContractController extends Controller
 
     public function exportExcel()
     {
+        // التحقق من صلاحية تصدير العقود
+        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EXPORT)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ليس لديك صلاحية لتصدير العقود'
+            ], 403);
+        }
+
         $contracts = Contract::RecruitmentContract()->with('user', 'maid', 'info')->get();
 
         // Create new Spreadsheet object
@@ -617,6 +782,14 @@ class RecruitmentContractController extends Controller
     public function completeTrip($tripId)
     {
         try {
+            // التحقق من صلاحية إكمال الرحلة
+            if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية لإكمال الرحلة'
+                ], 403);
+            }
+
             \Log::info('Starting trip completion process for trip ID: ' . $tripId);
 
             $travelHistory = TravelHistory::findOrFail($tripId);
@@ -631,6 +804,14 @@ class RecruitmentContractController extends Controller
                     'success' => false,
                     'message' => __('admin.contract_not_found')
                 ]);
+            }
+
+            // التحقق من أن العقد في مرحلة التذكرة
+            if ($contract->status !== ContractStatusEnum::Tazker->value) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'يمكن إكمال الرحلة فقط للعقود في مرحلة التذكرة'
+                ], 400);
             }
 
             // Update travel history status

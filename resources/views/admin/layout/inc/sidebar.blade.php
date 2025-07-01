@@ -171,7 +171,7 @@
                     </a>
                     <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['RecruitmentContracts.index'])) ? 'show' : '' }}"
                         id="contracts">
-                        @if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACT_CONTROL))
+                        @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE))
                             <li>
                                 <a class="m-link" href="{{ route('RecruitmentContract.create') }}">
                                     <i class="icon-star"></i>
@@ -179,7 +179,7 @@
                                 </a>
                             </li>
                         @endif
-                        @if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACT_VIEW))
+                        @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
                             <li>
                                 <a class="m-link" href="{{ route('RecruitmentContract.index') }}">
                                     <i class="icon-star"></i>
@@ -187,6 +187,7 @@
                                     <span class="badge bg-primary">{{ $contractsCount['all'] }}</span>
                                 </a>
                             </li>
+                            @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED))
                             <li>
                                 <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $newStatus->value]) }}">
                                     <i class="icon-star"></i>
@@ -194,6 +195,8 @@
                                     <span class="badge bg-primary">{{ $contractsCount['new'] }}</span>
                                 </a>
                             </li>
+                            @endif
+                            @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED))
                             <li>
                                 <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $msanedStatus->value]) }}">
                                     <i class="icon-star"></i>
@@ -201,6 +204,8 @@
                                     <span class="badge bg-primary">{{ $contractsCount['msaned'] }}</span>
                                 </a>
                             </li>
+                            @endif
+                            @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ))
                             <li>
                                 <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $tafwedStatus->value]) }}">
                                     <i class="icon-star"></i>
@@ -208,6 +213,7 @@
                                     <span class="badge bg-primary">{{ $contractsCount['tafwed'] }}</span>
                                 </a>
                             </li>
+                            @endif
                             <li>
                                 <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $taffezStatus->value]) }}">
                                     <i class="icon-star"></i>
@@ -222,6 +228,7 @@
                                     <span class="badge bg-primary">{{ $contractsCount['tazker'] }}</span>
                                 </a>
                             </li>
+                            @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_WARRANTY_VIEW))
                             <li>
                                 <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $underWarrantyStatus->value]) }}">
                                     <i class="icon-star"></i>
@@ -229,6 +236,8 @@
                                     <span class="badge bg-primary">{{ $contractsCount['arrival'] }}</span>
                                 </a>
                             </li>
+                            @endif
+                            @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
                             <li>
                                 <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $closedStatus->value]) }}">
                                     <i class="icon-star"></i>
@@ -236,8 +245,9 @@
                                     <span class="badge bg-primary">{{ $contractsCount['closed'] }}</span>
                                 </a>
                             </li>
+                            @endif
                         @endif
-                        @if (@AdminGuardHasPerm(\App\PermKeys::CANCEL_CONTRACT_VIEW))
+                        @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CANCEL_VIEW))
                             <li>
                                 <a class="m-link" href="{{ route('cancel_contracts') }}">
                                     <i class="icon-star"></i>
@@ -245,7 +255,7 @@
                                 </a>
                             </li>
                         @endif
-                        @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_VIEW))
+                        @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW_TRAVEL))
                             <li>
                                 <a class="m-link" href="{{ route('travel') }}">
                                     <i class="icon-loop"></i>
@@ -253,7 +263,7 @@
                                 </a>
                             </li>
                         @endif
-                        @if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACT_VIEW))
+                        @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN_VIEW))
                     <li>
                         <a class="m-link {{ (Route::currentRouteName() == 'RecruitmentContract.index' && request()->input('status') == $backStatus->value) ? 'active' : '' }}"
                             href="{{ route('RecruitmentContract.index', ['status' => $backStatus->value]) }}">
@@ -510,7 +520,7 @@
                             </li>
                         @endif
 
-                        @if (@AdminGuardHasPerm(\App\PermKeys::RELEGIONS_VIEW))
+                        @if (@AdminGuardHasPerm(\App\PermKeys::RELIGIONS_VIEW))
                             <li>
                                 <a class="m-link" href="{{ route('religions.index') }}">
                                     <i class="fa fa-arrow-left"></i>

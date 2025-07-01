@@ -9,6 +9,14 @@ use Illuminate\Support\Facades\Validator;
 
 class RolesController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:roles_view,admin', ['only' => ['index']]);
+        $this->middleware('permission:roles_create,admin', ['only' => ['store']]);
+        $this->middleware('permission:roles_edit,admin', ['only' => ['store']]);
+        $this->middleware('permission:roles_delete,admin', ['only' => ['delete']]);
+    }
+
     public function index($id = null){
         $roles = Role::all();
         $editRole = null;

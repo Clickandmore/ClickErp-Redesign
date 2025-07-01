@@ -1,4 +1,4 @@
-@if (@AdminGuardHasPerm(\App\PermKeys::RELEGIONS_CONTROL))
+@if (@AdminGuardHasPerm(\App\PermKeys::RELIGIONS_CONTROL))
 <form class="row g-3 from-submit-global" method="post" action="{{route("religions.update",$obj->id)}}">
     @csrf
     @method('Put')

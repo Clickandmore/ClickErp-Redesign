@@ -37,7 +37,7 @@
     }
 </style>
 @section('content')
-@if (@AdminGuardHasPerm(\App\PermKeys::REC_CONTRACT_VIEW))
+@if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
 
 <div class="row g-3">
     <div class="col-12">
