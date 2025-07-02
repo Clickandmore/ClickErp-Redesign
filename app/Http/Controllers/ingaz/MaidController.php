@@ -337,7 +337,7 @@ class MaidController extends Controller
         $data = $request->all();
         // Set default status in Arabic
         $data['status'] = Maid::STATUS_AVAILABLE['ar'];
-        $row = $action->store($data);
+        $row = $action->storeMaid($data, $request);
         return response()->json(['code' => 200, 'message' => 'تم إضافة العاملة بنجاح']);
     }
 
