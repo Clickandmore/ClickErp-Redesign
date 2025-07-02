@@ -242,22 +242,33 @@ if (!function_exists('uploadFile')) {
             mkdir($destinationPath, 0777, true);
         }
 
+        \Log::info('uploadFile called with path: ' . $path);
+        \Log::info('Destination path: ' . $destinationPath);
+        \Log::info('File name: ' . $fileName);
+        \Log::info('Original file extension: ' . $image->getClientOriginalExtension());
+
         try {
             // Compress the image if needed
             if ($compress != null) {
                 $fileName .= '.webp';
                 $img = Image::make($image);
                 $img->encode('webp', $quality_ratio)->save($destinationPath . '/' . $fileName);
+                \Log::info('Image compressed and saved as webp: ' . $destinationPath . '/' . $fileName);
             } else {
                 $fileName .= '.' . $image->getClientOriginalExtension();
                 $image->move($destinationPath, $fileName);
+                \Log::info('Image moved to: ' . $destinationPath . '/' . $fileName);
             }
 
-            return $path . $fileName;
+            $finalPath = $path . $fileName;
+            \Log::info('Returning path: ' . $finalPath);
+            return $finalPath;
         } catch (\Exception $e) {
+            \Log::error('Error in uploadFile: ' . $e->getMessage());
             // For now, continue with the original image without compression
             $fileName .= '.' . $image->getClientOriginalExtension();
             $image->move($destinationPath, $fileName);
+            \Log::info('Image moved after error: ' . $destinationPath . '/' . $fileName);
 
             return $path . $fileName;
         }
@@ -284,15 +295,15 @@ if (!function_exists('deleteFile')) {
 if (!function_exists('showFile')) {
     function showFile($fileFullPath)
     {
-        return asset('/storage/app/public/' . $fileFullPath);
+        return asset('/storage/' . $fileFullPath);
     }
 }
 
 if (!function_exists('imageOrNull')) {
     function imageOrNull($fileFullPath)
     {
-        if ($fileFullPath && file_exists(public_path('/storage/app/public/' . $fileFullPath))) {
-            return asset('/storage/app/public/' . $fileFullPath);
+        if ($fileFullPath && file_exists(public_path('/storage/' . $fileFullPath))) {
+            return asset('/storage/' . $fileFullPath);
         }
         return "";
     }
@@ -300,11 +311,11 @@ if (!function_exists('imageOrNull')) {
 
 function getFile($fileFullPath)
 {
-    if ($fileFullPath && file_exists(public_path('/storage/app/public/' . $fileFullPath))) {
-        return asset('/storage/app/public/' . $fileFullPath);
+    if ($fileFullPath && file_exists(public_path('/storage/' . $fileFullPath))) {
+        return asset('/storage/' . $fileFullPath);
     }
 
-    return asset(asset('/storage/app/public/uploads/noImage.gif'));
+    return asset('/storage/uploads/noImage.gif');
 }
 
 if (!function_exists('getAuthUser')) {

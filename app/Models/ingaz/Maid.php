@@ -153,7 +153,7 @@ class Maid extends Model
     public function getPhotoUrlAttribute()
     {
         if ($this->image) {
-            return asset('storage/' . $this->image);
+            return showFile($this->image);
         }
         return asset('images/no-image.png');
     }
