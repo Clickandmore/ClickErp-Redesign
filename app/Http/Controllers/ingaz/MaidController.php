@@ -44,7 +44,7 @@ class MaidController extends Controller
     public function index(Request $request, objAction $Action)
     {
         $query = objModel::query()
-            ->with(['nationality', 'religion', 'jobTypes']) // Eager load relationships
+            ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders']) // Eager load relationships
             ->select(['id', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at', 'is_pinned']) // Added is_pinned
             ->orderBy('is_pinned', 'desc')
             ->orderBy('created_at', 'desc');
@@ -124,6 +124,22 @@ class MaidController extends Controller
                 ->addColumn('job_type', function ($row) {
                     return $row->jobTypes->pluck('title')->implode(', ');
                 })
+                ->addColumn('cv_status', function ($row) {
+                    // تحديد حالة السيرة الذاتية بناءً على الحقول المتاحة
+                    if ($row->available == 0) {
+                        return '<span class="badge bg-danger">' . __('ingaz.cv_reserved') . '</span>';
+                    } else {
+                        // التحقق من وجود عقود أو طلبات نشطة
+                        $hasActiveContracts = $row->contracts()->whereIn('status', ['active', 'pending'])->exists();
+                        $hasActiveOrders = $row->orders()->whereIn('status', ['pending', 'approved', 'in_progress'])->exists();
+
+                        if ($hasActiveContracts || $hasActiveOrders) {
+                            return '<span class="badge bg-warning">' . __('ingaz.cv_reserved') . '</span>';
+                        } else {
+                            return '<span class="badge bg-success">' . __('ingaz.cv_available') . '</span>';
+                        }
+                    }
+                })
                 ->addColumn('actions', function ($row) {
                     $buttons = '';
 
@@ -151,7 +167,7 @@ class MaidController extends Controller
 
                     return $buttons;
                 })
-                ->rawColumns(['is_show', 'available', 'available_at', 'cv_file', 'actions'])
+                ->rawColumns(['is_show', 'available', 'available_at', 'cv_file', 'cv_status', 'actions'])
                 ->make(true);
         }
 
@@ -173,6 +189,7 @@ class MaidController extends Controller
     public function noneAvailableMaids(Request $request, objAction $Action)
     {
         $rows = objModel::latest()
+            ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders']) // Eager load relationships
             ->where('available', '0')
         // ->take(15)
         // ->where('passport_num', 'EP8002663')
@@ -235,6 +252,22 @@ class MaidController extends Controller
                 ->addColumn('job_type', function ($row) {
                     return $row->jobTypes->pluck('title')->implode(', ');
                 })
+                ->addColumn('cv_status', function ($row) {
+                    // تحديد حالة السيرة الذاتية بناءً على الحقول المتاحة
+                    if ($row->available == 0) {
+                        return '<span class="badge bg-danger">' . __('ingaz.cv_reserved') . '</span>';
+                    } else {
+                        // التحقق من وجود عقود أو طلبات نشطة
+                        $hasActiveContracts = $row->contracts()->whereIn('status', ['active', 'pending'])->exists();
+                        $hasActiveOrders = $row->orders()->whereIn('status', ['pending', 'approved', 'in_progress'])->exists();
+
+                        if ($hasActiveContracts || $hasActiveOrders) {
+                            return '<span class="badge bg-warning">' . __('ingaz.cv_reserved') . '</span>';
+                        } else {
+                            return '<span class="badge bg-success">' . __('ingaz.cv_available') . '</span>';
+                        }
+                    }
+                })
                 ->addColumn('actions', function ($row) {
                     $showButton = '';
                     $editButton = '';
@@ -252,7 +285,7 @@ class MaidController extends Controller
 
                     return $showButton . " " . $editButton . " " . $deleteButton;
                 })
-                ->escapeColumns([])
+                ->rawColumns(['is_show', 'available', 'available_at', 'cv_file', 'cv_status', 'actions'])
                 ->make(true);
 
             return $dataTable;
@@ -720,6 +753,29 @@ class MaidController extends Controller
                 $startDate = Carbon::parse($dates[0])->startOfDay();
                 $endDate = Carbon::parse($dates[1])->endOfDay();
                 $rows->whereBetween('created_at', [$startDate, $endDate]);
+            }
+        }
+
+        // فلتر حالة السيرة الذاتية
+        if ($request->has('cv_status') && $request->cv_status != null) {
+            if ($request->cv_status == 'available') {
+                $rows->where('available', 1)
+                    ->whereDoesntHave('contracts', function($q) {
+                        $q->whereIn('status', ['active', 'pending']);
+                    })
+                    ->whereDoesntHave('orders', function($q) {
+                        $q->whereIn('status', ['pending', 'approved', 'in_progress']);
+                    });
+            } elseif ($request->cv_status == 'reserved') {
+                $rows->where(function($q) {
+                    $q->where('available', 0)
+                      ->orWhereHas('contracts', function($subQ) {
+                          $subQ->whereIn('status', ['active', 'pending']);
+                      })
+                      ->orWhereHas('orders', function($subQ) {
+                          $subQ->whereIn('status', ['pending', 'approved', 'in_progress']);
+                      });
+                });
             }
         }
     }

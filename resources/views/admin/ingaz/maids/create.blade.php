@@ -456,18 +456,29 @@
                     }
                 }
 
+                // التحقق من الحقول المطلوبة
+                var requiredFields = {
+                    'nationality_id': 'الجنسية'
+                };
+
+                // التحقق من الجنسية دائماً
+                var nationalityValue = $('[name="nationality_id"]').val();
+                if (!nationalityValue || nationalityValue.trim() === '') {
+                    errors.push('الجنسية مطلوبة');
+                    isValid = false;
+                }
+
                 // التحقق من الحقول المطلوبة فقط إذا لم يكن نوع السيرة "إستلام فورى" أو "ايجار عمالة" أو "تأجير"
                 if (selectedType !== 'إستلام فورى' && selectedType !== 'ايجار عمالة' && selectedType !== 'تأجير') {
-                    var requiredFields = {
-                        'nationality_id': 'الجنسية',
+                    var additionalRequiredFields = {
                         'office_id': 'مكتب التوظيف'
                     };
 
-                    // التحقق من الحقول النصية والرقمية المطلوبة فقط
-                    for (var field in requiredFields) {
+                    // التحقق من الحقول الإضافية المطلوبة
+                    for (var field in additionalRequiredFields) {
                         var value = $('[name="' + field + '"]').val();
                         if (!value || value.trim() === '') {
-                            errors.push(requiredFields[field] + ' مطلوب');
+                            errors.push(additionalRequiredFields[field] + ' مطلوب');
                             isValid = false;
                         }
                     }

@@ -76,8 +76,8 @@ if (!function_exists('editButton')) {
     function editButton($route, $text = "")
     {
         $fullText = __("buttons.edit") . ' ' . $text;
-        return '<button type="button" class="btn btn-primary editButton" data-bs-toggle="modal" data-bs-target="#createModal"
-                       model-route="' . $route . '" model-title="' . $fullText . '">
+        return '<button type="button" class="btn btn-sm btn-primary btn-edit editButton" data-bs-toggle="modal" data-bs-target="#createModal"
+                       model-route="' . $route . '" model-title="' . $fullText . '" title="تعديل">
                    <i class="fa fa-pencil"></i>
                 </button>';
     }
@@ -112,7 +112,7 @@ if (!function_exists('leaveButton')) {
 if (!function_exists('deleteButton')) {
     function deleteButton($route)
     {
-        return '<button type="button" class="btn btn-danger deleteButton" delete-route="' . $route . '">
+        return '<button type="button" class="btn btn-sm btn-danger btn-delete deleteButton" delete-route="' . $route . '" title="حذف">
                       <i class="fa fa-trash-o"></i>
                 </button>';
     }
@@ -455,24 +455,43 @@ function api(): \Illuminate\Contracts\Auth\Guard|\Illuminate\Contracts\Auth\Stat
 }
 
 if (!function_exists('helperTrans')) {
-    function helperTrans($str): array|string|\Illuminate\Contracts\Translation\Translator|\Illuminate\Contracts\Foundation\Application|null
+    function helperTrans($str): string
     {
+        // Validate input
+        if (empty($str) || !is_string($str)) {
+            return '';
+        }
 
         $arrayOfKeys = explode('.', $str);
         $file = $arrayOfKeys[0] ?? 'file';
         $key = $arrayOfKeys[1] ?? '';
 
+        if (empty($file) || empty($key)) {
+            return $str;
+        }
+
         $local = get_api_lang();
+        $lang_file_path = resource_path("lang/$local/$file.php");
+
+        // Check if language file exists
+        if (!file_exists($lang_file_path)) {
+            return __("$file.$key");
+        }
 
         try {
-            $lang_array = include resource_path("lang/$local/$file.php");
+            $lang_array = include $lang_file_path;
+
+            // Ensure $lang_array is actually an array
+            if (!is_array($lang_array)) {
+                return __("$file.$key");
+            }
 
             $processed_key = ucfirst(str_replace('_', ' ', remove_invalid_characters($key)));
 
             if (!array_key_exists($key, $lang_array)) {
                 $lang_array[$key] = $processed_key;
-                $str = "<?php return " . var_export($lang_array, true) . ";";
-                file_put_contents(resource_path("lang/$local/$file.php"), $str);
+                $str_content = "<?php return " . var_export($lang_array, true) . ";";
+                file_put_contents($lang_file_path, $str_content);
                 $result = $processed_key;
             } else {
                 $result = __("$file.$key");
@@ -485,12 +504,12 @@ if (!function_exists('helperTrans')) {
     }
 }
 
-function remove_invalid_characters($str): array|string
+function remove_invalid_characters($str): string
 {
     return str_ireplace(['\'', '"', ',', ';', '<', '>'], ' ', $str);
 }
 
-function get_api_lang(): array|string
+function get_api_lang(): string
 {
     return request()->header('lang') ?? 'ar';
 }
@@ -524,8 +543,7 @@ if (!function_exists('getWhatsAppNumber')) {
 if (!function_exists('viewSingleButton')) {
     function viewSingleButton($route)
     {
-        return '<a class="btn btn-primary viewSingleButton"
-                       href="' . $route . '">
+        return '<a class="btn btn-sm btn-info btn-view" href="' . $route . '" title="عرض التفاصيل">
                    <i class="fa fa-eye"></i>
                 </a>';
     }
@@ -534,7 +552,7 @@ if (!function_exists('viewSingleButton')) {
 if (!function_exists('ahxEditBtn')) {
     function ahxEditBtn($route)
     {
-        return '<a class="btn btn-primary" href="' . $route . '">
+        return '<a class="btn btn-sm btn-primary btn-edit" href="' . $route . '" title="تعديل">
                 <i class="fa fa-pencil"></i>
             </a>';
     }

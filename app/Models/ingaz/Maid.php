@@ -33,8 +33,45 @@ class Maid extends Model
         'en' => 'In Accommodation'
     ];
 
-    protected $guarded = [];
-    protected $fillable = ['status'];
+    protected $fillable = [
+        'name',
+        'nationality_id',
+        'religion_id',
+        'passport_num',
+        'id_number',
+        'id_expiry_date',
+        'price',
+        'salary',
+        'age',
+        'height',
+        'weight',
+        'birth_date',
+        'experience_years',
+        'skills',
+        'cv_file',
+        'image',
+        'cv_preview',
+        'office_id',
+        'status',
+        'available',
+        'available_at',
+        'is_show',
+        'is_pinned'
+    ];
+
+    protected $casts = [
+        'skills' => 'array',
+        'price' => 'decimal:2',
+        'salary' => 'decimal:2',
+        'age' => 'float',
+        'available' => 'boolean',
+        'is_show' => 'boolean',
+        'is_pinned' => 'boolean',
+        'available_at' => 'date',
+        'birth_date' => 'date',
+        'id_expiry_date' => 'date'
+    ];
+
     public $translatedAttributes = ['languages', 'marital_status'];
     protected $translationForeignKey = 'maid_id';
     public $translationModel = MaidTranslation::class;

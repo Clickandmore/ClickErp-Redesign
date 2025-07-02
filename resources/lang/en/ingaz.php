@@ -356,4 +356,7 @@
     'export_pdf' => 'Export PDF',
     'export_excel' => 'Export Excel',
     'clients_management' => 'Clients Management',
+    'cv_status' => 'CV Status',
+    'cv_available' => 'Available',
+    'cv_reserved' => 'Reserved',
 );
