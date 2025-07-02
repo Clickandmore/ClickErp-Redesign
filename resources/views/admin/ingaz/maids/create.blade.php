@@ -18,7 +18,7 @@
                 @csrf
                 <!-- الملفات -->
                 <div class="col-6">
-                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.cv_file")}} <small class="text-muted">(اختياري)</small></label>
+                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.cv_file")}} </label>
                     <input type="file" data-default-file="" name="cv_file" class="dropify">
                 </div>
                 <div class="col-6">
@@ -99,14 +99,14 @@
                 <!-- البيانات الشخصية -->
                 <div class="col-4">
                     <label for="TextInput" class="form-label">
-                        تاريخ الميلاد <small class="text-muted">(اختياري)</small>
+                        تاريخ الميلاد
                     </label>
-                    <input type="date" name="birth_date" id="birth_date" class="form-control">
+                    <input type="date" name="birth_date" id="birth_date" class="form-control" required>
                 </div>
 
                 <div class="col-4">
                     <label for="TextInput" class="form-label">
-                        {{helperTrans("ingaz.age")}} <small class="text-muted">(اختياري)</small>
+                        {{helperTrans("ingaz.age")}}
                     </label>
                     <input type="number" min="18" max="90" name="age" id="age" class="form-control" readonly>
                 </div>
@@ -149,7 +149,8 @@
                     <label for="TextInput" class="form-label">
                         {{helperTrans("ingaz.passport_num")}}
                     </label>
-                    <input type="text" name="passport_num" class="form-control" required>
+                    <input type="text" name="passport_num" id="passport_num" class="form-control" required>
+                    <div id="passport_num_feedback" class="invalid-feedback"></div>
                 </div>
 
                 <div class="col-4">
@@ -357,6 +358,51 @@
                 $(this).val(idNumber);
             });
 
+            // التحقق من رقم الجواز - فحص التكرار
+            var passportCheckTimeout;
+            $('#passport_num').on('input', function() {
+                var passportNum = $(this).val().trim();
+                var feedback = $('#passport_num_feedback');
+
+                // Clear previous timeout
+                clearTimeout(passportCheckTimeout);
+
+                // Clear previous feedback
+                $(this).removeClass('is-valid is-invalid');
+                feedback.removeClass('valid-feedback invalid-feedback').text('');
+
+                // If empty, don't check
+                if (!passportNum) {
+                    return;
+                }
+
+                // Set timeout to avoid too many requests
+                passportCheckTimeout = setTimeout(function() {
+                    $.ajax({
+                        url: '{{ route("check.passport.unique") }}',
+                        type: 'POST',
+                        data: {
+                            passport_num: passportNum,
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+                            if (response.exists) {
+                                $('#passport_num').addClass('is-invalid');
+                                feedback.addClass('invalid-feedback').text('رقم الجواز مسجل مسبقاً في النظام، يرجى التحقق من الرقم أو اختيار رقم آخر');
+                            } else {
+                                $('#passport_num').addClass('is-valid');
+                                feedback.addClass('valid-feedback').text('رقم الجواز متاح');
+                            }
+                        },
+                        error: function() {
+                            // On error, don't show validation state
+                            $('#passport_num').removeClass('is-valid is-invalid');
+                            feedback.removeClass('valid-feedback invalid-feedback').text('');
+                        }
+                    });
+                }, 500); // Wait 500ms after user stops typing
+            });
+
             // حساب العمر تلقائياً عند تغيير تاريخ الميلاد
             $('#birth_date').change(function() {
                 var birthDate = new Date($(this).val());
@@ -466,6 +512,19 @@
                 if (!nationalityValue || nationalityValue.trim() === '') {
                     errors.push('الجنسية مطلوبة');
                     isValid = false;
+                }
+
+                // التحقق من رقم الجواز
+                var passportNum = $('input[name="passport_num"]').val().trim();
+                if (!passportNum) {
+                    errors.push('رقم الجواز مطلوب');
+                    isValid = false;
+                } else {
+                    // Check if passport number is already invalid (from real-time validation)
+                    if ($('input[name="passport_num"]').hasClass('is-invalid')) {
+                        errors.push('رقم الجواز مسجل مسبقاً في النظام، يرجى التحقق من الرقم أو اختيار رقم آخر');
+                        isValid = false;
+                    }
                 }
 
                 // التحقق من الحقول المطلوبة فقط إذا لم يكن نوع السيرة "إستلام فورى" أو "ايجار عمالة" أو "تأجير"

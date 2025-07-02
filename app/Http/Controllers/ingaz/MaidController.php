@@ -25,7 +25,7 @@ class MaidController extends Controller
 {
 
     public $folderPath = "admin.ingaz.maids";
-    public $postData = ["nationality_id", 'image', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages:ar', 'languages:en', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en'];
+    public $postData = ["nationality_id", 'image', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en'];
     public $mainRoute = "maids";
 
     public function __construct()
@@ -851,6 +851,25 @@ class MaidController extends Controller
             });
 
         return response()->json($offices);
+    }
+
+    /**
+     * Check if passport number is unique
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function checkPassportUnique(Request $request)
+    {
+        $passportNum = $request->passport_num;
+
+        if (empty($passportNum)) {
+            return response()->json(['exists' => false]);
+        }
+
+        $exists = objModel::where('passport_num', $passportNum)->exists();
+
+        return response()->json(['exists' => $exists]);
     }
 
 }

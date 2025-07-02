@@ -12,6 +12,25 @@ class MainAction
     public function clearRequesrt($data)
     {
         foreach ($data as $key => $value) {
+            // Debug: Log any array fields
+            if (is_array($value)) {
+                \Log::error("[MainAction] Array field found: $key => " . print_r($value, true));
+            }
+
+            // Handle arrays properly - don't try to trim them
+            if (is_array($value)) {
+                // If array is empty, remove it
+                if (empty($value)) {
+                    unset($data[$key]);
+                    \Log::info("[MainAction] Removed empty array field: $key");
+                } else {
+                    // If array has values, keep it as is
+                    \Log::info("[MainAction] Keeping array field: $key with values: " . implode(',', $value));
+                }
+                continue;
+            }
+
+            // Handle strings and other types
             $trimedValue = (gettype($value) == "string") ? trim($value) : $value;
             if (empty($trimedValue)) {
                 unset($data[$key]);

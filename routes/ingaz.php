@@ -96,6 +96,7 @@ Route::group(
             Route::post('update_cv/{id}', [App\Http\Controllers\ingaz\MaidController::class, 'update_cv'])->name('maids.update_cv');
             Route::get('maids/export/pdf', [App\Http\Controllers\ingaz\MaidController::class, 'exportPdf'])->name('maids.export.pdf');
             Route::get('maids/export/excel', [App\Http\Controllers\ingaz\MaidController::class, 'exportExcel'])->name('maids.export.excel');
+            Route::post('check-passport-unique', [App\Http\Controllers\ingaz\MaidController::class, 'checkPassportUnique'])->name('check.passport.unique');
 
             Route::resource('maids-test', MaidTestController::class);
             Route::resource('packages', PackageController::class);

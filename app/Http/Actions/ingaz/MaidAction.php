@@ -15,6 +15,13 @@ class MaidAction extends MainAction
 
                 public function storeMaid($data, $request)
     {
+        // Debug: Log the raw data received
+        \Log::info('Raw data received in storeMaid:', $data);
+        \Log::info('Languages data type: ' . gettype($data['languages'] ?? 'not set'));
+        \Log::info('Languages data: ', is_array($data['languages'] ?? null) ? $data['languages'] : [$data['languages'] ?? 'not set']);
+        \Log::info('Name data: ' . ($data['name'] ?? 'not set'));
+        \Log::info('Name:en data: ' . ($data['name:en'] ?? 'not set'));
+
         if (isset($data['cv_file']) && $data['cv_file'] instanceof \Illuminate\Http\UploadedFile) {
             $image = $data['cv_file'];
             $data['cv_file'] = uploadFile($image, $this->fileFolder);
@@ -70,9 +77,34 @@ class MaidAction extends MainAction
         $data['id_number'] = $data['id_number'] ?? '';
         $data['id_expiry_date'] = $data['id_expiry_date'] ?? null;
 
-        // Convert skills array to JSON if it exists
-        if (isset($data['skills']) && is_array($data['skills'])) {
-            $data['skills'] = json_encode($data['skills']);
+        // Robust handling for languages field
+        \Log::info('Before languages processing - languages data:', [$data['languages'] ?? 'not set']);
+        \Log::info('Languages data type: ' . gettype($data['languages'] ?? 'not set'));
+        if (isset($data['languages'])) {
+            if (is_array($data['languages'])) {
+                // Convert associative array to simple array of values
+                $languagesArray = [];
+                foreach ($data['languages'] as $key => $value) {
+                    if ($value === 'نعم' || $value === 'yes') {
+                        $languagesArray[] = $key;
+                    }
+                }
+                $data['languages'] = json_encode($languagesArray);
+                \Log::info('Languages converted to JSON: ' . $data['languages']);
+            } elseif (is_string($data['languages'])) {
+                // If it's a string, check if it's valid JSON, otherwise wrap as array
+                json_decode($data['languages']);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    $data['languages'] = json_encode([$data['languages']]);
+                    \Log::info('Languages string wrapped as array and converted to JSON: ' . $data['languages']);
+                }
+            } else {
+                $data['languages'] = json_encode([]);
+                \Log::info('Languages was not array or string, set to empty array.');
+            }
+        } else {
+            $data['languages'] = json_encode([]);
+            \Log::info('Languages not set, set to empty array.');
         }
 
         // Handle birth_date field
@@ -93,7 +125,23 @@ class MaidAction extends MainAction
             throw new \Exception('Selected religion does not exist in the database');
         }
 
+        // معالجة جميع الحقول التي هي array
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                if (in_array($key, ['skills', 'languages'])) {
+                    $data[$key] = json_encode($value);
+                } else {
+                    $data[$key] = implode(',', $value);
+                }
+            }
+        }
 
+                // Debug: Log any array fields before saving
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                \Log::error("[ARRAY FIELD] $key => " . print_r($value, true));
+            }
+        }
 
                 // Debug: Log the data being sent to create
         \Log::info('Maid creation data:', $data);
@@ -113,6 +161,7 @@ class MaidAction extends MainAction
             'birth_date' => $data['birth_date'] ?? null,
             'experience_years' => $data['experience_years'] ?? null,
             'skills' => $data['skills'] ?? null,
+            'languages' => $data['languages'] ?? null,
             'cv_file' => $data['cv_file'] ?? '',
             'image' => $data['image'] ?? null,
             'cv_preview' => $data['cv_preview'] ?? null,
@@ -125,10 +174,26 @@ class MaidAction extends MainAction
         ];
 
         \Log::info('Final create data:', $createData);
+        \Log::info('About to create maid with data keys: ' . implode(', ', array_keys($createData)));
+        \Log::info('Languages in createData: ' . ($createData['languages'] ?? 'null'));
+        \Log::info('Name in createData: ' . ($createData['name'] ?? 'null'));
 
-        $maid = $this->model->create($createData);
+        try {
+            $maid = $this->model->create($createData);
+            \Log::info('Maid created successfully with ID: ' . $maid->id);
+        } catch (\Exception $e) {
+            \Log::error('Error creating maid: ' . $e->getMessage());
+            \Log::error('Error trace: ' . $e->getTraceAsString());
+            throw $e;
+        }
+
+        \Log::info('About to attach job titles: ' . print_r($request->job_id, true));
         $maid->jobTitles()->attach($request->job_id);
+        \Log::info('Job titles attached successfully');
+
+        \Log::info('About to attach job types: ' . print_r($request->type_id, true));
         $maid->jobTypes()->attach($request->type_id);
+        \Log::info('Job types attached successfully');
         return $maid;
     }
 
@@ -207,6 +272,35 @@ class MaidAction extends MainAction
             $image = $data['image'];
             $data['image'] = uploadFile($image, $this->fileFolder);
         }
+
+        // Robust handling for languages field
+        \Log::info('Before languages processing - languages data:', [$data['languages'] ?? 'not set']);
+        \Log::info('Languages data type: ' . gettype($data['languages'] ?? 'not set'));
+        if (isset($data['languages'])) {
+            if (is_array($data['languages'])) {
+                $data['languages'] = json_encode($data['languages']);
+                \Log::info('Languages converted to JSON: ' . $data['languages']);
+            } elseif (is_string($data['languages'])) {
+                // If it's a string, check if it's valid JSON, otherwise wrap as array
+                json_decode($data['languages']);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    $data['languages'] = json_encode([$data['languages']]);
+                    \Log::info('Languages string wrapped as array and converted to JSON: ' . $data['languages']);
+                }
+            } else {
+                $data['languages'] = json_encode([]);
+                \Log::info('Languages was not array or string, set to empty array.');
+            }
+        } else {
+            $data['languages'] = json_encode([]);
+            \Log::info('Languages not set, set to empty array.');
+        }
+
+        // Convert skills array to JSON if it exists
+        if (isset($data['skills']) && is_array($data['skills'])) {
+            $data['skills'] = json_encode($data['skills']);
+        }
+
         $row = parent::find($id);
         $row->update($data);
 //        parent::update($id, $data);

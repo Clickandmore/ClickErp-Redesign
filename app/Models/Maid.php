@@ -12,18 +12,30 @@ class Maid extends Model
         'id_number',
         'id_expiry_date',
         'skills',
+        'languages',
         'experience_years',
         'nationality_id',
         'cv_file',
         'price',
         'salary',
         'status',
-        'job_id',
-        'job_type_id',
-        'job_2',
-        'job_types_2',
-        'created_at',
-        'updated_at',
+        'available',
+        'is_pinned',
+        'available_at',
+        'is_show',
+        'cv_preview',
+        'office_id',
+        'image',
+        'height',
+        'weight',
+        'birth_date',
+        'age',
+        'religion_id',
+    ];
+
+    protected $casts = [
+        'skills' => 'array',
+        'languages' => 'array',
     ];
 
     public function nationality()
