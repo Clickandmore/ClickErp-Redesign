@@ -167,6 +167,7 @@ return [
          * Package Service Providers...
          */
         Spatie\Permission\PermissionServiceProvider::class,
+        Astrotomic\Translatable\TranslatableServiceProvider::class,
         /*
          * Application Service Providers...
          */

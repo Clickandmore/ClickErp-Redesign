@@ -454,6 +454,14 @@ class MaidController extends Controller
 
     public function togglePin($id)
     {
+        // Check if user has permission to toggle pin
+        if (!@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_PIN)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ليس لديك صلاحية لتثبيت/إلغاء تثبيت العاملة'
+            ], 403);
+        }
+
         $maid = objModel::findOrFail($id);
         $maid->is_pinned = !$maid->is_pinned;
         $maid->save();

@@ -374,6 +374,13 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function () {
+            // Setup CSRF token for all AJAX requests
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                }
+            });
+
             @if ($request)
             setTimeout(function () {
                 $('#btnSubmit').trigger('click');
@@ -420,7 +427,9 @@
                         if (row.available == 1) {
                             let pinButton = `<button class="btn btn-sm toggle-pin ${row.is_pinned ? 'btn-warning' : 'btn-secondary'}"
                                 data-id="${row.id}"
-                                title="${row.is_pinned ? 'إلغاء التثبيت' : 'تثبيت'}">
+                                data-pinned="${row.is_pinned}"
+                                title="${row.is_pinned ? 'إلغاء التثبيت' : 'تثبيت'}"
+                                style="cursor: pointer;">
                                 <i class="fa fa-thumb-tack"></i>
                             </button>`;
                             actions = pinButton + actions;
@@ -507,6 +516,7 @@
                     },
                     drawCallback: function() {
                         // Reinitialize any event handlers after table redraw
+                        console.log('DataTable drawCallback - reinitializing event handlers');
                         initializeEventHandlers();
                     },
                     columnDefs: [
@@ -519,12 +529,18 @@
             }
 
             function initializeEventHandlers() {
-                // Add click handler for pin button
-                $('.toggle-pin').on('click', function() {
+                // Remove existing event handlers to prevent duplicates
+                $(document).off('click', '.toggle-pin');
+
+                // Add click handler for pin button using event delegation
+                $(document).on('click', '.toggle-pin', function() {
+                    console.log('Toggle pin button clicked');
                     let button = $(this);
                     let id = button.data('id');
                     let isPinned = button.hasClass('btn-warning');
                     let confirmMsg = isPinned ? 'هل أنت متأكد من إلغاء التثبيت؟' : 'هل أنت متأكد من تثبيت هذه العاملة؟';
+
+                    console.log('Maid ID:', id, 'Is Pinned:', isPinned);
 
                     Swal.fire({
                         title: 'تأكيد',
@@ -538,12 +554,26 @@
                             $.ajax({
                                 url: `/admin/maids/${id}/toggle-pin`,
                                 type: 'POST',
-                                data: {
-                                    _token: '{{ csrf_token() }}'
+                                headers: {
+                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                                 },
                                 success: function(response) {
+                                    console.log('Toggle pin response:', response);
                                     if (response.success) {
+                                        // Update the button appearance immediately
+                                        if (isPinned) {
+                                            button.removeClass('btn-warning').addClass('btn-secondary');
+                                            button.attr('title', 'تثبيت');
+                                            button.attr('data-pinned', 'false');
+                                        } else {
+                                            button.removeClass('btn-secondary').addClass('btn-warning');
+                                            button.attr('title', 'إلغاء التثبيت');
+                                            button.attr('data-pinned', 'true');
+                                        }
+
+                                        // Reload the table
                                         $('#dataTableObject').DataTable().ajax.reload();
+
                                         Swal.fire({
                                             icon: 'success',
                                             title: 'تم بنجاح',
@@ -551,13 +581,28 @@
                                             timer: 2000,
                                             showConfirmButton: false
                                         });
+                                    } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'خطأ',
+                                            text: response.message || 'حدث خطأ أثناء تحديث حالة التثبيت'
+                                        });
                                     }
                                 },
                                 error: function(xhr, status, error) {
+                                    console.error('Toggle pin error:', xhr.responseJSON);
+                                    console.error('Status:', status);
+                                    console.error('Error:', error);
+                                    let errorMessage = 'حدث خطأ أثناء تحديث حالة التثبيت';
+
+                                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                                        errorMessage = xhr.responseJSON.message;
+                                    }
+
                                     Swal.fire({
                                         icon: 'error',
                                         title: 'خطأ',
-                                        text: 'حدث خطأ أثناء تحديث حالة التثبيت'
+                                        text: errorMessage
                                     });
                                 }
                             });
