@@ -3,11 +3,11 @@
 
         <div class="title-text d-flex align-items-center mb-4 mt-1">
             <h4 class="sidebar-title mb-0 flex-grow-1"><span class="sm-txt"></span>
-                <span>
+                {{-- <span>
                     @if(isset($settings) && isset($settings->website_name))
                         {{$settings->website_name}}
                     @endif
-                </span>
+                </span> --}}
             </h4>
             <div class="dropdown morphing scale-right">
                 <a class="dropdown-toggle more-icon" href="#" role="button" data-bs-toggle="dropdown"><i

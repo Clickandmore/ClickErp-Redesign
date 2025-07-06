@@ -26,6 +26,7 @@ class MaidRequest extends MainRequest
     public function rules()
     {
         return [
+            'name:en' => 'required|string|max:255',
             'cv_file' => 'nullable',
             'nationality_id' => 'required|exists:nationalities,id',
             'passport_num' => [
@@ -49,6 +50,9 @@ class MaidRequest extends MainRequest
     public function messages()
     {
         return [
+            'name:en.required' => 'اسم العاملة مطلوب',
+            'name:en.string' => 'اسم العاملة يجب أن يكون نص',
+            'name:en.max' => 'اسم العاملة يجب أن لا يتجاوز 255 حرف',
             'cv_file.required' => helperTrans('web.cv_file_is_required'),
             'nationality_id.required' => helperTrans('web.nationality_id_is_required'),
             'nationality_id.exists' => helperTrans('web.invalid_nationality_id'),

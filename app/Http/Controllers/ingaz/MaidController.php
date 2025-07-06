@@ -25,7 +25,7 @@ class MaidController extends Controller
 {
 
     public $folderPath = "admin.ingaz.maids";
-    public $postData = ["nationality_id", 'image', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en'];
+    public $postData = ["nationality_id", 'image', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date'];
     public $mainRoute = "maids";
 
     public function __construct()
@@ -150,7 +150,7 @@ class MaidController extends Controller
 
                     // Edit CV
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
-                        $buttons .= editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
+                        $buttons .= ahxEditBtn(route($this->mainRoute . ".edit", $row->id));
                     }
 
                     // Toggle pin status
@@ -412,19 +412,36 @@ class MaidController extends Controller
         return response()->json(['success' => true]);
     }
 
-    public function edit(Request $request, $id, NationalityAction $act, RecruitmentOfficeAction $officeAct, ReligionAction $relAct, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction)
+    public function edit(Request $request, $id, NationalityAction $act, RecruitmentOfficeAction $officeAct, ReligionAction $relAct, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction, SkillAction $skillAction)
     {
         if ($request->ajax()) {
             $obj = objModel::findOrFail($id);
             return $this->createAjaxResponse($act, $officeAct, $relAct, $jobTitleAction, $jobTypesAction, 'edit', ['obj' => $obj]);
         }
+
+        // Handle direct request for edit page
+        $obj = objModel::findOrFail($id);
+        $nationalities = $act->getNationalities();
+        $religions = $relAct->getReligions();
+        $jobs = $jobTitleAction->getJobsTitles();
+        $types = $jobTypesAction->getJobsTypes();
+        $offices = $officeAct->getAllOffices();
+        $skills = $skillAction->get();
+
+        return view("{$this->folderPath}.edit", compact('obj', 'nationalities', 'offices', 'religions', 'jobs', 'types', 'skills'));
     }
 
     public function update(MaidRequest $request, objAction $action, $id)
     {
         $data = $request->only($this->postData);
         $data = $action->updateMaid($id, $data, $request);
-        return jsonSuccess($data);
+
+        if ($request->ajax()) {
+            return jsonSuccess($data);
+        }
+
+        // Handle direct form submission
+        return redirect()->route('maids.index')->with('success', 'تم تحديث العاملة بنجاح');
     }
 
     public function update_cv(Request $request, objAction $action, $id)
@@ -711,7 +728,8 @@ class MaidController extends Controller
         $jobs = $jobTitleAction->getJobsTitles();
         $types = $jobTypesAction->getJobsTypes();
         $offices = $officeAction->getAllOffices();
-        $data = array_merge(compact('nationalities', 'offices', 'religions', 'jobs', 'types'), $additionalData);
+        $skills = app(SkillAction::class)->get();
+        $data = array_merge(compact('nationalities', 'offices', 'religions', 'jobs', 'types', 'skills'), $additionalData);
         $returnHTML = view("{$this->folderPath}.{$viewName}", $data)->render();
         return jsonSuccess(['html' => $returnHTML]);
     }

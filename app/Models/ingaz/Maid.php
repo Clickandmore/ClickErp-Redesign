@@ -48,7 +48,6 @@ class Maid extends Model
         'birth_date',
         'experience_years',
         'skills',
-        'languages',
         'cv_file',
         'image',
         'cv_preview',
@@ -62,7 +61,6 @@ class Maid extends Model
 
     protected $casts = [
         'skills' => 'array',
-        'languages' => 'array',
         'price' => 'decimal:2',
         'salary' => 'decimal:2',
         'age' => 'float',
@@ -74,7 +72,7 @@ class Maid extends Model
         'id_expiry_date' => 'date'
     ];
 
-    public $translatedAttributes = ['marital_status'];
+    public $translatedAttributes = ['marital_status', 'languages'];
     protected $translationForeignKey = 'maid_id';
     public $translationModel = MaidTranslation::class;
     protected $with = ['translations'];

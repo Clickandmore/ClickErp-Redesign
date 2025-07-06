@@ -16,4 +16,9 @@ class SkillAction extends MainAction
     {
         return $this->model->latest()->get();
     }
+
+    public function get()
+    {
+        return $this->model->latest()->get();
+    }
 }

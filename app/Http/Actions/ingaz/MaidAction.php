@@ -255,7 +255,38 @@ class MaidAction extends MainAction
 
     public function updateMaid($id, $data, $request)
     {
+        \Log::info('updateMaid called with data:', $data);
+        \Log::info('Request data:', $request->all());
+
         $maid = parent::find($id);
+
+        // Handle name field
+        if (isset($data['name:en'])) {
+            $data['name'] = $data['name:en'];
+            unset($data['name:en']);
+        }
+
+        // Handle birth_date field
+        if (isset($data['birth_date']) && !empty($data['birth_date'])) {
+            $data['birth_date'] = date('Y-m-d', strtotime($data['birth_date']));
+        }
+
+        // Handle id_expiry_date field
+        if (isset($data['id_expiry_date']) && !empty($data['id_expiry_date'])) {
+            $data['id_expiry_date'] = date('Y-m-d', strtotime($data['id_expiry_date']));
+        }
+
+        // Handle marital_status:ar field for translation
+        if (isset($data['marital_status:ar'])) {
+            $maritalStatus = $data['marital_status:ar'];
+            unset($data['marital_status:ar']);
+        }
+
+        // Handle languages field for translation
+        if (isset($data['languages'])) {
+            $languagesData = $data['languages'];
+            unset($data['languages']);
+        }
 
         if (isset($data['cv_file'])) {
             deleteFile($maid->cv_file);
@@ -273,29 +304,6 @@ class MaidAction extends MainAction
             $data['image'] = uploadFile($image, $this->fileFolder);
         }
 
-        // Robust handling for languages field
-        \Log::info('Before languages processing - languages data:', [$data['languages'] ?? 'not set']);
-        \Log::info('Languages data type: ' . gettype($data['languages'] ?? 'not set'));
-        if (isset($data['languages'])) {
-            if (is_array($data['languages'])) {
-                $data['languages'] = json_encode($data['languages']);
-                \Log::info('Languages converted to JSON: ' . $data['languages']);
-            } elseif (is_string($data['languages'])) {
-                // If it's a string, check if it's valid JSON, otherwise wrap as array
-                json_decode($data['languages']);
-                if (json_last_error() !== JSON_ERROR_NONE) {
-                    $data['languages'] = json_encode([$data['languages']]);
-                    \Log::info('Languages string wrapped as array and converted to JSON: ' . $data['languages']);
-                }
-            } else {
-                $data['languages'] = json_encode([]);
-                \Log::info('Languages was not array or string, set to empty array.');
-            }
-        } else {
-            $data['languages'] = json_encode([]);
-            \Log::info('Languages not set, set to empty array.');
-        }
-
         // Convert skills array to JSON if it exists
         if (isset($data['skills']) && is_array($data['skills'])) {
             $data['skills'] = json_encode($data['skills']);
@@ -303,7 +311,34 @@ class MaidAction extends MainAction
 
         $row = parent::find($id);
         $row->update($data);
-//        parent::update($id, $data);
+
+        // Handle translation fields
+        if (isset($maritalStatus)) {
+            $row->translateOrNew('ar')->marital_status = $maritalStatus;
+        }
+
+        if (isset($languagesData)) {
+            if (is_array($languagesData)) {
+                $languagesArray = [];
+                foreach ($languagesData as $key => $value) {
+                    if ($value === 'نعم' || $value === 'yes') {
+                        $languagesArray[] = $key;
+                    }
+                }
+                $languagesString = implode(', ', $languagesArray);
+            } else {
+                $languagesString = $languagesData;
+            }
+            $row->translateOrNew('ar')->languages = $languagesString;
+        }
+
+        if (isset($maritalStatus) || isset($languagesData)) {
+            $row->save();
+        }
+
+        \Log::info('Final data to update:', $data);
+        \Log::info('Maid ID:', ['id' => $id]);
+
         if ($request->job_id) {
             $maid->jobTitles()->sync($request->job_id);
         }
