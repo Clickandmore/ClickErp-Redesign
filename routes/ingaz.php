@@ -30,7 +30,7 @@ Route::group(
         'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath'],
     ],
     function () {
-        Route::group(["prefix" => "admin"], function () {
+        Route::group(["prefix" => "admin", "middleware" => "admin"], function () {
 
             Route::get('getMaidByNationality/{nationalityId}', 'RecruitmentContractController@getMaidByNationality')->name('getMaidByNationality');
 

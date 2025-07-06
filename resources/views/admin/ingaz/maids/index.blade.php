@@ -422,20 +422,6 @@
                 {"data": "created_at", orderable: true, searchable: false, className: 'd-none d-md-table-cell'},
                 {
                     "data": "actions",
-                    "render": function(data, type, row) {
-                        let actions = data;
-                        if (row.available == 1) {
-                            let pinButton = `<button class="btn btn-sm toggle-pin ${row.is_pinned ? 'btn-warning' : 'btn-secondary'}"
-                                data-id="${row.id}"
-                                data-pinned="${row.is_pinned}"
-                                title="${row.is_pinned ? 'إلغاء التثبيت' : 'تثبيت'}"
-                                style="cursor: pointer;">
-                                <i class="fa fa-thumb-tack"></i>
-                            </button>`;
-                            actions = pinButton + actions;
-                        }
-                        return actions;
-                    },
                     orderable: false,
                     searchable: false
                 }
@@ -488,6 +474,7 @@
             });
 
             function showDataTable(url, columns) {
+                console.log('Initializing DataTable with URL:', url);
                 $('#dataTableObject').DataTable({
                     processing: true,
                     serverSide: true,
@@ -532,8 +519,11 @@
                 // Remove existing event handlers to prevent duplicates
                 $(document).off('click', '.toggle-pin');
 
-                // Add click handler for pin button using event delegation
-                $(document).on('click', '.toggle-pin', function() {
+                                // Add click handler for pin button using event delegation
+                $(document).on('click', '.toggle-pin', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
                     console.log('Toggle pin button clicked');
                     let button = $(this);
                     let id = button.data('id');
@@ -541,6 +531,10 @@
                     let confirmMsg = isPinned ? 'هل أنت متأكد من إلغاء التثبيت؟' : 'هل أنت متأكد من تثبيت هذه العاملة؟';
 
                     console.log('Maid ID:', id, 'Is Pinned:', isPinned);
+                    console.log('Button element:', button);
+                    console.log('Button data-id:', button.data('id'));
+                    console.log('Button classes:', button.attr('class'));
+                    console.log('Button data-pinned:', button.data('pinned'));
 
                     Swal.fire({
                         title: 'تأكيد',
@@ -551,11 +545,22 @@
                         cancelButtonText: 'إلغاء'
                     }).then((result) => {
                         if (result.isConfirmed) {
+                            console.log('Making AJAX request to:', `/admin/maids/${id}/toggle-pin`);
+                            console.log('CSRF Token:', $('meta[name="csrf-token"]').attr('content'));
+                            console.log('Request method: POST');
+                            console.log('Request headers:', {
+                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                            });
+
                             $.ajax({
                                 url: `/admin/maids/${id}/toggle-pin`,
                                 type: 'POST',
                                 headers: {
                                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                                },
+                                beforeSend: function() {
+                                    console.log('AJAX request started');
+                                    button.prop('disabled', true);
                                 },
                                 success: function(response) {
                                     console.log('Toggle pin response:', response);
@@ -588,6 +593,12 @@
                                             text: response.message || 'حدث خطأ أثناء تحديث حالة التثبيت'
                                         });
                                     }
+                                },
+                                complete: function(xhr, status) {
+                                    console.log('AJAX request completed');
+                                    console.log('Response status:', xhr.status);
+                                    console.log('Response status text:', xhr.statusText);
+                                    button.prop('disabled', false);
                                 },
                                 error: function(xhr, status, error) {
                                     console.error('Toggle pin error:', xhr.responseJSON);

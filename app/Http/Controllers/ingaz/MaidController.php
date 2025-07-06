@@ -153,10 +153,11 @@ class MaidController extends Controller
                         $buttons .= ahxEditBtn(route($this->mainRoute . ".edit", $row->id));
                     }
 
-                    // Toggle pin status
-                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_PIN)) {
-                        $buttons .= '<button class="btn btn-sm ' . ($row->is_pinned ? 'btn-warning' : 'btn-secondary') . ' toggle-pin" data-id="' . $row->id . '" title="' . ($row->is_pinned ? 'إلغاء التثبيت' : 'تثبيت') . '">
-                             <i class="fa fa-star"></i>
+                    // Toggle pin status - only for available maids
+                    $hasPinPermission = @AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_PIN);
+                    if ($hasPinPermission && $row->available == 1) {
+                        $buttons .= '<button class="btn btn-sm ' . ($row->is_pinned ? 'btn-warning' : 'btn-secondary') . ' toggle-pin" data-id="' . $row->id . '" data-pinned="' . ($row->is_pinned ? 'true' : 'false') . '" title="' . ($row->is_pinned ? 'إلغاء التثبيت' : 'تثبيت') . '" style="cursor: pointer;">
+                             <i class="fa fa-thumb-tack"></i>
                         </button>';
                     }
 
@@ -454,25 +455,43 @@ class MaidController extends Controller
 
     public function togglePin($id)
     {
+        \Log::info('Toggle pin method called for maid ID: ' . $id);
+
         // Check if user has permission to toggle pin
-        if (!@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_PIN)) {
+        $hasPermission = @AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_PIN);
+        \Log::info('User permission check for MAIDS_TOGGLE_PIN: ' . ($hasPermission ? 'true' : 'false'));
+
+        if (!$hasPermission) {
+            \Log::warning('User does not have permission to toggle pin');
             return response()->json([
                 'success' => false,
                 'message' => 'ليس لديك صلاحية لتثبيت/إلغاء تثبيت العاملة'
             ], 403);
         }
 
-        $maid = objModel::findOrFail($id);
-        $maid->is_pinned = !$maid->is_pinned;
-        $maid->save();
+        try {
+            $maid = objModel::findOrFail($id);
+            \Log::info('Maid found: ' . $maid->name . ', current pin status: ' . ($maid->is_pinned ? 'true' : 'false'));
 
-        $message = $maid->is_pinned ? 'تم تثبيت العاملة بنجاح' : 'تم إلغاء التثبيت بنجاح';
+            $maid->is_pinned = !$maid->is_pinned;
+            $maid->save();
 
-        return response()->json([
-            'success' => true,
-            'data' => $maid,
-            'message' => $message,
-        ]);
+            \Log::info('Maid pin status updated to: ' . ($maid->is_pinned ? 'true' : 'false'));
+
+            $message = $maid->is_pinned ? 'تم تثبيت العاملة بنجاح' : 'تم إلغاء التثبيت بنجاح';
+
+            return response()->json([
+                'success' => true,
+                'data' => $maid,
+                'message' => $message,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error in togglePin method: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تحديث حالة التثبيت: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
