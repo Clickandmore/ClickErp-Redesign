@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ingaz\ShelterContactStore;
 use App\Models\Contract;
 use App\Models\RecruitmentOffices;
+use App\NewPermKeys;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
@@ -417,6 +418,114 @@ class ShelterContractController extends Controller
     {
         $shelterPlaces = \App\Models\ShelterPlaces::with('translations')->get();
         return response()->json($shelterPlaces);
+    }
+
+    /**
+     * Create a new contract from shelter contract page
+     */
+    public function createContract(Request $request)
+    {
+        try {
+            // التحقق من الصلاحيات
+            if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية لإنشاء عقد جديد'
+                ], 403);
+            }
+
+            // التحقق من صحة البيانات
+            $request->validate([
+                'client_type' => 'required|in:existing,new',
+                'maid_id' => 'required|exists:maids,id',
+                'contract_date' => 'required|date',
+                'contract_duration' => 'required|integer|min:1',
+                'visa_number' => 'required|string',
+                'msaned_number' => 'required|string',
+            ]);
+
+            // إنشاء أو اختيار العميل
+            $clientId = null;
+            if ($request->client_type === 'existing') {
+                $request->validate([
+                    'existing_client_id' => 'required|exists:users,id'
+                ]);
+                $clientId = $request->existing_client_id;
+            } else {
+                $request->validate([
+                    'client_name' => 'required|string|max:255',
+                    'client_phone' => 'required|string|max:20',
+                    'client_email' => 'nullable|email',
+                    'client_nationality_id' => 'nullable|exists:nationalities,id',
+                    'client_national_num' => 'nullable|string|max:50',
+                    'city' => 'nullable|string|max:100',
+                    'address' => 'nullable|string',
+                ]);
+
+                // إنشاء عميل جديد
+                $client = \App\Models\ingaz\User::create([
+                    'name' => $request->client_name,
+                    'phone' => $request->client_phone,
+                    'email' => $request->client_email,
+                    'nationality_id' => $request->client_nationality_id,
+                    'national_num' => $request->client_national_num,
+                    'city' => $request->city,
+                    'address' => $request->address,
+                ]);
+                $clientId = $client->id;
+            }
+
+            // التحقق من أن العاملة متاحة
+            $maid = \App\Models\ingaz\Maid::find($request->maid_id);
+            if (!$maid || !$maid->available) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العاملة غير متاحة'
+                ], 400);
+            }
+
+            // إنشاء العقد
+            $contract = Contract::create([
+                'user_id' => $clientId,
+                'maid_id' => $request->maid_id,
+                'contract_date' => $request->contract_date,
+                'contract_duration' => $request->contract_duration,
+                'status' => ContractStatusEnum::New,
+                'created_by' => Auth::id(),
+            ]);
+
+            // إنشاء معلومات العقد
+            ContractInfo::create([
+                'contract_id' => $contract->id,
+                'visa_number' => $request->visa_number,
+                'msaned_number' => $request->msaned_number,
+                'tafwed_number' => $request->tafwed_number,
+                'visa_milad_date' => $request->visa_milad_date,
+            ]);
+
+            // تحديث حالة العاملة
+            $maid->update(['available' => 0]);
+
+            // تسجيل تغيير الحالة
+            \App\Models\ContractStatusLog::create([
+                'contract_id' => $contract->id,
+                'status' => ContractStatusEnum::New,
+                'changed_by' => Auth::id(),
+                'notes' => 'تم إنشاء العقد من صفحة إضافة عقد الإيواء'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إنشاء العقد بنجاح',
+                'contract' => $contract->load(['maid', 'user'])
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء إنشاء العقد: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -989,6 +1098,113 @@ class ShelterContractController extends Controller
             \Log::error('Error in buildDataTable: ' . $e->getMessage());
             \Log::error('Stack trace: ' . $e->getTraceAsString());
             throw $e;
+        }
+    }
+
+    /**
+     * Search maids by name or passport
+     */
+    public function searchMaids(Request $request)
+    {
+        try {
+            $search = $request->get('search');
+
+            if (!$search) {
+                return response()->json(['maids' => []]);
+            }
+
+            $maids = \App\Models\ingaz\Maid::where('available', 1)
+                ->where(function($query) use ($search) {
+                    $query->where('name', 'LIKE', "%{$search}%")
+                          ->orWhere('passport_num', 'LIKE', "%{$search}%");
+                })
+                ->with('nationality')
+                ->get()
+                ->map(function($maid) {
+                    return [
+                        'id' => $maid->id,
+                        'name' => $maid->name,
+                        'passport_num' => $maid->passport_num,
+                        'nationality' => $maid->nationality ? $maid->nationality->name_ar : null,
+                        'age' => $maid->age,
+                        'salary' => $maid->salary,
+                        'experience_years' => $maid->experience_years,
+                    ];
+                });
+
+            return response()->json(['maids' => $maids]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء البحث عن العمالة'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all available maids
+     */
+    public function getAllMaids()
+    {
+        try {
+            $maids = \App\Models\ingaz\Maid::where('available', 1)
+                ->with('nationality')
+                ->get()
+                ->map(function($maid) {
+                    return [
+                        'id' => $maid->id,
+                        'name' => $maid->name,
+                        'passport_num' => $maid->passport_num,
+                        'nationality' => $maid->nationality ? $maid->nationality->name_ar : null,
+                        'age' => $maid->age,
+                        'salary' => $maid->salary,
+                        'experience_years' => $maid->experience_years,
+                    ];
+                });
+
+            return response()->json(['maids' => $maids]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء جلب العمالة'
+            ], 500);
+        }
+    }
+
+    /**
+     * Search clients by name or phone
+     */
+    public function searchClients(Request $request)
+    {
+        try {
+            $search = $request->get('search', '');
+
+            $clients = \App\Models\ingaz\User::query()
+                ->when($search, function($query) use ($search) {
+                    $query->where(function($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
+                          ->orWhere('phone', 'like', "%{$search}%");
+                    });
+                })
+                ->limit(20)
+                ->get(['id', 'name', 'phone']);
+
+            $results = $clients->map(function($client) {
+                return [
+                    'id' => $client->id,
+                    'text' => $client->name . ' - ' . $client->phone,
+                ];
+            });
+
+            return response()->json(['results' => $results]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'results' => [],
+                'error' => 'حدث خطأ أثناء البحث عن العملاء'
+            ], 500);
         }
     }
 }

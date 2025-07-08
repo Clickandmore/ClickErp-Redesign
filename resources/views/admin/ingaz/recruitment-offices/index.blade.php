@@ -9,9 +9,9 @@
 {{--    <li class="breadcrumb-item active" aria-current="page"> {{__("finance.clients")}}</li>--}}
 {{--@endsection--}}
 @section('content')
-@if (@AdminGuardHasPerm(\App\PermKeys::REC_OFFIICES_VIEW))
+@if (@AdminGuardHasPerm(\App\PermKeys::REC_OFFICES_VIEW))
 
-    @if (@AdminGuardHasPerm(\App\PermKeys::REC_OFFIICES_CONTROL))
+    @if (@AdminGuardHasPerm(\App\PermKeys::REC_OFFICES_CONTROL))
         {!! addButton(route("recruitment-offices.create") ,helperTrans("ingaz.add_recruitment_office")) !!}
    @endif
     <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">

@@ -43,10 +43,16 @@ if (!function_exists('jsonError')) {
 if (!function_exists('jsonValid')) {
     function jsonValid($data, $msg = "", $code = 422)
     {
+        $message = $msg;
+        if (is_object($data) && method_exists($data, 'all')) {
+            $errors = $data->all();
+            $message = !empty($errors) ? reset($errors) : $msg;
+        }
+
         return response()->json([
             'code' => $code,
             'data' => $data,
-            'message' => $data->all()[0],
+            'message' => $message,
         ], 422);
     }
 }

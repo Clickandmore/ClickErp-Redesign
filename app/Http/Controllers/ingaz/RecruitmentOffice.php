@@ -41,11 +41,11 @@ class RecruitmentOffice extends Controller
                 ->addColumn('actions', function ($row) {
                     $editButton = '';
                     $deleteButton = '';
-                    if (@AdminGuardHasPerm(\App\PermKeys::REC_OFFIICES_CONTROL)) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::REC_OFFICES_CONTROL)) {
                         $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
                     }
 
-                    if (@AdminGuardHasPerm(\App\PermKeys::REC_OFFIICES_DELETE)) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::REC_OFFICES_DELETE)) {
                         $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
                     }
                     return $editButton . " " . $deleteButton;

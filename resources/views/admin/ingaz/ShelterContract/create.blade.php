@@ -9,20 +9,23 @@
         @csrf
         <div class="row p-3">
 
-
-
             <div class="col-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.contracts")}}</label>
-                <select name="contract_id" id="contract_id" class="form-select form-control select2" data-validation="required">
-                    <option disabled selected>{{helperTrans('ingaz.choose')}}</option>
-                    @foreach(($contracts ?? []) as $contract)
-                    <option value="{{$contract->id}}"
-                            data-passport="{{$contract->maid ? $contract->maid->passport_num : ''}}"
-                            data-maid-name="{{$contract->maid ? $contract->maid->name : ''}}">
-                        {{$contract->desc }} @if($contract->maid && $contract->maid->passport_num) - {{$contract->maid->passport_num}} @endif
-                    </option>
-                    @endforeach
-                </select>
+                <div class="d-flex">
+                    <select name="contract_id" id="contract_id" class="form-select form-control select2" data-validation="required" style="flex: 1;">
+                        <option disabled selected>{{helperTrans('ingaz.choose')}}</option>
+                        @foreach(($contracts ?? []) as $contract)
+                        <option value="{{$contract->id}}"
+                                data-passport="{{$contract->maid ? $contract->maid->passport_num : ''}}"
+                                data-maid-name="{{$contract->maid ? $contract->maid->name : ''}}">
+                            {{$contract->desc }} @if($contract->maid && $contract->maid->passport_num) - {{$contract->maid->passport_num}} @endif
+                        </option>
+                        @endforeach
+                    </select>
+                    <button type="button" class="btn btn-success ms-2" data-bs-toggle="modal" data-bs-target="#createContractModal" style="min-width: 140px;">
+                        <i class="fas fa-plus-circle me-1"></i> {{helperTrans("ingaz.add_new_contract")}}
+                    </button>
+                </div>
             </div>
 
             <div class="col-4">
@@ -92,6 +95,219 @@
 @else
     @include('components.no_permissions')
 @endif
+
+<!-- Modal لإنشاء عقد جديد -->
+<div class="modal fade" id="createContractModal" tabindex="-1" aria-labelledby="createContractModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="createContractModalLabel">
+                    <i class="fas fa-plus-circle me-2"></i>{{helperTrans("ingaz.add_new_contract")}}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createContractForm">
+                    @csrf
+                    <div class="row">
+                        <!-- نوع العميل -->
+                        <div class="col-12 mb-3">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="fas fa-user me-2"></i>{{helperTrans("ingaz.client_type")}}</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="client_type" id="existing_client" value="existing" checked>
+                                        <label class="form-check-label" for="existing_client">
+                                            <i class="fas fa-user-check me-1"></i>{{helperTrans("ingaz.existing_client")}}
+                                        </label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="client_type" id="new_client" value="new">
+                                        <label class="form-check-label" for="new_client">
+                                            <i class="fas fa-user-plus me-1"></i>{{helperTrans("ingaz.new_client")}}
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- اختيار عميل موجود -->
+                        <div id="existing_client_section" class="col-12 mb-3">
+                            <label class="form-label">{{helperTrans("ingaz.select_existing_client")}} *</label>
+                            <select name="existing_client_id" id="existing_client_id" class="form-select select2-ajax-client" style="width:100%"></select>
+                        </div>
+
+                        <!-- معلومات العميل الجديد -->
+                        <div id="new_client_section" class="col-12 mb-3" style="display: none;">
+                            <h6>{{helperTrans("ingaz.client_information")}}</h6>
+                        </div>
+
+                        <div class="col-6 new-client-field" style="display: none;">
+                            <label class="form-label">{{helperTrans("ingaz.client_name")}} *</label>
+                            <input type="text" name="client_name" class="form-control">
+                        </div>
+
+                        <div class="col-6 new-client-field" style="display: none;">
+                            <label class="form-label">{{helperTrans("ingaz.client_phone")}} *</label>
+                            <input type="tel" name="client_phone" class="form-control">
+                        </div>
+
+                        <div class="col-6 new-client-field" style="display: none;">
+                            <label class="form-label">{{helperTrans("ingaz.email")}}</label>
+                            <input type="email" name="client_email" class="form-control">
+                        </div>
+
+                        <div class="col-6 new-client-field" style="display: none;">
+                            <label class="form-label">{{helperTrans("ingaz.nationality")}}</label>
+                            <select name="client_nationality_id" class="form-select">
+                                <option value="">{{helperTrans('ingaz.choose')}}</option>
+                                @foreach(\App\Models\ingaz\Nationality::all() as $nationality)
+                                    <option value="{{$nationality->id}}">{{$nationality->name_ar}}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-6 new-client-field" style="display: none;">
+                            <label class="form-label">{{helperTrans("ingaz.national_num")}}</label>
+                            <input type="text" name="client_national_num" class="form-control">
+                        </div>
+
+                        <div class="col-6 new-client-field" style="display: none;">
+                            <label class="form-label">{{helperTrans("ingaz.city")}}</label>
+                            <input type="text" name="city" class="form-control">
+                        </div>
+
+                        <div class="col-12 new-client-field" style="display: none;">
+                            <label class="form-label">{{helperTrans("ingaz.address")}}</label>
+                            <textarea name="address" class="form-control" rows="2"></textarea>
+                        </div>
+
+                        <!-- معلومات العاملة -->
+                        <div class="col-12 mb-3 mt-3">
+                            <div class="card border-info">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0"><i class="fas fa-user-tie me-2"></i>{{helperTrans("ingaz.maid_information")}}</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <label class="form-label">{{helperTrans("ingaz.maid")}} *</label>
+                                            <select name="maid_id" id="maid_id" class="form-select select2-ajax-maid" required style="width:100%"></select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- البحث عن العاملة -->
+                        <div class="col-12 mb-3">
+                            <label class="form-label">{{helperTrans("ingaz.search_maid")}}</label>
+                            <div class="input-group">
+                                <input type="text" id="maid_search" class="form-control" placeholder="{{helperTrans('ingaz.enter_passport_or_name')}}">
+                                <button type="button" class="btn btn-outline-secondary" id="search_maid_btn">
+                                    <i class="fa fa-search"></i> {{helperTrans("ingaz.search")}}
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="clear_maid_search">
+                                    <i class="fa fa-times"></i> {{helperTrans("ingaz.clear")}}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- تفاصيل العاملة المختارة -->
+                        <div id="maid_details" class="col-12 mb-3" style="display: none;">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>{{helperTrans("ingaz.selected_maid_details")}}</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4 col-sm-6 mb-2">
+                                            <strong class="text-primary">{{helperTrans("ingaz.name")}}:</strong>
+                                            <span id="maid_name_display" class="ms-2"></span>
+                                        </div>
+                                        <div class="col-md-4 col-sm-6 mb-2">
+                                            <strong class="text-primary">{{helperTrans("ingaz.passport_num")}}:</strong>
+                                            <span id="maid_passport_display" class="ms-2"></span>
+                                        </div>
+                                        <div class="col-md-4 col-sm-6 mb-2">
+                                            <strong class="text-primary">{{helperTrans("ingaz.nationality")}}:</strong>
+                                            <span id="maid_nationality_display" class="ms-2"></span>
+                                        </div>
+                                        <div class="col-md-4 col-sm-6 mb-2">
+                                            <strong class="text-primary">{{helperTrans("ingaz.age")}}:</strong>
+                                            <span id="maid_age_display" class="ms-2"></span>
+                                        </div>
+                                        <div class="col-md-4 col-sm-6 mb-2">
+                                            <strong class="text-primary">{{helperTrans("ingaz.salary")}}:</strong>
+                                            <span id="maid_salary_display" class="ms-2"></span>
+                                        </div>
+                                        <div class="col-md-4 col-sm-6 mb-2">
+                                            <strong class="text-primary">{{helperTrans("ingaz.experience_years")}}:</strong>
+                                            <span id="maid_experience_display" class="ms-2"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- معلومات العقد -->
+                        <div class="col-12 mb-3 mt-3">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0"><i class="fas fa-file-contract me-2"></i>{{helperTrans("ingaz.contract_information")}}</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <label class="form-label">{{helperTrans("ingaz.contract_date")}} *</label>
+                                            <input type="date" name="contract_date" class="form-control" required>
+                                        </div>
+
+                                        <div class="col-6">
+                                            <label class="form-label">{{helperTrans("ingaz.contract_duration")}} *</label>
+                                            <input type="number" name="contract_duration" class="form-control" placeholder="{{helperTrans('ingaz.in_months')}}" required>
+                                        </div>
+
+                                        <div class="col-6">
+                                            <label class="form-label">{{helperTrans("ingaz.visa_number")}} *</label>
+                                            <input type="text" name="visa_number" class="form-control" required>
+                                        </div>
+
+                                        <div class="col-6">
+                                            <label class="form-label">{{helperTrans("ingaz.msaned_number")}} *</label>
+                                            <input type="text" name="msaned_number" class="form-control" required>
+                                        </div>
+
+                                        <div class="col-6">
+                                            <label class="form-label">{{helperTrans("ingaz.tafwed_number")}}</label>
+                                            <input type="text" name="tafwed_number" class="form-control">
+                                        </div>
+
+                                        <div class="col-6">
+                                            <label class="form-label">{{helperTrans("ingaz.visa_milad_date")}}</label>
+                                            <input type="date" name="visa_milad_date" class="form-control">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>{{helperTrans("ingaz.cancel")}}
+                </button>
+                <button type="button" class="btn btn-success" id="createContractBtn">
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    <i class="fas fa-plus-circle me-1"></i>{{helperTrans("ingaz.create_contract")}}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @endsection
 @section('js')
@@ -303,5 +519,387 @@
         });
 </script>
 
+<script>
+    // إنشاء عقد جديد
+    $(document).ready(function() {
+        // تهيئة Select2 العادية للحقول الأخرى
+        $('.select2').select2({
+            placeholder: '{{helperTrans("ingaz.choose")}}',
+            allowClear: true
+        });
+
+        // Select2 AJAX للعملاء
+        $('#existing_client_id').select2({
+            placeholder: '{{helperTrans("ingaz.choose")}}',
+            allowClear: true,
+            ajax: {
+                url: '{{ route("ShelterContract.searchClients") }}',
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        search: params.term || ''
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data.results || []
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 1,
+            language: {
+                noResults: function() {
+                    return "{{helperTrans('ingaz.no_results_found')}}";
+                },
+                searching: function() {
+                    return "{{helperTrans('ingaz.searching')}}";
+                }
+            }
+        });
+
+        // Select2 AJAX للعاملة
+        $('#maid_id').select2({
+            placeholder: '{{helperTrans("ingaz.choose")}}',
+            allowClear: true,
+            ajax: {
+                url: '{{ route("ShelterContract.searchMaids") }}',
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {
+                        search: params.term || ''
+                    };
+                },
+                processResults: function (data) {
+                    return {
+                        results: data.maids.map(function(maid) {
+                            return {
+                                id: maid.id,
+                                text: maid.name + ' - ' + maid.passport_num + (maid.nationality ? ' - ' + maid.nationality : ''),
+                                maid: maid
+                            };
+                        })
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 1,
+            language: {
+                noResults: function() {
+                    return "{{helperTrans('ingaz.no_maids_found')}}";
+                },
+                searching: function() {
+                    return "{{helperTrans('ingaz.searching')}}";
+                }
+            }
+        });
+
+        // عند اختيار العاملة، عرض التفاصيل
+        $('#maid_id').on('select2:select', function(e) {
+            var maid = e.params.data.maid;
+            if (maid) {
+                $('#maid_name_display').text(maid.name);
+                $('#maid_passport_display').text(maid.passport_num);
+                $('#maid_nationality_display').text(maid.nationality || 'غير محدد');
+                $('#maid_age_display').text(maid.age || 'غير محدد');
+                $('#maid_salary_display').text(maid.salary || 'غير محدد');
+                $('#maid_experience_display').text(maid.experience_years || 'غير محدد');
+                $('#maid_details').show();
+            }
+        });
+
+        $('#maid_id').on('select2:clear', function(e) {
+            $('#maid_details').hide();
+        });
+
+        // إعادة تهيئة Select2 عند فتح المودال
+        $('#createContractModal').on('shown.bs.modal', function() {
+            $('#existing_client_id').select2('destroy').select2({
+                placeholder: '{{helperTrans("ingaz.choose")}}',
+                allowClear: true,
+                ajax: {
+                    url: '{{ route("ShelterContract.searchClients") }}',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return {
+                            search: params.term || ''
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data.results || []
+                        };
+                    },
+                    cache: true
+                },
+                minimumInputLength: 1
+            });
+
+            $('#maid_id').select2('destroy').select2({
+                placeholder: '{{helperTrans("ingaz.choose")}}',
+                allowClear: true,
+                ajax: {
+                    url: '{{ route("ShelterContract.searchMaids") }}',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return {
+                            search: params.term || ''
+                        };
+                    },
+                    processResults: function (data) {
+                        return {
+                            results: data.maids.map(function(maid) {
+                                return {
+                                    id: maid.id,
+                                    text: maid.name + ' - ' + maid.passport_num + (maid.nationality ? ' - ' + maid.nationality : ''),
+                                    maid: maid
+                                };
+                            })
+                        };
+                    },
+                    cache: true
+                },
+                minimumInputLength: 1
+            });
+        });
+
+        // تبديل نوع العميل
+        $('input[name="client_type"]').on('change', function() {
+            let clientType = $(this).val();
+
+            if (clientType === 'existing') {
+                $('#existing_client_section').show();
+                $('.new-client-field').hide();
+                $('#new_client_section').hide();
+
+                // إزالة required من حقول العميل الجديد
+                $('.new-client-field input, .new-client-field select').prop('required', false);
+                $('#existing_client_id').prop('required', true);
+            } else {
+                $('#existing_client_section').hide();
+                $('.new-client-field').show();
+                $('#new_client_section').show();
+
+                // إضافة required لحقول العميل الجديد
+                $('.new-client-field input[name="client_name"], .new-client-field input[name="client_phone"]').prop('required', true);
+                $('#existing_client_id').prop('required', false);
+            }
+        });
+
+        // البحث عن العاملة
+        $('#search_maid_btn').on('click', function() {
+            searchMaids();
+        });
+
+        $('#maid_search').on('keypress', function(e) {
+            if (e.which === 13) { // Enter key
+                searchMaids();
+            }
+        });
+
+        $('#clear_maid_search').on('click', function() {
+            $('#maid_search').val('');
+            loadAllMaids();
+        });
+
+        // دالة البحث عن العمالة
+        function searchMaids() {
+            let searchTerm = $('#maid_search').val().trim();
+
+            if (!searchTerm) {
+                loadAllMaids();
+                return;
+            }
+
+            $.ajax({
+                url: "{{ route('ShelterContract.searchMaids') }}",
+                type: 'GET',
+                data: { search: searchTerm },
+                beforeSend: function() {
+                    $('#search_maid_btn').html('<i class="fa fa-spinner fa-spin"></i> {{helperTrans("ingaz.searching")}}');
+                },
+                success: function(response) {
+                    updateMaidDropdown(response.maids);
+                    $('#search_maid_btn').html('<i class="fa fa-search"></i> {{helperTrans("ingaz.search")}}');
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error searching maids:', error);
+                    $('#search_maid_btn').html('<i class="fa fa-search"></i> {{helperTrans("ingaz.search")}}');
+                    Swal.fire({
+                        icon: 'error',
+                        title: '{{helperTrans("ingaz.error")}}',
+                        text: '{{helperTrans("ingaz.error_searching_maids")}}',
+                        confirmButtonText: '{{helperTrans("ingaz.ok")}}'
+                    });
+                }
+            });
+        }
+
+        // دالة تحديث قائمة العمالة
+        function updateMaidDropdown(maids) {
+            let $select = $('#maid_id');
+            $select.empty();
+            $select.append('<option value="">{{helperTrans("ingaz.choose")}}</option>');
+
+            if (maids.length === 0) {
+                $select.append('<option disabled>{{helperTrans("ingaz.no_maids_found")}}</option>');
+            } else {
+                maids.forEach(function(maid) {
+                    let optionText = maid.name + ' - ' + maid.passport_num;
+                    if (maid.nationality) {
+                        optionText += ' - ' + maid.nationality;
+                    }
+
+                    $select.append(
+                        '<option value="' + maid.id + '" ' +
+                        'data-name="' + maid.name + '" ' +
+                        'data-passport="' + maid.passport_num + '" ' +
+                        'data-nationality="' + (maid.nationality || '') + '" ' +
+                        'data-age="' + maid.age + '" ' +
+                        'data-salary="' + maid.salary + '" ' +
+                        'data-experience="' + maid.experience_years + '">' +
+                        optionText +
+                        '</option>'
+                    );
+                });
+            }
+
+            // إعادة تهيئة Select2
+            $select.select2('destroy').select2({
+                placeholder: '{{helperTrans("ingaz.choose")}}',
+                allowClear: true
+            });
+        }
+
+        // دالة تحميل جميع العمالة
+        function loadAllMaids() {
+            $.ajax({
+                url: "{{ route('ShelterContract.getAllMaids') }}",
+                type: 'GET',
+                success: function(response) {
+                    updateMaidDropdown(response.maids);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading maids:', error);
+                    location.reload();
+                }
+            });
+        }
+
+        $('#createContractBtn').on('click', function() {
+            let form = $('#createContractForm');
+            let formData = new FormData(form[0]);
+            let button = $(this);
+            let originalText = button.text();
+            let spinner = button.find('.spinner-border');
+
+            // التحقق من صحة النموذج
+            if (!form[0].checkValidity()) {
+                form[0].reportValidity();
+                return;
+            }
+
+            // التحقق من نوع العميل
+            let clientType = $('input[name="client_type"]:checked').val();
+            if (clientType === 'existing' && !$('#existing_client_id').val()) {
+                Swal.fire({
+                    icon: 'error',
+                    title: '{{helperTrans("ingaz.error")}}',
+                    text: '{{helperTrans("ingaz.please_select_client")}}',
+                    confirmButtonText: '{{helperTrans("ingaz.ok")}}'
+                });
+                return;
+            }
+
+            // إظهار spinner
+            button.prop('disabled', true);
+            spinner.removeClass('d-none');
+
+            $.ajax({
+                url: "{{ route('ShelterContract.createContract') }}",
+                type: 'POST',
+                data: formData,
+                cache: false,
+                contentType: false,
+                processData: false,
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // إضافة العقد الجديد إلى القائمة
+                        let newOption = new Option(
+                            response.contract.desc + ' - ' + response.contract.maid.passport_num,
+                            response.contract.id,
+                            true,
+                            true
+                        );
+                        $('#contract_id').append(newOption).trigger('change');
+
+                        // إغلاق modal
+                        $('#createContractModal').modal('hide');
+
+                        // إظهار رسالة نجاح
+                        Swal.fire({
+                            icon: 'success',
+                            title: '{{helperTrans("ingaz.success")}}',
+                            text: response.message,
+                            confirmButtonText: '{{helperTrans("ingaz.ok")}}'
+                        });
+
+                        // إعادة تعيين النموذج
+                        form[0].reset();
+                        $('#maid_details').hide();
+                        $('.new-client-field').hide();
+                        $('#existing_client_section').show();
+                        $('#new_client_section').hide();
+                        $('input[name="client_type"][value="existing"]').prop('checked', true);
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: '{{helperTrans("ingaz.error")}}',
+                            text: response.message,
+                            confirmButtonText: '{{helperTrans("ingaz.ok")}}'
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    let errorMessage = '{{helperTrans("ingaz.error_creating_contract")}}';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: '{{helperTrans("ingaz.error")}}',
+                        text: errorMessage,
+                        confirmButtonText: '{{helperTrans("ingaz.ok")}}'
+                    });
+                },
+                complete: function() {
+                    // إخفاء spinner
+                    button.prop('disabled', false);
+                    spinner.addClass('d-none');
+                }
+            });
+        });
+
+        // إعادة تعيين النموذج عند إغلاق modal
+        $('#createContractModal').on('hidden.bs.modal', function() {
+            $('#createContractForm')[0].reset();
+            $('#maid_details').hide();
+            $('.new-client-field').hide();
+            $('#existing_client_section').show();
+            $('#new_client_section').hide();
+            $('input[name="client_type"][value="existing"]').prop('checked', true);
+            $('#maid_search').val('');
+            loadAllMaids();
+        });
+    });
+</script>
 
 @endsection

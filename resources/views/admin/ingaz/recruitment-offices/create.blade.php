@@ -1,4 +1,4 @@
-@if (@AdminGuardHasPerm(\App\PermKeys::REC_OFFIICES_CONTROL))
+@if (@AdminGuardHasPerm(\App\PermKeys::REC_OFFICES_CONTROL))
 <form class="row g-3 from-submit-global" method="post" action="{{route("recruitment-offices.store")}}">
     @csrf
     @foreach (config('translatable.locales') as $locale)

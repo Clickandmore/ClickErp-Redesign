@@ -329,7 +329,7 @@
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#sheltercontracts" href="#">
                         <i class="icon-home"></i>
-                        <span class="ms-2"> {{ helperTrans('ingaz.Shelter contracts') }} </span>
+                        <span class="ms-2"> {{ __('ingaz.shelter_management') }} </span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
                     <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['ShelterContract.index', 'ShelterContract.availableForTransfer', 'ShelterContract.deportationStage', 'ShelterContract.generalShelter'])) ? 'show' : '' }}"
@@ -338,7 +338,7 @@
                             <li>
                                 <a class="m-link" href="{{ route('ShelterContract.create') }}">
                                     <i class="icon-star"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.add Shelter contract') }}</span>
+                                    <span class="ms-2">{{ helperTrans('ingaz.add_shelter') }}</span>
                                 </a>
                             </li>
                         @endif
