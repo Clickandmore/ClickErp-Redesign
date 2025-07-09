@@ -518,8 +518,9 @@
             function initializeEventHandlers() {
                 // Remove existing event handlers to prevent duplicates
                 $(document).off('click', '.toggle-pin');
+                $(document).off('click', '.update-status');
 
-                                // Add click handler for pin button using event delegation
+                // Add click handler for pin button using event delegation
                 $(document).on('click', '.toggle-pin', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -620,6 +621,99 @@
                         }
                     });
                 });
+
+                // Add click handler for update-status button (show/hide maid)
+                $(document).on('click', '.update-status', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    console.log('Update status button clicked');
+                    let button = $(this);
+                    let id = button.data('id');
+                    let currentStatus = button.hasClass('btn-success') ? 'ظاهر' : 'مخفي';
+                    let newStatus = button.hasClass('btn-success') ? 'مخفي' : 'ظاهر';
+                    let confirmMsg = `هل أنت متأكد من تغيير حالة الظهور من "${currentStatus}" إلى "${newStatus}"؟`;
+
+                    console.log('Maid ID:', id, 'Current Status:', currentStatus);
+
+                    Swal.fire({
+                        title: 'تأكيد تغيير الحالة',
+                        text: confirmMsg,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'نعم',
+                        cancelButtonText: 'إلغاء'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            console.log('Making AJAX request to:', `/admin/maids/${id}`);
+                            console.log('Request method: GET');
+
+                            $.ajax({
+                                url: `/admin/maids/${id}`,
+                                type: 'GET',
+                                beforeSend: function() {
+                                    console.log('AJAX request started');
+                                    button.prop('disabled', true);
+                                    button.html('<i class="fa fa-spinner fa-spin"></i>');
+                                },
+                                success: function(response) {
+                                    console.log('Update status response:', response);
+                                    if (response.success) {
+                                        // Reload the table to reflect changes
+                                        $('#dataTableObject').DataTable().ajax.reload();
+
+                                        Swal.fire({
+                                            icon: 'success',
+                                            title: 'تم بنجاح',
+                                            text: response.message || `تم تغيير حالة الظهور إلى "${newStatus}" بنجاح`,
+                                            timer: 2000,
+                                            showConfirmButton: false
+                                        });
+                                    } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'خطأ',
+                                            text: response.message || 'حدث خطأ أثناء تحديث حالة الظهور'
+                                        });
+                                    }
+                                },
+                                complete: function(xhr, status) {
+                                    console.log('AJAX request completed');
+                                    console.log('Response status:', xhr.status);
+                                    console.log('Response status text:', xhr.statusText);
+                                    button.prop('disabled', false);
+                                    // Restore original button text
+                                    if (button.hasClass('btn-success')) {
+                                        button.html('ظاهر');
+                                    } else {
+                                        button.html('مخفي');
+                                    }
+                                },
+                                error: function(xhr, status, error) {
+                                    console.error('Update status error:', xhr.responseJSON);
+                                    console.error('Status:', status);
+                                    console.error('Error:', error);
+                                    let errorMessage = 'حدث خطأ أثناء تحديث حالة الظهور';
+
+                                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                                        errorMessage = xhr.responseJSON.message;
+                                    }
+
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'خطأ',
+                                        text: errorMessage
+                                    });
+                                }
+                            });
+                        }
+                    });
+                });
+            }
+
+            // Function to reload DataTable
+            function reloadDataTable() {
+                $('#dataTableObject').DataTable().ajax.reload();
             }
 
             $(document).on('submit', '.from-submit-global-maid', function (e) {

@@ -84,10 +84,10 @@ class MaidController extends Controller
                 ->editColumn('is_show', function ($row) {
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_STATUS)) {
                         return $row->is_show == 1 ?
-                        '<button class="btn btn-sm btn-success update-status" data-id="' . $row->id . '">ظاهر</button>' :
-                        '<button class="btn btn-sm btn-dark update-status" data-id="' . $row->id . '">مخفي</button>';
+                        '<button class="btn btn-sm btn-success update-status" data-id="' . $row->id . '" title="انقر لتغيير الحالة إلى مخفي"><i class="fa fa-eye"></i> ظاهر</button>' :
+                        '<button class="btn btn-sm btn-dark update-status" data-id="' . $row->id . '" title="انقر لتغيير الحالة إلى ظاهر"><i class="fa fa-eye-slash"></i> مخفي</button>';
                     } else {
-                        return $row->is_show == 1 ? '<span class="badge bg-success">ظاهر</span>' : '<span class="badge bg-dark">مخفي</span>';
+                        return $row->is_show == 1 ? '<span class="badge bg-success"><i class="fa fa-eye"></i> ظاهر</span>' : '<span class="badge bg-dark"><i class="fa fa-eye-slash"></i> مخفي</span>';
                     }
                 })
                 ->editColumn('available', function ($row) {
@@ -405,12 +405,58 @@ class MaidController extends Controller
         $data = objModel::where('id', $id)->first();
         return view($this->folderPath . '.convert_page', ['data' => $data]);
     }
-    public function show($id)
+        public function show($id)
     {
-        $model = objModel::findOrFail($id);
-        $model->is_show = !$model->is_show;
-        $model->save(); // Save the changes
-        return response()->json(['success' => true]);
+        // Check if user has permission to toggle status
+        $hasPermission = @AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_STATUS);
+
+        if (!$hasPermission) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ليس لديك صلاحية لتغيير حالة الظهور'
+            ], 403);
+        }
+
+        try {
+            $model = objModel::findOrFail($id);
+            $oldStatus = $model->is_show;
+            $model->is_show = !$model->is_show;
+            $model->save(); // Save the changes
+
+            $status = $model->is_show ? 'ظاهر' : 'مخفي';
+            $oldStatusText = $oldStatus ? 'ظاهر' : 'مخفي';
+
+            // Log the action
+            \Log::info("Maid visibility toggled", [
+                'maid_id' => $id,
+                'old_status' => $oldStatusText,
+                'new_status' => $status,
+                'user_id' => auth()->id()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "تم تغيير الحالة من {$oldStatusText} إلى {$status} بنجاح",
+                'new_status' => $model->is_show,
+                'old_status' => $oldStatus
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'السيرة الذاتية غير موجودة'
+            ], 404);
+        } catch (\Exception $e) {
+            \Log::error('Error toggling maid visibility', [
+                'maid_id' => $id,
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تحديث الحالة: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function edit(Request $request, $id, NationalityAction $act, RecruitmentOfficeAction $officeAct, ReligionAction $relAct, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction, SkillAction $skillAction)
