@@ -19,11 +19,9 @@
 
 {{-- {!! addButton(route("settings.create") , __('skaeeb.settings')) !!} --}}
 <form class="row g-3 from-submit-global" method="post"
-    action="{{ isset($settings) ? route('settings.update', $settings->id) : route('settings.store') }}"
+    action="{{ route('settings.update', $settings->id) }}"
     enctype="multipart/form-data">
-    @if(isset($settings))
     @method('PUT')
-    @endif
 
     @foreach (config('translatable.locales') as $locale)
     <div class="col-3">
@@ -33,7 +31,7 @@
                 <i class="fa fa-globe "></i>
             </div>
             <input type="text" name="website_name:{{ $locale }}"
-                value="{{ isset($settings) ? $settings->translate($locale)->website_name : '' }}" class="form-control">
+                value="{{ $settings->translate($locale)->website_name ?? '' }}" class="form-control">
         </fieldset>
     </div>
     @endforeach
@@ -47,7 +45,7 @@
                 <i class="fa fa-map-marker"></i>
             </div>
             <input type="text" name="location:{{ $locale }}"
-                value="{{ isset($settings) ? $settings->translate($locale)->location : '' }}" class="form-control">
+                value="{{ $settings->translate($locale)->location ?? '' }}" class="form-control">
         </fieldset>
     </div>
     @endforeach
@@ -60,7 +58,7 @@
                 <i class="fa fa-envelope"></i>
             </div>
             <input type="email" name="email" class="form-control"
-                value="{{ isset($settings) ? $settings->email : '' }}">
+                value="{{ $settings->email ?? '' }}">
         </fieldset>
     </div>
 
@@ -71,7 +69,7 @@
             <div class="form-icon position-absolute">
                 <i class="fa fa-mobile"></i>
             </div>
-            <input type="text" name="phone" class="form-control" value="{{ isset($settings) ? $settings->phone : '' }}">
+            <input type="text" name="phone" class="form-control" value="{{ $settings->phone ?? '' }}">
         </fieldset>
     </div>
 
@@ -82,7 +80,7 @@
                 <i class="fa fa-phone"></i>
             </div>
             <input type="text" name="other_phone" class="form-control"
-                value="{{ isset($settings) ? $settings->other_phone : '' }}">
+                value="{{ $settings->other_phone ?? '' }}">
         </fieldset>
     </div>
 
@@ -95,7 +93,7 @@
                 <i class="fa fa-twitter"></i>
             </div>
             <input type="text" name="twitter" class="form-control"
-                value="{{ isset($settings) ? $settings->twitter : '' }}">
+                value="{{ $settings->twitter ?? '' }}">
         </fieldset>
 
     </div>
@@ -108,7 +106,7 @@
                 <i class="fa fa-facebook"></i>
             </div>
             <input type="text" name="facebook" class="form-control"
-                value="{{ isset($settings) ? $settings->facebook : '' }}">
+                value="{{ $settings->facebook ?? '' }}">
         </fieldset>
 
     </div>
@@ -120,7 +118,7 @@
                 <i class="fa fa-instagram"></i>
             </div>
             <input type="text" name="instagram" class="form-control"
-                value="{{ isset($settings) ? $settings->instagram : '' }}">
+                value="{{ $settings->instagram ?? '' }}">
         </fieldset>
     </div>
 
@@ -131,7 +129,7 @@
                 <i class="fa fa-qq"></i>
             </div>
             <input type="text" name="snapchat" class="form-control"
-                value="{{ isset($settings) ? $settings->snapchat : '' }}">
+                value="{{ $settings->snapchat ?? '' }}">
         </fieldset>
     </div>
 
@@ -143,7 +141,7 @@
                 <i class="fa fa-linkedin-square"></i>
             </div>
             <input type="text" name="linkedin" class="form-control"
-                value="{{ isset($settings) ? $settings->linkedin : '' }}">
+                value="{{ $settings->linkedin ?? '' }}">
         </fieldset>
 
     </div>
@@ -154,7 +152,7 @@
                 <i class="fa fa-youtube"></i>
             </div>
             <input type="text" name="youtube" class="form-control"
-                value="{{ isset($settings) ? $settings->youtube : '' }}">
+                value="{{ $settings->youtube ?? '' }}">
         </fieldset>
     </div>
     <div class="col-3">
@@ -164,7 +162,7 @@
                 <i class="fa fa-whatsapp"></i>
             </div>
             <input type="text" name="whatsapp" class="form-control"
-                value="{{ isset($settings) ? $settings->whatsapp : '' }}">
+                value="{{ $settings->whatsapp ?? '' }}">
         </fieldset>
     </div>
     <div class="col-3">
@@ -174,7 +172,7 @@
                 <i class="fa fa-link"></i>
             </div>
             <input type="text" name="map_link" class="form-control"
-                value="{{ isset($settings) ? $settings->map_link : '' }}">
+                value="{{ $settings->map_link ?? '' }}">
         </fieldset>
     </div>
 
@@ -184,7 +182,7 @@
             <div class="card">
                 <div class="card-body">
                     <h6>لوجو الهدر</h6>
-                    <input type="file" data-default-file="{{ isset($settings) ? showFile($settings->logo_header): '' }}"
+                    <input type="file" data-default-file="{{ showFile($settings->logo_header) ?? '' }}"
                         name="logo_header" class="dropify">
                 </div>
             </div>
@@ -195,7 +193,7 @@
             <div class="card">
                 <div class="card-body">
                     <h6>لوجو الفوتر</h6>
-                    <input type="file" data-default-file="{{ isset($settings) ? showFile($settings->logo_footer): '' }}"
+                    <input type="file" data-default-file="{{ showFile($settings->logo_footer) ?? '' }}"
                         name="logo_footer" class="dropify">
                 </div>
             </div>
@@ -206,7 +204,7 @@
             <div class="card">
                 <div class="card-body">
                     <h6>الفيف أيكون</h6>
-                    <input type="file" data-default-file="{{ isset($settings) ? showFile($settings->favicon): '' }}"
+                    <input type="file" data-default-file="{{ showFile($settings->favicon) ?? '' }}"
                         name="favicon" class="dropify">
                 </div>
             </div>
@@ -217,7 +215,7 @@
             <div class="card">
                 <div class="card-body">
                     <h6>صورة المقطع الثاني</h6>
-                    <input type="file" data-default-file="{{ isset($settings) ? showFile($settings->about_image): '' }}"
+                    <input type="file" data-default-file="{{ showFile($settings->about_image) ?? '' }}"
                         name="about_image" class="dropify">
                 </div>
             </div>
@@ -229,7 +227,7 @@
     <div class="col-6">
         <label for="TextInput" class="form-label">نص حقوق النشر {{ getFieldLanguage($locale) }}</label>
         <input type="text" name="copyright:{{ $locale }}"
-            value="{{ isset($settings) ? $settings->translate($locale)->copyright : '' }}" class="form-control">
+            value="{{ $settings->translate($locale)->copyright ?? '' }}" class="form-control">
     </div>
     @endforeach
 
@@ -239,7 +237,7 @@
     <div class="col-6">
         <label for="TextInput" class="form-label">نص صورة المقطع الثاني {{ getFieldLanguage($locale) }}</label>
         <input type="text" name="about_us_sub_title:{{ $locale }}"
-            value="{{ isset($settings) ? $settings->translate($locale)->about_us_sub_title : '' }}"
+            value="{{ $settings->translate($locale)->about_us_sub_title ?? '' }}"
             class="form-control">
     </div>
     @endforeach
@@ -248,21 +246,21 @@
     <div class="col-12">
         <label for="TextInput" class="form-label">سياسة الخصوصية {{ getFieldLanguage($locale) }}</label>
         <textarea class="mytextarea" rows="10"
-            name="privacy:{{ $locale }}">{{ isset($settings) ? $settings->translate($locale)->privacy : '' }}</textarea>
+            name="privacy:{{ $locale }}">{{ $settings->translate($locale)->privacy ?? '' }}</textarea>
     </div>
     @endforeach
     @foreach (config('translatable.locales') as $locale)
     <div class="col-12">
         <label for="TextInput" class="form-label">الشروط والاحكام {{ getFieldLanguage($locale) }}</label>
         <textarea class="mytextarea" rows="10"
-            name="terms_conditions:{{ $locale }}">{{ isset($settings) ? $settings->translate($locale)->terms_conditions : '' }}</textarea>
+            name="terms_conditions:{{ $locale }}">{{ $settings->translate($locale)->terms_conditions ?? '' }}</textarea>
     </div>
     @endforeach
     @foreach (config('translatable.locales') as $locale)
     <div class="col-12">
         <label for="TextInput" class="form-label">عن التطبيق {{ getFieldLanguage($locale) }}</label>
         <textarea class="mytextarea" rows="10"
-            name="about_us_app:{{ $locale }}">{{ isset($settings) ? $settings->translate($locale)->about_us_app : '' }}</textarea>
+            name="about_us_app:{{ $locale }}">{{ $settings->translate($locale)->about_us_app ?? '' }}</textarea>
     </div>
     @endforeach
 
@@ -273,7 +271,7 @@
         <label for="TextInput" class="form-label">
             حقوق وواجبات صاحب العمل {{ getFieldLanguage($locale) }}</label>
         <textarea class="mytextarea" name="rights_users:{{ $locale }}">
-                    {{ isset($settings) ? $settings->translate($locale)->rights_users : '' }}
+                    {{ $settings->translate($locale)->rights_users ?? '' }}
                 </textarea>
     </div>
     @endforeach
@@ -281,7 +279,7 @@
     <div class="col-12">
         <label for="TextInput" class="form-label">حقوق وواجبات العمالة {{ getFieldLanguage($locale) }}</label>
         <textarea class="mytextarea" name="rights_maids:{{ $locale }}">
-                    {{ isset($settings) ? $settings->translate($locale)->rights_maids : '' }}
+                    {{ $settings->translate($locale)->rights_maids ?? '' }}
                 </textarea>
     </div>
     @endforeach
@@ -289,7 +287,7 @@
     <div class="col-6">
         <label for="TextInput" class="form-label">نص الفوتر {{ getFieldLanguage($locale) }}</label>
         <textarea rows="3" type="text" name="footer_text:{{ $locale }}"
-            class="form-control">{{ isset($settings) ? $settings->translate($locale)->footer_text : '' }}</textarea>
+            class="form-control">{{ $settings->translate($locale)->footer_text ?? '' }}</textarea>
     </div>
     @endforeach
 
@@ -298,7 +296,7 @@
     <div class="col-12">
         <label for="TextInput" class="form-label">شروط الإسترجاع {{ getFieldLanguage($locale) }}</label>
         <textarea class="mytextarea" rows="10"
-            name="return_conditions:{{ $locale }}">{{ isset($settings) ? $settings->translate($locale)->return_conditions : '' }}</textarea>
+            name="return_conditions:{{ $locale }}">{{ $settings->translate($locale)->return_conditions ?? '' }}</textarea>
     </div>
     @endforeach
 

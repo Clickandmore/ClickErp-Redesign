@@ -44,32 +44,61 @@ class SettingAction extends MainAction
 
     public function updateSetting($id, $data)
     {
-        if (isset($data['logo_header'])) {
-            $obj = $this->find($id);
-            deleteFile($obj->logo_header);
+        $setting = $this->find($id);
+
+        // Handle file uploads
+        if (isset($data['logo_header']) && $data['logo_header'] instanceof \Illuminate\Http\UploadedFile) {
+            deleteFile($setting->logo_header);
             $image = $data['logo_header'];
             $data['logo_header'] = uploadFile($image, $this->fileFolder,1);
         }
-        if (isset($data['logo_footer'])) {
-            $obj = $this->find($id);
-            deleteFile($obj->logo_footer);
+        if (isset($data['logo_footer']) && $data['logo_footer'] instanceof \Illuminate\Http\UploadedFile) {
+            deleteFile($setting->logo_footer);
             $image = $data['logo_footer'];
             $data['logo_footer'] = uploadFile($image, $this->fileFolder,1);
         }
-        if (isset($data['favicon'])) {
-            $obj = $this->find($id);
-            deleteFile($obj->favicon);
+        if (isset($data['favicon']) && $data['favicon'] instanceof \Illuminate\Http\UploadedFile) {
+            deleteFile($setting->favicon);
             $image = $data['favicon'];
             $data['favicon'] = uploadFile($image, $this->fileFolder,1);
         }
-        if (isset($data['about_image'])) {
-            $obj = $this->find($id);
-            deleteFile($obj->about_image);
+        if (isset($data['about_image']) && $data['about_image'] instanceof \Illuminate\Http\UploadedFile) {
+            deleteFile($setting->about_image);
             $image = $data['about_image'];
             $data['about_image'] = uploadFile($image, $this->fileFolder,1);
         }
-        //dd($data);
-        $this->find($id)->update( $data);
+
+        // Separate translation data from main data
+        $translationData = [];
+        $mainData = [];
+
+        foreach ($data as $key => $value) {
+            if (strpos($key, ':') !== false) {
+                // This is a translation field
+                list($field, $locale) = explode(':', $key, 2);
+                if (!isset($translationData[$locale])) {
+                    $translationData[$locale] = [];
+                }
+                $translationData[$locale][$field] = $value;
+            } else {
+                // This is a main field
+                $mainData[$key] = $value;
+            }
+        }
+
+        // Update main data
+        if (!empty($mainData)) {
+            $setting->update($mainData);
+        }
+
+        // Update translations
+        foreach ($translationData as $locale => $fields) {
+            $setting->translateOrNew($locale)->fill($fields);
+        }
+
+        $setting->save();
+
+        return $setting;
     }
 
     public function deleteSetting($id)
