@@ -1,9 +1,9 @@
 <script>
     $(document).ready(function () {
-        $('.select2').select2({
-            placeholder: 'Search for an order...',
-            allowClear: true
-        });
+        // $('.select2').select2({
+        //     placeholder: 'اختر الطلب',
+        //     allowClear: true
+        // });
 
         // $('#new-client-section').find('input, select').prop('disabled', true);
 

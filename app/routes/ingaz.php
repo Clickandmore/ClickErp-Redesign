@@ -102,6 +102,9 @@ Route::group(
 
             Route::get('RecruitmentContractBack/{id}', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'back'])->name('RecruitmentContract.back');
             Route::get('contractsDetails/{id}', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'details'])->name('contracts.details');
+            Route::post('RecruitmentContract/{contractId}/add-maid', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'addMaidToContract'])->name('RecruitmentContract.addMaid');
+            Route::get('RecruitmentContract/available-maids', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'getAvailableMaids'])->name('RecruitmentContract.availableMaids');
+            Route::get('RecruitmentContract/filter-options', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'getFilterOptions'])->name('RecruitmentContract.filterOptions');
             Route::resource('RentContract', RentContractController::class);
             Route::get('showDataOfOrder', [App\Http\Controllers\ingaz\OrderController::class, 'showDataOfOrder'])->name('showDataOfOrder');
             Route::get('showDataOfMaid', [App\Http\Controllers\ingaz\OrderController::class, 'showDataOfMaid'])->name('showDataOfMaid');

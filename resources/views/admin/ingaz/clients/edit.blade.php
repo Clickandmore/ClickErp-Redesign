@@ -30,7 +30,12 @@
 
         <div class="col-6">
             <label for="nationality_id" class="form-label">{{helperTrans("ingaz.nationality_id")}}</label>
-            <input type="text" id="nationality_id" name="nationality_id" class="form-control" value="{{ $client->nationality->title ?? '' }}" readonly>
+            <select name="nationality_id" id="nationality_id" class="form-control">
+                <option value="">{{ helperTrans('ingaz.choose') }}</option>
+                @foreach($countries as $country)
+                    <option value="{{ $country->id }}" @if($client->nationality_id == $country->id) selected @endif>{{ $country->name_ar }}</option>
+                @endforeach
+            </select>
         </div>
 
         <div class="col-6">

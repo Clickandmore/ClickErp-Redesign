@@ -86,6 +86,7 @@ class AppServiceProvider extends ServiceProvider
         $contractsCount['back'] = Contract::where('status', 'back')->count();
         $contractsCount['arrival'] = Contract::where('status', 'arrival')->count();
         $contractsCount['closed'] = Contract::where('status', 'closed')->count();
+        $contractsCount['pending_maid_selection'] = Contract::where('status', 'pending_maid_selection')->count();
         $contractsCount['all'] = Contract::count();
         View::share('contractsCount', $contractsCount);
     }

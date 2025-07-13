@@ -196,6 +196,13 @@
                                 </a>
                             </li>
                             @endif
+                            <li>
+                                <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => 'pending_maid_selection']) }}">
+                                    <i class="icon-star"></i>
+                                    <span class="ms-2">بانتظار اختيار العاملة</span>
+                                    <span class="badge bg-warning">{{ $contractsCount['pending_maid_selection'] ?? 0 }}</span>
+                                </a>
+                            </li>
                             @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED))
                             <li>
                                 <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $msanedStatus->value]) }}">

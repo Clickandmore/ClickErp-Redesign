@@ -260,10 +260,8 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content" style="background: transparent; border: none;">
                 <!-- Close Button -->
-                <button type="button" class="close position-absolute custom-close-btn"
-                    style="right: 10px; top: 10px; z-index: 1;" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+                <button type="button" class="btn-close position-absolute custom-close-btn"
+                    style="right: 10px; top: 10px; z-index: 1;" data-bs-dismiss="modal" aria-label="Close"></button>
                 <!-- Image with Link -->
                 <a href="{{ route('web.contact-us.index') }}" target="_blank">
                     <img src="{{ $popup_image ? showFile($popup_image) : asset('web/assets/images/ussus-popup.png') }}" class="img-fluid" alt="Popup Image">

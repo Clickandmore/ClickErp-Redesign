@@ -43,7 +43,12 @@
                         <div class="col-6">
                             <div class="form-group">
                                 <label class="form-label">{{ helperTrans('ingaz.nationality') }}</label>
-                                <input type="text" name="nationality_id" class="form-control">
+                                <select name="nationality_id" class="form-control">
+                                    <option value="">{{ helperTrans('ingaz.choose') }}</option>
+                                    @foreach($countries as $country)
+                                        <option value="{{ $country->id }}">{{ $country->name_ar }}</option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
                         <div class="col-6">
@@ -115,6 +120,7 @@
 @endsection
 
 @section('js')
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function () {
             $('#addForm').on('submit', function (e) {
@@ -139,5 +145,35 @@
                 });
             });
         });
+
+        function handleErrorResponce(response) {
+            if (response.responseJSON && response.responseJSON.errors) {
+                let errors = response.responseJSON.errors;
+                let messages = [];
+                Object.keys(errors).forEach(function(key) {
+                    messages.push(errors[key][0]);
+                });
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ في البيانات',
+                    html: messages.join('<br>'),
+                    confirmButtonText: 'حسناً'
+                });
+            } else if (response.responseJSON && response.responseJSON.message) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: response.responseJSON.message,
+                    confirmButtonText: 'حسناً'
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ غير متوقع',
+                    text: 'حدث خطأ غير متوقع. حاول مرة أخرى.',
+                    confirmButtonText: 'حسناً'
+                });
+            }
+        }
     </script>
 @endsection

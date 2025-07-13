@@ -106,7 +106,7 @@ class RentContractController extends Controller
     {
         // عقد الاستقدام بيكون للطلبات من نوع استقدام ومنتهية
         $endedOrders = Order::where('job_type_id',1)->whereIn('status', [OrderEnum::Done->value])->latest()->get();
-        $countries = Nationality::all();
+        $countries = Country::active()->ordered()->get();
         $offices = $officeAction->getAllOffices();
 
         // select maids

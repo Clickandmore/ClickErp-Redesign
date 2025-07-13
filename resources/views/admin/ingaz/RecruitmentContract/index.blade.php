@@ -1,6 +1,101 @@
 @extends('admin.layout.indexs.index')
 @section("style")
     <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
+    <style>
+        .maids-grid {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .maid-card {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #fff;
+        }
+
+        .maid-card:hover {
+            border-color: #007bff;
+            box-shadow: 0 4px 8px rgba(0,123,255,0.1);
+            transform: translateY(-2px);
+        }
+
+        .maid-card.selected {
+            border-color: #28a745;
+            background-color: #f8fff9;
+            box-shadow: 0 4px 8px rgba(40,167,69,0.2);
+        }
+
+        .maid-card .maid-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #e9ecef;
+        }
+
+        .maid-card .maid-info h6 {
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .maid-card .maid-info p {
+            margin-bottom: 3px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .maid-card .maid-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #28a745;
+            color: white;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .maid-card .maid-status {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .maid-card .maid-status.available {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .maid-card .maid-status.reserved {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .filters-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .search-highlight {
+            background-color: #fff3cd;
+            padding: 1px 3px;
+            border-radius: 3px;
+        }
+    </style>
 @endsection
 @section('page-title')
     {{helperTrans("ingaz.All Recruitment contracts")}}
@@ -90,6 +185,8 @@
         </div>
     </div>
 
+
+
 @else
     @include('components.no_permissions')
 @endif
@@ -137,6 +234,12 @@
             var status = $('#status').val();
             var statusDate = $('#statusDate').val();
 
+            // التحقق من وجود معرف العقد
+            if (!rowId) {
+                Swal.fire('خطأ', 'معرف العقد غير صحيح', 'error');
+                return;
+            }
+
             $.ajax({
                 url: '{{ route('RecruitmentContract.show', ':rowId') }}'.replace(':rowId', rowId),
                 method: 'GET',
@@ -146,9 +249,19 @@
                 },
                 success: function (response) {
                     console.log('AJAX request successful');
+                    if (response.success) {
+                        Swal.fire('نجح', response.message, 'success');
+                    } else {
+                        Swal.fire('خطأ', response.message, 'error');
+                    }
                 },
                 error: function (xhr, status, error) {
                     console.error('AJAX request failed:', error);
+                    var errorMessage = 'حدث خطأ أثناء تحديث حالة العقد';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    Swal.fire('خطأ', errorMessage, 'error');
                 },
                 complete: function () {
                     $('#dataTableObject').DataTable().ajax.reload();
@@ -158,21 +271,38 @@
         });
 
         $(document).on('click', '.backContract', function () {
-            var contractId = $(this).data('id');
+            var contractId = $(this).data('row-id'); // تغيير من data('id') إلى data('row-id')
             $('#contract_id').val(contractId);
             $('#confirmBackModal').modal('show');
         });
 
         $('#confirmBackBtn').click(function () {
             var rowId = $('#contract_id').val();
+
+            // التحقق من وجود معرف العقد
+            if (!rowId) {
+                Swal.fire('خطأ', 'معرف العقد غير صحيح', 'error');
+                return;
+            }
+
             $.ajax({
                 url: '{{ route('RecruitmentContract.back', ':rowId') }}'.replace(':rowId', rowId),
                 method: 'GET',
                 success: function (response) {
                     console.log('AJAX request successful');
+                    if (response.success) {
+                        Swal.fire('نجح', response.message, 'success');
+                    } else {
+                        Swal.fire('خطأ', response.message, 'error');
+                    }
                 },
                 error: function (xhr, status, error) {
                     console.error('AJAX request failed:', error);
+                    var errorMessage = 'حدث خطأ أثناء إرجاع العقد';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    Swal.fire('خطأ', errorMessage, 'error');
                 },
                 complete: function () {
                     $('#dataTableObject').DataTable().ajax.reload();
@@ -180,6 +310,8 @@
                 }
             });
         });
+
+
     </script>
 
     <script>

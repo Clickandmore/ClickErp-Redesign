@@ -33,6 +33,7 @@ Route::group(
         Route::group(["prefix" => "admin", "middleware" => "admin"], function () {
 
             Route::get('getMaidByNationality/{nationalityId}', 'RecruitmentContractController@getMaidByNationality')->name('getMaidByNationality');
+            Route::get('clients/{id}/details', 'RecruitmentContractController@getClientDetails')->name('clients.details');
 
             //** NEW */
             Route::get('getContractEdit/{id}', [AdminContractController::class, 'getContractEdit'])->name('getContractEdit');
@@ -113,6 +114,10 @@ Route::group(
             Route::get('RecruitmentContract/export/excel', [\App\Http\Controllers\ingaz\RecruitmentContractController::class, 'exportExcel'])->name('RecruitmentContract.export.excel');
             Route::get('RecruitmentContractBack/{id}', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'back'])->name('RecruitmentContract.back');
             Route::get('contractsDetails/{id}', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'details'])->name('contracts.details');
+            Route::post('RecruitmentContract/{contractId}/add-maid', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'addMaidToContract'])->name('RecruitmentContract.addMaid');
+            Route::get('RecruitmentContract/{contractId}/select-maid', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'selectMaidForContract'])->name('RecruitmentContract.selectMaid');
+            Route::get('RecruitmentContract/available-maids', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'getAvailableMaids'])->name('RecruitmentContract.availableMaids');
+            Route::get('RecruitmentContract/filter-options', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'getFilterOptions'])->name('RecruitmentContract.filterOptions');
             Route::resource('RentContract', RentContractController::class);
             Route::get('showDataOfOrder', [App\Http\Controllers\ingaz\OrderController::class, 'showDataOfOrder'])->name('showDataOfOrder');
             Route::get('showDataOfMaid', [App\Http\Controllers\ingaz\OrderController::class, 'showDataOfMaid'])->name('showDataOfMaid');

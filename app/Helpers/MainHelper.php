@@ -759,6 +759,10 @@ if (!function_exists('getContractStatus')) {
             'shelter' => [
                 'ar' => 'عقد إيواء',
                 'en' => 'Shelter Contract'
+            ],
+            'pending_maid_selection' => [
+                'ar' => 'بانتظار اختيار العاملة',
+                'en' => 'Pending Maid Selection'
             ]
         ];
 

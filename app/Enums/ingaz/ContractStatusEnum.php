@@ -15,4 +15,5 @@ enum ContractStatusEnum: string
     case Sari = 'sari'; // عقد ساري
     case Closed = 'closed'; // عقد مغلق - منتهي
     case Shelter = 'shelter'; // عقد ايواء
+    case PendingMaidSelection = 'pending_maid_selection'; // بانتظار اختيار العاملة
 }

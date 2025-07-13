@@ -41,7 +41,7 @@ class User extends Authenticatable implements JWTSubject
 
     public function nationality()
     {
-        return $this->belongsTo(Nationality::class, 'nationality_id');
+        return $this->belongsTo(\App\Models\Country::class, 'nationality_id');
     }
 
     public function getJWTIdentifier()

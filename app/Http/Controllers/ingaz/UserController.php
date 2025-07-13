@@ -94,8 +94,8 @@ class UserController extends Controller
             abort(403, 'ليس لديك صلاحية لإضافة عميل جديد');
         }
 
-        $nationalities = \App\Models\ingaz\Nationality::all();
-        return view($this->folderPath . '.create', compact('nationalities'));
+        $countries = \App\Models\Country::active()->ordered()->get();
+        return view($this->folderPath . '.create', compact('countries'));
     }
 
     /**
@@ -115,10 +115,10 @@ class UserController extends Controller
 
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'email' => 'nullable|email|max:255',
+            'phone' => 'required|string|max:20|unique:users,phone',
+            'email' => 'nullable|email|max:255|unique:users,email',
             'password' => 'required|string|min:6',
-            'nationality_id' => 'nullable|integer',
+            'nationality_id' => 'nullable|exists:countries,id',
             'national_num' => 'nullable|string|max:50',
             'birthdate' => 'nullable|date',
             'phone2' => 'nullable|string|max:20',
@@ -128,6 +128,38 @@ class UserController extends Controller
             'family_num' => 'nullable|integer|min:0',
             'children' => 'nullable|integer|min:0',
             'job' => 'nullable|string|max:100'
+        ], [
+            'name.required' => __('ingaz.client_name_required'),
+            'name.string' => __('ingaz.client_name_required'),
+            'name.max' => __('ingaz.client_name_max'),
+            'phone.required' => __('ingaz.client_phone_required'),
+            'phone.string' => __('ingaz.client_phone_required'),
+            'phone.max' => __('ingaz.client_phone_max'),
+            'phone.unique' => __('ingaz.client_phone_already_exists'),
+            'email.email' => __('ingaz.client_email_invalid'),
+            'email.max' => __('ingaz.client_email_max'),
+            'email.unique' => __('ingaz.client_email_already_exists'),
+            'password.required' => __('ingaz.client_password_required'),
+            'password.string' => __('ingaz.client_password_required'),
+            'password.min' => __('ingaz.client_password_min'),
+            'nationality_id.exists' => __('ingaz.client_nationality_not_found'),
+            'national_num.string' => __('ingaz.client_national_num_max'),
+            'national_num.max' => __('ingaz.client_national_num_max'),
+            'birthdate.date' => __('ingaz.client_birthdate_invalid'),
+            'phone2.string' => __('ingaz.client_phone2_max'),
+            'phone2.max' => __('ingaz.client_phone2_max'),
+            'address.string' => __('ingaz.client_address_max'),
+            'address.max' => __('ingaz.client_address_max'),
+            'city.string' => __('ingaz.client_city_max'),
+            'city.max' => __('ingaz.client_city_max'),
+            'rooms_num.integer' => __('ingaz.client_rooms_num_integer'),
+            'rooms_num.min' => __('ingaz.client_rooms_num_min'),
+            'family_num.integer' => __('ingaz.client_family_num_integer'),
+            'family_num.min' => __('ingaz.client_family_num_min'),
+            'children.integer' => __('ingaz.client_children_integer'),
+            'children.min' => __('ingaz.client_children_min'),
+            'job.string' => __('ingaz.client_job_max'),
+            'job.max' => __('ingaz.client_job_max')
         ]);
 
         $data['password'] = bcrypt($data['password']);
@@ -171,7 +203,8 @@ class UserController extends Controller
         }
 
         $client = objModel::findOrFail($id);
-        return view($this->folderPath . '.edit', compact('client'));
+        $countries = \App\Models\Country::active()->ordered()->get();
+        return view($this->folderPath . '.edit', compact('client', 'countries'));
     }
 
     /**
@@ -195,9 +228,9 @@ class UserController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'phone_code' => 'required|string|max:10',
-            'phone' => 'required|string|max:20',
-            'email' => 'nullable|email|max:255',
-            'nationality_id' => 'nullable|exists:nationalities,id',
+            'phone' => 'required|string|max:20|unique:users,phone,' . $client->id,
+            'email' => 'nullable|email|max:255|unique:users,email,' . $client->id,
+            'nationality_id' => 'nullable|exists:countries,id',
             'national_num' => 'nullable|string|max:50',
             'birthdate' => 'nullable|date',
             'phone2' => 'nullable|string|max:20',
@@ -208,6 +241,40 @@ class UserController extends Controller
             'children' => 'nullable|integer|min:0',
             'job' => 'nullable|string|max:100',
             'is_blocked' => 'required|boolean'
+        ], [
+            'name.required' => __('ingaz.client_name_required'),
+            'name.string' => __('ingaz.client_name_required'),
+            'name.max' => __('ingaz.client_name_max'),
+            'phone_code.required' => __('ingaz.client_phone_code_required'),
+            'phone_code.string' => __('ingaz.client_phone_code_required'),
+            'phone_code.max' => __('ingaz.client_phone_code_max'),
+            'phone.required' => __('ingaz.client_phone_required'),
+            'phone.string' => __('ingaz.client_phone_required'),
+            'phone.max' => __('ingaz.client_phone_max'),
+            'phone.unique' => __('ingaz.client_phone_already_exists'),
+            'email.email' => __('ingaz.client_email_invalid'),
+            'email.max' => __('ingaz.client_email_max'),
+            'email.unique' => __('ingaz.client_email_already_exists'),
+            'nationality_id.exists' => __('ingaz.client_nationality_not_found'),
+            'national_num.string' => __('ingaz.client_national_num_max'),
+            'national_num.max' => __('ingaz.client_national_num_max'),
+            'birthdate.date' => __('ingaz.client_birthdate_invalid'),
+            'phone2.string' => __('ingaz.client_phone2_max'),
+            'phone2.max' => __('ingaz.client_phone2_max'),
+            'address.string' => __('ingaz.client_address_max'),
+            'address.max' => __('ingaz.client_address_max'),
+            'city.string' => __('ingaz.client_city_max'),
+            'city.max' => __('ingaz.client_city_max'),
+            'rooms_num.integer' => __('ingaz.client_rooms_num_integer'),
+            'rooms_num.min' => __('ingaz.client_rooms_num_min'),
+            'family_num.integer' => __('ingaz.client_family_num_integer'),
+            'family_num.min' => __('ingaz.client_family_num_min'),
+            'children.integer' => __('ingaz.client_children_integer'),
+            'children.min' => __('ingaz.client_children_min'),
+            'job.string' => __('ingaz.client_job_max'),
+            'job.max' => __('ingaz.client_job_max'),
+            'is_blocked.required' => __('ingaz.client_is_blocked_required'),
+            'is_blocked.boolean' => __('ingaz.client_is_blocked_boolean')
         ]);
 
         $client->update($data);

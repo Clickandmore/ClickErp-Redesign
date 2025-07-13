@@ -1,0 +1,23 @@
+
+   Illuminate\Validation\ValidationException 
+
+  The given data was invalid.
+
+  at app/Http/Requests/MainRequest.php:38
+     34▕                 $response = jsonValid($validator->errors());
+     35▕                 throw new \Illuminate\Validation\ValidationException($validator, $response);
+     36▕             } catch (\Exception $e) {
+     37▕                 // إذا فشل jsonValid، استخدم الطريقة الافتراضية
+  ➜  38▕                 throw new \Illuminate\Validation\ValidationException($validator, response()->json([
+     39▕                     'message' => 'The given data was invalid.',
+     40▕                     'errors' => $validator->errors(),
+     41▕                 ], 422));
+     42▕             }
+
+      [2m+23 vendor frames [22m
+  24  [internal]:0
+      Illuminate\Foundation\Console\RouteListCommand::Illuminate\Foundation\Console\{closure}(Object(Illuminate\Routing\Route))
+
+      [2m+16 vendor frames [22m
+  41  artisan:35
+      Illuminate\Foundation\Console\Kernel::handle(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))

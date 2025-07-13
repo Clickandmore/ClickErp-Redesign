@@ -286,6 +286,10 @@ class Constant
             'shelter' => [
                 "ar" => "عقد إيواء",
                 "en" => "shelter"
+            ],
+            'pending_maid_selection' => [
+                "ar" => "بانتظار اختيار العاملة",
+                "en" => "pending maid selection"
             ]
         ]
     ];
