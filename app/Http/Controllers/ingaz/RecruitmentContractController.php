@@ -217,7 +217,7 @@ class RecruitmentContractController extends Controller
         $contract = Contract::with('user', 'maid', 'info', 'contract_status_logs')->findOrFail($id);
         $info = ContractInfo::where('contract_id', $contract->id)->first();
         //        return $contract;
-        return view('admin.ingaz.contract.details', compact('contract', 'info'));
+        return view('admin.ingaz.RecruitmentContract.details', compact('contract', 'info'));
     }
 
     public function create()

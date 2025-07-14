@@ -145,6 +145,8 @@ Route::group(
             //** New */
             Route::get('show_single_order/{orderId}', [App\Http\Controllers\ingaz\OrderController::class, 'showSingleOrder'])->name('showSingleOrder');
             Route::get('/order_file/{id}/download', [App\Http\Controllers\ingaz\OrderController::class, 'download'])->name('order_files.download');
+            Route::post('orders/changeMaid', [App\Http\Controllers\ingaz\OrderController::class, 'changeMaid'])->name('orders.changeMaid');
+            Route::post('orders/changeResponsible', [App\Http\Controllers\ingaz\OrderController::class, 'changeResponsible'])->name('orders.changeResponsible');
             Route::get('/cancel_contracts', [App\Http\Controllers\ingaz\ContractsController::class, 'cancel_contracts'])->name('cancel_contracts');
 
             Route::resource('complaint-types', ComplaintTypeController::class);

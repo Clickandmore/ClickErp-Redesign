@@ -144,8 +144,11 @@ class OrderController extends Controller
                     $deleteButton = '';
                     $authorizeButton = '';
 
-                    if ($row->payment_type == 'bank_transfer') {
-                        $showButton = viewSingleButton(route('showSingleOrder', $row->id));
+                    // Show view button for all orders
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW)) {
+                        $showButton = '<a href="' . route('showSingleOrder', $row->id) . '" class="btn btn-sm btn-info">
+                            <i class="fa fa-eye"></i> ' . __('ingaz.view') . '
+                        </a>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT)) {
@@ -302,7 +305,23 @@ class OrderController extends Controller
 
     public function showSingleOrder($orderId)
     {
-        $data = Order::find($orderId);
+        $data = Order::with([
+            'user.nationality',
+            'maid.nationality',
+            'maid.religion',
+            'maid.jobTitles',
+            'jobType',
+            'details.admin',
+            'details.package',
+            'details.address',
+            'transfers',
+            'contracts'
+        ])->find($orderId);
+
+        if (!$data) {
+            abort(404);
+        }
+
         return view('admin.ingaz.orders.show', compact('data'));
     }
 
@@ -339,6 +358,74 @@ class OrderController extends Controller
             return jsonSuccess($order);
         }
         return jsonError(['error' => 'Order not Found!']);
+    }
+
+    public function changeMaid(Request $request)
+    {
+        try {
+            $request->validate([
+                'order_id' => 'required|exists:orders,id',
+                'maid_id' => 'required|exists:maids,id'
+            ]);
+
+            $order = Order::findOrFail($request->order_id);
+            $maid = \App\Models\ingaz\Maid::findOrFail($request->maid_id);
+
+            // Check if maid is available and not reserved
+            if (!$maid->available || $maid->status !== 'متاحة') {
+                return jsonError(['message' => 'السيرة الذاتية غير متاحة أو محجوزة']);
+            }
+
+            // Check if maid is already assigned to another active order
+            $existingOrder = Order::where('maid_id', $request->maid_id)
+                ->where('id', '!=', $request->order_id)
+                ->whereNotIn('status', ['completed', 'refused', 'done'])
+                ->first();
+
+            if ($existingOrder) {
+                return jsonError(['message' => 'السيرة الذاتية محجوزة لطلب آخر']);
+            }
+
+            // Update order with new maid
+            $order->maid_id = $request->maid_id;
+            $order->save();
+
+            return jsonSuccess(['message' => 'تم تغيير السيرة الذاتية بنجاح']);
+        } catch (\Exception $e) {
+            return jsonError(['message' => 'حدث خطأ أثناء تغيير السيرة الذاتية']);
+        }
+    }
+
+        public function changeResponsible(Request $request)
+    {
+        try {
+            $request->validate([
+                'order_id' => 'required|exists:orders,id',
+                'admin_id' => 'required|exists:admins,id'
+            ]);
+
+            $order = Order::findOrFail($request->order_id);
+            $admin = \App\Models\auth\Admin::findOrFail($request->admin_id);
+
+            // Check if admin is customer service
+            if ($admin->admin_type !== 'customer_service') {
+                return jsonError(['message' => 'يمكن فقط اختيار موظف خدمة العملاء']);
+            }
+
+            // Update or create order details with new admin
+            $orderDetail = $order->details;
+            if (!$orderDetail) {
+                $orderDetail = new \App\Models\ingaz\OrderDetail();
+                $orderDetail->order_id = $order->id;
+            }
+
+            $orderDetail->admin_id = $request->admin_id;
+            $orderDetail->save();
+
+            return jsonSuccess(['message' => 'تم تغيير مسئول الطلب بنجاح']);
+        } catch (\Exception $e) {
+            return jsonError(['message' => 'حدث خطأ أثناء تغيير مسئول الطلب']);
+        }
     }
 
     public function exportPdf()

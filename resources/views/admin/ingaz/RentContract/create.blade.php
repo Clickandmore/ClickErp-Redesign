@@ -7,8 +7,8 @@
 
     <form class="row g-3 contractForm" method="post" action="{{route("RentContract.store")}}">
         @csrf
-        @include('admin.ingaz.contract.client-section')
-        @include('admin.ingaz.contract.maid-section')
+        @include('admin.ingaz.RentContract.client-section')
+        @include('admin.ingaz.RentContract.maid-section')
 
         <div id="step-3" class="step d-none">
             <div class="col-12">
@@ -22,7 +22,7 @@
             </div>
         </div>
 
-        @include('admin.ingaz.contract.contract-section')
+        @include('admin.ingaz.RentContract.contract-section')
 
 
         <div class="col-12 modal-footer">
@@ -84,6 +84,6 @@
             });
         });
     </script>
-    @include('admin.ingaz.contract.js')
+    @include('admin.ingaz.RentContract.js')
 
 @endsection

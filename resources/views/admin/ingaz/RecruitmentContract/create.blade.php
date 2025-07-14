@@ -77,7 +77,7 @@
                         </select>
                     </div>
 
-                    @include('admin.ingaz.contract.client-section')
+                    @include('admin.ingaz.RecruitmentContract.client-section')
                 </div>
             </div>
         </div>
@@ -88,7 +88,7 @@
                     <h4 class="mb-0">معلومات الخادمة</h4>
                 </div>
                 <div class="card-body">
-                    @include('admin.ingaz.contract.maid-section')
+                    @include('admin.ingaz.RecruitmentContract.maid-section')
                 </div>
             </div>
         </div>
@@ -99,7 +99,7 @@
                     <h4 class="mb-0">معلومات العقد</h4>
                 </div>
                 <div class="card-body">
-                    @include('admin.ingaz.contract.contract-section')
+                    @include('admin.ingaz.RecruitmentContract.contract-section')
                 </div>
             </div>
         </div>
@@ -307,7 +307,7 @@
                   <h4 class="mb-0">معلومات العقد</h4>
                 </div>
                 <div class="card-body">
-                  @include('admin.ingaz.contract.contract-section')
+                  @include('admin.ingaz.RecruitmentContract.contract-section')
                 </div>
               </div>
             </div>
@@ -1556,5 +1556,5 @@ $(document).ready(function() {
     });
 </script>
 
-@include('admin.ingaz.contract.js')
+@include('admin.ingaz.RecruitmentContract.js')
 @endsection
