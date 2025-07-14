@@ -362,6 +362,11 @@ class OrderController extends Controller
 
     public function changeMaid(Request $request)
     {
+        // التحقق من الصلاحية
+        if (!@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_MAID)) {
+            return jsonError(['message' => 'ليس لديك صلاحية لتغيير السيرة الذاتية']);
+        }
+
         try {
             $request->validate([
                 'order_id' => 'required|exists:orders,id',
@@ -396,8 +401,13 @@ class OrderController extends Controller
         }
     }
 
-        public function changeResponsible(Request $request)
+            public function changeResponsible(Request $request)
     {
+        // التحقق من الصلاحية
+        if (!@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_RESPONSIBLE)) {
+            return jsonError(['message' => 'ليس لديك صلاحية لتغيير مسئول الطلب']);
+        }
+
         try {
             $request->validate([
                 'order_id' => 'required|exists:orders,id',

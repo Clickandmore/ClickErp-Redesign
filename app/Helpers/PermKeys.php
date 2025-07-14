@@ -77,6 +77,10 @@ class PermKeys
     const ORDERS_ADD_CONTRACT = 'orders_add_contract';
     const ORDERS_VIEW_CONTRACT = 'orders_view_contract';
 
+    // صلاحيات تغيير بيانات الطلب
+    const ORDERS_CHANGE_MAID = 'orders_change_maid';
+    const ORDERS_CHANGE_RESPONSIBLE = 'orders_change_responsible';
+
     // صلاحيات التقارير
     const ORDERS_REPORTS = 'orders_reports';
     const ORDERS_ANALYTICS = 'orders_analytics';

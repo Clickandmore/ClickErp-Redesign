@@ -353,11 +353,16 @@
                 </div>
                 <div class="order-info-body">
                     <div class="action-buttons">
-                        @if(@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT))
+                        @if(@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_MAID))
                             @if($data->status != 'completed')
                             <button class="btn btn-info" onclick="changeMaid({{ $data->id }})">
                                 <i class="fa fa-user-edit"></i> {{helperTrans("ingaz.change_maid")}}
                             </button>
+                            @endif
+                        @endif
+
+                        @if(@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_RESPONSIBLE))
+                            @if($data->status != 'completed')
                             <button class="btn btn-warning" onclick="changeResponsible({{ $data->id }})">
                                 <i class="fa fa-user-cog"></i> {{helperTrans("ingaz.change_responsible")}}
                             </button>
