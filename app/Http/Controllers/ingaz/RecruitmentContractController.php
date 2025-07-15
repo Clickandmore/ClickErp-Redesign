@@ -450,13 +450,13 @@ class RecruitmentContractController extends Controller
             }
 
             // التحقق من أن العقد من نوع الاستقدام
-            if ($row->type !== 'recruitment') {
-                \Log::warning('Contract is not recruitment type', ['id' => $id, 'type' => $row->type]);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'هذا العقد ليس من نوع الاستقدام'
-                ], 400);
-            }
+            // if ($row->type !== 'recruitment') {
+            //     \Log::warning('Contract is not recruitment type', ['id' => $id, 'type' => $row->type]);
+            //     return response()->json([
+            //         'success' => false,
+            //         'message' => 'هذا العقد ليس من نوع الاستقدام'
+            //     ], 400);
+            // }
 
             // التحقق من الصلاحيات حسب حالة العقد الحالية
             $hasPermission = false;
@@ -568,14 +568,14 @@ class RecruitmentContractController extends Controller
                 ], 404);
             }
 
-            // التحقق من أن العقد من نوع الاستقدام
-            if ($contract->type !== 'recruitment') {
-                \Log::warning('Contract is not recruitment type in back function', ['id' => $id, 'type' => $contract->type]);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'هذا العقد ليس من نوع الاستقدام'
-                ], 400);
-            }
+            // // التحقق من أن العقد من نوع الاستقدام
+            // if ($contract->type !== 'recruitment') {
+            //     \Log::warning('Contract is not recruitment type in back function', ['id' => $id, 'type' => $contract->type]);
+            //     return response()->json([
+            //         'success' => false,
+            //         'message' => 'هذا العقد ليس من نوع الاستقدام'
+            //     ], 400);
+            // }
 
             $newStatus = contractBackStatus($contract->status);
             $contract->update(['status' => $newStatus->value]);
