@@ -71,7 +71,7 @@ class RecruitmentContractController extends Controller
             ]);
 
             $query = Contract::with(['user', 'maid', 'info'])
-                ->where('type', 'recruitment');
+                ->whereIn('type', ['recruitment', 'maid']);
 
             // فلتر الحالة
             if ($status) {
