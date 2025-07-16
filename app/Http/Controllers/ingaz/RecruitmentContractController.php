@@ -65,79 +65,190 @@ class RecruitmentContractController extends Controller
         }
 
         if ($request->ajax()) {
-            $status = $request->get('status', $status);
-            if ($status === 'under_warranty') {
-                $rows = Contract::RecruitmentContract()->underWarranty()->latest();
-            } else if ($status) {
-                $rows = Contract::RecruitmentContract()->where('status', $status)->latest();
-            } else {
-                $rows = Contract::RecruitmentContract()->latest();
+            \Log::info('RecruitmentContract index AJAX request', [
+                'request_data' => $request->all(),
+                'status' => $status
+            ]);
+
+            $query = Contract::with(['user', 'maid', 'info'])
+                ->where('type', 'recruitment');
+
+            // فلتر الحالة
+            if ($status) {
+                $query->where('status', $status);
             }
+
+            // فلتر التاريخ من
+            if ($request->filled('date_from')) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            }
+
+            // فلتر التاريخ إلى
+            if ($request->filled('date_to')) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            }
+
+            // فلتر رقم جوال العميل
+            if ($request->filled('client_phone')) {
+                $query->whereHas('user', function($q) use ($request) {
+                    $q->where('phone', 'like', '%' . $request->client_phone . '%');
+                });
+            }
+
+            // فلتر اسم العميل
+            if ($request->filled('client_name')) {
+                $query->whereHas('user', function($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->client_name . '%');
+                });
+            }
+
+            // فلتر رقم جواز العاملة
+            if ($request->filled('maid_passport')) {
+                $query->whereHas('maid', function($q) use ($request) {
+                    $q->where('passport_num', 'like', '%' . $request->maid_passport . '%');
+                });
+            }
+
+            // فلتر اسم العاملة
+            if ($request->filled('maid_name')) {
+                $query->whereHas('maid', function($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->maid_name . '%');
+                });
+            }
+
+            // فلتر رقم العقد
+            if ($request->filled('contract_number')) {
+                $query->where('id', 'like', '%' . $request->contract_number . '%');
+            }
+
+            // فلتر جنسية العاملة
+            if ($request->filled('nationality')) {
+                $query->whereHas('maid.nationality', function($q) use ($request) {
+                    $q->where('sub_title', 'like', '%' . $request->nationality . '%');
+                });
+            }
+
+            // فلتر ديانة العاملة
+            if ($request->filled('religion')) {
+                $query->whereHas('maid.religion', function($q) use ($request) {
+                    $q->where('title', 'like', '%' . $request->religion . '%');
+                });
+            }
+
+            // فلتر مدينة العميل
+            if ($request->filled('city')) {
+                $query->whereHas('user', function($q) use ($request) {
+                    $q->where('city', 'like', '%' . $request->city . '%');
+                });
+            }
+
+            $rows = $query->orderBy('id', 'desc');
+
+            \Log::info('RecruitmentContract query results', [
+                'total_count' => $rows->count(),
+                'sql' => $rows->toSql(),
+                'bindings' => $rows->getBindings()
+            ]);
 
             return DataTables::of($rows)
                 ->addIndexColumn()
                 ->editColumn('status', function ($row) {
+                    $statusText = getEnumValue('contract_statuses', $row->status);
+                    $statusColor = getContractStatusColor($row->status);
+
+                    $statusDisplay = '<span class="badge ' . $statusColor . ' status-badge">' . $statusText . '</span>';
+
+                    // إضافة معلومات إضافية حسب الحالة
                     if ($row->status === ContractStatusEnum::Arrival->value) {
                         $warrantyEndDate = $row->updated_at->addDays(90);
                         $remainingDays = now()->diffInDays($warrantyEndDate, false);
 
                         if ($remainingDays > 0) {
-                            return getEnumValue('contract_statuses', $row->status) .
-                                   ' <span class="badge bg-info">' .
-                                   __('admin.remaining_warranty_days', ['days' => $remainingDays]) .
-                                   '</span>';
+                            $statusDisplay .= '<br><small class="text-info">متبقي ' . $remainingDays . ' يوم للضمان</small>';
                         } else {
-                            return getEnumValue('contract_statuses', $row->status) .
-                                   ' <span class="badge bg-danger">' .
-                                   __('admin.warranty_expired') .
-                                   '</span>';
+                            $statusDisplay .= '<br><small class="text-danger">انتهى الضمان</small>';
                         }
                     }
-                    return getEnumValue('contract_statuses', $row->status);
+
+                    // إضافة تاريخ آخر تحديث
+                    $lastUpdate = $row->updated_at ? $row->updated_at->format('Y-m-d') : '';
+                    if ($lastUpdate) {
+                        $statusDisplay .= '<br><small class="text-muted">آخر تحديث: ' . $lastUpdate . '</small>';
+                    }
+
+                    return $statusDisplay;
                 })
                 ->editColumn('user_id', function ($row) {
-                    return ($row->user) ? $row->user->name : '';
-                })
-                ->addColumn('show_details', function ($row) {
-                    return '<a class="btn btn-md btn-secondary" href="' . route('contracts.details', $row->id) . '"> عرض العقد <i class="fa fa-file mr-2"></i></a>';
+                    $userInfo = '';
+                    if ($row->user) {
+                        $userInfo .= '<div class="user-info">';
+                        $userInfo .= '<br><strong>' . $row->user->name . '</strong>';
+                        if ($row->user->birthdate) {
+                            $userInfo .= '<br><small class="text-muted">تاريخ الميلاد: ' . \Carbon\Carbon::parse($row->user->birthdate)->format('Y-m-d') . '</small>';
+                        }
+                        if ($row->user->national_num) {
+                            $userInfo .= '<br><small class="text-muted">رقم الهوية: ' . $row->user->national_num . '</small>';
+                        }
+                        if ($row->user->address) {
+                            $userInfo .= '<br><small class="text-muted">العنوان: ' . $row->user->address . '</small>';
+                        }
+                        $userInfo .= '</div>';
+                    }
+                    return $userInfo;
                 })
                 ->editColumn('phone', function ($row) {
                     return ($row->user) ? getPhoneWithTag($row->user->phone_code . $row->user->phone) : '';
                 })
                 ->editColumn('maid_id', function ($row) {
-                    return ($row->maid) ? getImgTag($row->maid->cv_file, "80px", "80px") : '';
+                    $maidInfo = '';
+                    if ($row->maid) {
+                        $maidInfo .= '<div class="maid-info">';
+                        // إضافة تعليق لصورة العاملة
+                        // $maidInfo .= '<div class="maid-image-container" title="صورة العاملة: ' . $row->maid->name . '">';
+                        // $maidInfo .= getImgTag($row->maid->cv_file, "80px", "80px");
+                        // $maidInfo .= '</div>';
+                        $maidInfo .= '<br><strong>' . $row->maid->name . '</strong>';
+                        if ($row->maid->passport_num) {
+                            $maidInfo .= '<br><small class="text-muted">جواز: ' . $row->maid->passport_num . '</small>';
+                        }
+                        if ($row->maid->nationality) {
+                            $maidInfo .= '<small class="text-muted">الجنسية: ' . $row->maid->nationality->sub_title . '</small>';
+                        }
+                       $maidInfo .= '</div>';
+                    }
+                    return $maidInfo;
+                })
+                ->addColumn('contract_info', function ($row) {
+                    $contractInfo = '';
+                    if ($row->info) {
+                        $contractInfo .= '<div class="contract-info">';
+                        if ($row->info->msaned_number) {
+                            $contractInfo .= '<br><div><strong>مساند:</strong> ' . $row->info->msaned_number . '</div>';
+                        }
+                        // if ($row->info->tafwed_number) {
+                        //     $contractInfo .= '<div><strong>تفويض:</strong> ' . $row->info->tafwed_number . '</div>';
+                        // }
+                        if ($row->info->visa_number) {
+                            $contractInfo .= '<br><div><strong>تأشيرة:</strong> ' . $row->info->visa_number . '</div>';
+                        }
+                        if ($row->info->contract_date) {
+                            $contractInfo .= '<br><div><strong>تاريخ العقد:</strong> ' . \Carbon\Carbon::parse($row->info->contract_date)->format('Y-m-d') . '</div>';
+                        }
+                        $contractInfo .= '</div>';
+                    }
+                    return $contractInfo ?: '<span class="text-muted">غير محدد</span>';
+                })
+                ->addColumn('show_details', function ($row) {
+                    return '<a class="btn btn-sm btn-info btn-action" href="' . route('contracts.details', $row->id) . '" title="عرض تفاصيل العقد" target="_blank">
+                        <i class="fas fa-eye me-1"></i>عرض التفاصيل
+                    </a>';
                 })
                 ->addColumn('updateStatus', function ($row) {
                     if ($row->status == ContractStatusEnum::PendingMaidSelection->value) {
                         // زر إضافة عاملة للعقود التي في حالة بانتظار اختيار العاملة
-                        return '<a href="' . route('RecruitmentContract.selectMaid', $row->id) . '" class="btn btn-warning btn-sm"><i class="fas fa-user-plus me-1"></i>إضافة عاملة</a>';
-                    } elseif ($row->status != ContractStatusEnum::Back->value && $row->status != ContractStatusEnum::Arrival->value && $row->status != ContractStatusEnum::Tazker->value && $row->status != ContractStatusEnum::Closed->value && $row->status != ContractStatusEnum::Shelter->value) {
-                        // التحقق من الصلاحيات حسب حالة العقد
-                        $hasPermission = false;
-                        switch ($row->status) {
-                            case ContractStatusEnum::New->value:
-                                $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED);
-                                break;
-                            case ContractStatusEnum::Msaned->value:
-                                $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED);
-                                break;
-                            case ContractStatusEnum::Tafwed->value:
-                                $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ);
-                                break;
-                            case ContractStatusEnum::Taffez->value:
-                                $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER);
-                                break;
-                            case ContractStatusEnum::Sari->value:
-                                $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CLOSE_AFTER_WARRANTY);
-                                break;
-                        }
-
-                        if ($hasPermission) {
-                            $lastContractStatusLog = $row->getLastContractStatusLog();
-                            return '<button class="btn btn-success update-status-btn" data-bs-toggle="modal" data-bs-target="#updateStatusModal" data-row-id="' . $row->id . '" data-status="' . $row->status . '" data-date="' . ($lastContractStatusLog ? $lastContractStatusLog->date : \Carbon\Carbon::now()->format('Y-m-d')) . '">' . contractStatusConfirmBtnText($row->status) . '</button>';
-                        } else {
-                            return '<span class="text-muted">لا توجد صلاحية</span>';
-                        }
+                        return '<a href="' . route('RecruitmentContract.selectMaid', $row->id) . '" class="btn btn-warning btn-sm btn-action" title="إضافة عاملة">
+                            <i class="fas fa-user-plus me-1"></i>إضافة عاملة
+                        </a>';
                     } else if ($row->status == ContractStatusEnum::Tazker->value) {
                         // التحقق من صلاحيات إدارة الرحلات
                         $hasTravelPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW_TRAVEL);
@@ -146,53 +257,127 @@ class RecruitmentContractController extends Controller
 
                         // check if there is a travel history for this contract
                         $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+
                         if ($travelHistory) {
-                            $tripStatus = $travelHistory->status === 'completed' ?
-                                '<span class="badge bg-success">' . __('admin.trip_completed') . '</span>' :
-                                '<span class="badge bg-warning">' . __('admin.trip_pending') . '</span>';
-
-                            $buttons = $tripStatus;
-
-                            // Add complete trip button if trip is not completed and user has permission
-                            if ($travelHistory->status !== 'completed' && $hasCompleteTravelPermission) {
-                                $buttons .= ' <button class="btn btn-success complete-trip-btn" data-trip-id="' . $travelHistory->id . '">' . __('admin.mark_trip_completed') . '</button>';
+                            if ($travelHistory->status === 'completed') {
+                                return '<span class="badge bg-success">تم إكمال الرحلة</span>';
+                            } else if ($travelHistory->status === 'active') {
+                                if ($hasCompleteTravelPermission) {
+                                    return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
+                                        <i class="fas fa-check me-1"></i>إكمال الرحلة
+                                    </button>';
+                                } else {
+                                    return '<span class="badge bg-warning">رحلة نشطة</span>';
+                                }
+                            } else {
+                                return '<span class="badge bg-info">رحلة قيد الإعداد</span>';
                             }
-
-                            // Add show travel button if user has permission
-                            if ($hasTravelPermission) {
-                                $buttons .= ' <a class="btn btn-primary" href="' . route('travel.control', ['id' => $row->id, 'userId' => $row->user_id, 'maidId' => $row->maid_id]) . '">' . __("admin.show_travel") . ' <i class="fa fa-eye"></i></a>';
-                            }
-
-                            return $buttons;
                         } else {
                             if ($hasAddTravelPermission) {
-                                return '<a class="btn btn-success" href="' . route('travel.control', ['id' => $row->id, 'userId' => $row->user_id, 'maidId' => $row->maid_id]) . '">' . __("admin.add_travel") . ' <i class="fa fa-plus"></i></a>';
+                                return '<button class="btn btn-primary btn-sm add-travel-btn btn-action" data-contract-id="' . $row->id . '" title="إضافة رحلة">
+                                    <i class="fas fa-plane me-1"></i>إضافة رحلة
+                                </button>';
                             } else {
                                 return '<span class="text-muted">لا توجد صلاحية لإضافة رحلة</span>';
                             }
                         }
                     } else {
-                        return '<span class="text-danger">--</span>';
+                        // التحقق من الصلاحيات حسب حالة العقد
+                        $hasPermission = false;
+                        $permissionRequired = '';
+                        $nextStatus = '';
+                        $buttonText = '';
+
+                        switch ($row->status) {
+                            case ContractStatusEnum::New->value:
+                                $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED;
+                                $nextStatus = ContractStatusEnum::Msaned->value;
+                                $buttonText = 'انتقال إلى مساند';
+                                if (@AdminGuardHasPerm($permissionRequired)) {
+                                    $hasPermission = true;
+                                }
+                                break;
+                            case ContractStatusEnum::Msaned->value:
+                                $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED;
+                                $nextStatus = ContractStatusEnum::Tafwed->value;
+                                $buttonText = 'انتقال إلى تفويض';
+                                if (@AdminGuardHasPerm($permissionRequired)) {
+                                    $hasPermission = true;
+                                }
+                                break;
+                            case ContractStatusEnum::Tafwed->value:
+                                $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ;
+                                $nextStatus = ContractStatusEnum::Taffez->value;
+                                $buttonText = 'انتقال إلى تفييز';
+                                if (@AdminGuardHasPerm($permissionRequired)) {
+                                    $hasPermission = true;
+                                }
+                                break;
+                            case ContractStatusEnum::Taffez->value:
+                                $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER;
+                                $nextStatus = ContractStatusEnum::Tazker->value;
+                                $buttonText = 'انتقال إلى تذكرة';
+                                if (@AdminGuardHasPerm($permissionRequired)) {
+                                    $hasPermission = true;
+                                }
+                                break;
+                            case ContractStatusEnum::Arrival->value:
+                                // التحقق من صلاحية إغلاق العقد بعد الضمان
+                                $nextStatus = ContractStatusEnum::Closed->value;
+                                $buttonText = 'إغلاق العقد';
+                                if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CLOSE_AFTER_WARRANTY)) {
+                                    $hasPermission = true;
+                                }
+                                break;
+                            default:
+                                break;
+                        }
+
+                        if ($hasPermission) {
+                            $lastContractStatusLog = $row->getLastContractStatusLog();
+                            return '<button class="btn btn-success btn-sm update-status-btn btn-action" data-bs-toggle="modal" data-bs-target="#updateStatusModal" data-row-id="' . $row->id . '" data-status="' . $row->status . '" data-next-status="' . $nextStatus . '" data-date="' . ($lastContractStatusLog ? $lastContractStatusLog->date : \Carbon\Carbon::now()->format('Y-m-d')) . '" title="' . $buttonText . '">
+                                <i class="fas fa-arrow-up me-1"></i>' . $buttonText . '
+                            </button>';
+                        } else {
+                            return '<span class="text-muted">لا توجد صلاحية</span>';
+                        }
                     }
                 })
                 ->addColumn('back', function ($row) {
                     if ($row->status == ContractStatusEnum::Back->value) {
-                        return '<span class="text-danger">مرتجع</span>';
+                        return '<span class="badge bg-danger">مرتجع</span>';
                     } else {
                         // التحقق من صلاحية إرجاع العقد
                         if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
-                            return '<button class="btn btn-danger backContract" data-row-id="' . $row->id . '">ارجاع العقد <i class="fa fa-undo"></i> </button>';
+                            return '<button class="btn btn-danger btn-sm backContract btn-action" data-row-id="' . $row->id . '" title="إرجاع العقد">
+                                <i class="fas fa-undo"></i>
+                            </button>';
                         } else {
                             return '<span class="text-muted">لا توجد صلاحية للإرجاع</span>';
                         }
                     }
                 })
                 ->addColumn('actions', function ($row) {
-                    $deleteButton = '';
-                    if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
-                        $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                    $buttons = '';
+
+                    // زر الطباعة
+                    $buttons .= '<a href="' . route('contracts.details', $row->id) . '" class="btn btn-sm btn-secondary btn-action me-1" title="طباعة العقد" target="_blank">
+                        <i class="fas fa-print"></i>
+                    </a>';
+
+                    // زر التعديل
+                    if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EDIT)) {
+                        $buttons .= '<a href="' . route($this->mainRoute . '.edit', $row->id) . '" class="btn btn-sm btn-warning btn-action me-1" title="تعديل العقد">
+                            <i class="fas fa-edit"></i>
+                        </a>';
                     }
-                    return $deleteButton;
+
+                    // زر الحذف
+                    if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
+                        $buttons .= deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                    }
+
+                    return $buttons;
                 })
                 ->escapeColumns([])
                 ->make(true);
@@ -200,6 +385,7 @@ class RecruitmentContractController extends Controller
 
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["modalType"] = "modal-lg";
+        $data["status"] = $status ?? $request->get('status', null);
         return view($this->folderPath . '.index', $data);
     }
 
@@ -214,10 +400,24 @@ class RecruitmentContractController extends Controller
             ], 403);
         }
 
-        $contract = Contract::with('user', 'maid', 'info', 'contract_status_logs')->findOrFail($id);
+        $contract = Contract::with([
+            'user',
+            'maid',
+            'info',
+            'contract_status_logs',
+            'order.details.admin' // إضافة بيانات المسوق من الطلب
+        ])->findOrFail($id);
+
         $info = ContractInfo::where('contract_id', $contract->id)->first();
+
+        // الحصول على بيانات المسوق
+        $marketer = null;
+        if ($contract->order && $contract->order->details) {
+            $marketer = $contract->order->details->admin;
+        }
+
         //        return $contract;
-        return view('admin.ingaz.RecruitmentContract.details', compact('contract', 'info'));
+        return view('admin.ingaz.RecruitmentContract.details', compact('contract', 'info', 'marketer'));
     }
 
     public function create()
@@ -450,6 +650,7 @@ class RecruitmentContractController extends Controller
             }
 
             // التحقق من أن العقد من نوع الاستقدام
+            // تم إزالة هذا التحقق لأن جميع العقود في هذا Controller هي عقود استقدام
             // if ($row->type !== 'recruitment') {
             //     \Log::warning('Contract is not recruitment type', ['id' => $id, 'type' => $row->type]);
             //     return response()->json([
@@ -458,92 +659,91 @@ class RecruitmentContractController extends Controller
             //     ], 400);
             // }
 
-            // التحقق من الصلاحيات حسب حالة العقد الحالية
-            $hasPermission = false;
-            $permissionRequired = '';
+            // إذا كان الطلب لتحديث الحالة
+            if ($request->has('status') && $request->has('next_status')) {
+                $currentStatus = $request->status;
+                $nextStatus = $request->next_status;
+                $statusDate = $request->date ?? now()->format('Y-m-d');
 
-            switch ($row->status) {
-                case ContractStatusEnum::PendingMaidSelection->value:
-                    // لا يمكن تغيير حالة العقد حتى يتم اختيار عاملة
-                    $hasPermission = false;
-                    break;
-                case ContractStatusEnum::New->value:
-                    $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED;
-                    if (@AdminGuardHasPerm($permissionRequired)) {
-                        $row->status = ContractStatusEnum::Msaned->value;
-                        $hasPermission = true;
-                    }
-                    break;
-                case ContractStatusEnum::Msaned->value:
-                    $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED;
-                    if (@AdminGuardHasPerm($permissionRequired)) {
-                        $row->status = ContractStatusEnum::Tafwed->value;
-                        $hasPermission = true;
-                    }
-                    break;
-                case ContractStatusEnum::Tafwed->value:
-                    $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ;
-                    if (@AdminGuardHasPerm($permissionRequired)) {
-                        $row->status = ContractStatusEnum::Taffez->value;
-                        $hasPermission = true;
-                    }
-                    break;
-                case ContractStatusEnum::Taffez->value:
-                    $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER;
-                    if (@AdminGuardHasPerm($permissionRequired)) {
-                        $row->status = ContractStatusEnum::Tazker->value;
-                        $hasPermission = true;
-                    }
-                    break;
-                case ContractStatusEnum::Tazker->value:
-                    // التحقق من صلاحية إكمال الرحلة
-                    if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
-                        $row->status = ContractStatusEnum::Arrival->value;
-                        $hasPermission = true;
-                    }
-                    break;
-                case ContractStatusEnum::Sari->value:
-                    // التحقق من صلاحية إغلاق العقد بعد الضمان
-                    if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CLOSE_AFTER_WARRANTY)) {
-                        $row->status = ContractStatusEnum::Closed->value;
-                        $hasPermission = true;
-                    }
-                    break;
-                default:
-                    break;
-            }
+                // التحقق من الصلاحيات حسب حالة العقد الحالية
+                $hasPermission = false;
+                $permissionRequired = '';
 
-            if (!$hasPermission) {
+                switch ($currentStatus) {
+                    case ContractStatusEnum::New->value:
+                        $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED;
+                        if (@AdminGuardHasPerm($permissionRequired)) {
+                            $hasPermission = true;
+                        }
+                        break;
+                    case ContractStatusEnum::Msaned->value:
+                        $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED;
+                        if (@AdminGuardHasPerm($permissionRequired)) {
+                            $hasPermission = true;
+                        }
+                        break;
+                    case ContractStatusEnum::Tafwed->value:
+                        $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ;
+                        if (@AdminGuardHasPerm($permissionRequired)) {
+                            $hasPermission = true;
+                        }
+                        break;
+                    case ContractStatusEnum::Taffez->value:
+                        $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER;
+                        if (@AdminGuardHasPerm($permissionRequired)) {
+                            $hasPermission = true;
+                        }
+                        break;
+                    case ContractStatusEnum::Arrival->value:
+                        // التحقق من صلاحية إغلاق العقد بعد الضمان
+                        if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CLOSE_AFTER_WARRANTY)) {
+                            $hasPermission = true;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+
+                if (!$hasPermission) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'ليس لديك صلاحية لتغيير حالة العقد من ' . getContractStatus($currentStatus) . ' إلى المرحلة التالية'
+                    ], 403);
+                }
+
+                // تحديث حالة العقد
+                $row->status = $nextStatus;
+                $row->save();
+
+                // حفظ سجل حالة العقد
+                $row->contract_status_logs()->create([
+                    'status' => $nextStatus,
+                    'date' => $statusDate
+                ]);
+
                 return response()->json([
-                    'success' => false,
-                    'message' => 'ليس لديك صلاحية لتغيير حالة العقد من ' . getContractStatus($row->status) . ' إلى المرحلة التالية'
-                ], 403);
+                    'success' => true,
+                    'message' => 'تم تحديث حالة العقد بنجاح من ' . getContractStatus($currentStatus) . ' إلى ' . getContractStatus($nextStatus)
+                ]);
             }
 
-            // Save the updated contract status
-            $row->save();
-
-            // Create or update the contract status log
-            $row->contract_status_logs()->create([
-                'status' => $row->status,
-                'date' => $request->date,
-            ]);
-
+            // إذا كان الطلب لعرض معلومات العقد فقط
             return response()->json([
                 'success' => true,
-                'message' => 'تم تغيير حالة العقد بنجاح إلى ' . getContractStatus($row->status)
+                'message' => 'تم تحميل معلومات العقد بنجاح',
+                'contract' => $row->load(['user', 'maid', 'info'])
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Error in show contract', [
-                'id' => $id,
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+            \Log::error('Error in show contract:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء تحديث حالة العقد: ' . $e->getMessage()
+                'message' => 'حدث خطأ أثناء معالجة الطلب: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -569,6 +769,7 @@ class RecruitmentContractController extends Controller
             }
 
             // // التحقق من أن العقد من نوع الاستقدام
+            // // تم إزالة هذا التحقق لأن جميع العقود في هذا Controller هي عقود استقدام
             // if ($contract->type !== 'recruitment') {
             //     \Log::warning('Contract is not recruitment type in back function', ['id' => $id, 'type' => $contract->type]);
             //     return response()->json([
@@ -1246,4 +1447,118 @@ class RecruitmentContractController extends Controller
                 ->with('error', 'حدث خطأ: ' . $e->getMessage());
         }
     }
+
+    public function statistics(Request $request)
+    {
+        try {
+            $query = Contract::where('type', 'recruitment');
+
+            // فلتر الحالة
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+
+            // فلتر التاريخ من
+            if ($request->filled('date_from')) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            }
+
+            // فلتر التاريخ إلى
+            if ($request->filled('date_to')) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            }
+
+            // فلتر رقم جوال العميل
+            if ($request->filled('client_phone')) {
+                $query->whereHas('user', function($q) use ($request) {
+                    $q->where('phone', 'like', '%' . $request->client_phone . '%');
+                });
+            }
+
+            // فلتر اسم العميل
+            if ($request->filled('client_name')) {
+                $query->whereHas('user', function($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->client_name . '%');
+                });
+            }
+
+            // فلتر رقم جواز العاملة
+            if ($request->filled('maid_passport')) {
+                $query->whereHas('maid', function($q) use ($request) {
+                    $q->where('passport_num', 'like', '%' . $request->maid_passport . '%');
+                });
+            }
+
+            // فلتر اسم العاملة
+            if ($request->filled('maid_name')) {
+                $query->whereHas('maid', function($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->maid_name . '%');
+                });
+            }
+
+            // فلتر رقم العقد
+            if ($request->filled('contract_number')) {
+                $query->where('id', 'like', '%' . $request->contract_number . '%');
+            }
+
+            // فلتر جنسية العاملة
+            if ($request->filled('nationality')) {
+                $query->whereHas('maid.nationality', function($q) use ($request) {
+                    $q->where('sub_title', 'like', '%' . $request->nationality . '%');
+                });
+            }
+
+            // فلتر ديانة العاملة
+            if ($request->filled('religion')) {
+                $query->whereHas('maid.religion', function($q) use ($request) {
+                    $q->where('title', 'like', '%' . $request->religion . '%');
+                });
+            }
+
+            // فلتر مدينة العميل
+            if ($request->filled('city')) {
+                $query->whereHas('user', function($q) use ($request) {
+                    $q->where('city', 'like', '%' . $request->city . '%');
+                });
+            }
+
+            $total = $query->count();
+            $active = $query->whereIn('status', [
+                ContractStatusEnum::New->value,
+                ContractStatusEnum::Msaned->value,
+                ContractStatusEnum::Tafwed->value,
+                ContractStatusEnum::Taffez->value,
+                ContractStatusEnum::Tazker->value,
+                ContractStatusEnum::Arrival->value
+            ])->count();
+            $pending = $query->where('status', ContractStatusEnum::PendingMaidSelection->value)->count();
+            $completed = $query->where('status', ContractStatusEnum::Arrival->value)->count();
+            $returned = $query->where('status', ContractStatusEnum::Back->value)->count();
+            $closed = $query->where('status', ContractStatusEnum::Closed->value)->count();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total' => $total,
+                    'active' => $active,
+                    'pending' => $pending,
+                    'completed' => $completed,
+                    'returned' => $returned,
+                    'closed' => $closed
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error in contract statistics:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء جلب الإحصائيات'
+            ], 500);
+        }
+    }
 }
+

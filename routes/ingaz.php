@@ -118,6 +118,7 @@ Route::group(
             Route::get('RecruitmentContract/{contractId}/select-maid', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'selectMaidForContract'])->name('RecruitmentContract.selectMaid');
             Route::get('RecruitmentContract/available-maids', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'getAvailableMaids'])->name('RecruitmentContract.availableMaids');
             Route::get('RecruitmentContract/filter-options', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'getFilterOptions'])->name('RecruitmentContract.filterOptions');
+            Route::get('RecruitmentContract/statistics', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'statistics'])->name('RecruitmentContract.statistics');
             Route::resource('RentContract', RentContractController::class);
             Route::get('showDataOfOrder', [App\Http\Controllers\ingaz\OrderController::class, 'showDataOfOrder'])->name('showDataOfOrder');
             Route::get('showDataOfMaid', [App\Http\Controllers\ingaz\OrderController::class, 'showDataOfMaid'])->name('showDataOfMaid');

@@ -769,3 +769,25 @@ if (!function_exists('getContractStatus')) {
         return $statuses[$status]['ar'] ?? $status;
     }
 }
+
+if (!function_exists('getContractStatusColor')) {
+    function getContractStatusColor($status)
+    {
+        $colors = [
+            'new' => 'warning',
+            'msaned' => 'primary',
+            'tafwed' => 'info',
+            'taffez' => 'success',
+            'tazker' => 'warning',
+            'under_warranty' => 'info',
+            'back' => 'danger',
+            'arrival' => 'success',
+            'sari' => 'primary',
+            'closed' => 'secondary',
+            'shelter' => 'dark',
+            'pending_maid_selection' => 'warning'
+        ];
+
+        return $colors[$status] ?? 'secondary';
+    }
+}
