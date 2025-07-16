@@ -464,16 +464,27 @@ class RecruitmentContractController extends Controller
             'user',
             'maid',
             'info',
-            'contract_status_logs',
-            'order.details.admin' // إضافة بيانات المسوق من الطلب
+            'contract_status_logs'
         ])->findOrFail($id);
+
+        // إضافة علاقة order فقط إذا كان order_id موجود
+        if ($contract->order_id) {
+            $contract->load(['order.details.admin']);
+        }
 
         $info = ContractInfo::where('contract_id', $contract->id)->first();
 
         // الحصول على بيانات المسوق
         $marketer = null;
-        if ($contract->order && $contract->order->details) {
-            $marketer = $contract->order->details->admin;
+        try {
+            if ($contract->order && $contract->order->details) {
+                $marketer = $contract->order->details->admin;
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Could not load order details for contract: ' . $contract->id, [
+                'error' => $e->getMessage(),
+                'contract_order_id' => $contract->order_id
+            ]);
         }
 
         //        return $contract;
@@ -559,6 +570,24 @@ class RecruitmentContractController extends Controller
         }
 
         \Log::info('Recruitment Contract Creation Request:', $request->all());
+        \Log::info('Request validation:', [
+            'order_id' => $request->order_id,
+            'client_type' => $request->client_type,
+            'contract_date' => $request->contract_date,
+            'msaned_number' => $request->msaned_number,
+            'visa_number' => $request->visa_number,
+            'contract_duration' => $request->contract_duration,
+            'client_national_num' => $request->client_national_num,
+            'new_client_national_num' => $request->new_client_national_num,
+            'client_birthdate' => $request->client_birthdate,
+            'new_client_birthdate' => $request->new_client_birthdate,
+            'client_address' => $request->address,
+            'new_client_address' => $request->new_client_address,
+            'client_phone2' => $request->phone2,
+            'new_client_phone2' => $request->new_client_phone2,
+            'client_city' => $request->city,
+            'new_client_city' => $request->new_client_city
+        ]);
 
         try {
             DB::beginTransaction();
@@ -583,12 +612,59 @@ class RecruitmentContractController extends Controller
                 $order = Order::findOrFail($request->order_id);
                 \Log::info('Found order:', ['order' => $order->toArray()]);
 
+                // تحديث بيانات المستخدم من الطلب المسبق
+                $user = $order->user;
+                if ($user) {
+                    \Log::info('Updating user from order - Request data:', [
+                        'new_client_national_num' => $request->new_client_national_num,
+                        'client_national_num' => $request->client_national_num,
+                        'new_client_birthdate' => $request->new_client_birthdate,
+                        'client_birthdate' => $request->client_birthdate,
+                        'new_client_address' => $request->new_client_address,
+                        'address' => $request->address,
+                        'new_client_phone2' => $request->new_client_phone2,
+                        'phone2' => $request->phone2,
+                        'new_client_city' => $request->new_client_city,
+                        'city' => $request->city,
+                        'user_current_national_num' => $user->national_num
+                    ]);
+
+                    $user->update([
+                        'national_num' => $request->new_client_national_num ?? $request->client_national_num ?? $user->national_num,
+                        'birthdate' => $request->new_client_birthdate ?? $request->client_birthdate ?? $user->birthdate,
+                        'address' => $request->new_client_address ?? $request->address ?? $user->address,
+                        'phone2' => $request->new_client_phone2 ?? $request->phone2 ?? $user->phone2,
+                        'city' => $request->new_client_city ?? $request->city ?? $user->city,
+                        'beds_num' => $request->new_client_beds_num ?? $request->beds_num ?? $user->beds_num,
+                        'family_num' => $request->new_client_family_num ?? $request->family_num ?? $user->family_num,
+                        'children' => $request->new_client_children ?? $request->children ?? $user->children,
+                        'job' => $request->new_client_job ?? $request->job ?? $user->job,
+                    ]);
+                    \Log::info('Updated user from order:', ['user' => $user->toArray()]);
+                }
+
                 $contractData['user_id'] = $order->user_id;
                 $contractData['maid_id'] = $isNoMaid ? null : $order->maid_id;
+                $contractData['order_id'] = $order->id; // إضافة order_id للعقد
 
                 \Log::info('Contract data from order:', $contractData);
             } else {
                 // Handle new contract without existing order
+                \Log::info('Creating/updating user for new contract - Request data:', [
+                    'client_phone' => $request->client_phone,
+                    'client_name' => $request->client_name,
+                    'new_client_national_num' => $request->new_client_national_num,
+                    'client_national_num' => $request->client_national_num,
+                    'new_client_birthdate' => $request->new_client_birthdate,
+                    'client_birthdate' => $request->client_birthdate,
+                    'new_client_address' => $request->new_client_address,
+                    'client_address' => $request->client_address,
+                    'new_client_phone2' => $request->new_client_phone2,
+                    'client_phone2' => $request->client_phone2,
+                    'new_client_city' => $request->new_client_city,
+                    'client_city' => $request->client_city
+                ]);
+
                 $user = User::where('phone', $request->client_phone)->first();
                 if (!$user) {
                     $user = User::create([
@@ -597,16 +673,16 @@ class RecruitmentContractController extends Controller
                         'phone' => $request->client_phone,
                         'password' => bcrypt('123456'), // Default password
                         'nationality_id' => $request->client_nationality_id,
-                        'national_num' => $request->client_national_num,
-                        'email' => $request->client_email,
-                        'phone2' => $request->client_phone2,
-                        'city' => $request->client_city,
-                        'beds_num' => $request->client_beds_num,
-                        'family_num' => $request->client_family_num,
-                        'children' => $request->client_children,
-                        'job' => $request->client_job,
-                        'address' => $request->client_address,
-                        'birthdate' => $request->client_birthdate,
+                        'national_num' => $request->new_client_national_num ?? $request->client_national_num,
+                        'email' => $request->new_client_email ?? $request->client_email,
+                        'phone2' => $request->new_client_phone2 ?? $request->client_phone2,
+                        'city' => $request->new_client_city ?? $request->client_city,
+                        'beds_num' => $request->new_client_beds_num ?? $request->client_beds_num,
+                        'family_num' => $request->new_client_family_num ?? $request->client_family_num,
+                        'children' => $request->new_client_children ?? $request->client_children,
+                        'job' => $request->new_client_job ?? $request->client_job,
+                        'address' => $request->new_client_address ?? $request->client_address,
+                        'birthdate' => $request->new_client_birthdate ?? $request->client_birthdate,
                     ]);
                     \Log::info('Created new user:', ['user' => $user->toArray()]);
                 } else {
@@ -615,16 +691,16 @@ class RecruitmentContractController extends Controller
                         'name' => $request->client_name,
                         'phone_code' => '+966',
                         'nationality_id' => $request->client_nationality_id,
-                        'national_num' => $request->client_national_num,
-                        'email' => $request->client_email,
-                        'phone2' => $request->client_phone2,
-                        'city' => $request->client_city,
-                        'beds_num' => $request->client_beds_num,
-                        'family_num' => $request->client_family_num,
-                        'children' => $request->client_children,
-                        'job' => $request->client_job,
-                        'address' => $request->client_address,
-                        'birthdate' => $request->client_birthdate,
+                        'national_num' => $request->new_client_national_num ?? $request->client_national_num,
+                        'email' => $request->new_client_email ?? $request->client_email,
+                        'phone2' => $request->new_client_phone2 ?? $request->client_phone2,
+                        'city' => $request->new_client_city ?? $request->client_city,
+                        'beds_num' => $request->new_client_beds_num ?? $request->client_beds_num,
+                        'family_num' => $request->new_client_family_num ?? $request->client_family_num,
+                        'children' => $request->new_client_children ?? $request->client_children,
+                        'job' => $request->new_client_job ?? $request->client_job,
+                        'address' => $request->new_client_address ?? $request->client_address,
+                        'birthdate' => $request->new_client_birthdate ?? $request->client_birthdate,
                         'password' => bcrypt('123456'), // Update password
                     ]);
                     \Log::info('Updated existing user:', ['user' => $user->toArray()]);
@@ -633,9 +709,26 @@ class RecruitmentContractController extends Controller
             }
 
             \Log::info('Creating contract with data:', $contractData);
+            \Log::info('Final user data before contract creation:', [
+                'user_id' => $contractData['user_id'],
+                'user_national_num' => $user->national_num,
+                'user_birthdate' => $user->birthdate,
+                'user_address' => $user->address,
+                'user_phone2' => $user->phone2,
+                'user_city' => $user->city
+            ]);
 
             $contract = Contract::create($contractData);
             \Log::info('Contract created:', ['contract' => $contract->toArray()]);
+            \Log::info('Contract user data after creation:', [
+                'user_id' => $contract->user_id,
+                'order_id' => $contract->order_id,
+                'user_national_num' => $contract->user->national_num,
+                'user_birthdate' => $contract->user->birthdate,
+                'user_address' => $contract->user->address,
+                'user_phone2' => $contract->user->phone2,
+                'user_city' => $contract->user->city
+            ]);
 
             // حفظ معلومات العقد
             $contractInfo = [
@@ -684,7 +777,9 @@ class RecruitmentContractController extends Controller
             \Log::error('Error creating contract:', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all()
+                'request_data' => $request->all(),
+                'order_id' => $request->order_id,
+                'client_type' => $request->client_type
             ]);
 
             return response()->json([

@@ -40,22 +40,22 @@
                                         <div class="row">
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label">{{helperTrans("ingaz.client_name")}} <span class="text-danger">*</span></label>
-                                                <input type="text" name="client_name" id="client_name" class="form-control" value="{{ $contract->user->name ?? '' }}" required>
+                                                <input type="text" name="client_name" id="client_name" class="form-control" value="{{ $contract->user ? $contract->user->name : '' }}" required>
                                             </div>
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label">{{helperTrans("ingaz.client_phone")}} <span class="text-danger">*</span></label>
-                                                <input type="tel" name="client_phone" id="client_phone" class="form-control" value="{{ $contract->user->phone ?? '' }}" required>
+                                                <input type="tel" name="client_phone" id="client_phone" class="form-control" value="{{ $contract->user ? $contract->user->phone : '' }}" required>
                                             </div>
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label">{{helperTrans("ingaz.email")}}</label>
-                                                <input type="email" name="client_email" id="client_email" class="form-control" value="{{ $contract->user->email ?? '' }}">
+                                                <input type="email" name="client_email" id="client_email" class="form-control" value="{{ $contract->user ? $contract->user->email : '' }}">
                                             </div>
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label">{{helperTrans("ingaz.nationality_id")}} <span class="text-danger">*</span></label>
                                                 <select name="client_nationality_id" id="client_nationality_id" class="form-select" required>
                                                     <option value="">{{helperTrans('ingaz.choose')}}</option>
                                                     @foreach($countries as $country)
-                                                        <option value="{{$country->id}}" {{ ($contract->user->nationality_id ?? '') == $country->id ? 'selected' : '' }}>
+                                                        <option value="{{$country->id}}" {{ ($contract->user ? $contract->user->nationality_id : '') == $country->id ? 'selected' : '' }}>
                                                             {{$country->name_ar}}
                                                         </option>
                                                     @endforeach
@@ -63,11 +63,11 @@
                                             </div>
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label">{{helperTrans("ingaz.national_num")}} <span class="text-danger">*</span></label>
-                                                <input type="text" name="client_national_num" id="client_national_num" class="form-control" value="{{ $contract->user->national_num ?? '' }}" required>
+                                                <input type="text" name="client_national_num" id="client_national_num" class="form-control" value="{{ $contract->user ? $contract->user->national_num : '' }}" required>
                                             </div>
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label">{{helperTrans("ingaz.address")}}</label>
-                                                <input type="text" name="client_address" id="client_address" class="form-control" value="{{ $contract->user->address ?? '' }}">
+                                                <input type="text" name="client_address" id="client_address" class="form-control" value="{{ $contract->user ? $contract->user->address : '' }}">
                                             </div>
                                         </div>
                                     </div>
@@ -87,27 +87,27 @@
                                         <div class="row">
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label">اسم العاملة</label>
-                                                <input type="text" name="maid_name" id="maid_name" class="form-control" value="{{ $contract->maid->name ?? '' }}">
+                                                <input type="text" name="maid_name" id="maid_name" class="form-control" value="{{ $contract->maid ? $contract->maid->name : '' }}">
                                             </div>
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label">رقم الجواز</label>
-                                                <input type="text" name="maid_passport" id="maid_passport" class="form-control" value="{{ $contract->maid->passport_num ?? '' }}">
+                                                <input type="text" name="maid_passport" id="maid_passport" class="form-control" value="{{ $contract->maid ? $contract->maid->passport_num : '' }}">
                                             </div>
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label">الجنسية</label>
-                                                <input type="text" name="maid_nationality" id="maid_nationality" class="form-control" value="{{ $contract->maid->nationality->title ?? '' }}" readonly>
+                                                <input type="text" name="maid_nationality" id="maid_nationality" class="form-control" value="{{ $contract->maid && $contract->maid->nationality ? $contract->maid->nationality->title : '' }}" readonly>
                                             </div>
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label">الديانة</label>
-                                                <input type="text" name="maid_religion" id="maid_religion" class="form-control" value="{{ $contract->maid->religion->title ?? '' }}" readonly>
+                                                <input type="text" name="maid_religion" id="maid_religion" class="form-control" value="{{ $contract->maid && $contract->maid->religion ? $contract->maid->religion->title : '' }}" readonly>
                                             </div>
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label">المهنة</label>
-                                                <input type="text" name="maid_job" id="maid_job" class="form-control" value="{{ $contract->maid->jobTitles->first()->title ?? '' }}" readonly>
+                                                <input type="text" name="maid_job" id="maid_job" class="form-control" value="{{ $contract->maid && $contract->maid->jobTitles && $contract->maid->jobTitles->first() ? $contract->maid->jobTitles->first()->title : '' }}" readonly>
                                             </div>
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label">الراتب</label>
-                                                <input type="number" name="maid_salary" id="maid_salary" class="form-control" value="{{ $contract->maid->salary ?? '' }}">
+                                                <input type="number" name="maid_salary" id="maid_salary" class="form-control" value="{{ $contract->maid ? $contract->maid->salary : '' }}">
                                             </div>
                                         </div>
                                     </div>
@@ -127,36 +127,36 @@
                                         <div class="row">
                                             <div class="col-md-4 mb-3">
                                                 <label class="form-label">{{helperTrans("ingaz.contract_date")}} <span class="text-danger">*</span></label>
-                                                <input type="date" name="contract_date" id="contract_date" class="form-control" value="{{ $contract->info->contract_date ?? '' }}" required>
+                                                <input type="date" name="contract_date" id="contract_date" class="form-control" value="{{ $contract->info ? $contract->info->contract_date : '' }}" required>
                                             </div>
                                             <div class="col-md-4 mb-3">
                                                 <label class="form-label">{{helperTrans("ingaz.msaned_number")}} <span class="text-danger">*</span></label>
-                                                <input type="text" name="msaned_number" id="msaned_number" class="form-control" value="{{ $contract->info->msaned_number ?? '' }}" required>
+                                                <input type="text" name="msaned_number" id="msaned_number" class="form-control" value="{{ $contract->info ? $contract->info->msaned_number : '' }}" required>
                                             </div>
                                             <div class="col-md-4 mb-3">
                                                 <label class="form-label">{{helperTrans("ingaz.visa_number")}} <span class="text-danger">*</span></label>
-                                                <input type="text" name="visa_number" id="visa_number" class="form-control" value="{{ $contract->info->visa_number ?? '' }}" required>
+                                                <input type="text" name="visa_number" id="visa_number" class="form-control" value="{{ $contract->info ? $contract->info->visa_number : '' }}" required>
                                             </div>
                                             <div class="col-md-4 mb-3">
                                                 <label class="form-label">{{helperTrans("ingaz.tafwed_number")}}</label>
-                                                <input type="text" name="tafwed_number" id="tafwed_number" class="form-control" value="{{ $contract->info->tafwed_number ?? '' }}">
+                                                <input type="text" name="tafwed_number" id="tafwed_number" class="form-control" value="{{ $contract->info ? $contract->info->tafwed_number : '' }}">
                                             </div>
                                             <div class="col-md-4 mb-3">
                                                 <label class="form-label">{{helperTrans("ingaz.visa_milad_date")}}</label>
-                                                <input type="date" name="visa_milad_date" id="visa_milad_date" class="form-control" value="{{ $contract->info->visa_milad_date ?? '' }}">
+                                                <input type="date" name="visa_milad_date" id="visa_milad_date" class="form-control" value="{{ $contract->info ? $contract->info->visa_milad_date : '' }}">
                                             </div>
                                             <div class="col-md-4 mb-3">
                                                 <label class="form-label">{{helperTrans("ingaz.visa_hijry_date")}}</label>
-                                                <input type="date" name="visa_hijry_date" id="visa_hijry_date" class="form-control" value="{{ $contract->info->visa_hijry_date ?? '' }}">
+                                                <input type="date" name="visa_hijry_date" id="visa_hijry_date" class="form-control" value="{{ $contract->info ? $contract->info->visa_hijry_date : '' }}">
                                             </div>
                                             <div class="col-md-4 mb-3">
                                                 <label class="form-label">{{helperTrans("ingaz.contract_duration")}} <span class="text-danger">*</span></label>
                                                 <select name="contract_duration" id="contract_duration" class="form-select" required>
-                                                    <option value="1" {{ ($contract->info->contract_duration ?? '') == 1 ? 'selected' : '' }}>سنة واحدة</option>
-                                                    <option value="2" {{ ($contract->info->contract_duration ?? '') == 2 ? 'selected' : '' }}>سنتان</option>
-                                                    <option value="3" {{ ($contract->info->contract_duration ?? '') == 3 ? 'selected' : '' }}>3 سنوات</option>
-                                                    <option value="4" {{ ($contract->info->contract_duration ?? '') == 4 ? 'selected' : '' }}>4 سنوات</option>
-                                                    <option value="5" {{ ($contract->info->contract_duration ?? '') == 5 ? 'selected' : '' }}>5 سنوات</option>
+                                                    <option value="1" {{ ($contract->info ? $contract->info->contract_duration : '') == 1 ? 'selected' : '' }}>سنة واحدة</option>
+                                                    <option value="2" {{ ($contract->info ? $contract->info->contract_duration : '') == 2 ? 'selected' : '' }}>سنتان</option>
+                                                    <option value="3" {{ ($contract->info ? $contract->info->contract_duration : '') == 3 ? 'selected' : '' }}>3 سنوات</option>
+                                                    <option value="4" {{ ($contract->info ? $contract->info->contract_duration : '') == 4 ? 'selected' : '' }}>4 سنوات</option>
+                                                    <option value="5" {{ ($contract->info ? $contract->info->contract_duration : '') == 5 ? 'selected' : '' }}>5 سنوات</option>
                                                 </select>
                                             </div>
                                             <div class="col-md-4 mb-3">

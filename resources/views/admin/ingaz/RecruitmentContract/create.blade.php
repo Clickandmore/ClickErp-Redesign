@@ -360,6 +360,12 @@ $(document).ready(function() {
     $('#tab-order-pane').removeClass('show active');
     $('#tab-new').addClass('active');
     $('#tab-new-pane').addClass('show active');
+  } else {
+    // إذا كان هناك order_id، تأكد من أن التبويب القديم نشط
+    $('#tab-new').removeClass('active');
+    $('#tab-new-pane').removeClass('show active');
+    $('#tab-order').addClass('active');
+    $('#tab-order-pane').addClass('show active');
   }
 
   // تهيئة Select2
@@ -673,9 +679,13 @@ $(document).ready(function() {
 
                         // Force update of Select2 if it exists
                         if ($.fn.select2) {
-                            $('#maid_nationality').select2('destroy').select2();
-                            $('#maid_religion').select2('destroy').select2();
-                            $('#maid_job').select2('destroy').select2();
+                            try {
+                                $('#maid_nationality').select2('destroy').select2();
+                                $('#maid_religion').select2('destroy').select2();
+                                $('#maid_job').select2('destroy').select2();
+                            } catch (e) {
+                                console.log('Select2 error:', e);
+                            }
                         }
 
                         // Disable fields again after setting values
@@ -881,10 +891,13 @@ $(document).ready(function() {
 
             // تحقق من التبويب النشط
             var isOrderTab = $('#tab-order-pane').hasClass('show active');
+            var isNewTab = $('#tab-new-pane').hasClass('show active');
             console.log('Order tab active:', isOrderTab);
+            console.log('New tab active:', isNewTab);
 
-            if (!isOrderTab) {
-                console.log('Order tab not active, stopping submission');
+            // إذا كان التبويب الجديد نشط، لا نرسل الفورم القديم
+            if (isNewTab) {
+                console.log('New tab active, stopping old form submission');
                 return false;
             }
 
@@ -965,6 +978,13 @@ $(document).ready(function() {
 
             // If all validations pass, submit the form via AJAX
             let formData = new FormData(this);
+
+            // Debug: طباعة البيانات المرسلة
+            console.log('Form data being sent:');
+            for (var pair of formData.entries()) {
+                console.log(pair[0] + ': ' + pair[1]);
+            }
+
             let url = $(this).attr('action');
             let submitButton = $(e.originalEvent.submitter);
 
@@ -1345,15 +1365,15 @@ $(document).ready(function() {
       formData.append('client_phone', clientPhone);
       formData.append('client_email', clientEmail);
       formData.append('client_nationality_id', $('#client_nationality_id').val() || '');
-      formData.append('client_nationality_num', clientNationalityNum);
-      formData.append('client_birthdate', $('#new_client_birthdate').val());
-      formData.append('client_phone2', $('#new_client_phone2').val());
-      formData.append('client_address', $('#new_client_address').val());
-      formData.append('client_city', $('#new_client_city').val());
-      formData.append('client_beds_num', $('#new_client_beds_num').val());
-      formData.append('client_family_num', $('#new_client_family_num').val());
-      formData.append('client_children', $('#new_client_children').val());
-      formData.append('client_job', $('#new_client_job').val());
+      formData.append('new_client_national_num', clientNationalityNum);
+      formData.append('new_client_birthdate', $('#new_client_birthdate').val());
+      formData.append('new_client_phone2', $('#new_client_phone2').val());
+      formData.append('new_client_address', $('#new_client_address').val());
+      formData.append('new_client_city', $('#new_client_city').val());
+      formData.append('new_client_beds_num', $('#new_client_beds_num').val());
+      formData.append('new_client_family_num', $('#new_client_family_num').val());
+      formData.append('new_client_children', $('#new_client_children').val());
+      formData.append('new_client_job', $('#new_client_job').val());
     } else {
       // للتبويب القديم، استخدم البيانات من الطلب المسبق
       var selectedOrder = $('#order_id').val();

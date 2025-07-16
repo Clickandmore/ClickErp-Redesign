@@ -32,6 +32,11 @@ class Contract extends Model
         return $this->belongsTo(Maid::class, 'maid_id');
     }
 
+    public function order()
+    {
+        return $this->belongsTo(\App\Models\ingaz\Order::class, 'order_id');
+    }
+
     public function info()
     {
         return $this->hasOne(\App\Models\ContractInfo::class, 'contract_id');
