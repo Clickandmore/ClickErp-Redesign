@@ -1,5 +1,60 @@
 @extends('web.layout.app')
 
+@section('style')
+<style>
+    /* تحسين مظهر بادج حالة العقد */
+    .status-badge-custom {
+        font-weight: 600;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        border-radius: 25px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        padding: 0.5rem 1.5rem;
+    }
+
+    .status-badge-custom:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    /* تحسين ألوان البادجات لتكون أكثر وضوحاً */
+    .badge.bg-primary {
+        background-color: #0d6efd !important;
+        color: white !important;
+    }
+
+    .badge.bg-success {
+        background-color: #198754 !important;
+        color: white !important;
+    }
+
+    .badge.bg-warning {
+        background-color: #ffc107 !important;
+        color: #212529 !important;
+    }
+
+    .badge.bg-info {
+        background-color: #0dcaf0 !important;
+        color: white !important;
+    }
+
+    .badge.bg-danger {
+        background-color: #dc3545 !important;
+        color: white !important;
+    }
+
+    .badge.bg-secondary {
+        background-color: #6c757d !important;
+        color: white !important;
+    }
+
+    .badge.bg-dark {
+        background-color: #212529 !important;
+        color: white !important;
+    }
+</style>
+@endsection
+
 @section('content')
 
 <main>
@@ -32,7 +87,7 @@
                                 <div class="progress_state text-center">
                                     <div class="d-flex gap-2 align-items-center justify-content-center mb-2">
                                         <div class="status-badge">
-                                            <span class="badge bg-primary fs-5">{{ getContractStatus($data->status) }}</span>
+                                            <span class="badge bg-primary fs-5 status-badge-custom">{{ getContractStatus($data->status) }}</span>
                                         </div>
                                     </div>
                                     <div class="contract-stage">

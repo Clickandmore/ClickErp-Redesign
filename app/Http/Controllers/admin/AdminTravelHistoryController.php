@@ -72,6 +72,7 @@ class AdminTravelHistoryController extends Controller
         $userId = $request->get('userId');
         $maidId = $request->get('maidId');
         $orderId = $request->get('orderId');
+        $contractId = $request->get('contract_id');
         $data = null;
         $order = null;
 
@@ -119,6 +120,23 @@ class AdminTravelHistoryController extends Controller
             }
         }
 
+        // If we have a contract_id from the request, use it
+        if ($contractId) {
+            $selectedContract = Contract::with(['user', 'maid', 'info'])
+                ->where('id', $contractId)
+                ->first();
+
+            if ($selectedContract) {
+                $orderId = $contractId; // Use contract_id as order_id
+                $userId = $selectedContract->user_id;
+                $maidId = $selectedContract->maid_id;
+
+                if (!$contracts->contains('id', $selectedContract->id)) {
+                    $contracts->push($selectedContract);
+                }
+            }
+        }
+
         $ordersList = [];
         return view('admin.travel_history.control', compact('data', 'clientsList', 'maidsList', 'ordersList', 'contracts', 'id', 'userId', 'maidId', 'order', 'orderId'));
     }
@@ -134,8 +152,9 @@ class AdminTravelHistoryController extends Controller
         ]);
 
         // First check if there's an existing travel record for this order
-        if ($request->order_id) {
-            $existingTravel = TravelHistory::where('order_id', $request->order_id)->first();
+        if ($request->order_id || $request->contract_id) {
+            $orderId = $request->order_id ?: $request->contract_id;
+            $existingTravel = TravelHistory::where('order_id', $orderId)->first();
 
             if ($existingTravel) {
                 // Update existing record
@@ -158,7 +177,7 @@ class AdminTravelHistoryController extends Controller
                 $data = TravelHistory::create([
                     'user_id' => $request->user_id,
                     'maid_id' => $request->maid_id,
-                    'order_id' => $request->order_id,
+                    'order_id' => $orderId,
                     'travel_type' => $request->travel_type,
                     'travel_with' => $request->travel_with,
                     'status' => $request->status ?? 'pending',

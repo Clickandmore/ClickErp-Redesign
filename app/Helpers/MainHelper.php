@@ -779,7 +779,7 @@ if (!function_exists('getContractStatusColor')) {
             'tafwed' => 'info',
             'taffez' => 'success',
             'tazker' => 'warning',
-            'under_warranty' => 'info',
+            'under_warranty' => 'primary',
             'back' => 'danger',
             'arrival' => 'success',
             'sari' => 'primary',

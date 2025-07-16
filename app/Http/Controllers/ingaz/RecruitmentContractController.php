@@ -76,6 +76,8 @@ class RecruitmentContractController extends Controller
             // فلتر الحالة
             if ($status) {
                 $query->where('status', $status);
+            } elseif ($request->filled('status')) {
+                $query->where('status', $request->status);
             }
 
             // فلتر التاريخ من
@@ -147,7 +149,9 @@ class RecruitmentContractController extends Controller
             \Log::info('RecruitmentContract query results', [
                 'total_count' => $rows->count(),
                 'sql' => $rows->toSql(),
-                'bindings' => $rows->getBindings()
+                'bindings' => $rows->getBindings(),
+                'status_filter' => $status ?: $request->status,
+                'request_status' => $request->status
             ]);
 
             return DataTables::of($rows)
@@ -156,7 +160,7 @@ class RecruitmentContractController extends Controller
                     $statusText = getEnumValue('contract_statuses', $row->status);
                     $statusColor = getContractStatusColor($row->status);
 
-                    $statusDisplay = '<span class="badge ' . $statusColor . ' status-badge">' . $statusText . '</span>';
+                    $statusDisplay = '<span class="badge bg-primary status-badge">' . $statusText . '</span>';
 
                     // إضافة معلومات إضافية حسب الحالة
                     if ($row->status === ContractStatusEnum::Arrival->value) {
@@ -182,7 +186,7 @@ class RecruitmentContractController extends Controller
                     $userInfo = '';
                     if ($row->user) {
                         $userInfo .= '<div class="user-info">';
-                        $userInfo .= '<br><strong>' . $row->user->name . '</strong>';
+                        $userInfo .= '<br><strong>' . $row->user->name . '</strong><br>';
                         if ($row->user->birthdate) {
                             $userInfo .= '<br><small class="text-muted">تاريخ الميلاد: ' . \Carbon\Carbon::parse($row->user->birthdate)->format('Y-m-d') . '</small>';
                         }
@@ -239,8 +243,8 @@ class RecruitmentContractController extends Controller
                     return $contractInfo ?: '<span class="text-muted">غير محدد</span>';
                 })
                 ->addColumn('show_details', function ($row) {
-                    return '<a class="btn btn-sm btn-info btn-action" href="' . route('contracts.details', $row->id) . '" title="عرض تفاصيل العقد" target="_blank">
-                        <i class="fas fa-eye me-1"></i>عرض التفاصيل
+                    return '<a class="btn btn-sm btn-info btn-action" href="' . route('contracts.details', $row->id) . '" title="عرض  العقد" target="_blank">
+                        <i class="fas fa-eye me-1"></i>عرض
                     </a>';
                 })
                 ->addColumn('updateStatus', function ($row) {
@@ -261,16 +265,16 @@ class RecruitmentContractController extends Controller
                         if ($travelHistory) {
                             if ($travelHistory->status === 'completed') {
                                 return '<span class="badge bg-success">تم إكمال الرحلة</span>';
-                            } else if ($travelHistory->status === 'active') {
+                            } else {
+                                // عرض زر إكمال الرحلة لجميع الرحلات غير المكتملة
                                 if ($hasCompleteTravelPermission) {
                                     return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
                                         <i class="fas fa-check me-1"></i>إكمال الرحلة
                                     </button>';
                                 } else {
-                                    return '<span class="badge bg-warning">رحلة نشطة</span>';
+                                    $statusText = $travelHistory->status === 'active' ? 'رحلة نشطة' : 'رحلة قيد الإعداد';
+                                    return '<span class="badge bg-warning">' . $statusText . '</span>';
                                 }
-                            } else {
-                                return '<span class="badge bg-info">رحلة قيد الإعداد</span>';
                             }
                         } else {
                             if ($hasAddTravelPermission) {
@@ -328,6 +332,50 @@ class RecruitmentContractController extends Controller
                                 if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CLOSE_AFTER_WARRANTY)) {
                                     $hasPermission = true;
                                 }
+
+                                // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
+                                $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+                                if ($travelHistory && $travelHistory->status !== 'completed' && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
+                                    return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
+                                        <i class="fas fa-check me-1"></i>إكمال الرحلة
+                                    </button>';
+                                }
+                                break;
+                            case ContractStatusEnum::Sari->value:
+                                // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
+                                $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+                                if ($travelHistory && $travelHistory->status !== 'completed' && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
+                                    return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
+                                        <i class="fas fa-check me-1"></i>إكمال الرحلة
+                                    </button>';
+                                }
+                                break;
+                            case ContractStatusEnum::Shelter->value:
+                                // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
+                                $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+                                if ($travelHistory && $travelHistory->status !== 'completed' && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
+                                    return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
+                                        <i class="fas fa-check me-1"></i>إكمال الرحلة
+                                    </button>';
+                                }
+                                break;
+                            case ContractStatusEnum::UnderWarranty->value:
+                                // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
+                                $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+                                if ($travelHistory && $travelHistory->status !== 'completed' && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
+                                    return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
+                                        <i class="fas fa-check me-1"></i>إكمال الرحلة
+                                    </button>';
+                                }
+                                break;
+                            case ContractStatusEnum::Closed->value:
+                                // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
+                                $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+                                if ($travelHistory && $travelHistory->status !== 'completed' && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
+                                    return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
+                                        <i class="fas fa-check me-1"></i>إكمال الرحلة
+                                    </button>';
+                                }
                                 break;
                             default:
                                 break;
@@ -370,6 +418,18 @@ class RecruitmentContractController extends Controller
                         $buttons .= '<a href="' . route($this->mainRoute . '.edit', $row->id) . '" class="btn btn-sm btn-warning btn-action me-1" title="تعديل العقد">
                             <i class="fas fa-edit"></i>
                         </a>';
+                    }
+
+                    // زر إكمال الرحلة - يظهر لجميع العقود التي لديها رحلات
+                    $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+                    if ($travelHistory && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
+                        if ($travelHistory->status !== 'completed') {
+                            $buttons .= '<button class="btn btn-success btn-sm complete-trip-btn btn-action me-1" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
+                                <i class="fas fa-check me-1"></i>إكمال الرحلة
+                            </button>';
+                        } else {
+                            $buttons .= '<span class="badge bg-success me-1">تم إكمال الرحلة</span>';
+                        }
                     }
 
                     // زر الحذف
@@ -809,6 +869,20 @@ class RecruitmentContractController extends Controller
      */
     public function edit($id)
     {
+        // التحقق من صلاحية تعديل العقد
+        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EDIT)) {
+            return redirect()->back()->with('error', 'ليس لديك صلاحية لتعديل العقد');
+        }
+
+        $contract = Contract::with(['user', 'maid.nationality', 'maid.religion', 'maid.jobTitles', 'info'])->find($id);
+
+        if (!$contract) {
+            return redirect()->back()->with('error', 'العقد غير موجود');
+        }
+
+        $countries = Country::all();
+
+        return view('admin.ingaz.RecruitmentContract.edit', compact('contract', 'countries'));
     }
 
     /**
@@ -820,6 +894,73 @@ class RecruitmentContractController extends Controller
      */
     public function update(Request $request, $id)
     {
+        // التحقق من صلاحية تعديل العقد
+        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EDIT)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ليس لديك صلاحية لتعديل العقد'
+            ], 403);
+        }
+
+        $contract = Contract::find($id);
+        if (!$contract) {
+            return response()->json([
+                'success' => false,
+                'message' => 'العقد غير موجود'
+            ], 404);
+        }
+
+        try {
+            // تحديث بيانات العميل
+            if ($contract->user) {
+                $contract->user->update([
+                    'name' => $request->client_name,
+                    'phone' => $request->client_phone,
+                    'email' => $request->client_email,
+                    'nationality_id' => $request->client_nationality_id,
+                    'national_num' => $request->client_national_num,
+                    'address' => $request->client_address,
+                ]);
+            }
+
+            // تحديث بيانات العاملة
+            if ($contract->maid) {
+                $contract->maid->update([
+                    'name' => $request->maid_name,
+                    'passport_num' => $request->maid_passport,
+                    'salary' => $request->maid_salary,
+                ]);
+            }
+
+            // تحديث معلومات العقد
+            if ($contract->info) {
+                $contract->info->update([
+                    'contract_date' => $request->contract_date,
+                    'msaned_number' => $request->msaned_number,
+                    'visa_number' => $request->visa_number,
+                    'tafwed_number' => $request->tafwed_number,
+                    'visa_milad_date' => $request->visa_milad_date,
+                    'visa_hijry_date' => $request->visa_hijry_date,
+                    'contract_duration' => $request->contract_duration,
+                ]);
+            }
+
+            // تحديث حالة العقد
+            $contract->update([
+                'status' => $request->status
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تحديث العقد بنجاح'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تحديث العقد: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function destroy($id)
@@ -1121,11 +1262,19 @@ class RecruitmentContractController extends Controller
                 ]);
             }
 
-            // التحقق من أن العقد في مرحلة التذكرة
-            if ($contract->status !== ContractStatusEnum::Tazker->value) {
+            // التحقق من أن العقد لديه رحلة
+            if (!$travelHistory) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'يمكن إكمال الرحلة فقط للعقود في مرحلة التذكرة'
+                    'message' => 'لا توجد رحلة لهذا العقد'
+                ], 400);
+            }
+
+            // التحقق من أن الرحلة لم تكتمل بعد
+            if ($travelHistory->status === 'completed') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'الرحلة مكتملة بالفعل'
                 ], 400);
             }
 
@@ -1134,17 +1283,27 @@ class RecruitmentContractController extends Controller
             $travelHistory->save();
             \Log::info('Updated travel history status to completed');
 
-            // Update contract status to Arrival
-            $contract->status = ContractStatusEnum::Arrival->value;
-            $contract->save();
-            \Log::info('Updated contract status to Arrival');
+            // تحديث حالة العقد فقط إذا كان في مرحلة التذكرة
+            if ($contract->status === ContractStatusEnum::Tazker->value) {
+                $contract->status = ContractStatusEnum::Arrival->value;
+                $contract->save();
+                \Log::info('Updated contract status to Arrival');
 
-            // Create contract status log
-            $contract->contract_status_logs()->create([
-                'status' => ContractStatusEnum::Arrival->value,
-                'notes' => 'تم اكتمال الرحلة والانتقال إلى مرحلة تحت الضمان',
-                'date' => now()
-            ]);
+                // Create contract status log
+                $contract->contract_status_logs()->create([
+                    'status' => ContractStatusEnum::Arrival->value,
+                    'notes' => 'تم اكتمال الرحلة والانتقال إلى مرحلة تحت الضمان',
+                    'date' => now()
+                ]);
+            } else {
+                // إنشاء سجل حالة للعقد بدون تغيير الحالة
+                $contract->contract_status_logs()->create([
+                    'status' => $contract->status,
+                    'notes' => 'تم اكتمال الرحلة',
+                    'date' => now()
+                ]);
+                \Log::info('Trip completed for contract in status: ' . $contract->status);
+            }
             \Log::info('Created contract status log');
 
             // Force refresh the contract status

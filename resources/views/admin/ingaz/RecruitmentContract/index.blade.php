@@ -2,6 +2,7 @@
 @section("style")
     <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{asset("admin")}}/custom/status-badges.css">
     <style>
         .maids-grid {
             max-height: 400px;
@@ -259,6 +260,59 @@
         .badge {
             font-size: 0.75rem;
             padding: 0.35rem 0.65rem;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        /* تحسين ألوان البادجات لتكون أكثر وضوحاً */
+        .badge.bg-primary {
+            background-color: #0d6efd !important;
+            color: white !important;
+        }
+
+        .badge.bg-success {
+            background-color: #198754 !important;
+            color: white !important;
+        }
+
+        .badge.bg-warning {
+            background-color: #ffc107 !important;
+            color: #212529 !important;
+        }
+
+        .badge.bg-info {
+            background-color: #0dcaf0 !important;
+            color: white !important;
+        }
+
+        .badge.bg-danger {
+            background-color: #dc3545 !important;
+            color: white !important;
+        }
+
+        .badge.bg-secondary {
+            background-color: #6c757d !important;
+            color: white !important;
+        }
+
+        .badge.bg-dark {
+            background-color: #212529 !important;
+            color: white !important;
+        }
+
+        /* تحسين مظهر بادج حالة العقد */
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 0.4rem 0.8rem;
+            font-weight: 600;
+            border-radius: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .status-badge:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         }
 
         .modal-header {
@@ -312,6 +366,46 @@
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* تحسين مظهر البادجات في الإحصائيات */
+        .statistics-card .badge {
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+            font-weight: 700;
+            border-radius: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .statistics-card .badge.bg-primary {
+            background-color: #ffffff !important;
+            color: #0d6efd !important;
+        }
+
+        .statistics-card .badge.bg-success {
+            background-color: #ffffff !important;
+            color: #198754 !important;
+        }
+
+        .statistics-card .badge.bg-warning {
+            background-color: #ffffff !important;
+            color: #ffc107 !important;
+        }
+
+        .statistics-card .badge.bg-info {
+            background-color: #ffffff !important;
+            color: #0dcaf0 !important;
+        }
+
+        .statistics-card .badge.bg-danger {
+            background-color: #ffffff !important;
+            color: #dc3545 !important;
+        }
+
+        .statistics-card .badge.bg-secondary {
+            background-color: #ffffff !important;
+            color: #6c757d !important;
         }
     </style>
 @endsection
@@ -486,25 +580,25 @@
     </div>
 
     <div class="table-responsive">
-        <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
-            <thead>
-            <tr>
-                <th>ID</th>
-                <th>{{helperTrans("ingaz.client")}}</th>
-                <th>{{helperTrans("ingaz.phone")}}</th>
-                <th>{{helperTrans("ingaz.maid")}}</th>
+    <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>{{helperTrans("ingaz.client")}}</th>
+            <th>{{helperTrans("ingaz.phone")}}</th>
+            <th>{{helperTrans("ingaz.maid")}}</th>
                 <th>معلومات العقد</th>
-                <th>{{helperTrans("ingaz.status")}}</th>
+            <th>{{helperTrans("ingaz.status")}}</th>
                 <th>المرحلة التالية</th>
-                <th>{{helperTrans("ingaz.make back")}}</th>
-                <th>{{helperTrans("ingaz.the contract")}}</th>
-                <th>{{helperTrans("ingaz.actions")}}</th>
-            </tr>
-            </thead>
-            <tbody>
+            <th>{{helperTrans("ingaz.make back")}}</th>
+            <th>{{helperTrans("ingaz.the contract")}}</th>
+            <th>{{helperTrans("ingaz.actions")}}</th>
+        </tr>
+        </thead>
+        <tbody>
 
-            </tbody>
-        </table>
+        </tbody>
+    </table>
     </div>
 
     <!-- Modal -->
@@ -533,7 +627,7 @@
 
                     <div class="mb-3">
                         <label for="statusDate" class="form-label">تاريخ التحديث:</label>
-                        <input type="date" id="statusDate" required name="statusDate" class="form-control" value="{{date('Y-m-d')}}">
+                    <input type="date" id="statusDate" required name="statusDate" class="form-control" value="{{date('Y-m-d')}}">
                     </div>
 
                     <div class="alert alert-info">
@@ -716,26 +810,37 @@
                 // تحديث الإحصائيات فقط إذا كانت معطلة
                 // updateStatistics();
 
-                // إظهار إشعار إذا لم توجد نتائج فقط عند البحث
+                                // إظهار إشعار إذا لم توجد نتائج فقط عند البحث (وليس عند فلتر الحالة الأساسي)
                 var info = dataTable.page.info();
-                var hasFilters = $('#statusFilter').val() || $('#dateFromFilter').val() || $('#dateToFilter').val() ||
-                                $('#clientPhoneFilter').val() || $('#clientNameFilter').val() || $('#maidPassportFilter').val() ||
-                                $('#maidNameFilter').val() || $('#contractNumberFilter').val() || $('#nationalityFilter').val() ||
-                                $('#religionFilter').val() || $('#cityFilter').val();
+                var hasSearchFilters = $('#dateFromFilter').val() || $('#dateToFilter').val() ||
+                                     $('#clientPhoneFilter').val() || $('#clientNameFilter').val() ||
+                                     $('#maidPassportFilter').val() || $('#maidNameFilter').val() ||
+                                     $('#contractNumberFilter').val() || $('#nationalityFilter').val() ||
+                                     $('#religionFilter').val() || $('#cityFilter').val();
 
                 console.log('DataTable XHR completed:', {
                     recordsTotal: info.recordsTotal,
                     recordsDisplay: info.recordsDisplay,
-                    hasFilters: hasFilters
+                    hasSearchFilters: hasSearchFilters,
+                    statusFilter: $('#statusFilter').val()
                 });
 
-                if (info.recordsTotal === 0 && hasFilters) {
+                if (info.recordsTotal === 0 && hasSearchFilters) {
                     Swal.fire({
                         icon: 'info',
                         title: 'لا توجد نتائج',
                         text: 'لم يتم العثور على عقود تطابق معايير البحث المحددة',
                         confirmButtonText: 'حسناً'
                     });
+                } else if (info.recordsTotal === 0 && !hasSearchFilters && $('#statusFilter').val()) {
+                    // عرض رسالة مناسبة عندما لا توجد عقود في المرحلة المحددة
+                    var statusText = $('#statusFilter option:selected').text();
+                    console.log('No contracts found for status:', statusText);
+
+                    // إظهار رسالة في الجدول بدلاً من الدايلوج
+                    if ($('#dataTableObject tbody tr').length === 0) {
+                        $('#dataTableObject tbody').html('<tr><td colspan="10" class="text-center text-muted">لا توجد عقود في مرحلة "' + statusText + '"</td></tr>');
+                    }
                 }
             });
 
@@ -831,18 +936,18 @@
             });
 
             // معالج فتح Modal تحديث الحالة
-            $('#updateStatusModal').on('show.bs.modal', function (event) {
-                var button = $(event.relatedTarget);
-                var rowId = button.data('row-id');
-                var status = button.data('status');
+        $('#updateStatusModal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);
+            var rowId = button.data('row-id');
+            var status = button.data('status');
                 var nextStatus = button.data('next-status');
-                var date = button.data('date');
-                var modal = $(this);
+            var date = button.data('date');
+            var modal = $(this);
 
-                modal.find('#rowId').val(rowId);
-                modal.find('#status').val(status);
+            modal.find('#rowId').val(rowId);
+            modal.find('#status').val(status);
                 modal.find('#nextStatus').val(nextStatus);
-                modal.find('#statusDate').val(date);
+            modal.find('#statusDate').val(date);
 
                 // عرض الحالة الحالية
                 var currentStatusText = getContractStatusText(status);
@@ -873,26 +978,26 @@
             }
 
             // معالج تحديث الحالة
-            $('#saveStatusBtn').click(function () {
-                var rowId = $('#rowId').val();
-                var status = $('#status').val();
+        $('#saveStatusBtn').click(function () {
+            var rowId = $('#rowId').val();
+            var status = $('#status').val();
                 var nextStatus = $('#nextStatus').val();
-                var statusDate = $('#statusDate').val();
+            var statusDate = $('#statusDate').val();
 
                 if (!statusDate) {
                     alert('يرجى إدخال تاريخ الحالة');
                     return;
                 }
 
-                $.ajax({
-                    url: '{{ route('RecruitmentContract.show', ':rowId') }}'.replace(':rowId', rowId),
-                    method: 'GET',
-                    data: {
-                        status: status,
+            $.ajax({
+                url: '{{ route('RecruitmentContract.show', ':rowId') }}'.replace(':rowId', rowId),
+                method: 'GET',
+                data: {
+                    status: status,
                         next_status: nextStatus,
-                        date: statusDate,
-                    },
-                    success: function (response) {
+                    date: statusDate,
+                },
+                success: function (response) {
                         if (response.success) {
                             Swal.fire({
                                 icon: 'success',
@@ -908,8 +1013,8 @@
                                 confirmButtonText: 'حسناً'
                             });
                         }
-                    },
-                    error: function (xhr, status, error) {
+                },
+                error: function (xhr, status, error) {
                         console.error('AJAX Error:', error);
                         Swal.fire({
                             icon: 'error',
@@ -917,19 +1022,19 @@
                             text: 'حدث خطأ أثناء تحديث الحالة',
                             confirmButtonText: 'حسناً'
                         });
-                    },
-                    complete: function () {
+                },
+                complete: function () {
                         $('#dataTableObject').addClass('loading');
                         dataTable.ajax.reload(function() {
                             $('#dataTableObject').removeClass('loading');
                         });
-                        $('#updateStatusModal').modal('hide');
-                    }
-                });
+                    $('#updateStatusModal').modal('hide');
+                }
             });
+        });
 
             // معالج إرجاع العقد
-            $(document).on('click', '.backContract', function () {
+        $(document).on('click', '.backContract', function () {
                 var contractId = $(this).data('row-id');
 
                 Swal.fire({
@@ -943,10 +1048,10 @@
                     cancelButtonText: 'إلغاء'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        $.ajax({
+            $.ajax({
                             url: '{{ route('RecruitmentContract.back', ':id') }}'.replace(':id', contractId),
-                            method: 'GET',
-                            success: function (response) {
+                method: 'GET',
+                success: function (response) {
                                 if (response.success) {
                                     Swal.fire({
                                         icon: 'success',
@@ -962,8 +1067,8 @@
                                         confirmButtonText: 'حسناً'
                                     });
                                 }
-                            },
-                            error: function (xhr, status, error) {
+                },
+                error: function (xhr, status, error) {
                                 console.error('AJAX Error:', error);
                                 Swal.fire({
                                     icon: 'error',
@@ -971,8 +1076,8 @@
                                     text: 'حدث خطأ أثناء إرجاع العقد',
                                     confirmButtonText: 'حسناً'
                                 });
-                            },
-                            complete: function () {
+                },
+                complete: function () {
                                 dataTable.ajax.reload();
                             }
                         });
@@ -980,13 +1085,40 @@
                 });
             });
 
+                                    // معالج إضافة رحلة
+            $(document).on('click', '.add-travel-btn', function (e) {
+                e.preventDefault();
+                var contractId = $(this).data('contract-id');
+
+                console.log('Add travel button clicked for contract ID:', contractId);
+
+                if (!contractId) {
+                    console.error('No contract ID found');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: 'لم يتم العثور على معرف العقد',
+                        confirmButtonText: 'حسناً'
+                    });
+                    return;
+                }
+
+                // التوجيه إلى صفحة إضافة رحلة
+                var url = '{{ route("travel.control") }}?contract_id=' + contractId;
+                console.log('Redirecting to:', url);
+                window.location.href = url;
+            });
+
             // معالج إكمال الرحلة
             $(document).on('click', '.complete-trip-btn', function () {
                 var tripId = $(this).data('trip-id');
+                var button = $(this);
+
+                console.log('Complete trip button clicked for trip ID:', tripId);
 
                 Swal.fire({
                     title: 'تأكيد إكمال الرحلة',
-                    text: 'هل أنت متأكد من إكمال هذه الرحلة؟',
+                    text: 'هل أنت متأكد من إكمال هذه الرحلة؟ سيتم تحديث حالة الرحلة إلى مكتملة.',
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonColor: '#28a745',
@@ -995,6 +1127,9 @@
                     cancelButtonText: 'إلغاء'
                 }).then((result) => {
                     if (result.isConfirmed) {
+                        // إظهار حالة التحميل
+                        button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i>جاري الإكمال...');
+
                         $.ajax({
                             url: '{{ route('travel.complete', ':tripId') }}'.replace(':tripId', tripId),
                             method: 'POST',
@@ -1002,6 +1137,8 @@
                                 _token: '{{ csrf_token() }}'
                             },
                             success: function (response) {
+                                console.log('Complete trip response:', response);
+
                                 if (response.success) {
                                     Swal.fire({
                                         icon: 'success',
@@ -1019,15 +1156,29 @@
                                 }
                             },
                             error: function (xhr, status, error) {
-                                console.error('AJAX Error:', error);
+                                console.error('AJAX Error:', {
+                                    status: status,
+                                    error: error,
+                                    response: xhr.responseText
+                                });
+
+                                let errorMessage = 'حدث خطأ أثناء إكمال الرحلة';
+                                if (xhr.responseJSON && xhr.responseJSON.message) {
+                                    errorMessage = xhr.responseJSON.message;
+                                }
+
                                 Swal.fire({
                                     icon: 'error',
                                     title: 'خطأ',
-                                    text: 'حدث خطأ أثناء إكمال الرحلة',
+                                    text: errorMessage,
                                     confirmButtonText: 'حسناً'
                                 });
                             },
                             complete: function () {
+                                // إعادة تفعيل الزر
+                                button.prop('disabled', false).html('<i class="fas fa-check me-1"></i>إكمال الرحلة');
+
+                                // إعادة تحميل الجدول
                                 dataTable.ajax.reload();
                             }
                         });
