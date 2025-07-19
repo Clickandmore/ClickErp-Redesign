@@ -143,8 +143,8 @@
                                 </a>
                             </li>
                             <li>
-                                <a class="m-link {{ request()->input('status') === 'ended' ? 'active' : '' }}"
-                                    href="{{ route('orders.index', ['status' => 'ended']) }}">
+                                <a class="m-link {{ request()->input('status') === 'completed' ? 'active' : '' }}"
+                                    href="{{ route('orders.index', ['status' => 'completed']) }}">
                                     <i class="fa fa-arrow-left"></i>
                                     <span class="ms-2">{{ helperTrans('ingaz.contracted orders') }}</span>
                                 </a>
@@ -154,8 +154,8 @@
                             <li>
                                 <a class="m-link {{ Route::currentRouteName() == 'return_requests.index' ? 'active' : '' }}"
                                     href="{{ route('return_requests.index') }}">
-                                    <i class="fa fa-arrow-left"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.return_requests') }}</span>
+                                    <i class="fa fa-times-circle"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.cancelled_orders') }}</span>
                                 </a>
                             </li>
                         @endif

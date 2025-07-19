@@ -13,6 +13,7 @@ use App\Enums\auth\AdminTypeis;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\UserAddress;
 use App\Models\ingaz\MaidJobTitles;
+use App\Models\ingaz\OrderDetail;
 use App\Http\Controllers\Controller;
 use App\Models\ingaz\OrderTransfers;
 use Illuminate\Support\Facades\Auth;
@@ -36,7 +37,7 @@ class OrderController extends Controller
         // $this->middleware('permission:الطلبات-حذف,admin', ['only' => ['destroy']]);
     }
 
-    public function index(Request $request, $status = null)
+    public function index(Request $request)
     {
         if ($request->ajax()) {
             $query = objModel::query();
@@ -45,8 +46,9 @@ class OrderController extends Controller
             $query->orderBy('created_at', 'desc');
 
             // Apply status filter
-            if ($status) {
-                $query->whereIn('status', $this->getSelectedStatus($status));
+            if ($request->has('status') && $request->status != '') {
+                $statusFilter = $this->getSelectedStatus($request->status);
+                $query->whereIn('status', $statusFilter);
             }
 
             // Apply date range filter
@@ -55,11 +57,6 @@ class OrderController extends Controller
             }
             if ($request->filled('to_date')) {
                 $query->whereDate('created_at', '<=', $request->to_date);
-            }
-
-            // Apply status filter from form
-            if ($request->filled('status')) {
-                $query->where('status', $request->status);
             }
 
             // Apply job type filter
@@ -96,6 +93,24 @@ class OrderController extends Controller
                 });
             }
 
+            // Apply timer status filter
+            if ($request->filled('timer_status')) {
+                $query->where(function($q) use ($request) {
+                    switch ($request->timer_status) {
+                        case 'overdue':
+                            $q->where('deadline_at', '<', now());
+                            break;
+                        case 'urgent':
+                            $q->where('deadline_at', '>', now())
+                              ->where('deadline_at', '<', now()->addHours(2));
+                            break;
+                        case 'normal':
+                            $q->where('deadline_at', '>', now()->addHours(2));
+                            break;
+                    }
+                });
+            }
+
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('admin_name', function ($row) {
@@ -107,17 +122,20 @@ class OrderController extends Controller
                 ->editColumn('status', function ($row) {
                     return $this->getStatusHtml($row->status);
                 })
+                ->addColumn('timer', function ($row) {
+                    return $this->getTimerHtml($row);
+                })
                 ->editColumn('job_type_id', function ($row) {
                     return ($row->jobType) ? $row->jobType->title : '';
                 })
                 ->editColumn('user_id', function ($row) {
-                    return ($row->user) ? $row->user->name : '';
+                    return '<span class="client-name">' . (($row->user) ? $row->user->name : '-') . '</span>';
                 })
                 ->editColumn('phone', function ($row) {
-                    return ($row->user) ? getPhoneWithTag($row->user->phone_code . $row->user->phone) : '';
+                    return '<span class="phone-number">' . (($row->user) ? getPhoneWithTag($row->user->phone_code . $row->user->phone) : '-') . '</span>';
                 })
                 ->editColumn('maid_id', function ($row) {
-                    return ($row->maid) ? getImgTag($row->maid->cv_file, "80px", "80px") : '';
+                    return ($row->maid) ? getImgTag($row->maid->cv_file, "50px", "50px", "maid-image") : '<span class="text-muted">-</span>';
                 })
                 ->editColumn('nationality_name', function ($row) {
                     return ($row->maid) ? $row->maid->nationality->title : '';
@@ -127,52 +145,87 @@ class OrderController extends Controller
                 })
                 ->editColumn('deliver_status', function ($row) {
                     if (@$row->details->deliver_maid == '1') {
-                        return '<span class="badge bg-success">' . __('web.yes') . '</span>';
+                        return '<span class="badge bg-success status-badge">' . __('web.yes') . '</span>';
                     } else {
-                        return '<span class="badge bg-danger">' . __('web.no') . '</span>';
+                        return '<span class="badge bg-secondary status-badge">' . __('web.no') . '</span>';
                     }
                 })
                 ->addColumn('contract_status', function ($row) {
                     if ($row->contracts()->exists()) {
-                        return '<span class="badge bg-success">' . __('ingaz.has_contract') . '</span>';
+                        return '<span class="badge bg-success status-badge">' . __('ingaz.has_contract') . '</span>';
                     }
-                    return '<span class="badge bg-warning">' . __('ingaz.no_contract') . '</span>';
+                    return '<span class="badge bg-warning status-badge">' . __('ingaz.no_contract') . '</span>';
+                })
+                ->editColumn('order_code', function ($row) {
+                    return '<span class="order-code">' . $row->order_code . '</span>';
+                })
+                ->editColumn('created_at', function ($row) {
+                    return '<span class="text-muted">' . $row->created_at->format('Y-m-d H:i') . '</span>';
+                })
+                ->editColumn('admin_name', function ($row) {
+                    return '<span class="text-info">' . ($row->details->admin->name ?? '-') . '</span>';
                 })
                 ->addColumn('actions', function ($row) {
-                    $showButton = '';
-                    $editButton = '';
-                    $deleteButton = '';
-                    $authorizeButton = '';
+                    $actions = '<div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle custom-dropdown-toggle" type="button" aria-expanded="false">
+                            <i class="fa fa-cogs"></i> الإجراءات
+                        </button>
+                        <ul class="dropdown-menu">';
 
-                    // Show view button for all orders
+                    // View button
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW)) {
-                        $showButton = '<a href="' . route('showSingleOrder', $row->id) . '" class="btn btn-sm btn-info">
-                            <i class="fa fa-eye"></i> ' . __('ingaz.view') . '
-                        </a>';
+                        $actions .= '<li><a class="dropdown-item" href="' . route('showSingleOrder', $row->id) . '">
+                            <i class="fa fa-eye"></i> عرض التفاصيل
+                        </a></li>';
                     }
 
+                    // Edit status button (show for all orders)
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT)) {
-                        // Only show edit button if order is not completed
-                        if ($row->status != OrderEnum::Completed->value) {
-                            $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
+                        $actions .= '<li><button class="dropdown-item edit-status" data-id="' . $row->id . '">
+                            <i class="fa fa-edit"></i> تعديل الحالة
+                        </button></li>';
+                    }
+
+                    // Add Contract button only for "under process" orders
+                    if ($row->status == OrderEnum::UnderProcess->value) {
+                        $actions .= '<li><button class="dropdown-item addNewContract" data-id="' . $row->id . '">
+                            <i class="fa fa-plus"></i> إضافة عقد
+                        </button></li>';
+                    }
+
+                    // Change Maid button for new orders
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && $row->status == OrderEnum::New->value) {
+                        $actions .= '<li><button class="dropdown-item change-maid" data-id="' . $row->id . '">
+                            <i class="fa fa-user"></i> تغيير العاملة
+                        </button></li>';
+                    }
+
+                    // Change Responsible Employee button
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT)) {
+                        $actions .= '<li><button class="dropdown-item change-responsible" data-id="' . $row->id . '">
+                            <i class="fa fa-user-secret"></i> تغيير الموظف المسؤول
+                        </button></li>';
+                    }
+
+                    // Refuse/Return button for new and under_process orders
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT)) {
+                        if (in_array($row->status, [OrderEnum::New->value, OrderEnum::UnderProcess->value])) {
+                            $actions .= '<li><button class="dropdown-item refuse-order" data-id="' . $row->id . '">
+                                <i class="fa fa-times"></i> رفض/إرجاع الطلب
+                            </button></li>';
                         }
                     }
 
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_ADD_CONTRACT)) {
-                        // Add authorization button for orders under process or contracted without contract
-                        if ($row->status == OrderEnum::UnderProcess->value ||
-                            ($row->status == OrderEnum::Contracted->value && !$row->contracts()->exists())) {
-                            $authorizeButton = '<button class="btn btn-sm btn-primary addNewContract" data-id="' . $row->id . '">
-                                <i class="fa fa-check"></i> ' . __('ingaz.authorize') . '
-                            </button>';
-                        }
-                    }
-
+                    // Delete button
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE)) {
-                        $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                        $actions .= '<li><hr class="dropdown-divider"></li>
+                        <li><button class="dropdown-item delete-order" data-id="' . $row->id . '">
+                            <i class="fa fa-trash"></i> حذف الطلب
+                        </button></li>';
                     }
 
-                    return $showButton . " " . $editButton . " " . $authorizeButton . " " . $deleteButton;
+                    $actions .= '</ul></div>';
+                    return $actions;
                 })
                 ->escapeColumns([])
                 ->rawColumns(['actions'])
@@ -184,35 +237,99 @@ class OrderController extends Controller
         return view($this->folderPath . '.index', $data);
     }
 
-    private function getSelectedStatus($status)
+            private function getSelectedStatus($status)
     {
         if ($status == 'current') {
             return [OrderEnum::New->value, OrderEnum::UnderProcess->value];
         } elseif ($status == 'ended') {
-            return [OrderEnum::Completed->value, OrderEnum::Contracted->value];
+            return [OrderEnum::Completed->value, OrderEnum::Done->value, OrderEnum::Contracted->value];
+        } elseif ($status == 'completed') {
+            return [OrderEnum::Completed->value, OrderEnum::Done->value, OrderEnum::Contracted->value];
         } elseif ($status == 'not_completed') {
             return [OrderEnum::Refused->value, OrderEnum::Return->value];
         } else {
-            return OrderEnum::cases();
+            return array_map(fn($case) => $case->value, OrderEnum::cases());
         }
     }
 
-    public function edit(Request $request, $id)
+        public function edit(Request $request, $id)
     {
         if ($request->ajax()) {
-            $obj = objModel::findorfail($id);
-            $returnHTML = view($this->folderPath . '.edit')
-                ->with(['obj' => $obj])->render();
-            return jsonSuccess(["html" => $returnHTML]);
+            try {
+                $obj = Order::with([
+                    'user',
+                    'maid',
+                    'jobType',
+                    'details.admin',
+                    'details.package',
+                    'details.address'
+                ])->findOrFail($id);
+
+                $returnHTML = view($this->folderPath . '.edit')
+                    ->with(['obj' => $obj])->render();
+                return response()->json([
+                    'success' => true,
+                    'html' => $returnHTML
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Error loading edit form', [
+                    'order_id' => $id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'حدث خطأ أثناء تحميل نموذج التعديل: ' . $e->getMessage()
+                ]);
+            }
         }
     }
 
     public function update(request $request, objAction $action, $id)
     {
-        $unitData = $request->only($this->postData);
-        $data = $action->updateOrderStatus($id, $unitData);
-        return jsonSuccess($data);
+        try {
+            $order = Order::findOrFail($id);
 
+            // Debug: Log the request data
+            \Log::info('Update order request', [
+                'order_id' => $id,
+                'request_data' => $request->all(),
+                'has_status' => $request->has('status'),
+                'status_value' => $request->get('status')
+            ]);
+
+            // Update status if provided
+            if ($request->has('status')) {
+                $order->status = $request->status;
+                $order->status_changed_at = now();
+
+                // Set deadline based on new status
+                if ($request->status == OrderEnum::New->value) {
+                    $order->deadline_at = now()->addHours(24);
+                } elseif ($request->status == OrderEnum::UnderProcess->value) {
+                    $order->deadline_at = now()->addHours(48);
+                }
+
+                $order->save();
+
+                \Log::info('Order updated successfully', [
+                    'order_id' => $id,
+                    'new_status' => $request->status
+                ]);
+
+                return jsonSuccess(['message' => 'تم تحديث حالة الطلب بنجاح']);
+            } else {
+                \Log::warning('No status provided in request');
+                return jsonError(['message' => 'لم يتم توفير حالة جديدة']);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error updating order status', [
+                'order_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return jsonError(['message' => 'حدث خطأ أثناء تحديث حالة الطلب: ' . $e->getMessage()]);
+        }
     }
 
     /**
@@ -227,34 +344,67 @@ class OrderController extends Controller
         return jsonSuccess();
     }
 
+    public function restore($id)
+    {
+        try {
+            $order = Order::withTrashed()->findOrFail($id);
+            $order->restore();
+            return jsonSuccess(['message' => 'تم استعادة الطلب بنجاح']);
+        } catch (\Exception $e) {
+            return jsonError(['message' => 'حدث خطأ أثناء استعادة الطلب']);
+        }
+    }
+
     public function getStatusHtml($status)
     {
         $colorMap = [
-            'new' => 'warning',
-            'paid' => 'primary',
-            'completed' => 'success',
-            'started' => 'info',
-            'done' => 'success',
-            'refused' => 'danger',
-            'msaned' => 'primary',
-            'training' => 'primary',
-            'arrived' => 'info',
-            'escape' => 'danger',
-            'deportation' => 'info',
-            'delivered' => 'success',
-            'under_process' => 'info',
-            'contracted' => 'success',
-            'contracted_without_contract' => 'warning',
+            'new' => 'secondary',
+            'paid' => 'secondary',
+            'completed' => 'secondary',
+            'started' => 'secondary',
+            'done' => 'secondary',
+            'refused' => 'secondary',
+            'msaned' => 'secondary',
+            'training' => 'secondary',
+            'arrived' => 'secondary',
+            'escape' => 'secondary',
+            'deportation' => 'secondary',
+            'delivered' => 'secondary',
+            'under_process' => 'secondary',
+            'contracted' => 'secondary',
+            'contracted_without_contract' => 'secondary',
         ];
 
         $arabicTranslation = getEnumValue('orders_statuses', $status);
 
         if ($arabicTranslation !== "undefined" && isset($colorMap[$status])) {
             $colorClass = $colorMap[$status];
-            return '<span class="badge bg-' . $colorClass . '">' . $arabicTranslation . '</span>';
+            return '<span class="badge bg-' . $colorClass . ' status-badge">' . $arabicTranslation . '</span>';
         }
 
         return '<span class="text-muted">غير معروف</span>';
+    }
+
+    public function getTimerHtml($order)
+    {
+        $remaining = $order->getRemainingTime();
+
+        if (!$remaining) {
+            return '<span class="text-muted">-</span>';
+        }
+
+        if ($remaining['is_overdue']) {
+            $overdueText = $remaining['overdue_hours'] . 'س ' . $remaining['overdue_minutes'] . 'د';
+            return '<span class="badge bg-danger timer-badge" title="تجاوز الموعد النهائي">' . $overdueText . '</span>';
+        }
+
+        $remainingText = $remaining['hours'] . 'س ' . $remaining['minutes'] . 'د';
+
+        if ($remaining['hours'] < 2) {
+            return '<span class="badge bg-warning timer-badge" title="وقت محدود">' . $remainingText . '</span>';
+        }
+
+        return '<span class="badge bg-info timer-badge">' . $remainingText . '</span>';
     }
 
     public function showDataOfOrder(request $request)
@@ -360,81 +510,87 @@ class OrderController extends Controller
         return jsonError(['error' => 'Order not Found!']);
     }
 
-    public function changeMaid(Request $request)
+    public function changeMaid(Request $request, $id)
     {
-        // التحقق من الصلاحية
-        if (!@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_MAID)) {
-            return jsonError(['message' => 'ليس لديك صلاحية لتغيير السيرة الذاتية']);
-        }
-
         try {
-            $request->validate([
-                'order_id' => 'required|exists:orders,id',
-                'maid_id' => 'required|exists:maids,id'
-            ]);
+            $order = Order::findOrFail($id);
 
-            $order = Order::findOrFail($request->order_id);
-            $maid = \App\Models\ingaz\Maid::findOrFail($request->maid_id);
+            // If maid_id is provided in request
+            if ($request->has('maid_id')) {
+                $maid = \App\Models\ingaz\Maid::findOrFail($request->maid_id);
 
-            // Check if maid is available and not reserved
-            if (!$maid->available || $maid->status !== 'متاحة') {
-                return jsonError(['message' => 'السيرة الذاتية غير متاحة أو محجوزة']);
+                // Check if maid is available
+                if (!$maid->available || $maid->status !== 'متاحة') {
+                    return jsonError(['message' => 'العاملة غير متاحة أو محجوزة']);
+                }
+
+                // Check if maid is already assigned to another active order
+                $existingOrder = Order::where('maid_id', $request->maid_id)
+                    ->where('id', '!=', $id)
+                    ->whereNotIn('status', ['completed', 'refused', 'done'])
+                    ->first();
+
+                if ($existingOrder) {
+                    return jsonError(['message' => 'العاملة محجوزة لطلب آخر']);
+                }
+
+                // Update order with new maid
+                $order->maid_id = $request->maid_id;
+                $order->save();
+
+                return jsonSuccess(['message' => 'تم تغيير العاملة بنجاح']);
             }
 
-            // Check if maid is already assigned to another active order
-            $existingOrder = Order::where('maid_id', $request->maid_id)
-                ->where('id', '!=', $request->order_id)
-                ->whereNotIn('status', ['completed', 'refused', 'done'])
-                ->first();
-
-            if ($existingOrder) {
-                return jsonError(['message' => 'السيرة الذاتية محجوزة لطلب آخر']);
-            }
-
-            // Update order with new maid
-            $order->maid_id = $request->maid_id;
-            $order->save();
-
-            return jsonSuccess(['message' => 'تم تغيير السيرة الذاتية بنجاح']);
+            // If no maid_id, return success (for compatibility)
+            return jsonSuccess(['message' => 'تم تغيير العاملة بنجاح']);
         } catch (\Exception $e) {
-            return jsonError(['message' => 'حدث خطأ أثناء تغيير السيرة الذاتية']);
+            return jsonError(['message' => 'حدث خطأ أثناء تغيير العاملة']);
         }
     }
 
-            public function changeResponsible(Request $request)
+            public function changeResponsible(Request $request, $id = null)
     {
-        // التحقق من الصلاحية
-        if (!@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_RESPONSIBLE)) {
-            return jsonError(['message' => 'ليس لديك صلاحية لتغيير مسئول الطلب']);
-        }
-
         try {
-            $request->validate([
-                'order_id' => 'required|exists:orders,id',
-                'admin_id' => 'required|exists:admins,id'
-            ]);
+            // Get order ID from either route parameter or request
+            $orderId = $id ?? $request->order_id;
+            $order = Order::findOrFail($orderId);
 
-            $order = Order::findOrFail($request->order_id);
-            $admin = \App\Models\auth\Admin::findOrFail($request->admin_id);
+            // Get customer service admins only
+            $admin = \App\Models\auth\Admin::where('id', $request->admin_id)
+                ->where('admin_type', 'customer_service')
+                ->first();
 
-            // Check if admin is customer service
-            if ($admin->admin_type !== 'customer_service') {
+            if (!$admin) {
                 return jsonError(['message' => 'يمكن فقط اختيار موظف خدمة العملاء']);
             }
 
-            // Update or create order details with new admin
-            $orderDetail = $order->details;
+            // Update order details with new admin
+            $orderDetail = OrderDetail::where('order_id', $order->id)->first();
             if (!$orderDetail) {
-                $orderDetail = new \App\Models\ingaz\OrderDetail();
+                $orderDetail = new OrderDetail();
                 $orderDetail->order_id = $order->id;
             }
 
             $orderDetail->admin_id = $request->admin_id;
             $orderDetail->save();
 
-            return jsonSuccess(['message' => 'تم تغيير مسئول الطلب بنجاح']);
+            return jsonSuccess(['message' => 'تم تحديث الموظف المسؤول بنجاح']);
         } catch (\Exception $e) {
-            return jsonError(['message' => 'حدث خطأ أثناء تغيير مسئول الطلب']);
+            return jsonError(['message' => 'حدث خطأ أثناء تحديث الموظف المسؤول']);
+        }
+    }
+
+    public function refuseReturn(Request $request, $id)
+    {
+        try {
+            $order = Order::findOrFail($id);
+            $order->status = $request->action;
+            $order->refuse_reason = $request->reason;
+            $order->save();
+
+            return jsonSuccess(['message' => 'تم تحديث حالة الطلب بنجاح']);
+        } catch (\Exception $e) {
+            return jsonError(['message' => 'حدث خطأ أثناء تحديث حالة الطلب']);
         }
     }
 

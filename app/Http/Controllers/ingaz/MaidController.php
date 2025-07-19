@@ -963,4 +963,78 @@ class MaidController extends Controller
         return response()->json(['exists' => $exists]);
     }
 
+    public function getAvailableMaids()
+    {
+        try {
+            $maids = Maid::where('available', true)
+                ->where('status', 'متاحة')
+                ->with(['nationality'])
+                ->select(['id', 'name', 'passport_num', 'nationality_id'])
+                ->get()
+                ->map(function($maid) {
+                    return [
+                        'id' => $maid->id,
+                        'name' => $maid->name,
+                        'passport_num' => $maid->passport_num,
+                        'nationality' => $maid->nationality ? $maid->nationality->title : ''
+                    ];
+                });
+
+            return jsonSuccess(['maids' => $maids]);
+        } catch (\Exception $e) {
+            return jsonError(['message' => 'حدث خطأ أثناء تحميل العاملات المتاحات']);
+        }
+    }
+
+    public function searchMaids(Request $request)
+    {
+        try {
+            $search = $request->get('search');
+
+            $maids = Maid::where('available', true)
+                ->where('status', 'متاحة')
+                ->where(function($query) use ($search) {
+                    $query->where('name', 'like', '%' . $search . '%')
+                          ->orWhere('passport_num', 'like', '%' . $search . '%');
+                })
+                ->with(['nationality'])
+                ->select(['id', 'name', 'passport_num', 'nationality_id'])
+                ->get()
+                ->map(function($maid) {
+                    return [
+                        'id' => $maid->id,
+                        'name' => $maid->name,
+                        'passport_num' => $maid->passport_num,
+                        'nationality' => $maid->nationality ? $maid->nationality->title : ''
+                    ];
+                });
+
+            return jsonSuccess(['maids' => $maids]);
+        } catch (\Exception $e) {
+            return jsonError(['message' => 'حدث خطأ أثناء البحث عن العاملات']);
+        }
+    }
+
+    public function getMaidInfo($id)
+    {
+        try {
+            $maid = Maid::with(['nationality', 'religion'])
+                ->select(['id', 'name', 'passport_num', 'nationality_id', 'religion_id', 'age', 'experience_years'])
+                ->findOrFail($id);
+
+            return jsonSuccess([
+                'maid' => [
+                    'id' => $maid->id,
+                    'name' => $maid->name,
+                    'passport_num' => $maid->passport_num,
+                    'nationality' => $maid->nationality ? $maid->nationality->title : '',
+                    'age' => $maid->age,
+                    'experience' => $maid->experience_years . ' سنوات'
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return jsonError(['message' => 'حدث خطأ أثناء تحميل معلومات العاملة']);
+        }
+    }
+
 }

@@ -353,36 +353,55 @@
                 </div>
                 <div class="order-info-body">
                     <div class="action-buttons">
+                        <!-- Edit Status Button -->
+                        @if(@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT))
+                            <button class="btn btn-primary edit-status" data-id="{{ $data->id }}">
+                                <i class="fa fa-edit"></i> {{helperTrans("ingaz.edit_status")}}
+                            </button>
+                        @endif
+
+                        <!-- Change Maid Button -->
                         @if(@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_MAID))
-                            @if($data->status != 'completed')
+                            @if($data->status == 'new')
                             <button class="btn btn-info" onclick="changeMaid({{ $data->id }})">
                                 <i class="fa fa-user-edit"></i> {{helperTrans("ingaz.change_maid")}}
                             </button>
                             @endif
                         @endif
 
+                        <!-- Change Responsible Employee Button -->
                         @if(@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_RESPONSIBLE))
-                            @if($data->status != 'completed')
                             <button class="btn btn-warning" onclick="changeResponsible({{ $data->id }})">
                                 <i class="fa fa-user-cog"></i> {{helperTrans("ingaz.change_responsible")}}
                             </button>
-                            @endif
                         @endif
 
-                        @if(@AdminGuardHasPerm(\App\PermKeys::ORDERS_ADD_CONTRACT))
-                            @if($data->status == 'under_process' || ($data->status == 'contracted' && !$data->contracts()->exists()))
-                            <button class="btn btn-primary addNewContract" data-id="{{ $data->id }}">
-                                <i class="fa fa-check"></i> {{helperTrans("ingaz.authorize")}}
+                        <!-- Refuse/Return Order Button -->
+                        @if(@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT))
+                            @if($data->status != 'refused' && $data->status != 'done')
+                            <button class="btn btn-danger" onclick="refuseReturnOrder({{ $data->id }})">
+                                <i class="fa fa-times"></i> {{helperTrans("ingaz.refuse_return_order")}}
                             </button>
                             @endif
                         @endif
 
+                        <!-- Add Contract Button -->
+                        @if(@AdminGuardHasPerm(\App\PermKeys::ORDERS_ADD_CONTRACT))
+                            @if($data->status == 'under_process' || ($data->status == 'contracted' && !$data->contracts()->exists()))
+                            <button class="btn btn-success addNewContract" data-id="{{ $data->id }}">
+                                <i class="fa fa-plus"></i> {{helperTrans("ingaz.add_contract")}}
+                            </button>
+                            @endif
+                        @endif
+
+                        <!-- Delete Order Button -->
                         @if(@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE))
                         <button class="btn btn-danger" onclick="deleteOrder({{ $data->id }})">
                             <i class="fa fa-trash"></i> {{helperTrans("ingaz.delete_order")}}
                         </button>
                         @endif
 
+                        <!-- Back to List Button -->
                         <a href="{{ route('orders.index') }}" class="btn btn-secondary">
                             <i class="fa fa-arrow-left"></i> {{helperTrans("ingaz.back_to_list")}}
                         </a>
@@ -601,5 +620,173 @@
             });
         }
     }
+
+    // Edit Status Function
+    function editStatus(orderId) {
+        $.ajax({
+            url: '/admin/orders/' + orderId + '/edit',
+            type: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    // Create modal
+                    const modal = `
+                        <div class="modal fade" id="editStatusModal" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">{{helperTrans("ingaz.edit_order_status")}}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ${response.html}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Remove existing modal if any
+                    $('#editStatusModal').remove();
+
+                    // Add modal to body
+                    $('body').append(modal);
+
+                    // Show modal
+                    $('#editStatusModal').modal('show');
+
+                    // Handle form submission
+                    $('#editStatusModal form').on('submit', function(e) {
+                        e.preventDefault();
+                        const formData = new FormData(this);
+
+                        $.ajax({
+                            url: $(this).attr('action'),
+                            type: 'POST',
+                            data: formData,
+                            processData: false,
+                            contentType: false,
+                            success: function(response) {
+                                if (response.success) {
+                                    $('#editStatusModal').modal('hide');
+                                    // Show success message and reload
+                                    alert(response.message || '{{helperTrans("ingaz.status_updated")}}');
+                                    setTimeout(function() {
+                                        window.location.reload();
+                                    }, 1000);
+                                } else {
+                                    alert(response.message || '{{helperTrans("ingaz.status_update_error")}}');
+                                }
+                            },
+                            error: function(xhr) {
+                                if (xhr.responseJSON && xhr.responseJSON.message) {
+                                    alert(xhr.responseJSON.message);
+                                } else {
+                                    alert('{{helperTrans("ingaz.status_update_error")}}');
+                                }
+                            }
+                        });
+                    });
+                } else {
+                    alert('{{helperTrans("ingaz.load_form_error")}}');
+                }
+            },
+            error: function(xhr) {
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    alert(xhr.responseJSON.message);
+                } else {
+                    alert('{{helperTrans("ingaz.load_form_error")}}');
+                }
+            }
+        });
+    }
+
+    // Refuse/Return Order Function
+    function refuseReturnOrder(orderId) {
+        const modal = `
+            <div class="modal fade" id="refuseReturnModal" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">{{helperTrans("ingaz.refuse_return_order")}}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="refuseReturnForm">
+                                <div class="mb-3">
+                                    <label class="form-label">{{helperTrans("ingaz.select_action")}}</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="action" value="refused" id="refused">
+                                        <label class="form-check-label" for="refused">
+                                            {{helperTrans("ingaz.refuse_order")}}
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="action" value="return" id="return">
+                                        <label class="form-check-label" for="return">
+                                            {{helperTrans("ingaz.return_order")}}
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">{{helperTrans("ingaz.reason")}}</label>
+                                    <textarea class="form-control" name="reason" rows="3" placeholder="{{helperTrans('ingaz.enter_reason')}}"></textarea>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{helperTrans("ingaz.cancel")}}</button>
+                            <button type="button" class="btn btn-danger" onclick="confirmRefuseReturn()">{{helperTrans("ingaz.confirm")}}</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        $('#refuseReturnModal').remove();
+        $('body').append(modal);
+        $('#refuseReturnModal').modal('show');
+        $('#refuseReturnForm').data('orderId', orderId);
+    }
+
+    function confirmRefuseReturn() {
+        const orderId = $('#refuseReturnForm').data('orderId');
+        const action = $('#refuseReturnForm input[name="action"]:checked').val();
+        const reason = $('#refuseReturnForm textarea[name="reason"]').val();
+
+        if (!action) {
+            alert('{{helperTrans("ingaz.please_select_action")}}');
+            return;
+        }
+
+        $.ajax({
+            url: '/admin/orders/' + orderId + '/refuse-return',
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}',
+                action: action,
+                reason: reason
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#refuseReturnModal').modal('hide');
+                    alert(response.message || '{{helperTrans("ingaz.order_updated")}}');
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    alert(response.message || '{{helperTrans("ingaz.update_error")}}');
+                }
+            },
+            error: function() {
+                alert('{{helperTrans("ingaz.update_error")}}');
+            }
+        });
+    }
+
+    // Add event listener for edit status button
+    $(document).on('click', '.edit-status', function() {
+        const orderId = $(this).data('id');
+        editStatus(orderId);
+    });
 </script>
 @endsection

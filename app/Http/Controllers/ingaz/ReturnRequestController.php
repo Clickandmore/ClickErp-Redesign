@@ -31,71 +31,133 @@ class ReturnRequestController extends Controller
     public function index(Request $request, objAction $Action)
     {
         if ($request->ajax()) {
-            $rows = ReturnRequest::query()->latest();
+            // عرض الطلبات المحذوفة أو الملغاة (refused, return) أو المحذوفة soft deleted
+            $rows = \App\Models\ingaz\Order::withTrashed()
+                ->where(function($query) {
+                    $query->whereIn('status', [
+                        \App\Enums\ingaz\OrderEnum::Refused->value,
+                        \App\Enums\ingaz\OrderEnum::Return->value
+                    ])
+                    ->orWhereNotNull('deleted_at'); // إضافة الطلبات المحذوفة soft deleted
+                })
+                ->with(['user', 'maid', 'details.admin']);
+
+            // فلتر الحالة
+            if ($request->filled('status')) {
+                if ($request->status === 'deleted') {
+                    $rows->whereNotNull('deleted_at');
+                } else {
+                    $rows->where('status', $request->status);
+                }
+            }
+
+            // فلتر التاريخ من
+            if ($request->filled('from_date')) {
+                $rows->whereDate('created_at', '>=', $request->from_date);
+            }
+
+            // فلتر التاريخ إلى
+            if ($request->filled('to_date')) {
+                $rows->whereDate('created_at', '<=', $request->to_date);
+            }
+
+            // فلتر اسم العميل
+            if ($request->filled('client_name')) {
+                $rows->whereHas('user', function($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->client_name . '%');
+                });
+            }
+
+            $rows = $rows->latest();
+
             return DataTables::of($rows)
                 ->addIndexColumn()
                 ->editColumn('status', function ($row) {
-                    $status = $row->status =="accept"? 'مقبول' : "مرفوض";
-
-                    if ($row->status == 'new') {
-                        $buttons = '';
-                        if (@AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_APPROVE)) {
-                            $buttons .= '<button class="btn btn-sm btn-success update-status" data-value="accept" data-id="' . $row->id . '">قبول</button>';
-                        }
-                        if (@AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_REJECT)) {
-                            $buttons .= '<button class="btn btn-sm btn-danger update-status" data-value="refuse" data-id="' . $row->id . '">رفض</button>';
-                        }
-                        return $buttons;
-                    } else {
-                        return '<button class="btn btn-sm btn-info" data-id="' . $row->id . '">'. $status .'</button>';
+                    if ($row->deleted_at) {
+                        return '<span class="badge bg-secondary status-badge">محذوفة</span>';
+                    } elseif ($row->status == \App\Enums\ingaz\OrderEnum::Refused->value) {
+                        return '<span class="badge bg-danger status-badge">مرفوضة</span>';
+                    } elseif ($row->status == \App\Enums\ingaz\OrderEnum::Return->value) {
+                        return '<span class="badge bg-warning status-badge">ملغية</span>';
                     }
+                    return '<span class="badge bg-secondary status-badge">' . getEnumValue('orders_statuses', $row->status) . '</span>';
                 })
                 ->editColumn('user_id', function ($row) {
-                    return ($row->user) ? $row->user->name : '';
-                })
-                ->editColumn('file', function ($row) {
-                    if ($row->file) {
-                        return "<a href='" . showFile($row->file) . "'>عرض التقرير <i class='fa fa-file'></i> </a>";
-                    } else {
-                        return "لا يوجد تقرير";
-                    }
+                    return '<span class="client-name">' . ($row->user ? $row->user->name : '-') . '</span>';
                 })
                 ->editColumn('phone', function ($row) {
-                    return ($row->user) ? getPhoneWithTag($row->user->phone_code.$row->user->phone) :'';
+                    return '<span class="phone-number">' . ($row->user ? getPhoneWithTag($row->user->phone_code.$row->user->phone) : '-') . '</span>';
                 })
                 ->editColumn('maid_id', function ($row) {
-                    return ($row->maid) ? getImgTag($row->maid->cv_file,"80px","80px") : '';
+                    return ($row->maid) ? getImgTag($row->maid->cv_file,"50px","50px", "maid-image") : '<span class="text-muted">-</span>';
                 })
-
+                ->editColumn('order_code', function ($row) {
+                    return '<span class="order-code">' . $row->order_code . '</span>';
+                })
+                ->editColumn('created_at', function ($row) {
+                    return '<span class="text-muted">' . $row->created_at->format('Y-m-d H:i') . '</span>';
+                })
+                ->editColumn('admin_name', function ($row) {
+                    return '<span class="text-info">' . ($row->details->admin->name ?? '-') . '</span>';
+                })
                 ->addColumn('actions', function ($row) {
-                    $editButton = '';
-                    $deleteButton = '';
-                    $approveButton = '';
-                    $rejectButton = '';
+                    $actions = '<div class="btn-group btn-group-sm" role="group">';
 
-                    if ($row->status == 'new') {
-                        if (@AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_APPROVE)) {
-                            $approveButton = '<button class="btn btn-sm btn-success update-status" data-value="accept" data-id="' . $row->id . '">قبول</button>';
-                        }
-                        if (@AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_REJECT)) {
-                            $rejectButton = '<button class="btn btn-sm btn-danger update-status" data-value="refuse" data-id="' . $row->id . '">رفض</button>';
-                        }
+                    // View button
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW)) {
+                        $actions .= '<a href="' . route('showSingleOrder', $row->id) . '" class="btn btn-info" title="عرض التفاصيل">
+                            <i class="fa fa-eye"></i>
+                        </a>';
                     }
 
-                    if (@AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_DELETE)) {
-                        $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                    // Edit button (only for non-deleted orders)
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && !$row->deleted_at) {
+                        $actions .= '<a href="' . route('orders.edit', $row->id) . '" class="btn btn-warning" title="تعديل">
+                            <i class="fa fa-edit"></i>
+                        </a>';
                     }
 
-                    return $approveButton . " " . $rejectButton . " " . $editButton . " " . $deleteButton;
+                    // Restore button (only for deleted orders)
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE) && $row->deleted_at) {
+                        $actions .= '<button class="btn btn-success restore-order" data-id="' . $row->id . '" title="استعادة">
+                            <i class="fa fa-undo"></i>
+                        </button>';
+                    }
+
+                    // Delete button
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE)) {
+                        $actions .= '<button class="btn btn-danger delete-order" data-id="' . $row->id . '" title="حذف نهائي">
+                            <i class="fa fa-trash"></i>
+                        </button>';
+                    }
+
+                    $actions .= '</div>';
+                    return $actions;
                 })->escapeColumns([])->make(true);
         }
-        $data["createRoute"] = route($this->mainRoute . ".create");
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
-        $data["bladeTitle"] = helperTrans('api.return_request');
-        $data["addButtonText"] = helperTrans('api.return_request');
+        $data["bladeTitle"] = helperTrans('ingaz.cancelled_orders');
         $data["modalType"] = "modal-lg";
-        return view($this->folderPath . '.index', $data);
 
+        // Add statistics
+        if ($request->ajax() && $request->has('statistics')) {
+            $statistics = [
+                'refused' => \App\Models\ingaz\Order::where('status', \App\Enums\ingaz\OrderEnum::Refused->value)->count(),
+                'return' => \App\Models\ingaz\Order::where('status', \App\Enums\ingaz\OrderEnum::Return->value)->count(),
+                'deleted' => \App\Models\ingaz\Order::withTrashed()->whereNotNull('deleted_at')->count(),
+                'total' => \App\Models\ingaz\Order::withTrashed()
+                    ->where(function($query) {
+                        $query->whereIn('status', [
+                            \App\Enums\ingaz\OrderEnum::Refused->value,
+                            \App\Enums\ingaz\OrderEnum::Return->value
+                        ])
+                        ->orWhereNotNull('deleted_at');
+                    })->count()
+            ];
+            return response()->json(['statistics' => $statistics]);
+        }
+
+        return view($this->folderPath . '.index', $data);
     }
 
 

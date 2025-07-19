@@ -4,19 +4,22 @@ namespace App\Models\ingaz;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 class Order extends Model
 {
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, SoftDeletes;
 
     protected $guarded = [];
 
     protected $with = ['details'];
 
     protected $casts = [
-        'expiration_time' => 'datetime'
+        'expiration_time' => 'datetime',
+        'status_changed_at' => 'datetime',
+        'deadline_at' => 'datetime'
     ];
 
     public function transfers()
@@ -107,6 +110,85 @@ class Order extends Model
     public function isExpired()
     {
         return $this->expiration_time && $this->expiration_time->isPast();
+    }
+
+    // Timer methods
+    public function updateStatusChangedAt()
+    {
+        $this->status_changed_at = now();
+        $this->updateDeadline();
+        $this->save();
+    }
+
+    public function updateDeadline()
+    {
+        $deadlineHours = $this->getDeadlineHours();
+        $this->deadline_at = now()->addHours($deadlineHours);
+    }
+
+    public function getDeadlineHours()
+    {
+        switch ($this->status) {
+            case \App\Enums\ingaz\OrderEnum::New->value:
+                return 24; // 24 ساعة للطلبات الجديدة
+            case \App\Enums\ingaz\OrderEnum::UnderProcess->value:
+                return 48; // 48 ساعة للطلبات تحت الإجراء
+            default:
+                return 0; // لا يوجد موعد نهائي للحالات الأخرى
+        }
+    }
+
+    public function isOverdue()
+    {
+        if (!$this->deadline_at) {
+            return false;
+        }
+        return now()->isAfter($this->deadline_at);
+    }
+
+    public function getRemainingTime()
+    {
+        if (!$this->deadline_at) {
+            return null;
+        }
+
+        $remaining = now()->diff($this->deadline_at);
+
+        if ($remaining->invert) {
+            // الوقت انتهى
+            return [
+                'hours' => 0,
+                'minutes' => 0,
+                'is_overdue' => true,
+                'overdue_hours' => abs($remaining->h + ($remaining->days * 24)),
+                'overdue_minutes' => $remaining->i
+            ];
+        }
+
+        return [
+            'hours' => $remaining->h + ($remaining->days * 24),
+            'minutes' => $remaining->i,
+            'is_overdue' => false
+        ];
+    }
+
+    public function getTimerStatus()
+    {
+        $remaining = $this->getRemainingTime();
+
+        if (!$remaining) {
+            return 'no_deadline';
+        }
+
+        if ($remaining['is_overdue']) {
+            return 'overdue';
+        }
+
+        if ($remaining['hours'] < 2) {
+            return 'urgent';
+        }
+
+        return 'normal';
     }
 
 }

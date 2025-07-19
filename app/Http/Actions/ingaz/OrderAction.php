@@ -108,6 +108,10 @@ class OrderAction extends MainAction
     {
         $order = $this->find($id);
         $maid = Maid::find($order->maid_id);
+
+        // تحديث التايمر عند تغيير الحالة
+        $order->updateStatusChangedAt();
+
         if ($data['status'] == 'completed') {
 
             if ($order->package) {

@@ -3,175 +3,125 @@
     <form class="row g-3 from-submit-global" method="post" action="{{route("orders.update", $obj->id)}}">
         @csrf
         @method('Put')
-        @if(now() < $obj->maid->available_at)
-            <span class="text-info mb-1">يرجي العلم ان تلك العاملة متاحة من يوم {{$obj->maid->available_at}}</span>
-        @endif
-        <div class="col-4">
-            <label for="TextInput" class="form-label">
-                {{helperTrans('ingaz.order_code')}}
-            </label>
-            <input type="text" disabled class="form-control" value="{{ $obj->order_code}}">
-        </div>
-        <div class="col-4">
-            <label for="TextInput" class="form-label">
-                {{helperTrans('ingaz.order job type')}}
-            </label>
-            <input type="text" disabled class="form-control" value="{{ $obj->jobType->title}}">
-        </div>
-        <div class="col-4">
-            <label for="TextInput" class="form-label">
-                {{helperTrans('ingaz.client')}}
-            </label>
-            <input type="text" disabled class="form-control" value="{{ $obj->user->name}}">
-        </div>
-        <div class="col-4">
-            <label for="TextInput" class="form-label">
-                {{helperTrans('ingaz.status')}}
-            </label>
-            <input type="text" disabled class="form-control" value="{{getEnumValue('orders_statuses', $obj->status)}}">
-        </div>
-        <div class="col-4">
-            <label for="TextInput" class="form-label">
-                {{helperTrans('ingaz.order created at')}} :
-            </label>
-            <input type="text" disabled class="form-control" value="{{$obj->created_at->format('Y-m-d h:i A')}}">
-        </div>
-        <div class="col-4">
-            <label for="TextInput" class="form-label">
-                {{helperTrans('ingaz.phone')}} :
-            </label>
-            <br>
-            {!!  ($obj->user) ? getPhoneWithTag($obj->user->phone_code . $obj->user->phone) : '' !!}
 
-
+        <!-- Order Information -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">{{helperTrans('ingaz.order_code')}}</label>
+                <input type="text" disabled class="form-control" value="{{ $obj->order_code}}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">{{helperTrans('ingaz.client')}}</label>
+                <input type="text" disabled class="form-control" value="{{ $obj->user->name ?? 'غير محدد'}}">
+            </div>
         </div>
-        {{-- ## لو الطلب له باقة نحسب امتي تنهي - ولو الطلب نوعه يتم العمل والعاملة هناك نجيب تاريخ نهاية الطلب من ميعاد
-        انتهاء العاملة ##--}}
-        @if($obj->package)
-            @if($obj->status == 'started')
-                <div class="col-6">
-                    <label for="TextInput" class="form-label">
-                        {{helperTrans('ingaz.package')}} :
-                    </label>
-                    <input type="text" disabled class="form-control" value="{{$obj->package_title . " : " .
-                            helperTrans('ingaz.ends at') . " : " .
-                            $obj->maid->available_at}}">
-                </div>
-            @else
-                <div class="col-6">
-                    <label for="TextInput" class="form-label">
-                        {{helperTrans('ingaz.package')}} :
-                    </label>
-                    <input type="text" disabled class="form-control" value="{{$obj->package_title . " : " .
-                            helperTrans('ingaz.ends at') . " : " .
-                            now()->addDays($obj->package->days_count)->format('Y-m-d')}}">
-                </div>
-            @endif
-        @endif
-        @if($obj->address)
-            <div class="col-6">
-                <label for="TextInput" class="form-label">
-                    {{helperTrans('ingaz.order address')}} :
-                </label>
-                <input type="text" disabled class="form-control" value="{{$obj->address->title}}">
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label fw-bold">{{helperTrans('ingaz.status')}}</label>
+                <input type="text" disabled class="form-control" value="{{getEnumValue('orders_statuses', $obj->status)}}">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">{{helperTrans('ingaz.order created at')}}</label>
+                <input type="text" disabled class="form-control" value="{{$obj->created_at->format('Y-m-d h:i A')}}">
+            </div>
+        </div>
+
+        @if($obj->maid && isset($obj->maid->available_at) && now() < $obj->maid->available_at)
+            <div class="alert alert-info">
+                <i class="fa fa-info-circle"></i>
+                يرجي العلم ان تلك العاملة متاحة من يوم {{$obj->maid->available_at}}
             </div>
         @endif
-        {{-- @if($obj->status != 'refused' && $obj->status != 'done')--}}
-        {{-- <div class="col-12">--}}
-            {{-- <label for="TextInput" class="form-label">--}}
-                {{-- {{helperTrans('ingaz.update order status')}} :--}}
-                {{-- </label>--}}
-            {{-- @if($obj->status == 'new')--}}
-            {{-- <div class="form-check">--}}
-                {{-- <input class="form-check-input" type="radio" name="status" value="paid">--}}
-                {{-- <label class="form-check-label" for="flexRadioDefault2">{{ getEnumValue('orders_statuses', 'paid')
-                    }}</label>--}}
-                {{-- </div>--}}
-            {{-- @endif--}}
 
-            {{-- @if(in_array($obj->status, ['paid', 'new']))--}}
-            {{-- <div class="form-check">--}}
-                {{-- <input class="form-check-input" type="radio" name="status" value="completed">--}}
-                {{-- <label class="form-check-label" for="flexRadioDefault2">{{ getEnumValue('orders_statuses', 'completed')
-                    }}</label>--}}
-                {{-- </div>--}}
-            {{-- @endif--}}
+        @if(in_array($obj->status, ['refused', 'done', 'completed']))
+            <!-- Disabled for refused, done, or completed orders -->
+            <div class="alert alert-warning">
+                <i class="fa fa-exclamation-triangle"></i>
+                لا يمكن تعديل هذا الطلب لأنه {{getEnumValue('orders_statuses', $obj->status)}}
+            </div>
 
-            {{-- @if(!in_array($obj->status, ['new', 'started']))--}}
-            {{-- <div class="form-check">--}}
-                {{-- <input class="form-check-input" type="radio" name="status" --}} {{-- {{(now() <
-                    $obj->maid->available_at) ? 'disabled' : ''}} value="started">--}}
-                {{-- <label class="form-check-label" for="flexRadioDefault2">{{ getEnumValue('orders_statuses', 'started')
-                    }}</label>--}}
-                {{-- @if(now() < $obj->maid->available_at)--}}
-                    {{-- <span class="text-danger"> لا يمكن البدء الان لأن العاملة متاحة من يوم {{ $obj->maid->available_at
-                        }} </span>--}}
-                    {{-- @endif--}}
-                    {{-- </div>--}}
-            {{-- @endif--}}
+            <!-- Close button only for disabled orders -->
+            <div class="row mt-3">
+                <div class="col-12">
+                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">
+                        <i class="fa fa-times"></i> {{__("buttons.close")}}
+                    </button>
+                </div>
+            </div>
+        @else
+            <!-- Status Update Section -->
+            <div class="card mt-3">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fa fa-edit"></i> {{helperTrans('ingaz.update order status')}}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        @php
+                            $currentStatus = $obj->status;
+                            $availableStatuses = [];
 
-            {{-- @if($obj->status != 'started')--}}
-            {{-- <div class="form-check">--}}
-                {{-- <input class="form-check-input" type="radio" name="status" value="refused">--}}
-                {{-- <label class="form-check-label" for="flexRadioDefault2">{{ getEnumValue('orders_statuses', 'refused')
-                    }}</label>--}}
-                {{-- </div>--}}
-            {{-- @endif--}}
+                            // Define available statuses based on current status
+                            switch($currentStatus) {
+                                case 'new':
+                                    $availableStatuses = ['under_process', 'refused'];
+                                    break;
+                                case 'under_process':
+                                    $availableStatuses = ['contracted', 'contracted_without_contract', 'refused'];
+                                    break;
+                                case 'contracted':
+                                    $availableStatuses = ['completed', 'done'];
+                                    break;
+                                case 'contracted_without_contract':
+                                    $availableStatuses = ['completed', 'done'];
+                                    break;
+                                case 'completed':
+                                    $availableStatuses = ['done'];
+                                    break;
+                                default:
+                                    // Show all statuses for other cases
+                                    $availableStatuses = array_map(function($case) {
+                                        return $case->value;
+                                    }, \App\Enums\ingaz\OrderEnum::cases());
+                                    break;
+                            }
+                        @endphp
 
-            {{-- @if($obj->status != 'done')--}}
-            {{-- <div class="form-check">--}}
-                {{-- <input class="form-check-input" type="radio" name="status" value="done">--}}
-                {{-- <label class="form-check-label" for="flexRadioDefault2">{{ getEnumValue('orders_statuses', 'done')
-                    }}</label>--}}
-                {{-- </div>--}}
-            {{-- @endif--}}
-            {{-- </div>--}}
-
-        {{-- @endif--}}
-        <div class="row pt-2">
-            @if($obj->status == 'new')
-                <div class="col-4 p-1">
-                    <input class="form-check-input" type="radio" name="status" value="under_process">
-                    <label class="form-check-label">{{ getEnumValue('orders_statuses', 'under_process') }}</label>
-                </div>
-                <div class="col-4 p-1">
-                    <input class="form-check-input" type="radio" name="status" value="refused">
-                    <label class="form-check-label">{{ getEnumValue('orders_statuses', 'refused') }}</label>
-                </div>
-            @elseif($obj->status == 'under_process')
-                <div class="col-4 p-1">
-                    <input class="form-check-input" type="radio" name="status" value="contracted">
-                    <label class="form-check-label">{{ getEnumValue('orders_statuses', 'contracted') }}</label>
-                </div>
-                <div class="col-4 p-1">
-                    <input class="form-check-input" type="radio" name="status" value="contracted_without_contract">
-                    <label class="form-check-label">{{ getEnumValue('orders_statuses', 'contracted_without_contract') }}</label>
-                </div>
-                <div class="col-4 p-1">
-                    <input class="form-check-input" type="radio" name="status" value="refused">
-                    <label class="form-check-label">{{ getEnumValue('orders_statuses', 'refused') }}</label>
-                </div>
-            @else
-                @foreach(\App\Enums\ingaz\OrderEnum::cases() as $value)
-                    <div class="col-4 p-1">
-                        <input class="form-check-input" type="radio" name="status" value="{{ $value->value }}">
-                        <label class="form-check-label">{{ getEnumValue('orders_statuses', $value->value) }}</label>
+                        @foreach($availableStatuses as $status)
+                            <div class="col-md-6 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="status" value="{{ $status }}" id="{{ $status }}">
+                                    <label class="form-check-label" for="{{ $status }}">
+                                        {{ getEnumValue('orders_statuses', $status) }}
+                                    </label>
+                                </div>
+                            </div>
+                        @endforeach
                     </div>
-                @endforeach
-            @endif
-        </div>
+                </div>
+            </div>
 
-        <div class="col-12 modal-footer">
-            @if($obj->status != 'refused' && $obj->status != 'done')
-                <button class="btn btn-primary" type="submit">{{__("buttons.save")}}</button>
-            @endif
-            @if($obj->status == 'under_process')
-                @if (@AdminGuardHasPerm(\App\PermKeys::FULL_CONTRACT))
-                    <a class="btn btn-danger addNewContract" href="#" data-id="{{ $obj->id }}">{{__("admin.add_new_contract")}}</a>
-                @endif
-            @endif
-            <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">{{__("buttons.close")}}</button>
-        </div>
+            <!-- Action Buttons -->
+            <div class="row mt-3">
+                <div class="col-12">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fa fa-save"></i> {{__("buttons.save")}}
+                    </button>
+
+                    @if($obj->status == 'under_process')
+                        @if (@AdminGuardHasPerm(\App\PermKeys::FULL_CONTRACT))
+                            <button type="button" class="btn btn-success addNewContract" data-id="{{ $obj->id }}">
+                                <i class="fa fa-plus"></i> {{__("admin.add_new_contract")}}
+                            </button>
+                        @endif
+                    @endif
+
+                    <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">
+                        <i class="fa fa-times"></i> {{__("buttons.close")}}
+                    </button>
+                </div>
+            </div>
+        @endif
     </form>
 
 @else

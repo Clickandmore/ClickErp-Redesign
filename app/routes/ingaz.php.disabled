@@ -11,7 +11,7 @@ use App\Http\Controllers\admin\AdminTravelHistoryController;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use App\Http\Controllers\admin\AdminShelterWorkersContractCTLR;
 use App\Http\Controllers\admin\AdminFullOrderContractController;
-use App\Http\Controllers\ingaz\OrderController as AdminOrderController;
+use App\Http\Controllers\ingaz\OrderController;
 
 /*
 |--------------------------------------------------------------------------
@@ -93,8 +93,8 @@ Route::group(
             Route::resource('maids-test', MaidTestController::class);
             Route::resource('packages', PackageController::class);
             Route::resource('complaints', ComplaintController::class);
-            Route::post('completeOrder/{id}', [AdminOrderController::class, 'completeOrder'])->name('orders.completeOrder');
-            Route::post('getOrderById/{id}', [AdminOrderController::class, 'getOrderById'])->name('orders.getOrderById');
+            Route::post('completeOrder/{id}', [OrderController::class, 'completeOrder'])->name('orders.completeOrder');
+            Route::post('getOrderById/{id}', [OrderController::class, 'getOrderById'])->name('orders.getOrderById');
             Route::resource('orders', OrderController::class);
             Route::get('orders/current', [OrderController::class, 'index'])->name('orders.current');
             Route::get('orders/ended', [OrderController::class, 'index'])->name('orders.ended');
@@ -106,9 +106,9 @@ Route::group(
             Route::get('RecruitmentContract/available-maids', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'getAvailableMaids'])->name('RecruitmentContract.availableMaids');
             Route::get('RecruitmentContract/filter-options', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'getFilterOptions'])->name('RecruitmentContract.filterOptions');
             Route::resource('RentContract', RentContractController::class);
-            Route::get('showDataOfOrder', [App\Http\Controllers\ingaz\OrderController::class, 'showDataOfOrder'])->name('showDataOfOrder');
-            Route::get('showDataOfMaid', [App\Http\Controllers\ingaz\OrderController::class, 'showDataOfMaid'])->name('showDataOfMaid');
-            Route::get('showUserFromContract', [App\Http\Controllers\ingaz\OrderController::class, 'showUserFromContract'])->name('showUserFromContract');
+            Route::get('showDataOfOrder', [OrderController::class, 'showDataOfOrder'])->name('showDataOfOrder');
+            Route::get('showDataOfMaid', [OrderController::class, 'showDataOfMaid'])->name('showDataOfMaid');
+            Route::get('showUserFromContract', [OrderController::class, 'showUserFromContract'])->name('showUserFromContract');
             Route::resource('SponsorshipTransfer', SponsorshipTransfer::class);
             Route::resource('notifications', NotificationController::class);
             Route::resource('statistics', StatisticController::class);
@@ -120,8 +120,8 @@ Route::group(
             Route::resource('ShelterContract', ShelterContractController::class);
 
             //** New */
-            Route::get('show_single_order/{orderId}', [App\Http\Controllers\ingaz\OrderController::class, 'showSingleOrder'])->name('showSingleOrder');
-            Route::get('/order_file/{id}/download', [App\Http\Controllers\ingaz\OrderController::class, 'download'])->name('order_files.download');
+            Route::get('show_single_order/{orderId}', [OrderController::class, 'showSingleOrder'])->name('showSingleOrder');
+            Route::get('/order_file/{id}/download', [OrderController::class, 'download'])->name('order_files.download');
             Route::get('/cancel_contracts', [App\Http\Controllers\ingaz\ContractsController::class, 'cancel_contracts'])->name('cancel_contracts');
 
         });

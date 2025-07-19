@@ -29,15 +29,10 @@ class MainRequest extends FormRequest
 
     protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
     {
-        try {
-            $response = jsonValid($validator->errors());
-            throw new \Illuminate\Validation\ValidationException($validator, $response);
-        } catch (\Exception $e) {
-            // إذا فشل jsonValid، استخدم الطريقة الافتراضية
-            throw new \Illuminate\Validation\ValidationException($validator, response()->json([
-                'message' => 'The given data was invalid.',
-                'errors' => $validator->errors(),
-            ], 422));
+        if ($this->expectsJson()) {
+            throw new \Illuminate\Validation\ValidationException($validator);
         }
+
+        parent::failedValidation($validator);
     }
 }

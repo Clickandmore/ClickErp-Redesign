@@ -98,17 +98,22 @@ Route::group(
             Route::get('maids/export/pdf', [App\Http\Controllers\ingaz\MaidController::class, 'exportPdf'])->name('maids.export.pdf');
             Route::get('maids/export/excel', [App\Http\Controllers\ingaz\MaidController::class, 'exportExcel'])->name('maids.export.excel');
             Route::post('check-passport-unique', [App\Http\Controllers\ingaz\MaidController::class, 'checkPassportUnique'])->name('check.passport.unique');
+            Route::get('maids/available', [App\Http\Controllers\ingaz\MaidController::class, 'getAvailableMaids'])->name('maids.available');
+            Route::get('maids/search', [App\Http\Controllers\ingaz\MaidController::class, 'searchMaids'])->name('maids.search');
+            Route::get('maids/{id}/info', [App\Http\Controllers\ingaz\MaidController::class, 'getMaidInfo'])->name('maids.info');
 
             Route::resource('maids-test', MaidTestController::class);
             Route::resource('packages', PackageController::class);
             Route::resource('complaints', ComplaintController::class);
-            Route::post('completeOrder/{id}', [AdminOrderController::class, 'completeOrder'])->name('orders.completeOrder');
-            Route::post('getOrderById/{id}', [AdminOrderController::class, 'getOrderById'])->name('orders.getOrderById');
+            Route::post('completeOrder/{id}', [OrderController::class, 'completeOrder'])->name('orders.completeOrder');
+            Route::post('getOrderById/{id}', [OrderController::class, 'getOrderById'])->name('orders.getOrderById');
             Route::resource('orders', OrderController::class);
+            Route::post('orders/{id}/restore', [OrderController::class, 'restore'])->name('orders.restore');
             Route::get('orders/current', [OrderController::class, 'index'])->name('orders.current');
             Route::get('orders/ended', [OrderController::class, 'index'])->name('orders.ended');
-            Route::get('orders/export/pdf', [\App\Http\Controllers\ingaz\OrderController::class, 'exportPdf'])->name('orders.export.pdf');
-            Route::get('orders/export/excel', [\App\Http\Controllers\ingaz\OrderController::class, 'exportExcel'])->name('orders.export.excel');
+            Route::get('orders/completed', [OrderController::class, 'index'])->name('orders.completed');
+            Route::get('orders/export/pdf', [OrderController::class, 'exportPdf'])->name('orders.export.pdf');
+            Route::get('orders/export/excel', [OrderController::class, 'exportExcel'])->name('orders.export.excel');
             Route::resource('RecruitmentContract', RecruitmentContractController::class);
             Route::get('RecruitmentContract/export/pdf', [\App\Http\Controllers\ingaz\RecruitmentContractController::class, 'exportPdf'])->name('RecruitmentContract.export.pdf');
             Route::get('RecruitmentContract/export/excel', [\App\Http\Controllers\ingaz\RecruitmentContractController::class, 'exportExcel'])->name('RecruitmentContract.export.excel');
@@ -120,9 +125,9 @@ Route::group(
             Route::get('RecruitmentContract/filter-options', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'getFilterOptions'])->name('RecruitmentContract.filterOptions');
             Route::get('RecruitmentContract/statistics', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'statistics'])->name('RecruitmentContract.statistics');
             Route::resource('RentContract', RentContractController::class);
-            Route::get('showDataOfOrder', [App\Http\Controllers\ingaz\OrderController::class, 'showDataOfOrder'])->name('showDataOfOrder');
-            Route::get('showDataOfMaid', [App\Http\Controllers\ingaz\OrderController::class, 'showDataOfMaid'])->name('showDataOfMaid');
-            Route::get('showUserFromContract', [App\Http\Controllers\ingaz\OrderController::class, 'showUserFromContract'])->name('showUserFromContract');
+            Route::get('showDataOfOrder', [OrderController::class, 'showDataOfOrder'])->name('showDataOfOrder');
+            Route::get('showDataOfMaid', [OrderController::class, 'showDataOfMaid'])->name('showDataOfMaid');
+            Route::get('showUserFromContract', [OrderController::class, 'showUserFromContract'])->name('showUserFromContract');
             Route::resource('SponsorshipTransfer', SponsorshipTransfer::class);
             Route::resource('notifications', NotificationController::class);
             Route::resource('statistics', StatisticController::class);
@@ -145,9 +150,12 @@ Route::group(
 
             //** New */
             Route::get('show_single_order/{orderId}', [App\Http\Controllers\ingaz\OrderController::class, 'showSingleOrder'])->name('showSingleOrder');
-            Route::get('/order_file/{id}/download', [App\Http\Controllers\ingaz\OrderController::class, 'download'])->name('order_files.download');
-            Route::post('orders/changeMaid', [App\Http\Controllers\ingaz\OrderController::class, 'changeMaid'])->name('orders.changeMaid');
-            Route::post('orders/changeResponsible', [App\Http\Controllers\ingaz\OrderController::class, 'changeResponsible'])->name('orders.changeResponsible');
+            Route::get('/order_file/{id}/download', [OrderController::class, 'download'])->name('order_files.download');
+            Route::post('orders/changeMaid', [OrderController::class, 'changeMaid'])->name('orders.changeMaid');
+            Route::post('orders/changeResponsible', [OrderController::class, 'changeResponsible'])->name('orders.changeResponsible');
+            Route::post('orders/{id}/change-responsible', [OrderController::class, 'changeResponsible'])->name('orders.changeResponsibleById');
+            Route::post('orders/{id}/refuse-return', [OrderController::class, 'refuseReturn'])->name('orders.refuseReturn');
+            Route::post('orders/{id}/change-maid', [OrderController::class, 'changeMaid'])->name('orders.changeMaidById');
             Route::get('/cancel_contracts', [App\Http\Controllers\ingaz\ContractsController::class, 'cancel_contracts'])->name('cancel_contracts');
 
             Route::resource('complaint-types', ComplaintTypeController::class);

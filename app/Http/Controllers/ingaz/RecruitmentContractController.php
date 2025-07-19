@@ -555,7 +555,14 @@ class RecruitmentContractController extends Controller
         }
 
         $countries = Country::active()->ordered()->get();
-        return view('admin.ingaz.RecruitmentContract.create', compact('orders', 'endedOrders', 'countries', 'all_available_maids', 'selectedOrder', 'orderId', 'existing_clients'));
+
+        // Get all marketers (admins)
+        $marketers = \App\Models\auth\Admin::where('admin_type', 0)->get(); // Assuming admin_type 0 means regular admin/marketer
+
+        // Get current user info
+        $currentUser = Auth::guard('admin')->user();
+
+        return view('admin.ingaz.RecruitmentContract.create', compact('orders', 'endedOrders', 'countries', 'all_available_maids', 'selectedOrder', 'orderId', 'existing_clients', 'marketers', 'currentUser'));
     }
 
 
