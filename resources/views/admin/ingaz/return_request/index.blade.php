@@ -1,6 +1,7 @@
 @extends('admin.layout.indexs.index')
 @section("style")
     <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
+    <link rel="stylesheet" href="{{asset("admin")}}/custom/table-actions.css">
     <style>
         .table-responsive {
             border-radius: 8px;
@@ -75,14 +76,12 @@
             border-radius: 8px;
             color: white;
             font-weight: 600;
-            padding: 10px 20px;
         }
         .btn-reset {
             border: 1px solid #000000;
             border-radius: 8px;
             color: white;
             font-weight: 600;
-            padding: 10px 20px;
         }
     </style>
 @endsection
@@ -93,69 +92,17 @@
 @section('content')
 @if (@AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_VIEW))
 
-    {{-- <!-- Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card bg-danger text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="mb-0" id="refused-count">0</h4>
-                            <small>{{helperTrans("ingaz.refused")}}</small>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fa fa-times-circle fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="mb-0" id="return-count">0</h4>
-                            <small>{{helperTrans("ingaz.return")}}</small>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fa fa-undo fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-secondary text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="mb-0" id="deleted-count">0</h4>
-                            <small>{{helperTrans("ingaz.deleted")}}</small>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fa fa-trash fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="mb-0" id="total-count">0</h4>
-                            <small>{{helperTrans("ingaz.total")}}</small>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fa fa-list fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div> --}}
+    <!-- Export Buttons -->
+    <div class="export-buttons mb-3">
+        @if (@AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_EXPORT))
+        <a href="{{ route('return_requests.export.pdf') }}" class="btn btn-outline-danger" target="_blank">
+            <i class="fa fa-file-pdf"></i> {{helperTrans("ingaz.export_pdf")}}
+        </a>
+        <a href="{{ route('return_requests.export.excel') }}" class="btn btn-outline-success">
+            <i class="fa fa-file-excel"></i> {{helperTrans("ingaz.export_excel")}}
+        </a>
+        @endif
+    </div>
 
     <!-- Filter Form -->
     <div class="card mb-4 filter-card">
@@ -249,6 +196,11 @@
                         d.from_date = $('#from_date').val();
                         d.to_date = $('#to_date').val();
                         d.client_name = $('#client_name').val();
+                    },
+                    error: function(xhr, error, thrown) {
+                        console.error('DataTables AJAX Error:', error);
+                        console.error('XHR:', xhr);
+                        console.error('Thrown:', thrown);
                     }
                 },
                 columns: columns,
@@ -281,34 +233,6 @@
                 dataTable.ajax.reload();
             });
 
-            // Update statistics
-            function updateStatistics() {
-                $.ajax({
-                    url: '{{ route("return_requests.index") }}',
-                    type: 'GET',
-                    data: {
-                        ajax: true,
-                        statistics: true
-                    },
-                    success: function(response) {
-                        if (response.statistics) {
-                            $('#refused-count').text(response.statistics.refused || 0);
-                            $('#return-count').text(response.statistics.return || 0);
-                            $('#deleted-count').text(response.statistics.deleted || 0);
-                            $('#total-count').text(response.statistics.total || 0);
-                        }
-                    }
-                });
-            }
-
-            // Update statistics on page load
-            updateStatistics();
-
-            // Update statistics after data table reload
-            dataTable.on('draw', function() {
-                updateStatistics();
-            });
-
             // Handle restore order
             $(document).on('click', '.restore-order', function() {
                 const orderId = $(this).data('id');
@@ -322,13 +246,25 @@
                         success: function(response) {
                             if (response.success) {
                                 dataTable.ajax.reload();
-                                toastr.success('{{helperTrans("ingaz.order_restored")}}');
+                                if (typeof toastr !== 'undefined') {
+                                    toastr.success('{{helperTrans("ingaz.order_restored")}}');
+                                } else {
+                                    alert('{{helperTrans("ingaz.order_restored")}}');
+                                }
                             } else {
-                                toastr.error('{{helperTrans("ingaz.restore_error")}}');
+                                if (typeof toastr !== 'undefined') {
+                                    toastr.error('{{helperTrans("ingaz.restore_error")}}');
+                                } else {
+                                    alert('{{helperTrans("ingaz.restore_error")}}');
+                                }
                             }
                         },
                         error: function() {
-                            toastr.error('{{helperTrans("ingaz.restore_error")}}');
+                            if (typeof toastr !== 'undefined') {
+                                toastr.error('{{helperTrans("ingaz.restore_error")}}');
+                            } else {
+                                alert('{{helperTrans("ingaz.restore_error")}}');
+                            }
                         }
                     });
                 }
@@ -347,44 +283,141 @@
                         success: function(response) {
                             if (response.success) {
                                 dataTable.ajax.reload();
-                                toastr.success('{{helperTrans("ingaz.order_deleted")}}');
+                                if (typeof toastr !== 'undefined') {
+                                    toastr.success('{{helperTrans("ingaz.order_deleted")}}');
+                                } else {
+                                    alert('{{helperTrans("ingaz.order_deleted")}}');
+                                }
                             } else {
-                                toastr.error('{{helperTrans("ingaz.delete_error")}}');
+                                if (typeof toastr !== 'undefined') {
+                                    toastr.error('{{helperTrans("ingaz.delete_error")}}');
+                                } else {
+                                    alert('{{helperTrans("ingaz.delete_error")}}');
+                                }
                             }
                         },
                         error: function() {
-                            toastr.error('{{helperTrans("ingaz.delete_error")}}');
+                            if (typeof toastr !== 'undefined') {
+                                toastr.error('{{helperTrans("ingaz.delete_error")}}');
+                            } else {
+                                alert('{{helperTrans("ingaz.delete_error")}}');
+                            }
                         }
                     });
                 }
             });
-        });
 
-        $(document).on('click', '.update-status', function (event) {
-            var rowId = $(this).data('id');
-            var status = $(this).data('value');
-            var url = "{{ route('return_requests.show', ':id') }}";
-            url = url.replace(':id', rowId);
-            $.ajax({
-                type: 'Get',
-                url: url,
-                data: {status:status},
-                success: function (data) {
-                    if (data.success) {
-                        reloadDataTable();
-                        $.toast({
-                            heading: 'نجاح',
-                            text: 'تم تغيير الحالة بنجاح!',
-                            showHideTransition: 'slide',
-                            icon: 'success',
-                            hideAfter: 2000,
-                            position: 'top-right',
-                            stack: 1
-                        });
+            // Handle status update
+            $(document).on('click', '.update-status', function (event) {
+                var rowId = $(this).data('id');
+                var status = $(this).data('value');
+                var url = "{{ route('return_requests.show', ':id') }}";
+                url = url.replace(':id', rowId);
+                $.ajax({
+                    type: 'Get',
+                    url: url,
+                    data: {status:status},
+                    success: function (data) {
+                        if (data.success) {
+                            dataTable.ajax.reload();
+                            if (typeof toastr !== 'undefined') {
+                                toastr.success('{{helperTrans("ingaz.status_updated")}}');
+                            } else {
+                                alert('{{helperTrans("ingaz.status_updated")}}');
+                            }
+                        } else {
+                            if (typeof toastr !== 'undefined') {
+                                toastr.error('{{helperTrans("ingaz.status_update_error")}}');
+                            } else {
+                                alert('{{helperTrans("ingaz.status_update_error")}}');
+                            }
+                        }
+                    },
+                    error: function() {
+                        if (typeof toastr !== 'undefined') {
+                            toastr.error('{{helperTrans("ingaz.status_update_error")}}');
+                        } else {
+                            alert('{{helperTrans("ingaz.status_update_error")}}');
+                        }
                     }
-                    else {
-                        alert('فشل في تحديث الحالة.');
-                    }
+                });
+            });
+
+            // Initialize tooltips
+            function initTooltips() {
+                $('[data-tooltip]').each(function() {
+                    $(this).hover(
+                        function() {
+                            const tooltip = $('<div class="custom-tooltip">' + $(this).attr('data-tooltip') + '</div>');
+                            $('body').append(tooltip);
+
+                            const offset = $(this).offset();
+                            tooltip.css({
+                                position: 'absolute',
+                                top: offset.top - tooltip.outerHeight() - 10,
+                                left: offset.left + ($(this).outerWidth() / 2) - (tooltip.outerWidth() / 2),
+                                zIndex: 9999,
+                                backgroundColor: '#333',
+                                color: 'white',
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                fontSize: '0.75rem',
+                                whiteSpace: 'nowrap',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                            });
+                        },
+                        function() {
+                            $('.custom-tooltip').remove();
+                        }
+                    );
+                });
+            }
+
+            // Initialize tooltips after DataTable loads
+            dataTable.on('draw', function() {
+                initTooltips();
+
+                // Clean up dropdown text
+                $('.dropdown-item').each(function() {
+                    let text = $(this).text();
+                    // Remove any repeated text
+                    text = text.replace(/\s+/g, ' ').trim();
+                    $(this).text(text);
+
+                    // Ensure only one icon per item
+                    $(this).find('i').slice(1).remove();
+                });
+
+                // Ensure all dropdowns are closed after DataTable redraw
+                $('.dropdown').removeClass('show');
+                $('.dropdown-menu').hide();
+            });
+
+            // Initialize tooltips on page load
+            initTooltips();
+
+            // Handle dropdown toggle properly
+            $(document).on('click', '.dropdown-toggle', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const $dropdown = $(this).closest('.dropdown');
+                const $dropdownMenu = $dropdown.find('.dropdown-menu');
+
+                // Close all other dropdowns
+                $('.dropdown').not($dropdown).removeClass('show');
+                $('.dropdown-menu').not($dropdownMenu).hide();
+
+                // Toggle current dropdown
+                $dropdown.toggleClass('show');
+                $dropdownMenu.toggle();
+            });
+
+            // Close dropdowns when clicking outside
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.dropdown').length) {
+                    $('.dropdown').removeClass('show');
+                    $('.dropdown-menu').hide();
                 }
             });
         });

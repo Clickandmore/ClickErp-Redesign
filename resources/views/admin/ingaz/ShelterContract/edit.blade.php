@@ -45,6 +45,12 @@
             </div>
 
             <div class="col-4 mt-4">
+                <label for="TextInput" class="form-label">{{helperTrans("ingaz.arrival_date")}}</label>
+                <input type="date" name="arrival_date" id="arrival_date" class="form-control" value="{{ $contract->info->arrival_date ?? '' }}" data-validation="required">
+                <small class="form-text text-muted">{{helperTrans("ingaz.arrival_date_help")}}</small>
+            </div>
+
+            <div class="col-4 mt-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.salary_final_status")}}</label>
                 <select name="salary_final_status" class="form-select form-control select2" data-validation="required">
                     <option disabled selected>{{helperTrans('ingaz.choose')}}</option>
@@ -96,6 +102,35 @@
 
 <script>
     var indexRoute = "{{ route('ShelterContract.index') }}";
+</script>
+
+<script>
+    // حساب المدة عند تغيير تاريخ الوصول
+    $('#arrival_date').on('change', function() {
+        calculateDurationFromArrivalDate();
+    });
+
+    function calculateDurationFromArrivalDate() {
+        let arrivalDate = $('#arrival_date').val();
+        if (arrivalDate) {
+            let arrivalDateObj = new Date(arrivalDate);
+            let today = new Date();
+            let diffTime = Math.abs(today - arrivalDateObj);
+            let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            let durationText = diffDays + ' يوم';
+            $('input[name="duration_from_enter"]').val(durationText);
+            console.log('Manual arrival date calculation:', arrivalDate, 'Duration:', durationText);
+        } else {
+            $('input[name="duration_from_enter"]').val('');
+        }
+    }
+
+    // حساب المدة عند تحميل الصفحة
+    $(document).ready(function() {
+        if ($('#arrival_date').val()) {
+            calculateDurationFromArrivalDate();
+        }
+    });
 </script>
 
 <script>

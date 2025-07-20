@@ -5,27 +5,59 @@
 @section('content')
 @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_CONTRACT_CONTROL))
 
+    <!-- زر إضافة العقد -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-plus-circle text-success me-2"></i>
+                        {{helperTrans("ingaz.quick_create_contract")}}
+                    </h5>
+                    <p class="card-text">{{helperTrans("ingaz.create_completed_contract_description")}}</p>
+                    <div class="d-flex gap-2">
+                        {{-- <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createContractModal">
+                            <i class="fas fa-plus me-1"></i>
+                            {{helperTrans("ingaz.create_completed_contract")}}
+                        </button> --}}
+                        <a href="{{ route('Contract.createCompletedPage') }}" class="btn btn-primary">
+                            <i class="fas fa-external-link-alt me-1"></i>
+                            {{helperTrans("ingaz.add_completed_contract")}}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <form class="row g-3 contractForm" method="post" action="{{route("ShelterContract.store")}}">
         @csrf
         <div class="row p-3">
 
             <div class="col-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.contracts")}}</label>
-                <div class="d-flex">
-                    <select name="contract_id" id="contract_id" class="form-select form-control select2" data-validation="required" style="flex: 1;">
-                        <option disabled selected>{{helperTrans('ingaz.choose')}}</option>
-                        @foreach(($contracts ?? []) as $contract)
-                        <option value="{{$contract->id}}"
-                                data-passport="{{$contract->maid ? $contract->maid->passport_num : ''}}"
-                                data-maid-name="{{$contract->maid ? $contract->maid->name : ''}}">
-                            {{$contract->desc }} @if($contract->maid && $contract->maid->passport_num) - {{$contract->maid->passport_num}} @endif
-                        </option>
-                        @endforeach
-                    </select>
-                    <button type="button" class="btn btn-success ms-2" data-bs-toggle="modal" data-bs-target="#createContractModal" style="min-width: 140px;">
-                        <i class="fas fa-plus-circle me-1"></i> {{helperTrans("ingaz.add_new_contract")}}
-                    </button>
-                </div>
+                <select name="contract_id" id="contract_id" class="form-select form-control select2" data-validation="required" style="flex: 1;">
+                    <option disabled {{ !$selectedContractId ? 'selected' : '' }}>{{helperTrans('ingaz.choose')}}</option>
+                    @foreach(($contracts ?? []) as $contract)
+                    @php
+                        $warrantyStatus = '';
+                        if ($contract->status === \App\Enums\ingaz\ContractStatusEnum::Completed->value) {
+                            $warrantyStatus = ' (مكتمل)';
+                        } elseif ($contract->status === \App\Enums\ingaz\ContractStatusEnum::UnderWarranty->value) {
+                            $warrantyStatus = ' (تحت الضمان)';
+                        } elseif ($contract->status === \App\Enums\ingaz\ContractStatusEnum::Closed->value) {
+                            $warrantyStatus = ' (مكتمل)';
+                        }
+                    @endphp
+                    <option value="{{$contract->id}}"
+                            data-passport="{{$contract->maid ? $contract->maid->passport_num : ''}}"
+                            data-maid-name="{{$contract->maid ? $contract->maid->name : ''}}"
+                            data-status="{{$contract->status}}"
+                            {{ $selectedContractId == $contract->id ? 'selected' : '' }}>
+                        {{$contract->desc }}{{ $warrantyStatus }} @if($contract->maid && $contract->maid->passport_num) - {{$contract->maid->passport_num}} @endif
+                    </option>
+                    @endforeach
+                </select>
             </div>
 
             <div class="col-4">
@@ -57,6 +89,18 @@
             </div>
 
             <div class="col-4 mt-4">
+                <label for="TextInput" class="form-label">{{helperTrans("ingaz.arrival_date")}}</label>
+                <input type="date" name="arrival_date" id="arrival_date" class="form-control" data-validation="required">
+                <small class="form-text text-muted">{{helperTrans("ingaz.arrival_date_help")}}</small>
+            </div>
+
+
+
+            <div class="col-4 mt-4">
+                <label for="TextInput" class="form-label">{{helperTrans("ingaz.duration_from_enter")}}</label>
+                <input type="text" name="duration_from_enter" class="form-control" readonly>
+            </div>
+            <div class="col-4 mt-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.salary_final_status")}}</label>
                 <select name="salary_final_status" class="form-select form-control select2" data-validation="required">
                     <option disabled selected>{{helperTrans('ingaz.choose')}}</option>
@@ -64,12 +108,6 @@
                     <option value="not_received">لم يتم استلام الراتب</option>
                 </select>
             </div>
-
-            <div class="col-4 mt-4">
-                <label for="TextInput" class="form-label">{{helperTrans("ingaz.duration_from_enter")}}</label>
-                <input type="text" name="duration_from_enter" class="form-control" readonly>
-            </div>
-
             <div class="col-4 mt-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.work_willingness")}}</label>
                 <select name="wants_to_work" class="form-select form-control select2" data-validation="required">
@@ -102,7 +140,7 @@
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
                 <h5 class="modal-title" id="createContractModalLabel">
-                    <i class="fas fa-plus-circle me-2"></i>{{helperTrans("ingaz.add_new_contract")}}
+                    <i class="fas fa-check-circle me-2"></i>{{helperTrans("ingaz.create_completed_contract")}}
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -171,7 +209,12 @@
 
                         <div class="col-6 new-client-field" style="display: none;">
                             <label class="form-label">{{helperTrans("ingaz.national_num")}}</label>
-                            <input type="text" name="client_national_num" class="form-control">
+                            <input type="text" name="client_national_num" id="client_national_num" class="form-control">
+                        </div>
+
+                        <div class="col-6 new-client-field" style="display: none;">
+                            <label class="form-label">{{helperTrans("ingaz.birthdate")}}</label>
+                            <input type="date" name="client_birthdate" id="client_birthdate" class="form-control">
                         </div>
 
                         <div class="col-6 new-client-field" style="display: none;">
@@ -302,7 +345,7 @@
                 </button>
                 <button type="button" class="btn btn-success" id="createContractBtn">
                     <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                    <i class="fas fa-plus-circle me-1"></i>{{helperTrans("ingaz.create_contract")}}
+                    <i class="fas fa-check-circle me-1"></i>{{helperTrans("ingaz.create_completed_contract")}}
                 </button>
             </div>
         </div>
@@ -428,7 +471,95 @@
     // Calculate duration from enter automatically
     $(document).ready(function() {
         $('select[name="contract_id"]').on('change', function() {
-            let contractId = $(this).val();
+            calculateDuration();
+        });
+
+        // إذا كان هناك عقد محدد عند تحميل الصفحة، احسب المدة
+        @if($selectedContractId)
+            // تأكد من اختيار العقد المحدد في القائمة
+            setTimeout(function() {
+                // إعادة تهيئة Select2 مع القيمة المحددة
+                $('#contract_id').select2('destroy').select2({
+                    placeholder: '{{helperTrans("ingaz.choose")}}',
+                    allowClear: true
+                });
+
+                // اختيار العقد المحدد
+                $('#contract_id').val('{{ $selectedContractId }}').trigger('change');
+
+                // احسب المدة بعد اختيار العقد
+                setTimeout(function() {
+                    calculateDuration();
+                }, 500);
+            }, 300);
+        @endif
+
+        // إضافة العقد الجديد إلى القائمة إذا لم يكن موجوداً
+        @if($selectedContractId)
+            setTimeout(function() {
+                let contractExists = false;
+                $('#contract_id option').each(function() {
+                    if ($(this).val() == '{{ $selectedContractId }}') {
+                        contractExists = true;
+                        return false;
+                    }
+                });
+
+                if (!contractExists) {
+                    // إضافة العقد الجديد إلى القائمة
+                    let newOption = new Option('عقد جديد - {{ $selectedContractId }}', '{{ $selectedContractId }}', true, true);
+                    $('#contract_id').append(newOption).trigger('change');
+                }
+            }, 1000);
+        @endif
+
+        // حساب المدة عند تغيير تاريخ الوصول يدوياً
+        $('#arrival_date').on('change', function() {
+            calculateDurationFromArrivalDate();
+        });
+
+        // عرض حالة الضمان عند اختيار العقد
+        $('#contract_id').on('change', function() {
+            let selectedOption = $(this).find('option:selected');
+            let contractStatus = selectedOption.data('status');
+            let warrantyInfo = '';
+
+            if (contractStatus === 'completed') {
+                warrantyInfo = '<div class="alert alert-success mt-2"><i class="fas fa-check-circle me-2"></i>هذا العقد مكتمل (جاهز للإيواء)</div>';
+            } else if (contractStatus === 'under_warranty') {
+                warrantyInfo = '<div class="alert alert-info mt-2"><i class="fas fa-shield-alt me-2"></i>هذا العقد تحت الضمان (وصلت المملكة حديثاً)</div>';
+            } else if (contractStatus === 'closed') {
+                warrantyInfo = '<div class="alert alert-success mt-2"><i class="fas fa-check-circle me-2"></i>هذا العقد مكتمل (مر على الوصول 3 أشهر)</div>';
+            }
+
+            // إزالة المعلومات السابقة
+            $('.warranty-info').remove();
+
+            // إضافة المعلومات الجديدة
+            if (warrantyInfo) {
+                $('#contract_id').after(warrantyInfo);
+            }
+        });
+
+        function calculateDurationFromArrivalDate() {
+            let arrivalDate = $('#arrival_date').val();
+            if (arrivalDate) {
+                let arrivalDateObj = new Date(arrivalDate);
+                let today = new Date();
+                let diffTime = Math.abs(today - arrivalDateObj);
+                let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                let durationText = diffDays + ' يوم';
+                $('input[name="duration_from_enter"]').val(durationText);
+                console.log('Manual arrival date calculation:', arrivalDate, 'Duration:', durationText);
+            } else {
+                $('input[name="duration_from_enter"]').val('');
+            }
+        }
+
+        function calculateDuration() {
+            let contractId = $('select[name="contract_id"]').val();
+            console.log('Calculating duration for contract ID:', contractId);
+
             if (contractId) {
                 $.ajax({
                     url: "{{ route('get.contract.details') }}",
@@ -440,6 +571,11 @@
                         // Get the arrival date from the response
                         let arrivalDate = response.arrival_date;
                         console.log('Arrival Date from Response:', arrivalDate);
+                        console.log('Contract Status:', response.contract_status);
+                        console.log('Has Info:', response.has_info);
+                        console.log('Info Arrival Date:', response.info_arrival_date);
+                        console.log('Maid Arrival Date:', response.maid_arrival_date);
+                        console.log('Final Arrival Date:', response.final_arrival_date);
 
                         if (arrivalDate) {
                             // Parse the date string to a Date object
@@ -460,10 +596,29 @@
 
                             // Update the input field
                             $('input[name="duration_from_enter"]').val(durationText);
+
+                            // Fill arrival date field
+                            $('#arrival_date').val(arrivalDate);
                         } else {
                             console.log('No valid arrival date found in response');
                             console.log('Debug Info:', response.debug_info);
-                            $('input[name="duration_from_enter"]').val('');
+                            console.log('Trying to get arrival date from maid...');
+
+                            // Try to get arrival date from maid if available
+                            if (response.maid_arrival_date && response.maid_arrival_date !== 'null') {
+                                let maidArrivalDate = new Date(response.maid_arrival_date);
+                                let today = new Date();
+                                let diffTime = Math.abs(today - maidArrivalDate);
+                                let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                let durationText = diffDays + ' يوم';
+                                console.log('Using maid arrival date:', response.maid_arrival_date);
+                                console.log('Calculated duration:', durationText);
+                                $('input[name="duration_from_enter"]').val(durationText);
+                                $('#arrival_date').val(response.maid_arrival_date);
+                            } else {
+                                $('input[name="duration_from_enter"]').val('');
+                                $('#arrival_date').val('');
+                            }
                         }
                     },
                     error: function(xhr, status, error) {
@@ -475,7 +630,7 @@
             } else {
                 $('input[name="duration_from_enter"]').val('');
             }
-        });
+        }
     });
 </script>
 
@@ -533,7 +688,7 @@
             placeholder: '{{helperTrans("ingaz.choose")}}',
             allowClear: true,
             ajax: {
-                url: '{{ route("ShelterContract.searchClients") }}',
+                url: '{{ route("Contract.searchClients") }}',
                 dataType: 'json',
                 delay: 250,
                 data: function (params) {
@@ -564,7 +719,7 @@
             placeholder: '{{helperTrans("ingaz.choose")}}',
             allowClear: true,
             ajax: {
-                url: '{{ route("ShelterContract.searchMaids") }}',
+                url: '{{ route("Contract.searchMaids") }}',
                 dataType: 'json',
                 delay: 250,
                 data: function (params) {
@@ -614,13 +769,29 @@
             $('#maid_details').hide();
         });
 
+        // استيراد بيانات العميل عند اختياره
+        $('#existing_client_id').on('select2:select', function(e) {
+            var client = e.params.data;
+            if (client) {
+                // استيراد رقم الهوية
+                if (client.national_num) {
+                    $('#client_national_num').val(client.national_num);
+                }
+
+                // استيراد تاريخ الميلاد
+                if (client.birthdate) {
+                    $('#client_birthdate').val(client.birthdate);
+                }
+            }
+        });
+
         // إعادة تهيئة Select2 عند فتح المودال
         $('#createContractModal').on('shown.bs.modal', function() {
             $('#existing_client_id').select2('destroy').select2({
                 placeholder: '{{helperTrans("ingaz.choose")}}',
                 allowClear: true,
                 ajax: {
-                    url: '{{ route("ShelterContract.searchClients") }}',
+                    url: '{{ route("Contract.searchClients") }}',
                     dataType: 'json',
                     delay: 250,
                     data: function (params) {
@@ -638,11 +809,27 @@
                 minimumInputLength: 1
             });
 
+            // استيراد بيانات العميل عند اختياره في المودال
+            $('#existing_client_id').off('select2:select').on('select2:select', function(e) {
+                var client = e.params.data;
+                if (client) {
+                    // استيراد رقم الهوية
+                    if (client.national_num) {
+                        $('#client_national_num').val(client.national_num);
+                    }
+
+                    // استيراد تاريخ الميلاد
+                    if (client.birthdate) {
+                        $('#client_birthdate').val(client.birthdate);
+                    }
+                }
+            });
+
             $('#maid_id').select2('destroy').select2({
                 placeholder: '{{helperTrans("ingaz.choose")}}',
                 allowClear: true,
                 ajax: {
-                    url: '{{ route("ShelterContract.searchMaids") }}',
+                    url: '{{ route("Contract.searchMaids") }}',
                     dataType: 'json',
                     delay: 250,
                     data: function (params) {
@@ -716,7 +903,7 @@
             }
 
             $.ajax({
-                url: "{{ route('ShelterContract.searchMaids') }}",
+                url: "{{ route('Contract.searchMaids') }}",
                 type: 'GET',
                 data: { search: searchTerm },
                 beforeSend: function() {
@@ -778,7 +965,7 @@
         // دالة تحميل جميع العمالة
         function loadAllMaids() {
             $.ajax({
-                url: "{{ route('ShelterContract.getAllMaids') }}",
+                url: "{{ route('Contract.getAllMaids') }}",
                 type: 'GET',
                 success: function(response) {
                     updateMaidDropdown(response.maids);
@@ -820,7 +1007,7 @@
             spinner.removeClass('d-none');
 
             $.ajax({
-                url: "{{ route('ShelterContract.createContract') }}",
+                url: "{{ route('Contract.createCompleted') }}",
                 type: 'POST',
                 data: formData,
                 cache: false,

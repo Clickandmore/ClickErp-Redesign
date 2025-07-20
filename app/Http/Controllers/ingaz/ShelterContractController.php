@@ -241,13 +241,23 @@ class ShelterContractController extends Controller
     public function create()
     {
         $shelters = \App\Models\ShelterPlaces::latest()->get();
-        $contracts = Contract::RecruitmentContract()
-            ->where('status', '!=', ContractStatusEnum::Back->value)
-            ->where('status', '!=', ContractStatusEnum::Shelter->value)
-            ->with(['maid'])
+
+        // جلب العقود المكتملة فقط (تشمل under_warranty و closed)
+        $contracts = Contract::whereIn('status', [
+                ContractStatusEnum::Completed->value,      // عقد مكتمل (جديد)
+                ContractStatusEnum::UnderWarranty->value,  // تحت الضمان (قديم)
+                ContractStatusEnum::Closed->value          // مكتمل (قديم)
+            ])
+            ->where('status', '!=', ContractStatusEnum::Shelter->value) // ليس في الإيواء
+            ->where('status', '!=', ContractStatusEnum::Back->value)    // ليس مسترجع
+            ->with(['maid', 'info'])
             ->latest()
             ->get();
-        return view($this->folderPath . '.create', compact('shelters', 'contracts'));
+
+        // إذا تم تمرير contract_id في الطلب، نختار العقد المحدد
+        $selectedContractId = request('contract_id');
+
+        return view($this->folderPath . '.create', compact('shelters', 'contracts', 'selectedContractId'));
     }
 
     /**
@@ -261,21 +271,35 @@ class ShelterContractController extends Controller
             return response()->json(['contracts' => []]);
         }
 
-        $contracts = Contract::RecruitmentContract()
-            ->where('status', '!=', ContractStatusEnum::Back->value)
-            ->where('status', '!=', ContractStatusEnum::Shelter->value)
+        $contracts = Contract::whereIn('status', [
+                ContractStatusEnum::Completed->value,      // عقد مكتمل (جديد)
+                ContractStatusEnum::UnderWarranty->value,  // تحت الضمان (قديم)
+                ContractStatusEnum::Closed->value          // مكتمل (قديم)
+            ])
+            ->where('status', '!=', ContractStatusEnum::Shelter->value) // ليس في الإيواء
+            ->where('status', '!=', ContractStatusEnum::Back->value)    // ليس مسترجع
             ->whereHas('maid', function ($query) use ($passportNumber) {
                 $query->where('passport_num', 'like', '%' . $passportNumber . '%');
             })
-            ->with(['maid'])
+            ->with(['maid', 'info'])
             ->latest()
             ->get()
             ->map(function ($contract) {
+                $warrantyStatus = '';
+                if ($contract->status === ContractStatusEnum::Completed->value) {
+                    $warrantyStatus = ' (مكتمل)';
+                } elseif ($contract->status === ContractStatusEnum::UnderWarranty->value) {
+                    $warrantyStatus = ' (تحت الضمان)';
+                } elseif ($contract->status === ContractStatusEnum::Closed->value) {
+                    $warrantyStatus = ' (مكتمل)';
+                }
+
                 return [
                     'id' => $contract->id,
-                    'desc' => $contract->desc,
+                    'desc' => $contract->desc . $warrantyStatus,
                     'passport_number' => $contract->maid ? $contract->maid->passport_num : '',
                     'maid_name' => $contract->maid ? $contract->maid->name : '',
+                    'status' => $contract->status,
                 ];
             });
 
@@ -285,15 +309,34 @@ class ShelterContractController extends Controller
     public function store(ShelterContactStore $request)
     {
         $contract = Contract::find($request->contract_id);
-        $contract->info()->update([
-            'shelter_id' => $request->shelter_id,
-            'receipt_source' => $request->receipt_source,
-            'maid_date_back' => $request->maid_date_back,
-            'salary_final_status' => $request->salary_final_status,
-            'duration_from_enter' => $request->duration_from_enter,
-            'wants_to_work' => $request->wants_to_work,
-            'back_reasons' => $request->back_reasons,
-        ]);
+
+        // Update or create contract info with arrival date
+        if ($contract->info) {
+            $contract->info()->update([
+                'shelter_id' => $request->shelter_id,
+                'receipt_source' => $request->receipt_source,
+                'maid_date_back' => $request->maid_date_back,
+                'salary_final_status' => $request->salary_final_status,
+                'duration_from_enter' => $request->duration_from_enter,
+                'wants_to_work' => $request->wants_to_work,
+                'back_reasons' => $request->back_reasons,
+                'arrival_date' => $request->arrival_date,
+            ]);
+        } else {
+            // Create contract info if it doesn't exist
+            $contract->info()->create([
+                'contract_id' => $contract->id,
+                'shelter_id' => $request->shelter_id,
+                'receipt_source' => $request->receipt_source,
+                'maid_date_back' => $request->maid_date_back,
+                'salary_final_status' => $request->salary_final_status,
+                'duration_from_enter' => $request->duration_from_enter,
+                'wants_to_work' => $request->wants_to_work,
+                'back_reasons' => $request->back_reasons,
+                'arrival_date' => $request->arrival_date,
+            ]);
+        }
+
         $contract->status = ContractStatusEnum::Shelter->value;
         $contract->save();
 
@@ -303,7 +346,6 @@ class ShelterContractController extends Controller
         ]);
 
         return jsonSuccess();
-
     }
 
 
@@ -332,6 +374,7 @@ class ShelterContractController extends Controller
             'duration_from_enter' => 'required',
             'wants_to_work' => 'required|in:yes,no,unknown',
             'back_reasons' => 'nullable|string',
+            'arrival_date' => 'required|date',
         ]);
 
         $contract = Contract::findOrFail($id);
@@ -343,6 +386,7 @@ class ShelterContractController extends Controller
             'duration_from_enter' => $request->duration_from_enter,
             'wants_to_work' => $request->wants_to_work,
             'back_reasons' => $request->back_reasons,
+            'arrival_date' => $request->arrival_date,
         ]);
 
         return jsonSuccess(['message' => 'تم تحديث العقد داخل الإيواء بنجاح']);
@@ -354,52 +398,62 @@ class ShelterContractController extends Controller
         //
     }
 
+    /**
+     * Get shelter places
+     */
+    public function getShelterPlaces()
+    {
+        $shelterPlaces = \App\Models\ShelterPlaces::with('translations')->get();
+        return response()->json($shelterPlaces);
+    }
+
+    /**
+     * Get contract details for duration calculation
+     */
     public function getContractDetails(Request $request)
     {
-        $contract = Contract::with('info')->find($request->contract_id);
-        if (!$contract) {
-            return response()->json(['error' => 'Contract not found'], 404);
+        try {
+            $contractId = $request->get('contract_id');
+            $contract = Contract::with(['maid', 'info'])->find($contractId);
+
+            if (!$contract) {
+                return response()->json([
+                    'error' => 'العقد غير موجود',
+                    'debug_info' => 'Contract ID: ' . $contractId
+                ], 404);
+            }
+
+            // Get arrival date from contract info
+            $arrivalDate = null;
+            if ($contract->info && $contract->info->arrival_date) {
+                $arrivalDate = $contract->info->arrival_date;
+            }
+
+            // If no arrival date in contract info, try to get it from maid
+            if (!$arrivalDate && $contract->maid && $contract->maid->arrival_date) {
+                $arrivalDate = $contract->maid->arrival_date;
+            }
+
+            return response()->json([
+                'arrival_date' => $arrivalDate,
+                'contract_id' => $contract->id,
+                'contract_status' => $contract->status,
+                'debug_info' => 'Contract found successfully',
+                'has_info' => $contract->info ? 'yes' : 'no',
+                'info_arrival_date' => $contract->info ? $contract->info->arrival_date : 'null',
+                'maid_arrival_date' => $contract->maid ? $contract->maid->arrival_date : 'null',
+                'final_arrival_date' => $arrivalDate,
+                'contract_info_exists' => $contract->info ? 'yes' : 'no',
+                'contract_info_id' => $contract->info ? $contract->info->id : 'null',
+                'is_completed' => in_array($contract->status, ['completed', 'under_warranty', 'closed']) ? 'yes' : 'no'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'حدث خطأ أثناء جلب تفاصيل العقد',
+                'debug_info' => $e->getMessage()
+            ], 500);
         }
-
-        // Log the entire contract object for debugging
-        \Log::info('Full Contract Object', [
-            'contract' => $contract->toArray(),
-            'info' => $contract->info ? $contract->info->toArray() : null
-        ]);
-
-        // Try to get arrival date from different possible locations
-        $arrivalDate = null;
-        if ($contract->info) {
-            // Check all possible date fields
-            $arrivalDate = $contract->info->visa_milad_date ??
-                          $contract->info->contract_date ??
-                          $contract->info->ingaz_from;
-        }
-
-        // Log the found arrival date
-        \Log::info('Found Arrival Date', [
-            'arrival_date' => $arrivalDate,
-            'contract_id' => $request->contract_id,
-            'all_dates' => $contract->info ? [
-                'visa_milad_date' => $contract->info->visa_milad_date,
-                'contract_date' => $contract->info->contract_date,
-                'ingaz_from' => $contract->info->ingaz_from
-            ] : null
-        ]);
-
-        return response()->json([
-            'arrival_date' => $arrivalDate,
-            'contract_info' => $contract->info,
-            'debug_info' => [
-                'has_info' => $contract->info ? true : false,
-                'info_fields' => $contract->info ? array_keys($contract->info->toArray()) : [],
-                'all_dates' => $contract->info ? [
-                    'visa_milad_date' => $contract->info->visa_milad_date,
-                    'contract_date' => $contract->info->contract_date,
-                    'ingaz_from' => $contract->info->ingaz_from
-                ] : null
-            ]
-        ]);
     }
 
     /**
@@ -409,123 +463,6 @@ class ShelterContractController extends Controller
     {
         $nationalities = \App\Models\ingaz\Nationality::with('translations')->get();
         return response()->json($nationalities);
-    }
-
-    /**
-     * Get shelter places for filter dropdown
-     */
-    public function getShelterPlaces()
-    {
-        $shelterPlaces = \App\Models\ShelterPlaces::with('translations')->get();
-        return response()->json($shelterPlaces);
-    }
-
-    /**
-     * Create a new contract from shelter contract page
-     */
-    public function createContract(Request $request)
-    {
-        try {
-            // التحقق من الصلاحيات
-            if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'ليس لديك صلاحية لإنشاء عقد جديد'
-                ], 403);
-            }
-
-            // التحقق من صحة البيانات
-            $request->validate([
-                'client_type' => 'required|in:existing,new',
-                'maid_id' => 'required|exists:maids,id',
-                'contract_date' => 'required|date',
-                'contract_duration' => 'required|integer|min:1',
-                'visa_number' => 'required|string',
-                'msaned_number' => 'required|string',
-            ]);
-
-            // إنشاء أو اختيار العميل
-            $clientId = null;
-            if ($request->client_type === 'existing') {
-                $request->validate([
-                    'existing_client_id' => 'required|exists:users,id'
-                ]);
-                $clientId = $request->existing_client_id;
-            } else {
-                $request->validate([
-                    'client_name' => 'required|string|max:255',
-                    'client_phone' => 'required|string|max:20',
-                    'client_email' => 'nullable|email',
-                    'client_nationality_id' => 'nullable|exists:nationalities,id',
-                    'client_national_num' => 'nullable|string|max:50',
-                    'city' => 'nullable|string|max:100',
-                    'address' => 'nullable|string',
-                ]);
-
-                // إنشاء عميل جديد
-                $client = \App\Models\ingaz\User::create([
-                    'name' => $request->client_name,
-                    'phone' => $request->client_phone,
-                    'email' => $request->client_email,
-                    'nationality_id' => $request->client_nationality_id,
-                    'national_num' => $request->client_national_num,
-                    'city' => $request->city,
-                    'address' => $request->address,
-                ]);
-                $clientId = $client->id;
-            }
-
-            // التحقق من أن العاملة متاحة
-            $maid = \App\Models\ingaz\Maid::find($request->maid_id);
-            if (!$maid || !$maid->available) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'العاملة غير متاحة'
-                ], 400);
-            }
-
-            // إنشاء العقد
-            $contract = Contract::create([
-                'user_id' => $clientId,
-                'maid_id' => $request->maid_id,
-                'contract_date' => $request->contract_date,
-                'contract_duration' => $request->contract_duration,
-                'status' => ContractStatusEnum::New,
-                'created_by' => Auth::id(),
-            ]);
-
-            // إنشاء معلومات العقد
-            ContractInfo::create([
-                'contract_id' => $contract->id,
-                'visa_number' => $request->visa_number,
-                'msaned_number' => $request->msaned_number,
-                'tafwed_number' => $request->tafwed_number,
-                'visa_milad_date' => $request->visa_milad_date,
-            ]);
-
-            // تحديث حالة العاملة
-            $maid->update(['available' => 0]);
-
-            // تسجيل تغيير الحالة
-            \App\Models\ContractStatusLog::create([
-                'contract_id' => $contract->id,
-                'status' => ContractStatusEnum::New,
-                'changed_by' => Auth::id(),
-                'notes' => 'تم إنشاء العقد من صفحة إضافة عقد الإيواء'
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'تم إنشاء العقد بنجاح',
-                'contract' => $contract->load(['maid', 'user'])
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'حدث خطأ أثناء إنشاء العقد: ' . $e->getMessage()
-            ], 500);
-        }
     }
 
     /**
@@ -1098,113 +1035,6 @@ class ShelterContractController extends Controller
             \Log::error('Error in buildDataTable: ' . $e->getMessage());
             \Log::error('Stack trace: ' . $e->getTraceAsString());
             throw $e;
-        }
-    }
-
-    /**
-     * Search maids by name or passport
-     */
-    public function searchMaids(Request $request)
-    {
-        try {
-            $search = $request->get('search');
-
-            if (!$search) {
-                return response()->json(['maids' => []]);
-            }
-
-            $maids = \App\Models\ingaz\Maid::where('available', 1)
-                ->where(function($query) use ($search) {
-                    $query->where('name', 'LIKE', "%{$search}%")
-                          ->orWhere('passport_num', 'LIKE', "%{$search}%");
-                })
-                ->with('nationality')
-                ->get()
-                ->map(function($maid) {
-                    return [
-                        'id' => $maid->id,
-                        'name' => $maid->name,
-                        'passport_num' => $maid->passport_num,
-                        'nationality' => $maid->nationality ? $maid->nationality->name_ar : null,
-                        'age' => $maid->age,
-                        'salary' => $maid->salary,
-                        'experience_years' => $maid->experience_years,
-                    ];
-                });
-
-            return response()->json(['maids' => $maids]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'حدث خطأ أثناء البحث عن العمالة'
-            ], 500);
-        }
-    }
-
-    /**
-     * Get all available maids
-     */
-    public function getAllMaids()
-    {
-        try {
-            $maids = \App\Models\ingaz\Maid::where('available', 1)
-                ->with('nationality')
-                ->get()
-                ->map(function($maid) {
-                    return [
-                        'id' => $maid->id,
-                        'name' => $maid->name,
-                        'passport_num' => $maid->passport_num,
-                        'nationality' => $maid->nationality ? $maid->nationality->name_ar : null,
-                        'age' => $maid->age,
-                        'salary' => $maid->salary,
-                        'experience_years' => $maid->experience_years,
-                    ];
-                });
-
-            return response()->json(['maids' => $maids]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'حدث خطأ أثناء جلب العمالة'
-            ], 500);
-        }
-    }
-
-    /**
-     * Search clients by name or phone
-     */
-    public function searchClients(Request $request)
-    {
-        try {
-            $search = $request->get('search', '');
-
-            $clients = \App\Models\ingaz\User::query()
-                ->when($search, function($query) use ($search) {
-                    $query->where(function($q) use ($search) {
-                        $q->where('name', 'like', "%{$search}%")
-                          ->orWhere('phone', 'like', "%{$search}%");
-                    });
-                })
-                ->limit(20)
-                ->get(['id', 'name', 'phone']);
-
-            $results = $clients->map(function($client) {
-                return [
-                    'id' => $client->id,
-                    'text' => $client->name . ' - ' . $client->phone,
-                ];
-            });
-
-            return response()->json(['results' => $results]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'results' => [],
-                'error' => 'حدث خطأ أثناء البحث عن العملاء'
-            ], 500);
         }
     }
 }

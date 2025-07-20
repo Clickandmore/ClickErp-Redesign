@@ -481,13 +481,15 @@
                             <select id="statusFilter" class="form-select">
                                 <option value="">جميع الحالات</option>
                                 <option value="new" {{ $status == 'new' ? 'selected' : '' }}>عقد جديد</option>
+                                <option value="pending_maid_selection" {{ $status == 'pending_maid_selection' ? 'selected' : '' }}>بانتظار اختيار العاملة</option>
                                 <option value="msaned" {{ $status == 'msaned' ? 'selected' : '' }}>عقود مساند</option>
                                 <option value="tafwed" {{ $status == 'tafwed' ? 'selected' : '' }}>تفويض</option>
                                 <option value="taffez" {{ $status == 'taffez' ? 'selected' : '' }}>التفييز</option>
                                 <option value="tazker" {{ $status == 'tazker' ? 'selected' : '' }}>تذكرة</option>
                                 <option value="arrival" {{ $status == 'arrival' ? 'selected' : '' }}>مرحلة الوصول</option>
+                                <option value="under_warranty" {{ $status == 'under_warranty' ? 'selected' : '' }}>تحت الضمان</option>
+                                <option value="completed" {{ $status == 'completed' ? 'selected' : '' }}>مكتمل</option>
                                 <option value="closed" {{ $status == 'closed' ? 'selected' : '' }}>عقد مغلق</option>
-                                <option value="pending_maid_selection" {{ $status == 'pending_maid_selection' ? 'selected' : '' }}>بانتظار اختيار العاملة</option>
                             </select>
                         </div>
                         <div class="col-md-2">
@@ -682,6 +684,21 @@
     <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
     <script>
         $(document).ready(function () {
+            // دالة لقراءة الـ status من الـ URL
+            function getStatusFromUrl() {
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get('status');
+            }
+
+            // تطبيق الـ status من الـ URL على الفلتر أولاً
+            const urlStatus = getStatusFromUrl();
+            if (urlStatus) {
+                $('#statusFilter').val(urlStatus);
+                console.log('Status from URL applied to filter:', urlStatus);
+                // إزالة الفلتر من localStorage لتجنب التضارب
+                localStorage.removeItem('contractFilters');
+            }
+
             let columns = [
                 {"data": 'id', name: 'id', orderable: false, searchable: false},
                 {"data": "user_id", orderable: true, searchable: true},
@@ -695,6 +712,7 @@
                 {"data": "actions", orderable: true, searchable: true},
             ];
 
+            // إنشاء DataTable مع الفلتر المطبق
             let dataTable = $('#dataTableObject').DataTable({
                 processing: true,
                 serverSide: true,
@@ -742,6 +760,7 @@
                     var info = this.api().page.info();
                     console.log('Records total:', info.recordsTotal);
                     console.log('Records displayed:', info.recordsDisplay);
+                    console.log('Current status filter:', $('#statusFilter').val());
 
                     // إظهار رسالة إذا لم توجد بيانات عند التحميل الأولي
                     if (info.recordsTotal === 0) {
@@ -752,6 +771,12 @@
 
             // تحديث الجدول عند تغيير الفلتر
             $('#statusFilter').on('change', function() {
+                // لا تحدث الجدول إذا كان التغيير من الـ URL
+                if (urlStatus && $(this).val() === urlStatus) {
+                    console.log('Skipping table reload - filter change from URL');
+                    return;
+                }
+
                 $('#dataTableObject').addClass('loading');
                 dataTable.ajax.reload(function() {
                     $('#dataTableObject').removeClass('loading');
@@ -805,12 +830,12 @@
                 });
             });
 
-                                    // تحديث الإحصائيات عند تحميل البيانات
+            // تحديث الإحصائيات عند تحميل البيانات
             dataTable.on('xhr', function() {
                 // تحديث الإحصائيات فقط إذا كانت معطلة
                 // updateStatistics();
 
-                                // إظهار إشعار إذا لم توجد نتائج فقط عند البحث (وليس عند فلتر الحالة الأساسي)
+                // إظهار إشعار إذا لم توجد نتائج فقط عند البحث (وليس عند فلتر الحالة الأساسي)
                 var info = dataTable.page.info();
                 var hasSearchFilters = $('#dateFromFilter').val() || $('#dateToFilter').val() ||
                                      $('#clientPhoneFilter').val() || $('#clientNameFilter').val() ||
@@ -891,8 +916,14 @@
                 localStorage.setItem('contractFilters', JSON.stringify(filters));
             }
 
-            // استعادة الفلاتر من localStorage
+            // استعادة الفلاتر من localStorage (فقط إذا لم يكن هناك status في الـ URL)
             function loadFilters() {
+                // لا تحمل الفلاتر من localStorage إذا كان هناك status في الـ URL
+                if (urlStatus) {
+                    console.log('Skipping localStorage load because status is in URL:', urlStatus);
+                    return;
+                }
+
                 var filters = localStorage.getItem('contractFilters');
                 if (filters) {
                     filters = JSON.parse(filters);
@@ -913,9 +944,12 @@
             // تحميل الفلاتر عند تحميل الصفحة
             loadFilters();
 
-            // حفظ الفلاتر عند تغييرها
+            // حفظ الفلاتر عند تغييرها (فقط إذا لم يكن هناك status في الـ URL)
             $('.form-control, .form-select').on('change', function() {
-                saveFilters();
+                // لا تحفظ الفلاتر إذا كان هناك status في الـ URL لتجنب التضارب
+                if (!urlStatus) {
+                    saveFilters();
+                }
             });
 
             // إضافة تأثيرات بصرية للأزرار
@@ -966,6 +1000,7 @@
                     'tafwed': 'تفويض',
                     'taffez': 'التفييز',
                     'tazker': 'تذكرة',
+                    'completed': 'عقد مكتمل',
                     'under_warranty': 'تحت الضمان',
                     'back': 'مرتجع',
                     'arrival': 'مرحلة الوصول',

@@ -9,11 +9,14 @@ enum ContractStatusEnum: string
     case Tafwed = 'tafwed'; // تفويض
     case Taffez = 'taffez'; // التفييز
     case Tazker = 'tazker'; // تذكرة
-    case UnderWarranty = 'under_warranty'; // تحت الضمان
+    case Completed = 'completed'; // عقد مكتمل (يشمل under_warranty و closed)
     case Back = 'back'; // مرتجع
-    case Arrival = 'arrival'; // مرحلة الوصول
     case Sari = 'sari'; // عقد ساري
-    case Closed = 'closed'; // عقد مغلق - منتهي
     case Shelter = 'shelter'; // عقد ايواء
     case PendingMaidSelection = 'pending_maid_selection'; // بانتظار اختيار العاملة
+
+    // الحالات القديمة للتوافق مع البيانات الموجودة
+    case UnderWarranty = 'under_warranty'; // تحت الضمان (متروك للتوافق)
+    case Arrival = 'arrival'; // مرحلة الوصول (متروك للتوافق)
+    case Closed = 'closed'; // عقد مغلق (متروك للتوافق)
 }

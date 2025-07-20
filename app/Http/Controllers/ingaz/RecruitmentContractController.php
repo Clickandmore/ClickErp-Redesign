@@ -54,7 +54,7 @@ class RecruitmentContractController extends Controller
     ];
 
 
-    public function index(Request $request, $status = null)
+    public function index(Request $request)
     {
         // التحقق من صلاحية عرض العقود
         if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW)) {
@@ -66,19 +66,27 @@ class RecruitmentContractController extends Controller
 
         if ($request->ajax()) {
             \Log::info('RecruitmentContract index AJAX request', [
-                'request_data' => $request->all(),
-                'status' => $status
+                'request_data' => $request->all()
             ]);
 
             $query = Contract::with(['user', 'maid', 'info'])
                 ->whereIn('type', ['recruitment', 'maid']);
 
-            // فلتر الحالة
-            if ($status) {
-                $query->where('status', $status);
-            } elseif ($request->filled('status')) {
-                $query->where('status', $request->status);
+            // فلتر الحالة - استخدام query parameter فقط
+            $statusFilter = $request->get('status');
+            if ($statusFilter) {
+                $query->where('status', $statusFilter);
+                \Log::info('Status filter applied:', [
+                    'request_status' => $request->get('status'),
+                    'final_status_filter' => $statusFilter
+                ]);
             }
+
+            // إضافة log للتحقق من الفلتر
+            \Log::info('Status filter applied:', [
+                'request_status' => $request->get('status'),
+                'final_status_filter' => $statusFilter
+            ]);
 
             // فلتر التاريخ من
             if ($request->filled('date_from')) {
@@ -150,8 +158,10 @@ class RecruitmentContractController extends Controller
                 'total_count' => $rows->count(),
                 'sql' => $rows->toSql(),
                 'bindings' => $rows->getBindings(),
-                'status_filter' => $status ?: $request->status,
-                'request_status' => $request->status
+                'status_filter' => $statusFilter,
+                'request_status' => $request->get('status'),
+                'query_string' => $request->getQueryString(),
+                'full_url' => $request->fullUrl()
             ]);
 
             return DataTables::of($rows)
@@ -369,6 +379,15 @@ class RecruitmentContractController extends Controller
                                 }
                                 break;
                             case ContractStatusEnum::Closed->value:
+                                // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
+                                $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+                                if ($travelHistory && $travelHistory->status !== 'completed' && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
+                                    return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
+                                        <i class="fas fa-check me-1"></i>إكمال الرحلة
+                                    </button>';
+                                }
+                                break;
+                            case ContractStatusEnum::Completed->value:
                                 // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
                                 $travelHistory = TravelHistory::where('order_id', $row->id)->first();
                                 if ($travelHistory && $travelHistory->status !== 'completed' && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
@@ -1793,9 +1812,16 @@ class RecruitmentContractController extends Controller
                 ContractStatusEnum::Arrival->value
             ])->count();
             $pending = $query->where('status', ContractStatusEnum::PendingMaidSelection->value)->count();
-            $completed = $query->where('status', ContractStatusEnum::Arrival->value)->count();
+            $completed = $query->whereIn('status', [
+                ContractStatusEnum::Completed->value,
+                ContractStatusEnum::UnderWarranty->value,
+                ContractStatusEnum::Closed->value
+            ])->count();
             $returned = $query->where('status', ContractStatusEnum::Back->value)->count();
-            $closed = $query->where('status', ContractStatusEnum::Closed->value)->count();
+            $closed = $query->whereIn('status', [
+                ContractStatusEnum::Completed->value,
+                ContractStatusEnum::Closed->value
+            ])->count();
 
             return response()->json([
                 'success' => true,

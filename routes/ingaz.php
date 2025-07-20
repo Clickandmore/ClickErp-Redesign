@@ -133,6 +133,8 @@ Route::group(
             Route::resource('statistics', StatisticController::class);
             Route::resource('steps', StepController::class);
             Route::resource('return_requests', ReturnRequestController::class);
+            Route::get('return_requests/export/pdf', [ReturnRequestController::class, 'exportPdf'])->name('return_requests.export.pdf');
+            Route::get('return_requests/export/excel', [ReturnRequestController::class, 'exportExcel'])->name('return_requests.export.excel');
             Route::resource('recruitment-offices', RecruitmentOffice::class);
             Route::resource('shelter-places', ShelterPlaces::class);
             // Route::resource('roles', RoleController::class);
@@ -141,10 +143,6 @@ Route::group(
             Route::get('ShelterContract/available-for-transfer', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'availableForTransfer'])->name('ShelterContract.availableForTransfer');
             Route::get('ShelterContract/deportation-stage', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'deportationStage'])->name('ShelterContract.deportationStage');
             Route::get('ShelterContract/general-shelter', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'generalShelter'])->name('ShelterContract.generalShelter');
-            Route::post('ShelterContract/create-contract', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'createContract'])->name('ShelterContract.createContract');
-            Route::get('ShelterContract/search-maids', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'searchMaids'])->name('ShelterContract.searchMaids');
-            Route::get('ShelterContract/get-all-maids', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'getAllMaids'])->name('ShelterContract.getAllMaids');
-            Route::get('ShelterContract/search-clients', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'searchClients'])->name('ShelterContract.searchClients');
 
             Route::resource('ShelterContract', ShelterContractController::class);
 
@@ -160,6 +158,24 @@ Route::group(
 
             Route::resource('complaint-types', ComplaintTypeController::class);
             Route::post('complaints/response', [\App\Http\Controllers\ingaz\ComplaintController::class, 'response'])->name('complaints.response');
+
+            // Contract routes
+            Route::prefix('contracts')->group(function () {
+                Route::get('search-clients', [App\Http\Controllers\ingaz\ContractController::class, 'searchClients'])->name('Contract.searchClients');
+                Route::get('search-maids', [App\Http\Controllers\ingaz\ContractController::class, 'searchMaids'])->name('Contract.searchMaids');
+                Route::get('get-all-maids', [App\Http\Controllers\ingaz\ContractController::class, 'getAllMaids'])->name('Contract.getAllMaids');
+                Route::post('create', [App\Http\Controllers\ingaz\ContractController::class, 'createContract'])->name('Contract.create');
+                Route::post('create-completed', [App\Http\Controllers\ingaz\ContractController::class, 'createCompletedContract'])->name('Contract.createCompleted');
+                Route::get('create-completed-page', [App\Http\Controllers\ingaz\ContractController::class, 'createCompletedPage'])->name('Contract.createCompletedPage');
+            });
+
+            // ShelterContract additional routes
+            Route::prefix('ShelterContract')->group(function () {
+                Route::get('search-by-passport', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'searchByPassport'])->name('ShelterContract.searchByPassport');
+                Route::get('get-contract-details', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'getContractDetails'])->name('get.contract.details');
+                Route::get('get-nationalities', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'getNationalities'])->name('ShelterContract.getNationalities');
+                Route::get('get-shelter-places', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'getShelterPlaces'])->name('ShelterContract.getShelterPlaces');
+            });
         });
 
     }

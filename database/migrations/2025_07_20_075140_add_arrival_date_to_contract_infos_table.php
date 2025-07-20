@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class AddFileToComplaintsTable extends Migration
+class AddArrivalDateToContractInfosTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,8 +13,8 @@ class AddFileToComplaintsTable extends Migration
      */
     public function up()
     {
-        Schema::table('complaints', function (Blueprint $table) {
-            $table->string('file')->nullable()->after('message');
+        Schema::table('contract_infos', function (Blueprint $table) {
+            $table->date('arrival_date')->nullable()->comment('تاريخ الوصول');
         });
     }
 
@@ -25,8 +25,8 @@ class AddFileToComplaintsTable extends Migration
      */
     public function down()
     {
-        Schema::table('complaints', function (Blueprint $table) {
-            $table->dropColumn('file');
+        Schema::table('contract_infos', function (Blueprint $table) {
+            $table->dropColumn('arrival_date');
         });
     }
 }

@@ -206,7 +206,98 @@ class ReturnRequestController extends Controller
 
     public function destroy($id, objAction $action)
     {
-        $action->delete($id);
-        return jsonSuccess();
+        $data = $action->destroy($id);
+        return jsonSuccess($data);
+    }
+
+    /**
+     * Export return requests to PDF
+     */
+    public function exportPdf(Request $request)
+    {
+        // Get filtered data
+        $rows = \App\Models\ingaz\Order::withTrashed()
+            ->where(function($query) {
+                $query->whereIn('status', [
+                    \App\Enums\ingaz\OrderEnum::Refused->value,
+                    \App\Enums\ingaz\OrderEnum::Return->value
+                ])
+                ->orWhereNotNull('deleted_at');
+            })
+            ->with(['user', 'maid', 'details.admin']);
+
+        // Apply filters
+        if ($request->filled('status')) {
+            if ($request->status === 'deleted') {
+                $rows->whereNotNull('deleted_at');
+            } else {
+                $rows->where('status', $request->status);
+            }
+        }
+
+        if ($request->filled('from_date')) {
+            $rows->whereDate('created_at', '>=', $request->from_date);
+        }
+
+        if ($request->filled('to_date')) {
+            $rows->whereDate('created_at', '<=', $request->to_date);
+        }
+
+        if ($request->filled('client_name')) {
+            $rows->whereHas('user', function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->client_name . '%');
+            });
+        }
+
+        $data = $rows->latest()->get();
+
+        // Generate PDF
+        $pdf = \PDF::loadView('admin.ingaz.return_request.pdf', compact('data'));
+        return $pdf->download('return_requests_' . date('Y-m-d') . '.pdf');
+    }
+
+    /**
+     * Export return requests to Excel
+     */
+    public function exportExcel(Request $request)
+    {
+        // Get filtered data
+        $rows = \App\Models\ingaz\Order::withTrashed()
+            ->where(function($query) {
+                $query->whereIn('status', [
+                    \App\Enums\ingaz\OrderEnum::Refused->value,
+                    \App\Enums\ingaz\OrderEnum::Return->value
+                ])
+                ->orWhereNotNull('deleted_at');
+            })
+            ->with(['user', 'maid', 'details.admin']);
+
+        // Apply filters
+        if ($request->filled('status')) {
+            if ($request->status === 'deleted') {
+                $rows->whereNotNull('deleted_at');
+            } else {
+                $rows->where('status', $request->status);
+            }
+        }
+
+        if ($request->filled('from_date')) {
+            $rows->whereDate('created_at', '>=', $request->from_date);
+        }
+
+        if ($request->filled('to_date')) {
+            $rows->whereDate('created_at', '<=', $request->to_date);
+        }
+
+        if ($request->filled('client_name')) {
+            $rows->whereHas('user', function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->client_name . '%');
+            });
+        }
+
+        $data = $rows->latest()->get();
+
+        // Generate Excel
+        return \Excel::download(new \App\Exports\ReturnRequestsExport($data), 'return_requests_' . date('Y-m-d') . '.xlsx');
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests;
 
-
 use Illuminate\Foundation\Http\FormRequest;
 
 class MainRequest extends FormRequest
@@ -25,14 +24,5 @@ class MainRequest extends FormRequest
     public function rules()
     {
         return [];
-    }
-
-    protected function failedValidation(\Illuminate\Contracts\Validation\Validator $validator)
-    {
-        if ($this->expectsJson()) {
-            throw new \Illuminate\Validation\ValidationException($validator);
-        }
-
-        parent::failedValidation($validator);
     }
 }

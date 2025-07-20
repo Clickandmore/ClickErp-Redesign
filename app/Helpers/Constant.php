@@ -263,6 +263,10 @@ class Constant
                 "ar" => "تذكرة",
                 "en" => "tazker"
             ],
+            'completed' => [
+                "ar" => "عقد مكتمل",
+                "en" => "completed"
+            ],
             'under_warranty' => [
                 "ar" => "تحت الضمان",
                 "en" => "under warranty"

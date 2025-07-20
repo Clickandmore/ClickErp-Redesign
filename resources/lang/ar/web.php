@@ -322,7 +322,7 @@
   'under_warranty' => 'تحت الضمان',
   'back' => 'مرتجع',
   'shelter' => 'عقد إيواء',
-  'contract_stages' => 
+  'contract_stages' =>
   array (
     'pending' => 'قيد الانتظار',
     'active' => 'ساري',
@@ -330,13 +330,25 @@
     'cancelled' => 'ملغي',
     'expired' => 'منتهي',
   ),
-  'contract_statuses' => 
+  'contract_statuses' =>
   array (
     'pending' => 'قيد الانتظار',
     'active' => 'ساري',
     'completed' => 'مكتمل',
     'cancelled' => 'ملغي',
     'expired' => 'منتهي',
+    'new' => 'بانتظار الاعتماد',
+    'msaned' => 'عقود مساند',
+    'tafwed' => 'تفويض',
+    'taffez' => 'التفييز',
+    'tazker' => 'تذكرة',
+    'under_warranty' => 'تحت الضمان',
+    'back' => 'مرتجع',
+    'arrival' => 'مرحلة الوصول',
+    'sari' => 'عقد ساري',
+    'closed' => 'عقد مغلق',
+    'shelter' => 'عقد إيواء',
+    'pending_maid_selection' => 'بانتظار اختيار العاملة',
   ),
   'stage_active' => 'Stage active',
 );
