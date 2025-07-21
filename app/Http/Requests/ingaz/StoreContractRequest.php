@@ -59,6 +59,7 @@ class StoreContractRequest extends MainRequest
             'new_client_birthdate' => 'nullable',
             'maid_id' => 'nullable',
             'maid_selection_postponed' => 'nullable|boolean',
+            'marketer_id' => 'nullable',
         ];
     }
 

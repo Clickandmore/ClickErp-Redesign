@@ -558,12 +558,27 @@ class RecruitmentContractController extends Controller
         ->where('status', 'ended')
         ->get();
 
-        // Get all available maids with relationships
+        // Get all available maids with relationships - استبعاد العاملات التي لها عقود نشطة
         $all_available_maids = Maid::with([
             'nationality',
             'religion',
             'jobTitles'
-        ])->get();
+        ])
+        ->where('available', true)
+        ->whereIn('status', [Maid::STATUS_AVAILABLE['ar'], Maid::STATUS_AVAILABLE['en']])
+        ->where('is_show', true)
+        ->where('available_at', '<=', now()->toDateString())
+        ->whereNotNull('name')
+        ->where('name', '!=', '')
+        // استبعاد العاملات التي لها عقود نشطة أو معلقة
+        ->whereDoesntHave('contracts', function($q) {
+            $q->whereNotIn('status', ['back', 'closed', 'completed']);
+        })
+        // استبعاد العاملات التي لها طلبات نشطة
+        ->whereDoesntHave('orders', function($q) {
+            $q->whereIn('status', ['pending', 'approved', 'in_progress']);
+        })
+        ->get();
 
         // Get existing clients for new contract
         $existing_clients = User::with('nationality')->get();
@@ -575,13 +590,10 @@ class RecruitmentContractController extends Controller
 
         $countries = Country::active()->ordered()->get();
 
-        // Get all marketers (admins)
-        $marketers = \App\Models\auth\Admin::where('admin_type', 0)->get(); // Assuming admin_type 0 means regular admin/marketer
-
         // Get current user info
         $currentUser = Auth::guard('admin')->user();
 
-        return view('admin.ingaz.RecruitmentContract.create', compact('orders', 'endedOrders', 'countries', 'all_available_maids', 'selectedOrder', 'orderId', 'existing_clients', 'marketers', 'currentUser'));
+        return view('admin.ingaz.RecruitmentContract.create', compact('orders', 'endedOrders', 'countries', 'all_available_maids', 'selectedOrder', 'orderId', 'existing_clients', 'currentUser'));
     }
 
 
@@ -672,6 +684,7 @@ class RecruitmentContractController extends Controller
                 $contractData['user_id'] = $order->user_id;
                 $contractData['maid_id'] = $isNoMaid ? null : $order->maid_id;
                 $contractData['order_id'] = $order->id; // إضافة order_id للعقد
+                $contractData['marketer_id'] = Auth::guard('admin')->id(); // إضافة المسوق تلقائياً
 
                 \Log::info('Contract data from order:', $contractData);
             } else {
@@ -732,6 +745,7 @@ class RecruitmentContractController extends Controller
                     \Log::info('Updated existing user:', ['user' => $user->toArray()]);
                 }
                 $contractData['user_id'] = $user->id;
+                $contractData['marketer_id'] = Auth::guard('admin')->id(); // إضافة المسوق تلقائياً
             }
 
             \Log::info('Creating contract with data:', $contractData);
@@ -780,6 +794,22 @@ class RecruitmentContractController extends Controller
             if ($request->order_id) {
                 $order->update(['status' => OrderEnum::Completed->value]);
                 \Log::info('Order status updated to completed');
+            }
+
+            // تحديث حالة العاملات تلقائياً
+            if ($contract->maid_id && !$isNoMaid && !$isMaidSelectionPostponed) {
+                $maid = Maid::find($contract->maid_id);
+                if ($maid) {
+                    $maid->update([
+                        'available' => false,
+                        'status' => 'محجوزة'
+                    ]);
+                    \Log::info('Maid status updated to reserved', [
+                        'maid_id' => $maid->id,
+                        'maid_name' => $maid->name,
+                        'contract_id' => $contract->id
+                    ]);
+                }
             }
 
             DB::commit();
@@ -1070,6 +1100,35 @@ class RecruitmentContractController extends Controller
             $contract->update([
                 'status' => $request->status
             ]);
+
+            // تحديث حالة العاملات تلقائياً
+            if ($contract->maid_id) {
+                $maid = Maid::find($contract->maid_id);
+                if ($maid) {
+                    // التحقق من حالة العقد
+                    $isActiveContract = !in_array($request->status, ['back', 'closed', 'completed']);
+
+                    if ($isActiveContract) {
+                        // العقد نشط، العاملة يجب أن تكون محجوزة
+                        $maid->update([
+                            'available' => false,
+                            'status' => 'محجوزة'
+                        ]);
+                    } else {
+                        // العقد غير نشط، التحقق من وجود عقود أخرى نشطة
+                        $activeContracts = $maid->contracts()->whereNotIn('status', ['back', 'closed', 'completed'])->get();
+                        $activeOrders = $maid->orders()->whereIn('status', ['pending', 'approved', 'in_progress'])->get();
+
+                        if ($activeContracts->count() == 0 && $activeOrders->count() == 0) {
+                            // لا توجد عقود أو طلبات نشطة، العاملة يمكن أن تكون متاحة
+                            $maid->update([
+                                'available' => true,
+                                'status' => 'متاحة'
+                            ]);
+                        }
+                    }
+                }
+            }
 
             return response()->json([
                 'success' => true,
@@ -1600,6 +1659,14 @@ class RecruitmentContractController extends Controller
                 'maid_id' => $request->maid_id,
                 'status' => ContractStatusEnum::New->value
             ]);
+
+            // تحديث حالة العاملات تلقائياً
+            if ($maid) {
+                $maid->update([
+                    'available' => false,
+                    'status' => 'محجوزة'
+                ]);
+            }
 
             // إضافة سجل حالة العقد
             $contract->contract_status_logs()->create([
