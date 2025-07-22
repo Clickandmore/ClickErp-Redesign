@@ -147,14 +147,14 @@ class OrderController extends Controller
                     if (@$row->details->deliver_maid == '1') {
                         return '<span class="badge bg-success status-badge">' . __('web.yes') . '</span>';
                     } else {
-                        return '<span class="badge bg-secondary status-badge">' . __('web.no') . '</span>';
+                        return '<span class="badge bg-danger status-badge">' . __('web.no') . '</span>';
                     }
                 })
                 ->addColumn('contract_status', function ($row) {
                     if ($row->contracts()->exists()) {
-                        return '<span class="badge bg-success status-badge">' . __('ingaz.has_contract') . '</span>';
+                        return '<span class="badge bg-info status-badge">' . __('ingaz.has_contract') . '</span>';
                     }
-                    return '<span class="badge bg-warning status-badge">' . __('ingaz.no_contract') . '</span>';
+                    return '<span class="badge bg-danger status-badge">' . __('ingaz.no_contract') . '</span>';
                 })
                 ->editColumn('order_code', function ($row) {
                     return '<span class="order-code">' . $row->order_code . '</span>';
@@ -167,7 +167,7 @@ class OrderController extends Controller
                 })
                 ->addColumn('actions', function ($row) {
                     $actions = '<div class="dropdown">
-                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle custom-dropdown-toggle" type="button" aria-expanded="false">
+                        <button class="btn btn-outline-primary btn-sm dropdown-toggle custom-dropdown-toggle" type="button" aria-expanded="false">
                             <i class="fa fa-cogs"></i> الإجراءات
                         </button>
                         <ul class="dropdown-menu">';
@@ -358,21 +358,21 @@ class OrderController extends Controller
     public function getStatusHtml($status)
     {
         $colorMap = [
-            'new' => 'secondary',
-            'paid' => 'secondary',
-            'completed' => 'secondary',
-            'started' => 'secondary',
-            'done' => 'secondary',
-            'refused' => 'secondary',
-            'msaned' => 'secondary',
-            'training' => 'secondary',
-            'arrived' => 'secondary',
-            'escape' => 'secondary',
-            'deportation' => 'secondary',
-            'delivered' => 'secondary',
-            'under_process' => 'secondary',
-            'contracted' => 'secondary',
-            'contracted_without_contract' => 'secondary',
+            'new' => 'primary',
+            'paid' => 'success',
+            'completed' => 'success',
+            'started' => 'success',
+            'done' => 'success',
+            'refused' => 'danger',
+            'msaned' => 'danger',
+            'training' => 'danger',
+            'arrived' => 'danger',
+            'escape' => 'danger',
+            'deportation' => 'danger',
+            'delivered' => 'danger',
+            'under_process' => 'warning',
+            'contracted' => 'info',
+            'contracted_without_contract' => 'info',
         ];
 
         $arabicTranslation = getEnumValue('orders_statuses', $status);
