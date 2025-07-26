@@ -23,7 +23,7 @@ class MaidController extends Controller
     public function index(Request $request, MaidAction $action, JobTypeAction $jobTypeAction)
     {
         $data['maids'] = $action->getMaids($request)
-            ->whereIn('status', [\App\Models\ingaz\Maid::STATUS_AVAILABLE['en'], \App\Models\ingaz\Maid::STATUS_AVAILABLE['ar']])
+            ->whereIn('status', ['available'])
             ->where('is_show', 1)
             ->where('available', 1)
             ->where('available_at', '<=', now()->toDateString());

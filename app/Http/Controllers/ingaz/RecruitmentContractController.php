@@ -455,8 +455,10 @@ class RecruitmentContractController extends Controller
                     if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
                         $buttons .= deleteButton(route($this->mainRoute . ".destroy", $row->id));
                     }
-
-                    return $buttons;
+                    // $buttons .= '<a href="' . route('RecruitmentContract.changeMaid', $row->id) . '" class="btn btn-sm btn-primary btn-action me-1" title="تغيير العاملة">
+                    //     <i class="fas fa-exchange-alt"></i>
+                    // </a>';
+                   return $buttons;
                 })
                 ->escapeColumns([])
                 ->make(true);
@@ -565,7 +567,7 @@ class RecruitmentContractController extends Controller
             'jobTitles'
         ])
         ->where('available', true)
-        ->whereIn('status', [Maid::STATUS_AVAILABLE['ar'], Maid::STATUS_AVAILABLE['en']])
+        ->where('status', 'available')
         ->where('is_show', true)
         ->where('available_at', '<=', now()->toDateString())
         ->whereNotNull('name')
@@ -802,7 +804,7 @@ class RecruitmentContractController extends Controller
                 if ($maid) {
                     $maid->update([
                         'available' => false,
-                        'status' => 'محجوزة'
+                        'status' => 'reserved'
                     ]);
                     \Log::info('Maid status updated to reserved', [
                         'maid_id' => $maid->id,
@@ -1112,7 +1114,7 @@ class RecruitmentContractController extends Controller
                         // العقد نشط، العاملة يجب أن تكون محجوزة
                         $maid->update([
                             'available' => false,
-                            'status' => 'محجوزة'
+                            'status' => 'reserved'
                         ]);
                     } else {
                         // العقد غير نشط، التحقق من وجود عقود أخرى نشطة
@@ -1123,7 +1125,7 @@ class RecruitmentContractController extends Controller
                             // لا توجد عقود أو طلبات نشطة، العاملة يمكن أن تكون متاحة
                             $maid->update([
                                 'available' => true,
-                                'status' => 'متاحة'
+                                'status' => 'available'
                             ]);
                         }
                     }
@@ -1512,20 +1514,24 @@ class RecruitmentContractController extends Controller
      */
     public function getAvailableMaids(Request $request)
     {
+        \Log::info('getAvailableMaids called', ['request' => $request->all()]);
+
         try {
-            $query = Maid::with(['nationality', 'religion', 'jobTitles'])
+            $query = Maid::with(['nationality'])
                 ->where('available', true)
-                ->whereIn('status', [Maid::STATUS_AVAILABLE['ar'], Maid::STATUS_AVAILABLE['en']])
-                ->where('is_show', true)
-                ->where('available_at', '<=', now()->toDateString())
-                ->whereNotNull('name')
-                ->where('name', '!=', '')
+                ->where('status', 'available') // التأكد من أن الحالة متاحة
                 ->whereDoesntHave('contracts', function($q) {
-                    $q->whereIn('status', ['active', 'pending']);
+                    $q->whereIn('status', [
+                        'new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival'
+                    ]);
                 })
                 ->whereDoesntHave('orders', function($q) {
-                    $q->whereIn('status', ['pending', 'approved', 'in_progress']);
+                    $q->whereIn('status', [
+                        'new', 'under_process', 'contracted'
+                    ]);
                 });
+
+            \Log::info('Query built', ['sql' => $query->toSql()]);
 
             // فلترة حسب الجنسية
             if ($request->has('nationality_id') && $request->nationality_id) {
@@ -1548,32 +1554,26 @@ class RecruitmentContractController extends Controller
             }
 
             $maids = $query->get();
+            \Log::info('Maids found', ['count' => $maids->count()]);
 
             // تحويل البيانات للعرض
             $maidsData = $maids->map(function($maid) {
-                if (!is_object($maid) || !property_exists($maid, 'status')) {
-                    \Log::warning('Maid is not object or missing status', ['maid' => $maid]);
-                    return null;
-                }
                 return [
-                    'id' => $maid?->id ?? '',
-                    'name' => $maid?->name ?? '',
-                    'passport_num' => $maid?->passport_num ?? '',
-                    'nationality' => $maid?->nationality?->sub_title ?? '',
-                    'religion' => $maid?->religion?->title ?? '',
-                    'job' => $maid?->jobTitles?->first()?->title ?? '',
-                    'salary' => $maid?->salary ?? '',
-                    'experience_years' => $maid?->experience_years ?? '',
-                    'age' => $maid?->age ?? '',
-                    'cv_file' => $maid?->cv_file ?? '',
-                    'image' => $maid?->image ?? '',
-                    'status' => $maid?->status ?? 'available'
+                    'id' => $maid->id,
+                    'name' => $maid->name ?? 'غير محدد',
+                    'passport_num' => $maid->passport_num ?? 'غير محدد',
+                    'nationality' => $maid->nationality->sub_title ?? 'غير محدد'
                 ];
-            })->filter(fn($item) => !is_null($item))->values();
+            });
+
+            \Log::info('Available maids loaded', [
+                'count' => $maidsData->count(),
+                'maids' => $maidsData->toArray()
+            ]);
 
             return response()->json([
                 'success' => true,
-                'data' => $maidsData
+                'maids' => $maidsData
             ]);
 
         } catch (\Exception $e) {
@@ -1664,7 +1664,7 @@ class RecruitmentContractController extends Controller
             if ($maid) {
                 $maid->update([
                     'available' => false,
-                    'status' => 'محجوزة'
+                    'status' => 'reserved'
                 ]);
             }
 
@@ -1718,7 +1718,7 @@ class RecruitmentContractController extends Controller
             // جلب العاملات المتاحة مع الفلاتر
             $query = Maid::with(['nationality', 'religion', 'jobTitles'])
                 ->where('available', true)
-                ->whereIn('status', [Maid::STATUS_AVAILABLE['ar'], Maid::STATUS_AVAILABLE['en']])
+                ->where('status', 'available')
                 ->where('is_show', true)
                 ->where('available_at', '<=', now()->toDateString())
                 ->whereNotNull('name')
@@ -1912,6 +1912,238 @@ class RecruitmentContractController extends Controller
                 'success' => false,
                 'message' => 'حدث خطأ أثناء جلب الإحصائيات'
             ], 500);
+        }
+    }
+
+    /**
+     * تغيير العاملة في العقد
+     */
+    public function changeMaid(Request $request, $contractId)
+    {
+        try {
+            // التحقق من الصلاحيات
+            if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية لتعديل العقود'
+                ], 403);
+            }
+
+            // التحقق من وجود العقد
+            $contract = Contract::with(['maid', 'user'])->findOrFail($contractId);
+
+            // التحقق من أن العقد من النوع الصحيح
+            if (!in_array($contract->type, ['recruitment', 'maid'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن تغيير العاملة في هذا النوع من العقود'
+                ], 400);
+            }
+
+            // التحقق من البيانات المطلوبة
+            $request->validate([
+                'new_maid_id' => 'required|exists:maids,id',
+                'old_maid_status' => 'required|in:available,backout',
+                'reason' => 'nullable|string|max:500'
+            ]);
+
+            $newMaidId = $request->new_maid_id;
+            $oldMaidStatus = $request->old_maid_status;
+            $reason = $request->reason;
+
+            // التحقق من أن العاملة الجديدة متاحة
+            $newMaid = Maid::findOrFail($newMaidId);
+
+            // التحقق من أن العاملة الجديدة ليس لها عقود نشطة
+            $hasActiveContracts = Contract::where('maid_id', $newMaidId)
+                ->whereIn('status', [
+                    ContractStatusEnum::New->value,
+                    ContractStatusEnum::Msaned->value,
+                    ContractStatusEnum::Tafwed->value,
+                    ContractStatusEnum::Taffez->value,
+                    ContractStatusEnum::Tazker->value,
+                    ContractStatusEnum::Arrival->value
+                ])
+                ->exists();
+
+            if ($hasActiveContracts) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العاملة المختارة لها عقود نشطة ولا يمكن استخدامها'
+                ], 400);
+            }
+
+            // التحقق من أن العاملة الجديدة ليس لها طلبات نشطة
+            $hasActiveOrders = Order::where('maid_id', $newMaidId)
+                ->whereIn('status', [
+                    OrderEnum::New->value,
+                    OrderEnum::UnderProcess->value,
+                    OrderEnum::Contracted->value
+                ])
+                ->exists();
+
+            if ($hasActiveOrders) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العاملة المختارة لها طلبات نشطة ولا يمكن استخدامها'
+                ], 400);
+            }
+
+            DB::beginTransaction();
+
+            try {
+                // حفظ العاملة القديمة
+                $oldMaid = $contract->maid;
+                $oldMaidId = $oldMaid->id;
+
+                \Log::info('Changing maid in contract', [
+                    'contract_id' => $contractId,
+                    'old_maid_id' => $oldMaidId,
+                    'new_maid_id' => $newMaidId,
+                    'old_maid_status' => $oldMaidStatus,
+                    'old_maid_current_status' => $oldMaid->status,
+                    'old_maid_current_available' => $oldMaid->available
+                ]);
+
+                // تحديث حالة العاملة القديمة
+                $oldMaid->update([
+                    'status' => $oldMaidStatus,
+                    'available' => ($oldMaidStatus === 'available') ? true : false
+                ]);
+
+                // إعادة تحميل البيانات للتأكد من التحديث
+                $oldMaid->refresh();
+
+                // إذا كانت العاملة أصبحت غير متاحة، أضفها لقائمة العاملات غير المتاحات
+                if ($oldMaidStatus === 'backout') {
+                    \Artisan::call('maids:add-to-unavailable', [
+                        'maid-id' => $oldMaidId,
+                        '--contract-id' => $contractId,
+                        '--reason' => $reason ?? 'تم تغيير العاملة من عقد',
+                        '--admin-id' => Auth::guard('admin')->id()
+                    ]);
+                }
+
+                \Log::info('Old maid status updated', [
+                    'old_maid_id' => $oldMaidId,
+                    'new_status' => $oldMaid->status,
+                    'new_available' => $oldMaid->available
+                ]);
+
+                // تحديث العقد بالعاملة الجديدة
+                $contract->update([
+                    'maid_id' => $newMaidId
+                ]);
+
+                // تحديث حالة العاملة الجديدة إلى محجوزة
+                $newMaid->update([
+                    'status' => 'reserved',
+                    'available' => false
+                ]);
+
+                // إعادة تحميل البيانات للتأكد من التحديث
+                $newMaid->refresh();
+
+                \Log::info('New maid status updated', [
+                    'new_maid_id' => $newMaidId,
+                    'new_status' => $newMaid->status,
+                    'new_available' => $newMaid->available
+                ]);
+
+                // تسجيل العملية في سجل التغييرات
+                \Log::info('Maid changed in contract', [
+                    'contract_id' => $contractId,
+                    'old_maid_id' => $oldMaidId,
+                    'new_maid_id' => $newMaidId,
+                    'old_maid_status' => $oldMaidStatus,
+                    'reason' => $reason,
+                    'changed_by' => Auth::guard('admin')->id()
+                ]);
+
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'تم تغيير العاملة بنجاح',
+                    'data' => [
+                        'contract_id' => $contractId,
+                        'old_maid' => [
+                            'id' => $oldMaid->id,
+                            'name' => $oldMaid->name,
+                            'status' => $oldMaid->status,
+                            'available' => $oldMaid->available
+                        ],
+                        'new_maid' => [
+                            'id' => $newMaid->id,
+                            'name' => $newMaid->name,
+                            'status' => $newMaid->status,
+                            'available' => $newMaid->available
+                        ]
+                    ]
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollback();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            \Log::error('Error changing maid in contract:', [
+                'contract_id' => $contractId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تغيير العاملة: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * عرض صفحة تغيير العاملة
+     */
+    public function showChangeMaid($contractId)
+    {
+        try {
+            // التحقق من الصلاحيات
+            if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE)) {
+                return redirect()->back()->with('error', 'ليس لديك صلاحية لتعديل العقود');
+            }
+
+            $contract = Contract::with(['maid', 'user'])->findOrFail($contractId);
+
+            // جلب العاملات المتاحات
+            $availableMaids = Maid::where('available', true)
+                ->whereDoesntHave('contracts', function($q) {
+                    $q->whereIn('status', [
+                        ContractStatusEnum::New->value,
+                        ContractStatusEnum::Msaned->value,
+                        ContractStatusEnum::Tafwed->value,
+                        ContractStatusEnum::Taffez->value,
+                        ContractStatusEnum::Tazker->value,
+                        ContractStatusEnum::Arrival->value
+                    ]);
+                })
+                ->whereDoesntHave('orders', function($q) {
+                    $q->whereIn('status', [
+                        OrderEnum::New->value,
+                        OrderEnum::UnderProcess->value,
+                        OrderEnum::Contracted->value
+                    ]);
+                })
+                ->get();
+
+            return view($this->folderPath . '.change_maid', compact('contract', 'availableMaids'));
+
+        } catch (\Exception $e) {
+            \Log::error('Error showing change maid page:', [
+                'contract_id' => $contractId,
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->back()->with('error', 'حدث خطأ أثناء تحميل الصفحة');
         }
     }
 }

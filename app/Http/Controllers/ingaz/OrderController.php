@@ -520,8 +520,8 @@ class OrderController extends Controller
                 $maid = \App\Models\ingaz\Maid::findOrFail($request->maid_id);
 
                 // Check if maid is available
-                if (!$maid->available || $maid->status !== 'متاحة') {
-                    return jsonError(['message' => 'العاملة غير متاحة أو محجوزة']);
+                if (!$maid->available || $maid->status !== 'available') {
+                    return jsonError(['message' => 'The maid is not available or reserved']);
                 }
 
                 // Check if maid is already assigned to another active order
@@ -531,20 +531,20 @@ class OrderController extends Controller
                     ->first();
 
                 if ($existingOrder) {
-                    return jsonError(['message' => 'العاملة محجوزة لطلب آخر']);
+                    return jsonError(['message' => 'The maid is reserved for another order']);
                 }
 
                 // Update order with new maid
                 $order->maid_id = $request->maid_id;
                 $order->save();
 
-                return jsonSuccess(['message' => 'تم تغيير العاملة بنجاح']);
+                return jsonSuccess(['message' => 'The maid has been changed successfully']);
             }
 
             // If no maid_id, return success (for compatibility)
-            return jsonSuccess(['message' => 'تم تغيير العاملة بنجاح']);
+            return jsonSuccess(['message' => 'The maid has been changed successfully']);
         } catch (\Exception $e) {
-            return jsonError(['message' => 'حدث خطأ أثناء تغيير العاملة']);
+            return jsonError(['message' => 'An error occurred while changing the maid']);
         }
     }
 
@@ -561,7 +561,7 @@ class OrderController extends Controller
                 ->first();
 
             if (!$admin) {
-                return jsonError(['message' => 'يمكن فقط اختيار موظف خدمة العملاء']);
+                return jsonError(['message' => 'You can only select a customer service employee']);
             }
 
             // Update order details with new admin
@@ -574,9 +574,9 @@ class OrderController extends Controller
             $orderDetail->admin_id = $request->admin_id;
             $orderDetail->save();
 
-            return jsonSuccess(['message' => 'تم تحديث الموظف المسؤول بنجاح']);
+            return jsonSuccess(['message' => 'The responsible employee has been updated successfully']);
         } catch (\Exception $e) {
-            return jsonError(['message' => 'حدث خطأ أثناء تحديث الموظف المسؤول']);
+            return jsonError(['message' => 'An error occurred while updating the responsible employee']);
         }
     }
 
@@ -588,9 +588,9 @@ class OrderController extends Controller
             $order->refuse_reason = $request->reason;
             $order->save();
 
-            return jsonSuccess(['message' => 'تم تحديث حالة الطلب بنجاح']);
+            return jsonSuccess(['message' => 'The order status has been updated successfully']);
         } catch (\Exception $e) {
-            return jsonError(['message' => 'حدث خطأ أثناء تحديث حالة الطلب']);
+            return jsonError(['message' => 'An error occurred while updating the order status']);
         }
     }
 

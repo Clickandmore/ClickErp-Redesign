@@ -140,6 +140,10 @@ class Maid extends Model
         return $this->belongsTo(RecruitmentOffices::class, 'office_id');
     }
 
+    public function unavailableRecords()
+    {
+        return $this->hasMany(\App\Models\MaidUnavailableRecord::class, 'maid_id')->orderBy('created_at', 'desc');
+    }
 
     public function getActivitylogOptions(): LogOptions
     {

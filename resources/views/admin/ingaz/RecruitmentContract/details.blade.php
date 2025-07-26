@@ -83,6 +83,119 @@
         color: white;
     }
 
+    .btn-change-maid {
+        background: linear-gradient(135deg, #ffc107, #e0a800);
+        color: white;
+    }
+
+    /* Modal Styles */
+    .modal-content {
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        border-bottom: 1px solid #dee2e6;
+        border-radius: 10px 10px 0 0;
+    }
+
+    .modal-title {
+        color: #495057;
+        font-weight: 600;
+    }
+
+    .modal-title i {
+        margin-left: 8px;
+        color: #007bff;
+    }
+
+    .form-check {
+        margin-bottom: 10px;
+        padding: 8px;
+        border-radius: 4px;
+        transition: background-color 0.2s ease;
+    }
+
+    .form-check:hover {
+        background-color: #f8f9fa;
+    }
+
+    .form-check-label {
+        font-weight: 500;
+        color: #495057;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+    }
+
+    .form-check-label i {
+        margin-left: 8px;
+        font-size: 16px;
+    }
+
+    .form-check-input:checked + .form-check-label {
+        font-weight: 600;
+    }
+
+    .alert-info {
+        background-color: #d1ecf1;
+        border-color: #bee5eb;
+        color: #0c5460;
+    }
+
+    /* Filter Styles */
+    .form-group .btn-outline-secondary {
+        border-color: #6c757d;
+        color: #6c757d;
+        transition: all 0.3s ease;
+    }
+
+    .form-group .btn-outline-secondary:hover {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .form-control:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-label i {
+        margin-left: 0.5rem;
+        color: #007bff;
+    }
+
+    /* Search Input Group Styles */
+    .input-group .form-control {
+        border-right: 0;
+    }
+
+    .input-group .btn {
+        border-left: 0;
+        background-color: #f8f9fa;
+    }
+
+    .input-group .btn:hover {
+        background-color: #e9ecef;
+    }
+
+    .input-group:focus-within .form-control {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    .input-group:focus-within .btn {
+        border-color: #007bff;
+    }
+
     .info-card {
         background: #f8f9fa;
         border-radius: 10px;
@@ -224,6 +337,28 @@
     .bg-secondary {
         background-color: #6c757d !important;
     }
+
+    /* Search Results Highlighting */
+    .form-control:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    /* Dropdown Enhancement */
+    select.form-control option {
+        padding: 8px 12px;
+        border-bottom: 1px solid #f8f9fa;
+    }
+
+    select.form-control option:hover {
+        background-color: #f8f9fa;
+    }
+
+    select.form-control option[disabled] {
+        color: #6c757d;
+        font-style: italic;
+        background-color: #f8f9fa;
+    }
 </style>
 @section('content')
 @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
@@ -239,17 +374,21 @@
                     <div class="border-bottom pb-2">
                         <textarea class="form-control address">
                     @if(@$info->contract_date)
-                        {{helperTrans('ingaz.contract date')}} {{@$info->contract_date}}
+                        {{helperTrans('ingaz.contract date')}} : {{@$info->contract_date}}
                     @endif
                     @if(@$info->msaned_number)
-                        {{helperTrans('ingaz.msaned number')}} {{@$info->msaned_number}}
+                        {{helperTrans('ingaz.msaned number')}} : {{@$info->msaned_number}}
                     @endif
                     @if(@$info->tafwed_number)
-                        {{helperTrans('ingaz.tafwed number')}} {{@$info->tafwed_number}}
+                        {{helperTrans('ingaz.tafwed number')}} : {{@$info->tafwed_number}}
                     @endif
                     @if(@$info->visa_number)
-                        {{helperTrans('ingaz.visa number')}} {{@$info->visa_number}}
+                        {{helperTrans('ingaz.visa number')}} :      {{@$info->visa_number}}
                     @endif
+
+                    {{helperTrans('ingaz.contract status')}} :  {{getEnumValue('contract_statuses', $contract->status)}}
+
+
                 </textarea>
                         <div>
                             <img src="{{showFile($settings->logo_header)}}" alt="logo">
@@ -257,12 +396,12 @@
                         </div>
                     </div>
                     <div style="clear:both"></div>
+<div class="row">
+
 
                     <!-- معلومات العميل المحسنة -->
-                    <div class="customer mt-4">
-                        <textarea class="form-control customer-title">
-                                        {{getEnumValue('contract_statuses', $contract->status)}}
-                                    </textarea>
+                    <div class="customer col-md-6 mt-4">
+
                         <table class="meta">
                             <tbody>
                                 <tr>
@@ -303,10 +442,10 @@
                             </tbody>
                         </table>
                     </div>
-                    <div style="clear:both"></div>
+                    {{-- <div style="clear:both"></div> --}}
 
                     <!-- معلومات العقد المحسنة -->
-                    <div class="col-md-6">
+                    <div class="col-md-6 mt-4">
                         <div class="card">
                             <div class="card-header bg-info text-white">
                                 <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>معلومات العقد الأساسية</h5>
@@ -368,7 +507,7 @@
                         </div>
                     </div>
 
-                    <div class="col-md-6">
+                    <div class="col-md-6 mt-4">
                         <div class="card">
                             <div class="card-header bg-warning text-dark">
                                 <h5 class="mb-0"><i class="fas fa-user-tie me-2"></i>معلومات المسوق</h5>
@@ -399,7 +538,7 @@
                             </div>
                         </div>
                     </div>
-
+                </div>
                     <table class="items">
                         <tbody>
                             <tr>
@@ -722,6 +861,12 @@
             </a>
             @endif
 
+            @if(@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE))
+            <button type="button" class="btn-icon btn-change-maid" onclick="openChangeMaidModal()" title="تغيير العاملة">
+                <i class="fas fa-exchange-alt"></i>
+            </button>
+            @endif
+
             <a href="{{ route('RecruitmentContract.index') }}" class="btn-icon btn-back" title="العودة للقائمة">
                 <i class="fas fa-arrow-right"></i>
             </a>
@@ -731,6 +876,120 @@
                 <i class="fas fa-trash"></i>
             </button>
             @endif
+        </div>
+    </div>
+</div>
+
+<!-- دايلوج تغيير العاملة -->
+<div class="modal fade" id="changeMaidModal" tabindex="-1" aria-labelledby="changeMaidModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changeMaidModalLabel">
+                    <i class="fas fa-exchange-alt"></i>
+                    تغيير العاملة في العقد رقم #{{ $contract->id }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- معلومات العاملة الحالية -->
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-user-tie"></i> العاملة الحالية:</h6>
+                    <strong>{{ $contract->maid->name ?? 'غير محدد' }}</strong> -
+                    {{ $contract->maid->passport_num ?? 'غير محدد' }}
+                    ({{ $contract->maid->nationality->sub_title ?? 'غير محدد' }})
+                </div>
+
+                <form id="changeMaidForm">
+                    @csrf
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group mb-3">
+                                <label for="maid_search" class="form-label">
+                                    <i class="fas fa-search"></i>
+                                    البحث في العاملات
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="maid_search"
+                                           placeholder="ابحث بالاسم أو رقم الجواز..."
+                                           onkeyup="searchMaidsWithDelay(this.value)"
+                                           onkeydown="handleSearchKeydown(event)">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <small class="form-text text-muted">
+                                    اكتب للبحث في العاملات المتاحات - اضغط Enter لفتح القائمة
+                                </small>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label for="new_maid_id" class="form-label">
+                                    <i class="fas fa-user-plus"></i>
+                                    اختيار العاملة الجديدة
+                                </label>
+                                <select class="form-control" id="new_maid_id" name="new_maid_id" required>
+                                    <option value="">اختر العاملة الجديدة...</option>
+                                </select>
+                                <small class="form-text text-muted">
+                                    سيتم تحميل العاملات المتاحات...
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-user-minus"></i>
+                                    حالة العاملة السابقة
+                                </label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="old_maid_status"
+                                           id="status_available" value="available" required>
+                                    <label class="form-check-label" for="status_available">
+                                        <i class="fas fa-check text-success"></i>
+                                        متاحة
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="old_maid_status"
+                                           id="status_unavailable" value="backout" required>
+                                    <label class="form-check-label" for="status_unavailable">
+                                        <i class="fas fa-ban text-danger"></i>
+                                        باك اوت
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="reason" class="form-label">
+                            <i class="fas fa-comment"></i>
+                            سبب التغيير (اختياري)
+                        </label>
+                        <textarea class="form-control" id="reason" name="reason" rows="3"
+                                  placeholder="اكتب سبب تغيير العاملة..."></textarea>
+                    </div>
+
+                    {{-- <!-- زر اختبار تحميل العاملات -->
+                    <div class="form-group mb-3">
+                        <button type="button" class="btn btn-info btn-sm" onclick="testLoadMaids()">
+                            <i class="fas fa-sync"></i>
+                            اختبار تحميل العاملات
+                        </button>
+                    </div> --}}
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i>
+                    إلغاء
+                </button>
+                <button type="button" class="btn btn-primary" onclick="submitChangeMaid()">
+                    <i class="fas fa-save"></i>
+                    حفظ التغيير
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -774,6 +1033,364 @@ function deleteContract(contractId) {
             alert('حدث خطأ أثناء حذف العقد');
         });
     }
+}
+
+// فتح دايلوج تغيير العاملة
+function openChangeMaidModal() {
+    console.log('Opening change maid modal...');
+
+    // فتح الدايلوج أولاً
+    $('#changeMaidModal').modal('show');
+
+    // تحميل العاملات المتاحات بعد فتح الدايلوج
+    setTimeout(function() {
+        loadAvailableMaids();
+        loadFilterOptions();
+    }, 300);
+}
+
+// تحميل خيارات الفلترة
+function loadFilterOptions() {
+    console.log('Loading filter options...');
+
+    const url = '{{ route("RecruitmentContract.filterOptions") }}';
+
+    fetch(url, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // تحميل الجنسيات
+            const nationalitySelect = document.getElementById('nationality_filter');
+            nationalitySelect.innerHTML = '<option value="">جميع الجنسيات</option>';
+
+            if (data.nationalities) {
+                data.nationalities.forEach(nationality => {
+                    const option = document.createElement('option');
+                    option.value = nationality.id;
+                    option.textContent = nationality.title;
+                    nationalitySelect.appendChild(option);
+                });
+            }
+
+            // تحميل الأديان
+            const religionSelect = document.getElementById('religion_filter');
+            religionSelect.innerHTML = '<option value="">جميع الأديان</option>';
+
+            if (data.religions) {
+                data.religions.forEach(religion => {
+                    const option = document.createElement('option');
+                    option.value = religion.id;
+                    option.textContent = religion.title;
+                    religionSelect.appendChild(option);
+                });
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error loading filter options:', error);
+    });
+}
+
+// تطبيق الفلاتر
+function applyFilters() {
+    const searchTerm = document.getElementById('maid_search').value;
+    const nationalityId = document.getElementById('nationality_filter').value;
+    const religionId = document.getElementById('religion_filter').value;
+
+    console.log('Applying filters:', { searchTerm, nationalityId, religionId });
+
+    // بناء URL مع الفلاتر
+    const url = '{{ route("RecruitmentContract.availableMaids") }}';
+    const params = new URLSearchParams();
+
+    if (searchTerm) params.append('search', searchTerm);
+    if (nationalityId) params.append('nationality_id', nationalityId);
+    if (religionId) params.append('religion_id', religionId);
+
+    const fullUrl = params.toString() ? `${url}?${params.toString()}` : url;
+    console.log('Fetching from URL:', fullUrl);
+
+    // الحصول على CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Filtered response data:', data);
+
+        if (data.success) {
+            const select = document.getElementById('new_maid_id');
+            select.innerHTML = '<option value="">اختر العاملة الجديدة...</option>';
+
+            if (data.maids && data.maids.length > 0) {
+                data.maids.forEach(maid => {
+                    const option = document.createElement('option');
+                    option.value = maid.id;
+                    option.textContent = `${maid.name} - ${maid.passport_num} (${maid.nationality})`;
+                    // إضافة بيانات للبحث
+                    option.setAttribute('data-name', maid.name);
+                    option.setAttribute('data-passport', maid.passport_num);
+                    option.setAttribute('data-nationality', maid.nationality);
+                    select.appendChild(option);
+                });
+                console.log('Loaded ' + data.maids.length + ' maids');
+            } else {
+                select.innerHTML = '<option value="">لا توجد عاملات متاحات تطابق الفلترة</option>';
+                console.log('No available maids found with current filters');
+            }
+        } else {
+            console.error('Error loading filtered maids:', data.message);
+            const select = document.getElementById('new_maid_id');
+            select.innerHTML = '<option value="">خطأ في تحميل العاملات</option>';
+        }
+    })
+    .catch(error => {
+        console.error('Fetch error:', error);
+        const select = document.getElementById('new_maid_id');
+        select.innerHTML = '<option value="">خطأ في الاتصال: ' + error.message + '</option>';
+    });
+}
+
+// تحميل العاملات المتاحات
+function loadAvailableMaids(searchTerm = '') {
+    console.log('Loading available maids...', { searchTerm });
+
+    const url = '{{ route("RecruitmentContract.availableMaids") }}';
+    const fullUrl = searchTerm ? `${url}?search=${encodeURIComponent(searchTerm)}` : url;
+    console.log('Fetching from URL:', fullUrl);
+
+    // الحصول على CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    console.log('CSRF Token:', csrfToken);
+
+    fetch(fullUrl, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+
+        if (data.success) {
+            const select = document.getElementById('new_maid_id');
+            select.innerHTML = '<option value="">اختر العاملة الجديدة...</option>';
+
+            if (data.maids && data.maids.length > 0) {
+                data.maids.forEach(maid => {
+                    const option = document.createElement('option');
+                    option.value = maid.id;
+                    option.textContent = `${maid.name} - ${maid.passport_num} (${maid.nationality})`;
+                    // إضافة بيانات للبحث
+                    option.setAttribute('data-name', maid.name);
+                    option.setAttribute('data-passport', maid.passport_num);
+                    option.setAttribute('data-nationality', maid.nationality);
+                    select.appendChild(option);
+                });
+                console.log('Loaded ' + data.maids.length + ' maids');
+            } else {
+                select.innerHTML = '<option value="">لا توجد عاملات متاحات</option>';
+                console.log('No available maids found');
+            }
+        } else {
+            console.error('Error loading maids:', data.message);
+            const select = document.getElementById('new_maid_id');
+            select.innerHTML = '<option value="">خطأ في تحميل العاملات</option>';
+        }
+    })
+    .catch(error => {
+        console.error('Fetch error:', error);
+        const select = document.getElementById('new_maid_id');
+        select.innerHTML = '<option value="">خطأ في الاتصال: ' + error.message + '</option>';
+    });
+}
+
+// البحث مع تأخير لتجنب طلبات كثيرة
+function searchMaidsWithDelay(searchTerm) {
+    clearTimeout(window.searchTimeout);
+    window.searchTimeout = setTimeout(() => {
+        filterMaidOptions(searchTerm);
+    }, 200); // تأخير 200 مللي ثانية
+}
+
+// إرسال نموذج تغيير العاملة
+function submitChangeMaid() {
+    const form = document.getElementById('changeMaidForm');
+    const formData = new FormData(form);
+
+    // التحقق من البيانات
+    if (!formData.get('new_maid_id')) {
+        alert('يرجى اختيار العاملة الجديدة');
+        return;
+    }
+
+    if (!formData.get('old_maid_status')) {
+        alert('يرجى اختيار حالة العاملة السابقة');
+        return;
+    }
+
+    // تأكيد العملية
+    if (!confirm('هل أنت متأكد من تغيير العاملة في هذا العقد؟')) {
+        return;
+    }
+
+    console.log('Submitting change maid form:', {
+        new_maid_id: formData.get('new_maid_id'),
+        old_maid_status: formData.get('old_maid_status'),
+        reason: formData.get('reason')
+    });
+
+    // إرسال البيانات
+    fetch('{{ route("RecruitmentContract.changeMaid", $contract->id) }}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+        },
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+
+        if (data.success) {
+            alert('تم تغيير العاملة بنجاح');
+            console.log('Change maid details:', data.data);
+            location.reload(); // إعادة تحميل الصفحة لتحديث البيانات
+        } else {
+            alert('خطأ: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('حدث خطأ أثناء تغيير العاملة');
+    });
+}
+
+function testLoadMaids() {
+    alert('Testing loadAvailableMaids function...');
+    loadAvailableMaids();
+}
+
+// مسح الفلاتر
+function clearFilters() {
+    document.getElementById('maid_search').value = '';
+    document.getElementById('nationality_filter').value = '';
+    document.getElementById('religion_filter').value = '';
+    applyFilters(); // إعادة تطبيق الفلاتر لعرض جميع العاملات
+}
+
+// فلترة خيارات العاملات في القائمة المنسدلة
+function filterMaidOptions(searchTerm) {
+    console.log('Filtering maids with term:', searchTerm);
+
+    const select = document.getElementById('new_maid_id');
+    const options = Array.from(select.options);
+
+    // إزالة رسالة "لا توجد نتائج" السابقة
+    const noResultsOption = select.querySelector('option[disabled]');
+    if (noResultsOption) {
+        noResultsOption.remove();
+    }
+
+    // إذا كان البحث فارغاً، إظهار جميع الخيارات
+    if (!searchTerm.trim()) {
+        options.forEach(option => {
+            option.style.display = '';
+        });
+        return;
+    }
+
+    // إظهار/إخفاء الخيارات بناءً على البحث
+    let visibleCount = 0;
+    const search = searchTerm.toLowerCase().trim();
+
+    options.forEach(option => {
+        if (option.value === '') {
+            // إبقاء الخيار الافتراضي دائماً
+            option.style.display = '';
+        } else {
+            const name = option.getAttribute('data-name')?.toLowerCase() || '';
+            const passport = option.getAttribute('data-passport')?.toLowerCase() || '';
+            const nationality = option.getAttribute('data-nationality')?.toLowerCase() || '';
+            const fullText = option.textContent.toLowerCase();
+
+            // البحث في جميع الحقول
+            const matches = name.includes(search) ||
+                           passport.includes(search) ||
+                           nationality.includes(search) ||
+                           fullText.includes(search);
+
+            if (matches) {
+                option.style.display = '';
+                visibleCount++;
+            } else {
+                option.style.display = 'none';
+            }
+        }
+    });
+
+    // إذا لم يتم العثور على نتائج، إظهار رسالة
+    if (visibleCount === 0 && searchTerm.trim()) {
+        const noResultsOption = document.createElement('option');
+        noResultsOption.value = '';
+        noResultsOption.textContent = 'لا توجد نتائج تطابق البحث';
+        noResultsOption.disabled = true;
+        select.appendChild(noResultsOption);
+    }
+
+    console.log('Visible options:', visibleCount);
+}
+
+// معالجة المفاتيح في حقل البحث
+function handleSearchKeydown(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        const select = document.getElementById('new_maid_id');
+        select.focus();
+        select.click(); // فتح القائمة المنسدلة
+    }
+}
+
+// مسح البحث
+function clearSearch() {
+    document.getElementById('maid_search').value = '';
+    filterMaidOptions(''); // إظهار جميع الخيارات
 }
 </script>
 @endsection

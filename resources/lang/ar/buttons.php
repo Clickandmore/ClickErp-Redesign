@@ -24,5 +24,5 @@ return [
     'Confirm successfully'=>'تم التأكيد بنجاح',
     'next'             => 'التالي',
     'prev'             => 'السابق',
-
+    'back'             => 'الرجوع',
 ];

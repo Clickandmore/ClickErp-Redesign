@@ -110,7 +110,7 @@
                             <a class="m-link {{ (Route::currentRouteName() == 'noneAvailableMaids') ? 'active' : '' }}"
                                 href="{{route('noneAvailableMaids')}}">
                                 <i class="fa fa-times-circle"></i>
-                                <span class="ms-2">{{ helperTrans('ingaz.unavailable_cvs') }}</span>
+                                <span class="ms-2">العاملات باك اوت</span>
                             </a>
                         </li>
                         @endif
@@ -375,7 +375,7 @@
                                 </a>
                             </li> --}}
                         @endif
-                        @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_WORKERS_VIEW))
+                        {{-- @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_WORKERS_VIEW))
                             <li>
                                 <a class="m-link" href="{{ route('shelter_workers') }}">
                                     <i class="icon-loop"></i>
@@ -388,7 +388,7 @@
                                     <span class="ms-2">{{ __('admin.viewFullShelterWorkerContract') }}</span>
                                 </a>
                             </li>
-                        @endif
+                        @endif --}}
                         @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_PLACES_VIEW))
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'shelter-places.index') ? 'active' : '' }}"

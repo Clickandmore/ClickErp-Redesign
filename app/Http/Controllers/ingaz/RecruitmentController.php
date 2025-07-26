@@ -37,7 +37,7 @@ class RecruitmentController extends Controller
             'jobTypes',
             'translations'
         ])
-        ->where('status', Maid::STATUS_AVAILABLE['ar']) // Use constant for better maintainability
+        ->where('status', 'available') // Use constant for better maintainability
         ->where('available', true) // Also check the available boolean field
         ->where('is_show', true)
         ->whereDoesntHave('contracts', function($q) {

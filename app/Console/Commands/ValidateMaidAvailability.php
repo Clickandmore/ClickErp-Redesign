@@ -50,7 +50,7 @@ class ValidateMaidAvailability extends Command
             $query->whereNotIn('status', ['back', 'closed', 'completed']);
         })->where(function($query) {
             $query->where('available', true)
-                  ->orWhere('status', 'متاحة');
+                  ->orWhere('status', 'available');
         })->get();
 
         foreach ($maidsWithActiveContractsButAvailable as $maid) {
@@ -72,7 +72,7 @@ class ValidateMaidAvailability extends Command
             if ($shouldFix) {
                 $maid->update([
                     'available' => false,
-                    'status' => 'محجوزة'
+                    'status' => 'reserved'
                 ]);
                 $fixedCount++;
                 $this->info("   ✅ Fixed: {$maid->name} (ID: {$maid->id})");
@@ -86,7 +86,7 @@ class ValidateMaidAvailability extends Command
             $query->whereIn('status', ['pending', 'approved', 'in_progress']);
         })->where(function($query) {
             $query->where('available', false)
-                  ->orWhere('status', 'محجوزة');
+                  ->orWhere('status', 'reserved');
         })->get();
 
         foreach ($maidsWithNoActiveContractsButReserved as $maid) {
@@ -104,7 +104,7 @@ class ValidateMaidAvailability extends Command
             if ($shouldFix) {
                 $maid->update([
                     'available' => true,
-                    'status' => 'متاحة'
+                    'status' => 'available'
                 ]);
                 $fixedCount++;
                 $this->info("   ✅ Fixed: {$maid->name} (ID: {$maid->id})");
@@ -116,7 +116,7 @@ class ValidateMaidAvailability extends Command
             $query->whereIn('status', ['pending', 'approved', 'in_progress']);
         })->where(function($query) {
             $query->where('available', true)
-                  ->orWhere('status', 'متاحة');
+                  ->orWhere('status', 'available');
         })->get();
 
         foreach ($maidsWithActiveOrdersButAvailable as $maid) {
@@ -138,7 +138,7 @@ class ValidateMaidAvailability extends Command
             if ($shouldFix) {
                 $maid->update([
                     'available' => false,
-                    'status' => 'محجوزة'
+                    'status' => 'reserved'
                 ]);
                 $fixedCount++;
                 $this->info("   ✅ Fixed: {$maid->name} (ID: {$maid->id})");

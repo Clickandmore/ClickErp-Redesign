@@ -95,7 +95,7 @@
                                             </div>
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label">الجنسية</label>
-                                                <input type="text" name="maid_nationality" id="maid_nationality" class="form-control" value="{{ $contract->maid && $contract->maid->nationality ? $contract->maid->nationality->title : '' }}" readonly>
+                                                <input type="text" name="maid_nationality" id="maid_nationality" class="form-control" value="{{ $contract->maid && $contract->maid->nationality ? $contract->maid->nationality->sub_title : '' }}" readonly>
                                             </div>
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label">الديانة</label>

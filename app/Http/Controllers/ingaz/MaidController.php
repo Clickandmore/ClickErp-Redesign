@@ -191,7 +191,7 @@ class MaidController extends Controller
     {
         $rows = objModel::latest()
             ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders']) // Eager load relationships
-            ->where('available', '0')
+            ->where('status', 'backout')
         // ->take(15)
         // ->where('passport_num', 'EP8002663')
         ;
@@ -300,7 +300,7 @@ class MaidController extends Controller
         // Prepare data for the view
         $data["createRoute"] = route($this->mainRoute . ".create");
         $data["dataTableRoute"] = route('noneAvailableMaids');
-        $data["bladeTitle"] = helperTrans("ingaz.maids");
+        $data["bladeTitle"] = "العاملات باك اوت";
         $data["addButtonText"] = helperTrans("ingaz.maid");
         $data["modalType"] = "modal-lg";
 
@@ -337,7 +337,7 @@ class MaidController extends Controller
     {
         $data = $request->all();
         // Set default status in Arabic
-        $data['status'] = Maid::STATUS_AVAILABLE['ar'];
+        $data['status'] = 'available';
         $row = $action->storeMaid($data, $request);
         return response()->json(['code' => 200, 'message' => 'تم إضافة العاملة بنجاح']);
     }
@@ -377,10 +377,10 @@ class MaidController extends Controller
 
         // Validate status
         $validStatuses = [
-            Maid::STATUS_AVAILABLE['ar'],
-            Maid::STATUS_RESERVED['ar'],
-            Maid::STATUS_CONTRACTED['ar'],
-            Maid::STATUS_IN_ACCOMMODATION['ar']
+            'available',
+            'reserved',
+            'contracted',
+            'in_accommodation'
         ];
 
         if (!in_array($newStatus, $validStatuses)) {
@@ -967,7 +967,7 @@ class MaidController extends Controller
     {
         try {
             $maids = Maid::where('available', true)
-                ->where('status', 'متاحة')
+                ->where('status', 'available')
                 ->with(['nationality'])
                 ->select(['id', 'name', 'passport_num', 'nationality_id'])
                 ->get()
@@ -992,7 +992,7 @@ class MaidController extends Controller
             $search = $request->get('search');
 
             $maids = Maid::where('available', true)
-                ->where('status', 'متاحة')
+                ->where('status', 'available')
                 ->where(function($query) use ($search) {
                     $query->where('name', 'like', '%' . $search . '%')
                           ->orWhere('passport_num', 'like', '%' . $search . '%');

@@ -360,6 +360,7 @@ return [
     'rec_contracts_view' => 'View Recruitment Contracts',
     'rec_contracts_create' => 'Create Recruitment Contract',
     'rec_contracts_edit' => 'Edit Recruitment Contract',
+    'rec_contracts_update' => 'Update Recruitment Contract',
     'rec_contracts_delete' => 'Delete Recruitment Contract',
     'rec_contracts_export' => 'Export Recruitment Contracts',
     'rec_contracts_print' => 'Print Recruitment Contract',

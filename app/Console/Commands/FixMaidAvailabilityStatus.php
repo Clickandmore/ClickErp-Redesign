@@ -64,18 +64,18 @@ class FixMaidAvailabilityStatus extends Command
             $this->line("   Active contracts: {$activeContracts->count()}");
 
             // Check if maid should be reserved
-            if ($maid->available && $maid->status === 'متاحة' && $activeContracts->count() > 0) {
+            if ($maid->available && $maid->status === 'available' && $activeContracts->count() > 0) {
                 if (!$isDryRun) {
                     // Update maid status to reserved
                     $maid->update([
                         'available' => false,
-                        'status' => 'محجوزة'
+                        'status' => 'reserved'
                     ]);
 
-                    $this->info("   ✅ UPDATED: Status changed to 'محجوزة', Available: false");
+                    $this->info("   ✅ UPDATED: Status changed to 'reserved', Available: false");
                     $updatedCount++;
                 } else {
-                    $this->warn("   ⚠️  WOULD UPDATE: Status would change to 'محجوزة', Available: false");
+                    $this->warn("   ⚠️  WOULD UPDATE: Status would change to 'reserved', Available: false");
                     $updatedCount++;
                 }
             } else {
@@ -101,18 +101,18 @@ class FixMaidAvailabilityStatus extends Command
             $this->line("   Active orders: {$activeOrders->count()}");
 
             // Check if maid should be reserved
-            if ($maid->available && $maid->status === 'متاحة' && $activeOrders->count() > 0) {
+            if ($maid->available && $maid->status === 'available' && $activeOrders->count() > 0) {
                 if (!$isDryRun) {
                     // Update maid status to reserved
                     $maid->update([
                         'available' => false,
-                        'status' => 'محجوزة'
+                        'status' => 'reserved'
                     ]);
 
-                    $this->info("   ✅ UPDATED: Status changed to 'محجوزة', Available: false");
+                    $this->info("   ✅ UPDATED: Status changed to 'reserved', Available: false");
                     $updatedCount++;
                 } else {
-                    $this->warn("   ⚠️  WOULD UPDATE: Status would change to 'محجوزة', Available: false");
+                    $this->warn("   ⚠️  WOULD UPDATE: Status would change to 'reserved', Available: false");
                     $updatedCount++;
                 }
             } else {

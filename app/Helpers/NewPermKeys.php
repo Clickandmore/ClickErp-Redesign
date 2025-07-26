@@ -97,6 +97,7 @@ class NewPermKeys
     const REC_CONTRACTS_VIEW = 'rec_contracts_view';
     const REC_CONTRACTS_CREATE = 'rec_contracts_create';
     const REC_CONTRACTS_EDIT = 'rec_contracts_edit';
+    const REC_CONTRACTS_UPDATE = 'rec_contracts_update';
     const REC_CONTRACTS_DELETE = 'rec_contracts_delete';
     const REC_CONTRACTS_EXPORT = 'rec_contracts_export';
     const REC_CONTRACTS_PRINT = 'rec_contracts_print';

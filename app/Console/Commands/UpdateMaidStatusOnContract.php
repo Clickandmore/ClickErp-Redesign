@@ -70,13 +70,13 @@ class UpdateMaidStatusOnContract extends Command
 
         if ($isActiveContract) {
             // Contract is active, maid should be reserved
-            if ($maid->available || $maid->status === 'متاحة') {
+            if ($maid->available || $maid->status === 'available') {
                 $maid->update([
                     'available' => false,
-                    'status' => 'محجوزة'
+                    'status' => 'reserved'
                 ]);
 
-                $this->info("   ✅ UPDATED: Maid status changed to 'محجوزة', Available: false");
+                $this->info("   ✅ UPDATED: Maid status changed to 'reserved', Available: false");
             } else {
                 $this->info("   ℹ️  Maid status already correct");
             }
@@ -91,10 +91,10 @@ class UpdateMaidStatusOnContract extends Command
                 // No active contracts or orders, maid can be available
                 $maid->update([
                     'available' => true,
-                    'status' => 'متاحة'
+                    'status' => 'available'
                 ]);
 
-                $this->info("   ✅ UPDATED: Maid status changed to 'متاحة', Available: true");
+                $this->info("   ✅ UPDATED: Maid status changed to 'available', Available: true");
             }
         }
 

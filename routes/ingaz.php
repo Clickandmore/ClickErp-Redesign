@@ -114,16 +114,21 @@ Route::group(
             Route::get('orders/completed', [OrderController::class, 'index'])->name('orders.completed');
             Route::get('orders/export/pdf', [OrderController::class, 'exportPdf'])->name('orders.export.pdf');
             Route::get('orders/export/excel', [OrderController::class, 'exportExcel'])->name('orders.export.excel');
-            Route::resource('RecruitmentContract', RecruitmentContractController::class);
+
+            // RecruitmentContract specific routes - MUST come before resource route
+            Route::get('RecruitmentContract/available-maids', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'getAvailableMaids'])->name('RecruitmentContract.availableMaids');
+            Route::get('RecruitmentContract/filter-options', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'getFilterOptions'])->name('RecruitmentContract.filterOptions');
+            Route::get('RecruitmentContract/statistics', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'statistics'])->name('RecruitmentContract.statistics');
             Route::get('RecruitmentContract/export/pdf', [\App\Http\Controllers\ingaz\RecruitmentContractController::class, 'exportPdf'])->name('RecruitmentContract.export.pdf');
             Route::get('RecruitmentContract/export/excel', [\App\Http\Controllers\ingaz\RecruitmentContractController::class, 'exportExcel'])->name('RecruitmentContract.export.excel');
+
+            Route::resource('RecruitmentContract', RecruitmentContractController::class);
             Route::get('RecruitmentContractBack/{id}', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'back'])->name('RecruitmentContract.back');
             Route::get('contractsDetails/{id}', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'details'])->name('contracts.details');
             Route::post('RecruitmentContract/{contractId}/add-maid', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'addMaidToContract'])->name('RecruitmentContract.addMaid');
             Route::get('RecruitmentContract/{contractId}/select-maid', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'selectMaidForContract'])->name('RecruitmentContract.selectMaid');
-            Route::get('RecruitmentContract/available-maids', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'getAvailableMaids'])->name('RecruitmentContract.availableMaids');
-            Route::get('RecruitmentContract/filter-options', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'getFilterOptions'])->name('RecruitmentContract.filterOptions');
-            Route::get('RecruitmentContract/statistics', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'statistics'])->name('RecruitmentContract.statistics');
+            Route::get('RecruitmentContract/{contractId}/change-maid', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'showChangeMaid'])->name('RecruitmentContract.showChangeMaid');
+            Route::post('RecruitmentContract/{contractId}/change-maid', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'changeMaid'])->name('RecruitmentContract.changeMaid');
             Route::resource('RentContract', RentContractController::class);
             Route::get('showDataOfOrder', [OrderController::class, 'showDataOfOrder'])->name('showDataOfOrder');
             Route::get('showDataOfMaid', [OrderController::class, 'showDataOfMaid'])->name('showDataOfMaid');

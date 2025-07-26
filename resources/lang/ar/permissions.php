@@ -360,6 +360,7 @@ return [
     'rec_contracts_view' => 'عرض عقود الاستقدام',
     'rec_contracts_create' => 'إنشاء عقد استقدام جديد',
     'rec_contracts_edit' => 'تعديل عقد الاستقدام',
+    'rec_contracts_update' => 'تحديث عقد الاستقدام',
     'rec_contracts_delete' => 'حذف عقد الاستقدام',
     'rec_contracts_export' => 'تصدير عقود الاستقدام',
     'rec_contracts_print' => 'طباعة عقد الاستقدام',
