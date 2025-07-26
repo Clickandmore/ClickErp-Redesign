@@ -45,7 +45,7 @@ class MaidController extends Controller
     {
         $query = objModel::query()
             ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders']) // Eager load relationships
-            ->select(['id', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at', 'is_pinned']) // Added is_pinned
+            ->select(['id', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at', 'is_pinned', 'status']) // Added status field
             ->orderBy('is_pinned', 'desc')
             ->orderBy('created_at', 'desc');
 
@@ -192,13 +192,16 @@ class MaidController extends Controller
     public function noneAvailableMaids(Request $request, objAction $Action)
     {
         $rows = objModel::latest()
-            ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders']) // Eager load relationships
+            ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders', 'unavailableRecords']) // Added unavailableRecords
+            ->select(['id', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at', 'is_pinned', 'status']) // Added status field
             ->where('status', 'backout')
-        // ->take(15)
-        // ->where('passport_num', 'EP8002663')
+            ->where('available', false)
         ;
+
         if ($request->ajax()) {
-            $this->applyMaidFilter($request, $rows);
+            // تطبيق الفلاتر الإضافية مع الحفاظ على فلتر backout
+            $this->applyMaidFilterForBackout($request, $rows);
+
             $dataTable = DataTables::of($rows)
                 ->addIndexColumn()
                 ->editColumn('is_show', function ($row) {
@@ -273,6 +276,16 @@ class MaidController extends Controller
                         }
                     }
                 })
+                ->addColumn('unavailable_reason', function ($row) {
+                    // جلب سبب عدم التوفر من جدول maid_unavailable_records
+                    $unavailableRecord = $row->unavailableRecords()->latest()->first();
+                    if ($unavailableRecord) {
+                        return '<span class="reason-badge" title="' . htmlspecialchars($unavailableRecord->reason) . '">' .
+                               htmlspecialchars(substr($unavailableRecord->reason, 0, 50)) .
+                               (strlen($unavailableRecord->reason) > 50 ? '...' : '') . '</span>';
+                    }
+                    return '<span class="text-muted">لا يوجد سبب محدد</span>';
+                })
                 ->addColumn('actions', function ($row) {
                     $showButton = '';
                     $editButton = '';
@@ -290,21 +303,23 @@ class MaidController extends Controller
 
                     return $showButton . " " . $editButton . " " . $deleteButton;
                 })
-                ->rawColumns(['is_show', 'available', 'available_at', 'cv_file', 'cv_status', 'actions'])
+                ->rawColumns(['is_show', 'available', 'available_at', 'cv_file', 'cv_status', 'unavailable_reason', 'actions'])
                 ->make(true);
 
             return $dataTable;
         }
 
+        $bladeTitle = "العاملات باك اوت";
+
         // Fetch filter options for dropdowns
-        $filter['nationalities'] = Nationality::latest()->get();
-        $filter['offices'] = RecruitmentOffices::latest()->get();
-        $filter['job_types'] = JobType::latest()->get();
+        $filter['nationalities'] = \App\Models\ingaz\Nationality::latest()->get();
+        $filter['offices'] = \App\Models\RecruitmentOffices::latest()->get();
+        $filter['job_types'] = \App\Models\ingaz\JobType::latest()->get();
 
         // Prepare data for the view
         $data["createRoute"] = route($this->mainRoute . ".create");
         $data["dataTableRoute"] = route('noneAvailableMaids');
-        $data["bladeTitle"] = "العاملات باك اوت";
+        $data["bladeTitle"] = $bladeTitle;
         $data["addButtonText"] = helperTrans("ingaz.maid");
         $data["modalType"] = "modal-lg";
 
@@ -877,6 +892,47 @@ class MaidController extends Controller
                 // فلتر خاص للعاملات باك اوت
                 $rows->where('status', 'backout')
                       ->where('available', 0);
+            }
+        }
+    }
+
+    public function applyMaidFilterForBackout($request, $rows)
+    {
+        if ($request->has('passport_num') && $request->passport_num != null) {
+            $rows->where('passport_num', 'like', '%' . $request->passport_num . '%');
+        }
+        if ($request->has('nationality_id') && $request->nationality_id != null) {
+            $rows->where('nationality_id', $request->nationality_id);
+        }
+        if ($request->has('office_id') && $request->office_id != null) {
+            $rows->where('office_id', $request->office_id);
+        }
+        if ($request->has('order_by') && $request->order_by != null) {
+            if ($request->order_by == 'low_price') {
+                $rows->orderBy('price', 'ASC');
+            } elseif ($request->order_by == 'low_salary') {
+                $rows->orderBy('salary', 'ASC');
+            }
+
+        }
+        if ($request->has('job_type') && !empty($request->job_type)) {
+            $rows->whereHas('jobTypes', function ($subQ) use ($request) {
+                if (is_array($request->job_type)) {
+                    $subQ->whereIn('job_type_id', $request->job_type);
+                } else {
+                    $subQ->where('job_type_id', $request->job_type);
+                }
+            });
+        }
+        if ($request->has('experience_years') && $request->experience_years != null) {
+            $rows->where('experience_years', $request->experience_years);
+        }
+        if ($request->has('datefilter') && $request->datefilter != null) {
+            $dates = explode(' - ', $request->datefilter);
+            if (count($dates) == 2) {
+                $startDate = Carbon::parse($dates[0])->startOfDay();
+                $endDate = Carbon::parse($dates[1])->endOfDay();
+                $rows->whereBetween('created_at', [$startDate, $endDate]);
             }
         }
     }

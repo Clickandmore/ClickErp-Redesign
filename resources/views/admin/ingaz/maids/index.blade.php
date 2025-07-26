@@ -252,10 +252,10 @@
         <div class="card-body show">
             <form id="filterForm">
                 <div class="row align-items-end">
-                    <div class="col-lg-2 col-md-3 col-sm-6 mb-2">
+                    <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                         <input type="text" class="form-control" id="passport_num" name="passport_num" value="{{$request->passport_num}}" placeholder="رقم الجواز">
                     </div>
-                    <div class="col-lg-2 col-md-3 col-sm-6 mb-2">
+                    <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                         <select class="form-control" name="nationality_id" id="nationality_id">
                             <option value="" selected>الجنسية</option>
                             @foreach($filter['nationalities'] as $nationality)
@@ -265,7 +265,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-2 col-md-3 col-sm-6 mb-2">
+                    <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                         <select class="form-control" name="office_id" id="office_id">
                             <option value="" selected>مكتب الاستقدام</option>
                             @foreach($filter['offices'] as $office)
@@ -273,7 +273,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-2 col-md-3 col-sm-6 mb-2">
+                    <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                         <select class="form-control" name="job_type" id="type">
                             <option value="" selected>نوع السيرة الذاتية</option>
                             @foreach($filter['job_types'] as $jobtype)
@@ -281,27 +281,29 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-2 col-md-3 col-sm-6 mb-2">
+                    <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                         <input type="text" name="experience_years" value="{{$request->experience_years}}" class="form-control" placeholder="سنوات الخبرة">
                     </div>
-                    <div class="col-lg-2 col-md-3 col-sm-6 mb-2">
-                        <input type="text" class="form-control" name="daterange" placeholder="مدى التاريخ" data-separator=" - " autocomplete="off" data-advanced-range="true">
-                    </div>
-                    <div class="col-lg-2 col-md-3 col-sm-6 mb-2">
+
+                    {{-- <div class="col-lg-2 col-md-3 col-sm-6 mb-2">
                         <select name="order_by" class="form-control">
                             <option value="">ترتيب حسب</option>
                             <option value="low_price" {{ ($request->order_by ?? '') == 'low_price' ? 'selected' : '' }}>الاقل سعرا</option>
                             <option value="low_salary" {{ ($request->order_by ?? '') == 'low_salary' ? 'selected' : '' }}>الاقل راتب</option>
                         </select>
-                    </div>
-                    <div class="col-lg-2 col-md-3 col-sm-6 mb-2">
+                    </div> --}}
+                    <div class="col-lg-3 col-md-3 col-sm-6 mb-2">
                         <select class="form-control" name="cv_status" id="cv_status">
                             <option value="" selected>{{helperTrans("ingaz.cv_status")}}</option>
                             <option value="available" {{ ($request->cv_status == 'available') ? 'selected' : '' }}>{{helperTrans("ingaz.cv_available")}}</option>
                             <option value="reserved" {{ ($request->cv_status == 'reserved') ? 'selected' : '' }}>{{helperTrans("ingaz.cv_reserved")}}</option>
+                            <option value="backout" {{ ($request->cv_status == 'backout') ? 'selected' : '' }}>باك اوت</option>
                         </select>
                     </div>
-                    <div class="col-lg-4 col-md-6 col-sm-12 mb-2 text-end">
+                    <div class="col-lg-3 col-md-3 col-sm-6 mb-2">
+                        <input type="text" class="form-control" name="daterange" placeholder="مدى التاريخ" data-separator=" - " autocomplete="off" data-advanced-range="true">
+                    </div>
+                    <div class="col-lg-3 col-md-3 col-sm-12 mb-3 text-end">
                         <button id="btnSubmit" type="button" class="btn btn-primary btn-search me-2">
                             <i class="fa fa-search me-1"></i> بحث
                         </button>
