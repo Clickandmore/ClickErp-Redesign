@@ -126,17 +126,19 @@ class MaidController extends Controller
                 })
                 ->addColumn('cv_status', function ($row) {
                     // تحديد حالة السيرة الذاتية بناءً على الحقول المتاحة
-                    if ($row->available == 0) {
-                        return '<span class="badge bg-danger">' . __('ingaz.cv_reserved') . '</span>';
+                    if ($row->status === 'backout') {
+                        return '<span class="badge bg-danger">باك اوت</span>';
+                    } elseif ($row->available == 0) {
+                        return '<span class="badge bg-warning">محجوزة</span>';
                     } else {
                         // التحقق من وجود عقود أو طلبات نشطة
-                        $hasActiveContracts = $row->contracts()->whereIn('status', ['active', 'pending'])->exists();
-                        $hasActiveOrders = $row->orders()->whereIn('status', ['pending', 'approved', 'in_progress'])->exists();
+                        $hasActiveContracts = $row->contracts()->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival'])->exists();
+                        $hasActiveOrders = $row->orders()->whereIn('status', ['new', 'under_process', 'contracted'])->exists();
 
                         if ($hasActiveContracts || $hasActiveOrders) {
-                            return '<span class="badge bg-warning">' . __('ingaz.cv_reserved') . '</span>';
+                            return '<span class="badge bg-warning">محجوزة</span>';
                         } else {
-                            return '<span class="badge bg-success">' . __('ingaz.cv_available') . '</span>';
+                            return '<span class="badge bg-success">متاحة</span>';
                         }
                     }
                 })
@@ -255,17 +257,19 @@ class MaidController extends Controller
                 })
                 ->addColumn('cv_status', function ($row) {
                     // تحديد حالة السيرة الذاتية بناءً على الحقول المتاحة
-                    if ($row->available == 0) {
-                        return '<span class="badge bg-danger">' . __('ingaz.cv_reserved') . '</span>';
+                    if ($row->status === 'backout') {
+                        return '<span class="badge bg-danger">باك اوت</span>';
+                    } elseif ($row->available == 0) {
+                        return '<span class="badge bg-warning">محجوزة</span>';
                     } else {
                         // التحقق من وجود عقود أو طلبات نشطة
-                        $hasActiveContracts = $row->contracts()->whereIn('status', ['active', 'pending'])->exists();
-                        $hasActiveOrders = $row->orders()->whereIn('status', ['pending', 'approved', 'in_progress'])->exists();
+                        $hasActiveContracts = $row->contracts()->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival'])->exists();
+                        $hasActiveOrders = $row->orders()->whereIn('status', ['new', 'under_process', 'contracted'])->exists();
 
                         if ($hasActiveContracts || $hasActiveOrders) {
-                            return '<span class="badge bg-warning">' . __('ingaz.cv_reserved') . '</span>';
+                            return '<span class="badge bg-warning">محجوزة</span>';
                         } else {
-                            return '<span class="badge bg-success">' . __('ingaz.cv_available') . '</span>';
+                            return '<span class="badge bg-success">متاحة</span>';
                         }
                     }
                 })
@@ -847,26 +851,32 @@ class MaidController extends Controller
             }
         }
 
-        // فلتر حالة السيرة الذاتية
+        // فلتر حالة السيرة الذاتية - تحديث ليدعم حالة backout
         if ($request->has('cv_status') && $request->cv_status != null) {
             if ($request->cv_status == 'available') {
                 $rows->where('available', 1)
+                    ->where('status', 'available')
                     ->whereDoesntHave('contracts', function($q) {
-                        $q->whereIn('status', ['active', 'pending']);
+                        $q->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival']);
                     })
                     ->whereDoesntHave('orders', function($q) {
-                        $q->whereIn('status', ['pending', 'approved', 'in_progress']);
+                        $q->whereIn('status', ['new', 'under_process', 'contracted']);
                     });
             } elseif ($request->cv_status == 'reserved') {
                 $rows->where(function($q) {
                     $q->where('available', 0)
+                      ->where('status', 'reserved')
                       ->orWhereHas('contracts', function($subQ) {
-                          $subQ->whereIn('status', ['active', 'pending']);
+                          $subQ->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival']);
                       })
                       ->orWhereHas('orders', function($subQ) {
-                          $subQ->whereIn('status', ['pending', 'approved', 'in_progress']);
+                          $subQ->whereIn('status', ['new', 'under_process', 'contracted']);
                       });
                 });
+            } elseif ($request->cv_status == 'backout') {
+                // فلتر خاص للعاملات باك اوت
+                $rows->where('status', 'backout')
+                      ->where('available', 0);
             }
         }
     }

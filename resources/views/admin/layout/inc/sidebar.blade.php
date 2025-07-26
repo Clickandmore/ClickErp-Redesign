@@ -110,7 +110,7 @@
                             <a class="m-link {{ (Route::currentRouteName() == 'noneAvailableMaids') ? 'active' : '' }}"
                                 href="{{route('noneAvailableMaids')}}">
                                 <i class="fa fa-times-circle"></i>
-                                <span class="ms-2">العاملات باك اوت</span>
+                                <span class="ms-2">عاملات باك اوت</span>
                             </a>
                         </li>
                         @endif

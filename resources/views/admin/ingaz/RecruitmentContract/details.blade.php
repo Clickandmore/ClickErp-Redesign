@@ -5,100 +5,226 @@
 <link rel="stylesheet" href="{{asset("admin")}}/custom/status-badges.css">
 @endsection
 @section('page-title')
-{{helperTrans("ingaz.contract details")}}
+{{helperTrans("ingaz.contract details")}} - العقد رقم #{{ $contract->id }}
 @endsection
+
 <style>
-    .print_invoice textarea:focus,
-    .print_invoice textarea:hover {
-        background: white !important;
-        border: 0px !important;
-        color: black;
+    /* تحسين المظهر العام */
+    .contract-details-container {
+        background: #f8f9fa;
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
     }
 
-    .print_invoice textarea {
-        border: 0px !important;
+    .contract-header {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        text-align: center;
     }
 
-    .address {
-        line-height: 1.6 !important;
-        width: 300px !important;
-        font-size: 18px !important;
-        margin-top: 20px;
+    .contract-header h2 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: bold;
     }
 
-    .print_invoice .meta {
-        width: 500px !important;
+    .contract-header .contract-status {
+        background: rgba(255,255,255,0.2);
+        padding: 8px 16px;
+        border-radius: 20px;
+        display: inline-block;
+        margin-top: 10px;
+        font-weight: 600;
     }
 
-    .print_invoice .meta td.meta-head {
-        text-align: right !important;
+    /* تحسين البطاقات */
+    .info-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        border-left: 4px solid #007bff;
     }
 
-    .print_invoice .meta td textarea {
-        height: auto !important;
+    .info-card.client-info {
+        border-left-color: #28a745;
     }
 
+    .info-card.maid-info {
+        border-left-color: #ffc107;
+    }
+
+    .info-card.contract-info {
+        border-left-color: #17a2b8;
+    }
+
+    .info-card.financial-info {
+        border-left-color: #dc3545;
+    }
+
+    .card-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #495057;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+    }
+
+    .card-title i {
+        margin-left: 10px;
+        font-size: 20px;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f8f9fa;
+    }
+
+    .info-row:last-child {
+        border-bottom: none;
+    }
+
+    .info-label {
+        font-weight: 600;
+        color: #495057;
+        min-width: 150px;
+    }
+
+    .info-value {
+        color: #212529;
+        text-align: left;
+    }
+
+    .info-value.highlight {
+        color: #007bff;
+        font-weight: 600;
+    }
+
+    .info-value.success {
+        color: #28a745;
+        font-weight: 600;
+    }
+
+    .info-value.warning {
+        color: #ffc107;
+        font-weight: 600;
+    }
+
+    .info-value.danger {
+        color: #dc3545;
+        font-weight: 600;
+    }
+
+    /* تحسين أزرار الإجراءات */
     .action-buttons {
         display: flex;
-        gap: 10px;
+        gap: 15px;
         justify-content: center;
-        margin-top: 20px;
+        margin-top: 30px;
+        flex-wrap: wrap;
     }
 
     .btn-icon {
-        width: 50px;
-        height: 50px;
+        width: 60px;
+        height: 60px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 18px;
+        font-size: 20px;
         transition: all 0.3s ease;
         border: none;
         cursor: pointer;
+        text-decoration: none;
+        color: white;
     }
 
     .btn-icon:hover {
         transform: scale(1.1);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+        color: white;
+        text-decoration: none;
     }
 
     .btn-print {
         background: linear-gradient(135deg, #007bff, #0056b3);
-        color: white;
     }
 
     .btn-edit {
         background: linear-gradient(135deg, #28a745, #1e7e34);
-        color: white;
     }
 
     .btn-back {
         background: linear-gradient(135deg, #6c757d, #545b62);
-        color: white;
     }
 
     .btn-delete {
         background: linear-gradient(135deg, #dc3545, #c82333);
-        color: white;
     }
 
     .btn-change-maid {
         background: linear-gradient(135deg, #ffc107, #e0a800);
-        color: white;
     }
 
-    /* Modal Styles */
+    /* تحسين البادجات */
+    .status-badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        border-radius: 25px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+
+    .status-badge:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    /* تحسين الجداول */
+    .info-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .info-table th {
+        background: #f8f9fa;
+        padding: 12px;
+        text-align: right;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .info-table td {
+        padding: 12px;
+        border-bottom: 1px solid #f8f9fa;
+    }
+
+    .info-table tr:hover {
+        background: #f8f9fa;
+    }
+
+    /* تحسين Modal */
     .modal-content {
-        border-radius: 10px;
+        border-radius: 15px;
         border: none;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.3);
     }
 
     .modal-header {
         background: linear-gradient(135deg, #f8f9fa, #e9ecef);
         border-bottom: 1px solid #dee2e6;
-        border-radius: 10px 10px 0 0;
+        border-radius: 15px 15px 0 0;
     }
 
     .modal-title {
@@ -111,10 +237,11 @@
         color: #007bff;
     }
 
+    /* تحسين النماذج */
     .form-check {
         margin-bottom: 10px;
-        padding: 8px;
-        border-radius: 4px;
+        padding: 10px;
+        border-radius: 8px;
         transition: background-color 0.2s ease;
     }
 
@@ -135,8 +262,16 @@
         font-size: 16px;
     }
 
-    .form-check-input:checked + .form-check-label {
-        font-weight: 600;
+    .form-control:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    /* تحسين التنبيهات */
+    .alert {
+        border-radius: 10px;
+        border: none;
+        padding: 15px 20px;
     }
 
     .alert-info {
@@ -145,738 +280,369 @@
         color: #0c5460;
     }
 
-    /* Filter Styles */
-    .form-group .btn-outline-secondary {
-        border-color: #6c757d;
-        color: #6c757d;
-        transition: all 0.3s ease;
-    }
+    /* تحسين الطباعة */
+    @media print {
+        .action-buttons, .modal {
+            display: none !important;
+        }
 
-    .form-group .btn-outline-secondary:hover {
-        background-color: #6c757d;
-        color: white;
-    }
-
-    .form-control:focus {
-        border-color: #007bff;
-        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    }
-
-    .form-label {
-        font-weight: 600;
-        color: #495057;
-        margin-bottom: 0.5rem;
-    }
-
-    .form-label i {
-        margin-left: 0.5rem;
-        color: #007bff;
-    }
-
-    /* Search Input Group Styles */
-    .input-group .form-control {
-        border-right: 0;
-    }
-
-    .input-group .btn {
-        border-left: 0;
-        background-color: #f8f9fa;
-    }
-
-    .input-group .btn:hover {
-        background-color: #e9ecef;
-    }
-
-    .input-group:focus-within .form-control {
-        border-color: #007bff;
-        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    }
-
-    .input-group:focus-within .btn {
-        border-color: #007bff;
-    }
-
-    .info-card {
-        background: #f8f9fa;
-        border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 20px;
-        border-left: 4px solid #007bff;
-    }
-
-    .info-title {
-        font-weight: bold;
-        color: #495057;
-        margin-bottom: 10px;
-        font-size: 16px;
-    }
-
-    .info-value {
-        color: #212529;
-        font-size: 14px;
-    }
-
-    .print_invoice .meta {
-        margin-top: 1rem;
-    }
-
-    .print_invoice .meta > div {
-        margin-bottom: 0.5rem;
-    }
-
-    .print_invoice .meta > div > span {
-        font-weight: 600;
-        display: inline-block;
-        width: 100px;
-    }
-
-    .card {
-        border-radius: 10px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        margin-bottom: 20px;
-    }
-
-    .card-header {
-        border-radius: 10px 10px 0 0 !important;
-        border-bottom: none;
-    }
-
-    .card-body {
-        padding: 1.5rem;
-    }
-
-    .form-label {
-        color: #495057;
-        font-size: 0.9rem;
-        margin-bottom: 0.5rem;
-    }
-
-    .badge {
-        font-size: 0.8rem;
-        padding: 0.5rem 0.75rem;
-        font-weight: 600;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    }
-
-    /* تحسين ألوان البادجات لتكون أكثر وضوحاً */
-    .badge.bg-primary {
-        background-color: #0d6efd !important;
-        color: white !important;
-    }
-
-    .badge.bg-success {
-        background-color: #198754 !important;
-        color: white !important;
-    }
-
-    .badge.bg-warning {
-        background-color: #ffc107 !important;
-        color: #212529 !important;
-    }
-
-    .badge.bg-info {
-        background-color: #0dcaf0 !important;
-        color: white !important;
-    }
-
-    .badge.bg-danger {
-        background-color: #dc3545 !important;
-        color: white !important;
-    }
-
-    .badge.bg-secondary {
-        background-color: #6c757d !important;
-        color: white !important;
-    }
-
-    .badge.bg-dark {
-        background-color: #212529 !important;
-        color: white !important;
-    }
-
-    /* تحسين مظهر بادج حالة العقد */
-    .status-badge {
-        font-size: 0.9rem;
-        padding: 0.5rem 1rem;
-        font-weight: 600;
-        border-radius: 25px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
-    }
-
-    .status-badge:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-
-    .alert {
-        border-radius: 8px;
-        border: none;
-    }
-
-    .text-primary {
-        color: #007bff !important;
-    }
-
-    .text-success {
-        color: #28a745 !important;
-    }
-
-    .text-danger {
-        color: #dc3545 !important;
-    }
-
-    .bg-info {
-        background-color: #17a2b8 !important;
-    }
-
-    .bg-warning {
-        background-color: #ffc107 !important;
-    }
-
-    .bg-secondary {
-        background-color: #6c757d !important;
-    }
-
-    /* Search Results Highlighting */
-    .form-control:focus {
-        border-color: #007bff;
-        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    }
-
-    /* Dropdown Enhancement */
-    select.form-control option {
-        padding: 8px 12px;
-        border-bottom: 1px solid #f8f9fa;
-    }
-
-    select.form-control option:hover {
-        background-color: #f8f9fa;
-    }
-
-    select.form-control option[disabled] {
-        color: #6c757d;
-        font-style: italic;
-        background-color: #f8f9fa;
+        .contract-details-container {
+            background: white !important;
+            box-shadow: none !important;
+        }
     }
 </style>
+
 @section('content')
 @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
 
-<div class="row g-3">
-    <div class="col-12">
-        <div class="card print_invoice" id="printDiv">
-            <div class="card-header border-bottom fs-4">
-                <h5 class="card-title mb-0">{{@$contract->desc}}</h5>
-            </div>
-            <div class="card-body">
-                <div class="card p-3">
-                    <div class="border-bottom pb-2">
-                        <textarea class="form-control address">
-                    @if(@$info->contract_date)
-                        {{helperTrans('ingaz.contract date')}} : {{@$info->contract_date}}
-                    @endif
-                    @if(@$info->msaned_number)
-                        {{helperTrans('ingaz.msaned number')}} : {{@$info->msaned_number}}
-                    @endif
-                    @if(@$info->tafwed_number)
-                        {{helperTrans('ingaz.tafwed number')}} : {{@$info->tafwed_number}}
-                    @endif
-                    @if(@$info->visa_number)
-                        {{helperTrans('ingaz.visa number')}} :      {{@$info->visa_number}}
-                    @endif
+<div class="contract-details-container">
+    <!-- رأس العقد -->
+    <div class="contract-header">
+        <h2><i class="fas fa-file-contract me-2"></i>تفاصيل العقد</h2>
+        <div class="contract-status">
+            <i class="fas fa-circle me-2"></i>
+            {{ getContractStatus($contract->status) }}
+        </div>
+    </div>
 
-                    {{helperTrans('ingaz.contract status')}} :  {{getEnumValue('contract_statuses', $contract->status)}}
-
-
-                </textarea>
-                        <div>
-                            <img src="{{showFile($settings->logo_header)}}" alt="logo">
-                            {{-- <img src="{{asset('a.png')}}" alt="logo">--}}
-                        </div>
-                    </div>
-                    <div style="clear:both"></div>
-<div class="row">
-
-
-                    <!-- معلومات العميل المحسنة -->
-                    <div class="customer col-md-6 mt-4">
-
-                        <table class="meta">
-                            <tbody>
-                                <tr>
-                                    <td class="meta-head">{{helperTrans('ingaz.client')}}</td>
-                                    <td><textarea class="form-control">{{@$contract->user->name}}</textarea></td>
-                                </tr>
-                                <tr>
-                                    <td class="meta-head">{{helperTrans('ingaz.phone')}}</td>
-                                    <td><textarea
-                                            class="form-control">{{@$contract->user->phone_code.@$contract->user->phone}}</textarea>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="meta-head">تاريخ الميلاد</td>
-                                    <td><textarea class="form-control">{{@$contract->user->birthdate ? \Carbon\Carbon::parse($contract->user->birthdate)->format('Y-m-d') : 'غير محدد'}}</textarea></td>
-                                </tr>
-                                <tr>
-                                    <td class="meta-head">{{helperTrans('ingaz.address')}}</td>
-                                    <td>
-                                        @if(isset($contract->user->addresses[0]))
-                                        <textarea
-                                            class="form-control">{{@$contract->user->addresses[0]->address.@$contract->user->addresses[0]->title}}</textarea>
-                                        @endif
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="meta-head">الجنسية</td>
-                                    <td><textarea class="form-control">{{@$contract->user->nationality->title ?: 'غير محدد'}}</textarea></td>
-                                </tr>
-                                <tr>
-                                    <td class="meta-head">رقم الهوية</td>
-                                    <td><textarea class="form-control">{{@$contract->user->national_num ?: 'غير محدد'}}</textarea></td>
-                                </tr>
-                                <tr>
-                                    <td class="meta-head">البريد الإلكتروني</td>
-                                    <td><textarea class="form-control">{{@$contract->user->email ?: 'غير محدد'}}</textarea></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    {{-- <div style="clear:both"></div> --}}
-
-                    <!-- معلومات العقد المحسنة -->
-                    <div class="col-md-6 mt-4">
-                        <div class="card">
-                            <div class="card-header bg-info text-white">
-                                <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>معلومات العقد الأساسية</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">رقم العقد:</label>
-                                        <p class="text-primary">{{ $contract->id }}</p>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">تاريخ العقد:</label>
-                                        <p class="text-success">{{ $info->contract_date ? \Carbon\Carbon::parse($info->contract_date)->format('Y-m-d') : 'غير محدد' }}</p>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">رقم مساند:</label>
-                                        <p>{{ $info->msaned_number ?? 'غير محدد' }}</p>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">رقم تفويض:</label>
-                                        <p>{{ $info->tafwed_number ?? 'غير محدد' }}</p>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">رقم التأشيرة:</label>
-                                        <p>{{ $info->visa_number ?? 'غير محدد' }}</p>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">تاريخ التأشيرة الميلادي:</label>
-                                        <p>{{ $info->visa_milad_date ? \Carbon\Carbon::parse($info->visa_milad_date)->format('Y-m-d') : 'غير محدد' }}</p>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">تاريخ التأشيرة الهجري:</label>
-                                        <p>{{ $info->visa_hijry_date ? \Carbon\Carbon::parse($info->visa_hijry_date)->format('Y-m-d') : 'غير محدد' }}</p>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">مدة العقد:</label>
-                                        <p>{{ $info->contract_duration ?? 'غير محدد' }} سنة</p>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">تاريخ انتهاء العقد:</label>
-                                        @php
-                                            $contractDate = $info->contract_date ? \Carbon\Carbon::parse($info->contract_date) : null;
-                                            $expiryDate = $contractDate ? $contractDate->addYears($info->contract_duration ?? 2) : null;
-                                        @endphp
-                                        <p class="text-danger">{{ $expiryDate ? $expiryDate->format('Y-m-d') : 'غير محدد' }}</p>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">حالة العقد:</label>
-                                        <span class="badge bg-{{ getContractStatusColor($contract->status) }} status-badge">
-                                            {{ getContractStatus($contract->status) }}
-                                        </span>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">تاريخ إنشاء العقد:</label>
-                                        <p>{{ $contract->created_at ? \Carbon\Carbon::parse($contract->created_at)->format('Y-m-d H:i') : 'غير محدد' }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-6 mt-4">
-                        <div class="card">
-                            <div class="card-header bg-warning text-dark">
-                                <h5 class="mb-0"><i class="fas fa-user-tie me-2"></i>معلومات المسوق</h5>
-                            </div>
-                            <div class="card-body">
-                                @if($marketer)
-                                    <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label fw-bold">اسم المسوق:</label>
-                                            <p class="text-primary">{{ $marketer->name }}</p>
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label fw-bold">رقم الجوال:</label>
-                                            <p>{{ $marketer->phone ?? 'غير محدد' }}</p>
-                                        </div>
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label fw-bold">البريد الإلكتروني:</label>
-                                            <p>{{ $marketer->email ?? 'غير محدد' }}</p>
-                                        </div>
-
-                                    </div>
-                                @else
-                                    <div class="alert alert-info">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        لا توجد معلومات عن المسوق لهذا العقد
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
+    <div class="row">
+        <!-- معلومات العميل -->
+        <div class="col-md-6 mb-4">
+            <div class="info-card client-info">
+                <div class="card-title">
+                    <i class="fas fa-user text-success"></i>
+                    معلومات العميل
                 </div>
-                    <table class="items">
-                        <tbody>
-                            <tr>
-                                <th>تقرير الحالات</th>
-                                <th style="width: 140px;">الوقت</th>
-                            </tr>
-                            @foreach($contract->contract_status_logs as $logs)
-                            <tr class="item-row">
-                                <td>
-                                    {{getEnumValue('contract_statuses',$logs->status)}}
-                                </td>
-                                <td>{{$logs->date}}</td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                <div class="info-row">
+                    <span class="info-label">الاسم:</span>
+                    <span class="info-value highlight">{{ $contract->user->name ?? 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">رقم الجوال:</span>
+                    <span class="info-value">{{ $contract->user->phone_code . $contract->user->phone ?? 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">تاريخ الميلاد:</span>
+                    <span class="info-value">{{ $contract->user->birthdate ? \Carbon\Carbon::parse($contract->user->birthdate)->format('Y-m-d') : 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">الجنسية:</span>
+                    <span class="info-value">{{ $contract->user->nationality->title ?? 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">رقم الهوية:</span>
+                    <span class="info-value">{{ $contract->user->national_num ?? 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">البريد الإلكتروني:</span>
+                    <span class="info-value">{{ $contract->user->email ?? 'غير محدد' }}</span>
+                </div>
+                @if(isset($contract->user->addresses[0]))
+                <div class="info-row">
+                    <span class="info-label">العنوان:</span>
+                    <span class="info-value">{{ $contract->user->addresses[0]->address . ' ' . $contract->user->addresses[0]->title }}</span>
+                </div>
+                @endif
+            </div>
+        </div>
 
-                    <table class="items">
-                        <tbody>
-                            <tr>
-                                <th>العامل/ة</th>
-                                <th style="width: 140px;">البيانات</th>
-                            </tr>
-                            <tr class="item-row">
-                                <td>
-                                    رقم الجواز
-                                </td>
-                                <td>
-                                    {{@$contract->maid->passport_num ?: 'غير محدد'}}
-                                </td>
-                            </tr>
-                            <tr class="item-row">
-                                <td>
-                                    {{helperTrans('ingaz.price')}}
-                                </td>
-                                <td>
-                                    {{@$contract->maid->price}}
-                                </td>
-                            </tr>
-                            <tr class="item-row">
-                                <td>
-                                    {{helperTrans('ingaz.salary')}}
-                                </td>
-                                <td>
-                                    {{@$contract->maid->salary}}
-                                </td>
-                            </tr>
-                            <tr class="item-row">
-                                <td>
-                                    الجنسية
-                                </td>
-                                <td>
-                                    {{@$contract->maid->nationality->title ?: 'غير محدد'}}
-                                </td>
-                            </tr>
-                            <tr class="item-row">
-                                <td>
-                                    الدين
-                                </td>
-                                <td>
-                                    {{@$contract->maid->religion->title ?: 'غير محدد'}}
-                                </td>
-                            </tr>
-                            <tr class="item-row">
-                                <td>
-                                    المهنة
-                                </td>
-                                <td>
-                                    {{@$contract->maid->jobTitles && $contract->maid->jobTitles->first() ? $contract->maid->jobTitles->first()->title : 'غير محدد'}}
-                                </td>
-                            </tr>
-                            <tr class="item-row">
-                                <td>
-                                    سنوات الخبرة
-                                </td>
-                                <td>
-                                    {{@$contract->maid->experience_years ?: 'غير محدد'}}
-                                </td>
-                            </tr>
-                            <tr class="item-row">
-                                <td>
-                                    العمر
-                                </td>
-                                <td>
-                                    {{@$contract->maid->age ?: 'غير محدد'}}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <table class="items">
-                        <tbody>
-                            <tr>
-                                <th colspan="2">بيانات العقد</th>
-                            </tr>
-                            <tr class="item-row">
-                                <td>
-                                    مدة العقد
-                                </td>
-                                <td>
-                                    {{@$info->contract_duration}}
-                                </td>
-                            </tr>
-                            <tr class="item-row">
-                                <td>
-                                    رقم التأشيرة
-                                </td>
-                                <td>
-                                    {{@$info->visa_number}}
-                                </td>
-                            </tr>
-                            <tr class="item-row">
-                                <td>
-                                    تاريخ التأشيرة الهجري
-                                </td>
-                                <td>
-                                    {{@$info->visa_hijry_date}}
-                                </td>
-                            </tr>
-                            <tr class="item-row">
-                                <td>
-                                    تاريخ التأشيرة الميلادي
-                                </td>
-                                <td>
-                                    {{@$info->visa_milad_date}}
-                                </td>
-                            </tr>
-                            <tr class="item-row">
-                                <td>
-                                    عدد ساعات العمل
-                                </td>
-                                <td>
-                                    {{@$info->working_hours_num}}
-                                </td>
-                            </tr>
-                            <tr class="item-row">
-                                <td>
-                                    مبلغ نقل الكفالة
-                                </td>
-                                <td>
-                                    {{@$info->sponsorship_price}}
-                                </td>
-                            </tr>
-                            <tr class="item-row">
-                                <td>
-                                    الراتب بعد الكفالة
-                                </td>
-                                <td>
-                                    {{@$info->salary_after_sponsorship}}
-                                </td>
-                            </tr>
-
-                            <tr class="item-row">
-                                <td>
-                                    التكلفة الشهرية
-                                </td>
-                                <td>
-                                    {{@$info->monthly_cost}}
-                                </td>
-                            </tr>
-                            <tr class="item-row">
-                                <td>
-                                    قيمة العقد
-                                </td>
-                                <td>
-                                    {{@$info->contract_value}}
-                                </td>
-                            </tr>
-
-                            <tr class="item-row">
-                                <td>
-                                    الانجاز من
-                                </td>
-                                <td>
-                                    {{@$info->ingaz_from}}
-                                </td>
-                            </tr>
-
-                            <tr class="item-row">
-                                <td>
-                                    الانجاز الي
-                                </td>
-                                <td>
-                                    {{@$info->ingaz_to}}
-                                </td>
-                            </tr>
-
-                            <tr class="item-row">
-                                <td>
-                                    الكفيل السابق
-                                </td>
-                                <td>
-                                    {{ @$info->prevSponsorship->title }}
-                                </td>
-                            </tr>
-
-                            <tr class="item-row">
-                                <td>
-                                    تاريخ ارجاع العامل/ة
-                                </td>
-                                <td>
-                                    {{ @$info->maid_date_back }}
-                                </td>
-                            </tr>
-
-                            <tr class="item-row">
-                                <td>
-                                    الحالة النهائية للراتب
-                                </td>
-                                <td>
-                                    {{ @$info->salary_final_status }}
-                                </td>
-                            </tr>
-
-                            <tr class="item-row">
-                                <td>
-                                    المدة منذ دخول المملكة
-                                </td>
-                                <td>
-                                    {{ @$info->duration_from_enter }}
-                                </td>
-                            </tr>
-
-                            <tr class="item-row">
-                                <td>
-                                    اسباب ارجاع العاملة
-                                </td>
-                                <td>
-                                    {{ @$info->back_reasons }}
-                                </td>
-                            </tr>
-
-                            <tr class="item-row">
-                                <td>
-                                    مقر الايواء
-                                </td>
-                                <td>
-                                    {{ @$info->shelter->title }}
-                                </td>
-                            </tr>
-
-
-                        </tbody>
-                    </table>
-
-                    @if($contract->order)
-                    <div class="col-md-12 mt-4">
-                        <div class="card">
-                            <div class="card-header bg-secondary text-white">
-                                <h5 class="mb-0"><i class="fas fa-list-check me-2"></i>معلومات الطلب المسبق</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-3 mb-3">
-                                        <label class="form-label fw-bold">رقم الطلب:</label>
-                                        <p class="text-primary">{{ $contract->order->order_code }}</p>
-                                    </div>
-                                    <div class="col-md-3 mb-3">
-                                        <label class="form-label fw-bold">تاريخ الطلب:</label>
-                                        <p>{{ $contract->order->created_at ? \Carbon\Carbon::parse($contract->order->created_at)->format('Y-m-d H:i') : 'غير محدد' }}</p>
-                                    </div>
-                                    <div class="col-md-3 mb-3">
-                                        <label class="form-label fw-bold">حالة الطلب:</label>
-                                        <span class="badge bg-{{ $contract->order->status == 'completed' ? 'success' : 'warning' }}">
-                                            {{ $contract->order->status == 'completed' ? 'مكتمل' : 'قيد المعالجة' }}
-                                        </span>
-                                    </div>
-                                    <div class="col-md-3 mb-3">
-                                        <label class="form-label fw-bold">طريقة الدفع:</label>
-                                        <p>{{ $contract->order->payment_method ?? 'غير محدد' }}</p>
-                                    </div>
-                                    @if($contract->order->details && $contract->order->details->package)
-                                    <div class="col-md-3 mb-3">
-                                        <label class="form-label fw-bold">الحزمة المختارة:</label>
-                                        <p class="text-primary">{{ $contract->order->details->package->title ?? 'غير محدد' }}</p>
-                                    </div>
-                                    @endif
-                                    @if($contract->order->details && $contract->order->details->address)
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">عنوان التوصيل:</label>
-                                        <p>{{ $contract->order->details->address->address ?? 'غير محدد' }}</p>
-                                    </div>
-                                    @endif
-                                    @if($contract->order->details && $contract->order->details->package)
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">سعر الحزمة:</label>
-                                        <p class="text-success">{{ $contract->order->details->package->price ? number_format($contract->order->details->package->price, 2) . ' ريال' : 'غير محدد' }}</p>
-                                    </div>
-                                    @endif
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">نوع العمل:</label>
-                                        <p>{{ $contract->order->jobType->title ?? 'غير محدد' }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    @endif
-
-                    <div style="clear:both"></div>
-                    <div class="footer-note mt-5">
-                        <h5 style="margin-right: 35px">التوقيـــــــع</h5>
-                        (&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)
-                    </div>
+        <!-- معلومات العاملة -->
+        <div class="col-md-6 mb-4">
+            <div class="info-card maid-info">
+                <div class="card-title">
+                    <i class="fas fa-user-tie text-warning"></i>
+                    معلومات العاملة
+                </div>
+                <div class="info-row">
+                    <span class="info-label">الاسم:</span>
+                    <span class="info-value highlight">{{ $contract->maid->name ?? 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">رقم الجواز:</span>
+                    <span class="info-value">{{ $contract->maid->passport_num ?? 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">الجنسية:</span>
+                    <span class="info-value">{{ $contract->maid->nationality->sub_title ?? 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">الدين:</span>
+                    <span class="info-value">{{ $contract->maid->religion->title ?? 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">المهنة:</span>
+                    <span class="info-value">{{ $contract->maid->jobTitles && $contract->maid->jobTitles->first() ? $contract->maid->jobTitles->first()->title : 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">سنوات الخبرة:</span>
+                    <span class="info-value">{{ $contract->maid->experience_years ?? 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">العمر:</span>
+                    <span class="info-value">{{ $contract->maid->age ?? 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">السعر:</span>
+                    <span class="info-value success">{{ $contract->maid->price ?? 'غير محدد' }} ريال</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">الراتب:</span>
+                    <span class="info-value success">{{ $contract->maid->salary ?? 'غير محدد' }} ريال</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- أزرار الإجراءات المحسنة -->
-    <div class="col-12">
-        <div class="action-buttons">
-            <button type="button" class="btn-icon btn-print" onclick="printDiv()" title="طباعة العقد">
-                <i class="fas fa-print"></i>
-            </button>
-
-            @if(@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EDIT))
-            <a href="{{ route('RecruitmentContract.edit', $contract->id) }}" class="btn-icon btn-edit" title="تعديل العقد">
-                <i class="fas fa-edit"></i>
-            </a>
-            @endif
-
-            @if(@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE))
-            <button type="button" class="btn-icon btn-change-maid" onclick="openChangeMaidModal()" title="تغيير العاملة">
-                <i class="fas fa-exchange-alt"></i>
-            </button>
-            @endif
-
-            <a href="{{ route('RecruitmentContract.index') }}" class="btn-icon btn-back" title="العودة للقائمة">
-                <i class="fas fa-arrow-right"></i>
-            </a>
-
-            @if(@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE))
-            <button type="button" class="btn-icon btn-delete" onclick="deleteContract({{ $contract->id }})" title="حذف العقد">
-                <i class="fas fa-trash"></i>
-            </button>
-            @endif
+    <div class="row">
+        <!-- معلومات العقد الأساسية -->
+        <div class="col-md-6 mb-4">
+            <div class="info-card contract-info">
+                <div class="card-title">
+                    <i class="fas fa-calendar-alt text-info"></i>
+                    معلومات العقد الأساسية
+                </div>
+                <div class="info-row">
+                    <span class="info-label">رقم العقد:</span>
+                    <span class="info-value highlight">#{{ $contract->id }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">تاريخ العقد:</span>
+                    <span class="info-value">{{ $info->contract_date ? \Carbon\Carbon::parse($info->contract_date)->format('Y-m-d') : 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">رقم مساند:</span>
+                    <span class="info-value">{{ $info->msaned_number ?? 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">رقم تفويض:</span>
+                    <span class="info-value">{{ $info->tafwed_number ?? 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">رقم التأشيرة:</span>
+                    <span class="info-value">{{ $info->visa_number ?? 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">تاريخ التأشيرة الميلادي:</span>
+                    <span class="info-value">{{ $info->visa_milad_date ? \Carbon\Carbon::parse($info->visa_milad_date)->format('Y-m-d') : 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">تاريخ التأشيرة الهجري:</span>
+                    <span class="info-value">{{ $info->visa_hijry_date ? \Carbon\Carbon::parse($info->visa_hijry_date)->format('Y-m-d') : 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">مدة العقد:</span>
+                    <span class="info-value">{{ $info->contract_duration ?? 'غير محدد' }} سنة</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">تاريخ انتهاء العقد:</span>
+                    @php
+                        $contractDate = $info->contract_date ? \Carbon\Carbon::parse($info->contract_date) : null;
+                        $expiryDate = $contractDate ? $contractDate->addYears($info->contract_duration ?? 2) : null;
+                    @endphp
+                    <span class="info-value danger">{{ $expiryDate ? $expiryDate->format('Y-m-d') : 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">تاريخ إنشاء العقد:</span>
+                    <span class="info-value">{{ $contract->created_at ? \Carbon\Carbon::parse($contract->created_at)->format('Y-m-d H:i') : 'غير محدد' }}</span>
+                </div>
+            </div>
         </div>
+
+        <!-- معلومات مالية -->
+        <div class="col-md-6 mb-4">
+            <div class="info-card financial-info">
+                <div class="card-title">
+                    <i class="fas fa-money-bill-wave text-danger"></i>
+                    المعلومات المالية
+                </div>
+                <div class="info-row">
+                    <span class="info-label">عدد ساعات العمل:</span>
+                    <span class="info-value">{{ $info->working_hours_num ?? 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">مبلغ نقل الكفالة:</span>
+                    <span class="info-value success">{{ $info->sponsorship_price ?? 'غير محدد' }} ريال</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">الراتب بعد الكفالة:</span>
+                    <span class="info-value success">{{ $info->salary_after_sponsorship ?? 'غير محدد' }} ريال</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">التكلفة الشهرية:</span>
+                    <span class="info-value warning">{{ $info->monthly_cost ?? 'غير محدد' }} ريال</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">قيمة العقد:</span>
+                    <span class="info-value highlight">{{ $info->contract_value ?? 'غير محدد' }} ريال</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">الانجاز من:</span>
+                    <span class="info-value">{{ $info->ingaz_from ?? 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">الانجاز إلى:</span>
+                    <span class="info-value">{{ $info->ingaz_to ?? 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">الكفيل السابق:</span>
+                    <span class="info-value">{{ $info->prevSponsorship->title ?? 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">مقر الإيواء:</span>
+                    <span class="info-value">{{ $info->shelter->title ?? 'غير محدد' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- معلومات المسوق -->
+    @if($marketer)
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="info-card">
+                <div class="card-title">
+                    <i class="fas fa-user-tie text-primary"></i>
+                    معلومات المسوق
+                </div>
+                <div class="info-row">
+                    <span class="info-label">اسم المسوق:</span>
+                    <span class="info-value highlight">{{ $marketer->name }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">رقم الجوال:</span>
+                    <span class="info-value">{{ $marketer->phone ?? 'غير محدد' }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">البريد الإلكتروني:</span>
+                    <span class="info-value">{{ $marketer->email ?? 'غير محدد' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- معلومات الطلب المسبق -->
+    @if($contract->order)
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="info-card">
+                <div class="card-title">
+                    <i class="fas fa-list-check text-secondary"></i>
+                    معلومات الطلب المسبق
+                </div>
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <div class="info-row">
+                            <span class="info-label">رقم الطلب:</span>
+                            <span class="info-value highlight">{{ $contract->order->order_code }}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="info-row">
+                            <span class="info-label">تاريخ الطلب:</span>
+                            <span class="info-value">{{ $contract->order->created_at ? \Carbon\Carbon::parse($contract->order->created_at)->format('Y-m-d H:i') : 'غير محدد' }}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="info-row">
+                            <span class="info-label">حالة الطلب:</span>
+                            <span class="status-badge bg-{{ $contract->order->status == 'completed' ? 'success' : 'warning' }}">
+                                {{ $contract->order->status == 'completed' ? 'مكتمل' : 'قيد المعالجة' }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="info-row">
+                            <span class="info-label">طريقة الدفع:</span>
+                            <span class="info-value">{{ $contract->order->payment_method ?? 'غير محدد' }}</span>
+                        </div>
+                    </div>
+                    @if($contract->order->details && $contract->order->details->package)
+                    <div class="col-md-6 mb-3">
+                        <div class="info-row">
+                            <span class="info-label">الحزمة المختارة:</span>
+                            <span class="info-value highlight">{{ $contract->order->details->package->title ?? 'غير محدد' }}</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="info-row">
+                            <span class="info-label">سعر الحزمة:</span>
+                            <span class="info-value success">{{ $contract->order->details->package->price ? number_format($contract->order->details->package->price, 2) . ' ريال' : 'غير محدد' }}</span>
+                        </div>
+                    </div>
+                    @endif
+                    <div class="col-md-6 mb-3">
+                        <div class="info-row">
+                            <span class="info-label">نوع العمل:</span>
+                            <span class="info-value">{{ $contract->order->jobType->title ?? 'غير محدد' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- سجل الحالات -->
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="info-card">
+                <div class="card-title">
+                    <i class="fas fa-history text-info"></i>
+                    سجل حالات العقد
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr>
+                            <th>الحالة</th>
+                            <th>التاريخ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($contract->contract_status_logs as $logs)
+                        <tr>
+                            <td>
+                                <span class="status-badge bg-info">
+                                    {{ getEnumValue('contract_statuses', $logs->status) }}
+                                </span>
+                            </td>
+                            <td>{{ $logs->date }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- أزرار الإجراءات -->
+    <div class="action-buttons">
+        <button type="button" class="btn-icon btn-print" onclick="printDiv()" title="طباعة العقد">
+            <i class="fas fa-print"></i>
+        </button>
+
+        @if(@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EDIT))
+        <a href="{{ route('RecruitmentContract.edit', $contract->id) }}" class="btn-icon btn-edit" title="تعديل العقد">
+            <i class="fas fa-edit"></i>
+        </a>
+        @endif
+
+        @if(@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE))
+        <button type="button" class="btn-icon btn-change-maid" onclick="openChangeMaidModal()" title="تغيير العاملة">
+            <i class="fas fa-exchange-alt"></i>
+        </button>
+        @endif
+
+        <a href="{{ route('RecruitmentContract.index') }}" class="btn-icon btn-back" title="العودة للقائمة">
+            <i class="fas fa-arrow-right"></i>
+        </a>
+
+        @if(@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE))
+        <button type="button" class="btn-icon btn-delete" onclick="deleteContract({{ $contract->id }})" title="حذف العقد">
+            <i class="fas fa-trash"></i>
+        </button>
+        @endif
     </div>
 </div>
 
@@ -970,14 +736,6 @@
                         <textarea class="form-control" id="reason" name="reason" rows="3"
                                   placeholder="اكتب سبب تغيير العاملة..."></textarea>
                     </div>
-
-                    {{-- <!-- زر اختبار تحميل العاملات -->
-                    <div class="form-group mb-3">
-                        <button type="button" class="btn btn-info btn-sm" onclick="testLoadMaids()">
-                            <i class="fas fa-sync"></i>
-                            اختبار تحميل العاملات
-                        </button>
-                    </div> --}}
                 </form>
             </div>
             <div class="modal-footer">
@@ -998,8 +756,8 @@
     @include('components.no_permissions')
 @endif
 
-
 @endsection
+
 @section('js')
 <script>
 function printDiv() {
@@ -1045,130 +803,7 @@ function openChangeMaidModal() {
     // تحميل العاملات المتاحات بعد فتح الدايلوج
     setTimeout(function() {
         loadAvailableMaids();
-        loadFilterOptions();
     }, 300);
-}
-
-// تحميل خيارات الفلترة
-function loadFilterOptions() {
-    console.log('Loading filter options...');
-
-    const url = '{{ route("RecruitmentContract.filterOptions") }}';
-
-    fetch(url, {
-        method: 'GET',
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-        },
-        credentials: 'same-origin'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // تحميل الجنسيات
-            const nationalitySelect = document.getElementById('nationality_filter');
-            nationalitySelect.innerHTML = '<option value="">جميع الجنسيات</option>';
-
-            if (data.nationalities) {
-                data.nationalities.forEach(nationality => {
-                    const option = document.createElement('option');
-                    option.value = nationality.id;
-                    option.textContent = nationality.title;
-                    nationalitySelect.appendChild(option);
-                });
-            }
-
-            // تحميل الأديان
-            const religionSelect = document.getElementById('religion_filter');
-            religionSelect.innerHTML = '<option value="">جميع الأديان</option>';
-
-            if (data.religions) {
-                data.religions.forEach(religion => {
-                    const option = document.createElement('option');
-                    option.value = religion.id;
-                    option.textContent = religion.title;
-                    religionSelect.appendChild(option);
-                });
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Error loading filter options:', error);
-    });
-}
-
-// تطبيق الفلاتر
-function applyFilters() {
-    const searchTerm = document.getElementById('maid_search').value;
-    const nationalityId = document.getElementById('nationality_filter').value;
-    const religionId = document.getElementById('religion_filter').value;
-
-    console.log('Applying filters:', { searchTerm, nationalityId, religionId });
-
-    // بناء URL مع الفلاتر
-    const url = '{{ route("RecruitmentContract.availableMaids") }}';
-    const params = new URLSearchParams();
-
-    if (searchTerm) params.append('search', searchTerm);
-    if (nationalityId) params.append('nationality_id', nationalityId);
-    if (religionId) params.append('religion_id', religionId);
-
-    const fullUrl = params.toString() ? `${url}?${params.toString()}` : url;
-    console.log('Fetching from URL:', fullUrl);
-
-    // الحصول على CSRF token
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-    fetch(fullUrl, {
-        method: 'GET',
-        headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfToken,
-        },
-        credentials: 'same-origin'
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('Filtered response data:', data);
-
-        if (data.success) {
-            const select = document.getElementById('new_maid_id');
-            select.innerHTML = '<option value="">اختر العاملة الجديدة...</option>';
-
-            if (data.maids && data.maids.length > 0) {
-                data.maids.forEach(maid => {
-                    const option = document.createElement('option');
-                    option.value = maid.id;
-                    option.textContent = `${maid.name} - ${maid.passport_num} (${maid.nationality})`;
-                    // إضافة بيانات للبحث
-                    option.setAttribute('data-name', maid.name);
-                    option.setAttribute('data-passport', maid.passport_num);
-                    option.setAttribute('data-nationality', maid.nationality);
-                    select.appendChild(option);
-                });
-                console.log('Loaded ' + data.maids.length + ' maids');
-            } else {
-                select.innerHTML = '<option value="">لا توجد عاملات متاحات تطابق الفلترة</option>';
-                console.log('No available maids found with current filters');
-            }
-        } else {
-            console.error('Error loading filtered maids:', data.message);
-            const select = document.getElementById('new_maid_id');
-            select.innerHTML = '<option value="">خطأ في تحميل العاملات</option>';
-        }
-    })
-    .catch(error => {
-        console.error('Fetch error:', error);
-        const select = document.getElementById('new_maid_id');
-        select.innerHTML = '<option value="">خطأ في الاتصال: ' + error.message + '</option>';
-    });
 }
 
 // تحميل العاملات المتاحات
@@ -1181,7 +816,6 @@ function loadAvailableMaids(searchTerm = '') {
 
     // الحصول على CSRF token
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    console.log('CSRF Token:', csrfToken);
 
     fetch(fullUrl, {
         method: 'GET',
@@ -1193,13 +827,9 @@ function loadAvailableMaids(searchTerm = '') {
         credentials: 'same-origin'
     })
     .then(response => {
-        console.log('Response status:', response.status);
-        console.log('Response headers:', response.headers);
-
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-
         return response.json();
     })
     .then(data => {
@@ -1300,19 +930,6 @@ function submitChangeMaid() {
         console.error('Error:', error);
         alert('حدث خطأ أثناء تغيير العاملة');
     });
-}
-
-function testLoadMaids() {
-    alert('Testing loadAvailableMaids function...');
-    loadAvailableMaids();
-}
-
-// مسح الفلاتر
-function clearFilters() {
-    document.getElementById('maid_search').value = '';
-    document.getElementById('nationality_filter').value = '';
-    document.getElementById('religion_filter').value = '';
-    applyFilters(); // إعادة تطبيق الفلاتر لعرض جميع العاملات
 }
 
 // فلترة خيارات العاملات في القائمة المنسدلة
