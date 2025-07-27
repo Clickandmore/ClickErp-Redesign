@@ -106,12 +106,12 @@ class AdminTravelHistoryController extends Controller
 
         // Get all contracts with status 'tazker' and their relationships
         $contracts = Contract::where('status', 'tazker')
-            ->with(['user', 'maid', 'info'])
+            ->with(['user', 'maid', 'maid.nationality', 'maid.religion', 'maid.jobTitles', 'info'])
             ->get();
 
         // If we have an order from the travel record or from the request, get it
         if ($orderId) {
-            $selectedOrder = Contract::with(['user', 'maid', 'info'])
+            $selectedOrder = Contract::with(['user', 'maid', 'maid.nationality', 'maid.religion', 'maid.jobTitles', 'info'])
                 ->where('id', $orderId)
                 ->first();
 
@@ -120,9 +120,9 @@ class AdminTravelHistoryController extends Controller
             }
         }
 
-        // If we have a contract_id from the request, use it
+        // If we have a contract_id from the request, use it to get the contract with maid info
         if ($contractId) {
-            $selectedContract = Contract::with(['user', 'maid', 'info'])
+            $selectedContract = Contract::with(['user', 'maid', 'maid.nationality', 'maid.religion', 'maid.jobTitles', 'info'])
                 ->where('id', $contractId)
                 ->first();
 
@@ -130,12 +130,25 @@ class AdminTravelHistoryController extends Controller
                 $orderId = $contractId; // Use contract_id as order_id
                 $userId = $selectedContract->user_id;
                 $maidId = $selectedContract->maid_id;
+                $order = $selectedContract; // Set the contract as order for display
 
                 if (!$contracts->contains('id', $selectedContract->id)) {
                     $contracts->push($selectedContract);
                 }
             }
         }
+
+        // Debug: Log contracts data to see if user data is loaded
+        \Log::info('Contracts data for travel form:', [
+            'contracts_count' => $contracts->count(),
+            'contracts_with_user' => $contracts->whereNotNull('user')->count(),
+            'sample_contract' => $contracts->first() ? [
+                'id' => $contracts->first()->id,
+                'user_id' => $contracts->first()->user_id,
+                'user_name' => $contracts->first()->user->name ?? 'null',
+                'user_city' => $contracts->first()->user->city ?? 'null',
+            ] : 'no contracts'
+        ]);
 
         $ordersList = [];
         return view('admin.travel_history.control', compact('data', 'clientsList', 'maidsList', 'ordersList', 'contracts', 'id', 'userId', 'maidId', 'order', 'orderId'));

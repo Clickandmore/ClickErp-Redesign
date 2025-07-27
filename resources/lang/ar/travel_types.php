@@ -5,6 +5,8 @@ return [
     'travel_types' => [
         'inside' => 'داخلى',
         'outside' => 'خارجى',
+        'international' => 'دولى',
+
     ],
 
 
@@ -18,6 +20,7 @@ return [
     'status' => [
         'pending' => 'جديد',
         'approved' => 'تمت المراجعة',
+        'completed' => 'مكتمل',
     ],
 
 ];

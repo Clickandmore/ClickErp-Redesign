@@ -28,6 +28,7 @@ use App\Actions\ReligionAction;
 use App\Actions\JobTitleAction;
 use App\Actions\JobTypeAction;
 use Illuminate\Support\Facades\DB;
+use App\Helpers\NewPermKeys;
 
 class RecruitmentContractController extends Controller
 {
@@ -69,7 +70,7 @@ class RecruitmentContractController extends Controller
                 'request_data' => $request->all()
             ]);
 
-            $query = Contract::with(['user', 'maid', 'info'])
+            $query = Contract::with(['user', 'maid.nationality', 'maid.religion', 'info'])
                 ->whereIn('type', ['recruitment', 'maid']);
 
             // فلتر الحالة - استخدام query parameter فقط
@@ -133,15 +134,22 @@ class RecruitmentContractController extends Controller
 
             // فلتر جنسية العاملة
             if ($request->filled('nationality')) {
-                $query->whereHas('maid.nationality', function($q) use ($request) {
-                    $q->where('sub_title', 'like', '%' . $request->nationality . '%');
+                $query->whereHas('maid.nationality.translations', function($q) use ($request) {
+                    $q->where('sub_title', $request->nationality);
                 });
             }
 
             // فلتر ديانة العاملة
             if ($request->filled('religion')) {
-                $query->whereHas('maid.religion', function($q) use ($request) {
-                    $q->where('title', 'like', '%' . $request->religion . '%');
+                $query->whereHas('maid.religion.translations', function($q) use ($request) {
+                    $q->where('title', $request->religion);
+                });
+            }
+
+            // فلتر المكتب الخارجي
+            if ($request->filled('office_id')) {
+                $query->whereHas('maid', function($q) use ($request) {
+                    $q->where('office_id', $request->office_id);
                 });
             }
 
@@ -164,25 +172,19 @@ class RecruitmentContractController extends Controller
                 'full_url' => $request->fullUrl()
             ]);
 
-            return DataTables::of($rows)
+            $contracts = $rows->get();
+
+            \Log::info('Contracts loaded for DataTables', [
+                'count' => $contracts->count(),
+                'first_contract' => $contracts->first() ? $contracts->first()->toArray() : null
+            ]);
+
+            return DataTables::of($contracts)
                 ->addIndexColumn()
                 ->editColumn('status', function ($row) {
-                    $statusText = getEnumValue('contract_statuses', $row->status);
+                    $statusText = getContractStatus($row->status);
                     $statusColor = getContractStatusColor($row->status);
-
-                    $statusDisplay = '<span class="badge bg-primary status-badge">' . $statusText . '</span>';
-
-                    // إضافة معلومات إضافية حسب الحالة
-                    if ($row->status === ContractStatusEnum::Arrival->value) {
-                        $warrantyEndDate = $row->updated_at->addDays(90);
-                        $remainingDays = now()->diffInDays($warrantyEndDate, false);
-
-                        if ($remainingDays > 0) {
-                            $statusDisplay .= '<br><small class="text-info">متبقي ' . $remainingDays . ' يوم للضمان</small>';
-                        } else {
-                            $statusDisplay .= '<br><small class="text-danger">انتهى الضمان</small>';
-                        }
-                    }
+                    $statusDisplay = '<span class="badge bg-' . $statusColor . '">' . $statusText . '</span>';
 
                     // إضافة تاريخ آخر تحديث
                     $lastUpdate = $row->updated_at ? $row->updated_at->format('Y-m-d') : '';
@@ -190,28 +192,54 @@ class RecruitmentContractController extends Controller
                         $statusDisplay .= '<br><small class="text-muted">آخر تحديث: ' . $lastUpdate . '</small>';
                     }
 
+                    // إضافة حالة الضمان للعقود المكتملة
+                    if ($row->status === 'completed') {
+                        $warrantyStatus = $row->warranty_status ?? 'not_applicable';
+                        $remainingDays = $row->warranty_remaining_days ?? 0;
+
+                        switch ($warrantyStatus) {
+                            case 'active':
+                                $warrantyColor = 'success';
+                                $warrantyIcon = 'fas fa-shield-alt';
+                                $warrantyText = "ضمان نشط ({$remainingDays} يوم)";
+                                break;
+                            case 'expired':
+                                $warrantyColor = 'danger';
+                                $warrantyIcon = 'fas fa-times-circle';
+                                $warrantyText = 'ضمان منتهي';
+                                break;
+                            case 'not_applicable':
+                            default:
+                                $warrantyColor = 'secondary';
+                                $warrantyIcon = 'fas fa-minus-circle';
+                                $warrantyText = 'لا يوجد ضمان';
+                                break;
+                        }
+
+                        $statusDisplay .= '<br><small><span class="badge bg-' . $warrantyColor . '"><i class="' . $warrantyIcon . ' me-1"></i>' . $warrantyText . '</span></small>';
+                    }
+
                     return $statusDisplay;
                 })
-                ->editColumn('user_id', function ($row) {
-                    $userInfo = '';
+
+                ->editColumn('phone', function ($row) {
+                    $phoneInfo = '';
                     if ($row->user) {
-                        $userInfo .= '<div class="user-info">';
-                        $userInfo .= '<br><strong>' . $row->user->name . '</strong><br>';
+                        $phoneInfo .= '<div class="user-info">';
+                        $phoneInfo .= '<strong>' . $row->user->name . '</strong><br>';
+                        $phoneInfo .= getPhoneWithTag($row->user->phone_code . $row->user->phone). '<br>';
                         if ($row->user->birthdate) {
-                            $userInfo .= '<br><small class="text-muted">تاريخ الميلاد: ' . \Carbon\Carbon::parse($row->user->birthdate)->format('Y-m-d') . '</small>';
+                            $phoneInfo .= '<small class="text-muted mt-2">تاريخ الميلاد: ' . \Carbon\Carbon::parse($row->user->birthdate)->format('Y-m-d') . '</small>';
                         }
                         if ($row->user->national_num) {
-                            $userInfo .= '<br><small class="text-muted">رقم الهوية: ' . $row->user->national_num . '</small>';
+                            $phoneInfo .= '<small class="text-muted mt-2">رقم الهوية: ' . $row->user->national_num . '</small>';
                         }
                         if ($row->user->address) {
-                            $userInfo .= '<br><small class="text-muted">العنوان: ' . $row->user->address . '</small>';
+                            $phoneInfo .= '<small class="text-muted mt-2">العنوان: ' . $row->user->address . '</small>';
                         }
-                        $userInfo .= '</div>';
+                        $phoneInfo .= '</div>';
                     }
-                    return $userInfo;
-                })
-                ->editColumn('phone', function ($row) {
-                    return ($row->user) ? getPhoneWithTag($row->user->phone_code . $row->user->phone) : '';
+                    return $phoneInfo;
                 })
                 ->editColumn('maid_id', function ($row) {
                     $maidInfo = '';
@@ -228,7 +256,20 @@ class RecruitmentContractController extends Controller
                         if ($row->maid->nationality) {
                             $maidInfo .= '<small class="text-muted">الجنسية: ' . $row->maid->nationality->sub_title . '</small>';
                         }
+                        if ($row->maid->office) {
+                            $maidInfo .= '<small class="text-muted">المكتب الخارجي: ' . $row->maid->office->title . '</small>';
+                        }
+                        if ($row->maid->religion) {
+                            $maidInfo .= '<small class="text-muted">الديانة: ' . $row->maid->religion->title . '</small>';
+                        }
                        $maidInfo .= '</div>';
+                    } else {
+                        // رسالة محسنة عندما لا توجد عاملة
+                        if ($row->status == ContractStatusEnum::PendingMaidSelection->value) {
+                            $maidInfo = '<div class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i><strong>في انتظار اختيار العاملة</strong></div>';
+                        } else {
+                            $maidInfo = '<div class="text-danger"><i class="fas fa-times-circle me-1"></i><strong>لا توجد عاملة مخصصة</strong></div>';
+                        }
                     }
                     return $maidInfo;
                 })
@@ -252,11 +293,7 @@ class RecruitmentContractController extends Controller
                     }
                     return $contractInfo ?: '<span class="text-muted">غير محدد</span>';
                 })
-                ->addColumn('show_details', function ($row) {
-                    return '<a class="btn btn-sm btn-info btn-action" href="' . route('contracts.details', $row->id) . '" title="عرض  العقد" target="_blank">
-                        <i class="fas fa-eye me-1"></i>عرض
-                    </a>';
-                })
+
                 ->addColumn('updateStatus', function ($row) {
                     if ($row->status == ContractStatusEnum::PendingMaidSelection->value) {
                         // زر إضافة عاملة للعقود التي في حالة بانتظار اختيار العاملة
@@ -288,7 +325,7 @@ class RecruitmentContractController extends Controller
                             }
                         } else {
                             if ($hasAddTravelPermission) {
-                                return '<button class="btn btn-primary btn-sm add-travel-btn btn-action" data-contract-id="' . $row->id . '" title="إضافة رحلة">
+                                return '<button class="btn btn-primary btn-sm add-travel-btn btn-action" style="padding: 10px; margin: 10px;" data-contract-id="' . $row->id . '" title="إضافة رحلة">
                                     <i class="fas fa-plane me-1"></i>إضافة رحلة
                                 </button>';
                             } else {
@@ -380,7 +417,7 @@ class RecruitmentContractController extends Controller
                                 break;
                             case ContractStatusEnum::Closed->value:
                                 // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
-                                $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+                        $travelHistory = TravelHistory::where('order_id', $row->id)->first();
                                 if ($travelHistory && $travelHistory->status !== 'completed' && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
                                     return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
                                         <i class="fas fa-check me-1"></i>إكمال الرحلة
@@ -410,63 +447,164 @@ class RecruitmentContractController extends Controller
                         }
                     }
                 })
-                ->addColumn('back', function ($row) {
-                    if ($row->status == ContractStatusEnum::Back->value) {
-                        return '<span class="badge bg-danger">مرتجع</span>';
-                    } else {
-                        // التحقق من صلاحية إرجاع العقد
-                        if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
-                            return '<button class="btn btn-danger btn-sm backContract btn-action" data-row-id="' . $row->id . '" title="إرجاع العقد">
-                                <i class="fas fa-undo"></i>
-                            </button>';
-                        } else {
-                            return '<span class="text-muted">لا توجد صلاحية للإرجاع</span>';
-                        }
-                    }
-                })
                 ->addColumn('actions', function ($row) {
-                    $buttons = '';
+                    $actions = [];
+
+                    // زر عرض العقد
+                    $actions[] = [
+                        'url' => route('contracts.details', $row->id),
+                        'icon' => 'fas fa-eye',
+                        'text' => 'عرض العقد',
+                        'class' => 'btn-info',
+                        'target' => '_blank'
+                    ];
 
                     // زر الطباعة
-                    $buttons .= '<a href="' . route('contracts.details', $row->id) . '" class="btn btn-sm btn-secondary btn-action me-1" title="طباعة العقد" target="_blank">
-                        <i class="fas fa-print"></i>
-                    </a>';
+                    $actions[] = [
+                        'url' => route('contracts.details', $row->id),
+                        'icon' => 'fas fa-print',
+                        'text' => 'طباعة العقد',
+                        'class' => 'btn-secondary',
+                        'target' => '_blank'
+                    ];
 
-                    // زر التعديل
-                    if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EDIT)) {
-                        $buttons .= '<a href="' . route($this->mainRoute . '.edit', $row->id) . '" class="btn btn-sm btn-warning btn-action me-1" title="تعديل العقد">
-                            <i class="fas fa-edit"></i>
-                        </a>';
+                    // منع التعديل والحذف للعقود المكتملة والمرتجعة
+                    if ($row->status !== ContractStatusEnum::Completed->value && $row->status !== ContractStatusEnum::Back->value) {
+                        // زر التعديل
+                        if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EDIT)) {
+                            $actions[] = [
+                                'url' => route($this->mainRoute . '.edit', $row->id),
+                                'icon' => 'fas fa-edit',
+                                'text' => 'تعديل العقد',
+                                'class' => 'btn-warning'
+                            ];
+                        }
+
+                        // زر الحذف
+                        if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
+                            $actions[] = [
+                                'url' => route($this->mainRoute . ".destroy", $row->id),
+                                'icon' => 'fas fa-trash',
+                                'text' => 'حذف العقد',
+                                'class' => 'btn-danger',
+                                'confirm' => true
+                            ];
+                        }
+                    } else {
+                        // للعقود المكتملة والمرتجعة - إضافة رسالة توضيحية
+                        if ($row->status === ContractStatusEnum::Completed->value) {
+                            $actions[] = [
+                                'type' => 'span',
+                                'text' => 'العقد مكتمل - لا يمكن التعديل',
+                                'class' => 'badge bg-success'
+                            ];
+                        } else {
+                            $actions[] = [
+                                'type' => 'span',
+                                'text' => 'العقد مرتجع - لا يمكن التعديل',
+                                'class' => 'badge bg-danger'
+                            ];
+                        }
                     }
 
                     // زر إكمال الرحلة - يظهر لجميع العقود التي لديها رحلات
                     $travelHistory = TravelHistory::where('order_id', $row->id)->first();
                     if ($travelHistory && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
                         if ($travelHistory->status !== 'completed') {
-                            $buttons .= '<button class="btn btn-success btn-sm complete-trip-btn btn-action me-1" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
-                                <i class="fas fa-check me-1"></i>إكمال الرحلة
-                            </button>';
-                        } else {
-                            $buttons .= '<span class="badge bg-success me-1">تم إكمال الرحلة</span>';
+                            $actions[] = [
+                                'type' => 'button',
+                                'data' => 'data-trip-id="' . $travelHistory->id . '"',
+                                'icon' => 'fas fa-check',
+                                'text' => 'إكمال الرحلة',
+                                'class' => 'btn-success complete-trip-btn'
+                            ];
                         }
                     }
 
-                    // زر الحذف
-                    if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
-                        $buttons .= deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                    // زر الإرجاع - لا يظهر للعقود المكتملة
+                    if ($row->status !== ContractStatusEnum::Completed->value) {
+                        if ($row->status == ContractStatusEnum::Back->value) {
+                            $actions[] = [
+                                'type' => 'span',
+                                'text' => 'مرتجع',
+                                'class' => 'badge'
+                            ];
+                        } else {
+                            // التحقق من صلاحية إرجاع العقد
+                            if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
+                                $actions[] = [
+                                    'type' => 'button',
+                                    'data' => 'data-row-id="' . $row->id . '"',
+                                    'icon' => 'fas fa-undo',
+                                    'text' => 'إرجاع العقد',
+                                    'class' => 'btn-danger'
+                                ];
+                            }
+                        }
                     }
-                    // $buttons .= '<a href="' . route('RecruitmentContract.changeMaid', $row->id) . '" class="btn btn-sm btn-primary btn-action me-1" title="تغيير العاملة">
-                    //     <i class="fas fa-exchange-alt"></i>
-                    // </a>';
-                   return $buttons;
+
+                    // زر إلغاء العقد - لا يظهر للعقود المكتملة
+                    if ($row->status !== ContractStatusEnum::Completed->value && $row->status !== ContractStatusEnum::Back->value) {
+                        if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
+                            $actions[] = [
+                                'type' => 'button',
+                                'data' => 'data-contract-id="' . $row->id . '" data-contract-number="' . $row->id . '" data-client-name="' . ($row->user ? $row->user->name : 'غير محدد') . '" data-maid-name="' . ($row->maid ? $row->maid->name : 'غير محدد') . '"',
+                                'icon' => 'fas fa-times-circle',
+                                'text' => 'إلغاء العقد',
+                                'class' => 'btn-danger cancel-contract-btn'
+                            ];
+                        }
+                    }
+
+                    // Generate Dropdown HTML
+                    if (count($actions) > 0) {
+                        $dropdown = '<div class="dropdown actions-dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle"  style="margin: 10px; padding: 10px;" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-toggle="tooltip" data-bs-placement="top" title="إجراءات العقد">
+                                <i class="fas fa-cog"></i> الإجراءات
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">';
+
+                        foreach ($actions as $action) {
+                            $dropdown .= '<li>';
+
+                            if (isset($action['type'])) {
+                                if ($action['type'] === 'button') {
+                                    $dropdown .= '<button class="dropdown-item ' . $action['class'] . '" ' . $action['data'] . '>
+                                        <i class="' . $action['icon'] . ' me-2"></i>' . $action['text'] . '
+                                    </button>';
+                                } elseif ($action['type'] === 'span') {
+                                    $dropdown .= '<span class="dropdown-item ' . $action['class'] . '">
+                                        ' . $action['text'] . '
+                                    </span>';
+                                }
+                            } else {
+                                $target = isset($action['target']) ? ' target="' . $action['target'] . '"' : '';
+                                $confirm = isset($action['confirm']) ? ' onclick="return confirm(\'هل أنت متأكد من الحذف؟\')"' : '';
+                                $dropdown .= '<a class="dropdown-item" href="' . $action['url'] . '"' . $target . $confirm . '>
+                                    <i class="' . $action['icon'] . ' me-2"></i>' . $action['text'] . '
+                                </a>';
+                            }
+
+                            $dropdown .= '</li>';
+                        }
+
+                        $dropdown .= '</ul></div>';
+                        return $dropdown;
+                    }
+
+                    return '<span class="text-muted">لا توجد إجراءات</span>';
                 })
                 ->escapeColumns([])
                 ->make(true);
         }
 
+        // جلب خيارات الفلترة
+        $filterOptions = $this->getFilterOptions();
+
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["modalType"] = "modal-lg";
         $data["status"] = $status ?? $request->get('status', null);
+        $data["filterOptions"] = $filterOptions;
         return view($this->folderPath . '.index', $data);
     }
 
@@ -483,7 +621,9 @@ class RecruitmentContractController extends Controller
 
         $contract = Contract::with([
             'user',
-            'maid',
+            'maid.nationality',
+            'maid.religion',
+            'maid.jobTitles',
             'info',
             'contract_status_logs'
         ])->findOrFail($id);
@@ -851,7 +991,7 @@ class RecruitmentContractController extends Controller
     public function show($id, Request $request)
     {
         try {
-            $row = Contract::find($id);
+        $row = Contract::find($id);
 
             // التحقق من وجود العقد
             if (!$row) {
@@ -878,64 +1018,64 @@ class RecruitmentContractController extends Controller
                 $nextStatus = $request->next_status;
                 $statusDate = $request->date ?? now()->format('Y-m-d');
 
-                // التحقق من الصلاحيات حسب حالة العقد الحالية
-                $hasPermission = false;
-                $permissionRequired = '';
+        // التحقق من الصلاحيات حسب حالة العقد الحالية
+        $hasPermission = false;
+        $permissionRequired = '';
 
                 switch ($currentStatus) {
-                    case ContractStatusEnum::New->value:
-                        $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED;
-                        if (@AdminGuardHasPerm($permissionRequired)) {
-                            $hasPermission = true;
-                        }
-                        break;
-                    case ContractStatusEnum::Msaned->value:
-                        $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED;
-                        if (@AdminGuardHasPerm($permissionRequired)) {
-                            $hasPermission = true;
-                        }
-                        break;
-                    case ContractStatusEnum::Tafwed->value:
-                        $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ;
-                        if (@AdminGuardHasPerm($permissionRequired)) {
-                            $hasPermission = true;
-                        }
-                        break;
-                    case ContractStatusEnum::Taffez->value:
-                        $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER;
-                        if (@AdminGuardHasPerm($permissionRequired)) {
-                            $hasPermission = true;
-                        }
-                        break;
+            case ContractStatusEnum::New->value:
+                $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED;
+                if (@AdminGuardHasPerm($permissionRequired)) {
+                    $hasPermission = true;
+                }
+                break;
+            case ContractStatusEnum::Msaned->value:
+                $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED;
+                if (@AdminGuardHasPerm($permissionRequired)) {
+                    $hasPermission = true;
+                }
+                break;
+            case ContractStatusEnum::Tafwed->value:
+                $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ;
+                if (@AdminGuardHasPerm($permissionRequired)) {
+                    $hasPermission = true;
+                }
+                break;
+            case ContractStatusEnum::Taffez->value:
+                $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER;
+                if (@AdminGuardHasPerm($permissionRequired)) {
+                    $hasPermission = true;
+                }
+                break;
                     case ContractStatusEnum::Arrival->value:
-                        // التحقق من صلاحية إغلاق العقد بعد الضمان
-                        if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CLOSE_AFTER_WARRANTY)) {
-                            $hasPermission = true;
-                        }
-                        break;
-                    default:
-                        break;
+                // التحقق من صلاحية إغلاق العقد بعد الضمان
+                if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CLOSE_AFTER_WARRANTY)) {
+                    $hasPermission = true;
                 }
+                break;
+            default:
+                break;
+        }
 
-                if (!$hasPermission) {
-                    return response()->json([
-                        'success' => false,
+        if (!$hasPermission) {
+            return response()->json([
+                'success' => false,
                         'message' => 'ليس لديك صلاحية لتغيير حالة العقد من ' . getContractStatus($currentStatus) . ' إلى المرحلة التالية'
-                    ], 403);
-                }
+            ], 403);
+        }
 
                 // تحديث حالة العقد
                 $row->status = $nextStatus;
-                $row->save();
+        $row->save();
 
                 // حفظ سجل حالة العقد
-                $row->contract_status_logs()->create([
+        $row->contract_status_logs()->create([
                     'status' => $nextStatus,
                     'date' => $statusDate
-                ]);
+        ]);
 
-                return response()->json([
-                    'success' => true,
+        return response()->json([
+            'success' => true,
                     'message' => 'تم تحديث حالة العقد بنجاح من ' . getContractStatus($currentStatus) . ' إلى ' . getContractStatus($nextStatus)
                 ]);
             }
@@ -964,22 +1104,22 @@ class RecruitmentContractController extends Controller
     public function back($id)
     {
         try {
-            // التحقق من صلاحية إرجاع العقد
-            if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'ليس لديك صلاحية لإرجاع العقد'
-                ], 403);
-            }
+        // التحقق من صلاحية إرجاع العقد
+        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ليس لديك صلاحية لإرجاع العقد'
+            ], 403);
+        }
 
-            $contract = Contract::find($id);
-            if (!$contract) {
+        $contract = Contract::find($id);
+        if (!$contract) {
                 \Log::warning('Contract not found in back function', ['id' => $id]);
-                return response()->json([
-                    'success' => false,
-                    'message' => 'العقد غير موجود'
-                ], 404);
-            }
+            return response()->json([
+                'success' => false,
+                'message' => 'العقد غير موجود'
+            ], 404);
+        }
 
             // // التحقق من أن العقد من نوع الاستقدام
             // // تم إزالة هذا التحقق لأن جميع العقود في هذا Controller هي عقود استقدام
@@ -991,14 +1131,14 @@ class RecruitmentContractController extends Controller
             //     ], 400);
             // }
 
-            $newStatus = contractBackStatus($contract->status);
-            $contract->update(['status' => $newStatus->value]);
-            $contract->contract_status_logs()->create(['status' => $newStatus->value]);
+        $newStatus = contractBackStatus($contract->status);
+        $contract->update(['status' => $newStatus->value]);
+        $contract->contract_status_logs()->create(['status' => $newStatus->value]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'تم إرجاع العقد بنجاح إلى ' . getContractStatus($newStatus->value)
-            ]);
+        return response()->json([
+            'success' => true,
+            'message' => 'تم إرجاع العقد بنجاح إلى ' . getContractStatus($newStatus->value)
+        ]);
 
         } catch (\Exception $e) {
             \Log::error('Error in back contract', [
@@ -1033,6 +1173,16 @@ class RecruitmentContractController extends Controller
             return redirect()->back()->with('error', 'العقد غير موجود');
         }
 
+        // منع تعديل العقود المكتملة
+        if ($contract->status === ContractStatusEnum::Completed->value) {
+            return redirect()->back()->with('error', 'لا يمكن تعديل العقد المكتمل');
+        }
+
+        // منع تعديل العقود المرتجعة
+        if ($contract->status === ContractStatusEnum::Back->value) {
+            return redirect()->back()->with('error', 'لا يمكن تعديل العقد المرتجع');
+        }
+
         $countries = Country::all();
 
         return view('admin.ingaz.RecruitmentContract.edit', compact('contract', 'countries'));
@@ -1061,6 +1211,22 @@ class RecruitmentContractController extends Controller
                 'success' => false,
                 'message' => 'العقد غير موجود'
             ], 404);
+        }
+
+        // منع تحديث حالة العقود المكتملة
+        if ($contract->status === ContractStatusEnum::Completed->value) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكن تحديث حالة العقد المكتمل'
+            ], 400);
+        }
+
+        // منع تحديث حالة العقود المرتجعة
+        if ($contract->status === ContractStatusEnum::Back->value) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكن تحديث حالة العقد المرتجع'
+            ], 400);
         }
 
         try {
@@ -1161,6 +1327,22 @@ class RecruitmentContractController extends Controller
                 'success' => false,
                 'message' => 'العقد غير موجود'
             ], 404);
+        }
+
+        // منع حذف العقود المكتملة
+        if ($contract->status === ContractStatusEnum::Completed->value) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكن حذف العقد المكتمل'
+            ], 400);
+        }
+
+        // منع حذف العقود المرتجعة
+        if ($contract->status === ContractStatusEnum::Back->value) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكن حذف العقد المرتجع'
+            ], 400);
         }
 
         $contract->delete();
@@ -1428,84 +1610,211 @@ class RecruitmentContractController extends Controller
                 ], 403);
             }
 
-            \Log::info('Starting trip completion process for trip ID: ' . $tripId);
-
-            $travelHistory = TravelHistory::findOrFail($tripId);
-            \Log::info('Found travel history:', ['travel' => $travelHistory->toArray()]);
-
-            $contract = Contract::where('id', $travelHistory->order_id)->first();
-            \Log::info('Found contract:', ['contract' => $contract ? $contract->toArray() : null]);
-
-            if (!$contract) {
-                \Log::error('Contract not found for travel history ID: ' . $tripId);
-                return response()->json([
-                    'success' => false,
-                    'message' => __('admin.contract_not_found')
-                ]);
-            }
-
-            // التحقق من أن العقد لديه رحلة
+            $travelHistory = TravelHistory::find($tripId);
             if (!$travelHistory) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'لا توجد رحلة لهذا العقد'
-                ], 400);
+                    'message' => 'الرحلة غير موجودة'
+                ], 404);
             }
 
-            // التحقق من أن الرحلة لم تكتمل بعد
-            if ($travelHistory->status === 'completed') {
+            // البحث عن العقد المرتبط بالرحلة
+            $contract = Contract::find($travelHistory->order_id);
+            if (!$contract) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'الرحلة مكتملة بالفعل'
-                ], 400);
+                    'message' => 'العقد المرتبط بالرحلة غير موجود'
+                ], 404);
             }
 
-            // Update travel history status
-            $travelHistory->status = 'completed';
-            $travelHistory->save();
-            \Log::info('Updated travel history status to completed');
+            DB::beginTransaction();
 
-            // تحديث حالة العقد فقط إذا كان في مرحلة التذكرة
-            if ($contract->status === ContractStatusEnum::Tazker->value) {
-                $contract->status = ContractStatusEnum::Arrival->value;
-                $contract->save();
-                \Log::info('Updated contract status to Arrival');
+            try {
+                // تحديث حالة الرحلة إلى مكتملة
+                $travelHistory->update(['status' => 'completed']);
 
-                // Create contract status log
+                // تحديث حالة العقد إلى مكتمل
+                $contract->update(['status' => 'completed']);
+
+                // حساب حالة الضمان تلقائياً
+                $contract->calculateWarrantyStatus();
+
+                // إنشاء سجل حالة العقد
                 $contract->contract_status_logs()->create([
-                    'status' => ContractStatusEnum::Arrival->value,
-                    'notes' => 'تم اكتمال الرحلة والانتقال إلى مرحلة تحت الضمان',
-                    'date' => now()
+                    'status' => 'completed',
+                    'date' => now(),
+                    'notes' => 'تم إكمال الرحلة وتحديث حالة العقد إلى مكتمل'
                 ]);
-            } else {
-                // إنشاء سجل حالة للعقد بدون تغيير الحالة
-                $contract->contract_status_logs()->create([
-                    'status' => $contract->status,
-                    'notes' => 'تم اكتمال الرحلة',
-                    'date' => now()
+
+                DB::commit();
+
+                \Log::info('Trip completed and contract status updated', [
+                    'trip_id' => $tripId,
+                    'contract_id' => $contract->id,
+                    'warranty_status' => $contract->warranty_status
                 ]);
-                \Log::info('Trip completed for contract in status: ' . $contract->status);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'تم إكمال الرحلة وتحديث حالة العقد إلى مكتمل بنجاح'
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
             }
-            \Log::info('Created contract status log');
 
-            // Force refresh the contract status
-            $contract->refresh();
-
-            return response()->json([
-                'success' => true,
-                'message' => __('admin.trip_completed_success'),
-                'contract_status' => $contract->status
-            ]);
         } catch (\Exception $e) {
-            \Log::error('Error in completeTrip: ' . $e->getMessage(), [
+            \Log::error('Error in completeTrip', [
                 'tripId' => $tripId,
+                'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => __('admin.something_went_wrong')
+                'message' => 'حدث خطأ أثناء إكمال الرحلة: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function addTravel(Request $request)
+    {
+        try {
+            // التحقق من صلاحية إضافة رحلة
+            if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_ADD_TRAVEL)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية لإضافة رحلة'
+                ], 403);
+            }
+
+            $contractId = $request->contract_id;
+            $contract = Contract::find($contractId);
+
+            if (!$contract) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العقد غير موجود'
+                ], 404);
+            }
+
+            // التحقق من عدم وجود رحلة نشطة للعقد
+            $existingTravel = TravelHistory::where('order_id', $contractId)->first();
+            if ($existingTravel) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'يوجد رحلة نشطة بالفعل لهذا العقد'
+                ], 400);
+            }
+
+            // إنشاء رحلة جديدة
+            TravelHistory::create([
+                'order_id' => $contractId,
+                'status' => 'active',
+                'created_at' => now(),
+                'updated_at' => now()
             ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إضافة الرحلة بنجاح'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error in addTravel', [
+                'contractId' => $request->contract_id,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء إضافة الرحلة: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function updateStatus(Request $request)
+    {
+        try {
+            $rowId = $request->row_id;
+            $nextStatus = $request->next_status;
+            $date = $request->date;
+
+            $contract = Contract::find($rowId);
+            if (!$contract) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العقد غير موجود'
+                ], 404);
+            }
+
+            // منع تحديث حالة العقود المكتملة
+            if ($contract->status === ContractStatusEnum::Completed->value) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن تحديث حالة العقد المكتمل'
+                ], 400);
+            }
+
+            // التحقق من الصلاحيات حسب الحالة الجديدة
+            $hasPermission = false;
+            switch ($nextStatus) {
+                case ContractStatusEnum::Msaned->value:
+                    $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED);
+                    break;
+                case ContractStatusEnum::Tafwed->value:
+                    $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED);
+                    break;
+                case ContractStatusEnum::Taffez->value:
+                    $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ);
+                    break;
+                case ContractStatusEnum::Tazker->value:
+                    $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER);
+                    break;
+                case ContractStatusEnum::Closed->value:
+                    $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CLOSE_AFTER_WARRANTY);
+                    break;
+                default:
+                    $hasPermission = false;
+                    break;
+            }
+
+            if (!$hasPermission) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية لتحديث الحالة'
+                ], 403);
+            }
+
+            // تحديث حالة العقد
+            $contract->update(['status' => $nextStatus]);
+
+            // إنشاء سجل حالة العقد
+            $contract->contract_status_logs()->create([
+                'status' => $nextStatus,
+                'date' => $date ?: now(),
+                'notes' => 'تم تحديث الحالة من ' . getContractStatus($contract->getOriginal('status')) . ' إلى ' . getContractStatus($nextStatus)
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تحديث الحالة بنجاح إلى ' . getContractStatus($nextStatus)
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error in updateStatus', [
+                'rowId' => $request->row_id,
+                'nextStatus' => $request->next_status,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تحديث الحالة: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -1553,11 +1862,34 @@ class RecruitmentContractController extends Controller
                 });
             }
 
-            $maids = $query->get();
-            \Log::info('Maids found', ['count' => $maids->count()]);
+            $availableMaids = $query->latest()->paginate(20)->withQueryString();
+
+            // Log debug info
+            \Log::info('نتائج البحث عن العاملات:', [
+                'count' => $availableMaids->count(),
+                'search' => $request->search,
+                'nationality_id' => $request->nationality_id,
+                'religion_id' => $request->religion_id,
+                'job_title_id' => $request->job_title_id,
+                'query' => $query->toSql(),
+                'bindings' => $query->getBindings(),
+            ]);
+
+            // إضافة رسالة تحذير إذا لم توجد عاملات متاحة
+            if ($availableMaids->count() === 0) {
+                $warningMessage = 'لا توجد عاملات متاحة حالياً';
+
+                if ($request->filled('search') || $request->filled('nationality_id') || $request->filled('religion_id') || $request->filled('job_title_id')) {
+                    $warningMessage .= ' - جرب تغيير الفلاتر أو إعادة تعيين البحث';
+                } else {
+                    $warningMessage .= ' - جميع العاملات إما محجوزة أو غير متاحة';
+                }
+
+                session()->flash('warning', $warningMessage);
+            }
 
             // تحويل البيانات للعرض
-            $maidsData = $maids->map(function($maid) {
+            $maidsData = $availableMaids->map(function($maid) {
                 return [
                     'id' => $maid->id,
                     'name' => $maid->name ?? 'غير محدد',
@@ -1595,33 +1927,11 @@ class RecruitmentContractController extends Controller
      */
     public function getFilterOptions()
     {
-        try {
-            $nationalities = \App\Models\ingaz\Nationality::with('translations')->get()->map(function($nationality) {
-                return [
-                    'id' => $nationality->id,
-                    'title' => $nationality->sub_title
-                ];
-            });
-
-            $religions = \App\Models\ingaz\Religion::with('translations')->get()->map(function($religion) {
-                return [
-                    'id' => $religion->id,
-                    'title' => $religion->title
-                ];
-            });
-
-            return response()->json([
-                'success' => true,
-                'nationalities' => $nationalities,
-                'religions' => $religions
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'حدث خطأ أثناء جلب قوائم الفلترة: ' . $e->getMessage()
-            ], 500);
-        }
+        return [
+            'nationalities' => \App\Models\ingaz\Nationality::all(),
+            'religions' => \App\Models\ingaz\Religion::all(),
+            'offices' => \App\Models\RecruitmentOffices::all(),
+        ];
     }
 
     /**
@@ -1767,6 +2077,19 @@ class RecruitmentContractController extends Controller
                 'bindings' => $query->getBindings(),
             ]);
 
+            // إضافة رسالة تحذير إذا لم توجد عاملات متاحة
+            if ($availableMaids->count() === 0) {
+                $warningMessage = 'لا توجد عاملات متاحة حالياً';
+
+                if ($request->filled('search') || $request->filled('nationality_id') || $request->filled('religion_id') || $request->filled('job_title_id')) {
+                    $warningMessage .= ' - جرب تغيير الفلاتر أو إعادة تعيين البحث';
+                } else {
+                    $warningMessage .= ' - جميع العاملات إما محجوزة أو غير متاحة';
+                }
+
+                session()->flash('warning', $warningMessage);
+            }
+
             // جلب قوائم الفلترة
             $nationalities = \App\Models\ingaz\Nationality::all();
             $religions = \App\Models\ingaz\Religion::all();
@@ -1803,6 +2126,11 @@ class RecruitmentContractController extends Controller
             // فلتر الحالة
             if ($request->filled('status')) {
                 $query->where('status', $request->status);
+
+                // فلتر حالة الضمان (فقط للعقود المكتملة)
+                if ($request->status === 'completed' && $request->filled('warranty_status')) {
+                    $query->where('warranty_status', $request->warranty_status);
+                }
             }
 
             // فلتر التاريخ من
@@ -1850,15 +2178,22 @@ class RecruitmentContractController extends Controller
 
             // فلتر جنسية العاملة
             if ($request->filled('nationality')) {
-                $query->whereHas('maid.nationality', function($q) use ($request) {
-                    $q->where('sub_title', 'like', '%' . $request->nationality . '%');
+                $query->whereHas('maid.nationality.translations', function($q) use ($request) {
+                    $q->where('sub_title', $request->nationality);
                 });
             }
 
             // فلتر ديانة العاملة
             if ($request->filled('religion')) {
-                $query->whereHas('maid.religion', function($q) use ($request) {
-                    $q->where('title', 'like', '%' . $request->religion . '%');
+                $query->whereHas('maid.religion.translations', function($q) use ($request) {
+                    $q->where('title', $request->religion);
+                });
+            }
+
+            // فلتر المكتب الخارجي
+            if ($request->filled('office_id')) {
+                $query->whereHas('maid', function($q) use ($request) {
+                    $q->where('office_id', $request->office_id);
                 });
             }
 
@@ -1879,16 +2214,9 @@ class RecruitmentContractController extends Controller
                 ContractStatusEnum::Arrival->value
             ])->count();
             $pending = $query->where('status', ContractStatusEnum::PendingMaidSelection->value)->count();
-            $completed = $query->whereIn('status', [
-                ContractStatusEnum::Completed->value,
-                ContractStatusEnum::UnderWarranty->value,
-                ContractStatusEnum::Closed->value
-            ])->count();
+            $completed = $query->where('status', ContractStatusEnum::Completed->value)->count();
             $returned = $query->where('status', ContractStatusEnum::Back->value)->count();
-            $closed = $query->whereIn('status', [
-                ContractStatusEnum::Completed->value,
-                ContractStatusEnum::Closed->value
-            ])->count();
+            $closed = $query->where('status', ContractStatusEnum::Completed->value)->count();
 
             return response()->json([
                 'success' => true,
@@ -1931,6 +2259,22 @@ class RecruitmentContractController extends Controller
 
             // التحقق من وجود العقد
             $contract = Contract::with(['maid', 'user'])->findOrFail($contractId);
+
+            // منع استبدال العاملة للعقود المكتملة
+            if ($contract->status === ContractStatusEnum::Completed->value) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن استبدال العاملة في العقد المكتمل'
+                ], 400);
+            }
+
+            // منع استبدال العاملة للعقود المرتجعة
+            if ($contract->status === ContractStatusEnum::Back->value) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن استبدال العاملة في العقد المرتجع'
+                ], 400);
+            }
 
             // التحقق من أن العقد من النوع الصحيح
             if (!in_array($contract->type, ['recruitment', 'maid'])) {
@@ -2114,7 +2458,16 @@ class RecruitmentContractController extends Controller
 
             $contract = Contract::with(['maid', 'user'])->findOrFail($contractId);
 
-            // جلب العاملات المتاحات
+            // منع استبدال العاملة للعقود المكتملة
+            if ($contract->status === ContractStatusEnum::Completed->value) {
+                return redirect()->back()->with('error', 'لا يمكن استبدال العاملة في العقد المكتمل');
+            }
+
+            // منع استبدال العاملة للعقود المرتجعة
+            if ($contract->status === ContractStatusEnum::Back->value) {
+                return redirect()->back()->with('error', 'لا يمكن استبدال العاملة في العقد المرتجع');
+            }
+
             $availableMaids = Maid::where('available', true)
                 ->whereDoesntHave('contracts', function($q) {
                     $q->whereIn('status', [
@@ -2144,6 +2497,125 @@ class RecruitmentContractController extends Controller
             ]);
 
             return redirect()->back()->with('error', 'حدث خطأ أثناء تحميل الصفحة');
+        }
+    }
+
+    /**
+     * إلغاء العقد
+     */
+    public function cancel(Request $request)
+    {
+        try {
+            // التحقق من الصلاحيات
+            if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية لإلغاء العقود'
+                ], 403);
+            }
+
+            // التحقق من البيانات المطلوبة
+            $request->validate([
+                'contract_id' => 'required|exists:contracts,id',
+                'cancel_reason' => 'required|string|max:500',
+                'maid_status_after_cancel' => 'required|in:available,backout'
+            ]);
+
+            $contract = Contract::with(['maid', 'user'])->findOrFail($request->contract_id);
+
+            // منع إلغاء العقود المكتملة
+            if ($contract->status === ContractStatusEnum::Completed->value) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن إلغاء العقد المكتمل'
+                ], 400);
+            }
+
+            // منع إلغاء العقود المرتجعة
+            if ($contract->status === ContractStatusEnum::Back->value) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العقد مسبقاً مرتجع'
+                ], 400);
+            }
+
+            DB::beginTransaction();
+
+            try {
+                // تحديث حالة العقد إلى مرتجع
+                $contract->update([
+                    'status' => ContractStatusEnum::Back->value
+                ]);
+
+                // إنشاء سجل حالة العقد
+                $contract->contract_status_logs()->create([
+                    'status' => ContractStatusEnum::Back->value,
+                    'date' => now(),
+                    'notes' => 'تم إلغاء العقد - السبب: ' . $request->cancel_reason
+                ]);
+
+                // تحديث حالة العاملة
+                if ($contract->maid) {
+                    $maid = $contract->maid;
+
+                    if ($request->maid_status_after_cancel === 'available') {
+                        // التحقق من عدم وجود عقود أخرى نشطة للعاملة
+                        $activeContracts = $maid->contracts()
+                            ->where('id', '!=', $contract->id)
+                            ->whereNotIn('status', ['back', 'closed', 'completed'])
+                            ->count();
+
+                        $activeOrders = $maid->orders()
+                            ->whereIn('status', ['pending', 'approved', 'in_progress'])
+                            ->count();
+
+                        if ($activeContracts === 0 && $activeOrders === 0) {
+                            $maid->update([
+                                'available' => true,
+                                'status' => 'available'
+                            ]);
+                        }
+                    } else {
+                        // باك اوت
+                        $maid->update([
+                            'available' => false,
+                            'status' => 'backout'
+                        ]);
+                    }
+                }
+
+                // تسجيل العملية
+                \Log::info('Contract cancelled', [
+                    'contract_id' => $contract->id,
+                    'cancel_reason' => $request->cancel_reason,
+                    'maid_status_after_cancel' => $request->maid_status_after_cancel,
+                    'cancelled_by' => Auth::guard('admin')->id()
+                ]);
+
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'تم إلغاء العقد بنجاح',
+                    'contract' => $contract->load(['user', 'maid', 'info'])
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollback();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            \Log::error('Error cancelling contract:', [
+                'contract_id' => $request->contract_id ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء إلغاء العقد: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

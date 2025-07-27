@@ -72,7 +72,7 @@ class SetMaidStatusToUnavailable extends Command
                     'updated_by' => 'Artisan Command'
                 ]);
 
-                return 0;
+        return 0;
             } else {
                 $this->info("❌ Operation cancelled");
                 return 1;

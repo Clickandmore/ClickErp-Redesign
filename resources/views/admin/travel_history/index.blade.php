@@ -1,5 +1,22 @@
 @extends('admin.layout.indexs.index')
 
+@php
+    $airports = [
+        'RUH' => 'مطار الملك خالد الدولي - الرياض (RUH)',
+        'JED' => 'مطار الملك عبدالعزيز الدولي - جدة (JED)',
+        'DMM' => 'مطار الملك فهد الدولي - الدمام (DMM)',
+        'MED' => 'مطار الأمير محمد بن عبدالعزيز الدولي - المدينة المنورة (MED)',
+        'TUU' => 'مطار تبوك الدولي - تبوك (TUU)',
+        'AHB' => 'مطار أبها الإقليمي - أبها (AHB)',
+        'TIF' => 'مطار الطائف الإقليمي - الطائف (TIF)',
+        'ELQ' => 'مطار القصيم الإقليمي - بريدة (ELQ)',
+        'URY' => 'مطار الجوف الإقليمي - سكاكا (URY)',
+        'HAS' => 'مطار حائل الإقليمي - حائل (HAS)',
+        'BHH' => 'مطار الباحة الإقليمي - الباحة (BHH)',
+        'GIZ' => 'مطار جازان الإقليمي - جازان (GIZ)',
+    ];
+@endphp
+
 
 @section('page-title')
 {{ __('admin.travel') }}
@@ -87,7 +104,7 @@
                         <th>#</th>
                         <th>{{ __('admin.client_id') }}</th>
                         <th>{{ __('admin.maid_id') }}</th>
-                        <th>{{ __('admin.order_id') }}</th>
+                        <th>رقم العقد</th>
                         <th>{{ __('admin.travel_type') }}</th>
                         <th>{{ __('admin.travel_with') }}</th>
                         <th>{{ __('admin.arrival_airport') }}</th>
@@ -108,7 +125,7 @@
                         <td>{{ @$singleRow->order_id ?? '--' }}</td>
                         <td>{{ __('travel_types.travel_types.'.@$singleRow->travel_type) }}</td>
                         <td>{{ __('travel_types.travel_with.'.@$singleRow->travel_with) }}</td>
-                        <td>{{ @$singleRow->arrival_airport }}</td>
+                        <td>{{ $airports[@$singleRow->arrival_airport] ?? @$singleRow->arrival_airport ?? '--' }}</td>
                         <td>{{ @$singleRow->arrival_date }}</td>
                         <td>{{ @$singleRow->arrival_time }}</td>
                         <td>{{ @$singleRow->flight_company }}</td>

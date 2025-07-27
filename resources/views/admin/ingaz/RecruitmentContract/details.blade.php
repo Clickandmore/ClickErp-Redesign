@@ -354,42 +354,66 @@
                     <i class="fas fa-user-tie text-warning"></i>
                     معلومات العاملة
                 </div>
-                <div class="info-row">
-                    <span class="info-label">الاسم:</span>
-                    <span class="info-value highlight">{{ $contract->maid->name ?? 'غير محدد' }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">رقم الجواز:</span>
-                    <span class="info-value">{{ $contract->maid->passport_num ?? 'غير محدد' }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">الجنسية:</span>
-                    <span class="info-value">{{ $contract->maid->nationality->sub_title ?? 'غير محدد' }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">الدين:</span>
-                    <span class="info-value">{{ $contract->maid->religion->title ?? 'غير محدد' }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">المهنة:</span>
-                    <span class="info-value">{{ $contract->maid->jobTitles && $contract->maid->jobTitles->first() ? $contract->maid->jobTitles->first()->title : 'غير محدد' }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">سنوات الخبرة:</span>
-                    <span class="info-value">{{ $contract->maid->experience_years ?? 'غير محدد' }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">العمر:</span>
-                    <span class="info-value">{{ $contract->maid->age ?? 'غير محدد' }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">السعر:</span>
-                    <span class="info-value success">{{ $contract->maid->price ?? 'غير محدد' }} ريال</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">الراتب:</span>
-                    <span class="info-value success">{{ $contract->maid->salary ?? 'غير محدد' }} ريال</span>
-                </div>
+                @if($contract->maid)
+                    <div class="info-row">
+                        <span class="info-label">اسم العاملة:</span>
+                        <span class="info-value highlight">{{ $contract->maid->name ?? 'غير محدد' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">رقم الجواز:</span>
+                        <span class="info-value">{{ $contract->maid->passport_num ?? 'غير محدد' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">الجنسية:</span>
+                        <span class="info-value">{{ $contract->maid && $contract->maid->nationality ? $contract->maid->nationality->sub_title : 'غير محدد' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">الدين:</span>
+                        <span class="info-value">{{ $contract->maid && $contract->maid->religion ? $contract->maid->religion->title : 'غير محدد' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">المهنة:</span>
+                        <span class="info-value">
+                            @if($contract->maid && $contract->maid->jobTitles && $contract->maid->jobTitles->count() > 0)
+                                {{ $contract->maid->jobTitles->first()->title }}
+                            @else
+                                غير محدد
+                        @endif
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">سنوات الخبرة:</span>
+                        <span class="info-value">{{ $contract->maid->experience_years ?? 'غير محدد' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">العمر:</span>
+                        <span class="info-value">{{ $contract->maid->age ?? 'غير محدد' }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">السعر:</span>
+                        <span class="info-value success">{{ $contract->maid->price ?? 'غير محدد' }} ريال</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">الراتب:</span>
+                        <span class="info-value success">{{ $contract->maid->salary ?? 'غير محدد' }} ريال</span>
+                    </div>
+                @else
+                    <div class="alert alert-warning mb-0">
+                        <div class="text-center">
+                            <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
+                            @if($contract->status == 'pending_maid_selection')
+                                <h5 class="text-warning"><strong>في انتظار اختيار العاملة</strong></h5>
+                                <p class="text-muted mb-2">هذا العقد في مرحلة انتظار اختيار العاملة المناسبة</p>
+                                <a href="{{ route('RecruitmentContract.selectMaid', $contract->id) }}" class="btn btn-warning btn-sm">
+                                    <i class="fas fa-user-plus me-1"></i>إضافة عاملة
+                                </a>
+                            @else
+                                <h5 class="text-danger"><strong>لا توجد عاملة مخصصة</strong></h5>
+                                <p class="text-muted mb-0">لم يتم تخصيص عاملة لهذا العقد بعد</p>
+                    @endif
+                        </div>
+                    </div>
+                    @endif
             </div>
         </div>
     </div>
@@ -446,6 +470,55 @@
                     <span class="info-label">تاريخ إنشاء العقد:</span>
                     <span class="info-value">{{ $contract->created_at ? \Carbon\Carbon::parse($contract->created_at)->format('Y-m-d H:i') : 'غير محدد' }}</span>
                 </div>
+
+                @if($contract->status == 'completed')
+                <div class="info-row">
+                    <span class="info-label">حالة الضمان:</span>
+                    <span class="info-value">
+                        @php
+                            $warrantyStatus = $contract->warranty_status ?? 'not_applicable';
+                            $warrantyText = $contract->warranty_status_text ?? 'غير محدد';
+                            $remainingDays = $contract->warranty_remaining_days ?? 0;
+                        @endphp
+
+                        @switch($warrantyStatus)
+                            @case('active')
+                                <span class="badge bg-success">
+                                    <i class="fas fa-shield-alt me-1"></i>
+                                    نشط ({{ $remainingDays }} يوم متبقي)
+                                </span>
+                                @break
+                            @case('expired')
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-times-circle me-1"></i>
+                                    منتهي
+                                </span>
+                                @break
+                            @default
+                                <span class="badge bg-secondary">
+                                    <i class="fas fa-minus-circle me-1"></i>
+                                    غير قابل للتطبيق
+                                </span>
+                        @endswitch
+                    </span>
+                </div>
+
+                @if($contract->warranty_start_date)
+                <div class="info-row">
+                    <span class="info-label">تاريخ بداية الضمان:</span>
+                    <span class="info-value">{{ \Carbon\Carbon::parse($contract->warranty_start_date)->format('Y-m-d H:i') }}</span>
+                </div>
+                @endif
+
+                @if($contract->warranty_end_date)
+                <div class="info-row">
+                    <span class="info-label">تاريخ انتهاء الضمان:</span>
+                    <span class="info-value {{ $contract->warranty_status == 'expired' ? 'danger' : '' }}">
+                        {{ \Carbon\Carbon::parse($contract->warranty_end_date)->format('Y-m-d H:i') }}
+                    </span>
+                </div>
+                @endif
+                @endif
             </div>
         </div>
 
@@ -520,7 +593,7 @@
             </div>
         </div>
     </div>
-    @endif
+                    @endif
 
     <!-- معلومات الطلب المسبق -->
     @if($contract->order)
@@ -582,7 +655,7 @@
             </div>
         </div>
     </div>
-    @endif
+                                        @endif
 
     <!-- سجل الحالات -->
     <div class="row">
@@ -591,27 +664,27 @@
                 <div class="card-title">
                     <i class="fas fa-history text-info"></i>
                     سجل حالات العقد
-                </div>
+                    </div>
                 <table class="info-table">
                     <thead>
-                        <tr>
+                            <tr>
                             <th>الحالة</th>
                             <th>التاريخ</th>
-                        </tr>
+                            </tr>
                     </thead>
                     <tbody>
-                        @foreach($contract->contract_status_logs as $logs)
+                            @foreach($contract->contract_status_logs as $logs)
                         <tr>
-                            <td>
+                                <td>
                                 <span class="status-badge bg-info">
                                     {{ getEnumValue('contract_statuses', $logs->status) }}
                                 </span>
-                            </td>
+                                </td>
                             <td>{{ $logs->date }}</td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
             </div>
         </div>
     </div>
@@ -663,7 +736,7 @@
                     <h6><i class="fas fa-user-tie"></i> العاملة الحالية:</h6>
                     <strong>{{ $contract->maid->name ?? 'غير محدد' }}</strong> -
                     {{ $contract->maid->passport_num ?? 'غير محدد' }}
-                    ({{ $contract->maid->nationality->sub_title ?? 'غير محدد' }})
+                    ({{ $contract->maid && $contract->maid->nationality ? $contract->maid->nationality->sub_title : 'غير محدد' }})
                 </div>
 
                 <form id="changeMaidForm">
@@ -737,7 +810,7 @@
                                   placeholder="اكتب سبب تغيير العاملة..."></textarea>
                     </div>
                 </form>
-            </div>
+                </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="fas fa-times"></i>

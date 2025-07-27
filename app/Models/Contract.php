@@ -18,6 +18,12 @@ class Contract extends Model
     protected $guarded = [];
     protected $with = ['info'];
 
+    // إضافة الحقول الجديدة للضمان
+    protected $casts = [
+        'warranty_start_date' => 'datetime',
+        'warranty_end_date' => 'datetime',
+    ];
+
     public function getDescAttribute()
     {
         return helperTrans('ingaz.contract number') . $this->id . helperTrans('ingaz.contract of') . $this->user->name;
@@ -86,4 +92,71 @@ class Contract extends Model
             ->logOnlyDirty();
     }
 
+    /**
+     * حساب حالة الضمان تلقائياً
+     */
+    public function calculateWarrantyStatus()
+    {
+        if ($this->status !== 'completed') {
+            $this->update(['warranty_status' => 'not_applicable']);
+            return;
+        }
+
+        // البحث عن رحلة الوصول
+        $travelHistory = \App\Models\TravelHistory::where('order_id', $this->id)
+            ->whereNotNull('arrival_date')
+            ->whereNotNull('arrival_time')
+            ->first();
+
+        if (!$travelHistory) {
+            $this->update(['warranty_status' => 'not_applicable']);
+            return;
+        }
+
+        // حساب تواريخ الضمان
+        $arrivalDateTime = \Carbon\Carbon::parse($travelHistory->arrival_date . ' ' . $travelHistory->arrival_time);
+        $warrantyEndDate = $arrivalDateTime->copy()->addDays(90);
+
+        $this->update([
+            'warranty_start_date' => $arrivalDateTime,
+            'warranty_end_date' => $warrantyEndDate
+        ]);
+
+        // تحديث حالة الضمان
+        if ($warrantyEndDate->isPast()) {
+            $this->update(['warranty_status' => 'expired']);
+        } else {
+            $this->update(['warranty_status' => 'active']);
+        }
+    }
+
+    /**
+     * الحصول على حالة الضمان كنص
+     */
+    public function getWarrantyStatusTextAttribute()
+    {
+        switch ($this->warranty_status) {
+            case 'active':
+                return 'نشط';
+            case 'expired':
+                return 'منتهي';
+            case 'not_applicable':
+                return 'غير قابل للتطبيق';
+            default:
+                return 'غير محدد';
+        }
+    }
+
+    /**
+     * الحصول على الأيام المتبقية في الضمان
+     */
+    public function getWarrantyRemainingDaysAttribute()
+    {
+        if ($this->warranty_status !== 'active' || !$this->warranty_end_date) {
+            return 0;
+        }
+
+        $remaining = \Carbon\Carbon::now()->diffInDays($this->warranty_end_date, false);
+        return max(0, $remaining);
+    }
 }

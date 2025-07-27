@@ -763,6 +763,10 @@ if (!function_exists('getContractStatus')) {
             'pending_maid_selection' => [
                 'ar' => 'بانتظار اختيار العاملة',
                 'en' => 'Pending Maid Selection'
+            ],
+            'completed' => [
+                'ar' => 'عقد مكتمل',
+                'en' => 'Completed Contract'
             ]
         ];
 
@@ -785,9 +789,33 @@ if (!function_exists('getContractStatusColor')) {
             'sari' => 'primary',
             'closed' => 'secondary',
             'shelter' => 'dark',
-            'pending_maid_selection' => 'warning'
+            'pending_maid_selection' => 'warning',
+            'completed' => 'success'
         ];
 
         return $colors[$status] ?? 'secondary';
+    }
+}
+
+if (!function_exists('getNextContractStatus')) {
+    function getNextContractStatus($currentStatus)
+    {
+        $statusFlow = [
+            'new' => 'msaned',
+            'msaned' => 'tafwed',
+            'tafwed' => 'taffez',
+            'taffez' => 'tazker',
+            'tazker' => 'arrival',
+            'arrival' => 'sari',
+            'sari' => 'closed',
+            'pending_maid_selection' => 'new',
+            'completed' => null,
+            // لا توجد مرحلة تالية لهذه الحالات
+            'under_warranty' => null,
+            'back' => null,
+            'closed' => null,
+            'shelter' => null
+        ];
+        return $statusFlow[$currentStatus] ?? null;
     }
 }

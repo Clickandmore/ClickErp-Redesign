@@ -58,6 +58,7 @@
                 $arrivalStatus = \App\Enums\ingaz\ContractStatusEnum::Arrival;
                 $sariStatus = \App\Enums\ingaz\ContractStatusEnum::Sari;
                 $closedStatus = \App\Enums\ingaz\ContractStatusEnum::Closed;
+                $completedStatus = \App\Enums\ingaz\ContractStatusEnum::Completed;
             @endphp
             <ul class="menu-list">
                 <!-- Dashboard Section -->
@@ -235,21 +236,20 @@
                                     <span class="badge bg-primary">{{ $contractsCount['tazker'] }}</span>
                                 </a>
                             </li>
-                            @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_WARRANTY_VIEW))
-                            <li>
-                                <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $underWarrantyStatus->value]) }}">
-                                    <i class="icon-star"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.under_warranty') }}</span>&nbsp;
-                                    <span class="badge bg-primary">{{ $contractsCount['arrival'] }}</span>
-                                </a>
-                            </li>
-                            @endif
+
                             @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
                             <li>
-                                <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $closedStatus->value]) }}">
+                                <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $completedStatus->value]) }}">
                                     <i class="icon-star"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.closed') }}</span>&nbsp;
-                                    <span class="badge bg-primary">{{ $contractsCount['closed'] }}</span>
+                                    <span class="ms-2">عقود مكتملة</span>&nbsp;
+                                    <span class="badge bg-primary">{{ $contractsCount['completed'] }}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $backStatus->value]) }}">
+                                    <i class="fa fa-undo"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.back_contracts') }}</span>&nbsp;
+                                    <span class="badge bg-danger">{{ $contractsCount['back'] }}</span>
                                 </a>
                             </li>
                             @endif
@@ -271,13 +271,7 @@
                             </li>
                         @endif
                         @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN_VIEW))
-                    <li>
-                        <a class="m-link {{ (Route::currentRouteName() == 'RecruitmentContract.index' && request()->input('status') == $backStatus->value) ? 'active' : '' }}"
-                            href="{{ route('RecruitmentContract.index', ['status' => $backStatus->value]) }}">
-                            <i class="fa fa-undo"></i>
-                            <span class="ms-2">{{ helperTrans('ingaz.back') }}</span>
-                        </a>
-                    </li>
+                    
                 @endif
                     </ul>
                 </li>

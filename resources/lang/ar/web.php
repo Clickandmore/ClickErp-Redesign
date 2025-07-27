@@ -315,7 +315,7 @@
   'stage_msaned' => 'مرحلة مساند',
   'stage_tafwed' => 'مرحلة التفويض',
   'stage_visa' => 'مرحلة التأشيرة',
-  'stage_tazker' => 'مرحلة التذكير',
+  'stage_tazker' => 'مرحلة التذاكر',
   'stage_arrival' => 'مرحلة الوصول',
   'stage_closed' => 'عقد منتهي',
   'stage_new' => 'عقد جديد',

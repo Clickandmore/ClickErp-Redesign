@@ -680,9 +680,9 @@ $(document).ready(function() {
                         // Force update of Select2 if it exists
                         if ($.fn.select2) {
                             try {
-                                $('#maid_nationality').select2('destroy').select2();
-                                $('#maid_religion').select2('destroy').select2();
-                                $('#maid_job').select2('destroy').select2();
+                            $('#maid_nationality').select2('destroy').select2();
+                            $('#maid_religion').select2('destroy').select2();
+                            $('#maid_job').select2('destroy').select2();
                             } catch (e) {
                                 console.log('Select2 error:', e);
                             }

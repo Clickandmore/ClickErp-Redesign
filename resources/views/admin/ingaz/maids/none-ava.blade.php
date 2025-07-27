@@ -4,80 +4,80 @@
     <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/daterangepicker.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-    <style>
-        /* تحسينات للـ responsive */
-        @media (max-width: 768px) {
-            .table-responsive {
-                font-size: 0.875rem;
-            }
-
-            .btn {
-                font-size: 0.8rem;
-                padding: 0.375rem 0.75rem;
-            }
-
-            .form-control {
-                font-size: 0.875rem;
-            }
-
-            .card-body {
-                padding: 1rem;
-            }
+<style>
+    /* تحسينات للـ responsive */
+    @media (max-width: 768px) {
+        .table-responsive {
+            font-size: 0.875rem;
         }
 
-        @media (max-width: 576px) {
-            .table-responsive {
-                font-size: 0.8rem;
-            }
-
-            .btn {
-                font-size: 0.75rem;
-                padding: 0.25rem 0.5rem;
-            }
-
-            .form-control {
-                font-size: 0.8rem;
-            }
-        }
-
-        /* تحسين مظهر الجدول */
-        .table th, .table td {
-            vertical-align: middle;
-        }
-
-        .badge {
-            font-size: 0.75rem;
-        }
-
-        /* تحسين مظهر الصور في الجدول */
-        .table img {
-            max-width: 100%;
-            height: auto;
-        }
-
-        /* تحسين شكل الأزرار */
         .btn {
-            border-radius: 8px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-size: 0.8rem;
+            padding: 0.375rem 0.75rem;
         }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        .form-control {
+            font-size: 0.875rem;
         }
+
+        .card-body {
+            padding: 1rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .table-responsive {
+            font-size: 0.8rem;
+        }
+
+        .btn {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .form-control {
+            font-size: 0.8rem;
+        }
+    }
+
+    /* تحسين مظهر الجدول */
+    .table th, .table td {
+        vertical-align: middle;
+    }
+
+    .badge {
+        font-size: 0.75rem;
+    }
+
+    /* تحسين مظهر الصور في الجدول */
+    .table img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    /* تحسين شكل الأزرار */
+    .btn {
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
 
         .btn-search {
             background: linear-gradient(135deg, #007bff, #0056b3);
-            border: none;
-            color: white;
-        }
+        border: none;
+        color: white;
+    }
 
         .btn-search:hover {
             background: linear-gradient(135deg, #0056b3, #004085);
-            color: white;
-        }
+        color: white;
+    }
 
         .btn-clear {
             border: 2px solid #6c757d;
@@ -93,14 +93,14 @@
 
         .btn-add {
             background: linear-gradient(135deg, #28a745, #1e7e34);
-            border: none;
-            color: white;
-        }
+        border: none;
+        color: white;
+    }
 
         .btn-add:hover {
             background: linear-gradient(135deg, #1e7e34, #155724);
-            color: white;
-        }
+        color: white;
+    }
 
         .btn-export {
             border-radius: 6px;
@@ -125,52 +125,52 @@
             background: linear-gradient(135deg, #1e7e34, #155724);
         }
 
-        /* تحسين أزرار الجدول */
-        .table .btn-sm {
-            border-radius: 6px;
-            font-size: 0.8rem;
-            padding: 0.25rem 0.5rem;
-            margin: 0 0.1rem;
-            transition: all 0.2s ease;
-        }
+    /* تحسين أزرار الجدول */
+    .table .btn-sm {
+        border-radius: 6px;
+        font-size: 0.8rem;
+        padding: 0.25rem 0.5rem;
+        margin: 0 0.1rem;
+        transition: all 0.2s ease;
+    }
 
-        .table .btn-sm:hover {
-            transform: scale(1.05);
-        }
+    .table .btn-sm:hover {
+        transform: scale(1.05);
+    }
 
-        /* أزرار العمليات المخصصة */
-        .btn-view {
-            background: linear-gradient(135deg, #17a2b8, #138496);
-            border: none;
-            color: white;
-        }
+    /* أزرار العمليات المخصصة */
+    .btn-view {
+        background: linear-gradient(135deg, #17a2b8, #138496);
+        border: none;
+        color: white;
+    }
 
-        .btn-view:hover {
-            background: linear-gradient(135deg, #138496, #117a8b);
-            color: white;
-        }
+    .btn-view:hover {
+        background: linear-gradient(135deg, #138496, #117a8b);
+        color: white;
+    }
 
-        .btn-edit {
-            background: linear-gradient(135deg, #007bff, #0056b3);
-            border: none;
-            color: white;
-        }
+    .btn-edit {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        border: none;
+        color: white;
+    }
 
-        .btn-edit:hover {
-            background: linear-gradient(135deg, #0056b3, #004085);
-            color: white;
-        }
+    .btn-edit:hover {
+        background: linear-gradient(135deg, #0056b3, #004085);
+        color: white;
+    }
 
-        .btn-delete {
-            background: linear-gradient(135deg, #dc3545, #c82333);
-            border: none;
-            color: white;
-        }
+    .btn-delete {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        border: none;
+        color: white;
+    }
 
-        .btn-delete:hover {
-            background: linear-gradient(135deg, #c82333, #a71e2a);
-            color: white;
-        }
+    .btn-delete:hover {
+        background: linear-gradient(135deg, #c82333, #a71e2a);
+        color: white;
+    }
 
         .toggle-pin {
             border-radius: 50%;
@@ -202,34 +202,34 @@
             background: linear-gradient(135deg, #545b62, #4e555b);
         }
 
-        /* تحسين الأزرار في الشاشات الصغيرة */
-        @media (max-width: 768px) {
-            .btn {
-                font-size: 0.8rem;
-                padding: 0.5rem 0.75rem;
-            }
+    /* تحسين الأزرار في الشاشات الصغيرة */
+    @media (max-width: 768px) {
+        .btn {
+            font-size: 0.8rem;
+            padding: 0.5rem 0.75rem;
+        }
 
-            .btn-sm {
-                font-size: 0.7rem;
-                padding: 0.2rem 0.4rem;
-            }
+        .btn-sm {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
+        }
 
             .toggle-pin {
                 width: 28px;
                 height: 28px;
             }
+    }
+
+    @media (max-width: 576px) {
+        .btn {
+            font-size: 0.75rem;
+            padding: 0.4rem 0.6rem;
         }
 
-        @media (max-width: 576px) {
-            .btn {
-                font-size: 0.75rem;
-                padding: 0.4rem 0.6rem;
-            }
-
-            .btn-sm {
-                font-size: 0.65rem;
-                padding: 0.15rem 0.3rem;
-            }
+        .btn-sm {
+            font-size: 0.65rem;
+            padding: 0.15rem 0.3rem;
+        }
 
             .toggle-pin {
                 width: 24px;
@@ -270,8 +270,8 @@
             border-radius: 12px;
             font-size: 0.75rem;
             font-weight: 600;
-        }
-    </style>
+    }
+</style>
 @endsection
 @section('page-title')
     العاملات باك اوت
@@ -292,7 +292,7 @@
     <div class="card">
         <div class="card-body show">
             <form id="filterForm">
-                <div class="row align-items-end">
+            <div class="row align-items-end">
                     <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                         <input type="text" class="form-control" id="passport_num" name="passport_num" value="{{$request->passport_num}}" placeholder="رقم الجواز">
                     </div>
@@ -301,8 +301,8 @@
                             <option value="" selected>الجنسية</option>
                             @foreach($filter['nationalities'] as $nationality)
                                 <option value="{{ $nationality->id }}" {{ ($request->nationality_id == $nationality->id) ? 'selected' : '' }}>
-                                    {{ $nationality->sub_title }}
-                                </option>
+                                {{ $nationality->sub_title }}
+                            </option>
                             @endforeach
                         </select>
                     </div>
@@ -317,11 +317,11 @@
                     <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                         <select class="form-control" name="job_type" id="type">
                             <option value="" selected>نوع السيرة الذاتية</option>
-                            @foreach($filter['job_types'] as $jobtype)
+                        @foreach($filter['job_types'] as $jobtype)
                                 <option value="{{$jobtype->id}}" {{ ($request->job_type == $jobtype->id) ? 'selected' : '' }}>{{$jobtype->title}}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                        @endforeach
+                    </select>
+                </div>
                     <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                         <input type="text" name="experience_years" value="{{$request->experience_years}}" class="form-control" placeholder="سنوات الخبرة">
                     </div>
@@ -361,24 +361,24 @@
     <div class="table-responsive">
         <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
             <thead>
-            <tr>
-                <th class="d-none d-md-table-cell">ID</th>
-                <th>{{helperTrans("ingaz.cv_file")}}</th>
-                <th class="d-none d-lg-table-cell">{{helperTrans("ingaz.nationality_id")}}</th>
+                <tr>
+                    <th class="d-none d-md-table-cell">ID</th>
+                    <th>{{helperTrans("ingaz.cv_file")}}</th>
+                    <th class="d-none d-lg-table-cell">{{helperTrans("ingaz.nationality_id")}}</th>
                 <th class="d-none d-lg-table-cell">{{helperTrans("ingaz.job_type")}}</th>
-                <th>{{helperTrans("ingaz.passport_num")}}</th>
-                <th class="d-none d-md-table-cell">{{helperTrans("ingaz.price")}}</th>
-                <th class="d-none d-md-table-cell">{{helperTrans("ingaz.salary")}}</th>
-                <th class="d-none d-lg-table-cell">{{helperTrans("ingaz.religion_id")}}</th>
-                <th class="d-none d-md-table-cell">{{helperTrans("ingaz.age")}}</th>
-                <th class="d-none d-lg-table-cell">{{helperTrans("ingaz.maidContractRemaining")}}</th>
-                <th class="d-none d-lg-table-cell">{{helperTrans("ingaz.is_show")}}</th>
+                    <th>{{helperTrans("ingaz.passport_num")}}</th>
+                    <th class="d-none d-md-table-cell">{{helperTrans("ingaz.price")}}</th>
+                    <th class="d-none d-md-table-cell">{{helperTrans("ingaz.salary")}}</th>
+                    <th class="d-none d-lg-table-cell">{{helperTrans("ingaz.religion_id")}}</th>
+                    <th class="d-none d-md-table-cell">{{helperTrans("ingaz.age")}}</th>
+                    <th class="d-none d-lg-table-cell">{{helperTrans("ingaz.maidContractRemaining")}}</th>
+                    <th class="d-none d-lg-table-cell">{{helperTrans("ingaz.is_show")}}</th>
                 <th class="d-none d-lg-table-cell">مثبتة</th>
-                <th>{{helperTrans("ingaz.cv_status")}}</th>
+                    <th>{{helperTrans("ingaz.cv_status")}}</th>
                 <th>سبب عدم التوفر</th>
-                <th class="d-none d-md-table-cell">{{helperTrans("ingaz.created_at")}}</th>
-                <th>{{helperTrans("ingaz.actions")}}</th>
-            </tr>
+                    <th class="d-none d-md-table-cell">{{helperTrans("ingaz.created_at")}}</th>
+                    <th>{{helperTrans("ingaz.actions")}}</th>
+                </tr>
             </thead>
             <tbody>
 
@@ -398,8 +398,8 @@
     <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
     <script src="{{asset("admin")}}/assets/js/bundle/daterangepicker.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        $(document).ready(function () {
+<script>
+    $(document).ready(function () {
             // Setup CSRF token for all AJAX requests
             $.ajaxSetup({
                 headers: {
@@ -580,7 +580,7 @@
                                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                             });
 
-                            $.ajax({
+            $.ajax({
                                 url: `/admin/maids/${id}/toggle-pin`,
                                 type: 'POST',
                                 headers: {
@@ -608,13 +608,13 @@
                                         $('#dataTableObject').DataTable().ajax.reload();
 
                                         Swal.fire({
-                                            icon: 'success',
+                            icon: 'success',
                                             title: 'تم بنجاح',
                                             text: isPinned ? 'تم إلغاء التثبيت بنجاح' : 'تم تثبيت العاملة بنجاح',
                                             timer: 2000,
                                             showConfirmButton: false
-                                        });
-                                    } else {
+                        });
+                    } else {
                                         Swal.fire({
                                             icon: 'error',
                                             title: 'خطأ',
@@ -643,11 +643,11 @@
                                         title: 'خطأ',
                                         text: errorMessage
                                     });
-                                }
+                    }
                             });
-                        }
-                    });
-                });
+                }
+            });
+        });
 
                 // Add click handler for update-status button (show/hide maid)
                 $(document).on('click', '.update-status', function(e) {
@@ -743,58 +743,58 @@
                 $('#dataTableObject').DataTable().ajax.reload();
             }
 
-            $(document).on('submit', '.from-submit-global-maid', function (e) {
-                e.preventDefault();
-                let formData = new FormData(this);
-                let url = $(this).attr('action');
-                let submitButton = $(e.originalEvent.submitter);
-                let buttonText = submitButton.text();
-                let modalResult = $("#createModal");
-                $.ajax({
-                    url: url,
-                    type: 'POST',
-                    data: formData,
-                    cache: false,
-                    contentType: false,
-                    processData: false,
-                    beforeSend: function () {
-                        $('#loading-wrapper').fadeIn();
-                        submitButton.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>' + buttonText);
-                    },
-                    complete: function () {
-                        $('#loading-wrapper').fadeOut();
-                    },
-                    success: function (result) {
+        $(document).on('submit', '.from-submit-global-maid', function (e) {
+            e.preventDefault();
+            let formData = new FormData(this);
+            let url = $(this).attr('action');
+            let submitButton = $(e.originalEvent.submitter);
+            let buttonText = submitButton.text();
+            let modalResult = $("#createModal");
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: formData,
+                cache: false,
+                contentType: false,
+                processData: false,
+                beforeSend: function () {
+                    $('#loading-wrapper').fadeIn();
+                    submitButton.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>' + buttonText);
+                },
+                complete: function () {
+                    $('#loading-wrapper').fadeOut();
+                },
+                success: function (result) {
 
-                        console.log(200)
+                    console.log(200)
 
-                        reloadDataTable();
-                        submitButton.html(buttonText)
-                        if (modalResult.is(":visible")) {
-                            modalResult.modal('toggle');
-                        }
-                        window.setTimeout(function () {
-
-                            handleSuccessResponce(result);
-                            // window.location.href = '{{route('maids.index')}}';
-                            var id = result.data.id;
-                            // console.log(id);
-                            window.location.href = "{{ route('convert_page', ':id') }}".replace(':id', id);
-                            $('.loader-ajax').hide()
-                        }, 20);
-                        // modalResult.modal('toggle');
-                        console.log(modalResult.is(':visible'));
-                    },
-                    error: function (errorObj, errorText, errorThrown) {
-                        console.log(500)
-                        console.log(errorObj)
-                        handleErrorResponce(errorObj);
+                    reloadDataTable();
+                    submitButton.html(buttonText)
+                    if (modalResult.is(":visible")) {
+                        modalResult.modal('toggle');
                     }
+                    window.setTimeout(function () {
+
+                        handleSuccessResponce(result);
+                            // window.location.href = '{{route('maids.index')}}';
+                        var id = result.data.id;
+                        // console.log(id);
+                        window.location.href = "{{ route('convert_page', ':id') }}".replace(':id', id);
+                        $('.loader-ajax').hide()
+                    }, 20);
+                    // modalResult.modal('toggle');
+                    console.log(modalResult.is(':visible'));
+                },
+                error: function (errorObj, errorText, errorThrown) {
+                    console.log(500)
+                    console.log(errorObj)
+                    handleErrorResponce(errorObj);
+                }
                 });
 
             });
 
         });
 
-    </script>
+</script>
 @endsection

@@ -173,6 +173,10 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () 
 
     // Add the travel complete route inside the admin group
     Route::post('/travel/complete/{tripId}', [RecruitmentContractController::class, 'completeTrip'])->name('travel.complete');
+    Route::post('/RecruitmentContract/completeTrip', [RecruitmentContractController::class, 'completeTrip'])->name('RecruitmentContract.completeTrip');
+    Route::post('/travel/add', [RecruitmentContractController::class, 'addTravel'])->name('travel.add');
+    Route::post('/RecruitmentContract/updateStatus', [RecruitmentContractController::class, 'updateStatus'])->name('RecruitmentContract.updateStatus');
+    Route::post('/RecruitmentContract/cancel', [RecruitmentContractController::class, 'cancel'])->name('RecruitmentContract.cancel');
 });
 
 // Notification routes

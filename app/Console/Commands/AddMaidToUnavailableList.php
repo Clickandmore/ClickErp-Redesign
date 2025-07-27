@@ -116,7 +116,7 @@ class AddMaidToUnavailableList extends Command
                 'updated_by' => 'Artisan Command'
             ]);
 
-            return 0;
+        return 0;
 
         } catch (\Exception $e) {
             DB::rollBack();
