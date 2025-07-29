@@ -100,106 +100,132 @@
     margin-left: 0.25rem;
 }
 
-/* القائمة المنسدلة */
-.dropdown-menu {
+.actions-btn.show {
+    background: #f8f9fa;
+    border-color: #adb5bd;
+}
+
+/* تحسين dropdown menu */
+.actions-dropdown .dropdown-menu {
+    position: absolute;
+    z-index: 1050;
+    display: none;
     min-width: 10rem;
     padding: 0.5rem 0;
     margin: 0;
     font-size: 0.875rem;
+    color: #212529;
+    text-align: right;
+    background-color: #fff;
+    background-clip: padding-box;
     border: 1px solid rgba(0,0,0,.15);
     border-radius: 0.25rem;
-    box-shadow: 0 0.5rem 1rem rgba(0,0,0,.175);
 }
 
-.dropdown-item {
+.actions-dropdown .dropdown-menu.show {
+    display: block;
+}
+
+.actions-dropdown .dropdown-item {
+    display: block;
+    width: 100%;
     padding: 0.5rem 1rem;
+    clear: both;
+    font-weight: 400;
     color: #212529;
-    transition: all 0.15s ease-in-out;
+    text-align: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+    background-color: transparent;
+    border: 0;
 }
 
-.dropdown-item:hover {
+.actions-dropdown .dropdown-item:hover {
+    color: #1e2125;
     background-color: #f8f9fa;
-    color: #16181b;
 }
 
-.dropdown-item i {
-    width: 20px;
-    margin-left: 0.5rem;
-    color: inherit;
+.actions-dropdown .dropdown-divider {
+    height: 0;
+    margin: 0.5rem 0;
+    overflow: hidden;
+    border-top: 1px solid #e9ecef;
 }
 </style>
 @endsection
 
 @section('content')
-<div class="container-fluid rtl-page">
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <h4 class="page-title">
-                    <i class="fa fa-plane-departure"></i> رحلات الترحيل
-                </h4>
-                <a href="{{ route('DeportationTravel.create') }}" class="btn btn-success">
-                    <i class="fa fa-plus"></i> جدولة رحلة جديدة
-                </a>
+<div class="page-body p-4 text-dark admin-tables">
+    <div class="container-fluid rtl-page">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="page-title">
+                        <i class="fa fa-plane-departure"></i> رحلات الترحيل
+                    </h4>
+                    <a href="{{ route('DeportationTravel.create') }}" class="btn btn-success">
+                        <i class="fa fa-plus"></i> جدولة رحلة جديدة
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Filters -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow">
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <label for="contract_number" class="form-label">رقم العقد</label>
-                            <input type="text" class="form-control" id="contract_number" placeholder="ابحث برقم العقد">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="maid_name" class="form-label">اسم العاملة</label>
-                            <input type="text" class="form-control" id="maid_name" placeholder="ابحث باسم العاملة">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="travel_date" class="form-label">تاريخ السفر</label>
-                            <input type="date" class="form-control" id="travel_date">
-                        </div>
-                        <div class="col-md-3 d-flex align-items-end">
-                            <button class="btn btn-primary w-100" onclick="loadTable()">
-                                <i class="fa fa-search"></i> بحث
-                            </button>
+        <!-- Filters -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label for="contract_number" class="form-label">رقم العقد</label>
+                                <input type="text" class="form-control" id="contract_number" placeholder="ابحث برقم العقد">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="maid_name" class="form-label">اسم العاملة</label>
+                                <input type="text" class="form-control" id="maid_name" placeholder="ابحث باسم العاملة">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="travel_date" class="form-label">تاريخ السفر</label>
+                                <input type="date" class="form-control" id="travel_date">
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button class="btn btn-primary w-100" onclick="loadTable()">
+                                    <i class="fa fa-search"></i> بحث
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Table -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">
-                        <i class="fa fa-list"></i> قائمة رحلات الترحيل
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table id="deportationTravelTable" class="table table-hover align-middle mb-0">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>رقم العقد</th>
-                                    <th>بيانات العاملة</th>
-                                    <th>بيانات العميل</th>
-                                    <th>تفاصيل الرحلة</th>
-                                    <th>الحالة</th>
-                                    <th width="100">الإجراءات</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            </tbody>
-                        </table>
+        <!-- Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fa fa-list"></i> قائمة رحلات الترحيل
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="deportationTravelTable" class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>رقم العقد</th>
+                                        <th>بيانات العاملة</th>
+                                        <th>بيانات العميل</th>
+                                        <th>تفاصيل الرحلة</th>
+                                        <th>الحالة</th>
+                                        <th width="100">الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -256,46 +282,10 @@ function loadTable() {
             { data: 'travel_details', name: 'travel_details', orderable: false },
             { data: 'status', name: 'status' },
             {
-                data: null,
+                data: 'actions',
+                name: 'actions',
                 orderable: false,
-                searchable: false,
-                render: function(data, type, row) {
-                    let html = '<div class="dropdown actions-dropdown">';
-                    html += '<button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="الإجراءات المتاحة">';
-                    html += '<i class="fas fa-cogs me-1"></i> الإجراءات';
-                    html += '</button>';
-                    html += '<ul class="dropdown-menu dropdown-menu-end shadow-lg">';
-
-                    // عرض التفاصيل
-                    html += `<li><a class="dropdown-item" href="{{ route('DeportationTravel.show', '') }}/${row.id}">
-                        <i class="fas fa-eye"></i> عرض التفاصيل
-                    </a></li>`;
-
-                    // تعديل
-                    html += `<li><a class="dropdown-item" href="{{ route('DeportationTravel.create') }}?id=${row.id}">
-                        <i class="fas fa-edit"></i> تعديل
-                    </a></li>`;
-
-                    // إكمال الرحلة
-                    if (row.status !== 'completed') {
-                        html += '<li><hr class="dropdown-divider"></li>';
-                        html += `<li><a class="dropdown-item" href="javascript:void(0)" onclick="completeTravel(${row.id})">
-                            <i class="fas fa-check"></i> إكمال الرحلة
-                        </a></li>`;
-                    }
-
-                    html += '<li><hr class="dropdown-divider"></li>';
-
-                    // حذف
-                    html += `<li><a class="dropdown-item" href="javascript:void(0)" onclick="deleteTravel(${row.id})">
-                        <i class="fas fa-trash"></i> حذف
-                    </a></li>`;
-
-                    html += '</ul>';
-                    html += '</div>';
-
-                    return html;
-                }
+                searchable: false
             }
         ],
         order: [[0, 'desc']],
@@ -304,6 +294,68 @@ function loadTable() {
         drawCallback: function(settings) {
             // إخفاء الـ loader بعد اكتمال التحميل
             $('.dataTables_processing').hide();
+
+            // تهيئة dropdown buttons
+            initializeDropdowns();
+        }
+    });
+}
+
+// تهيئة dropdown
+function initializeDropdowns() {
+    // إزالة أي event listeners سابقة
+    $(document).off('click', '.actions-btn');
+    $(document).off('click', '.dropdown-item');
+
+    // عند النقر على زر الإجراءات
+    $(document).on('click', '.actions-btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        var $button = $(this);
+        var $dropdown = $button.next('.dropdown-menu');
+        var isOpen = $dropdown.hasClass('show');
+
+        // إغلاق جميع القوائم المفتوحة
+        $('.dropdown-menu').removeClass('show');
+        $('.actions-btn').attr('aria-expanded', 'false');
+
+        // فتح/إغلاق القائمة الحالية
+        if (!isOpen) {
+            $dropdown.addClass('show');
+            $button.attr('aria-expanded', 'true');
+
+            // تحديد موضع القائمة
+            var buttonOffset = $button.offset();
+            var buttonHeight = $button.outerHeight();
+            var dropdownHeight = $dropdown.outerHeight();
+            var windowHeight = $(window).height();
+            var scrollTop = $(window).scrollTop();
+
+            // التحقق من وجود مساحة كافية أسفل الزر
+            if (buttonOffset.top + buttonHeight + dropdownHeight > windowHeight + scrollTop) {
+                $dropdown.css({
+                    'position': 'absolute',
+                    'top': 'auto',
+                    'bottom': '100%',
+                    'margin-bottom': '0.125rem'
+                });
+            } else {
+                $dropdown.css({
+                    'position': 'absolute',
+                    'top': '100%',
+                    'bottom': 'auto',
+                    'margin-top': '0.125rem'
+                });
+            }
+        }
+    });
+
+    // إغلاق القائمة عند النقر خارجها
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.actions-dropdown').length) {
+            $('.dropdown-menu').removeClass('show');
+            $('.actions-btn').attr('aria-expanded', 'false');
         }
     });
 }

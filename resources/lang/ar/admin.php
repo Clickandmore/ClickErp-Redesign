@@ -708,6 +708,7 @@
   'shelter_workers-edit' => 'تعديل',
   'shelter_workers' => 'عاملات الايواء',
   'travel' => 'الرحلات',
+  'travel_history' => 'رحلات عقود الاستقدام',
   'travel-add' => 'إضافة',
   'travel-edit' => 'تعديل',
   'client_id' => 'العميل',

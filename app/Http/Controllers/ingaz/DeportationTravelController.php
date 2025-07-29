@@ -89,15 +89,18 @@ class DeportationTravelController extends Controller
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
 
+                    // عرض التفاصيل - متاح دائماً
+                    $actions .= '<li><a class="dropdown-item" href="' . route('DeportationTravel.show', $row->id) . '">
+                                    <i class="fa fa-eye"></i> عرض التفاصيل
+                                </a></li>';
+
+                    // تأكيد إتمام الرحلة - فقط للرحلات غير المكتملة
                     if ($row->status != 'completed') {
+                        $actions .= '<li><hr class="dropdown-divider"></li>';
                         $actions .= '<li><a class="dropdown-item" href="javascript:void(0)" onclick="completeTrip(' . $row->id . ')">
                                         <i class="fa fa-check-circle text-success"></i> تأكيد إتمام الرحلة
                                     </a></li>';
                     }
-
-                    $actions .= '<li><a class="dropdown-item" href="' . route('DeportationTravel.show', $row->id) . '">
-                                    <i class="fa fa-eye"></i> عرض التفاصيل
-                                </a></li>';
 
                     $actions .= '</ul></div>';
                     return $actions;

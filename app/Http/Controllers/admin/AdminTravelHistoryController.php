@@ -19,7 +19,7 @@ class AdminTravelHistoryController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = TravelHistory::with(['user', 'maid'])
+            $query = TravelHistory::with(['user', 'maid', 'maid.nationality', 'maid.nationality.translations'])
                 ->where('travel_type', '!=', 'deportation') // استبعاد رحلات الترحيل
                 ->orderBy('id', 'desc');
 
@@ -57,13 +57,102 @@ class AdminTravelHistoryController extends Controller
 
             return DataTables::of($query)
                 ->addIndexColumn()
-                ->addColumn('user', function($row) {
-                    return $row->user;
+                ->addColumn('user_data', function($row) {
+                    $html = '<div class="user-info">';
+                    if ($row->user) {
+                        $html .= '<span class="fw-bold">' . $row->user->name . '</span><br>';
+                        $html .= '<small class="text-muted">رقم: ' . $row->user->id . '</small><br>';
+                        $html .= '<small class="text-muted">' . ($row->user->mobile ?? 'لا يوجد هاتف') . '</small>';
+                    } else {
+                        $html .= '<span class="text-muted">غير محدد</span>';
+                    }
+                    $html .= '</div>';
+                    return $html;
                 })
-                ->addColumn('maid', function($row) {
-                    return $row->maid;
+                ->addColumn('maid_data', function($row) {
+                    $html = '<div class="maid-info">';
+                    if ($row->maid) {
+                        $html .= '<span class="fw-bold">' . $row->maid->name . '</span><br>';
+                        $html .= '<small class="text-muted">الجواز: ' . ($row->maid->passport_num ?? 'غير محدد') . '</small>';
+
+                        // الجنسية
+                        if ($row->maid->nationality) {
+                            $nationality = 'غير محدد';
+                            if ($row->maid->nationality->translations && $row->maid->nationality->translations->count() > 0) {
+                                $translation = $row->maid->nationality->translations->where('locale', app()->getLocale())->first();
+                                if ($translation) {
+                                    $nationality = $translation->sub_title;
+                                }
+                            }
+                            $html .= '<br><small class="text-muted">الجنسية: ' . $nationality . '</small>';
+                        }
+                    } else {
+                        $html .= '<span class="text-muted">غير محدد</span>';
+                    }
+                    $html .= '</div>';
+                    return $html;
                 })
-                ->rawColumns(['user', 'maid'])
+                ->addColumn('travel_details', function($row) {
+                    $html = '<div class="travel-details">';
+
+                    // المطار
+                    $airports = [
+                        'RUH' => 'الرياض',
+                        'JED' => 'جدة',
+                        'DMM' => 'الدمام',
+                        'MED' => 'المدينة المنورة',
+                        'TUU' => 'تبوك',
+                        'AHB' => 'أبها',
+                        'TIF' => 'الطائف',
+                        'ELQ' => 'القصيم',
+                        'URY' => 'الجوف',
+                        'HAS' => 'حائل',
+                        'BHH' => 'الباحة',
+                        'GIZ' => 'جازان',
+                    ];
+
+                    $airport = $airports[$row->arrival_airport] ?? $row->arrival_airport;
+                    $html .= '<i class="fa fa-plane"></i> ' . $airport . '<br>';
+
+                    // التاريخ
+                    if ($row->arrival_date) {
+                        $html .= '<i class="fa fa-calendar"></i> ' . \Carbon\Carbon::parse($row->arrival_date)->format('Y-m-d') . '<br>';
+                    }
+
+                    // الوقت
+                    if ($row->arrival_time) {
+                        $html .= '<i class="fa fa-clock"></i> ' . $row->arrival_time;
+                    }
+
+                    $html .= '</div>';
+                    return $html;
+                })
+                ->addColumn('actions', function($row) {
+                    $actions = '<div class="dropdown actions-dropdown">
+                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
+                                        <i class="fas fa-cogs me-1"></i> الإجراءات
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
+
+                    // تعديل
+                    $actions .= '<li><a class="dropdown-item" href="' . route('travel.control') . '?id=' . $row->id . '&userId=' . $row->user_id . '&maidId=' . $row->maid_id . '&orderId=' . $row->order_id . '">
+                                    <i class="fas fa-edit"></i> ' . __('admin.edit') . '
+                                </a></li>';
+
+                    if (auth('admin')->user() && \AdminGuardHasPerm(\App\PermKeys::TRAVEL_CONTROL)) {
+                        $actions .= '<li><hr class="dropdown-divider"></li>';
+
+                        // حذف
+                        $actions .= '<li><a class="dropdown-item" href="javascript:void(0)" onclick="deleteTravel(' . $row->id . ')">
+                                        <i class="fas fa-trash"></i> ' . __('admin.delete') . '
+                                    </a></li>';
+                    }
+
+                    $actions .= '</ul></div>';
+
+                    return $actions;
+                })
+                ->rawColumns(['user_data', 'maid_data', 'travel_details', 'actions'])
                 ->make(true);
         }
 

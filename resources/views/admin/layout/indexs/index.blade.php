@@ -12,6 +12,9 @@
         <link href="{{ asset('admin/custom/style-rtl.css') }}" rel="stylesheet" type="text/css" />
     @endif
 
+    <!-- Admin Tables & Sidebar Design System -->
+    <link href="{{ asset('admin/custom/admin-tables.css') }}" rel="stylesheet" type="text/css" />
+
     @yield("style")
     @yield("css")
     @stack("style")

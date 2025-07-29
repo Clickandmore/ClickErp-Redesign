@@ -144,10 +144,63 @@
     margin-left: 0.5rem;
     color: inherit;
 }
+
+.actions-btn.show {
+    background: #f8f9fa;
+    border-color: #adb5bd;
+}
+
+/* تحسين dropdown menu */
+.actions-dropdown .dropdown-menu {
+    position: absolute;
+    z-index: 1050;
+    display: none;
+    min-width: 10rem;
+    padding: 0.5rem 0;
+    margin: 0;
+    font-size: 0.875rem;
+    color: #212529;
+    text-align: right;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid rgba(0,0,0,.15);
+    border-radius: 0.25rem;
+}
+
+.actions-dropdown .dropdown-menu.show {
+    display: block;
+}
+
+.actions-dropdown .dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    clear: both;
+    font-weight: 400;
+    color: #212529;
+    text-align: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+    background-color: transparent;
+    border: 0;
+}
+
+.actions-dropdown .dropdown-item:hover {
+    color: #1e2125;
+    background-color: #f8f9fa;
+}
+
+.actions-dropdown .dropdown-divider {
+    height: 0;
+    margin: 0.5rem 0;
+    overflow: hidden;
+    border-top: 1px solid #e9ecef;
+}
 </style>
 @endsection
 
 @section('content')
+<div class="page-body p-4 text-dark admin-tables">
 @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_VIEW))
 
 <div class="container-fluid rtl-page">
@@ -225,9 +278,7 @@
                                     <th>رقم العقد</th>
                                     <th>{{ __('admin.travel_type') }}</th>
                                     <th>{{ __('admin.travel_with') }}</th>
-                                    <th>{{ __('admin.arrival_airport') }}</th>
-                                    <th>{{ __('admin.arrival_date') }}</th>
-                                    <th>{{ __('admin.arrival_time') }}</th>
+                                    <th>تفاصيل الرحلة</th>
                                     <th>{{ __('admin.flight_company') }}</th>
                                     <th>{{ __('admin.flight_number') }}</th>
                                     <th>{{ __('admin.status') }}</th>
@@ -247,6 +298,7 @@
 @else
     @include('components.no_permissions')
 @endif
+</div>
 @endsection
 
 @include('components.sweetalert')
@@ -255,6 +307,7 @@
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="{{asset("admin")}}/custom/admin-tables.css">
 
 <script>
 $(document).ready(function() {
@@ -269,6 +322,7 @@ function loadTable() {
     $('#travelHistoryTable').DataTable({
         processing: true,
         serverSide: true,
+        searching: false,
         language: {
             url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/ar.json',
             processing: '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">جاري التحميل...</span></div>'
@@ -285,35 +339,14 @@ function loadTable() {
         columns: [
             { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
             {
-                data: 'user_id',
-                name: 'user_id',
-                render: function(data, type, row) {
-                    if (row.user) {
-                        return `<div class="user-info">
-                            <span class="fw-bold">${row.user.name || 'غير محدد'}</span><br>
-                            <small class="text-muted">الهاتف: ${row.user.mobile || 'غير محدد'}</small>
-                        </div>`;
-                    }
-                    return '<span class="text-muted">غير محدد</span>';
-                }
+                data: 'user_data',
+                name: 'user_data',
+                orderable: false
             },
             {
-                data: 'maid_id',
-                name: 'maid_id',
-                render: function(data, type, row) {
-                    if (row.maid) {
-                        let nationality = 'غير محدد';
-                        if (row.maid.nationality && row.maid.nationality.translations && row.maid.nationality.translations.length > 0) {
-                            nationality = row.maid.nationality.translations[0].sub_title || row.maid.nationality.title || 'غير محدد';
-                        }
-                        return `<div class="maid-info">
-                            <span class="fw-bold">${row.maid.name || 'غير محدد'}</span><br>
-                            <small class="text-muted">الجواز: ${row.maid.passport_num || 'غير محدد'}</small><br>
-                            <small class="text-muted">الجنسية: ${nationality}</small>
-                        </div>`;
-                    }
-                    return '<span class="text-muted">غير محدد</span>';
-                }
+                data: 'maid_data',
+                name: 'maid_data',
+                orderable: false
             },
             { data: 'order_id', name: 'order_id' },
             {
@@ -326,15 +359,10 @@ function loadTable() {
             },
             { data: 'travel_with', name: 'travel_with' },
             {
-                data: 'arrival_airport',
-                name: 'arrival_airport',
-                render: function(data) {
-                    const airports = @json($airports);
-                    return airports[data] || data;
-                }
+                data: 'travel_details',
+                name: 'travel_details',
+                orderable: false
             },
-            { data: 'arrival_date', name: 'arrival_date' },
-            { data: 'arrival_time', name: 'arrival_time' },
             { data: 'flight_company', name: 'flight_company' },
             { data: 'flight_number', name: 'flight_number' },
             {
@@ -347,35 +375,10 @@ function loadTable() {
                 }
             },
             {
-                data: null,
+                data: 'actions',
+                name: 'actions',
                 orderable: false,
-                searchable: false,
-                render: function(data, type, row) {
-                    let html = '<div class="dropdown actions-dropdown">';
-                    html += '<button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="الإجراءات المتاحة">';
-                    html += '<i class="fas fa-cogs me-1"></i> الإجراءات';
-                    html += '</button>';
-                    html += '<ul class="dropdown-menu dropdown-menu-end shadow-lg">';
-
-                    // تعديل
-                    html += `<li><a class="dropdown-item" href="{{ route('travel.control') }}?id=${row.id}&userId=${row.user_id}&maidId=${row.maid_id}&orderId=${row.order_id}">
-                        <i class="fas fa-edit"></i> {{ __('admin.edit') }}
-                    </a></li>`;
-
-                    @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CONTROL))
-                    html += '<li><hr class="dropdown-divider"></li>';
-
-                    // حذف
-                    html += `<li><a class="dropdown-item" href="javascript:void(0)" onclick="deleteTravel(${row.id})">
-                        <i class="fas fa-trash"></i> {{ __('admin.delete') }}
-                    </a></li>`;
-                    @endif
-
-                    html += '</ul>';
-                    html += '</div>';
-
-                    return html;
-                }
+                searchable: false
             }
         ],
         order: [[0, 'desc']],
@@ -384,6 +387,68 @@ function loadTable() {
         drawCallback: function(settings) {
             // إخفاء الـ loader بعد اكتمال التحميل
             $('.dataTables_processing').hide();
+
+            // تهيئة dropdown buttons
+            initializeDropdowns();
+        }
+    });
+}
+
+// تهيئة dropdown
+function initializeDropdowns() {
+    // إزالة أي event listeners سابقة
+    $(document).off('click', '.actions-btn');
+    $(document).off('click', '.dropdown-item');
+
+    // عند النقر على زر الإجراءات
+    $(document).on('click', '.actions-btn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        var $button = $(this);
+        var $dropdown = $button.next('.dropdown-menu');
+        var isOpen = $dropdown.hasClass('show');
+
+        // إغلاق جميع القوائم المفتوحة
+        $('.dropdown-menu').removeClass('show');
+        $('.actions-btn').attr('aria-expanded', 'false');
+
+        // فتح/إغلاق القائمة الحالية
+        if (!isOpen) {
+            $dropdown.addClass('show');
+            $button.attr('aria-expanded', 'true');
+
+            // تحديد موضع القائمة
+            var buttonOffset = $button.offset();
+            var buttonHeight = $button.outerHeight();
+            var dropdownHeight = $dropdown.outerHeight();
+            var windowHeight = $(window).height();
+            var scrollTop = $(window).scrollTop();
+
+            // التحقق من وجود مساحة كافية أسفل الزر
+            if (buttonOffset.top + buttonHeight + dropdownHeight > windowHeight + scrollTop) {
+                $dropdown.css({
+                    'position': 'absolute',
+                    'top': 'auto',
+                    'bottom': '100%',
+                    'margin-bottom': '0.125rem'
+                });
+            } else {
+                $dropdown.css({
+                    'position': 'absolute',
+                    'top': '100%',
+                    'bottom': 'auto',
+                    'margin-top': '0.125rem'
+                });
+            }
+        }
+    });
+
+    // إغلاق القائمة عند النقر خارجها
+    $(document).on('click', function(e) {
+        if (!$(e.target).closest('.actions-dropdown').length) {
+            $('.dropdown-menu').removeClass('show');
+            $('.actions-btn').attr('aria-expanded', 'false');
         }
     });
 }

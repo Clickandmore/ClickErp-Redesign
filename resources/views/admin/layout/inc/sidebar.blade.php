@@ -183,56 +183,56 @@
                         @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
                             <li>
                                 <a class="m-link" href="{{ route('RecruitmentContract.index') }}">
-                                    <i class="icon-star"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.All Recruitment contracts') }}</span>
-                                    <span class="badge bg-primary">{{ $contractsCount['all'] }}</span>
+                                    <i class="fa fa-list"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.All Recruitment contracts') }}</span>&nbsp;&nbsp;
+                                    <span class="badge bg-primary ms-2">{{ $contractsCount['all'] }}</span>
                                 </a>
                             </li>
                             @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED))
                             <li>
                                 <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $newStatus->value]) }}">
-                                    <i class="icon-star"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.new Recruitment contracts') }}</span>
-                                    <span class="badge bg-primary">{{ $contractsCount['new'] }}</span>
+                                    <i class="fa fa-plus"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.new Recruitment contracts') }}</span>&nbsp;
+                                    <span class="badge bg-primary ms-2">{{ $contractsCount['new'] }}</span>
                                 </a>
                             </li>
                             @endif
                             <li>
                                 <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => 'pending_maid_selection']) }}">
-                                    <i class="icon-star"></i>
-                                    <span class="ms-2">بانتظار اختيار العاملة</span>
-                                    <span class="badge bg-warning">{{ $contractsCount['pending_maid_selection'] ?? 0 }}</span>
+                                    <i class="fa fa-clock-o"></i>
+                                    <span class="ms-2">بانتظار اختيار العاملة</span>&nbsp;
+                                    <span class="badge bg-warning ms-2">{{ $contractsCount['pending_maid_selection'] ?? 0 }}</span>
                                 </a>
                             </li>
                             @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED))
                             <li>
                                 <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $msanedStatus->value]) }}">
-                                    <i class="icon-star"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.msaned') }}</span>
-                                    <span class="badge bg-primary">{{ $contractsCount['msaned'] }}</span>
+                                    <i class="fa fa-plus"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.msaned') }}</span>&nbsp;&nbsp;
+                                    <span class="badge bg-primary ms-2">{{ $contractsCount['msaned'] }}</span>
                                 </a>
                             </li>
                             @endif
                             @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ))
                             <li>
                                 <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $tafwedStatus->value]) }}">
-                                    <i class="icon-star"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.tafwed') }}</span>&nbsp;
-                                    <span class="badge bg-primary">{{ $contractsCount['tafwed'] }}</span>
+                                    <i class="fa fa-clock-o"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.tafwed') }}</span>&nbsp;&nbsp;
+                                    <span class="badge bg-primary ms-2">{{ $contractsCount['tafwed'] }}</span>
                                 </a>
                             </li>
                             @endif
                             <li>
                                 <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $taffezStatus->value]) }}">
-                                    <i class="icon-star"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.taffez') }}</span>&nbsp;
-                                    <span class="badge bg-primary">{{ $contractsCount['taffez'] }}</span>
+                                    <i class="fa fa-clock-o"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.taffez') }}</span>&nbsp;&nbsp;
+                                    <span class="badge bg-primary ms-2">{{ $contractsCount['taffez'] }}</span>
                                 </a>
                             </li>
                             <li>
                                 <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $tazkerStatus->value]) }}">
-                                    <i class="icon-star"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.tazker') }}</span>&nbsp;
+                                    <i class="fa fa-clock-o"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.tazker') }}</span>&nbsp;&nbsp;
                                     <span class="badge bg-primary">{{ $contractsCount['tazker'] }}</span>
                                 </a>
                             </li>
@@ -240,9 +240,9 @@
                             @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
                             <li>
                                 <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $completedStatus->value]) }}">
-                                    <i class="icon-star"></i>
-                                    <span class="ms-2">عقود مكتملة</span>&nbsp;
-                                    <span class="badge bg-primary">{{ $contractsCount['completed'] }}</span>
+                                    <i class="fa fa-check-circle"></i>
+                                    <span class="ms-2">عقود مكتملة</span>&nbsp;&nbsp;
+                                    <span class="badge bg-primary ms-2">{{ $contractsCount['completed'] }}</span>
                                 </a>
                             </li>
                             <li>
@@ -257,7 +257,7 @@
                         @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CANCEL_VIEW))
                             <li>
                                 <a class="m-link" href="{{ route('cancel_contracts') }}">
-                                    <i class="icon-star"></i>
+                                    <i class="fa fa-times-circle"></i>
                                     <span class="ms-2">{{ helperTrans('ingaz.cancel_contract_requests') }}</span>
                                 </a>
                             </li>
@@ -265,7 +265,7 @@
                         @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW_TRAVEL))
                             <li>
                                 <a class="m-link" href="{{ route('travel') }}">
-                                    <i class="icon-loop"></i>
+                                    <i class="fa fa-plane"></i>
                                     <span class="ms-2">{{ helperTrans('ingaz.travel') }}</span>
                                 </a>
                             </li>
@@ -435,7 +435,7 @@
                                 <i class="fa fa-list"></i>
                                 <span class="ms-2">{{ helperTrans('ingaz.complaints') }}</span>
                                 @if(isset($unreadComplaintsCount) && $unreadComplaintsCount > 0)
-                                    <span class="badge bg-primary">{{ $unreadComplaintsCount }}</span>
+                                   <span class="badge bg-primary">{{ $unreadComplaintsCount }}</span>
                                 @endif
                             </a>
                         </li>
@@ -736,3 +736,56 @@
         {{-- @endif --}}
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // تحسين انتقالات القوائم المنسدلة
+    const collapseElements = document.querySelectorAll('.collapse');
+    collapseElements.forEach(element => {
+        element.addEventListener('show.bs.collapse', function () {
+            const arrow = this.previousElementSibling.querySelector('.arrow');
+            if (arrow) {
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        });
+
+        element.addEventListener('hide.bs.collapse', function () {
+            const arrow = this.previousElementSibling.querySelector('.arrow');
+            if (arrow) {
+                arrow.style.transform = 'rotate(-90deg)';
+            }
+        });
+    });
+
+    // إضافة تأثير نبض للعناصر النشطة
+    const activeLinks = document.querySelectorAll('.m-link.active');
+    activeLinks.forEach(link => {
+        link.style.animation = 'pulse 2s infinite';
+    });
+
+    // تحسين التمرير للعنصر النشط
+    const activeElement = document.querySelector('.menu-list .m-link.active');
+    if (activeElement) {
+        setTimeout(() => {
+            activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+    }
+});
+
+// إضافة تأثير pulse
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 2px 4px rgba(78, 115, 223, 0.25);
+        }
+        50% {
+            box-shadow: 0 2px 8px rgba(78, 115, 223, 0.4);
+        }
+        100% {
+            box-shadow: 0 2px 4px rgba(78, 115, 223, 0.25);
+        }
+    }
+`;
+document.head.appendChild(style);
+</script>

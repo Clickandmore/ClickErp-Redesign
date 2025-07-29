@@ -116,297 +116,299 @@
 @endsection
 
 @section('content')
-@if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_CONTRACT_VIEW))
-<div class="container-fluid ">
-    <!-- Page Title Section -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="page-title-box">
-                <h4 class="page-title">قائمة العقود داخل الإيواء</h4>
-            </div>
-        </div>
-    </div>
-
-        <!-- Header Section -->
-        <div class="d-sm-flex align-items-center justify-content-between mb-4">
-            <h1 class="h3 mb-0 text-gray-800">
-                <i class="fas fa-home text-primary me-2"></i>
-                {{helperTrans("ingaz.All Shelter contracts")}}
-            </h1>
-            <a href="{{ route('ShelterContract.create') }}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>
-                {{helperTrans("ingaz.add_shelter_contract")}}
-            </a>
-        </div>
-
-        <!-- Statistics Cards -->
+<div class="page-body p-4 text-dark admin-tables">
+    @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_CONTRACT_VIEW))
+    <div class="container-fluid ">
+        <!-- Page Title Section -->
         <div class="row mb-4">
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card statistics-card total-card shadow h-100">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                    إجمالي العقود
-                                </div>
-                                <div class="h5 mb-0 font-weight-bold">
-                                    {{ $totalContracts ?? 0 }}
-                                </div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-file-contract fa-2x"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card statistics-card wants-work-card shadow h-100">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                    ترغب بالعمل
-                                </div>
-                                <div class="h5 mb-0 font-weight-bold">
-                                    {{ $wantsToWork ?? 0 }}
-                                </div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-user-check fa-2x"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card statistics-card within-guarantee-card shadow h-100">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                    ضمن الضمان
-                                </div>
-                                <div class="h5 mb-0 font-weight-bold">
-                                    {{ $withinGuarantee ?? 0 }}
-                                </div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-shield-alt fa-2x"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card statistics-card expired-guarantee-card shadow h-100">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                    منتهي الضمان
-                                </div>
-                                <div class="h5 mb-0 font-weight-bold">
-                                    {{ $expiredGuarantee ?? 0 }}
-                                </div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-exclamation-triangle fa-2x"></i>
-                            </div>
-                        </div>
-                    </div>
+            <div class="col-12">
+                <div class="page-title-box">
+                    <h4 class="page-title">قائمة العقود داخل الإيواء</h4>
                 </div>
             </div>
         </div>
 
-
-        <!-- Filter Section -->
-            <div class="card filter-card mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
-                <h6 class="m-0 font-weight-bold ">
-                    <i class="fas fa-filter me-2"></i>{{helperTrans("admin.filters")}}
-                </h6>
-                <i class="fas fa-chevron-down"></i>
-            </div>
-            <div class="collapse show" id="filterCollapse">
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <label for="filterContractNumber" class="form-label">رقم العقد</label>
-                            <input type="text" id="filterContractNumber" class="form-control" placeholder="ابحث برقم العقد">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="filterNationality" class="form-label">الجنسية</label>
-                            <select id="filterNationality" class="form-select">
-                                <option value="">الكل</option>
-                                @foreach($nationalities as $nationality)
-                                    @php
-                                        $locale = app()->getLocale();
-                                        $translation = $nationality->translations->where('locale', $locale)->first();
-                                        $name = $translation ? $translation->sub_title : $nationality->title ?? 'غير محدد';
-                                    @endphp
-                                    <option value="{{ $nationality->id }}">{{ $name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="filterShelter" class="form-label">مكان الإيواء</label>
-                            <select id="filterShelter" class="form-select">
-                                <option value="">الكل</option>
-                                @foreach($shelters as $shelter)
-                                    @php
-                                        $locale = app()->getLocale();
-                                        $translation = $shelter->translations->where('locale', $locale)->first();
-                                        $name = $translation ? $translation->title : $shelter->title ?? 'غير محدد';
-                                    @endphp
-                                    <option value="{{ $shelter->id }}">{{ $name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="filterReceiptSource" class="form-label">مصدر الاستلام</label>
-                            <select id="filterReceiptSource" class="form-select">
-                                <option value="">الكل</option>
-                                @foreach(__('shelter_worker_statuses.received_by') ?? [] as $k => $name)
-                                    <option value="{{ $k }}">{{ $name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="filterStatus" class="form-label">حالة الضمان</label>
-                            <select id="filterStatus" class="form-select">
-                                <option value="">الكل</option>
-                                <option value="within_guarantee">ضمن الضمان</option>
-                                <option value="expired_guarantee">منتهي الضمان</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="filterWorkWillingness" class="form-label">رغبة العمل</label>
-                            <select id="filterWorkWillingness" class="form-select">
-                                <option value="">الكل</option>
-                                <option value="yes">ترغب بالعمل</option>
-                                <option value="no">لا ترغب بالعمل</option>
-                                <option value="unknown">غير محدد</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="filterArrivalDate" class="form-label">تاريخ الوصول</label>
-                            <input type="date" id="filterArrivalDate" class="form-control">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="filterReturnDate" class="form-label">تاريخ العودة</label>
-                            <input type="date" id="filterReturnDate" class="form-control">
-                        </div>
-                    </div>
-                    <div class="row mt-3">
-                        <div class="col-12 text-end">
-                            <button type="button" id="clearFilters" class="btn btn-secondary me-2">
-                                <i class="fas fa-times me-1"></i> مسح الفلاتر
-                            </button>
-                            <button type="button" id="applyFilters" class="btn btn-primary">
-                                <i class="fas fa-search me-1"></i> بحث
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- جدول العقود -->
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white">
-                <h6 class="m-0 font-weight-bold">
-                    <i class="fas fa-list me-2"></i>
+            <!-- Header Section -->
+            <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                <h1 class="h3 mb-0 text-gray-800">
+                    <i class="fas fa-home text-primary me-2"></i>
                     {{helperTrans("ingaz.All Shelter contracts")}}
-                </h6>
+                </h1>
+                <a href="{{ route('ShelterContract.create') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>
+                    {{helperTrans("ingaz.add_shelter_contract")}}
+                </a>
             </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table id="shelterContractsTable" class="table table-hover align-middle mb-0" style="width: 100%;">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>رقم العقد</th>
-                                <th>بيانات العاملة</th>
-                                <th>العميل</th>
-                                <th>الجنسية</th>
-                                <th>مكان الإيواء</th>
-                                <th>تاريخ الوصول</th>
-                                <th>تاريخ العودة</th>
-                                <th>مصدر الاستلام</th>
-                                <th>حالة الضمان</th>
-                                <th>رغبة العمل</th>
-                                <th>الإجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Modal -->
-    <div class="modal fade" id="updateStatusModal" tabindex="-1" role="dialog" aria-labelledby="updateStatusModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="updateStatusModalLabel">تحديث الحالة</h5>
-                    <button type="button" class="close btn" data-bs-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" id="rowId" name="rowId">
-                    <input type="hidden" id="status" name="status">
-                    <div class="form-group">
-                        <label for="statusDate">تاريخ الحالة:</label>
-                        <input type="date" id="statusDate" required name="statusDate" class="form-control"
-                            value="{{date('Y-m-d')}}">
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card statistics-card total-card shadow h-100">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                        إجمالي العقود
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold">
+                                        {{ $totalContracts ?? 0 }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-file-contract fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
-                    <button type="button" class="btn btn-primary" id="saveStatusBtn">حفظ</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Modal -->
-    <div class="modal fade" id="confirmBackModal" tabindex="-1" role="dialog" aria-labelledby="updateStatusModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="updateStatusModalLabel">ارجاع العقد</h5>
-                    <button type="button" class="close btn" data-bs-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" id="contract_id" name="id">
-                    <div class="alert alert-warning">
-                        <i class="fa fa-exclamation-triangle"></i>
-                        هل انت متأكد من ارجاع العقد ؟
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card statistics-card wants-work-card shadow h-100">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                        ترغب بالعمل
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold">
+                                        {{ $wantsToWork ?? 0 }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-user-check fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
-                    <button type="button" class="btn btn-danger" id="confirmBackBtn">تأكيد الإرجاع</button>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card statistics-card within-guarantee-card shadow h-100">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                        ضمن الضمان
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold">
+                                        {{ $withinGuarantee ?? 0 }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-shield-alt fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card statistics-card expired-guarantee-card shadow h-100">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                        منتهي الضمان
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold">
+                                        {{ $expiredGuarantee ?? 0 }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-exclamation-triangle fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Filter Section -->
+                <div class="card filter-card mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                    <h6 class="m-0 font-weight-bold ">
+                        <i class="fas fa-filter me-2"></i>{{helperTrans("admin.filters")}}
+                    </h6>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="collapse show" id="filterCollapse">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label for="filterContractNumber" class="form-label">رقم العقد</label>
+                                <input type="text" id="filterContractNumber" class="form-control" placeholder="ابحث برقم العقد">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="filterNationality" class="form-label">الجنسية</label>
+                                <select id="filterNationality" class="form-select">
+                                    <option value="">الكل</option>
+                                    @foreach($nationalities as $nationality)
+                                        @php
+                                            $locale = app()->getLocale();
+                                            $translation = $nationality->translations->where('locale', $locale)->first();
+                                            $name = $translation ? $translation->sub_title : $nationality->title ?? 'غير محدد';
+                                        @endphp
+                                        <option value="{{ $nationality->id }}">{{ $name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="filterShelter" class="form-label">مكان الإيواء</label>
+                                <select id="filterShelter" class="form-select">
+                                    <option value="">الكل</option>
+                                    @foreach($shelters as $shelter)
+                                        @php
+                                            $locale = app()->getLocale();
+                                            $translation = $shelter->translations->where('locale', $locale)->first();
+                                            $name = $translation ? $translation->title : $shelter->title ?? 'غير محدد';
+                                        @endphp
+                                        <option value="{{ $shelter->id }}">{{ $name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="filterReceiptSource" class="form-label">مصدر الاستلام</label>
+                                <select id="filterReceiptSource" class="form-select">
+                                    <option value="">الكل</option>
+                                    @foreach(__('shelter_worker_statuses.received_by') ?? [] as $k => $name)
+                                        <option value="{{ $k }}">{{ $name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="filterStatus" class="form-label">حالة الضمان</label>
+                                <select id="filterStatus" class="form-select">
+                                    <option value="">الكل</option>
+                                    <option value="within_guarantee">ضمن الضمان</option>
+                                    <option value="expired_guarantee">منتهي الضمان</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="filterWorkWillingness" class="form-label">رغبة العمل</label>
+                                <select id="filterWorkWillingness" class="form-select">
+                                    <option value="">الكل</option>
+                                    <option value="yes">ترغب بالعمل</option>
+                                    <option value="no">لا ترغب بالعمل</option>
+                                    <option value="unknown">غير محدد</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="filterArrivalDate" class="form-label">تاريخ الوصول</label>
+                                <input type="date" id="filterArrivalDate" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="filterReturnDate" class="form-label">تاريخ العودة</label>
+                                <input type="date" id="filterReturnDate" class="form-control">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12 text-end">
+                                <button type="button" id="clearFilters" class="btn btn-secondary me-2">
+                                    <i class="fas fa-times me-1"></i> مسح الفلاتر
+                                </button>
+                                <button type="button" id="applyFilters" class="btn btn-primary">
+                                    <i class="fas fa-search me-1"></i> بحث
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- جدول العقود -->
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-list me-2"></i>
+                        {{helperTrans("ingaz.All Shelter contracts")}}
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table id="shelterContractsTable" class="table table-hover align-middle mb-0" style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>رقم العقد</th>
+                                    <th>بيانات العاملة</th>
+                                    <th>العميل</th>
+                                    <th>الجنسية</th>
+                                    <th>مكان الإيواء</th>
+                                    <th>تاريخ الوصول</th>
+                                    <th>تاريخ العودة</th>
+                                    <th>مصدر الاستلام</th>
+                                    <th>حالة الضمان</th>
+                                    <th>رغبة العمل</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-@else
-    @include('components.no_permissions')
-@endif
+        <!-- Modal -->
+        <div class="modal fade" id="updateStatusModal" tabindex="-1" role="dialog" aria-labelledby="updateStatusModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="updateStatusModalLabel">تحديث الحالة</h5>
+                        <button type="button" class="close btn" data-bs-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="rowId" name="rowId">
+                        <input type="hidden" id="status" name="status">
+                        <div class="form-group">
+                            <label for="statusDate">تاريخ الحالة:</label>
+                            <input type="date" id="statusDate" required name="statusDate" class="form-control"
+                                value="{{date('Y-m-d')}}">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                        <button type="button" class="btn btn-primary" id="saveStatusBtn">حفظ</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal -->
+        <div class="modal fade" id="confirmBackModal" tabindex="-1" role="dialog" aria-labelledby="updateStatusModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="updateStatusModalLabel">ارجاع العقد</h5>
+                        <button type="button" class="close btn" data-bs-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="contract_id" name="id">
+                        <div class="alert alert-warning">
+                            <i class="fa fa-exclamation-triangle"></i>
+                            هل انت متأكد من ارجاع العقد ؟
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                        <button type="button" class="btn btn-danger" id="confirmBackBtn">تأكيد الإرجاع</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    @else
+        @include('components.no_permissions')
+    @endif
+</div>
 @endsection
 
 @section("js")
