@@ -268,7 +268,7 @@
         }
 
         .badge.bg-info {
-            background-color: #0dcaf0 !important;
+            background-color: #2794eb!important;
             color: white !important;
         }
 
@@ -382,7 +382,7 @@
 
         .statistics-card .badge.bg-info {
             background-color: #ffffff !important;
-            color: #0dcaf0 !important;
+            color: #2794eb!important;
         }
 
         .statistics-card .badge.bg-danger {

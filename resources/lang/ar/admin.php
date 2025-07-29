@@ -1,4 +1,4 @@
-<?php return array(
+<?php return array (
   'lang_test' => 'اختبار اللغة الإنجليزية',
   'home' => 'الرئيسية',
   'auth_side_title' => '',
@@ -210,7 +210,7 @@
   'total_payments' => 'إجمالي المدفوعات',
   'export_to_xlxs' => 'تصدير إلى EXCEL',
   'filter' => 'تصفية',
-  'clients_reports' => 'تقرير العملاء',
+  'clients_reports' => 'تقارير العملاء',
   'contracts_reports' => 'تقرير العقود',
   'payments_reports' => 'تقرير المدفوعات',
   'dontDeleteYourself' => 'لا يمكن حذف هذه العضويه',
@@ -797,8 +797,6 @@
   'remaining_warranty_days' => 'متبقي :days يوم في الضمان',
   'warranty_expired' => 'انتهى الضمان',
   'search_by_client_maid_order' => 'البحث باسم العميل أو رقم جواز العامل أو رقم الطلب',
-
-  // Sidebar Menu Translations
   'dashboard' => 'لوحة التحكم',
   'cv_management' => 'إدارة السير الذاتية',
   'add_cv' => 'إضافة سيرة ذاتية',
@@ -816,9 +814,6 @@
   'website_management' => 'إدارة الموقع',
   'website_settings' => 'إعدادات الموقع',
   'additional_settings' => 'إعدادات إضافية',
-  'faq' => 'الأسئلة الشائعة',
-
-  // صلاحيات العملاء الجديدة
   'clients_approve' => 'الموافقة على العملاء',
   'clients_reject' => 'رفض العملاء',
   'clients_block' => 'حظر العملاء',
@@ -829,11 +824,7 @@
   'clients_backup' => 'نسخ احتياطي للعملاء',
   'clients_restore' => 'استعادة بيانات العملاء',
   'clients_analytics' => 'تحليلات العملاء',
-  'clients_reports' => 'تقارير العملاء',
   'clients_notifications' => 'إشعارات العملاء',
-  'clients_settings' => 'إعدادات العملاء',
-
-  // صلاحيات السير الذاتية
   'cv_view' => 'عرض السير الذاتية',
   'cv_create' => 'إضافة سيرة ذاتية',
   'cv_edit' => 'تعديل السيرة الذاتية',
@@ -850,8 +841,6 @@
   'cv_convert' => 'تحويل السيرة الذاتية',
   'cv_analytics' => 'تحليلات السير الذاتية',
   'cv_reports' => 'تقارير السير الذاتية',
-
-  // New sections
   'users_management' => 'إدارة المستخدمين',
   'contract_management' => 'إدارة العقود',
   'organization_management' => 'إدارة المؤسسات',
@@ -862,33 +851,9 @@
   'reporting' => 'التقارير',
   'process_management' => 'إدارة العمليات',
   'service_management' => 'إدارة الخدمات',
-  'general' => 'عام',
-  'settings' => 'الإعدادات',
-  'permissions' => 'الصلاحيات',
-
-  // أسماء الأقسام للصلاحيات
   'clients_maids' => 'العملاء',
   'orders' => 'الطلبات',
-  'contracts' => 'العقود',
-  'complaints' => 'الشكاوى',
   'additional_services' => 'خدمات إضافية',
   'maids_settings' => 'إعدادات السير الذاتية',
-
-  // صلاحيات السير الذاتية
-  'cv_view' => 'عرض السير الذاتية',
-  'cv_create' => 'إضافة سيرة ذاتية',
-  'cv_edit' => 'تعديل السيرة الذاتية',
-  'cv_delete' => 'حذف السيرة الذاتية',
-  'cv_pin' => 'تثبيت السيرة الذاتية',
-  'cv_unpin' => 'إلغاء تثبيت السيرة الذاتية',
-  'cv_approve' => 'الموافقة على السيرة الذاتية',
-  'cv_reject' => 'رفض السيرة الذاتية',
-  'cv_export' => 'تصدير السير الذاتية',
-  'cv_import' => 'استيراد السير الذاتية',
-  'cv_manage' => 'إدارة السير الذاتية',
-  'cv_download' => 'تحميل السيرة الذاتية',
-  'cv_upload' => 'رفع السيرة الذاتية',
-  'cv_convert' => 'تحويل السيرة الذاتية',
-  'cv_analytics' => 'تحليلات السير الذاتية',
-  'cv_reports' => 'تقارير السير الذاتية',
+  'filters' => 'الفلاتر',
 );

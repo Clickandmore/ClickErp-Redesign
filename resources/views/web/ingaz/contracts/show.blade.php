@@ -34,7 +34,7 @@
     }
 
     .badge.bg-info {
-        background-color: #0dcaf0 !important;
+        background-color: #2794eb!important;
         color: white !important;
     }
 

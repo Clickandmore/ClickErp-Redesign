@@ -468,8 +468,10 @@ class RecruitmentContractController extends Controller
                         'target' => '_blank'
                     ];
 
-                    // منع التعديل والحذف للعقود المكتملة والمرتجعة
-                    if ($row->status !== ContractStatusEnum::Completed->value && $row->status !== ContractStatusEnum::Back->value) {
+                    // منع التعديل والحذف للعقود المكتملة والمرتجعة والتي في الإيواء
+                    if ($row->status !== ContractStatusEnum::Completed->value &&
+                        $row->status !== ContractStatusEnum::Back->value &&
+                        $row->status !== ContractStatusEnum::Shelter->value) {
                         // زر التعديل
                         if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EDIT)) {
                             $actions[] = [
@@ -490,15 +492,21 @@ class RecruitmentContractController extends Controller
                                 'confirm' => true
                             ];
                         }
-                    } else {
-                        // للعقود المكتملة والمرتجعة - إضافة رسالة توضيحية
+                        } else {
+                        // للعقود المكتملة والمرتجعة والتي في الإيواء - إضافة رسالة توضيحية
                         if ($row->status === ContractStatusEnum::Completed->value) {
                             $actions[] = [
                                 'type' => 'span',
                                 'text' => 'العقد مكتمل - لا يمكن التعديل',
                                 'class' => 'badge bg-success'
                             ];
-                        } else {
+                        } elseif ($row->status === ContractStatusEnum::Shelter->value) {
+                            $actions[] = [
+                                'type' => 'span',
+                                'text' => 'العقد في الإيواء - لا يمكن التعديل',
+                                'class' => 'badge bg-info'
+                            ];
+                            } else {
                             $actions[] = [
                                 'type' => 'span',
                                 'text' => 'العقد مرتجع - لا يمكن التعديل',
@@ -521,17 +529,17 @@ class RecruitmentContractController extends Controller
                         }
                     }
 
-                    // زر الإرجاع - لا يظهر للعقود المكتملة
-                    if ($row->status !== ContractStatusEnum::Completed->value) {
-                        if ($row->status == ContractStatusEnum::Back->value) {
+                    // زر الإرجاع - لا يظهر للعقود المكتملة أو التي في الإيواء
+                    if ($row->status !== ContractStatusEnum::Completed->value && $row->status !== ContractStatusEnum::Shelter->value) {
+                    if ($row->status == ContractStatusEnum::Back->value) {
                             $actions[] = [
                                 'type' => 'span',
                                 'text' => 'مرتجع',
                                 'class' => 'badge'
                             ];
-                        } else {
-                            // التحقق من صلاحية إرجاع العقد
-                            if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
+                    } else {
+                        // التحقق من صلاحية إرجاع العقد
+                        if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
                                 $actions[] = [
                                     'type' => 'button',
                                     'data' => 'data-row-id="' . $row->id . '"',
@@ -543,9 +551,11 @@ class RecruitmentContractController extends Controller
                         }
                     }
 
-                    // زر إلغاء العقد - لا يظهر للعقود المكتملة
-                    if ($row->status !== ContractStatusEnum::Completed->value && $row->status !== ContractStatusEnum::Back->value) {
-                        if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
+                    // زر إلغاء العقد - لا يظهر للعقود المكتملة أو المرتجعة أو التي في الإيواء
+                    if ($row->status !== ContractStatusEnum::Completed->value &&
+                        $row->status !== ContractStatusEnum::Back->value &&
+                        $row->status !== ContractStatusEnum::Shelter->value) {
+                    if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
                             $actions[] = [
                                 'type' => 'button',
                                 'data' => 'data-contract-id="' . $row->id . '" data-contract-number="' . $row->id . '" data-client-name="' . ($row->user ? $row->user->name : 'غير محدد') . '" data-maid-name="' . ($row->maid ? $row->maid->name : 'غير محدد') . '"',
@@ -1121,15 +1131,21 @@ class RecruitmentContractController extends Controller
             ], 404);
         }
 
-            // // التحقق من أن العقد من نوع الاستقدام
-            // // تم إزالة هذا التحقق لأن جميع العقود في هذا Controller هي عقود استقدام
-            // if ($contract->type !== 'recruitment') {
-            //     \Log::warning('Contract is not recruitment type in back function', ['id' => $id, 'type' => $contract->type]);
-            //     return response()->json([
-            //         'success' => false,
-            //         'message' => 'هذا العقد ليس من نوع الاستقدام'
-            //     ], 400);
-            // }
+        // منع إرجاع العقود في الإيواء
+        if ($contract->status === ContractStatusEnum::Shelter->value) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكن إرجاع العقد الذي في الإيواء. يجب حذفه من الإيواء أولاً'
+            ], 400);
+        }
+
+        // منع إرجاع العقود المكتملة
+        if ($contract->status === ContractStatusEnum::Completed->value) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكن إرجاع العقد المكتمل'
+            ], 400);
+        }
 
         $newStatus = contractBackStatus($contract->status);
         $contract->update(['status' => $newStatus->value]);
@@ -1183,6 +1199,11 @@ class RecruitmentContractController extends Controller
             return redirect()->back()->with('error', 'لا يمكن تعديل العقد المرتجع');
         }
 
+        // منع تعديل العقود في الإيواء
+        if ($contract->status === ContractStatusEnum::Shelter->value) {
+            return redirect()->back()->with('error', 'لا يمكن تعديل العقد الذي في الإيواء');
+        }
+
         $countries = Country::all();
 
         return view('admin.ingaz.RecruitmentContract.edit', compact('contract', 'countries'));
@@ -1226,6 +1247,14 @@ class RecruitmentContractController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'لا يمكن تحديث حالة العقد المرتجع'
+            ], 400);
+        }
+
+        // منع تحديث حالة العقود في الإيواء
+        if ($contract->status === ContractStatusEnum::Shelter->value) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكن تحديث حالة العقد الذي في الإيواء'
             ], 400);
         }
 
@@ -1342,6 +1371,14 @@ class RecruitmentContractController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'لا يمكن حذف العقد المرتجع'
+            ], 400);
+        }
+
+        // منع حذف العقود في الإيواء
+        if ($contract->status === ContractStatusEnum::Shelter->value) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكن حذف العقد الذي في الإيواء'
             ], 400);
         }
 
@@ -1755,6 +1792,14 @@ class RecruitmentContractController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'لا يمكن تحديث حالة العقد المكتمل'
+                ], 400);
+            }
+
+            // منع تحديث حالة العقود في الإيواء
+            if ($contract->status === ContractStatusEnum::Shelter->value) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن تحديث حالة العقد الذي في الإيواء'
                 ], 400);
             }
 

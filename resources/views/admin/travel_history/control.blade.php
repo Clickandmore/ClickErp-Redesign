@@ -11,7 +11,6 @@
 
 
 @section('content')
-
 @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CONTROL))
 
 <h1>
@@ -482,7 +481,7 @@
             var orderId = $(this).val();
             if (orderId) {
                 $.ajax({
-                    url: '/api/check-trip-exists',
+                    url: '/api/admin/check-trip-exists',
                     method: 'GET',
                     data: {
                         order_id: orderId
@@ -516,60 +515,41 @@ $(document).ready(function () {
         $('#order_id').val(orderId).trigger('change');
     }
 
-    var userId = "{{ request()->userId }}";
-    if( userId != "" || userId != null ){
-        $('#user_id').val(userId).trigger('change');
-    }
-
-    var maidId = "{{ request()->maidId }}";
-    if( maidId != "" || maidId != null ){
-        $('#maid_id').val(maidId).trigger('change');
-    }
-
-    // Auto-fill client and maid data when contract is selected
+    // Auto-fill data when contract is selected
     $('#order_id').on('change', function() {
-        var contractId = $(this).val();
-        console.log('Selected contract ID:', contractId);
+        var selectedContractId = $(this).val();
 
-        if (contractId) {
-            // Get contract data from the contracts array
+        if (selectedContractId) {
             var contracts = @json($contracts);
-            console.log('Available contracts:', contracts);
-
             var selectedContract = contracts.find(function(contract) {
-                return contract.id == contractId;
+                return contract.id == selectedContractId;
             });
 
-            console.log('Selected contract:', selectedContract);
-
             if (selectedContract) {
-                // Auto-fill hidden user_id field
+                // Auto-fill user_id
                 if (selectedContract.user_id) {
                     $('#user_id').val(selectedContract.user_id);
-                    console.log('Set user_id:', selectedContract.user_id);
                 }
 
-                // Auto-fill hidden maid_id field
+                // Auto-fill maid_id
                 if (selectedContract.maid_id) {
                     $('#maid_id').val(selectedContract.maid_id);
-                    console.log('Set maid_id:', selectedContract.maid_id);
                 }
 
                 // Auto-fill client city
                 if (selectedContract.user && selectedContract.user.city) {
                     $('#client_city').val(selectedContract.user.city);
-                    console.log('Set client city:', selectedContract.user.city);
                 } else {
                     $('#client_city').val('غير محدد');
-                    console.log('Client city not found, set to: غير محدد');
                 }
+                console.log(selectedContract);
+                console.log(selectedContract.user.city);
             }
         } else {
             // Clear fields if no contract selected
             $('#user_id').val('');
             $('#maid_id').val('');
             $('#client_city').val('');
-            console.log('Cleared all fields');
         }
     });
 
@@ -600,7 +580,6 @@ $(document).ready(function () {
     // Auto-fill client city if we have order data
     @if(@$order && @$order->user && @$order->user->city)
         $('#client_city').val("{{ @$order->user->city }}");
-        console.log('Auto-filled client city from order data:', "{{ @$order->user->city }}");
     @endif
 
     // Auto-fill client city if we have contract data
@@ -611,7 +590,6 @@ $(document).ready(function () {
         });
         if (selectedContract && selectedContract.user && selectedContract.user.city) {
             $('#client_city').val(selectedContract.user.city);
-            console.log('Auto-filled client city from contract data:', selectedContract.user.city);
         }
     @endif
 
@@ -623,9 +601,10 @@ $(document).ready(function () {
         });
         if (selectedContract && selectedContract.user && selectedContract.user.city) {
             $('#client_city').val(selectedContract.user.city);
-            console.log('Auto-filled client city from URL contract data:', selectedContract.user.city);
         }
     @endif
+
+
 
     // Delete file
     $('.delete-file').click(function(event) {

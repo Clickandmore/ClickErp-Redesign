@@ -76,6 +76,11 @@ Route::group(
             Route::resource('complaints', ApiComplaintController::class);
             Route::resource('return-requests', ApiReturnRequestController::class);
         });
+
+        // Admin API routes
+        Route::group(['prefix' => 'admin'], function ($router) {
+            Route::get('check-trip-exists', [App\Http\Controllers\admin\AdminTravelHistoryController::class, 'checkTripExists']);
+        });
         //--------------------------------------------------------
     }
 );

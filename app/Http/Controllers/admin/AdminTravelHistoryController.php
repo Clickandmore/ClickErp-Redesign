@@ -233,6 +233,35 @@ class AdminTravelHistoryController extends Controller
             }
         }
 
+        // تحديث تاريخ الوصول في contract_info إذا كان هناك عقد مرتبط
+        if ($request->arrival_date && ($request->order_id || $request->contract_id)) {
+            $orderId = $request->order_id ?: $request->contract_id;
+
+            // البحث عن العقد المرتبط
+            $contract = Contract::where('id', $orderId)->first();
+
+            if ($contract) {
+                // تحديث أو إنشاء contract_info
+                if ($contract->info) {
+                    // تحديث contract_info الموجود
+                    $contract->info->update([
+                        'arrival_date' => $request->arrival_date
+                    ]);
+                } else {
+                    // إنشاء contract_info جديد
+                    $contract->info()->create([
+                        'arrival_date' => $request->arrival_date
+                    ]);
+                }
+
+                \Log::info('Updated contract_info arrival_date', [
+                    'contract_id' => $contract->id,
+                    'arrival_date' => $request->arrival_date,
+                    'travel_history_id' => $data->id
+                ]);
+            }
+        }
+
         return redirect(route('travel'))->with('success', __('admin.success'));
     }
 
@@ -322,21 +351,48 @@ class AdminTravelHistoryController extends Controller
 
     public function deleteFile($id)
     {
-        $file = TravelHistoryFiles::find($id);
-        if (!$file) {
-            return response()->json(['message' => __('admin.file_not_found')], 404);
-        }
-        $filePath = Constants::PUBLIC_TRAVEL_DIR . '/' . $file->file;
-        if (File::exists($filePath)) {
-            File::delete($filePath);
+        try {
+            $file = TravelHistoryFiles::findOrFail($id);
             $file->delete();
-            $remainingFiles = TravelHistoryFiles::where('travel_id', $file->travel_id)->exists();
-            if (!$remainingFiles) {
-                return response()->json(['message' => __('admin.file_deleted'), 'no_files' => true]);
-            }
-            return response()->json(['message' => __('admin.file_deleted')]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم حذف الملف بنجاح'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء حذف الملف'
+            ], 500);
         }
-        return response()->json(['message' => __('admin.file_not_found')], 404);
     }
 
+    public function checkTripExists(Request $request)
+    {
+        try {
+            $orderId = $request->get('order_id');
+
+            if (!$orderId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'معرف العقد مطلوب'
+                ], 400);
+            }
+
+            $exists = TravelHistory::where('order_id', $orderId)->exists();
+
+            return response()->json([
+                'success' => true,
+                'exists' => $exists,
+                'message' => $exists ? 'يوجد رحلة لهذا العقد' : 'لا يوجد رحلة لهذا العقد'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء التحقق من وجود الرحلة'
+            ], 500);
+        }
+    }
 }
+

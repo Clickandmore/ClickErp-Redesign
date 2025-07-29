@@ -63,6 +63,11 @@ class Contract extends Model
         return $this->hasMany(ContractStatusLog::class, 'contract_id');
     }
 
+    public function deportationProcedure()
+    {
+        return $this->hasOne(\App\Models\DeportationProcedure::class, 'contract_id');
+    }
+
     // get last contract status log
     public function getLastContractStatusLog()
     {

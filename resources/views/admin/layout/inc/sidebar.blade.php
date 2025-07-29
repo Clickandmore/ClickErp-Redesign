@@ -271,7 +271,7 @@
                             </li>
                         @endif
                         @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN_VIEW))
-                    
+
                 @endif
                     </ul>
                 </li>
@@ -333,7 +333,7 @@
                         <span class="ms-2"> {{ __('ingaz.shelter_management') }} </span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
-                    <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['ShelterContract.index', 'ShelterContract.availableForTransfer', 'ShelterContract.deportationStage', 'ShelterContract.generalShelter'])) ? 'show' : '' }}"
+                    <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['ShelterContract.index', 'ShelterContract.availableForTransfer', 'ShelterContract.deportationStage', 'ShelterContract.generalShelter', 'ShelterContract.deported'])) ? 'show' : '' }}"
                         id="sheltercontracts">
                         @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_CONTRACT_CONTROL))
                             <li>
@@ -362,12 +362,12 @@
                                     <span class="ms-2">مرحلة الترحيل</span>
                                 </a>
                             </li>
-                            {{-- <li>
-                                <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.generalShelter' ? 'active' : '' }}" href="{{ route('ShelterContract.generalShelter') }}">
-                                    <i class="fa fa-home"></i>
-                                    <span class="ms-2">داخل الإيواء</span>
+                            <li>
+                                <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.deported' ? 'active' : '' }}" href="{{ route('ShelterContract.deported') }}">
+                                    <i class="fa fa-check-circle"></i>
+                                    <span class="ms-2">تم الترحيل</span>
                                 </a>
-                            </li> --}}
+                            </li>
                         @endif
                         {{-- @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_WORKERS_VIEW))
                             <li>
@@ -434,7 +434,14 @@
                             <span class="ms-2">{{ helperTrans('ingaz.sponsorship_transfer') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['SponsorshipTransfer.create', 'SponsorshipTransfer.available', 'SponsorshipTransfer.trial', 'SponsorshipTransfer.failed', 'SponsorshipTransfer.transferred'])) ? 'show' : '' }}" id="sponsorshipTransfer">
+                        <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['SponsorshipTransfer.create', 'SponsorshipTransfer.index', 'ShelterContract.availableForTransfer', 'SponsorshipTransfer.trial', 'SponsorshipTransfer.failed', 'SponsorshipTransfer.transferred'])) ? 'show' : '' }}" id="sponsorshipTransfer">
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.index') ? 'active' : '' }}"
+                                    href="{{ route('SponsorshipTransfer.index') }}">
+                                    <i class="fa fa-list"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.sponsorship_transfer_requests') }}</span>
+                                </a>
+                            </li>
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.create') ? 'active' : '' }}"
                                     href="{{ route('SponsorshipTransfer.create') }}">
@@ -443,29 +450,29 @@
                                 </a>
                             </li>
                             <li>
-                                <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.available') ? 'active' : '' }}"
-                                    href="{{ route('SponsorshipTransfer.create') }}">
+                                <a class="m-link {{ (Route::currentRouteName() == 'ShelterContract.availableForTransfer') ? 'active' : '' }}"
+                                    href="{{ route('ShelterContract.availableForTransfer') }}">
                                     <i class="fa fa-check-circle"></i>
                                     <span class="ms-2">{{ helperTrans('ingaz.available_for_transfer') }}</span>
                                 </a>
                             </li>
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.trial') ? 'active' : '' }}"
-                                    href="{{ route('SponsorshipTransfer.create') }}">
+                                    href="{{ route('SponsorshipTransfer.trial') }}">
                                     <i class="fa fa-clock-o"></i>
                                     <span class="ms-2">{{ helperTrans('ingaz.trial_period') }}</span>
                                 </a>
                             </li>
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.failed') ? 'active' : '' }}"
-                                    href="{{ route('SponsorshipTransfer.create') }}">
+                                    href="{{ route('SponsorshipTransfer.failed') }}">
                                     <i class="fa fa-times-circle"></i>
                                     <span class="ms-2">{{ helperTrans('ingaz.trial_failed') }}</span>
                                 </a>
                             </li>
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.transferred') ? 'active' : '' }}"
-                                    href="{{ route('SponsorshipTransfer.create') }}">
+                                    href="{{ route('SponsorshipTransfer.transferred') }}">
                                     <i class="fa fa-check"></i>
                                     <span class="ms-2">{{ helperTrans('ingaz.transferred') }}</span>
                                 </a>

@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ingaz\ShelterContactStore;
 use App\Models\Contract;
 use App\Models\RecruitmentOffices;
+use App\Models\ingaz\Nationality;
+use App\Models\ShelterPlaces;
 use App\NewPermKeys;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,60 +22,34 @@ class ShelterContractController extends Controller
     public function index(Request $request)
     {
         \Log::info('index method called');
-        \Log::info('Request data: ' . json_encode($request->all()));
-        \Log::info('Is AJAX: ' . ($request->ajax() ? 'true' : 'false'));
 
-        $filterStatus = Request('s');
+        // Get statistics
+        $totalContracts = Contract::where('status', ContractStatusEnum::Shelter->value)->count();
+        $wantsToWork = Contract::where('status', ContractStatusEnum::Shelter->value)
+            ->whereHas('info', function($query) {
+                $query->where('wants_to_work', 'yes');
+            })->count();
 
-        if ($request->ajax()) {
-            \Log::info('index AJAX request');
-            try {
-                $rows = Contract::where('status', ContractStatusEnum::Shelter->value)
-                    ->with([
-                        'maid',
-                        'info',
-                        'maid.nationality.translations',
-                        'maid.job_types.job_type.translations',
-                        'info.shelter.translations'
-                    ]);
+        $withinGuarantee = Contract::where('status', ContractStatusEnum::Shelter->value)
+            ->where('warranty_status', 'active')
+            ->count();
 
-                // Apply same filters as index method
-                $this->applyFilters($rows, $request);
+        $expiredGuarantee = Contract::where('status', ContractStatusEnum::Shelter->value)
+            ->where('warranty_status', 'expired')
+            ->count();
 
-                $rows = $rows->latest();
+        // Get filter options
+        $nationalities = Nationality::with('translations')->get();
+        $shelters = ShelterPlaces::with('translations')->get();
 
-                // Handle export request
-                if ($request->has('export') && $request->input('export') == '1') {
-                    return $this->exportData($rows->get());
-                }
-
-                // Debug: Get actual data before DataTables
-                $actualData = $rows->get();
-                \Log::info('Actual data count: ' . $actualData->count());
-                if ($actualData->count() > 0) {
-                    \Log::info('First record: ' . json_encode($actualData->first()->toArray()));
-                }
-
-                $dataTable = $this->buildDataTable($rows);
-
-                \Log::info('DataTable response created successfully');
-                \Log::info('DataTable response: ' . json_encode($dataTable->getData()));
-
-                return $dataTable;
-            } catch (\Exception $e) {
-                \Log::error('Error in index: ' . $e->getMessage());
-                \Log::error('Stack trace: ' . $e->getTraceAsString());
-                return response()->json(['error' => 'حدث خطأ في عرض البيانات: ' . $e->getMessage()], 500);
-            }
-        }
-
-        \Log::info('index returning view');
-        $data["dataTableRoute"] = route($this->mainRoute . ".index");
-        $data["modalType"] = "modal-lg";
-        $data["nationalities"] = \App\Models\ingaz\Nationality::with('translations')->get();
-        $data["shelterPlaces"] = \App\Models\ShelterPlaces::with('translations')->get();
-        $data["jobTypes"] = \App\Models\ingaz\JobType::with('translations')->get();
-        return view($this->folderPath . '.index', $data);
+        return view('admin.ingaz.ShelterContract.index', compact(
+            'totalContracts',
+            'wantsToWork',
+            'withinGuarantee',
+            'expiredGuarantee',
+            'nationalities',
+            'shelters'
+        ));
     }
 
     /**
@@ -254,6 +230,29 @@ class ShelterContractController extends Controller
             ->latest()
             ->get();
 
+        // Debug: Log contracts data
+        \Log::info('ShelterContract create - Contracts found:', [
+            'total_contracts' => $contracts->count(),
+            'contracts_with_maid' => $contracts->whereNotNull('maid')->count(),
+            'contracts_with_info' => $contracts->whereNotNull('info')->count(),
+            'sample_contract' => $contracts->first() ? [
+                'id' => $contracts->first()->id,
+                'status' => $contracts->first()->status,
+                'has_maid' => $contracts->first()->maid ? 'yes' : 'no',
+                'has_info' => $contracts->first()->info ? 'yes' : 'no',
+                'info_arrival_date' => $contracts->first()->info ? $contracts->first()->info->arrival_date : 'null'
+            ] : 'no contracts',
+            'all_contracts' => $contracts->map(function($contract) {
+                return [
+                    'id' => $contract->id,
+                    'status' => $contract->status,
+                    'has_maid' => $contract->maid ? 'yes' : 'no',
+                    'has_info' => $contract->info ? 'yes' : 'no',
+                    'info_arrival_date' => $contract->info ? $contract->info->arrival_date : 'null'
+                ];
+            })->toArray()
+        ]);
+
         // إذا تم تمرير contract_id في الطلب، نختار العقد المحدد
         $selectedContractId = request('contract_id');
 
@@ -351,7 +350,42 @@ class ShelterContractController extends Controller
 
     public function show($id)
     {
-        //
+        $contract = Contract::with([
+            'user',
+            'maid.nationality',
+            'maid.religion',
+            'maid.job_types.job_type',
+            'info.shelter'
+        ])->findOrFail($id);
+
+        // حساب حالة الضمان
+        $warrantyStatus = 'غير محدد';
+        $warrantyDays = 0;
+        if ($contract->info) {
+            $arrivalDate = $contract->info->visa_milad_date ??
+                          $contract->info->contract_date ??
+                          $contract->info->ingaz_from;
+
+            if ($arrivalDate) {
+                try {
+                    $arrivalDate = \Carbon\Carbon::parse($arrivalDate);
+                    $today = \Carbon\Carbon::now();
+                    $guaranteeEndDate = $arrivalDate->copy()->addDays(90);
+
+                    if ($today->lte($guaranteeEndDate)) {
+                        $warrantyDays = $today->diffInDays($guaranteeEndDate);
+                        $warrantyStatus = 'ضمن الضمان';
+                    } else {
+                        $warrantyDays = $guaranteeEndDate->diffInDays($today);
+                        $warrantyStatus = 'منتهي الضمان';
+                    }
+                } catch (\Exception $e) {
+                    $warrantyStatus = 'غير محدد';
+                }
+            }
+        }
+
+        return view('admin.ingaz.ShelterContract.show', compact('contract', 'warrantyStatus', 'warrantyDays'));
     }
 
 
@@ -413,46 +447,30 @@ class ShelterContractController extends Controller
     public function getContractDetails(Request $request)
     {
         try {
-            $contractId = $request->get('contract_id');
-            $contract = Contract::with(['maid', 'info'])->find($contractId);
+            $contractId = $request->input('contract_id');
+            $contract = Contract::with(['maid', 'user', 'info'])->find($contractId);
 
             if (!$contract) {
-                return response()->json([
-                    'error' => 'العقد غير موجود',
-                    'debug_info' => 'Contract ID: ' . $contractId
-                ], 404);
+                return response()->json(['error' => 'العقد غير موجود'], 404);
             }
 
-            // Get arrival date from contract info
-            $arrivalDate = null;
-            if ($contract->info && $contract->info->arrival_date) {
-                $arrivalDate = $contract->info->arrival_date;
-            }
-
-            // If no arrival date in contract info, try to get it from maid
-            if (!$arrivalDate && $contract->maid && $contract->maid->arrival_date) {
-                $arrivalDate = $contract->maid->arrival_date;
-            }
-
-            return response()->json([
-                'arrival_date' => $arrivalDate,
+            $data = [
                 'contract_id' => $contract->id,
-                'contract_status' => $contract->status,
-                'debug_info' => 'Contract found successfully',
-                'has_info' => $contract->info ? 'yes' : 'no',
-                'info_arrival_date' => $contract->info ? $contract->info->arrival_date : 'null',
-                'maid_arrival_date' => $contract->maid ? $contract->maid->arrival_date : 'null',
-                'final_arrival_date' => $arrivalDate,
-                'contract_info_exists' => $contract->info ? 'yes' : 'no',
-                'contract_info_id' => $contract->info ? $contract->info->id : 'null',
-                'is_completed' => in_array($contract->status, ['completed', 'under_warranty', 'closed']) ? 'yes' : 'no'
-            ]);
+                'maid_name' => $contract->maid ? $contract->maid->name : null,
+                'maid_passport' => $contract->maid ? $contract->maid->passport_num : null,
+                'maid_nationality' => $contract->maid && $contract->maid->nationality ?
+                    $contract->maid->nationality->translations->where('locale', app()->getLocale())->first()->sub_title ??
+                    $contract->maid->nationality->translations->first()->sub_title : null,
+                'sponsor_name' => $contract->user ? $contract->user->name : null,
+                'sponsor_id' => $contract->user ? $contract->user->id_number : null,
+                'sponsor_phone' => $contract->user ? $contract->user->phone : null,
+                'sponsor_city' => $contract->user ? $contract->user->city : null,
+            ];
 
+            return response()->json($data);
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'حدث خطأ أثناء جلب تفاصيل العقد',
-                'debug_info' => $e->getMessage()
-            ], 500);
+            \Log::error('Error in getContractDetails: ' . $e->getMessage());
+            return response()->json(['error' => 'حدث خطأ في جلب بيانات العقد'], 500);
         }
     }
 
@@ -482,6 +500,7 @@ class ShelterContractController extends Controller
                 $rows = Contract::where('status', ContractStatusEnum::Shelter->value)
                     ->with([
                         'maid',
+                        'user',
                         'info',
                         'maid.nationality.translations',
                         'maid.job_types.job_type.translations',
@@ -525,6 +544,7 @@ class ShelterContractController extends Controller
         }
 
         \Log::info('availableForTransfer returning view');
+
         $data["dataTableRoute"] = route($this->mainRoute . ".availableForTransfer");
         $data["modalType"] = "modal-lg";
         $data["nationalities"] = \App\Models\ingaz\Nationality::with('translations')->get();
@@ -590,6 +610,7 @@ class ShelterContractController extends Controller
         }
 
         \Log::info('deportationStage returning view');
+
         $data["dataTableRoute"] = route($this->mainRoute . ".deportationStage");
         $data["modalType"] = "modal-lg";
         $data["nationalities"] = \App\Models\ingaz\Nationality::with('translations')->get();
@@ -669,26 +690,9 @@ class ShelterContractController extends Controller
     private function applyFilters($rows, $request)
     {
         // Apply filters
-        if ($request->filled('maid_name')) {
-            $maidName = $request->input('maid_name');
-            $rows->whereHas('maid', function ($query) use ($maidName) {
-                $query->where('name', 'like', '%' . $maidName . '%')
-                      ->orWhere('passport_num', 'like', '%' . $maidName . '%');
-            });
-        }
-
-        if ($request->filled('passport_number')) {
-            $passport = $request->input('passport_number');
-            $rows->whereHas('maid', function ($query) use ($passport) {
-                $query->where('passport_num', 'like', '%' . $passport . '%');
-            });
-        }
-
-        if ($request->filled('maid_type')) {
-            $maidType = $request->input('maid_type');
-            $rows->whereHas('maid.job_types', function ($query) use ($maidType) {
-                $query->where('job_type_id', $maidType);
-            });
+        if ($request->filled('contract_number')) {
+            $contractNumber = $request->input('contract_number');
+            $rows->where('id', 'like', '%' . $contractNumber . '%');
         }
 
         if ($request->filled('nationality')) {
@@ -698,8 +702,8 @@ class ShelterContractController extends Controller
             });
         }
 
-        if ($request->filled('shelter_location')) {
-            $shelter = $request->input('shelter_location');
+        if ($request->filled('shelter')) {
+            $shelter = $request->input('shelter');
             $rows->whereHas('info', function ($query) use ($shelter) {
                 $query->where('shelter_id', $shelter);
             });
@@ -712,8 +716,8 @@ class ShelterContractController extends Controller
             });
         }
 
-        if ($request->filled('guarantee_status')) {
-            $guaranteeStatus = $request->input('guarantee_status');
+        if ($request->filled('status')) {
+            $guaranteeStatus = $request->input('status');
             $today = now();
 
             if ($guaranteeStatus === 'within_guarantee') {
@@ -751,12 +755,21 @@ class ShelterContractController extends Controller
             }
         }
 
+        if ($request->filled('work_willingness')) {
+            $workWillingness = $request->input('work_willingness');
+            $rows->whereHas('info', function ($query) use ($workWillingness) {
+                $query->where('wants_to_work', $workWillingness);
+            });
+        }
+
         if ($request->filled('arrival_date')) {
             $arrivalDate = $request->input('arrival_date');
             $rows->whereHas('info', function ($query) use ($arrivalDate) {
-                $query->whereDate('visa_milad_date', $arrivalDate)
+                $query->where(function ($q) use ($arrivalDate) {
+                    $q->whereDate('visa_milad_date', $arrivalDate)
                       ->orWhereDate('contract_date', $arrivalDate)
                       ->orWhereDate('ingaz_from', $arrivalDate);
+                });
             });
         }
 
@@ -767,11 +780,98 @@ class ShelterContractController extends Controller
             });
         }
 
-        if ($request->filled('work_willingness')) {
-            $workWillingness = $request->input('work_willingness');
-            $rows->whereHas('info', function ($query) use ($workWillingness) {
-                $query->where('wants_to_work', $workWillingness);
-            });
+        return $rows;
+    }
+
+    /**
+     * Get data for DataTables
+     */
+    public function getData(Request $request)
+    {
+        \Log::info('getData method called');
+        \Log::info('Request URL: ' . $request->fullUrl());
+        \Log::info('Request headers: ' . json_encode($request->headers->all()));
+        \Log::info('Is AJAX: ' . ($request->ajax() ? 'true' : 'false'));
+
+        try {
+            $rows = Contract::where('status', ContractStatusEnum::Shelter->value)
+                ->with([
+                    'maid',
+                    'user',
+                    'info',
+                    'maid.nationality.translations',
+                    'maid.job_types.job_type.translations',
+                    'info.shelter.translations'
+                ]);
+
+            // Apply filters
+            $this->applyFilters($rows, $request);
+
+            $rows = $rows->latest();
+
+            // Handle export request
+            if ($request->has('export') && $request->input('export') == '1') {
+                return $this->exportData($rows->get());
+            }
+
+            $dataTable = $this->buildDataTable($rows);
+
+            \Log::info('getData response created successfully');
+
+            return $dataTable;
+        } catch (\Exception $e) {
+            \Log::error('Error in getData: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * إرجاع العقد
+     */
+    public function back($id)
+    {
+        try {
+            $contract = Contract::findOrFail($id);
+
+            // التحقق من أن العقد في الإيواء
+            if ($contract->status !== ContractStatusEnum::Shelter->value) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العقد ليس في الإيواء'
+                ], 400);
+            }
+
+            // إرجاع العقد إلى حالة "مكتمل" لأن العقود في الإيواء هي عقود مكتملة أصلاً
+            $contract->status = ContractStatusEnum::Completed->value;
+
+            // إزالة معلومات الإيواء
+            if ($contract->info) {
+                $contract->info->update([
+                    'shelter_id' => null,
+                    'wants_to_work' => null,
+                    'maid_date_back' => null,
+                    'receipt_source' => null
+                ]);
+            }
+
+            $contract->save();
+
+            // تسجيل النشاط
+            activity()
+                ->performedOn($contract)
+                ->causedBy(auth('admin')->user())
+                ->log('تم حذف العقد من الإيواء - العقد الآن في حالة مكتمل');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم حذف العقد من الإيواء بنجاح - العقد الآن في حالة مكتمل'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء حذف العقد من الإيواء: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -780,7 +880,6 @@ class ShelterContractController extends Controller
      */
     private function buildDataTable($rows)
     {
-        // Add debugging
         \Log::info('buildDataTable called with rows count: ' . $rows->count());
 
         try {
@@ -788,136 +887,105 @@ class ShelterContractController extends Controller
 
             $dataTable = DataTables::of($rows)
                 ->addIndexColumn()
-                ->editColumn('status', function ($row) {
-                    // Get work willingness status
-                    $workWillingness = $row->info ? $row->info->wants_to_work : null;
-
-                    if ($workWillingness === 'yes') {
-                        return '<span class="badge bg-success">داخل الإيواء (متاح للنقل)</span>';
-                    } elseif ($workWillingness === 'no') {
-                        return '<span class="badge bg-warning">داخل الإيواء (مرحلة الترحيل)</span>';
-                    } elseif ($workWillingness === 'unknown') {
-                        return '<span class="badge bg-info">داخل الإيواء</span>';
-                    } else {
-                        return '<span class="badge bg-secondary">داخل الإيواء</span>';
-                    }
+                ->addColumn('contract_number', function ($row) {
+                    return 'عقد رقم: ' . $row->id;
                 })
-                ->editColumn('maid_name', function ($row) {
+                ->addColumn('maid_data', function ($row) {
+                    \Log::info('Processing maid_data for contract: ' . $row->id);
                     if (!$row->maid) {
                         return '<span class="text-muted">غير محدد</span>';
                     }
 
-                    // If maid has a name, show it, otherwise show passport number
-                    $displayName = $row->maid->name;
-                    if (empty($displayName) && $row->maid->passport_num) {
-                        $displayName = 'جواز رقم: ' . $row->maid->passport_num;
-                    } elseif (empty($displayName)) {
-                        $displayName = 'عاملة رقم: ' . $row->maid->id;
+                    $maidName = $row->maid->name ?: 'عاملة رقم: ' . $row->maid->id;
+                    $passport = $row->maid->passport_num ?: 'غير محدد';
+
+                    // Get job type
+                    $jobType = 'غير محدد';
+                    if ($row->maid->job_types && !$row->maid->job_types->isEmpty()) {
+                        $jobTypeModel = $row->maid->job_types->first();
+                        if ($jobTypeModel && $jobTypeModel->job_type) {
+                            $locale = app()->getLocale();
+                            $translation = $jobTypeModel->job_type->translations->where('locale', $locale)->first();
+                            $jobType = $translation ? $translation->title : $jobTypeModel->job_type->translations->first()->title;
+                        }
                     }
 
-                    return '<span class="text-primary">' . $displayName . '</span>';
+                    return '<div class="maid-info">
+                                <strong>' . $maidName . '</strong><br>
+                                <small class="text-muted">جواز: ' . $passport . '</small><br>
+                                <small class="text-muted">نوع العمل: ' . $jobType . '</small>
+                            </div>';
                 })
-                ->editColumn('passport_number', function ($row) {
-                    if (!$row->maid || !$row->maid->passport_num) {
+                ->addColumn('client', function ($row) {
+                    if (!$row->user) {
                         return '<span class="text-muted">غير محدد</span>';
                     }
-                    return '<span class="text-info">' . $row->maid->passport_num . '</span>';
+
+                    $clientName = $row->user->name ?: 'عميل رقم: ' . $row->user->id;
+                    $clientPhone = $row->user->phone ?: 'غير محدد';
+
+                    return '<div class="user-info">
+                                <strong>' . $clientName . '</strong><br>
+                                <small class="text-muted">' . $clientPhone . '</small>
+                            </div>';
                 })
-                ->editColumn('maid_type', function ($row) {
-                    if (!$row->maid || !$row->maid->job_types || $row->maid->job_types->isEmpty()) {
-                        return '<span class="text-muted">غير محدد</span>';
-                    }
-
-                    // Get the first job type (assuming one maid can have multiple job types)
-                    $jobType = $row->maid->job_types->first();
-                    if (!$jobType || !$jobType->job_type) {
-                        return '<span class="text-muted">غير محدد</span>';
-                    }
-
-                    // Get the translated title
-                    $locale = app()->getLocale();
-                    $translation = $jobType->job_type->translations->where('locale', $locale)->first();
-                    $title = $translation ? $translation->title : $jobType->job_type->translations->first()->title;
-
-                    // Determine badge color based on job type ID
-                    switch($jobType->job_type_id) {
-                        case 1: // استقدام
-                            return '<span class="badge bg-primary">' . $title . '</span>';
-                        case 2: // ايجار عمالة
-                            return '<span class="badge bg-success">' . $title . '</span>';
-                        case 3: // إستلام فورى
-                            return '<span class="badge bg-warning">' . $title . '</span>';
-                        default:
-                            return '<span class="badge bg-secondary">' . $title . '</span>';
-                    }
-                })
-                ->editColumn('nationality', function ($row) {
+                ->addColumn('nationality', function ($row) {
                     if (!$row->maid || !$row->maid->nationality) {
                         return '<span class="text-muted">غير محدد</span>';
                     }
 
-                    // Get the translated name based on current locale
                     $locale = app()->getLocale();
                     $translation = $row->maid->nationality->translations->where('locale', $locale)->first();
+                    $nationality = $translation ? $translation->sub_title : 'غير محدد';
 
-                    if ($translation) {
-                        return '<span class="text-success">' . $translation->sub_title . '</span>';
-                    }
-
-                    // Fallback to first available translation
-                    $firstTranslation = $row->maid->nationality->translations->first();
-                    if ($firstTranslation) {
-                        return '<span class="text-success">' . $firstTranslation->sub_title . '</span>';
-                    }
-
-                    return '<span class="text-muted">غير محدد</span>';
+                    return '<span class="badge bg-info">' . $nationality . '</span>';
                 })
-                ->editColumn('shelter_location', function ($row) {
+                ->addColumn('shelter', function ($row) {
                     if (!$row->info || !$row->info->shelter) {
                         return '<span class="text-muted">غير محدد</span>';
                     }
 
-                    // Get the translated name based on current locale
                     $locale = app()->getLocale();
                     $translation = $row->info->shelter->translations->where('locale', $locale)->first();
+                    $shelter = $translation ? $translation->title : 'غير محدد';
 
-                    if ($translation) {
-                        return '<span class="text-info">' . $translation->title . '</span>';
-                    }
-
-                    // Fallback to first available translation
-                    $firstTranslation = $row->info->shelter->translations->first();
-                    if ($firstTranslation) {
-                        return '<span class="text-info">' . $firstTranslation->title . '</span>';
-                    }
-
-                    return '<span class="text-muted">غير محدد</span>';
+                    return $shelter;
                 })
-                ->editColumn('receipt_source', function ($row) {
+                ->editColumn('arrival_date', function ($row) {
+                    $arrivalDate = $row->info ?
+                        ($row->info->visa_milad_date ?? $row->info->contract_date ?? $row->info->ingaz_from) : null;
+
+                    if (!$arrivalDate) {
+                        return '<span class="text-muted">غير محدد</span>';
+                    }
+
+                    return \Carbon\Carbon::parse($arrivalDate)->format('Y-m-d');
+                })
+                ->editColumn('return_date', function ($row) {
+                    $returnDate = $row->info && $row->info->maid_date_back ?
+                        \Carbon\Carbon::parse($row->info->maid_date_back)->format('Y-m-d') : null;
+
+                    return $returnDate ?: '<span class="text-muted">غير محدد</span>';
+                })
+                ->addColumn('receipt_source', function ($row) {
                     if (!$row->info || !$row->info->receipt_source) {
                         return '<span class="text-muted">غير محدد</span>';
                     }
 
-                    // Get the receipt source name from language file
-                    $receiptSource = __('shelter_worker_statuses.received_by.' . $row->info->receipt_source);
-
-                    if ($receiptSource) {
-                        return '<span class="badge bg-secondary">' . $receiptSource . '</span>';
-                    }
-
-                    return '<span class="text-muted">غير محدد</span>';
+                    $receiptSource = __('shelter_worker_statuses.received_by.' . $row->info->receipt_source) ?: $row->info->receipt_source;
+                    return $receiptSource;
                 })
-                ->editColumn('guarantee_status', function ($row) {
-                    // Get arrival date from available date fields
-                    $arrivalDate = null;
-                    if ($row->info) {
-                        $arrivalDate = $row->info->visa_milad_date ??
-                                      $row->info->contract_date ??
-                                      $row->info->ingaz_from;
+                ->addColumn('guarantee_status', function ($row) {
+                    if (!$row->info) {
+                        return '<span class="badge bg-secondary">غير محدد</span>';
                     }
+
+                    $arrivalDate = $row->info->visa_milad_date ??
+                                  $row->info->contract_date ??
+                                  $row->info->ingaz_from;
 
                     if (!$arrivalDate) {
-                        return '<span class="text-muted">غير محدد</span>';
+                        return '<span class="badge bg-secondary">غير محدد</span>';
                     }
 
                     try {
@@ -925,116 +993,392 @@ class ShelterContractController extends Controller
                         $today = \Carbon\Carbon::now();
                         $guaranteeEndDate = $arrivalDate->copy()->addDays(90);
 
-                        if ($today->gt($guaranteeEndDate)) {
-                            return '<span class="text-danger">منتهي الضمان</span>';
+                        if ($today->lte($guaranteeEndDate)) {
+                            $daysRemaining = $today->diffInDays($guaranteeEndDate);
+                            return '<span class="badge bg-success">ضمن الضمان (' . $daysRemaining . ' يوم)</span>';
                         } else {
-                            $remainingDays = $today->diffInDays($guaranteeEndDate);
-                            return '<span class="text-success">ضمن الضمان (' . $remainingDays . ' يوم متبقي)</span>';
+                            $daysExpired = $guaranteeEndDate->diffInDays($today);
+                            return '<span class="badge bg-danger">منتهي الضمان (' . $daysExpired . ' يوم)</span>';
                         }
                     } catch (\Exception $e) {
-                        return '<span class="text-danger">خطأ في التاريخ</span>';
+                        return '<span class="badge bg-secondary">غير محدد</span>';
                     }
                 })
-                ->editColumn('work_willingness', function ($row) {
-                    if (!$row->info || !$row->info->wants_to_work) {
-                        return '<span class="text-muted">غير محدد</span>';
-                    }
+                ->addColumn('work_willingness', function ($row) {
+                    $workWillingness = $row->info ? $row->info->wants_to_work : null;
 
-                    switch($row->info->wants_to_work) {
-                        case 'yes':
-                            return '<span class="badge bg-success">ترغب بالعمل</span>';
-                        case 'no':
-                            return '<span class="badge bg-danger">لا ترغب بالعمل</span>';
-                        case 'unknown':
-                            return '<span class="badge bg-secondary">غير محدد</span>';
-                        default:
-                            return '<span class="text-muted">غير محدد</span>';
-                    }
-                })
-                ->editColumn('arrival_date', function ($row) {
-                    // Get arrival date from available date fields
-                    $arrivalDate = null;
-                    if ($row->info) {
-                        $arrivalDate = $row->info->visa_milad_date ??
-                                      $row->info->contract_date ??
-                                      $row->info->ingaz_from;
-                    }
-
-                    if (!$arrivalDate) {
-                        return '<span class="text-muted">غير محدد</span>';
-                    }
-                    try {
-                        $date = \Carbon\Carbon::parse($arrivalDate)->format('Y-m-d');
-                        return '<span class="text-success">' . $date . '</span>';
-                    } catch (\Exception $e) {
-                        return '<span class="text-danger">خطأ في التاريخ</span>';
-                    }
-                })
-                ->editColumn('return_date', function ($row) {
-                    if (!$row->info || !$row->info->maid_date_back) {
-                        return '<span class="text-muted">غير محدد</span>';
-                    }
-                    try {
-                        $date = \Carbon\Carbon::parse($row->info->maid_date_back)->format('Y-m-d');
-                        return '<span class="text-warning">' . $date . '</span>';
-                    } catch (\Exception $e) {
-                        return '<span class="text-danger">خطأ في التاريخ</span>';
-                    }
-                })
-                ->addColumn('updateStatus', function ($row) {
-                    if ($row->status != ContractStatusEnum::Back->value && $row->status != ContractStatusEnum::Closed->value)
-                        return '<button class="btn btn-success update-status-btn" data-bs-toggle="modal" data-bs-target="#updateStatusModal" data-row-id="' . $row->id . '" data-status="' . $row->status . '">إغلاق العقد داخل الإيواء</button>';
-                    else
-                        return '<span>---</span>';
-                })
-                ->addColumn('back', function ($row) {
-                    if ($row->status == ContractStatusEnum::Back->value) {
-                        return '<span class="text-danger">مرتجع</span>';
+                    if ($workWillingness === 'yes') {
+                        return '<span class="badge bg-success">ترغب بالعمل</span>';
+                    } elseif ($workWillingness === 'no') {
+                        return '<span class="badge bg-warning">لا ترغب بالعمل</span>';
                     } else {
-                        return '<button class="btn btn-danger backContract" data-id="' . $row->id . '">ارجاع العقد داخل الإيواء <i class="fa fa-undo"></i> </button>';
+                        return '<span class="badge bg-secondary">غير محدد</span>';
                     }
                 })
                 ->addColumn('actions', function ($row) {
-                    $buttons = '';
+                    $actions = '<div class="dropdown actions-dropdown">
+                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
+                                        <i class="fas fa-cogs me-1"></i> الإجراءات
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
 
-                    // View button
-                    $buttons .= '<a href="' . route($this->mainRoute . ".show", $row->id) . '" class="btn btn-sm btn-info me-1" title="عرض"><i class="fa fa-eye"></i></a>';
+                    // عرض التفاصيل
+                    $actions .= '<li><a class="dropdown-item" href="' . route('ShelterContract.show', $row->id) . '">
+                                    <i class="fas fa-eye"></i> عرض التفاصيل
+                                </a></li>';
 
-                    // Edit button
-                    $buttons .= '<a href="' . route($this->mainRoute . ".edit", $row->id) . '" class="btn btn-sm btn-warning me-1" title="تعديل"><i class="fa fa-edit"></i></a>';
+                    // تحرير
+                    $actions .= '<li><a class="dropdown-item" href="' . route('ShelterContract.edit', $row->id) . '">
+                                    <i class="fas fa-edit"></i> تحرير
+                                </a></li>';
 
-                    // Delete button - removed permission check
-                    $buttons .= deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                    // حذف من الإيواء (متاح دائماً للعقود في الإيواء)
+                    $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="back" data-id="' . $row->id . '" data-text="هل أنت متأكد من حذف العقد من الإيواء؟ سيعود العقد إلى العقود المكتملة">
+                                    <i class="fas fa-undo"></i> حذف من الإيواء
+                                </a></li>';
 
-                    return $buttons;
+                    // نقل الكفالة (فقط إذا كانت ترغب بالعمل)
+                    if ($row->info && $row->info->wants_to_work === 'yes') {
+                        $actions .= '<li><hr class="dropdown-divider"></li>';
+                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="transfer" data-id="' . $row->id . '" data-text="سيتم فتح صفحة إضافة طلب نقل كفالة">
+                                        <i class="fas fa-exchange-alt"></i> إضافة طلب نقل كفالة
+                                    </a></li>';
+                    }
+
+                    // إجراءات الترحيل (فقط إذا كانت لا ترغب بالعمل)
+                    if ($row->info && $row->info->wants_to_work === 'no') {
+                        $actions .= '<li><hr class="dropdown-divider"></li>';
+
+                        // التحقق من وجود إجراءات ترحيل
+                        $deportationProcedure = $row->deportationProcedure;
+
+                        if ($deportationProcedure) {
+                            // عرض إجراءات الترحيل الموجودة
+                            $actions .= '<li><a class="dropdown-item" href="' . route('ShelterContract.deportation.procedures', $row->id) . '">
+                                            <i class="fas fa-clipboard-check"></i> عرض إجراءات الترحيل
+                                        </a></li>';
+                        } else {
+                            // بدء إجراءات الترحيل
+                            $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="start-deportation" data-id="' . $row->id . '" data-text="هل تريد بدء إجراءات الترحيل للعاملة؟">
+                                            <i class="fas fa-plane-departure"></i> بدء إجراءات الترحيل
+                                        </a></li>';
+                        }
+                    }
+
+                    $actions .= '</ul></div>';
+
+                    return $actions;
                 })
-                ->escapeColumns([]);
+                ->rawColumns(['maid_data', 'client', 'nationality', 'arrival_date', 'return_date', 'guarantee_status', 'work_willingness', 'actions'])
+                ->toJson();
 
-            \Log::info('DataTables columns configured, calling make()');
+            \Log::info('DataTables processing completed');
+            return $dataTable;
 
-            $result = $dataTable->make(true);
-
-            \Log::info('DataTable response created successfully');
-            \Log::info('Response data count: ' . (isset($result->getData()->data) ? count($result->getData()->data) : 'No data'));
-
-            // Debug: Log the actual response data
-            $responseData = $result->getData();
-            \Log::info('Response structure: ' . json_encode([
-                'draw' => $responseData->draw ?? 'N/A',
-                'recordsTotal' => $responseData->recordsTotal ?? 'N/A',
-                'recordsFiltered' => $responseData->recordsFiltered ?? 'N/A',
-                'dataCount' => isset($responseData->data) ? count($responseData->data) : 'N/A'
-            ]));
-
-            if (isset($responseData->data) && count($responseData->data) > 0) {
-                \Log::info('First row in response: ' . json_encode($responseData->data[0]));
-            }
-
-            return $result;
         } catch (\Exception $e) {
             \Log::error('Error in buildDataTable: ' . $e->getMessage());
             \Log::error('Stack trace: ' . $e->getTraceAsString());
             throw $e;
         }
+    }
+
+    /**
+     * بدء إجراءات الترحيل
+     */
+    public function startDeportation($id)
+    {
+        try {
+            $contract = Contract::with(['maid', 'info'])->findOrFail($id);
+
+            // التحقق من أن العقد في الإيواء
+            if ($contract->status !== ContractStatusEnum::Shelter->value) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العقد ليس في الإيواء'
+                ], 400);
+            }
+
+            // التحقق من أن العاملة لا ترغب بالعمل
+            if ($contract->info && $contract->info->wants_to_work === 'yes') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العاملة ترغب بالعمل - يمكن نقل الكفالة بدلاً من الترحيل'
+                ], 400);
+            }
+
+            // التحقق من عدم وجود إجراءات ترحيل سابقة
+            $existingProcedure = \App\Models\DeportationProcedure::where('contract_id', $contract->id)
+                ->whereIn('status', ['pending', 'in_progress'])
+                ->first();
+
+            if ($existingProcedure) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'توجد إجراءات ترحيل قيد التنفيذ بالفعل'
+                ], 400);
+            }
+
+            // إنشاء إجراءات ترحيل جديدة
+            $procedure = \App\Models\DeportationProcedure::create([
+                'contract_id' => $contract->id,
+                'maid_id' => $contract->maid_id,
+                'status' => 'pending',
+                'started_at' => now(),
+                'created_by' => auth('admin')->id()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم بدء إجراءات الترحيل بنجاح',
+                'procedure_id' => $procedure->id
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * عرض صفحة إجراءات الترحيل
+     */
+    public function showDeportationProcedures($id)
+    {
+        $contract = Contract::with(['maid', 'user', 'info'])->findOrFail($id);
+
+        $procedure = \App\Models\DeportationProcedure::where('contract_id', $contract->id)
+            ->with(['createdBy', 'completedBy'])
+            ->first();
+
+        if (!$procedure) {
+            return redirect()->route('ShelterContract.show', $id)
+                ->with('error', 'لا توجد إجراءات ترحيل لهذا العقد');
+        }
+
+        return view('admin.ingaz.ShelterContract.deportation-procedures', compact('contract', 'procedure'));
+    }
+
+    /**
+     * تحديث إجراءات الترحيل
+     */
+    public function updateDeportationProcedures(Request $request, $id)
+    {
+        try {
+            $procedure = \App\Models\DeportationProcedure::findOrFail($id);
+
+            // التحقق من أن الإجراءات غير مكتملة
+            if ($procedure->status === 'completed') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن تعديل إجراءات مكتملة'
+                ], 400);
+            }
+
+            // التحقق من طلب إكمال الترحيل
+            if ($request->has('complete_deportation') && $request->complete_deportation) {
+                // التحقق من اكتمال جميع الإجراءات
+                if (!$procedure->isAllProceduresCompleted()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'يجب إكمال جميع الإجراءات أولاً'
+                    ], 400);
+                }
+
+                // إكمال الترحيل
+                $procedure->update([
+                    'status' => 'completed',
+                    'completed_at' => now(),
+                    'completed_by' => auth('admin')->id()
+                ]);
+
+                // تحديث حالة العقد إلى "تم الترحيل"
+                $procedure->contract->update([
+                    'status' => ContractStatusEnum::Back->value
+                ]);
+
+                // إزالة معلومات الإيواء
+                if ($procedure->contract->info) {
+                    $procedure->contract->info->update([
+                        'shelter_id' => null,
+                        'wants_to_work' => null,
+                        'maid_date_back' => now(),
+                        'receipt_source' => null
+                    ]);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'تم إكمال إجراءات الترحيل بنجاح',
+                    'redirect' => route('ShelterContract.deported')
+                ]);
+            }
+
+            // تحديث البيانات
+            $procedure->update([
+                'salary_received' => $request->boolean('salary_received'),
+                'salary_received_date' => $request->salary_received_date,
+                'has_passport' => $request->boolean('has_passport'),
+                'has_deportation_letter' => $request->boolean('has_deportation_letter'),
+                'has_settlement_session' => $request->boolean('has_settlement_session'),
+                'has_final_exit' => $request->boolean('has_final_exit'),
+                'notes' => $request->notes,
+                'status' => 'in_progress'
+            ]);
+
+            // معالجة المرفقات
+            if ($request->hasFile('attachments')) {
+                $attachments = [];
+                foreach ($request->file('attachments') as $file) {
+                    $path = $file->store('deportation-attachments', 'public');
+                    $attachments[] = [
+                        'name' => $file->getClientOriginalName(),
+                        'path' => $path,
+                        'uploaded_at' => now()
+                    ];
+                }
+                $procedure->attachments = array_merge($procedure->attachments ?? [], $attachments);
+                $procedure->save();
+            }
+
+            // التحقق من اكتمال جميع الإجراءات
+            if ($procedure->isAllProceduresCompleted()) {
+                $procedure->update([
+                    'status' => 'completed',
+                    'completed_at' => now(),
+                    'completed_by' => auth('admin')->id()
+                ]);
+
+                // تحديث حالة العقد إلى "تم الترحيل"
+                $procedure->contract->update([
+                    'status' => ContractStatusEnum::Back->value
+                ]);
+
+                // إزالة معلومات الإيواء
+                if ($procedure->contract->info) {
+                    $procedure->contract->info->update([
+                        'shelter_id' => null,
+                        'wants_to_work' => null,
+                        'maid_date_back' => now(),
+                        'receipt_source' => null
+                    ]);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'تم اكتمال إجراءات الترحيل بنجاح',
+                    'redirect' => route('ShelterContract.index')
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تحديث إجراءات الترحيل بنجاح',
+                'completion_percentage' => $procedure->completion_percentage
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * عرض العقود التي تم ترحيلها
+     */
+    public function deported(Request $request)
+    {
+        if ($request->ajax()) {
+            $query = \App\Models\DeportationProcedure::with([
+                'contract',
+                'contract.maid',
+                'contract.maid.nationality.translations',
+                'contract.user',
+                'completedBy'
+            ])->where('status', 'completed');
+
+            // تطبيق الفلاتر
+            if ($request->filled('contract_number')) {
+                $query->whereHas('contract', function($q) use ($request) {
+                    $q->where('id', 'like', '%' . $request->contract_number . '%');
+                });
+            }
+
+            if ($request->filled('maid_name')) {
+                $query->whereHas('contract.maid', function($q) use ($request) {
+                    $q->where('name', 'like', '%' . $request->maid_name . '%');
+                });
+            }
+
+            if ($request->filled('deportation_date')) {
+                $query->whereDate('completed_at', $request->deportation_date);
+            }
+
+            return DataTables::of($query)
+                ->addIndexColumn()
+                ->addColumn('contract_number', function ($row) {
+                    return 'عقد رقم: ' . $row->contract_id;
+                })
+                ->addColumn('maid_data', function ($row) {
+                    if (!$row->contract || !$row->contract->maid) {
+                        return '<span class="text-muted">غير محدد</span>';
+                    }
+
+                    $maid = $row->contract->maid;
+                    $maidName = $maid->name ?: 'عاملة رقم: ' . $maid->id;
+                    $passport = $maid->passport_num ?: 'غير محدد';
+
+                    return '<div class="maid-info">
+                                <strong>' . $maidName . '</strong><br>
+                                <small class="text-muted">جواز: ' . $passport . '</small>
+                            </div>';
+                })
+                ->addColumn('client', function ($row) {
+                    if (!$row->contract || !$row->contract->user) {
+                        return '<span class="text-muted">غير محدد</span>';
+                    }
+
+                    $user = $row->contract->user;
+                    $userName = $user->name ?: 'عميل رقم: ' . $user->id;
+                    $userPhone = $user->phone ?: 'غير محدد';
+
+                    return '<div class="user-info">
+                                <strong>' . $userName . '</strong><br>
+                                <small class="text-muted">' . $userPhone . '</small>
+                            </div>';
+                })
+                ->addColumn('nationality', function ($row) {
+                    if (!$row->contract || !$row->contract->maid || !$row->contract->maid->nationality) {
+                        return '<span class="text-muted">غير محدد</span>';
+                    }
+
+                    $locale = app()->getLocale();
+                    $translation = $row->contract->maid->nationality->translations->where('locale', $locale)->first();
+                    $nationality = $translation ? $translation->sub_title : 'غير محدد';
+
+                    return '<span class="badge bg-info">' . $nationality . '</span>';
+                })
+                ->addColumn('deportation_date', function ($row) {
+                    return $row->completed_at ? $row->completed_at->format('Y-m-d H:i') : 'غير محدد';
+                })
+                ->addColumn('completed_by', function ($row) {
+                    return $row->completedBy ? $row->completedBy->name : 'غير محدد';
+                })
+                ->addColumn('status', function ($row) {
+                    return '<span class="badge deported-badge">تم الترحيل</span>';
+                })
+                ->addColumn('actions', function ($row) {
+                    return '<button class="btn btn-sm btn-info view-procedures" data-id="' . $row->contract_id . '">
+                                <i class="fas fa-eye"></i> عرض الإجراءات
+                            </button>';
+                })
+                ->rawColumns(['maid_data', 'client', 'nationality', 'status', 'actions'])
+                ->toJson();
+        }
+
+        return view('admin.ingaz.ShelterContract.deported');
     }
 }

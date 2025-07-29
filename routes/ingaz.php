@@ -11,7 +11,14 @@ use App\Http\Controllers\admin\AdminTravelHistoryController;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use App\Http\Controllers\admin\AdminShelterWorkersContractCTLR;
 use App\Http\Controllers\admin\AdminFullOrderContractController;
-use App\Http\Controllers\ingaz\OrderController as AdminOrderController;
+use App\Http\Controllers\ingaz\OrderController;
+use App\Http\Controllers\ingaz\ShelterContractController;
+use App\Http\Controllers\ingaz\RecruitmentContractController;
+use App\Http\Controllers\ingaz\SponsorshipTransferController;
+use App\Http\Controllers\ingaz\RentContractController;
+use App\Http\Controllers\ingaz\NotificationController;
+use App\Http\Controllers\ingaz\StatisticController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -32,8 +39,8 @@ Route::group(
     function () {
         Route::group(["prefix" => "admin", "middleware" => "admin"], function () {
 
-            Route::get('getMaidByNationality/{nationalityId}', 'RecruitmentContractController@getMaidByNationality')->name('getMaidByNationality');
-            Route::get('clients/{id}/details', 'RecruitmentContractController@getClientDetails')->name('clients.details');
+            Route::get('getMaidByNationality/{nationalityId}', [RecruitmentContractController::class, 'getMaidByNationality'])->name('getMaidByNationality');
+            Route::get('clients/{id}/details', [RecruitmentContractController::class, 'getClientDetails'])->name('clients.details');
 
             //** NEW */
             Route::get('getContractEdit/{id}', [AdminContractController::class, 'getContractEdit'])->name('getContractEdit');
@@ -116,24 +123,35 @@ Route::group(
             Route::get('orders/export/excel', [OrderController::class, 'exportExcel'])->name('orders.export.excel');
 
             // RecruitmentContract specific routes - MUST come before resource route
-            Route::get('RecruitmentContract/available-maids', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'getAvailableMaids'])->name('RecruitmentContract.availableMaids');
-            Route::get('RecruitmentContract/filter-options', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'getFilterOptions'])->name('RecruitmentContract.filterOptions');
-            Route::get('RecruitmentContract/statistics', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'statistics'])->name('RecruitmentContract.statistics');
-            Route::get('RecruitmentContract/export/pdf', [\App\Http\Controllers\ingaz\RecruitmentContractController::class, 'exportPdf'])->name('RecruitmentContract.export.pdf');
-            Route::get('RecruitmentContract/export/excel', [\App\Http\Controllers\ingaz\RecruitmentContractController::class, 'exportExcel'])->name('RecruitmentContract.export.excel');
+            Route::get('RecruitmentContract/available-maids', [RecruitmentContractController::class, 'getAvailableMaids'])->name('RecruitmentContract.availableMaids');
+            Route::get('RecruitmentContract/filter-options', [RecruitmentContractController::class, 'getFilterOptions'])->name('RecruitmentContract.filterOptions');
+            Route::get('RecruitmentContract/statistics', [RecruitmentContractController::class, 'statistics'])->name('RecruitmentContract.statistics');
+            Route::get('RecruitmentContract/export/pdf', [RecruitmentContractController::class, 'exportPdf'])->name('RecruitmentContract.export.pdf');
+            Route::get('RecruitmentContract/export/excel', [RecruitmentContractController::class, 'exportExcel'])->name('RecruitmentContract.export.excel');
 
             Route::resource('RecruitmentContract', RecruitmentContractController::class);
-            Route::get('RecruitmentContractBack/{id}', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'back'])->name('RecruitmentContract.back');
-            Route::get('contractsDetails/{id}', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'details'])->name('contracts.details');
-            Route::post('RecruitmentContract/{contractId}/add-maid', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'addMaidToContract'])->name('RecruitmentContract.addMaid');
-            Route::get('RecruitmentContract/{contractId}/select-maid', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'selectMaidForContract'])->name('RecruitmentContract.selectMaid');
-            Route::get('RecruitmentContract/{contractId}/change-maid', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'showChangeMaid'])->name('RecruitmentContract.showChangeMaid');
-            Route::post('RecruitmentContract/{contractId}/change-maid', [App\Http\Controllers\ingaz\RecruitmentContractController::class, 'changeMaid'])->name('RecruitmentContract.changeMaid');
+            Route::get('RecruitmentContractBack/{id}', [RecruitmentContractController::class, 'back'])->name('RecruitmentContract.back');
+            Route::get('contractsDetails/{id}', [RecruitmentContractController::class, 'details'])->name('contracts.details');
+            Route::post('RecruitmentContract/{contractId}/add-maid', [RecruitmentContractController::class, 'addMaidToContract'])->name('RecruitmentContract.addMaid');
+            Route::get('RecruitmentContract/{contractId}/select-maid', [RecruitmentContractController::class, 'selectMaidForContract'])->name('RecruitmentContract.selectMaid');
+            Route::get('RecruitmentContract/{contractId}/change-maid', [RecruitmentContractController::class, 'showChangeMaid'])->name('RecruitmentContract.showChangeMaid');
+            Route::post('RecruitmentContract/{contractId}/change-maid', [RecruitmentContractController::class, 'changeMaid'])->name('RecruitmentContract.changeMaid');
             Route::resource('RentContract', RentContractController::class);
             Route::get('showDataOfOrder', [OrderController::class, 'showDataOfOrder'])->name('showDataOfOrder');
             Route::get('showDataOfMaid', [OrderController::class, 'showDataOfMaid'])->name('showDataOfMaid');
             Route::get('showUserFromContract', [OrderController::class, 'showUserFromContract'])->name('showUserFromContract');
-            Route::resource('SponsorshipTransfer', SponsorshipTransfer::class);
+            Route::resource('SponsorshipTransfer', SponsorshipTransferController::class);
+            Route::get('Contract/searchClients', [SponsorshipTransferController::class, 'searchClients'])->name('Contract.searchClients');
+            Route::post('SponsorshipTransfer/{id}/approve', [SponsorshipTransferController::class, 'approve'])->name('SponsorshipTransfer.approve');
+            Route::post('SponsorshipTransfer/{id}/reject', [SponsorshipTransferController::class, 'reject'])->name('SponsorshipTransfer.reject');
+            Route::post('SponsorshipTransfer/{id}/complete', [SponsorshipTransferController::class, 'complete'])->name('SponsorshipTransfer.complete');
+            Route::post('SponsorshipTransfer/{id}/confirm-transfer', [SponsorshipTransferController::class, 'confirmTransfer'])->name('SponsorshipTransfer.confirmTransfer');
+            Route::post('SponsorshipTransfer/{id}/cancel-transfer', [SponsorshipTransferController::class, 'cancelTransfer'])->name('SponsorshipTransfer.cancelTransfer');
+
+            // Routes للصفحات المختلفة حسب الحالة
+            Route::get('SponsorshipTransfer/status/trial', [SponsorshipTransferController::class, 'trial'])->name('SponsorshipTransfer.trial');
+            Route::get('SponsorshipTransfer/status/transferred', [SponsorshipTransferController::class, 'transferred'])->name('SponsorshipTransfer.transferred');
+            Route::get('SponsorshipTransfer/status/failed', [SponsorshipTransferController::class, 'failed'])->name('SponsorshipTransfer.failed');
             Route::resource('notifications', NotificationController::class);
             Route::resource('statistics', StatisticController::class);
             Route::resource('steps', StepController::class);
@@ -145,14 +163,26 @@ Route::group(
             // Route::resource('roles', RoleController::class);
 
             // Custom routes for different shelter contract stages - MUST come before resource route
-            Route::get('ShelterContract/available-for-transfer', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'availableForTransfer'])->name('ShelterContract.availableForTransfer');
-            Route::get('ShelterContract/deportation-stage', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'deportationStage'])->name('ShelterContract.deportationStage');
-            Route::get('ShelterContract/general-shelter', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'generalShelter'])->name('ShelterContract.generalShelter');
+            Route::get('ShelterContract/data', [ShelterContractController::class, 'getData'])->name('ShelterContract.data');
+            Route::get('ShelterContract/available-for-transfer', [ShelterContractController::class, 'availableForTransfer'])->name('ShelterContract.availableForTransfer');
+            Route::get('ShelterContract/deportation-stage', [ShelterContractController::class, 'deportationStage'])->name('ShelterContract.deportationStage');
+            Route::get('ShelterContract/general-shelter', [ShelterContractController::class, 'generalShelter'])->name('ShelterContract.generalShelter');
+            Route::get('ShelterContract/search-by-passport', [ShelterContractController::class, 'searchByPassport'])->name('ShelterContract.searchByPassport');
+            Route::get('ShelterContract/get-contract-details', [ShelterContractController::class, 'getContractDetails'])->name('get.contract.details');
+            Route::get('ShelterContract/get-nationalities', [ShelterContractController::class, 'getNationalities'])->name('ShelterContract.getNationalities');
+            Route::get('ShelterContract/get-shelter-places', [ShelterContractController::class, 'getShelterPlaces'])->name('ShelterContract.getShelterPlaces');
+            Route::post('ShelterContract/{id}/back', [ShelterContractController::class, 'back'])->name('ShelterContract.back');
+
+            // Deportation routes
+            Route::post('ShelterContract/{id}/deportation/start', [ShelterContractController::class, 'startDeportation'])->name('ShelterContract.deportation.start');
+            Route::get('ShelterContract/{id}/deportation/procedures', [ShelterContractController::class, 'showDeportationProcedures'])->name('ShelterContract.deportation.procedures');
+            Route::post('ShelterContract/deportation/{id}/update', [ShelterContractController::class, 'updateDeportationProcedures'])->name('ShelterContract.deportation.update');
+            Route::get('ShelterContract/deported', [ShelterContractController::class, 'deported'])->name('ShelterContract.deported');
 
             Route::resource('ShelterContract', ShelterContractController::class);
 
             //** New */
-            Route::get('show_single_order/{orderId}', [App\Http\Controllers\ingaz\OrderController::class, 'showSingleOrder'])->name('showSingleOrder');
+            Route::get('show_single_order/{orderId}', [OrderController::class, 'showSingleOrder'])->name('showSingleOrder');
             Route::get('/order_file/{id}/download', [OrderController::class, 'download'])->name('order_files.download');
             Route::post('orders/changeMaid', [OrderController::class, 'changeMaid'])->name('orders.changeMaid');
             Route::post('orders/changeResponsible', [OrderController::class, 'changeResponsible'])->name('orders.changeResponsible');
@@ -174,13 +204,6 @@ Route::group(
                 Route::get('create-completed-page', [App\Http\Controllers\ingaz\ContractController::class, 'createCompletedPage'])->name('Contract.createCompletedPage');
             });
 
-            // ShelterContract additional routes
-            Route::prefix('ShelterContract')->group(function () {
-                Route::get('search-by-passport', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'searchByPassport'])->name('ShelterContract.searchByPassport');
-                Route::get('get-contract-details', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'getContractDetails'])->name('get.contract.details');
-                Route::get('get-nationalities', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'getNationalities'])->name('ShelterContract.getNationalities');
-                Route::get('get-shelter-places', [\App\Http\Controllers\ingaz\ShelterContractController::class, 'getShelterPlaces'])->name('ShelterContract.getShelterPlaces');
-            });
         });
 
     }

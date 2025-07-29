@@ -5,14 +5,19 @@
 @section('content')
 @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_CONTRACT_CONTROL))
 
+<script>
+    console.log('=== Page Loaded - ShelterContract Create ===');
+    console.log('jQuery version:', $.fn.jquery);
+    console.log('Document ready state:', document.readyState);
+</script>
+
     <!-- زر إضافة العقد -->
     <div class="row mb-3">
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">
-                        <i class="fas fa-plus-circle text-success me-2"></i>
-                        {{helperTrans("ingaz.quick_create_contract")}}
+                            {{helperTrans("ingaz.quick_create_contract")}}
                     </h5>
                     <p class="card-text">{{helperTrans("ingaz.create_completed_contract_description")}}</p>
                     <div class="d-flex gap-2">
@@ -54,7 +59,7 @@
                             data-maid-name="{{$contract->maid ? $contract->maid->name : ''}}"
                             data-status="{{$contract->status}}"
                             {{ $selectedContractId == $contract->id ? 'selected' : '' }}>
-                        {{$contract->desc }}{{ $warrantyStatus }} @if($contract->maid && $contract->maid->passport_num) - {{$contract->maid->passport_num}} @endif
+                        {{$contract->desc }}{{ $warrantyStatus }} @if($contract->maid && $contract->maid->passport_num) - {{$contract->maid->passport_num}}  @endif
                     </option>
                     @endforeach
                 </select>
@@ -91,14 +96,11 @@
             <div class="col-4 mt-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.arrival_date")}}</label>
                 <input type="date" name="arrival_date" id="arrival_date" class="form-control" data-validation="required">
-                <small class="form-text text-muted">{{helperTrans("ingaz.arrival_date_help")}}</small>
             </div>
-
-
-
             <div class="col-4 mt-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.duration_from_enter")}}</label>
-                <input type="text" name="duration_from_enter" class="form-control" readonly>
+                <input type="text" name="duration_from_enter" class="form-control" readonly placeholder="سيتم الحساب تلقائياً">
+                <small class="form-text text-muted">المدة من دخول المملكة بناءً على تاريخ الوصول</small>
             </div>
             <div class="col-4 mt-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.salary_final_status")}}</label>
@@ -470,165 +472,93 @@
 <script>
     // Calculate duration from enter automatically
     $(document).ready(function() {
-        $('select[name="contract_id"]').on('change', function() {
-            calculateDuration();
+        console.log('=== Document Ready - ShelterContract Create ===');
+
+        // تهيئة Select2
+        $('.select2').select2({
+            placeholder: '{{helperTrans("ingaz.choose")}}',
+            allowClear: true
         });
 
-        // إذا كان هناك عقد محدد عند تحميل الصفحة، احسب المدة
-        @if($selectedContractId)
-            // تأكد من اختيار العقد المحدد في القائمة
-            setTimeout(function() {
-                // إعادة تهيئة Select2 مع القيمة المحددة
-                $('#contract_id').select2('destroy').select2({
-                    placeholder: '{{helperTrans("ingaz.choose")}}',
-                    allowClear: true
-                });
-
-                // اختيار العقد المحدد
-                $('#contract_id').val('{{ $selectedContractId }}').trigger('change');
-
-                // احسب المدة بعد اختيار العقد
-                setTimeout(function() {
-                    calculateDuration();
-                }, 500);
-            }, 300);
-        @endif
-
-        // إضافة العقد الجديد إلى القائمة إذا لم يكن موجوداً
-        @if($selectedContractId)
-            setTimeout(function() {
-                let contractExists = false;
-                $('#contract_id option').each(function() {
-                    if ($(this).val() == '{{ $selectedContractId }}') {
-                        contractExists = true;
-                        return false;
-                    }
-                });
-
-                if (!contractExists) {
-                    // إضافة العقد الجديد إلى القائمة
-                    let newOption = new Option('عقد جديد - {{ $selectedContractId }}', '{{ $selectedContractId }}', true, true);
-                    $('#contract_id').append(newOption).trigger('change');
-                }
-            }, 1000);
-        @endif
-
-        // حساب المدة عند تغيير تاريخ الوصول يدوياً
-        $('#arrival_date').on('change', function() {
-            calculateDurationFromArrivalDate();
-        });
-
-        // عرض حالة الضمان عند اختيار العقد
+        // عند اختيار العقد، املأ تاريخ الوصول
         $('#contract_id').on('change', function() {
-            let selectedOption = $(this).find('option:selected');
-            let contractStatus = selectedOption.data('status');
-            let warrantyInfo = '';
+            let contractId = $(this).val();
+            console.log('تم اختيار العقد:', contractId);
 
-            if (contractStatus === 'completed') {
-                warrantyInfo = '<div class="alert alert-success mt-2"><i class="fas fa-check-circle me-2"></i>هذا العقد مكتمل (جاهز للإيواء)</div>';
-            } else if (contractStatus === 'under_warranty') {
-                warrantyInfo = '<div class="alert alert-info mt-2"><i class="fas fa-shield-alt me-2"></i>هذا العقد تحت الضمان (وصلت المملكة حديثاً)</div>';
-            } else if (contractStatus === 'closed') {
-                warrantyInfo = '<div class="alert alert-success mt-2"><i class="fas fa-check-circle me-2"></i>هذا العقد مكتمل (مر على الوصول 3 أشهر)</div>';
-            }
-
-            // إزالة المعلومات السابقة
-            $('.warranty-info').remove();
-
-            // إضافة المعلومات الجديدة
-            if (warrantyInfo) {
-                $('#contract_id').after(warrantyInfo);
+            if (contractId) {
+                // البحث عن العقد في البيانات المتاحة
+                @foreach($contracts as $contract)
+                    if ({{$contract->id}} == contractId) {
+                        @if($contract->info && $contract->info->arrival_date)
+                            $('#arrival_date').val('{{$contract->info->arrival_date}}');
+                            console.log('تم ملء تاريخ الوصول: {{$contract->info->arrival_date}}');
+                            // حساب المدة من تاريخ الوصول
+                            calculateDurationFromArrivalDate('{{$contract->info->arrival_date}}');
+                        @elseif($contract->maid && $contract->maid->arrival_date)
+                            $('#arrival_date').val('{{$contract->maid->arrival_date}}');
+                            console.log('تم ملء تاريخ الوصول من العاملة: {{$contract->maid->arrival_date}}');
+                            // حساب المدة من تاريخ الوصول
+                            calculateDurationFromArrivalDate('{{$contract->maid->arrival_date}}');
+                        @else
+                            $('#arrival_date').val('');
+                            console.log('لا يوجد تاريخ وصول للعقد');
+                            $('input[name="duration_from_enter"]').val('');
+                        @endif
+                    }
+                @endforeach
             }
         });
 
-        function calculateDurationFromArrivalDate() {
-            let arrivalDate = $('#arrival_date').val();
+        // حساب المدة عند تغيير تاريخ الوصول
+        $('#arrival_date').on('change', function() {
+            let arrivalDate = $(this).val();
+            calculateDurationFromArrivalDate(arrivalDate);
+        });
+
+        // دالة حساب المدة من تاريخ الوصول
+        function calculateDurationFromArrivalDate(arrivalDate) {
             if (arrivalDate) {
                 let arrivalDateObj = new Date(arrivalDate);
                 let today = new Date();
                 let diffTime = Math.abs(today - arrivalDateObj);
                 let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                let durationText = diffDays + ' يوم';
-                $('input[name="duration_from_enter"]').val(durationText);
-                console.log('Manual arrival date calculation:', arrivalDate, 'Duration:', durationText);
-            } else {
-                $('input[name="duration_from_enter"]').val('');
-            }
-        }
 
-        function calculateDuration() {
-            let contractId = $('select[name="contract_id"]').val();
-            console.log('Calculating duration for contract ID:', contractId);
-
-            if (contractId) {
-                $.ajax({
-                    url: "{{ route('get.contract.details') }}",
-                    type: 'GET',
-                    data: { contract_id: contractId },
-                    success: function(response) {
-                        console.log('Contract Details Response:', response);
-
-                        // Get the arrival date from the response
-                        let arrivalDate = response.arrival_date;
-                        console.log('Arrival Date from Response:', arrivalDate);
-                        console.log('Contract Status:', response.contract_status);
-                        console.log('Has Info:', response.has_info);
-                        console.log('Info Arrival Date:', response.info_arrival_date);
-                        console.log('Maid Arrival Date:', response.maid_arrival_date);
-                        console.log('Final Arrival Date:', response.final_arrival_date);
-
-                        if (arrivalDate) {
-                            // Parse the date string to a Date object
-                            let arrivalDateObj = new Date(arrivalDate);
-                            let today = new Date();
-
-                            console.log('Parsed Arrival Date:', arrivalDateObj);
-                            console.log('Today:', today);
-
-                            // Calculate the difference in days
-                            let diffTime = Math.abs(today - arrivalDateObj);
-                            let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                            console.log('Difference in days:', diffDays);
-
-                            // Format the duration text
-                            let durationText = diffDays + ' يوم';
-                            console.log('Duration Text:', durationText);
-
-                            // Update the input field
-                            $('input[name="duration_from_enter"]').val(durationText);
-
-                            // Fill arrival date field
-                            $('#arrival_date').val(arrivalDate);
-                        } else {
-                            console.log('No valid arrival date found in response');
-                            console.log('Debug Info:', response.debug_info);
-                            console.log('Trying to get arrival date from maid...');
-
-                            // Try to get arrival date from maid if available
-                            if (response.maid_arrival_date && response.maid_arrival_date !== 'null') {
-                                let maidArrivalDate = new Date(response.maid_arrival_date);
-                                let today = new Date();
-                                let diffTime = Math.abs(today - maidArrivalDate);
-                                let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                                let durationText = diffDays + ' يوم';
-                                console.log('Using maid arrival date:', response.maid_arrival_date);
-                                console.log('Calculated duration:', durationText);
-                                $('input[name="duration_from_enter"]').val(durationText);
-                                $('#arrival_date').val(response.maid_arrival_date);
-                            } else {
-                                $('input[name="duration_from_enter"]').val('');
-                                $('#arrival_date').val('');
-                            }
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Error fetching contract details:', error);
-                        console.log('Response:', xhr.responseText);
-                        $('input[name="duration_from_enter"]').val('');
+                // تنسيق المدة بشكل أوضح
+                let durationText = '';
+                if (diffDays === 0) {
+                    durationText = 'اليوم';
+                } else if (diffDays === 1) {
+                    durationText = 'يوم واحد';
+                } else if (diffDays < 30) {
+                    durationText = diffDays + ' يوم';
+                } else if (diffDays < 365) {
+                    let months = Math.floor(diffDays / 30);
+                    let remainingDays = diffDays % 30;
+                    durationText = months + ' شهر';
+                    if (remainingDays > 0) {
+                        durationText += ' و ' + remainingDays + ' يوم';
                     }
-                });
+                } else {
+                    let years = Math.floor(diffDays / 365);
+                    let remainingDays = diffDays % 365;
+                    durationText = years + ' سنة';
+                    if (remainingDays > 0) {
+                        let months = Math.floor(remainingDays / 30);
+                        durationText += ' و ' + months + ' شهر';
+                    }
+                }
+
+                $('input[name="duration_from_enter"]').val(durationText);
+
+                // إضافة تنبيه بصري للمستخدم
+                $('.duration-alert').remove();
+
+                // إضافة لون للحقل
+                $('input[name="duration_from_enter"]').addClass('border-success').removeClass('border-warning border-danger');
             } else {
                 $('input[name="duration_from_enter"]').val('');
+                $('.duration-alert').remove();
+                $('input[name="duration_from_enter"]').removeClass('border-success border-warning').addClass('border-danger');
             }
         }
     });
@@ -681,6 +611,40 @@
         $('.select2').select2({
             placeholder: '{{helperTrans("ingaz.choose")}}',
             allowClear: true
+        });
+
+        // إضافة event handler للـ contract_id عند التغيير العادي
+        $('#contract_id').on('change', function() {
+            let contractId = $(this).val();
+            if (contractId) {
+                // جلب بيانات العقد من الخيار المحدد
+                let selectedOption = $(this).find('option:selected');
+                let contractData = selectedOption.data();
+
+                // البحث عن العقد في البيانات المتاحة
+                @foreach($contracts as $contract)
+                    if ({{$contract->id}} == contractId) {
+                        @if($contract->info && $contract->info->arrival_date)
+                            $('#arrival_date').val('{{$contract->info->arrival_date}}');
+                            console.log('تم ملء تاريخ الوصول: {{$contract->info->arrival_date}}');
+                        @elseif($contract->maid && $contract->maid->arrival_date)
+                            $('#arrival_date').val('{{$contract->maid->arrival_date}}');
+                            console.log('تم ملء تاريخ الوصول من العاملة: {{$contract->maid->arrival_date}}');
+                        @else
+                            $('#arrival_date').val('');
+                            console.log('لا يوجد تاريخ وصول للعقد');
+                        @endif
+                    }
+                @endforeach
+            }
+        });
+
+        // إضافة event handler للـ contract_id عند التغيير العادي
+        $('#contract_id').on('change', function() {
+            console.log('=== Regular Change Event ===');
+            console.log('Selected value:', $(this).val());
+            console.log('Calling calculateDuration from regular change event');
+            calculateDuration();
         });
 
         // Select2 AJAX للعملاء

@@ -47,7 +47,6 @@
             <div class="col-4 mt-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.arrival_date")}}</label>
                 <input type="date" name="arrival_date" id="arrival_date" class="form-control" value="{{ $contract->info->arrival_date ?? '' }}" data-validation="required">
-                <small class="form-text text-muted">{{helperTrans("ingaz.arrival_date_help")}}</small>
             </div>
 
             <div class="col-4 mt-4">
