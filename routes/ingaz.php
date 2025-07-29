@@ -18,6 +18,7 @@ use App\Http\Controllers\ingaz\SponsorshipTransferController;
 use App\Http\Controllers\ingaz\RentContractController;
 use App\Http\Controllers\ingaz\NotificationController;
 use App\Http\Controllers\ingaz\StatisticController;
+use App\Http\Controllers\ingaz\DeportationTravelController;
 
 
 /*
@@ -249,4 +250,14 @@ Route::group(
 
     }
 );
+
+    // DeportationTravel routes
+    Route::prefix('DeportationTravel')->name('DeportationTravel.')->group(function () {
+        Route::get('/', [DeportationTravelController::class, 'index'])->name('index');
+        Route::get('/create', [DeportationTravelController::class, 'create'])->name('create');
+        Route::post('/store', [DeportationTravelController::class, 'store'])->name('store');
+        Route::get('/{id}', [DeportationTravelController::class, 'show'])->name('show');
+        Route::post('/{id}/complete', [DeportationTravelController::class, 'complete'])->name('complete');
+        Route::delete('/{id}', [DeportationTravelController::class, 'destroy'])->name('destroy');
+    });
 

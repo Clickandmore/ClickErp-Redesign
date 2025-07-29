@@ -1,5 +1,9 @@
 @extends('admin.layout.indexs.index')
 
+@php
+use Illuminate\Support\Facades\Storage;
+@endphp
+
 @section('title')
     إجراءات الترحيل - {{ $contract->maid->name ?? 'غير محدد' }}
 @endsection
@@ -157,7 +161,7 @@
         }
 
         .attachments-section {
-            margin-top: 20px;
+            margin-top: 30px;
             padding: 20px;
             background: #f8f9fa;
             border-radius: 8px;
@@ -169,6 +173,22 @@
             font-weight: 600;
         }
 
+        .attachments-section .list-group-item {
+            border: 1px solid #dee2e6;
+            margin-bottom: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .attachments-section .list-group-item:hover {
+            background-color: #f1f3f4;
+            transform: translateX(-2px);
+        }
+
+        .attachments-section .list-group-item i {
+            margin-left: 5px;
+        }
+
+        /* ملاحظات */
         .notes-section {
             margin-top: 20px;
         }
@@ -192,200 +212,424 @@
 @endsection
 
 @section('content')
-<div class="row clearfix g-3">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="card-title">إجراءات الترحيل</h4>
-            </div>
-            <div class="card-body">
-                <!-- معلومات العقد والعاملة -->
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <div class="info-card">
-                            <h5><i class="fas fa-file-contract"></i> معلومات العقد</h5>
-                            <div class="info-item">
-                                <span class="info-label">رقم العقد</span>
-                                <span class="info-value">#{{ $contract->id }}</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">العميل</span>
-                                <span class="info-value">{{ $contract->user->name ?? 'غير محدد' }}</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">تاريخ الوصول</span>
-                                <span class="info-value">{{ $contract->arrival_date ? \Carbon\Carbon::parse($contract->arrival_date)->format('Y-m-d') : 'غير محدد' }}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="info-card">
-                            <h5><i class="fas fa-user"></i> معلومات العاملة</h5>
-                            <div class="info-item">
-                                <span class="info-label">اسم العاملة</span>
-                                <span class="info-value">{{ $contract->maid->name ?? 'غير محدد' }}</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">رقم الجواز</span>
-                                <span class="info-value">{{ $contract->maid->passport ?? 'غير محدد' }}</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">الجنسية</span>
-                                <span class="info-value">{{ $contract->maid->nationality->translations->first()->sub_title ?? 'غير محدد' }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- نسبة الإكمال -->
-                <div class="progress-container">
-                    <h5 class="mb-3">نسبة إكمال الإجراءات</h5>
-                    <div class="progress">
-                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ $procedure->completion_percentage ?? 0 }}%">
-                            {{ $procedure->completion_percentage ?? 0 }}%
-                        </div>
-                    </div>
-                </div>
-
-                <!-- حالة الإجراءات -->
-                <div class="mb-4">
-                    <span class="procedure-status status-{{ $procedure->status ?? 'pending' }}">
-                        <i class="fas fa-info-circle"></i> {{ $procedure->status_text ?? 'في الانتظار' }}
-                    </span>
-                </div>
-
-                <!-- نموذج الإجراءات -->
-                <form id="deportationForm" action="{{ route('ShelterContract.deportation.update', $procedure->id) }}" method="POST" enctype="multipart/form-data">
-                    @csrf
-
-                    <div class="procedure-card">
-                        <h5 class="mb-4"><i class="fas fa-clipboard-check"></i> قائمة الإجراءات المطلوبة</h5>
-
-                        <!-- استلام الراتب -->
-                        <div class="procedure-item">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="salary_received" id="salary_received"
-                                    {{ $procedure->salary_received ? 'checked' : '' }}>
-                                <label class="form-check-label" for="salary_received">
-                                    <i class="fas fa-money-bill-wave"></i> هل تم استلام الراتب؟
-                                </label>
-                            </div>
-                            <div class="mt-2" id="salary_date_container" style="{{ $procedure->salary_received ? '' : 'display:none;' }}">
-                                <label for="salary_received_date">تاريخ استلام الراتب</label>
-                                <input type="date" class="date-input" name="salary_received_date" id="salary_received_date"
-                                    value="{{ $procedure->salary_received_date ? \Carbon\Carbon::parse($procedure->salary_received_date)->format('Y-m-d') : '' }}">
-                            </div>
-                        </div>
-
-                        <!-- وثيقة السفر -->
-                        <div class="procedure-item">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="has_passport" id="has_passport"
-                                    {{ $procedure->has_passport ? 'checked' : '' }}>
-                                <label class="form-check-label" for="has_passport">
-                                    <i class="fas fa-passport"></i> هل معها وثيقة السفر/جواز السفر؟
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- خطاب الترحيل -->
-                        <div class="procedure-item">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="has_deportation_letter" id="has_deportation_letter"
-                                    {{ $procedure->has_deportation_letter ? 'checked' : '' }}>
-                                <label class="form-check-label" for="has_deportation_letter">
-                                    <i class="fas fa-file-alt"></i> هل معها خطاب الترحيل؟
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- جلسة التسوية -->
-                        <div class="procedure-item">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="has_settlement_session" id="has_settlement_session"
-                                    {{ $procedure->has_settlement_session ? 'checked' : '' }}>
-                                <label class="form-check-label" for="has_settlement_session">
-                                    <i class="fas fa-handshake"></i> هل تمت جلسة التسوية؟
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- الخروج النهائي -->
-                        <div class="procedure-item">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="has_final_exit" id="has_final_exit"
-                                    {{ $procedure->has_final_exit ? 'checked' : '' }}>
-                                <label class="form-check-label" for="has_final_exit">
-                                    <i class="fas fa-plane-departure"></i> هل تم الخروج النهائي؟
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- المرفقات -->
-                    <div class="attachments-section">
-                        <h6><i class="fas fa-paperclip"></i> المرفقات</h6>
-                        <input type="file" class="form-control" name="attachments[]" multiple accept=".pdf,.jpg,.jpeg,.png">
-                        <small class="text-muted">يمكنك رفع ملفات PDF أو صور</small>
-
-                        @if($procedure->attachments && count($procedure->attachments) > 0)
-                            <div class="mt-3">
-                                <strong>المرفقات الحالية:</strong>
-                                <ul>
-                                    @foreach($procedure->attachments as $attachment)
-                                        <li>{{ basename($attachment) }}</li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @endif
-                    </div>
-
-                    <!-- الملاحظات -->
-                    <div class="notes-section">
-                        <h6><i class="fas fa-sticky-note"></i> ملاحظات إضافية</h6>
-                        <textarea name="notes" class="form-control" placeholder="أدخل أي ملاحظات إضافية...">{{ $procedure->notes }}</textarea>
-                    </div>
-
-                    <!-- أزرار الإجراءات -->
-                    <div class="action-buttons">
-                        <button type="button" class="btn btn-save" onclick="confirmUpdate()">
-                            <i class="fas fa-save"></i> حفظ التحديثات
-                        </button>
-
-                        @if($procedure->isAllProceduresCompleted())
-                        <button type="button" class="btn btn-success" onclick="confirmCompleteDeportation()">
-                            <i class="fas fa-check-circle"></i> إكمال الترحيل
-                        </button>
-                        @endif
-
-                        <a href="{{ route('ShelterContract.show', $contract->id) }}" class="btn btn-cancel">
-                            <i class="fas fa-times"></i> إلغاء
-                        </a>
-                    </div>
-                </form>
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="page-title-box">
+                <h4 class="page-title">إجراءات الترحيل - {{ $contract->maid->name ?? 'غير محدد' }}</h4>
             </div>
         </div>
     </div>
+    <div class="row g-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">إجراءات الترحيل</h4>
+                </div>
+                <div class="card-body">
+                    <div class="page-header mb-4">
+                        <h4><i class="fas fa-clipboard-list"></i> إجراءات ترحيل العاملة</h4>
+
+                    </div>
+                    <!-- معلومات العقد والعاملة -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="info-card">
+                                <h5><i class="fas fa-file-contract"></i> معلومات العقد</h5>
+                                <div class="info-item">
+                                    <span class="info-label">رقم العقد</span>
+                                    <span class="info-value">#{{ $contract->id }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">العميل</span>
+                                    <span class="info-value">{{ $contract->user->name ?? 'غير محدد' }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">تاريخ الوصول</span>
+                                    <span class="info-value">{{ $contract->arrival_date ? \Carbon\Carbon::parse($contract->arrival_date)->format('Y-m-d') : 'غير محدد' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-card">
+                                <h5><i class="fas fa-user"></i> معلومات العاملة</h5>
+                                <div class="info-item">
+                                    <span class="info-label">اسم العاملة</span>
+                                    <span class="info-value">{{ $contract->maid->name ?? 'غير محدد' }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">رقم الجواز</span>
+                                    <span class="info-value">{{ $contract->maid->passport ?? 'غير محدد' }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">الجنسية</span>
+                                    <span class="info-value">{{ $contract->maid->nationality->translations->first()->sub_title ?? 'غير محدد' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- معلومات حالة الإجراءات -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="info-card">
+                                <h5><i class="fas fa-info-circle"></i> حالة الإجراءات</h5>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="info-item">
+                                            <span class="info-label">تاريخ البدء</span>
+                                            <span class="info-value">{{ $procedure->started_at->format('Y-m-d H:i') }}</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">بدأها</span>
+                                            <span class="info-value">{{ $procedure->createdBy->name ?? 'غير محدد' }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        @if($procedure->procedures_confirmed)
+                                        <div class="info-item">
+                                            <span class="info-label">تم التأكيد</span>
+                                            <span class="info-value">
+                                                <span class="badge bg-info">
+                                                    <i class="fas fa-check-double"></i> {{ $procedure->confirmed_at->format('Y-m-d H:i') }}
+                                                </span>
+                                            </span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">أكدها</span>
+                                            <span class="info-value">{{ $procedure->confirmedBy->name ?? 'غير محدد' }}</span>
+                                        </div>
+                                        @endif
+                                    </div>
+                                    <div class="col-md-4">
+                                        @if($procedure->trip_scheduled)
+                                        <div class="info-item">
+                                            <span class="info-label">الرحلة</span>
+                                            <span class="info-value">
+                                                <span class="badge bg-warning">
+                                                    <i class="fas fa-plane"></i> تم جدولة رحلة
+                                                </span>
+                                            </span>
+                                        </div>
+                                        @endif
+                                        @if($procedure->completed_at)
+                                        <div class="info-item">
+                                            <span class="info-label">تاريخ الإكمال</span>
+                                            <span class="info-value">{{ $procedure->completed_at->format('Y-m-d H:i') }}</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">أكملها</span>
+                                            <span class="info-value">{{ $procedure->completedBy->name ?? 'غير محدد' }}</span>
+                                        </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- نسبة الإكمال -->
+                    <div class="progress-container">
+                        <h5 class="mb-3">نسبة إكمال الإجراءات</h5>
+                        @php
+                            $percentage = $procedure->completion_percentage ?? 0;
+                            $progressClass = 'bg-danger';
+                            if ($percentage >= 50 && $percentage < 100) {
+                                $progressClass = 'bg-warning';
+                            } elseif ($percentage == 100) {
+                                $progressClass = 'bg-success';
+                            }
+                        @endphp
+                        <div class="progress">
+                            <div class="progress-bar {{ $progressClass }}" role="progressbar" style="width: {{ $percentage }}%" aria-valuenow="{{ $percentage }}" aria-valuemin="0" aria-valuemax="100">
+                                {{ $percentage }}%
+                            </div>
+                        </div>
+                        <small class="text-muted mt-2 d-block">
+                            @if($percentage == 0)
+                                لم يتم الإجابة على أي أسئلة
+                            @elseif($percentage < 100)
+                                تم الإجابة على {{ round($percentage / 20) }} من 5 أسئلة
+                            @else
+                                تم الإجابة على جميع الأسئلة
+                            @endif
+                        </small>
+                    </div>
+
+                    <!-- حالة الإجراءات -->
+                    <div class="mb-4">
+                        <span class="procedure-status status-{{ $procedure->status ?? 'pending' }}">
+                            <i class="fas fa-info-circle"></i> {{ $procedure->status_text ?? 'في الانتظار' }}
+                        </span>
+                    </div>
+
+                    @if($procedure->procedures_confirmed && $procedure->status !== 'completed')
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> تم تأكيد الإجراءات ولا يمكن التعديل عليها. يمكنك الآن جدولة رحلة للعاملة.
+                    </div>
+                    @endif
+
+                    <form id="deportationForm" action="{{ route('ShelterContract.deportation.update', $procedure->id) }}" method="POST" enctype="multipart/form-data">
+                            @csrf
+
+                            <div class="procedure-card">
+                                <h5 class="mb-4"><i class="fas fa-clipboard-check"></i> قائمة الإجراءات المطلوبة</h5>
+
+                                <!-- استلام الراتب -->
+                                <div class="procedure-item">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">
+                                                <i class="fas fa-money-bill-wave text-success"></i> هل تم استلام الراتب؟
+                                            </label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="btn-group w-100" role="group">
+                                                <input type="radio" class="btn-check" name="salary_received" id="salary_yes" value="1"
+                                                    {{ $procedure->salary_received == 1 ? 'checked' : '' }}
+                                                    {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
+                                                <label class="btn btn-outline-success" for="salary_yes">نعم</label>
+
+                                                <input type="radio" class="btn-check" name="salary_received" id="salary_no" value="0"
+                                                    {{ $procedure->salary_received == 0 && $procedure->salary_received !== null ? 'checked' : '' }}
+                                                    {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
+                                                <label class="btn btn-outline-danger" for="salary_no">لا</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3" id="salary_date_container" style="{{ $procedure->salary_received == 1 ? '' : 'display:none;' }}">
+                                            <input type="date" class="form-control" name="salary_received_date" id="salary_received_date"
+                                                value="{{ $procedure->salary_received_date ? \Carbon\Carbon::parse($procedure->salary_received_date)->format('Y-m-d') : date('Y-m-d') }}"
+                                                {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- وثيقة السفر -->
+                                <div class="procedure-item">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">
+                                                <i class="fas fa-passport text-primary"></i> هل معها وثيقة السفر/جواز السفر؟
+                                            </label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="btn-group w-100" role="group">
+                                                <input type="radio" class="btn-check" name="has_passport" id="passport_yes" value="1"
+                                                    {{ $procedure->has_passport == 1 ? 'checked' : '' }}
+                                                    {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
+                                                <label class="btn btn-outline-success" for="passport_yes">نعم</label>
+
+                                                <input type="radio" class="btn-check" name="has_passport" id="passport_no" value="0"
+                                                    {{ $procedure->has_passport == 0 && $procedure->has_passport !== null ? 'checked' : '' }}
+                                                    {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
+                                                <label class="btn btn-outline-danger" for="passport_no">لا</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3" id="passport_date_container" style="{{ $procedure->has_passport == 1 ? '' : 'display:none;' }}">
+                                            <input type="date" class="form-control" name="passport_date"
+                                                value="{{ date('Y-m-d') }}">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- خطاب الترحيل -->
+                                <div class="procedure-item">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">
+                                                <i class="fas fa-file-alt text-warning"></i> هل معها خطاب الترحيل؟
+                                            </label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="btn-group w-100" role="group">
+                                                <input type="radio" class="btn-check" name="has_deportation_letter" id="letter_yes" value="1"
+                                                    {{ $procedure->has_deportation_letter == 1 ? 'checked' : '' }}
+                                                    {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
+                                                <label class="btn btn-outline-success" for="letter_yes">نعم</label>
+
+                                                <input type="radio" class="btn-check" name="has_deportation_letter" id="letter_no" value="0"
+                                                    {{ $procedure->has_deportation_letter == 0 && $procedure->has_deportation_letter !== null ? 'checked' : '' }}
+                                                    {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
+                                                <label class="btn btn-outline-danger" for="letter_no">لا</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3" id="letter_date_container" style="{{ $procedure->has_deportation_letter == 1 ? '' : 'display:none;' }}">
+                                            <input type="date" class="form-control" name="deportation_letter_date"
+                                                value="{{ date('Y-m-d') }}">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- جلسة التسوية -->
+                                <div class="procedure-item">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">
+                                                <i class="fas fa-handshake text-info"></i> هل تمت جلسة التسوية؟
+                                            </label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="btn-group w-100" role="group">
+                                                <input type="radio" class="btn-check" name="has_settlement_session" id="settlement_yes" value="1"
+                                                    {{ $procedure->has_settlement_session == 1 ? 'checked' : '' }}
+                                                    {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
+                                                <label class="btn btn-outline-success" for="settlement_yes">نعم</label>
+
+                                                <input type="radio" class="btn-check" name="has_settlement_session" id="settlement_no" value="0"
+                                                    {{ $procedure->has_settlement_session == 0 && $procedure->has_settlement_session !== null ? 'checked' : '' }}
+                                                    {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
+                                                <label class="btn btn-outline-danger" for="settlement_no">لا</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3" id="settlement_date_container" style="{{ $procedure->has_settlement_session == 1 ? '' : 'display:none;' }}">
+                                            <input type="date" class="form-control" name="settlement_date"
+                                                value="{{ date('Y-m-d') }}">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- الخروج النهائي -->
+                                <div class="procedure-item">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold">
+                                                <i class="fas fa-plane-departure text-danger"></i> هل تم الخروج النهائي؟
+                                            </label>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="btn-group w-100" role="group">
+                                                <input type="radio" class="btn-check" name="has_final_exit" id="exit_yes" value="1"
+                                                    {{ $procedure->has_final_exit == 1 ? 'checked' : '' }}
+                                                    {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
+                                                <label class="btn btn-outline-success" for="exit_yes">نعم</label>
+
+                                                <input type="radio" class="btn-check" name="has_final_exit" id="exit_no" value="0"
+                                                    {{ $procedure->has_final_exit == 0 && $procedure->has_final_exit !== null ? 'checked' : '' }}
+                                                    {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
+                                                <label class="btn btn-outline-danger" for="exit_no">لا</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3" id="exit_date_container" style="{{ $procedure->has_final_exit == 1 ? '' : 'display:none;' }}">
+                                            <input type="date" class="form-control" name="final_exit_date"
+                                                value="{{ date('Y-m-d') }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- المرفقات -->
+                            <div class="attachments-section">
+                                <h6><i class="fa fa-paperclip"></i> المرفقات</h6>
+
+                                @if(!$procedure->procedures_confirmed && $procedure->status !== 'completed')
+                                <input type="file" class="form-control" name="attachments[]" multiple accept=".pdf,.jpg,.jpeg,.png">
+                                <small class="text-muted">يمكنك رفع ملفات PDF أو صور</small>
+                                @endif
+
+                                @if($procedure->attachments && count($procedure->attachments) > 0)
+                                    <div class="mt-3">
+                                        <strong>المرفقات الحالية:</strong>
+                                        <div class="list-group mt-2">
+                                            @foreach($procedure->attachments as $index => $attachment)
+                                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <i class="fa fa-file-alt text-primary me-2"></i>
+                                                        @if(is_array($attachment))
+                                                            {{ $attachment['name'] ?? basename($attachment['path'] ?? 'ملف ' . ($index + 1)) }}
+                                                        @else
+                                                            {{ basename($attachment) }}
+                                                        @endif
+                                                    </div>
+                                                    <div>
+                                                        @php
+                                                            $filePath = is_array($attachment) ? ($attachment['path'] ?? $attachment) : $attachment;
+                                                            $fullPath = Storage::exists($filePath) ? Storage::url($filePath) : asset($filePath);
+                                                        @endphp
+                                                        <a href="{{ $fullPath }}" target="_blank" class="btn btn-sm btn-primary">
+                                                            <i class="fa fa-download"></i> عرض
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @else
+                                    @if($procedure->procedures_confirmed || $procedure->status === 'completed')
+                                    <div class="alert alert-info mt-2">
+                                        <i class="fa fa-info-circle"></i> لا توجد مرفقات
+                                    </div>
+                                    @endif
+                                @endif
+                            </div>
+
+                            <!-- الملاحظات -->
+                            <div class="notes-section">
+                                <h6><i class="fas fa-sticky-note"></i> ملاحظات إضافية</h6>
+                                <textarea name="notes" class="form-control" placeholder="أدخل أي ملاحظات إضافية..."
+                                    {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>{{ $procedure->notes }}</textarea>
+                            </div>
+
+                            <!-- أزرار الإجراءات -->
+                            <div class="action-buttons">
+                                @if($procedure->status !== 'completed' && !$procedure->procedures_confirmed)
+                                <button type="button" class="btn btn-save" onclick="confirmUpdate()">
+                                    <i class="fa fa-save"></i> حفظ التحديثات
+                                </button>
+                                @endif
+
+                                @if($procedure->areAllQuestionsAnswered() && !$procedure->procedures_confirmed && $procedure->status !== 'completed')
+                                <button type="button" class="btn btn-info" onclick="confirmProcedures()">
+                                    <i class="fa fa-check-double"></i> تأكيد اكتمال الإجراءات
+                                </button>
+                                @endif
+
+                                @if($procedure->procedures_confirmed && !$procedure->trip_scheduled && $procedure->status !== 'completed')
+                                <button type="button" class="btn btn-warning" onclick="scheduleTrip()">
+                                    <i class="fa fa-plane"></i> جدولة رحلة
+                                </button>
+                                @endif
+
+                                @if($procedure->procedures_confirmed && $procedure->trip_scheduled && $procedure->status !== 'completed')
+                                <button type="button" class="btn btn-success" onclick="confirmCompleteDeportation()">
+                                    <i class="fa fa-check-circle"></i> إكمال الترحيل
+                                </button>
+                                @endif
+
+                                <a href="{{ route('ShelterContract.show', $contract->id) }}" class="btn btn-cancel">
+                                    <i class="fa fa-times"></i> {{ $procedure->status === 'completed' ? 'رجوع' : 'إلغاء' }}
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 </div>
 @endsection
 
 @section('js')
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- تحميل SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-// إظهار/إخفاء تاريخ الراتب
-document.getElementById('salary_received').addEventListener('change', function() {
-    const dateContainer = document.getElementById('salary_date_container');
-    if (this.checked) {
-        dateContainer.style.display = 'block';
-    } else {
-        dateContainer.style.display = 'none';
-        document.getElementById('salary_received_date').value = '';
-    }
-});
 
-// تأكيد التحديث
-function confirmUpdate() {
+<!-- JavaScript للدوال المطلوبة -->
+<script>
+// تعريف الدوال بشكل global قبل استخدامها
+window.confirmUpdate = function() {
+    console.log('confirmUpdate called - inline');
+
+    if (typeof $ === 'undefined') {
+        alert('jQuery غير محمل!');
+        return;
+    }
+
+    if (typeof Swal === 'undefined') {
+        if (confirm('هل أنت متأكد من حفظ التحديثات؟')) {
+            $('#deportationForm').submit();
+        }
+        return;
+    }
+
     Swal.fire({
         title: 'تأكيد التحديث',
         text: 'هل أنت متأكد من حفظ التحديثات؟',
@@ -397,43 +641,97 @@ function confirmUpdate() {
         cancelButtonText: 'إلغاء'
     }).then((result) => {
         if (result.isConfirmed) {
-            document.getElementById('deportationForm').submit();
+            // استخدام AJAX بدلاً من submit العادي
+            const form = document.getElementById('deportationForm');
+            const formData = new FormData(form);
+
+            $.ajax({
+                url: form.action,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    console.log('Success response:', response);
+                    Swal.fire({
+                        title: 'نجح!',
+                        text: response.message || 'تم حفظ التحديثات بنجاح',
+                        icon: 'success',
+                        confirmButtonText: 'حسناً'
+                    }).then(() => {
+                        if (response.redirect) {
+                            window.location.href = response.redirect;
+                        } else {
+                            location.reload();
+                        }
+                    });
+                },
+                error: function(xhr) {
+                    console.log('Error response:', xhr);
+                    Swal.fire('خطأ!', xhr.responseJSON?.message || 'حدث خطأ أثناء الحفظ', 'error');
+                }
+            });
         }
     });
 }
 
-// معالجة استجابة الحفظ
-$('#deportationForm').on('submit', function(e) {
-    e.preventDefault();
+window.confirmProcedures = function() {
+    console.log('confirmProcedures called - inline');
+    if (typeof $ === 'undefined' || typeof Swal === 'undefined') {
+        alert('المكتبات المطلوبة غير محملة!');
+        return;
+    }
 
-    const formData = new FormData(this);
-
-    $.ajax({
-        url: $(this).attr('action'),
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function(response) {
-            Swal.fire({
-                title: 'نجح!',
-                text: response.message || 'تم حفظ التحديثات بنجاح',
-                icon: 'success',
-                confirmButtonText: 'حسناً'
-            }).then(() => {
-                if (response.redirect) {
-                    window.location.href = response.redirect;
+    Swal.fire({
+        title: 'تأكيد اكتمال الإجراءات',
+        text: 'هل أنت متأكد من أن جميع الإجراءات قد تم مراجعتها واكتملت؟',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#17a2b8',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'نعم، تأكيد الإجراءات',
+        cancelButtonText: 'إلغاء'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: '{{ route("ShelterContract.deportation.update", $procedure->id) }}',
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    confirm_procedures: true
+                },
+                success: function(response) {
+                    Swal.fire({
+                        title: 'نجح!',
+                        text: response.message || 'تم تأكيد اكتمال الإجراءات بنجاح',
+                        icon: 'success',
+                        confirmButtonText: 'حسناً'
+                    }).then(() => {
+                        location.reload();
+                    });
+                },
+                error: function(xhr) {
+                    Swal.fire('خطأ!', xhr.responseJSON?.message || 'حدث خطأ أثناء التأكيد', 'error');
                 }
             });
-        },
-        error: function(xhr) {
-            Swal.fire('خطأ!', xhr.responseJSON?.message || 'حدث خطأ أثناء الحفظ', 'error');
         }
     });
-});
+}
 
-// تأكيد إكمال الترحيل
-function confirmCompleteDeportation() {
+window.scheduleTrip = function() {
+    console.log('scheduleTrip called - inline');
+    if (confirm('هل تريد جدولة رحلة للعاملة؟')) {
+        window.location.href = '{{ route("DeportationTravel.create") }}?contract_id={{ $contract->id }}';
+    }
+}
+
+window.confirmCompleteDeportation = function() {
+    console.log('confirmCompleteDeportation called - inline');
+    if (typeof $ === 'undefined' || typeof Swal === 'undefined') {
+        alert('المكتبات المطلوبة غير محملة!');
+        return;
+    }
+
     Swal.fire({
         title: 'تأكيد إكمال الترحيل',
         text: 'هل أنت متأكد من إكمال جميع إجراءات الترحيل؟ سيتم نقل العقد إلى قائمة "تم الترحيل"',
@@ -445,7 +743,6 @@ function confirmCompleteDeportation() {
         cancelButtonText: 'إلغاء'
     }).then((result) => {
         if (result.isConfirmed) {
-            // إرسال طلب لإكمال الترحيل
             $.ajax({
                 url: '{{ route("ShelterContract.deportation.update", $procedure->id) }}',
                 type: 'POST',
@@ -474,5 +771,115 @@ function confirmCompleteDeportation() {
         }
     });
 }
+</script>
+
+<script>
+$(document).ready(function() {
+    console.log('Document ready - jQuery version:', jQuery.fn.jquery);
+    console.log('Form found:', $('#deportationForm').length);
+
+    // التحقق من حالة الإجراءات عند تحميل الصفحة
+    var proceduresConfirmed = {{ $procedure->procedures_confirmed ? 'true' : 'false' }};
+    var status = '{{ $procedure->status }}';
+
+    console.log('Procedures confirmed:', proceduresConfirmed);
+    console.log('Status:', status);
+
+    // إذا كانت الإجراءات مؤكدة أو الحالة مكتملة، تعطيل زر الحفظ
+    if (proceduresConfirmed || status === 'completed') {
+        $('.btn-save').prop('disabled', true).hide();
+        console.log('Save button disabled and hidden');
+    }
+
+    // إظهار/إخفاء تاريخ الراتب
+    $('input[name="salary_received"]').on('change', function() {
+        console.log('Salary changed to:', $(this).val());
+        if ($(this).val() === '1') {
+            $('#salary_date_container').show();
+        } else {
+            $('#salary_date_container').hide();
+        }
+    });
+
+    // إظهار/إخفاء تاريخ الجواز
+    $('input[name="has_passport"]').on('change', function() {
+        console.log('Passport changed to:', $(this).val());
+        if ($(this).val() === '1') {
+            $('#passport_date_container').show();
+        } else {
+            $('#passport_date_container').hide();
+        }
+    });
+
+    // إظهار/إخفاء تاريخ خطاب الترحيل
+    $('input[name="has_deportation_letter"]').on('change', function() {
+        console.log('Letter changed to:', $(this).val());
+        if ($(this).val() === '1') {
+            $('#letter_date_container').show();
+        } else {
+            $('#letter_date_container').hide();
+        }
+    });
+
+    // إظهار/إخفاء تاريخ جلسة التسوية
+    $('input[name="has_settlement_session"]').on('change', function() {
+        console.log('Settlement changed to:', $(this).val());
+        if ($(this).val() === '1') {
+            $('#settlement_date_container').show();
+        } else {
+            $('#settlement_date_container').hide();
+        }
+    });
+
+    // إظهار/إخفاء تاريخ الخروج النهائي
+    $('input[name="has_final_exit"]').on('change', function() {
+        console.log('Exit changed to:', $(this).val());
+        if ($(this).val() === '1') {
+            $('#exit_date_container').show();
+        } else {
+            $('#exit_date_container').hide();
+        }
+    });
+
+    // معالجة استجابة الحفظ
+    $('#deportationForm').on('submit', function(e) {
+        console.log('Form submit intercepted');
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        // طباعة البيانات المرسلة
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ' + pair[1]);
+        }
+
+        $.ajax({
+            url: $(this).attr('action'),
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                console.log('Success response:', response);
+                Swal.fire({
+                    title: 'نجح!',
+                    text: response.message || 'تم حفظ التحديثات بنجاح',
+                    icon: 'success',
+                    confirmButtonText: 'حسناً'
+                }).then(() => {
+                    if (response.redirect) {
+                        window.location.href = response.redirect;
+                    } else {
+                        location.reload();
+                    }
+                });
+            },
+            error: function(xhr) {
+                console.log('Error response:', xhr);
+                Swal.fire('خطأ!', xhr.responseJSON?.message || 'حدث خطأ أثناء الحفظ', 'error');
+            }
+        });
+    });
+});
 </script>
 @endsection

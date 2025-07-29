@@ -1015,6 +1015,43 @@ class ShelterContractController extends Controller
                         return '<span class="badge bg-secondary">غير محدد</span>';
                     }
                 })
+                ->addColumn('deportation_status', function ($row) {
+                    // التحقق من وجود إجراءات ترحيل
+                    $procedure = \App\Models\DeportationProcedure::where('contract_id', $row->id)->first();
+
+                    if (!$procedure) {
+                        return '<span class="badge bg-secondary">لم تبدأ</span>';
+                    }
+
+                    $html = '<div class="deportation-status">';
+
+                    // نسبة الإكمال
+                    $percentage = $procedure->completion_percentage;
+                    $progressClass = $percentage < 50 ? 'bg-danger' : ($percentage < 100 ? 'bg-warning' : 'bg-success');
+
+                    $html .= '<div class="progress mb-1" style="height: 20px;">
+                                <div class="progress-bar ' . $progressClass . '" role="progressbar" style="width: ' . $percentage . '%">
+                                    ' . $percentage . '%
+                                </div>
+                              </div>';
+
+                    // حالة الإجراءات
+                    if ($procedure->status === 'completed') {
+                        $html .= '<span class="badge bg-success">مكتملة</span>';
+                    } elseif ($procedure->trip_scheduled) {
+                        $html .= '<span class="badge bg-info">تم جدولة رحلة</span>';
+                    } elseif ($procedure->procedures_confirmed) {
+                        $html .= '<span class="badge bg-primary">تم التأكيد - بانتظار الرحلة</span>';
+                    } elseif ($procedure->status === 'in_progress') {
+                        $html .= '<span class="badge bg-warning">قيد التنفيذ</span>';
+                    } else {
+                        $html .= '<span class="badge bg-secondary">في الانتظار</span>';
+                    }
+
+                    $html .= '</div>';
+
+                    return $html;
+                })
                 ->addColumn('actions', function ($row) {
                     $actions = '<div class="dropdown actions-dropdown">
                                     <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
@@ -1069,7 +1106,7 @@ class ShelterContractController extends Controller
 
                     return $actions;
                 })
-                ->rawColumns(['maid_data', 'client', 'nationality', 'arrival_date', 'return_date', 'guarantee_status', 'work_willingness', 'actions'])
+                ->rawColumns(['maid_data', 'client', 'nationality', 'arrival_date', 'return_date', 'guarantee_status', 'work_willingness', 'deportation_status', 'actions'])
                 ->toJson();
 
             \Log::info('DataTables processing completed');
@@ -1165,6 +1202,11 @@ class ShelterContractController extends Controller
      */
     public function updateDeportationProcedures(Request $request, $id)
     {
+        \Log::info('updateDeportationProcedures called', [
+            'id' => $id,
+            'request_data' => $request->all()
+        ]);
+
         try {
             $procedure = \App\Models\DeportationProcedure::findOrFail($id);
 
@@ -1176,6 +1218,27 @@ class ShelterContractController extends Controller
                 ], 400);
             }
 
+            // التحقق من طلب تأكيد الإجراءات
+            if ($request->has('confirm_procedures') && $request->confirm_procedures) {
+                if (!$procedure->areAllQuestionsAnswered()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'يجب الإجابة على جميع الأسئلة أولاً'
+                    ], 400);
+                }
+
+                $procedure->update([
+                    'procedures_confirmed' => true,
+                    'confirmed_at' => now(),
+                    'confirmed_by' => auth('admin')->id()
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'تم تأكيد اكتمال الإجراءات بنجاح'
+                ]);
+            }
+
             // التحقق من طلب إكمال الترحيل
             if ($request->has('complete_deportation') && $request->complete_deportation) {
                 // التحقق من اكتمال جميع الإجراءات
@@ -1183,6 +1246,14 @@ class ShelterContractController extends Controller
                     return response()->json([
                         'success' => false,
                         'message' => 'يجب إكمال جميع الإجراءات أولاً'
+                    ], 400);
+                }
+
+                // التحقق من وجود رحلة مجدولة
+                if (!$procedure->trip_scheduled) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'يجب جدولة رحلة أولاً'
                     ], 400);
                 }
 
@@ -1215,14 +1286,18 @@ class ShelterContractController extends Controller
                 ]);
             }
 
-            // تحديث البيانات
+            // Update procedure data
             $procedure->update([
-                'salary_received' => $request->boolean('salary_received'),
-                'salary_received_date' => $request->salary_received_date,
-                'has_passport' => $request->boolean('has_passport'),
-                'has_deportation_letter' => $request->boolean('has_deportation_letter'),
-                'has_settlement_session' => $request->boolean('has_settlement_session'),
-                'has_final_exit' => $request->boolean('has_final_exit'),
+                'salary_received' => $request->input('salary_received') == '1' ? true : false,
+                'salary_received_date' => $request->input('salary_received') == '1' ? $request->salary_received_date : null,
+                'has_passport' => $request->input('has_passport') == '1' ? true : false,
+                'passport_date' => $request->input('has_passport') == '1' ? $request->passport_date : null,
+                'has_deportation_letter' => $request->input('has_deportation_letter') == '1' ? true : false,
+                'deportation_letter_date' => $request->input('has_deportation_letter') == '1' ? $request->deportation_letter_date : null,
+                'has_settlement_session' => $request->input('has_settlement_session') == '1' ? true : false,
+                'settlement_date' => $request->input('has_settlement_session') == '1' ? $request->settlement_date : null,
+                'has_final_exit' => $request->input('has_final_exit') == '1' ? true : false,
+                'final_exit_date' => $request->input('has_final_exit') == '1' ? $request->final_exit_date : null,
                 'notes' => $request->notes,
                 'status' => 'in_progress'
             ]);
@@ -1242,35 +1317,7 @@ class ShelterContractController extends Controller
                 $procedure->save();
             }
 
-            // التحقق من اكتمال جميع الإجراءات
-            if ($procedure->isAllProceduresCompleted()) {
-                $procedure->update([
-                    'status' => 'completed',
-                    'completed_at' => now(),
-                    'completed_by' => auth('admin')->id()
-                ]);
-
-                // تحديث حالة العقد إلى "تم الترحيل"
-                $procedure->contract->update([
-                    'status' => ContractStatusEnum::Back->value
-                ]);
-
-                // إزالة معلومات الإيواء
-                if ($procedure->contract->info) {
-                    $procedure->contract->info->update([
-                        'shelter_id' => null,
-                        'wants_to_work' => null,
-                        'maid_date_back' => now(),
-                        'receipt_source' => null
-                    ]);
-                }
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'تم اكتمال إجراءات الترحيل بنجاح',
-                    'redirect' => route('ShelterContract.index')
-                ]);
-            }
+            // لا ننقل العقد تلقائياً - يجب أن يتم ذلك فقط عند النقر على "إكمال الترحيل"
 
             return response()->json([
                 'success' => true,
@@ -1371,9 +1418,25 @@ class ShelterContractController extends Controller
                     return '<span class="badge deported-badge">تم الترحيل</span>';
                 })
                 ->addColumn('actions', function ($row) {
-                    return '<button class="btn btn-sm btn-info view-procedures" data-id="' . $row->contract_id . '">
-                                <i class="fas fa-eye"></i> عرض الإجراءات
-                            </button>';
+                    $actions = '<div class="dropdown actions-dropdown">
+                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
+                                        <i class="fas fa-cogs me-1"></i> الإجراءات
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
+
+                    // عرض الإجراءات
+                    $actions .= '<li><a class="dropdown-item" href="' . route('ShelterContract.deportation.procedures', $row->contract_id) . '">
+                                    <i class="fas fa-clipboard-check"></i> عرض إجراءات الترحيل
+                                </a></li>';
+
+                    // عرض تفاصيل العقد
+                    $actions .= '<li><a class="dropdown-item" href="' . route('ShelterContract.show', $row->contract_id) . '">
+                                    <i class="fas fa-eye"></i> عرض تفاصيل العقد
+                                </a></li>';
+
+                    $actions .= '</ul></div>';
+
+                    return $actions;
                 })
                 ->rawColumns(['maid_data', 'client', 'nationality', 'status', 'actions'])
                 ->toJson();

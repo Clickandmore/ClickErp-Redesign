@@ -12,59 +12,63 @@ use App\Models\TravelHistoryFiles;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
+use DataTables;
 
 class AdminTravelHistoryController extends Controller
 {
     public function index(Request $request)
     {
-        $search = $request->input('search');
-        $travelType = $request->input('travel_type');
-        $status = $request->input('status');
-        $arrivalDate = $request->input('arrival_date');
+        if ($request->ajax()) {
+            $query = TravelHistory::with(['user', 'maid'])
+                ->where('travel_type', '!=', 'deportation') // استبعاد رحلات الترحيل
+                ->orderBy('id', 'desc');
 
-        $data = TravelHistory::with(['user', 'maid'])->orderBy('id', 'desc');
+            // Apply filters
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('travel_type', 'like', '%' . $search . '%')
+                        ->orWhere('travel_with', 'like', '%' . $search . '%')
+                        ->orWhere('notes', 'like', '%' . $search . '%')
+                        ->orWhere('status', 'like', '%' . $search . '%')
+                        ->orWhere('arrival_airport', 'like', '%' . $search . '%')
+                        ->orWhere('arrival_date', 'like', '%' . $search . '%')
+                        ->orWhere('arrival_time', 'like', '%' . $search . '%')
+                        ->orWhere('flight_company', 'like', '%' . $search . '%')
+                        ->orWhere('flight_number', 'like', '%' . $search . '%')
+                        ->orWhere('order_id', 'like', '%' . $search . '%')
+                        ->orWhereHas('user', function($q) use ($search) {
+                            $q->where('name', 'like', '%' . $search . '%');
+                        })
+                        ->orWhereHas('maid', function($q) use ($search) {
+                            $q->where('passport_num', 'like', '%' . $search . '%')
+                                ->orWhere('name', 'like', '%' . $search . '%');
+                        });
+                });
+            }
 
-        if ($search) {
-            $data = $data->where(function ($query) use ($search) {
-                $query->where('travel_type', 'like', '%' . $search . '%')
-                    ->orWhere('travel_with', 'like', '%' . $search . '%')
-                    ->orWhere('notes', 'like', '%' . $search . '%')
-                    ->orWhere('status', 'like', '%' . $search . '%')
-                    ->orWhere('arrival_airport', 'like', '%' . $search . '%')
-                    ->orWhere('arrival_date', 'like', '%' . $search . '%')
-                    ->orWhere('arrival_time', 'like', '%' . $search . '%')
-                    ->orWhere('flight_company', 'like', '%' . $search . '%')
-                    ->orWhere('flight_number', 'like', '%' . $search . '%')
-                    ->orWhere('order_id', 'like', '%' . $search . '%')
-                    ->orWhereHas('user', function($q) use ($search) {
-                        $q->where('name', 'like', '%' . $search . '%');
-                    })
-                    ->orWhereHas('maid', function($q) use ($search) {
-                        $q->where('passport_num', 'like', '%' . $search . '%');
-                    });
-            });
+            if ($request->filled('travel_type')) {
+                $query->where('travel_type', $request->travel_type);
+            }
+
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+
+            return DataTables::of($query)
+                ->addIndexColumn()
+                ->addColumn('user', function($row) {
+                    return $row->user;
+                })
+                ->addColumn('maid', function($row) {
+                    return $row->maid;
+                })
+                ->rawColumns(['user', 'maid'])
+                ->make(true);
         }
 
-        if ($travelType) {
-            $data = $data->where('travel_type', $travelType);
-        }
-
-        if ($status) {
-            $data = $data->where('status', $status);
-        }
-
-        if ($arrivalDate) {
-            $data = $data->whereDate('arrival_date', $arrivalDate);
-        }
-
-        $data = $data->paginate(15)->appends([
-            'search' => $search,
-            'travel_type' => $travelType,
-            'status' => $status,
-            'arrival_date' => $arrivalDate
-        ]);
-
-        return view('admin.travel_history.index', compact('data', 'search'));
+        // For non-AJAX requests (initial page load)
+        return view('admin.travel_history.index');
     }
 
     public function create(Request $request, $id = null)

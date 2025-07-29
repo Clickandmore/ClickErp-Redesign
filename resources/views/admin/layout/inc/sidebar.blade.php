@@ -395,6 +395,32 @@
                     </ul>
                 </li>
 
+                <!-- Logistics Services Section -->
+                <li class="collapsed">
+                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#logisticsMenu" href="#">
+                        <i class="fa fa-truck"></i>
+                        <span class="ms-2">الخدمات اللوجستية</span>
+                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                    </a>
+                    <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['DeportationTravel.index', 'DeportationTravel.create', 'travel', 'travel.control'])) ? 'show' : '' }}"
+                        id="logisticsMenu">
+                        <li>
+                            <a class="m-link {{ Route::currentRouteName() == 'DeportationTravel.index' ? 'active' : '' }}" href="{{ route('DeportationTravel.index') }}">
+                                <i class="fa fa-plane-departure"></i>
+                                <span class="ms-2">رحلات الترحيل</span>
+                            </a>
+                        </li>
+                        @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_VIEW))
+                            <li>
+                                <a class="m-link {{ Route::currentRouteName() == 'travel' ? 'active' : '' }}" href="{{ route('travel') }}">
+                                    <i class="fa fa-plane-arrival"></i>
+                                    <span class="ms-2">رحلات الاستقدام</span>
+                                </a>
+                            </li>
+                        @endif
+                    </ul>
+                </li>
+
                 <!-- Complaints Section -->
                 @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_VIEW))
                 <li class="collapsed">

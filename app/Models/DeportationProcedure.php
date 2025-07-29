@@ -18,16 +18,25 @@ class DeportationProcedure extends Model
         'salary_received',
         'salary_received_date',
         'has_passport',
+        'passport_date',
         'has_deportation_letter',
+        'deportation_letter_date',
         'has_settlement_session',
+        'settlement_date',
         'has_final_exit',
+        'final_exit_date',
         'attachments',
         'notes',
         'status',
         'started_at',
         'completed_at',
         'created_by',
-        'completed_by'
+        'completed_by',
+        'trip_scheduled',
+        'trip_id',
+        'procedures_confirmed',
+        'confirmed_at',
+        'confirmed_by'
     ];
 
     protected $casts = [
@@ -36,10 +45,17 @@ class DeportationProcedure extends Model
         'has_deportation_letter' => 'boolean',
         'has_settlement_session' => 'boolean',
         'has_final_exit' => 'boolean',
-        'attachments' => 'array',
+        'trip_scheduled' => 'boolean',
+        'procedures_confirmed' => 'boolean',
         'salary_received_date' => 'date',
+        'passport_date' => 'date',
+        'deportation_letter_date' => 'date',
+        'settlement_date' => 'date',
+        'final_exit_date' => 'date',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
+        'confirmed_at' => 'datetime',
+        'attachments' => 'array'
     ];
 
     // العلاقات
@@ -61,6 +77,16 @@ class DeportationProcedure extends Model
     public function completedBy()
     {
         return $this->belongsTo(Admin::class, 'completed_by');
+    }
+
+    public function confirmedBy()
+    {
+        return $this->belongsTo(Admin::class, 'confirmed_by');
+    }
+
+    public function trip()
+    {
+        return $this->belongsTo(\App\Models\TravelHistory::class, 'trip_id');
     }
 
     // Scopes
@@ -115,25 +141,90 @@ class DeportationProcedure extends Model
     // التحقق من اكتمال جميع الإجراءات
     public function isAllProceduresCompleted()
     {
-        return $this->salary_received &&
-               $this->has_passport &&
-               $this->has_deportation_letter &&
-               $this->has_settlement_session &&
-               $this->has_final_exit;
+        // يعتبر الإجراءات مكتملة إذا تم تأكيدها من قبل المستخدم
+        return $this->procedures_confirmed;
+    }
+
+    // التحقق من أن جميع الأسئلة تمت الإجابة عليها
+    public function areAllQuestionsAnswered()
+    {
+        // السؤال يعتبر مجاب عليه إذا:
+        // 1. الإجابة "لا" (0)
+        // 2. الإجابة "نعم" (1) مع وجود تاريخ
+
+        $salaryAnswered = ($this->salary_received === 0 || $this->salary_received === false) ||
+                         (($this->salary_received === 1 || $this->salary_received === true) && $this->salary_received_date);
+
+        $passportAnswered = ($this->has_passport === 0 || $this->has_passport === false) ||
+                           (($this->has_passport === 1 || $this->has_passport === true) && $this->passport_date);
+
+        $letterAnswered = ($this->has_deportation_letter === 0 || $this->has_deportation_letter === false) ||
+                         (($this->has_deportation_letter === 1 || $this->has_deportation_letter === true) && $this->deportation_letter_date);
+
+        $settlementAnswered = ($this->has_settlement_session === 0 || $this->has_settlement_session === false) ||
+                             (($this->has_settlement_session === 1 || $this->has_settlement_session === true) && $this->settlement_date);
+
+        $exitAnswered = ($this->has_final_exit === 0 || $this->has_final_exit === false) ||
+                       (($this->has_final_exit === 1 || $this->has_final_exit === true) && $this->final_exit_date);
+
+        return $salaryAnswered && $passportAnswered && $letterAnswered && $settlementAnswered && $exitAnswered;
     }
 
     // حساب نسبة الإكمال
     public function getCompletionPercentageAttribute()
     {
-        $total = 5; // عدد الإجراءات المطلوبة
-        $completed = 0;
+        // إذا لم تبدأ الإجراءات بعد، النسبة 0
+        if ($this->status === 'pending') {
+            return 0;
+        }
 
-        if ($this->salary_received) $completed++;
-        if ($this->has_passport) $completed++;
-        if ($this->has_deportation_letter) $completed++;
-        if ($this->has_settlement_session) $completed++;
-        if ($this->has_final_exit) $completed++;
+        // إذا اكتملت الإجراءات، النسبة 100
+        if ($this->status === 'completed') {
+            return 100;
+        }
 
-        return round(($completed / $total) * 100);
+        $total = 5; // عدد الأسئلة
+        $answered = 0;
+
+        // نحسب الأسئلة المجاب عليها بشكل صحيح
+        // السؤال يعتبر مجاب عليه إذا كانت قيمته ليست null
+
+        // الراتب
+        if ($this->salary_received !== null) {
+            // إذا كانت الإجابة "نعم" يجب أن يكون هناك تاريخ
+            if ($this->salary_received == 0 || ($this->salary_received == 1 && $this->salary_received_date)) {
+                $answered++;
+            }
+        }
+
+        // الجواز
+        if ($this->has_passport !== null) {
+            if ($this->has_passport == 0 || ($this->has_passport == 1 && $this->passport_date)) {
+                $answered++;
+            }
+        }
+
+        // خطاب الترحيل
+        if ($this->has_deportation_letter !== null) {
+            if ($this->has_deportation_letter == 0 || ($this->has_deportation_letter == 1 && $this->deportation_letter_date)) {
+                $answered++;
+            }
+        }
+
+        // جلسة التسوية
+        if ($this->has_settlement_session !== null) {
+            if ($this->has_settlement_session == 0 || ($this->has_settlement_session == 1 && $this->settlement_date)) {
+                $answered++;
+            }
+        }
+
+        // الخروج النهائي
+        if ($this->has_final_exit !== null) {
+            if ($this->has_final_exit == 0 || ($this->has_final_exit == 1 && $this->final_exit_date)) {
+                $answered++;
+            }
+        }
+
+        return round(($answered / $total) * 100);
     }
 }

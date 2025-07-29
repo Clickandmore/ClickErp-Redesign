@@ -55,83 +55,98 @@
 </style>
 @endsection
 
+@section('page-title')
+متاح للنقل
+@endsection
+
 @section('content')
 @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_CONTRACT_VIEW))
-    <div class="row clearfix g-3">
+<div class="container-fluid">
+    <!-- Page Title Section -->
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title">متاح للنقل</h4>
-                </div>
-                <div class="card-body">
-                    <!-- الفلاتر -->
-                    <div class="card mb-4">
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                <button class="btn btn-link" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
-                                    <i class="fas fa-filter"></i> الفلاتر
-                                </button>
-                            </h5>
-                        </div>
-                        <div id="filterCollapse" class="collapse">
-                            <div class="card-body">
-                                <div class="row g-3">
-                                    <div class="col-md-3">
-                                        <label class="form-label">رقم العقد</label>
-                                        <input type="text" class="form-control" id="filterContractNumber" placeholder="رقم العقد">
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">الجنسية</label>
-                                        <select class="form-select" id="filterNationality">
-                                            <option value="">جميع الجنسيات</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">الإيواء</label>
-                                        <select class="form-select" id="filterShelter">
-                                            <option value="">جميع الأماكن</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label">&nbsp;</label>
-                                        <div>
-                                            <button class="btn btn-primary" id="applyFilters">
-                                                <i class="fas fa-search"></i> بحث
-                                            </button>
-                                            <button class="btn btn-secondary" id="clearFilters">
-                                                <i class="fas fa-times"></i> مسح
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            <div class="page-title-box">
+                <h4 class="page-title">قائمة العقود المتاحة للنقل</h4>
+            </div>
+        </div>
+    </div>
 
-                    <!-- الجدول -->
-                    <div class="table-responsive">
-                        <table id="availableForTransferTable" class="table table-bordered table-hover">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>رقم العقد</th>
-                                    <th>بيانات العاملة</th>
-                                    <th>العميل</th>
-                                    <th>الجنسية</th>
-                                    <th>الإيواء</th>
-                                    <th>تاريخ الوصول</th>
-                                    <th>حالة الضمان</th>
-                                    <th>الإجراءات</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            </tbody>
-                        </table>
+    <!-- Header Section -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-exchange-alt text-success me-2"></i>
+            متاح للنقل
+        </h1>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="card filter-card mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+            <h6 class="m-0 font-weight-bold">
+                <i class="fas fa-filter me-2"></i>{{helperTrans("admin.filters")}}
+            </h6>
+            <i class="fas fa-chevron-down"></i>
+        </div>
+        <div class="collapse show" id="filterCollapse">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">رقم العقد</label>
+                        <input type="text" class="form-control" id="filterContractNumber" placeholder="رقم العقد">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">الجنسية</label>
+                        <select class="form-select" id="filterNationality">
+                            <option value="">جميع الجنسيات</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">الإيواء</label>
+                        <select class="form-select" id="filterShelter">
+                            <option value="">جميع الأماكن</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div>
+                            <button class="btn btn-primary" id="applyFilters">
+                                <i class="fas fa-search"></i> بحث
+                            </button>
+                            <button class="btn btn-secondary" id="clearFilters">
+                                <i class="fas fa-times"></i> مسح
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Table Section -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="availableForTransferTable" class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>رقم العقد</th>
+                            <th>بيانات العاملة</th>
+                            <th>العميل</th>
+                            <th>الجنسية</th>
+                            <th>الإيواء</th>
+                            <th>تاريخ الوصول</th>
+                            <th>حالة الضمان</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 @else
     @include('components.no_permissions')
 @endif
