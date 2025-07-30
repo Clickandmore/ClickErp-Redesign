@@ -118,223 +118,236 @@
       </div>
       <!-- تبويب العقد الجديد بدون طلب مسبق -->
       <div class="tab-pane fade" id="tab-new-pane" role="tabpanel" aria-labelledby="tab-new">
-        <div class="card mb-4">
-          <div class="card-header bg-info text-white">
-            <h4 class="mb-0"><i class="fas fa-users me-2"></i>عقد جديد بدون طلب مسبق</h4>
-          </div>
-          <div class="card-body">
-            <div class="row align-items-end">
-              <div class="col-md-6 mb-3">
-                <label for="new_existing_client_id" class="form-label">اختر عميل <span class="text-danger">*</span></label>
-                <select name="new_existing_client_id" id="new_existing_client_id" class="form-select select2" style="width:100%">
-                  <option value="" selected disabled>اختر عميل...</option>
-                  @if(isset($existing_clients))
-                    @foreach($existing_clients as $client)
-                      <option value="{{$client->id}}"
-                        data-name="{{$client->name}}"
-                        data-phone="{{$client->phone}}"
-                        data-email="{{$client->email}}"
-                        data-nationality="{{$client->nationality_id}}"
-                        data-national-num="{{$client->national_num}}"
-                        data-birthdate="{{$client->birthdate}}"
-                        data-phone2="{{$client->phone2}}"
-                        data-address="{{$client->address}}"
-                        data-city="{{$client->city}}"
-                        data-beds-num="{{$client->rooms_num}}"
-                        data-family-num="{{$client->family_num}}"
-                        data-children="{{$client->children}}"
-                        data-job="{{$client->job}}">
-                        {{$client->name}} - {{$client->phone}} - {{$client->national_num}}
+        <form id="newContractForm" method="post" action="{{ route('RecruitmentContract.store') }}">
+          @csrf
+          <input type="hidden" name="contract_type" value="new_contract">
+          <input type="hidden" name="client_type" value="new_client">
+
+          <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+              <h4 class="mb-0"><i class="fas fa-users me-2"></i>عقد جديد بدون طلب مسبق</h4>
+            </div>
+            <div class="card-body">
+              <div class="row align-items-end">
+                <div class="col-md-6 mb-3">
+                  <label for="new_existing_client_id" class="form-label">اختر عميل <span class="text-danger">*</span></label>
+                  <select name="new_existing_client_id" id="new_existing_client_id" class="form-select select2" style="width:100%">
+                    <option value="" selected disabled>اختر عميل...</option>
+                    @if(isset($existing_clients))
+                      @foreach($existing_clients as $client)
+                        <option value="{{$client->id}}"
+                          data-name="{{$client->name}}"
+                          data-phone="{{$client->phone}}"
+                          data-email="{{$client->email}}"
+                          data-nationality="{{$client->nationality_id}}"
+                          data-national-num="{{$client->national_num}}"
+                          data-birthdate="{{$client->birthdate}}"
+                          data-phone2="{{$client->phone2}}"
+                          data-address="{{$client->address}}"
+                          data-city="{{$client->city}}"
+                          data-beds-num="{{$client->rooms_num}}"
+                          data-family-num="{{$client->family_num}}"
+                          data-children="{{$client->children}}"
+                          data-job="{{$client->job}}">
+                          {{$client->name}} - {{$client->phone}} - {{$client->national_num}}
+                        </option>
+                      @endforeach
+                    @endif
+                  </select>
+                  <a href="{{ route('clients.create') }}" target="_blank" class="btn btn-outline-primary mt-2" title="إضافة عميل جديد"><i class="fas fa-user-plus"></i> إضافة عميل جديد</a>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label for="new_new_maid_id" class="form-label">اختر عاملة</label>
+                  <select name="new_new_maid_id" id="new_new_maid_id" class="form-select select2" style="width:100%">
+                    <option value="" selected>اختر عاملة...</option>
+                    @foreach($all_available_maids as $maid)
+                      <option value="{{$maid->id}}"
+                        data-name="{{$maid->name}}"
+                        data-passport="{{$maid->passport_num}}"
+                        data-religion="{{$maid->religion ? $maid->religion->title : ''}}"
+                        data-job="{{$maid->jobTitles && $maid->jobTitles->first() ? $maid->jobTitles->first()->title : ''}}"
+                        data-nationality="{{$maid->nationality ? $maid->nationality->sub_title : ''}}"
+                        data-salary="{{$maid->salary}}"
+                        data-experience="{{$maid->experience_years}}"
+                        data-age="{{$maid->age}}">
+                        {{$maid->name}} - {{$maid->passport_num}} - {{$maid->nationality ? $maid->nationality->sub_title : ''}}
                       </option>
                     @endforeach
-                  @endif
-                </select>
-                <a href="{{ route('clients.create') }}" target="_blank" class="btn btn-outline-primary mt-2" title="إضافة عميل جديد"><i class="fas fa-user-plus"></i> إضافة عميل جديد</a>
+                  </select>
+                  <button type="button" id="new-no-maid-btn" class="btn btn-outline-warning mt-2 w-100"><i class="fas fa-user-slash me-1"></i> بدون عاملة حالياً (تأجيل الاختيار)</button>
+                </div>
               </div>
-              <div class="col-md-6 mb-3">
-                <label for="new_new_maid_id" class="form-label">اختر عاملة</label>
-                <select name="new_new_maid_id" id="new_new_maid_id" class="form-select select2" style="width:100%">
-                  <option value="" selected>اختر عاملة...</option>
-                  @foreach($all_available_maids as $maid)
-                    <option value="{{$maid->id}}"
-                      data-name="{{$maid->name}}"
-                      data-passport="{{$maid->passport_num}}"
-                      data-religion="{{$maid->religion ? $maid->religion->title : ''}}"
-                      data-job="{{$maid->jobTitles && $maid->jobTitles->first() ? $maid->jobTitles->first()->title : ''}}"
-                      data-nationality="{{$maid->nationality ? $maid->nationality->sub_title : ''}}"
-                      data-salary="{{$maid->salary}}"
-                      data-experience="{{$maid->experience_years}}"
-                      data-age="{{$maid->age}}">
-                      {{$maid->name}} - {{$maid->passport_num}} - {{$maid->nationality ? $maid->nationality->sub_title : ''}}
-                    </option>
-                  @endforeach
-                </select>
-                <button type="button" id="new-no-maid-btn" class="btn btn-outline-warning mt-2 w-100"><i class="fas fa-user-slash me-1"></i> بدون عاملة حالياً (تأجيل الاختيار)</button>
-              </div>
-            </div>
-            <div id="new-no-maid-alert" style="display:none;">
-              <div class="alert alert-warning mt-2">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                تم اختيار "بدون عاملة حالياً". يمكنك إضافة عاملة لاحقاً من صفحة العقود.
-              </div>
-            </div>
+              <div id="new-no-maid-alert" style="display:none;">
+                <div class="alert alert-warning mt-2">
+                  <i class="fas fa-exclamation-triangle me-2"></i>
+                  تم اختيار "بدون عاملة حالياً". يمكنك إضافة عاملة لاحقاً من صفحة العقود.
+                </div>
 
-            <!-- بيانات العميل والعاملة (تظهر بعد الاختيار) في التبويب الجديد -->
-            <div class="col-md-12">
-                <div class="card">
-                  <div class="card-header bg-primary text-white py-2">
-                    <h6 class="mb-0"><i class="fas fa-user me-2"></i>بيانات العميل المختار</h6>
-                  </div>
-                  <div class="card-body p-2">
-                    <div class="row">
-                      <div class="col-md-6 mb-2">
-                        <label class="form-label">{{helperTrans("ingaz.client_name")}} <span class="text-danger">*</span></label>
-                        <input type="text" id="new_client_name" name="new_client_name" class="form-control" data-validation="required">
-                        <div class="invalid-feedback" id="err_new_client_name"></div>
-                      </div>
-                      <div class="col-md-6 mb-2">
-                        <label class="form-label">{{helperTrans("ingaz.client_phone")}} <span class="text-danger">*</span></label>
-                        <input type="tel" id="new_client_phone" name="new_client_phone" class="form-control" data-validation="required" dir="rtl">
-                        <div class="invalid-feedback" id="err_new_client_phone"></div>
-                      </div>
-                      <div class="col-md-6 mb-2">
-                        <label for="client_nationality_id" class="form-label">{{helperTrans("ingaz.nationality_id")}} <span class="text-danger">*</span></label>
-                        <select id="client_nationality_id" name="client_nationality_id" class="form-select form-control select2" data-validation="required">
-                            <option value="">{{helperTrans('ingaz.choose')}}</option>
-                            @foreach($countries as $country)
-                                <option value="{{$country->id}}" {{ $country->code === 'SA' ? 'selected' : '' }}>{{$country->name_ar}}</option>
-                            @endforeach
-                        </select>
-                        <div class="invalid-feedback" id="err_client_nationality_id"></div>
-                      </div>
-                      <div class="col-md-6 mb-2">
-                        <label class="form-label">{{helperTrans("ingaz.email")}} <small class="text-muted">(اختياري)</small></label>
-                        <input type="email" id="new_client_email" name="new_client_email" class="form-control">
-                        <div class="invalid-feedback" id="err_new_client_email"></div>
-                      </div>
-                      <div class="col-md-6 mb-2">
-                        <label class="form-label">{{helperTrans("ingaz.national_num")}} <span class="text-danger">*</span></label>
-                        <input type="text" id="new_client_national_num" name="new_client_national_num" class="form-control" data-validation="required">
-                        <div class="invalid-feedback" id="err_new_client_national_num"></div>
-                      </div>
-                      <div class="col-md-6 mb-2">
-                        <label class="form-label">{{helperTrans("ingaz.birthdate")}} <span class="text-danger">*</span></label>
-                        <input type="date" id="new_client_birthdate" name="new_client_birthdate" class="form-control" data-validation="required" max="{{ date('Y-m-d') }}">
-                      </div>
-                      <div class="col-md-6 mb-2">
-                        <label class="form-label">{{helperTrans("ingaz.phone2")}} <span class="text-danger">*</span></label>
-                        <input type="tel" id="new_client_phone2" name="new_client_phone2" class="form-control" data-validation="required">
-                      </div>
-                      <div class="col-md-6 mb-2">
-                        <label class="form-label">{{helperTrans("ingaz.address")}} <span class="text-danger">*</span></label>
-                        <input type="text" id="new_client_address" name="new_client_address" class="form-control" data-validation="required">
-                      </div>
-                      <div class="col-md-6 mb-2">
-                        <label class="form-label">{{helperTrans("ingaz.city of receive")}} <span class="text-danger">*</span></label>
-                        <input type="text" id="new_client_city" name="new_client_city" class="form-control" data-validation="required">
-                      </div>
-                      <div class="col-md-6 mb-2">
-                        <label class="form-label">{{helperTrans("ingaz.beds number")}} <small class="text-muted">(اختياري)</small></label>
-                        <input type="text" id="new_client_beds_num" name="new_client_beds_num" class="form-control">
-                      </div>
-                      <div class="col-md-6 mb-2">
-                        <label class="form-label">{{helperTrans("ingaz.family_number")}} <small class="text-muted">(اختياري)</small></label>
-                        <input type="text" id="new_client_family_num" name="new_client_family_num" class="form-control">
-                      </div>
-                      <div class="col-md-6 mb-2">
-                        <label class="form-label">{{helperTrans("ingaz.children")}} <small class="text-muted">(اختياري - تحت سن 12)</small></label>
-                        <input type="number" id="new_client_children" name="new_client_children" class="form-control" max="50">
-                      </div>
-                      <div class="col-md-6 mb-2">
-                        <label class="form-label">{{helperTrans("ingaz.job")}} <small class="text-muted">(اختياري)</small></label>
-                        <input type="text" id="new_client_job" name="new_client_job" class="form-control">
-                      </div>
-                    </div>
+                <!-- حقل اختيار جنسية العاملة المطلوبة -->
+                <div class="row mt-3">
+                  <div class="col-12">
+                    <label for="required_maid_nationality" class="form-label">الجنسية المطلوبة للعاملة <span class="text-danger">*</span></label>
+                    <select name="required_maid_nationality" id="required_maid_nationality" class="form-select">
+                      <option value="">اختر الجنسية المطلوبة...</option>
+                      @php
+                        $maidNationalities = \App\Models\ingaz\Nationality::with('translations')->get();
+                      @endphp
+                      @foreach($maidNationalities as $nationality)
+                        <option value="{{ $nationality->id }}">{{ $nationality->sub_title }}</option>
+                      @endforeach
+                    </select>
+                    <div class="invalid-feedback" id="err_required_maid_nationality"></div>
+                    <small class="text-muted">هذا سيساعد في العثور على العاملة المناسبة لاحقاً</small>
                   </div>
                 </div>
               </div>
+
+              <!-- بيانات العميل والعاملة (تظهر بعد الاختيار) في التبويب الجديد -->
               <div class="col-md-12">
+                  <div class="card">
+                    <div class="card-header bg-primary text-white py-2">
+                      <h6 class="mb-0"><i class="fas fa-user me-2"></i>بيانات العميل المختار</h6>
+                    </div>
+                    <div class="card-body p-2">
+                      <div class="row">
+                        <div class="col-md-6 mb-2">
+                          <label class="form-label">{{helperTrans("ingaz.client_name")}} <span class="text-danger">*</span></label>
+                          <input type="text" id="new_client_name" name="new_client_name" class="form-control" data-validation="required">
+                          <div class="invalid-feedback" id="err_new_client_name"></div>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                          <label class="form-label">{{helperTrans("ingaz.client_phone")}} <span class="text-danger">*</span></label>
+                          <input type="tel" id="new_client_phone" name="new_client_phone" class="form-control" data-validation="required" dir="rtl">
+                          <div class="invalid-feedback" id="err_new_client_phone"></div>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                          <label for="client_nationality_id" class="form-label">{{helperTrans("ingaz.nationality_id")}} <span class="text-danger">*</span></label>
+                          <select id="client_nationality_id" name="client_nationality_id" class="form-select form-control select2" data-validation="required">
+                              <option value="">{{helperTrans('ingaz.choose')}}</option>
+                              @foreach($countries as $country)
+                                  <option value="{{$country->id}}" {{ $country->code === 'SA' ? 'selected' : '' }}>{{$country->name_ar}}</option>
+                              @endforeach
+                          </select>
+                          <div class="invalid-feedback" id="err_client_nationality_id"></div>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                          <label class="form-label">{{helperTrans("ingaz.email")}} <small class="text-muted">(اختياري)</small></label>
+                          <input type="email" id="new_client_email" name="new_client_email" class="form-control">
+                          <div class="invalid-feedback" id="err_new_client_email"></div>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                          <label class="form-label">{{helperTrans("ingaz.national_num")}} <span class="text-danger">*</span></label>
+                          <input type="text" id="new_client_national_num" name="new_client_national_num" class="form-control" data-validation="required">
+                          <div class="invalid-feedback" id="err_new_client_national_num"></div>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                          <label class="form-label">{{helperTrans("ingaz.birthdate")}} <span class="text-danger">*</span></label>
+                          <input type="date" id="new_client_birthdate" name="new_client_birthdate" class="form-control" data-validation="required" max="{{ date('Y-m-d') }}">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                          <label class="form-label">{{helperTrans("ingaz.phone2")}} <span class="text-danger">*</span></label>
+                          <input type="tel" id="new_client_phone2" name="new_client_phone2" class="form-control" data-validation="required">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                          <label class="form-label">{{helperTrans("ingaz.address")}} <span class="text-danger">*</span></label>
+                          <input type="text" id="new_client_address" name="new_client_address" class="form-control" data-validation="required">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                          <label class="form-label">{{helperTrans("ingaz.city of receive")}} <span class="text-danger">*</span></label>
+                          <input type="text" id="new_client_city" name="new_client_city" class="form-control" data-validation="required">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                          <label class="form-label">{{helperTrans("ingaz.beds number")}} <small class="text-muted">(اختياري)</small></label>
+                          <input type="text" id="new_client_beds_num" name="new_client_beds_num" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                          <label class="form-label">{{helperTrans("ingaz.family_number")}} <small class="text-muted">(اختياري)</small></label>
+                          <input type="text" id="new_client_family_num" name="new_client_family_num" class="form-control">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                          <label class="form-label">{{helperTrans("ingaz.children")}} <small class="text-muted">(اختياري - تحت سن 12)</small></label>
+                          <input type="number" id="new_client_children" name="new_client_children" class="form-control" max="50">
+                        </div>
+                        <div class="col-md-6 mb-2">
+                          <label class="form-label">{{helperTrans("ingaz.job")}} <small class="text-muted">(اختياري)</small></label>
+                          <input type="text" id="new_client_job" name="new_client_job" class="form-control">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-12">
+                  <div class="card">
+                    <div class="card-header bg-success text-white py-2">
+                      <h6 class="mb-0"><i class="fas fa-user-tie me-2"></i>بيانات العاملة المختارة</h6>
+                    </div>
+                    <div class="card-body p-2" id="new-maid-section-card">
+                      <div class="row">
+                        <div class="col-6 mb-2">
+                          <label class="form-label">الاسم</label>
+                          <input type="text" id="new_maid_name" name="new_maid_name" class="form-control">
+                          <div class="invalid-feedback" id="err_new_maid_name"></div>
+                        </div>
+                        <div class="col-6 mb-2">
+                          <label class="form-label">رقم الجواز</label>
+                          <input type="text" id="new_maid_passport" name="new_maid_passport" class="form-control">
+                        </div>
+                        <div class="col-6 mb-2">
+                          <label class="form-label">الديانة</label>
+                          <input type="text" id="new_maid_religion" name="new_maid_religion" class="form-control">
+                        </div>
+                        <div class="col-6 mb-2">
+                          <label class="form-label">المهنة</label>
+                          <input type="text" id="new_maid_job" name="new_maid_job" class="form-control">
+                        </div>
+                        <div class="col-6 mb-2">
+                          <label class="form-label">الجنسية</label>
+                          <input type="text" id="new_maid_nationality" name="new_maid_nationality" class="form-control">
+                        </div>
+                        <div class="col-6 mb-2">
+                          <label class="form-label">الراتب</label>
+                          <input type="text" id="new_maid_salary" name="new_maid_salary" class="form-control">
+                        </div>
+                        <div class="col-6 mb-2">
+                          <label class="form-label">سنوات الخبرة</label>
+                          <input type="text" id="new_maid_experience_years" name="new_maid_experience_years" class="form-control">
+                        </div>
+                        <div class="col-6 mb-2">
+                          <label class="form-label">العمر</label>
+                          <input type="text" id="new_maid_age" name="new_maid_age" class="form-control">
+                        </div>
+                      </div>
+                      <div id="new-no-maid-message" class="alert alert-warning mt-2" style="display:none;">
+                        <i class="fas fa-user-slash me-1"></i> لا يوجد عاملة حالياً.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              <!-- بيانات العقد -->
+              <div class="col-12 mt-4">
                 <div class="card">
-                  <div class="card-header bg-success text-white py-2">
-                    <h6 class="mb-0"><i class="fas fa-user-tie me-2"></i>بيانات العاملة المختارة</h6>
+                  <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">معلومات العقد</h4>
                   </div>
-                  <div class="card-body p-2" id="new-maid-section-card">
-                    <div class="row">
-                      <div class="col-6 mb-2">
-                        <label class="form-label">الاسم</label>
-                        <input type="text" id="new_maid_name" name="new_maid_name" class="form-control">
-                        <div class="invalid-feedback" id="err_new_maid_name"></div>
-                      </div>
-                      <div class="col-6 mb-2">
-                        <label class="form-label">رقم الجواز</label>
-                        <input type="text" id="new_maid_passport" name="new_maid_passport" class="form-control">
-                      </div>
-                      <div class="col-6 mb-2">
-                        <label class="form-label">الديانة</label>
-                        <input type="text" id="new_maid_religion" name="new_maid_religion" class="form-control">
-                      </div>
-                      <div class="col-6 mb-2">
-                        <label class="form-label">المهنة</label>
-                        <input type="text" id="new_maid_job" name="new_maid_job" class="form-control">
-                      </div>
-                      <div class="col-6 mb-2">
-                        <label class="form-label">الجنسية</label>
-                        <input type="text" id="new_maid_nationality" name="new_maid_nationality" class="form-control">
-                      </div>
-                      <div class="col-6 mb-2">
-                        <label class="form-label">الراتب</label>
-                        <input type="text" id="new_maid_salary" name="new_maid_salary" class="form-control">
-                      </div>
-                      <div class="col-6 mb-2">
-                        <label class="form-label">سنوات الخبرة</label>
-                        <input type="text" id="new_maid_experience_years" name="new_maid_experience_years" class="form-control">
-                      </div>
-                      <div class="col-6 mb-2">
-                        <label class="form-label">العمر</label>
-                        <input type="text" id="new_maid_age" name="new_maid_age" class="form-control">
-                      </div>
-                    </div>
-                    <div id="new-no-maid-message" class="alert alert-warning mt-2" style="display:none;">
-                      <i class="fas fa-user-slash me-1"></i> لا يوجد عاملة حالياً.
-                    </div>
+                  <div class="card-body">
+                    @include('admin.ingaz.RecruitmentContract.contract-section')
                   </div>
-                </div>
-              </div>
-            <!-- بيانات العقد -->
-            <div class="col-12 mt-4">
-              <div class="card">
-                <div class="card-header bg-info text-white">
-                  <h4 class="mb-0">معلومات العقد</h4>
-                </div>
-                <div class="card-body">
-                  @include('admin.ingaz.RecruitmentContract.contract-section')
                 </div>
               </div>
             </div>
           </div>
-        </div>
-        <!-- زر الحفظ في تبويب عقد جديد بدون طلب مسبق -->
-        <div class="col-12 mt-3">
-          <div class="card">
-            <div class="card-body text-center">
-              <form id="newContractForm" method="post" action="{{ route('RecruitmentContract.store') }}">
-                @csrf
-                <input type="hidden" name="contract_type" value="new_contract">
-                <input type="hidden" name="debug_form" value="1">
+          <!-- زر الحفظ في تبويب عقد جديد بدون طلب مسبق -->
+          <div class="col-12 mt-3">
+            <div class="card">
+              <div class="card-body text-center">
                 <button class="btn btn-primary btn-lg px-5" type="submit" id="newContractSubmitBtn" onclick="console.log('Submit button clicked')">
                   <i class="fa-solid fa-floppy-disk me-2"></i>
                   {{__('buttons.save')}}
                 </button>
-              </form>
-              <div class="mt-3">
-                <small class="text-muted">
-                  <i class="fas fa-info-circle me-1"></i>
-                  تأكد من مراجعة جميع البيانات قبل الحفظ
-                </small>
               </div>
             </div>
           </div>
-        </div>
+        </form>
       </div>
     </div>
 
@@ -1235,6 +1248,36 @@ $(document).ready(function() {
       $('#err_new_client_email').text('');
     }
 
+    // تحقق الجنسية (مطلوب في التبويب الجديد)
+    var clientNationalityId = $('#client_nationality_id').val();
+    console.log('Validating client nationality:', clientNationalityId);
+    if (!clientNationalityId) {
+      isValid = false;
+      $('#client_nationality_id').addClass('is-invalid');
+      $('#err_client_nationality_id').text('يرجى اختيار الجنسية');
+      console.log('Client nationality validation failed: empty');
+    } else {
+      $('#client_nationality_id').removeClass('is-invalid');
+      $('#err_client_nationality_id').text('');
+      console.log('Client nationality validation passed');
+    }
+
+    // تحقق الجنسية المطلوبة للعاملة (فقط إذا لم يتم اختيار عاملة)
+    var isNoMaidSelected = $('#new-no-maid-alert').is(':visible');
+    if (isNoMaidSelected) {
+      var requiredMaidNationality = $('#required_maid_nationality').val();
+      console.log('Validating required maid nationality:', requiredMaidNationality);
+      if (!requiredMaidNationality) {
+        isValid = false;
+        $('#required_maid_nationality').addClass('is-invalid');
+        $('#err_required_maid_nationality').text('يرجى اختيار الجنسية المطلوبة للعاملة');
+        console.log('Required maid nationality validation failed: empty');
+      } else {
+        $('#required_maid_nationality').removeClass('is-invalid');
+        $('#err_required_maid_nationality').text('');
+        console.log('Required maid nationality validation passed');
+      }
+    }
 
     } // إغلاق شرط isNewContractTab
 
@@ -1318,6 +1361,35 @@ $(document).ready(function() {
         $('#tab-order-pane #visa_number').next('.invalid-feedback').remove();
       }
       console.log('Visa number validation passed');
+    }
+
+    // التحقق من المسوق
+    var marketerId = '';
+    if (isNewContractTab) {
+      marketerId = $('#tab-new-pane #marketer_id').val();
+    } else {
+      marketerId = $('#tab-order-pane #marketer_id').val();
+    }
+
+    if (!marketerId) {
+      isValid = false;
+      if (isNewContractTab) {
+        $('#tab-new-pane #marketer_id').addClass('is-invalid');
+        $('#tab-new-pane #err_marketer_id').text('يرجى اختيار المسوق');
+      } else {
+        $('#tab-order-pane #marketer_id').addClass('is-invalid');
+        $('#tab-order-pane #err_marketer_id').text('يرجى اختيار المسوق');
+      }
+      console.log('Marketer validation failed: empty');
+    } else {
+      if (isNewContractTab) {
+        $('#tab-new-pane #marketer_id').removeClass('is-invalid');
+        $('#tab-new-pane #err_marketer_id').text('');
+      } else {
+        $('#tab-order-pane #marketer_id').removeClass('is-invalid');
+        $('#tab-order-pane #err_marketer_id').text('');
+      }
+      console.log('Marketer validation passed');
     }
 
     console.log('Validation completed. isValid:', isValid);
@@ -1485,6 +1557,20 @@ $(document).ready(function() {
     formData.append('tafwed_number', tafwedNumber || '');
     formData.append('visa_milad_date', visaMiladDate || '');
     formData.append('visa_hijry_date', visaHijryDate || '');
+
+    // إضافة المسوق
+    var marketerId = '';
+    if (isNewContractTab) {
+      marketerId = $('#tab-new-pane #marketer_id').val();
+    } else {
+      marketerId = $('#tab-order-pane #marketer_id').val();
+    }
+    formData.append('marketer_id', marketerId || '');
+
+    // إضافة الجنسية المطلوبة للعاملة (إذا لم يتم اختيار عاملة)
+    if ($('#new-no-maid-alert').is(':visible')) {
+      formData.append('required_maid_nationality', $('#required_maid_nationality').val() || '');
+    }
 
     console.log('Additional contract data prepared:', {
       isNewContractTab: isNewContractTab,

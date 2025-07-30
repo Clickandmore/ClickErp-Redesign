@@ -157,6 +157,8 @@ Route::group(
             Route::get('RecruitmentContract/{contractId}/change-maid', [RecruitmentContractController::class, 'showChangeMaid'])->name('RecruitmentContract.showChangeMaid');
             Route::post('RecruitmentContract/{contractId}/change-maid', [RecruitmentContractController::class, 'changeMaid'])->name('RecruitmentContract.changeMaid');
             Route::resource('RentContract', RentContractController::class);
+            Route::post('RentContract/{id}/complete', [RentContractController::class, 'completeContract'])->name('RentContract.complete');
+            Route::get('print/rental-contract/{id}', [AdminContractController::class, 'printRentalContract'])->name('print.rental.contract');
             Route::get('showDataOfOrder', [OrderController::class, 'showDataOfOrder'])->name('showDataOfOrder');
             Route::get('showDataOfMaid', [OrderController::class, 'showDataOfMaid'])->name('showDataOfMaid');
             Route::get('showUserFromContract', [OrderController::class, 'showUserFromContract'])->name('showUserFromContract');

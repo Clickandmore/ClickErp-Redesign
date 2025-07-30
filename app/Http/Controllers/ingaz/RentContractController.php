@@ -2,97 +2,131 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Models\Contract;
+use App\Models\RentalContract;
+use App\Models\RentalContractInfo;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\User;
 use App\Models\ingaz\Order;
-use App\Models\ContractInfo;
+use App\Models\ingaz\Nationality;
+use App\Models\auth\Admin;
 use Illuminate\Http\Request;
 use App\Enums\ingaz\OrderEnum;
-use App\Models\ShelterWorkers;
-use App\Models\ContractStatusLog;
-use App\Models\ingaz\Nationality;
-use App\Models\ingaz\UserAddress;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
-use App\Enums\ingaz\ContractStatusEnum;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\Facades\DataTables;
-use App\Http\Actions\ingaz\ContractAction;
-use App\Http\Requests\ingaz\StoreContractRequest;
 use App\Http\Actions\ingaz\RecruitmentOfficeAction;
+use App\Http\Requests\StoreRentalContractRequest;
 
 class RentContractController extends Controller
 {
     public $folderPath = "admin.ingaz.RentContract";
     public $mainRoute = "RentContract";
-    public $contractInfoData = [
-        'visa_number', 'visa_milad_date', 'working_hours_num'
-        , 'sponsorship_price', 'salary_after_sponsorship', 'monthly_cost', 'contract_duration'
-        , 'contract_value', 'contract_date', 'ingaz_from', 'ingaz_to', 'previous_sponsorship',
-        'msaned_number', 'tafwed_number'
-    ];
 
     public function index(Request $request, $status = null)
     {
         if ($request->ajax()) {
             $status = $request->get('status', $status);
-            if ($status)
-                $rows = Contract::where('status', $status)->latest();
-            else
-                $rows = Contract::RentContract()->latest();
 
-            return DataTables::of($rows)
+            $query = RentalContract::with(['user', 'maid', 'info', 'marketer']);
+
+            if ($status) {
+                $query->where('status', $status);
+            }
+
+            $contracts = $query->latest();
+
+            return DataTables::eloquent($contracts)
                 ->addIndexColumn()
                 ->editColumn('status', function ($row) {
-                    return getEnumValue('contract_statuses', $row->status);
+                    return $this->getStatusBadge($row->status);
                 })
                 ->editColumn('user_id', function ($row) {
-                    return ($row->user) ? $row->user->name : '';
+                    return $row->user ? $row->user->name : 'غير محدد';
                 })
-                ->editColumn('phone', function ($row) {
-                    return ($row->user) ? getPhoneWithTag($row->user->phone_code . $row->user->phone) : '';
+                ->addColumn('phone', function ($row) {
+                    return $row->user ? getPhoneWithTag($row->user->phone_code . $row->user->phone) : 'غير محدد';
                 })
                 ->editColumn('maid_id', function ($row) {
-                    return ($row->maid) ? getImgTag($row->maid->cv_file, "80px", "80px") : '';
-                })
-                ->addColumn('remainingDays', function ($row) {
-                    $CalcContractRemaining = ahxCalcContractRemaining($row->id);
-                    if($CalcContractRemaining > 0){
-                       return  $CalcContractRemaining . ' '. __('ingaz.days');
-                    }else{
-                        return __('ingaz.ended');
+                    if ($row->maid) {
+                        return '<div class="d-flex align-items-center">
+                                    <img src="' . $row->maid->photo_url . '" class="rounded-circle me-2" width="40" height="40">
+                                    <div>
+                                        <div class="fw-bold">' . $row->maid->name . '</div>
+                                        <small class="text-muted">' . $row->maid->passport_num . '</small>
+                                    </div>
+                                </div>';
                     }
+                    return '<span class="text-muted">لم يتم اختيار عاملة</span>';
                 })
-                ->addColumn('updateStatus', function ($row) {
-                    if ($row->status != ContractStatusEnum::Back->value && $row->status != ContractStatusEnum::Closed->value)
-                        return '<button class="btn btn-success update-status-btn" data-bs-toggle="modal" data-bs-target="#updateStatusModal" data-row-id="' . $row->id . '" data-status="' . $row->status . '">اغلاق العقد</button>';
-                    else
-                        return '<span>---</span>';
-                })
-                ->addColumn('back', function ($row) {
-                    if ($row->status == ContractStatusEnum::Back->value) {
-                        return '<span class="text-danger">مرتجع</span>';
-                    } else {
-                        return '<button class="btn btn-danger backContract" data-id="'.$row->id.'">ارجاع العقد <i class="fa fa-undo"></i> </button>';
+                ->addColumn('contract_info', function ($row) {
+                    if ($row->info) {
+                        return '<div class="small">
+                                    <div><strong>المدة:</strong> ' . ($row->info->contract_duration_months ?? 'غير محدد') . ' شهر</div>
+                                    <div><strong>التكلفة الشهرية:</strong> ' . number_format($row->info->monthly_cost ?? 0, 2) . ' ريال</div>
+                                    <div><strong>قيمة العقد:</strong> ' . number_format($row->info->contract_value ?? 0, 2) . ' ريال</div>
+                                </div>';
                     }
+                    return 'غير محدد';
+                })
+                ->addColumn('marketer', function ($row) {
+                    return $row->marketer ? $row->marketer->name : 'غير محدد';
+                })
+                ->addColumn('remaining_days', function ($row) {
+                    $remainingDays = $row->calculateRemainingDays();
+                    if ($remainingDays !== null) {
+                        if ($remainingDays > 0) {
+                            return '<span class="badge bg-success">' . $remainingDays . ' يوم متبقي</span>';
+                        } else {
+                            return '<span class="badge bg-danger">منتهي</span>';
+                        }
+                    }
+                    return '<span class="badge bg-secondary">غير محدد</span>';
                 })
                 ->addColumn('actions', function ($row) {
+                    $actions = '<div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-cogs"></i> الإجراءات
+                                    </button>
+                                    <ul class="dropdown-menu">';
 
-                    $printButton = '<a target="_blank" href="' . route('print.contract', $row->id) . '" class="m-2 btn btn-success btn-block btn-custom btn-sm"><i class="fa fa-print"></i></a>';
+                    // عرض التفاصيل
+                    $actions .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.show', $row->id) . '">
+                                    <i class="fas fa-eye"></i> عرض التفاصيل
+                                </a></li>';
 
-
-                    // $printButton = '<a href="' . route('printRentContract',$row->id ) . '" class="m-2 btn btn-success btn-block btn-custom print_contract printButton btn-sm"><i class="fa fa-print"></i></a>';
-                    $editButton = '';
-                    $deleteButton = '';
-
-                    $editButton = ahxEditBtn(route(('getContractEdit'), $row->id));
-
-                    if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_DELETE)) {
-                        $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                    // تعديل العقد
+                    if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_EDIT)) {
+                        $actions .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.edit', $row->id) . '">
+                                        <i class="fas fa-edit"></i> تعديل العقد
+                                    </a></li>';
                     }
-                    return $printButton . " " . $editButton . " " . $deleteButton;
+
+                    // طباعة العقد
+                    $actions .= '<li><a class="dropdown-item" href="' . route('print.rental.contract', $row->id) . '" target="_blank">
+                                    <i class="fas fa-print"></i> طباعة العقد
+                                </a></li>';
+
+                    // إنهاء العقد
+                    if ($row->status !== 'completed' && $row->status !== 'cancelled') {
+                        $actions .= '<li><button class="dropdown-item complete-contract" data-id="' . $row->id . '">
+                                        <i class="fas fa-check"></i> إنهاء العقد
+                                    </button></li>';
+                    }
+
+                    // حذف العقد
+                    if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_DELETE)) {
+                        $actions .= '<li><button class="dropdown-item text-danger delete-contract" data-id="' . $row->id . '">
+                                        <i class="fas fa-trash"></i> حذف العقد
+                                    </button></li>';
+                    }
+
+                    $actions .= '</ul></div>';
+
+                    return $actions;
                 })
-                ->escapeColumns([])
+                ->rawColumns(['maid_id', 'contract_info', 'remaining_days', 'actions', 'status'])
                 ->make(true);
         }
 
@@ -101,136 +135,359 @@ class RentContractController extends Controller
         return view($this->folderPath . '.index', $data);
     }
 
-
     public function create(RecruitmentOfficeAction $officeAction)
     {
-        // عقد الاستقدام بيكون للطلبات من نوع استقدام ومنتهية
-        $endedOrders = Order::where('job_type_id',1)->whereIn('status', [OrderEnum::Done->value])->latest()->get();
-        $countries = Country::active()->ordered()->get();
+        // الحصول على الطلبات المنتهية من نوع تأجير (job_type_id = 2)
+        $endedOrders = Order::where('job_type_id', 2)
+                           ->whereIn('status', [OrderEnum::Done->value])
+                           ->latest()
+                           ->get();
+
+        // الحصول على العاملات المتاحة من نوع تأجير
+        $availableRentalMaids = Maid::Shown()
+                                   ->whereHas('jobTypes', function($query) {
+                                       $query->where('job_type_id', 2); // تأجير
+                                   })
+                                   ->where('available', true)
+                                   ->latest()
+                                   ->get();
+
+        // الحصول على المسوقين
+        $marketers = Admin::whereNull('deleted_at')->orderBy('name')->get();
+
+        // الحصول على الجنسيات
+        $nationalities = Nationality::with('translations')->get();
+
         $offices = $officeAction->getAllOffices();
 
-        // select maids
-        $all_available_maids = Maid::Shown()->latest()->get();
-
-        return view($this->folderPath . '.create', compact('endedOrders', 'countries', 'all_available_maids','offices'));
+        return view($this->folderPath . '.create', compact(
+            'endedOrders',
+            'availableRentalMaids',
+            'marketers',
+            'nationalities',
+            'offices'
+        ));
     }
 
-
-    public function store(StoreContractRequest $request,ContractAction $action)
+    public function store(StoreRentalContractRequest $request)
     {
-        // Initialize contract data array
-        $contractData = [
-            'status' => ContractStatusEnum::Sari->value,
-            'maid_id' => $request->maid_id,
-        ];
+        try {
+            DB::beginTransaction();
 
-        // Scenario 1: User selects an existing order to create a contract
-        if ($request->order_id) {
-            $order = Order::find($request->order_id);
-            $contractData['order_id'] = $order->id;
-            $contractData['user_id'] = $order->user_id;
-            $contractData['maid_id'] = $order->maid_id;
+            // إنشاء أو تحديث بيانات العميل
+            if ($request->order_id) {
+                // إذا كان هناك طلب موجود
+                $order = Order::find($request->order_id);
+                $user = $order->user;
+                $user->update([
+                    'name' => $request->client_name,
+                    'phone' => $request->client_phone,
+                    'nationality_id' => $request->client_nationality_id,
+                    'email' => $request->client_email,
+                    'national_num' => $request->client_national_num,
+                    'birthdate' => $request->client_birthdate,
+                    'address' => $request->client_address,
+                    'city' => $request->client_city,
+                    'family_num' => $request->family_num,
+                    'children' => $request->children,
+                    'profession' => $request->profession,
+                    'monthly_income' => $request->monthly_income,
+                ]);
+            } else {
+                // إنشاء عميل جديد
+                $user = User::create([
+                    'name' => $request->client_name,
+                    'phone' => $request->client_phone,
+                    'phone_code' => '+966', // افتراضي
+                    'nationality_id' => $request->client_nationality_id,
+                    'email' => $request->client_email,
+                    'national_num' => $request->client_national_num,
+                    'birthdate' => $request->client_birthdate,
+                    'address' => $request->client_address,
+                    'city' => $request->client_city,
+                    'family_num' => $request->family_num,
+                    'children' => $request->children,
+                    'profession' => $request->profession,
+                    'monthly_income' => $request->monthly_income,
+                    'register_from' => 'admin',
+                    'status' => 1,
+                ]);
+            }
 
-            //update user incoming inputs
-            $clientUser = User::find($order->user_id);
-            // dd($request->client_nationality_id, $request->client_email);
-            $clientUser->update([
+            // إنشاء عقد التأجير
+            $rentalContract = RentalContract::create([
+                'user_id' => $user->id,
+                'maid_id' => $request->maid_id,
+                'marketer_id' => $request->marketer_id,
+                'order_id' => $request->order_id,
+                'status' => 'new',
+                'contract_date' => $request->contract_date,
+                'contract_number' => $this->generateContractNumber(),
+            ]);
+
+            // حساب تاريخ انتهاء الإنجاز
+            $ingazTo = \Carbon\Carbon::parse($request->ingaz_from)
+                                  ->addDays($request->contract_duration_days);
+
+            // حساب قيمة العقد
+            $contractValue = $request->monthly_cost * $request->contract_duration_months;
+
+            // إنشاء معلومات العقد
+            RentalContractInfo::create([
+                'rental_contract_id' => $rentalContract->id,
+                'working_hours_per_day' => $request->working_hours_per_day,
+                'hourly_rate' => $request->hourly_rate,
+                'monthly_salary' => $request->monthly_salary,
+                'sponsorship_transfer_amount' => $request->sponsorship_transfer_amount,
+                'salary_after_sponsorship' => $request->salary_after_sponsorship,
+                'monthly_cost' => $request->monthly_cost,
+                'contract_duration_months' => $request->contract_duration_months,
+                'contract_duration_days' => $request->contract_duration_days,
+                'contract_value' => $contractValue,
+                'ingaz_from' => $request->ingaz_from,
+                'ingaz_to' => $ingazTo,
+                'notes' => $request->notes,
+                'additional_terms' => $request->additional_terms,
+            ]);
+
+            // تحديث حالة العاملة
+            if ($request->maid_id) {
+                Maid::where('id', $request->maid_id)->update([
+                    'status' => 'contracted',
+                    'available' => false,
+                ]);
+            }
+
+            // تحديث حالة الطلب إذا كان موجود
+            if ($request->order_id) {
+                Order::where('id', $request->order_id)->update([
+                    'status' => 'contracted'
+                ]);
+            }
+
+            DB::commit();
+
+            return redirect()->route($this->mainRoute . '.index')
+                           ->with('success', 'تم إنشاء عقد التأجير بنجاح');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error creating rental contract: ' . $e->getMessage());
+
+            return redirect()->back()
+                           ->withInput()
+                           ->with('error', 'حدث خطأ أثناء إنشاء عقد التأجير: ' . $e->getMessage());
+        }
+    }
+
+    public function show($id)
+    {
+        $contract = RentalContract::with([
+            'user.nationality',
+            'maid.nationality.translations',
+            'maid.religion.translations',
+            'info',
+            'marketer',
+            'order'
+        ])->findOrFail($id);
+
+        return view($this->folderPath . '.show', compact('contract'));
+    }
+
+    public function edit($id)
+    {
+        $contract = RentalContract::with(['user', 'maid', 'info', 'marketer'])->findOrFail($id);
+
+        // الحصول على العاملات المتاحة من نوع تأجير
+        $availableRentalMaids = Maid::Shown()
+                                   ->whereHas('jobTypes', function($query) {
+                                       $query->where('job_type_id', 2);
+                                   })
+                                   ->where(function($query) use ($contract) {
+                                       $query->where('available', true)
+                                             ->orWhere('id', $contract->maid_id);
+                                   })
+                                   ->latest()
+                                   ->get();
+
+        $marketers = Admin::whereNull('deleted_at')->orderBy('name')->get();
+        $nationalities = Nationality::with('translations')->get();
+
+        return view($this->folderPath . '.edit', compact(
+            'contract',
+            'availableRentalMaids',
+            'marketers',
+            'nationalities'
+        ));
+    }
+
+    public function update(StoreRentalContractRequest $request, $id)
+    {
+        try {
+            DB::beginTransaction();
+
+            $contract = RentalContract::with(['user', 'info'])->findOrFail($id);
+
+            // تحديث بيانات العميل
+            $contract->user->update([
                 'name' => $request->client_name,
                 'phone' => $request->client_phone,
                 'nationality_id' => $request->client_nationality_id,
                 'email' => $request->client_email,
                 'national_num' => $request->client_national_num,
                 'birthdate' => $request->client_birthdate,
-                'phone2' => $request->phone2,
-                'address' => $request->address,
-                'city' => $request->city,
-                // 'beds_num' => $request->beds_num,
+                'address' => $request->client_address,
+                'city' => $request->client_city,
                 'family_num' => $request->family_num,
                 'children' => $request->children,
-                'job' => $request->job,
+                'profession' => $request->profession,
+                'monthly_income' => $request->monthly_income,
             ]);
 
+            // تحديث بيانات العقد
+            $oldMaidId = $contract->maid_id;
+            $contract->update([
+                'maid_id' => $request->maid_id,
+                'marketer_id' => $request->marketer_id,
+                'contract_date' => $request->contract_date,
+            ]);
 
+            // حساب تاريخ انتهاء الإنجاز
+            $ingazTo = \Carbon\Carbon::parse($request->ingaz_from)
+                                  ->addDays($request->contract_duration_days);
+
+            // حساب قيمة العقد
+            $contractValue = $request->monthly_cost * $request->contract_duration_months;
+
+            // تحديث معلومات العقد
+            $contract->info->update([
+                'working_hours_per_day' => $request->working_hours_per_day,
+                'hourly_rate' => $request->hourly_rate,
+                'monthly_salary' => $request->monthly_salary,
+                'sponsorship_transfer_amount' => $request->sponsorship_transfer_amount,
+                'salary_after_sponsorship' => $request->salary_after_sponsorship,
+                'monthly_cost' => $request->monthly_cost,
+                'contract_duration_months' => $request->contract_duration_months,
+                'contract_duration_days' => $request->contract_duration_days,
+                'contract_value' => $contractValue,
+                'ingaz_from' => $request->ingaz_from,
+                'ingaz_to' => $ingazTo,
+                'notes' => $request->notes,
+                'additional_terms' => $request->additional_terms,
+            ]);
+
+            // تحديث حالة العاملات
+            if ($oldMaidId && $oldMaidId != $request->maid_id) {
+                // إرجاع العاملة السابقة للإتاحة
+                Maid::where('id', $oldMaidId)->update([
+                    'status' => 'available',
+                    'available' => true,
+                ]);
+            }
+
+            if ($request->maid_id) {
+                // تحديث العاملة الجديدة
+                Maid::where('id', $request->maid_id)->update([
+                    'status' => 'contracted',
+                    'available' => false,
+                ]);
+            }
+
+            DB::commit();
+
+            return redirect()->route($this->mainRoute . '.index')
+                           ->with('success', 'تم تحديث عقد التأجير بنجاح');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error updating rental contract: ' . $e->getMessage());
+
+            return redirect()->back()
+                           ->withInput()
+                           ->with('error', 'حدث خطأ أثناء تحديث عقد التأجير: ' . $e->getMessage());
         }
-        // Scenario 2: Admin creates a contract for a new client
-        else {
-            $newUser = $action->saveUserData($request);
-            $contractData['user_id'] = $newUser->id;
-        }
-
-        // Create contract
-        $contract = Contract::create($contractData);
-
-        // Save contract info
-        $contractInfo = $request->only($this->contractInfoData);
-        $action->saveContractInfo($contractInfo,$contract);
-
-        // Save contract status log
-        $action->saveContractStatus($contract,$contractData['status'],$request);
-
-        return jsonSuccess();
-    }
-
-
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, $id)
-    {
-        //
     }
 
     public function destroy($id)
     {
-        $data = Contract::find($id);
-        if (!$data) {
-            $maid_id = $data->maid_id;
-            $type = $data->type;
-            if($type == 'maid'){
-                $maid = Maid::find($maid_id);
-                if($maid){
-                    $maid->update([
-                        'available' => '1'
-                    ]);
-                }
-            }elseif($type == 'shelter_worker'){
-                $maid = ShelterWorkers::find($maid_id);
-                if($maid){
-                    $maid->update([
-                        'contract_id' => null
-                    ]);
-                }
+        try {
+            DB::beginTransaction();
+
+            $contract = RentalContract::with(['maid'])->findOrFail($id);
+
+            // إرجاع العاملة للإتاحة
+            if ($contract->maid) {
+                $contract->maid->update([
+                    'status' => 'available',
+                    'available' => true,
+                ]);
             }
+
+            // حذف العقد (سيحذف معلومات العقد تلقائياً بسبب cascade)
+            $contract->delete();
+
+            DB::commit();
+
+            return redirect()->route($this->mainRoute . '.index')
+                           ->with('success', 'تم حذف عقد التأجير بنجاح');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error deleting rental contract: ' . $e->getMessage());
+
+            return redirect()->back()
+                           ->with('error', 'حدث خطأ أثناء حذف عقد التأجير: ' . $e->getMessage());
         }
-        @$data->delete();
-        return jsonSuccess();
     }
 
+    // Helper Methods
+    private function generateContractNumber()
+    {
+        $year = date('Y');
+        $lastContract = RentalContract::whereYear('created_at', $year)
+                                    ->orderBy('id', 'desc')
+                                    ->first();
 
+        $number = $lastContract ? (intval(substr($lastContract->contract_number, -4)) + 1) : 1;
+
+        return 'RC-' . $year . '-' . str_pad($number, 4, '0', STR_PAD_LEFT);
+    }
+
+    public function completeContract(Request $request, $id)
+    {
+        try {
+            $contract = RentalContract::findOrFail($id);
+
+            $contract->update([
+                'status' => 'completed',
+                'warranty_status' => 'active',
+                'warranty_start_date' => now(),
+                'warranty_end_date' => now()->addMonths(3), // 3 أشهر ضمان افتراضي
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إنهاء العقد بنجاح'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء إنهاء العقد: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function getStatusBadge($status)
+    {
+        $badges = [
+            'new' => '<span class="badge bg-primary">جديد</span>',
+            'active' => '<span class="badge bg-success">نشط</span>',
+            'completed' => '<span class="badge bg-info">مكتمل</span>',
+            'cancelled' => '<span class="badge bg-danger">ملغي</span>',
+            'suspended' => '<span class="badge bg-warning">معلق</span>',
+        ];
+
+        return $badges[$status] ?? '<span class="badge bg-secondary">' . $status . '</span>';
+    }
 }

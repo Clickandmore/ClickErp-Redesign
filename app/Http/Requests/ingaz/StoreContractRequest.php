@@ -59,7 +59,8 @@ class StoreContractRequest extends MainRequest
             'new_client_birthdate' => 'nullable',
             'maid_id' => 'nullable',
             'maid_selection_postponed' => 'nullable|boolean',
-            'marketer_id' => 'nullable',
+            'marketer_id' => 'required|exists:admins,id',
+            'required_maid_nationality' => 'nullable|exists:nationalities,id',
         ];
     }
 
@@ -82,6 +83,9 @@ class StoreContractRequest extends MainRequest
             'client_city.required' => 'يرجي ادخال المدينة',
             'client_address.required' => 'يرجي ادخال العنوان',
             'client_birthdate.required' => 'يرجي ادخال تاريخ الميلاد',
+            'marketer_id.required' => 'يرجي اختيار المسوق',
+            'marketer_id.exists' => 'المسوق المختار غير موجود',
+            'required_maid_nationality.exists' => 'الجنسية المختارة غير موجودة',
         ];
     }
 }

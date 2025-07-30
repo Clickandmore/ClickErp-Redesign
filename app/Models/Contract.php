@@ -48,6 +48,11 @@ class Contract extends Model
         return $this->belongsTo(\App\Models\auth\Admin::class, 'marketer_id');
     }
 
+    public function requiredMaidNationality()
+    {
+        return $this->belongsTo(\App\Models\ingaz\Nationality::class, 'required_maid_nationality_id');
+    }
+
     public function info()
     {
         return $this->hasOne(\App\Models\ContractInfo::class, 'contract_id');

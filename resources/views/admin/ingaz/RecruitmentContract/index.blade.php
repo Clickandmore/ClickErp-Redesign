@@ -4,6 +4,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{asset("admin")}}/custom/admin-tables.css">
 
+
+
 @endsection
 @section('page-title')
     {{helperTrans("ingaz.All Recruitment contracts")}}
@@ -139,8 +141,29 @@
                         </select>
                     </div>
                     <div class="col-md-3">
+                        <label for="marketerFilter" class="form-label">المسوق:</label>
+                        <select id="marketerFilter" class="form-select">
+                            <option value="">جميع المسوقين</option>
+                            @if(isset($filterOptions) && isset($filterOptions['marketers']))
+                                @foreach($filterOptions['marketers'] as $marketer)
+                                    <option value="{{ $marketer->id }}">{{ $marketer->name }}</option>
+                                @endforeach
+                            @else
+                                <option value="">لا توجد بيانات</option>
+                            @endif
+                        </select>
+                    </div>
+
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-3">
+                        <label for="cityFilter" class="form-label">مدينة العميل:</label>
+                        <input type="text" id="cityFilter" class="form-control" placeholder="ابحث بالمدينة">
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label">&nbsp;</label>
                         <div>
+
                             <button type="button" id="clearFilters" class="btn btn-secondary">
                                 <i class="fas fa-times me-1"></i> مسح
                             </button>
@@ -190,6 +213,24 @@
                 </h5>
             </div>
             <div class="card-body p-0">
+                <!-- Modern Loading Overlay -->
+                <div id="loadingOverlay" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(74, 144, 226, 0.1), rgba(80, 200, 120, 0.1)); backdrop-filter: blur(5px); z-index: 1000; display: flex; justify-content: center; align-items: center; border-radius: 0.375rem;">
+                    <div class="text-center">
+                        <!-- Clean Modern Spinner -->
+                        <div class="clean-loader mb-3">
+                            <div class="loader-dot"></div>
+                            <div class="loader-dot"></div>
+                            <div class="loader-dot"></div>
+                            <div class="loader-dot"></div>
+                        </div>
+                        <div class="loading-text">
+                            <i class="fas fa-database me-2"></i>
+                            جاري تحميل بيانات العقود...
+                        </div>
+                        <div class="loading-subtitle">يرجى الانتظار</div>
+                    </div>
+                </div>
+
                 <table id="dataTableObject" class="table table-hover align-middle mb-0" style="width:100%">
         <thead>
         <tr>
@@ -197,6 +238,7 @@
             <th>معلومات العميل</th>
             <th>العاملة</th>
             <th>معلومات العقد</th>
+            <th>المسوق</th>
             <th>الحالة</th>
             <th>تحديث الحالة</th>
             <th>الإجراءات</th>
@@ -393,18 +435,38 @@
                 {"data": "phone", orderable: true, searchable: true},
                 {"data": "maid_id", orderable: false, searchable: false},
                 {"data": "contract_info", orderable: false, searchable: false},
+                {"data": "marketer", orderable: true, searchable: true},
                 {"data": "status", orderable: true, searchable: true},
                 {"data": "updateStatus", orderable: true, searchable: true},
                 {"data": "actions", orderable: true, searchable: true},
             ];
 
+            // إظهار مؤشر التحميل
+            $('#loadingOverlay').show();
+            $('body').addClass('loading');
+
             // إنشاء DataTable مع الفلتر المطبق
             let dataTable = $('#dataTableObject').DataTable({
-                processing: true,
+                processing: CleanLoader.getCleanProcessingMessage(),
                 serverSide: true,
                 searching: false,
+                paging: true, // التأكد من تفعيل التصفح
+                pageLength: 10, // تقليل عدد الصفوف لتسريع التحميل
+                lengthMenu: [[10, 25, 50], [10, 25, 50]], // خيارات أقل
+                stateSave: false, // إيقاف حفظ الحالة لتسريع التحميل
+                deferRender: true, // تحسين الأداء للبيانات الكبيرة
+                scroller: false,
+                autoWidth: false, // إيقاف حساب العرض التلقائي
+                destroy: true, // السماح بإعادة التهيئة
                 ajax: {
                     url: "{{ route('RecruitmentContract.index') }}",
+                    timeout: 15000, // تقليل timeout إلى 15 ثانية
+                    type: 'GET',
+                    dataSrc: function(json) {
+                        // معالجة البيانات قبل العرض
+                        console.log('Data received:', json.data.length, 'records');
+                        return json.data;
+                    },
                     data: function (d) {
                         d.status = $('#statusFilter').val();
                         d.date_from = $('#dateFromFilter').val();
@@ -418,6 +480,7 @@
                         d.religion = $('#religionFilter').val();
                         d.office_id = $('#officeFilter').val();
                         d.city = $('#cityFilter').val();
+                        d.marketer_id = $('#marketerFilter').val(); // Add marketer filter
 
                         // إضافة فلتر حالة الضمان فقط إذا كانت الحالة "عقود مكتملة"
                         if ($('#statusFilter').val() === 'completed') {
@@ -427,16 +490,28 @@
                     error: function (xhr, error, thrown) {
                         console.error('DataTables AJAX error:', error);
                         console.error('Response:', xhr.responseText);
+
+                        // إظهار رسالة خطأ للمستخدم
+                        $('#dataTableObject tbody').html(
+                            '<tr><td colspan="100%" class="text-center text-danger">' +
+                            '<i class="fas fa-exclamation-triangle me-2"></i>' +
+                            'حدث خطأ في تحميل البيانات. يرجى المحاولة مرة أخرى.' +
+                            '</td></tr>'
+                        );
                     }
                 },
                 columns: columns,
                 order: [[0, 'desc']],
-                pageLength: 25,
+                pageLength: 10, // تقليل عدد الصفوف لتسريع التحميل
+                lengthMenu: [[10, 25, 50], [10, 25, 50]], // خيارات أقل
+                stateSave: false, // إيقاف حفظ الحالة لتسريع التحميل
+                deferRender: true, // تحسين الأداء للبيانات الكبيرة
+                scroller: false,
                 language: {
                     url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/ar.json',
                     emptyTable: "لا توجد عقود متاحة",
                     zeroRecords: "لم يتم العثور على عقود تطابق معايير البحث",
-                    processing: "جاري التحميل...",
+                    processing: '<div class="d-flex justify-content-center align-items-center p-4"><div class="clean-loader-small me-3"><div class="loader-dot-small"></div><div class="loader-dot-small"></div><div class="loader-dot-small"></div></div><div class="text-primary fw-bold">جاري المعالجة...</div></div>',
                     search: "البحث:",
                     lengthMenu: "عرض _MENU_ سجل",
                     info: "عرض _START_ إلى _END_ من _TOTAL_ سجل",
@@ -444,10 +519,7 @@
                     infoFiltered: "(مفلتر من _MAX_ سجل إجمالي)"
                 },
                 responsive: true,
-                dom: 'Bfrtip',
-                buttons: [
-                    'copy', 'csv', 'excel', 'pdf', 'print'
-                ],
+                dom: 'lrtip', // إزالة الأزرار لتسريع التحميل
                 initComplete: function () {
                     console.log('DataTable initialized successfully');
                     var info = this.api().page.info();
@@ -458,6 +530,23 @@
                     // إظهار رسالة إذا لم توجد بيانات عند التحميل الأولي
                     if (info.recordsTotal === 0) {
                         console.log('No contracts found on initial load');
+                    }
+
+                    // إزالة overlay التحميل وتمكين التفاعل
+                    $('#loadingOverlay').hide();
+                    $('body').removeClass('loading');
+                },
+                preDrawCallback: function(settings) {
+                    // منع التفاعل أثناء التحميل
+                    $('#dataTableObject').addClass('loading');
+                },
+                drawCallback: function(settings) {
+                    // تمكين التفاعل بعد التحميل
+                    $('#dataTableObject').removeClass('loading');
+
+                    // إعادة تهيئة tooltips إذا كانت موجودة
+                    if (typeof $().tooltip === 'function') {
+                        $('[data-bs-toggle="tooltip"]').tooltip();
                     }
                 }
             });
@@ -507,7 +596,7 @@
             });
 
             // تحديث الجدول عند تغيير فلاتر البحث
-            $('#clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #cityFilter').on('change', function() {
+            $('#clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #cityFilter, #marketerFilter').on('change', function() {
                 // لا تحدث الجدول تلقائياً - انتظر زر البحث
             });
 
@@ -521,7 +610,7 @@
 
             // مسح الفلاتر
             $('#clearFilters').on('click', function() {
-                $('#statusFilter, #warrantyStatusFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #cityFilter').val('');
+                $('#statusFilter, #warrantyStatusFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #cityFilter, #marketerFilter').val('');
                 $('#dateFromFilter, #dateToFilter').val('');
                 localStorage.removeItem('contractFilters'); // مسح الفلاتر المحفوظة
 
@@ -546,7 +635,8 @@
                                      $('#clientPhoneFilter').val() || $('#clientNameFilter').val() ||
                                      $('#maidPassportFilter').val() || $('#maidNameFilter').val() ||
                                      $('#contractNumberFilter').val() || $('#nationalityFilter').val() ||
-                                     $('#religionFilter').val() || $('#officeFilter').val() || $('#cityFilter').val();
+                                     $('#religionFilter').val() || $('#officeFilter').val() || $('#cityFilter').val() ||
+                                     $('#marketerFilter').val();
 
                 console.log('DataTable XHR completed:', {
                     recordsTotal: info.recordsTotal,
@@ -630,7 +720,8 @@
                     religion: $('#religionFilter').val(),
                     city: $('#cityFilter').val(),
                     dateFrom: $('#dateFromFilter').val(),
-                    dateTo: $('#dateToFilter').val()
+                    dateTo: $('#dateToFilter').val(),
+                    marketer: $('#marketerFilter').val() // Save marketer filter
                 };
                 localStorage.setItem('contractFilters', JSON.stringify(filters));
             }
@@ -657,6 +748,7 @@
                     $('#cityFilter').val(filters.city || '');
                     $('#dateFromFilter').val(filters.dateFrom || '');
                     $('#dateToFilter').val(filters.dateTo || '');
+                    $('#marketerFilter').val(filters.marketer || ''); // Load marketer filter
                 }
             }
 
@@ -1009,6 +1101,17 @@
             // معالج إرجاع العقد
         $(document).on('click', '.backContract', function () {
                 var contractId = $(this).data('row-id');
+                console.log('Back contract clicked, contractId:', contractId);
+
+                if (!contractId) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: 'لم يتم العثور على معرف العقد',
+                        confirmButtonText: 'حسناً'
+                    });
+                    return;
+                }
 
                 Swal.fire({
                     title: 'تأكيد الإرجاع',
@@ -1025,6 +1128,7 @@
                             url: '{{ route('RecruitmentContract.back', ':id') }}'.replace(':id', contractId),
                 method: 'GET',
                 success: function (response) {
+                                console.log('Back contract response:', response);
                                 if (response.success) {
                                     Swal.fire({
                                         icon: 'success',

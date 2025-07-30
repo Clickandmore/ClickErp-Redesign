@@ -67,7 +67,21 @@ class RecruitmentContractController extends Controller
         if ($request->ajax()) {
 
 
-            $query = Contract::with(['user', 'maid.nationality', 'maid.religion', 'info'])
+            $query = Contract::with([
+                    'user', // جميع بيانات العميل
+                    'user.nationality', // جنسية العميل (Country model)
+                    'maid', // جميع بيانات العاملة
+                    'maid.nationality.translations', // جنسية العاملة مع الترجمات
+                    'maid.religion.translations', // ديانة العاملة مع الترجمات
+                    'maid.office.translations', // المكتب الخارجي مع الترجمات
+                    'requiredMaidNationality.translations', // الجنسية المفضلة للعاملة
+                    'info', // جميع بيانات العقد
+                    'info.shelter.translations', // بيانات الإيواء
+                    'contract_status_logs', // سجل حالات العقد (مطلوب لبعض العمليات)
+                    'order', // بيانات الطلب
+                    'order.details', // تفاصيل الطلب
+                    'order.details.admin' // بيانات المسوق
+                ])
                 ->whereIn('type', ['recruitment', 'maid']);
 
             // فلتر الحالة - استخدام query parameter فقط
@@ -152,18 +166,27 @@ class RecruitmentContractController extends Controller
                 });
             }
 
+            // فلتر المسوق
+            if ($request->filled('marketer_id')) {
+                $query->where(function($q) use ($request) {
+                    // البحث في marketer_id المباشر
+                    $q->where('marketer_id', $request->marketer_id)
+                      // أو البحث في order.details.admin_id
+                      ->orWhereHas('order.details', function($orderQuery) use ($request) {
+                          $orderQuery->where('admin_id', $request->marketer_id);
+                      });
+                });
+            }
+
             $rows = $query->orderBy('id', 'desc');
 
-
-
-            $contracts = $rows->get();
-
-            \Log::info('Contracts loaded for DataTables', [
-                'count' => $contracts->count(),
-                'first_contract' => $contracts->first() ? $contracts->first()->toArray() : null
+            \Log::info('Query prepared for DataTables', [
+                'filters_applied' => $request->except(['draw', 'start', 'length', 'search', 'order', 'columns']),
+                'status_filter' => $statusFilter
             ]);
 
-            return DataTables::of($contracts)
+            // استخدام DataTables::eloquent بدلاً من get() لتحسين الأداء
+            return DataTables::eloquent($rows)
                 ->addIndexColumn()
                 ->editColumn('status', function ($row) {
                     $statusText = getContractStatus($row->status);
@@ -179,7 +202,14 @@ class RecruitmentContractController extends Controller
                     // إضافة حالة الضمان للعقود المكتملة
                     if ($row->status === 'completed') {
                         $warrantyStatus = $row->warranty_status ?? 'not_applicable';
-                        $remainingDays = $row->warranty_remaining_days ?? 0;
+
+                        // حساب الأيام المتبقية من تاريخ انتهاء الضمان
+                        $remainingDays = 0;
+                        if ($row->warranty_end_date) {
+                            $endDate = \Carbon\Carbon::parse($row->warranty_end_date);
+                            $remainingDays = max(0, $endDate->diffInDays(now(), false));
+                            if ($remainingDays < 0) $remainingDays = abs($remainingDays);
+                        }
 
                         switch ($warrantyStatus) {
                             case 'active':
@@ -248,11 +278,16 @@ class RecruitmentContractController extends Controller
                         }
                        $maidInfo .= '</div>';
                     } else {
-                        // رسالة محسنة عندما لا توجد عاملة
+                        // رسالة محسنة عندما لا توجد عاملة مع إظهار الجنسية المفضلة
                         if ($row->status == ContractStatusEnum::PendingMaidSelection->value) {
                             $maidInfo = '<div class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i><strong>في انتظار اختيار العاملة</strong></div>';
                         } else {
                             $maidInfo = '<div class="text-danger"><i class="fas fa-times-circle me-1"></i><strong>لا توجد عاملة مخصصة</strong></div>';
+                        }
+
+                        // إضافة الجنسية المفضلة إذا كانت متوفرة
+                        if ($row->requiredMaidNationality) {
+                            $maidInfo .= '<div class="text-info mt-1"><i class="fas fa-flag me-1"></i><small>الجنسية المفضلة: <strong>' . $row->requiredMaidNationality->sub_title . '</strong></small></div>';
                         }
                     }
                     return $maidInfo;
@@ -276,6 +311,32 @@ class RecruitmentContractController extends Controller
                         $contractInfo .= '</div>';
                     }
                     return $contractInfo ?: '<span class="text-muted">غير محدد</span>';
+                })
+                ->addColumn('marketer', function ($row) {
+                    $marketerInfo = '';
+
+                    // البحث عن المسوق من marketer_id المباشر
+                    if ($row->marketer_id) {
+                        $marketer = \App\Models\auth\Admin::find($row->marketer_id);
+                        if ($marketer) {
+                            $marketerInfo = '<div class="marketer-info">';
+                            $marketerInfo .= '<i class="fas fa-user-tie me-1 text-primary"></i>';
+                            $marketerInfo .= '<strong>' . htmlspecialchars($marketer->name) . '</strong>';
+                            $marketerInfo .= '</div>';
+                        }
+                    }
+
+                    // إذا لم يوجد marketer_id، البحث في order.details.admin
+                    if (empty($marketerInfo) && $row->order && $row->order->details && $row->order->details->admin) {
+                        $marketer = $row->order->details->admin;
+                        $marketerInfo = '<div class="marketer-info">';
+                        $marketerInfo .= '<i class="fas fa-user-tie me-1 text-info"></i>';
+                        $marketerInfo .= '<strong>' . htmlspecialchars($marketer->name) . '</strong>';
+                        $marketerInfo .= '<br><small class="text-muted">من الطلب</small>';
+                        $marketerInfo .= '</div>';
+                    }
+
+                    return $marketerInfo ?: '<span class="text-muted"><i class="fas fa-user-slash me-1"></i>غير محدد</span>';
                 })
 
                 ->addColumn('updateStatus', function ($row) {
@@ -483,14 +544,25 @@ class RecruitmentContractController extends Controller
                         }
                     }
 
-                    // زر إكمال الرحلة - يظهر لجميع العقود التي لديها رحلات
+                    // زر إكمال الرحلة - يظهر فقط للعقود التي لديها رحلة فعلية وليس في مرحلة التذكرة
                     $travelHistory = TravelHistory::where('order_id', $row->id)->first();
                     if ($travelHistory && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
-                        if ($travelHistory->status !== 'completed') {
+                        // التأكد من أن العقد ليس في مرحلة التذكرة وأن الرحلة موجودة ولم تكتمل
+                        if ($row->status !== ContractStatusEnum::Tazker->value &&
+                            $travelHistory->status !== 'completed') {
                             $actions .= '<li><button class="dropdown-item complete-trip-btn" data-trip-id="' . $travelHistory->id . '">
                                             <i class="fas fa-check"></i> إكمال الرحلة
                                         </button></li>';
                         }
+                    }
+
+                    // زر إضافة رحلة - يظهر للعقود في مرحلة التذكرة التي لا تحتوي على رحلة
+                    if ($row->status === ContractStatusEnum::Tazker->value &&
+                        !$travelHistory &&
+                        @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_ADD_TRAVEL)) {
+                        $actions .= '<li><button class="dropdown-item add-travel-btn" data-contract-id="' . $row->id . '">
+                                        <i class="fas fa-plane"></i> إضافة رحلة
+                                    </button></li>';
                     }
 
                     // زر الإرجاع - لا يظهر للعقود المكتملة أو التي في الإيواء
@@ -502,7 +574,7 @@ class RecruitmentContractController extends Controller
                         } else {
                             // التحقق من صلاحية إرجاع العقد
                             if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
-                                $actions .= '<li><button class="dropdown-item btn-danger" data-row-id="' . $row->id . '">
+                                $actions .= '<li><button class="dropdown-item backContract" data-row-id="' . $row->id . '">
                                                 <i class="fas fa-undo"></i> إرجاع العقد
                                             </button></li>';
                             }
@@ -568,12 +640,18 @@ class RecruitmentContractController extends Controller
         // الحصول على بيانات المسوق
         $marketer = null;
         try {
-            if ($contract->order && $contract->order->details) {
+            // أولاً: التحقق من marketer_id في العقد مباشرة
+            if ($contract->marketer_id) {
+                $marketer = \App\Models\auth\Admin::find($contract->marketer_id);
+            }
+            // ثانياً: التحقق من بيانات الطلب إذا لم يوجد marketer_id
+            elseif ($contract->order && $contract->order->details) {
                 $marketer = $contract->order->details->admin;
             }
         } catch (\Exception $e) {
-            \Log::warning('Could not load order details for contract: ' . $contract->id, [
+            \Log::warning('Could not load marketer for contract: ' . $contract->id, [
                 'error' => $e->getMessage(),
+                'contract_marketer_id' => $contract->marketer_id,
                 'contract_order_id' => $contract->order_id
             ]);
         }
@@ -602,7 +680,6 @@ class RecruitmentContractController extends Controller
                 'user.nationality',
                 'maid.nationality',
                 'maid.religion',
-                'maid.job_types',
                 'jobType.translations'
             ])->find($orderId);
             \Log::info('Selected order loaded:', ['order' => $selectedOrder ? $selectedOrder->toArray() : null]);
@@ -613,7 +690,6 @@ class RecruitmentContractController extends Controller
             'user.nationality',
             'maid.nationality',
             'maid.religion',
-            'maid.job_types',
             'jobType.translations'
         ])
         ->where('status', 'new')
@@ -624,7 +700,6 @@ class RecruitmentContractController extends Controller
             'user.nationality',
             'maid.nationality',
             'maid.religion',
-            'maid.job_types',
             'jobType.translations'
         ])
         ->where('status', 'ended')
@@ -716,6 +791,7 @@ class RecruitmentContractController extends Controller
             $contractData = [
                 'status' => $contractStatus,
                 'maid_id' => ($isNoMaid || $isMaidSelectionPostponed) ? null : $maidId,
+                'required_maid_nationality_id' => $request->required_maid_nationality, // حفظ الجنسية المفضلة
             ];
 
             if ($request->order_id) {
@@ -756,7 +832,7 @@ class RecruitmentContractController extends Controller
                 $contractData['user_id'] = $order->user_id;
                 $contractData['maid_id'] = $isNoMaid ? null : $order->maid_id;
                 $contractData['order_id'] = $order->id; // إضافة order_id للعقد
-                $contractData['marketer_id'] = Auth::guard('admin')->id(); // إضافة المسوق تلقائياً
+                $contractData['marketer_id'] = $request->marketer_id ?: Auth::guard('admin')->id(); // أخذ المسوق من الطلب أو المستخدم الحالي
 
                 \Log::info('Contract data from order:', $contractData);
             } else {
@@ -817,7 +893,7 @@ class RecruitmentContractController extends Controller
                     \Log::info('Updated existing user:', ['user' => $user->toArray()]);
                 }
                 $contractData['user_id'] = $user->id;
-                $contractData['marketer_id'] = Auth::guard('admin')->id(); // إضافة المسوق تلقائياً
+                $contractData['marketer_id'] = $request->marketer_id ?: Auth::guard('admin')->id(); // إضافة المسوق تلقائياً
             }
 
             \Log::info('Creating contract with data:', $contractData);
@@ -1888,15 +1964,19 @@ class RecruitmentContractController extends Controller
     }
 
     /**
-     * جلب قوائم الجنسيات والديانات للفلترة
+     * جلب خيارات الفلترة
      */
     public function getFilterOptions()
     {
-        return [
-            'nationalities' => \App\Models\ingaz\Nationality::all(),
-            'religions' => \App\Models\ingaz\Religion::all(),
-            'offices' => \App\Models\RecruitmentOffices::all(),
-        ];
+        // استخدام cache لتسريع التحميل
+        return \Cache::remember('recruitment_contract_filter_options', 300, function () { // 5 دقائق
+            return [
+                'nationalities' => \App\Models\ingaz\Nationality::select('id')->with('translations:nationality_id,sub_title')->get(),
+                'religions' => \App\Models\ingaz\Religion::select('id')->with('translations:religion_id,title')->get(),
+                'offices' => \App\Models\RecruitmentOffices::select('id')->with('translations:rec_office_id,title')->get(),
+                'marketers' => \App\Models\auth\Admin::select('id', 'name')->whereNull('deleted_at')->orderBy('name')->get(),
+            ];
+        });
     }
 
     /**

@@ -43,5 +43,23 @@
                    value="2" readonly>
             <small class="text-muted">(مدة التعاقد ثابتة: سنتين)</small>
         </div>
+
+        <div class="col-6">
+            <label class="form-label">المسوق <span class="text-danger">*</span></label>
+            <select name="marketer_id" id="marketer_id" class="form-select" data-validation="required">
+                <option value="">اختر المسوق</option>
+                @php
+                    $currentAdmin = auth('admin')->user();
+                    $admins = \App\Models\auth\Admin::whereNull('deleted_at')->orderBy('name')->get();
+                @endphp
+                @foreach($admins as $admin)
+                    <option value="{{ $admin->id }}"
+                        @if($currentAdmin && $currentAdmin->id == $admin->id) selected @endif>
+                        {{ $admin->name }}
+                    </option>
+                @endforeach
+            </select>
+            <div class="invalid-feedback" id="err_marketer_id"></div>
+        </div>
     </div>
 </div>

@@ -84,25 +84,27 @@ class DeportationTravelController extends Controller
                 })
                 ->addColumn('actions', function ($row) {
                     $actions = '<div class="dropdown actions-dropdown">
-                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
+                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button"  aria-expanded="false" title="الإجراءات المتاحة">
                                         <i class="fa fa-cogs me-1"></i> الإجراءات
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
 
-                    // عرض التفاصيل - متاح دائماً
-                    $actions .= '<li><a class="dropdown-item" href="' . route('DeportationTravel.show', $row->id) . '">
-                                    <i class="fa fa-eye"></i> عرض التفاصيل
-                                </a></li>';
-
                     // تأكيد إتمام الرحلة - فقط للرحلات غير المكتملة
                     if ($row->status != 'completed') {
-                        $actions .= '<li><hr class="dropdown-divider"></li>';
                         $actions .= '<li><a class="dropdown-item" href="javascript:void(0)" onclick="completeTrip(' . $row->id . ')">
                                         <i class="fa fa-check-circle text-success"></i> تأكيد إتمام الرحلة
                                     </a></li>';
                     }
 
+                    // إذا كانت الرحلة مكتملة، نعرض رسالة
+                    if ($row->status == 'completed') {
+                        $actions .= '<li><span class="dropdown-item text-muted">
+                                        <i class="fa fa-info-circle"></i> الرحلة مكتملة
+                                    </span></li>';
+                    }
+
                     $actions .= '</ul></div>';
+
                     return $actions;
                 })
                 ->rawColumns(['maid_data', 'client', 'travel_details', 'status', 'actions'])
@@ -174,8 +176,9 @@ class DeportationTravelController extends Controller
      */
     public function show($id)
     {
-        $travel = TravelHistory::with(['user', 'maid', 'order'])->findOrFail($id);
-        return view('admin.ingaz.DeportationTravel.show', compact('travel'));
+        // بما أن كل التفاصيل معروضة في الجدول، نعيد التوجيه إلى صفحة القائمة
+        return redirect()->route('DeportationTravel.index')
+            ->with('info', 'جميع تفاصيل الرحلة متوفرة في جدول رحلات الترحيل');
     }
 
     /**

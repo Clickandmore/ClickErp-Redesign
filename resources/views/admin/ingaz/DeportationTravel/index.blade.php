@@ -8,150 +8,7 @@
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="{{asset("admin")}}/custom/admin-tables.css">
-<style>
-/* إزالة الظلال من الجدول */
-.table * {
-    text-shadow: none !important;
-    box-shadow: none !important;
-}
 
-/* تحسين وضوح النص */
-.table td, .table th {
-    color: #212529 !important;
-    background-color: transparent;
-}
-
-.table tbody tr:hover {
-    background-color: #f8f9fa !important;
-}
-
-/* تحسين الشارات */
-.badge {
-    text-shadow: none !important;
-    box-shadow: none !important;
-}
-
-/* التأكد من وضوح البيانات */
-.text-muted {
-    color: #6c757d !important;
-    text-shadow: none !important;
-}
-
-.table strong {
-    color: #212529 !important;
-    font-weight: 600;
-}
-
-.table small {
-    color: #6c757d !important;
-}
-
-/* إزالة أي تأثيرات من admin-tables.css */
-#deportationTravelTable td,
-#deportationTravelTable th,
-#deportationTravelTable * {
-    text-shadow: none !important;
-    box-shadow: none !important;
-    filter: none !important;
-    opacity: 1 !important;
-}
-
-.maid-info, .user-info {
-    line-height: 1.6;
-}
-
-.maid-info .fw-bold, .user-info .fw-bold {
-    display: block;
-    margin-bottom: 2px;
-}
-
-.travel-details {
-    line-height: 1.8;
-}
-
-.travel-details i {
-    width: 20px;
-    color: #5a5c69;
-    margin-left: 5px;
-}
-
-/* تنسيق زر الإجراءات */
-.actions-dropdown {
-    position: relative;
-}
-
-.actions-btn {
-    background: #fff;
-    border: 1px solid #dee2e6;
-    color: #495057;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.875rem;
-    border-radius: 0.25rem;
-    transition: all 0.15s ease-in-out;
-}
-
-.actions-btn:hover {
-    background-color: #f8f9fa;
-    border-color: #adb5bd;
-    color: #495057;
-}
-
-.actions-btn i {
-    margin-left: 0.25rem;
-}
-
-.actions-btn.show {
-    background: #f8f9fa;
-    border-color: #adb5bd;
-}
-
-/* تحسين dropdown menu */
-.actions-dropdown .dropdown-menu {
-    position: absolute;
-    z-index: 1050;
-    display: none;
-    min-width: 10rem;
-    padding: 0.5rem 0;
-    margin: 0;
-    font-size: 0.875rem;
-    color: #212529;
-    text-align: right;
-    background-color: #fff;
-    background-clip: padding-box;
-    border: 1px solid rgba(0,0,0,.15);
-    border-radius: 0.25rem;
-}
-
-.actions-dropdown .dropdown-menu.show {
-    display: block;
-}
-
-.actions-dropdown .dropdown-item {
-    display: block;
-    width: 100%;
-    padding: 0.5rem 1rem;
-    clear: both;
-    font-weight: 400;
-    color: #212529;
-    text-align: inherit;
-    text-decoration: none;
-    white-space: nowrap;
-    background-color: transparent;
-    border: 0;
-}
-
-.actions-dropdown .dropdown-item:hover {
-    color: #1e2125;
-    background-color: #f8f9fa;
-}
-
-.actions-dropdown .dropdown-divider {
-    height: 0;
-    margin: 0.5rem 0;
-    overflow: hidden;
-    border-top: 1px solid #e9ecef;
-}
-</style>
 @endsection
 
 @section('content')
@@ -238,7 +95,7 @@
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
+<script src="{{asset("admin")}}/custom/admin-tables.js"></script>
 <script>
 $(document).ready(function() {
     loadTable();
@@ -295,70 +152,12 @@ function loadTable() {
             // إخفاء الـ loader بعد اكتمال التحميل
             $('.dataTables_processing').hide();
 
-            // تهيئة dropdown buttons
-            initializeDropdowns();
+
         }
     });
 }
 
-// تهيئة dropdown
-function initializeDropdowns() {
-    // إزالة أي event listeners سابقة
-    $(document).off('click', '.actions-btn');
-    $(document).off('click', '.dropdown-item');
 
-    // عند النقر على زر الإجراءات
-    $(document).on('click', '.actions-btn', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        var $button = $(this);
-        var $dropdown = $button.next('.dropdown-menu');
-        var isOpen = $dropdown.hasClass('show');
-
-        // إغلاق جميع القوائم المفتوحة
-        $('.dropdown-menu').removeClass('show');
-        $('.actions-btn').attr('aria-expanded', 'false');
-
-        // فتح/إغلاق القائمة الحالية
-        if (!isOpen) {
-            $dropdown.addClass('show');
-            $button.attr('aria-expanded', 'true');
-
-            // تحديد موضع القائمة
-            var buttonOffset = $button.offset();
-            var buttonHeight = $button.outerHeight();
-            var dropdownHeight = $dropdown.outerHeight();
-            var windowHeight = $(window).height();
-            var scrollTop = $(window).scrollTop();
-
-            // التحقق من وجود مساحة كافية أسفل الزر
-            if (buttonOffset.top + buttonHeight + dropdownHeight > windowHeight + scrollTop) {
-                $dropdown.css({
-                    'position': 'absolute',
-                    'top': 'auto',
-                    'bottom': '100%',
-                    'margin-bottom': '0.125rem'
-                });
-            } else {
-                $dropdown.css({
-                    'position': 'absolute',
-                    'top': '100%',
-                    'bottom': 'auto',
-                    'margin-top': '0.125rem'
-                });
-            }
-        }
-    });
-
-    // إغلاق القائمة عند النقر خارجها
-    $(document).on('click', function(e) {
-        if (!$(e.target).closest('.actions-dropdown').length) {
-            $('.dropdown-menu').removeClass('show');
-            $('.actions-btn').attr('aria-expanded', 'false');
-        }
-    });
-}
 
 // دالة حذف الرحلة
 function deleteTravel(id) {
@@ -392,7 +191,7 @@ function deleteTravel(id) {
 }
 
 // دالة إكمال الرحلة
-function completeTravel(id) {
+function completeTrip(id) {
     Swal.fire({
         title: 'هل أنت متأكد؟',
         text: "هل تريد تأكيد إكمال هذه الرحلة؟",
@@ -420,6 +219,11 @@ function completeTravel(id) {
             });
         }
     });
+}
+
+// الاحتفاظ بالدالة القديمة للتوافق
+function completeTravel(id) {
+    completeTrip(id);
 }
 </script>
 @endsection
