@@ -43,8 +43,7 @@ class RecruitmentContractController extends Controller
         'sponsorship_price',
         'salary_after_sponsorship',
         'monthly_cost',
-        'contract_duration'
-        ,
+        'contract_duration' ,
         'contract_value',
         'contract_date',
         'ingaz_from',
@@ -66,9 +65,7 @@ class RecruitmentContractController extends Controller
         }
 
         if ($request->ajax()) {
-            \Log::info('RecruitmentContract index AJAX request', [
-                'request_data' => $request->all()
-            ]);
+
 
             $query = Contract::with(['user', 'maid.nationality', 'maid.religion', 'info'])
                 ->whereIn('type', ['recruitment', 'maid']);
@@ -83,11 +80,6 @@ class RecruitmentContractController extends Controller
                 ]);
             }
 
-            // إضافة log للتحقق من الفلتر
-            \Log::info('Status filter applied:', [
-                'request_status' => $request->get('status'),
-                'final_status_filter' => $statusFilter
-            ]);
 
             // فلتر التاريخ من
             if ($request->filled('date_from')) {
@@ -162,15 +154,7 @@ class RecruitmentContractController extends Controller
 
             $rows = $query->orderBy('id', 'desc');
 
-            \Log::info('RecruitmentContract query results', [
-                'total_count' => $rows->count(),
-                'sql' => $rows->toSql(),
-                'bindings' => $rows->getBindings(),
-                'status_filter' => $statusFilter,
-                'request_status' => $request->get('status'),
-                'query_string' => $request->getQueryString(),
-                'full_url' => $request->fullUrl()
-            ]);
+
 
             $contracts = $rows->get();
 
@@ -448,70 +432,54 @@ class RecruitmentContractController extends Controller
                     }
                 })
                 ->addColumn('actions', function ($row) {
-                    $actions = [];
+                    $actions = '<div class="dropdown actions-dropdown">
+                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button"  aria-expanded="false" title="الإجراءات المتاحة">
+                                        <i class="fas fa-cogs me-1"></i> الإجراءات
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
 
                     // زر عرض العقد
-                    $actions[] = [
-                        'url' => route('contracts.details', $row->id),
-                        'icon' => 'fas fa-eye',
-                        'text' => 'عرض العقد',
-                        'class' => 'btn-info',
-                        'target' => '_blank'
-                    ];
+                    $actions .= '<li><a class="dropdown-item" href="' . route('contracts.details', $row->id) . '" target="_blank">
+                                    <i class="fas fa-eye"></i> عرض العقد
+                                </a></li>';
 
                     // زر الطباعة
-                    $actions[] = [
-                        'url' => route('contracts.details', $row->id),
-                        'icon' => 'fas fa-print',
-                        'text' => 'طباعة العقد',
-                        'class' => 'btn-secondary',
-                        'target' => '_blank'
-                    ];
+                    $actions .= '<li><a class="dropdown-item" href="' . route('contracts.details', $row->id) . '" target="_blank">
+                                    <i class="fas fa-print"></i> طباعة العقد
+                                </a></li>';
 
                     // منع التعديل والحذف للعقود المكتملة والمرتجعة والتي في الإيواء
                     if ($row->status !== ContractStatusEnum::Completed->value &&
                         $row->status !== ContractStatusEnum::Back->value &&
                         $row->status !== ContractStatusEnum::Shelter->value) {
+
                         // زر التعديل
                         if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EDIT)) {
-                            $actions[] = [
-                                'url' => route($this->mainRoute . '.edit', $row->id),
-                                'icon' => 'fas fa-edit',
-                                'text' => 'تعديل العقد',
-                                'class' => 'btn-warning'
-                            ];
+                            $actions .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.edit', $row->id) . '">
+                                            <i class="fas fa-edit"></i> تعديل العقد
+                                        </a></li>';
                         }
 
                         // زر الحذف
                         if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
-                            $actions[] = [
-                                'url' => route($this->mainRoute . ".destroy", $row->id),
-                                'icon' => 'fas fa-trash',
-                                'text' => 'حذف العقد',
-                                'class' => 'btn-danger',
-                                'confirm' => true
-                            ];
+                            $actions .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . ".destroy", $row->id) . '" onclick="return confirm(\'هل أنت متأكد من الحذف؟\')">
+                                            <i class="fas fa-trash"></i> حذف العقد
+                                        </a></li>';
                         }
-                        } else {
+                    } else {
                         // للعقود المكتملة والمرتجعة والتي في الإيواء - إضافة رسالة توضيحية
                         if ($row->status === ContractStatusEnum::Completed->value) {
-                            $actions[] = [
-                                'type' => 'span',
-                                'text' => 'العقد مكتمل - لا يمكن التعديل',
-                                'class' => 'badge bg-success'
-                            ];
+                            $actions .= '<li><span class="dropdown-item disabled">
+                                            <span class="badge bg-success">العقد مكتمل - لا يمكن التعديل</span>
+                                        </span></li>';
                         } elseif ($row->status === ContractStatusEnum::Shelter->value) {
-                            $actions[] = [
-                                'type' => 'span',
-                                'text' => 'العقد في الإيواء - لا يمكن التعديل',
-                                'class' => 'badge bg-info'
-                            ];
-                            } else {
-                            $actions[] = [
-                                'type' => 'span',
-                                'text' => 'العقد مرتجع - لا يمكن التعديل',
-                                'class' => 'badge bg-danger'
-                            ];
+                            $actions .= '<li><span class="dropdown-item disabled">
+                                            <span class="badge bg-info">العقد في الإيواء - لا يمكن التعديل</span>
+                                        </span></li>';
+                        } else {
+                            $actions .= '<li><span class="dropdown-item disabled">
+                                            <span class="badge bg-danger">العقد مرتجع - لا يمكن التعديل</span>
+                                        </span></li>';
                         }
                     }
 
@@ -519,34 +487,24 @@ class RecruitmentContractController extends Controller
                     $travelHistory = TravelHistory::where('order_id', $row->id)->first();
                     if ($travelHistory && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
                         if ($travelHistory->status !== 'completed') {
-                            $actions[] = [
-                                'type' => 'button',
-                                'data' => 'data-trip-id="' . $travelHistory->id . '"',
-                                'icon' => 'fas fa-check',
-                                'text' => 'إكمال الرحلة',
-                                'class' => 'btn-success complete-trip-btn'
-                            ];
+                            $actions .= '<li><button class="dropdown-item complete-trip-btn" data-trip-id="' . $travelHistory->id . '">
+                                            <i class="fas fa-check"></i> إكمال الرحلة
+                                        </button></li>';
                         }
                     }
 
                     // زر الإرجاع - لا يظهر للعقود المكتملة أو التي في الإيواء
                     if ($row->status !== ContractStatusEnum::Completed->value && $row->status !== ContractStatusEnum::Shelter->value) {
-                    if ($row->status == ContractStatusEnum::Back->value) {
-                            $actions[] = [
-                                'type' => 'span',
-                                'text' => 'مرتجع',
-                                'class' => 'badge'
-                            ];
-                    } else {
-                        // التحقق من صلاحية إرجاع العقد
-                        if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
-                                $actions[] = [
-                                    'type' => 'button',
-                                    'data' => 'data-row-id="' . $row->id . '"',
-                                    'icon' => 'fas fa-undo',
-                                    'text' => 'إرجاع العقد',
-                                    'class' => 'btn-danger'
-                                ];
+                        if ($row->status == ContractStatusEnum::Back->value) {
+                            $actions .= '<li><span class="dropdown-item disabled">
+                                            <span class="badge bg-warning">مرتجع</span>
+                                        </span></li>';
+                        } else {
+                            // التحقق من صلاحية إرجاع العقد
+                            if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
+                                $actions .= '<li><button class="dropdown-item btn-danger" data-row-id="' . $row->id . '">
+                                                <i class="fas fa-undo"></i> إرجاع العقد
+                                            </button></li>';
                             }
                         }
                     }
@@ -555,54 +513,16 @@ class RecruitmentContractController extends Controller
                     if ($row->status !== ContractStatusEnum::Completed->value &&
                         $row->status !== ContractStatusEnum::Back->value &&
                         $row->status !== ContractStatusEnum::Shelter->value) {
-                    if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
-                            $actions[] = [
-                                'type' => 'button',
-                                'data' => 'data-contract-id="' . $row->id . '" data-contract-number="' . $row->id . '" data-client-name="' . ($row->user ? $row->user->name : 'غير محدد') . '" data-maid-name="' . ($row->maid ? $row->maid->name : 'غير محدد') . '"',
-                                'icon' => 'fas fa-times-circle',
-                                'text' => 'إلغاء العقد',
-                                'class' => 'btn-danger cancel-contract-btn'
-                            ];
+                        if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
+                            $actions .= '<li><button class="dropdown-item cancel-contract-btn" data-contract-id="' . $row->id . '" data-contract-number="' . $row->id . '" data-client-name="' . ($row->user ? $row->user->name : 'غير محدد') . '" data-maid-name="' . ($row->maid ? $row->maid->name : 'غير محدد') . '">
+                                            <i class="fas fa-times-circle"></i> إلغاء العقد
+                                        </button></li>';
                         }
                     }
 
-                    // Generate Dropdown HTML
-                    if (count($actions) > 0) {
-                        $dropdown = '<div class="dropdown actions-dropdown">
-                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle"  style="margin: 10px; padding: 10px;" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-bs-toggle="tooltip" data-bs-placement="top" title="إجراءات العقد">
-                                <i class="fas fa-cog"></i> الإجراءات
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">';
+                    $actions .= '</ul></div>';
 
-                        foreach ($actions as $action) {
-                            $dropdown .= '<li>';
-
-                            if (isset($action['type'])) {
-                                if ($action['type'] === 'button') {
-                                    $dropdown .= '<button class="dropdown-item ' . $action['class'] . '" ' . $action['data'] . '>
-                                        <i class="' . $action['icon'] . ' me-2"></i>' . $action['text'] . '
-                                    </button>';
-                                } elseif ($action['type'] === 'span') {
-                                    $dropdown .= '<span class="dropdown-item ' . $action['class'] . '">
-                                        ' . $action['text'] . '
-                                    </span>';
-                                }
-                            } else {
-                                $target = isset($action['target']) ? ' target="' . $action['target'] . '"' : '';
-                                $confirm = isset($action['confirm']) ? ' onclick="return confirm(\'هل أنت متأكد من الحذف؟\')"' : '';
-                                $dropdown .= '<a class="dropdown-item" href="' . $action['url'] . '"' . $target . $confirm . '>
-                                    <i class="' . $action['icon'] . ' me-2"></i>' . $action['text'] . '
-                                </a>';
-                            }
-
-                            $dropdown .= '</li>';
-                        }
-
-                        $dropdown .= '</ul></div>';
-                        return $dropdown;
-                    }
-
-                    return '<span class="text-muted">لا توجد إجراءات</span>';
+                    return $actions;
                 })
                 ->escapeColumns([])
                 ->make(true);

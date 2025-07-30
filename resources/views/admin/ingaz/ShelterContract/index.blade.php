@@ -5,110 +5,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="{{asset("admin")}}/custom/admin-tables.css">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<style>
-    /* إزالة الظلال من الجدول */
-    .table * {
-        text-shadow: none !important;
-        box-shadow: none !important;
-    }
 
-    /* تحسين وضوح النص */
-    .table td, .table th {
-        color: #212529 !important;
-        background-color: transparent;
-    }
-
-    .table tbody tr:hover {
-        background-color: #f8f9fa !important;
-    }
-
-    /* تحسين الشارات */
-    .badge {
-        text-shadow: none !important;
-        box-shadow: none !important;
-    }
-
-    /* التأكد من وضوح البيانات */
-    .text-muted {
-        color: #6c757d !important;
-        text-shadow: none !important;
-    }
-
-    .table strong {
-        color: #212529 !important;
-        font-weight: 600;
-    }
-
-    .table small {
-        color: #6c757d !important;
-    }
-
-    /* إزالة أي تأثيرات من admin-tables.css */
-    #shelterContractsTable td,
-    #shelterContractsTable th,
-    #shelterContractsTable * {
-        text-shadow: none !important;
-        box-shadow: none !important;
-        filter: none !important;
-        opacity: 1 !important;
-    }
-</style>
-{{-- <style>
-    /* تحسين مظهر الجدول */
-    .table {
-        font-size: 0.875rem;
-    }
-
-    .table th {
-        background-color: #f8f9fa;
-        font-weight: 600;
-        color: #495057;
-        border-bottom: 2px solid #dee2e6;
-        padding: 12px 8px;
-    }
-
-    .table td {
-        padding: 10px 8px;
-        vertical-align: middle;
-    }
-
-    .table tbody tr:hover {
-        background-color: #f8f9fa;
-    }
-
-    /* تحسين مظهر الشارات */
-    .badge {
-        font-size: 0.75rem;
-        padding: 0.35rem 0.65rem;
-        font-weight: 500;
-    }
-
-    /* تحسين مظهر الأيقونات */
-    .fas, .fa {
-        width: 1.25em;
-        text-align: center;
-    }
-
-    /* محاذاة النصوص */
-    .text-start {
-        text-align: right !important;
-    }
-
-    /* تحسين الإجراءات */
-    .actions-dropdown .dropdown-menu {
-        min-width: 180px;
-    }
-
-    .dropdown-item {
-        padding: 0.5rem 1rem;
-        font-size: 0.875rem;
-    }
-
-    .dropdown-item i {
-        width: 1.25em;
-        margin-left: 0.5rem;
-    }
-</style> --}}
 @endsection
 
 @section('page-title')
@@ -130,10 +27,10 @@
 
             <!-- Header Section -->
             <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                <h1 class="h3 mb-0 text-gray-800">
+                <h3 class="h3 mb-0 text-gray-800">
                     <i class="fas fa-home text-primary me-2"></i>
                     {{helperTrans("ingaz.All Shelter contracts")}}
-                </h1>
+                </h3>
                 <a href="{{ route('ShelterContract.create') }}" class="btn btn-primary">
                     <i class="fas fa-plus me-2"></i>
                     {{helperTrans("ingaz.add_shelter_contract")}}
@@ -226,13 +123,13 @@
 
             <!-- Filter Section -->
                 <div class="card filter-card mb-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+                <div class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
                     <h6 class="m-0 font-weight-bold ">
                         <i class="fas fa-filter me-2"></i>{{helperTrans("admin.filters")}}
                     </h6>
                     <i class="fas fa-chevron-down"></i>
                 </div>
-                <div class="collapse show" id="filterCollapse">
+                <div class="collapse" id="filterCollapse">
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-3">
@@ -558,7 +455,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     // تنفيذ الإجراء
-                    performAction(action, id);
+                 performAction(action, id);
                 }
             });
         });

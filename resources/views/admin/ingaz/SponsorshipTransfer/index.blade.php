@@ -2,7 +2,6 @@
 @section("style")
     <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="{{asset("admin")}}/custom/status-badges.css">
     <link rel="stylesheet" href="{{asset("admin")}}/custom/admin-tables.css">
 @endsection
 
@@ -255,8 +254,6 @@
     <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="{{asset("admin")}}/custom/admin-tables.js"></script>
-
-    <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
     <script>
         $(document).ready(function() {
             // إعداد DataTable

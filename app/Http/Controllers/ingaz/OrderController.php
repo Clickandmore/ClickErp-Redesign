@@ -166,11 +166,11 @@ class OrderController extends Controller
                     return '<span class="text-info">' . ($row->details->admin->name ?? '-') . '</span>';
                 })
                 ->addColumn('actions', function ($row) {
-                    $actions = '<div class="dropdown">
-                        <button class="btn btn-outline-primary btn-sm dropdown-toggle custom-dropdown-toggle" type="button" aria-expanded="false">
-                            <i class="fa fa-cogs"></i> الإجراءات
+                    $actions = '<div class="dropdown actions-dropdown">
+                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
+                                        <i class="fas fa-cogs me-1"></i> الإجراءات
                         </button>
-                        <ul class="dropdown-menu">';
+                        <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
 
                     // View button
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW)) {

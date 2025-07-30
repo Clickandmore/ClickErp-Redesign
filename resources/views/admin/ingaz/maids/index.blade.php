@@ -481,6 +481,7 @@
                     processing: true,
                     serverSide: true,
                     responsive: true,
+                    searching: false,
                     ajax: {
                         url: url,
                         type: 'GET',

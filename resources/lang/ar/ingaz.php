@@ -646,5 +646,10 @@
   'identity' => 'الهوية',
   'add_shelter_contract' => 'إضافة للايواء',
   'deportation_stage' => 'مرحلة الترحيل',
-  'All Shelter contracts' => 'جميع عقود الإيواء',
+  'orders_list' => 'قائمة الطلبات',
+  'add_recruitment_contract' => 'إضافة عقد ',
+  'All Recruitment contracts' => 'عقود الاستقدام ',
+  'add_order' => 'إضافة طلب',
+  'orders_list' => 'قائمة الطلبات',
+  'contracts_list' => 'العقود',
 );

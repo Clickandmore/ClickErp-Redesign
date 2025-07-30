@@ -2,1020 +2,7 @@
 @section("style")
     <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="{{asset("admin")}}/custom/status-badges.css">
-
-
-    <style>
-        .maids-grid {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .maid-card {
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: #fff;
-        }
-
-        .maid-card:hover {
-            border-color: #007bff;
-            box-shadow: 0 4px 8px rgba(0,123,255,0.1);
-            transform: translateY(-2px);
-        }
-
-        .maid-card.selected {
-            border-color: #28a745;
-            background-color: #f8fff9;
-            box-shadow: 0 4px 8px rgba(40,167,69,0.2);
-        }
-
-        .maid-card .maid-image {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid #e9ecef;
-        }
-
-        .maid-card .maid-info h6 {
-            margin-bottom: 5px;
-            color: #333;
-        }
-
-        .maid-card .maid-info p {
-            margin-bottom: 3px;
-            font-size: 0.9em;
-            color: #666;
-        }
-
-        .maid-card .maid-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #28a745;
-            color: white;
-            border-radius: 50%;
-            width: 25px;
-            height: 25px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-        }
-
-        .maid-card .maid-status {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.8em;
-            font-weight: bold;
-        }
-
-        .maid-card .maid-status.available {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .maid-card .maid-status.reserved {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .filters-section {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .search-highlight {
-            background-color: #fff3cd;
-            padding: 1px 3px;
-            border-radius: 3px;
-        }
-
-        .btn-sm {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.875rem;
-            border-radius: 0.2rem;
-        }
-
-        .btn-sm i {
-            font-size: 0.875rem;
-        }
-
-        .table td {
-            vertical-align: middle;
-        }
-
-        .contract-info {
-            font-size: 0.8rem;
-            line-height: 1.2;
-        }
-
-        .contract-info div {
-            margin-bottom: 2px;
-        }
-
-        .maid-info {
-            text-align: center;
-        }
-
-        .maid-info small {
-            display: block;
-            margin-top: 5px;
-        }
-
-        .user-info {
-            line-height: 1.3;
-            text-align: center;
-        }
-
-        .user-info strong {
-            color: #333;
-            font-size: 0.9rem;
-        }
-
-        .user-info small {
-            display: block;
-            margin-top: 3px;
-            font-size: 0.75rem;
-        }
-
-        .status-badge {
-            font-size: 0.8rem;
-            padding: 0.25rem 0.5rem;
-        }
-
-        .contract-info {
-            font-size: 0.75rem;
-            line-height: 1.3;
-        }
-
-        .contract-info div {
-            margin-bottom: 2px;
-            color: #666;
-        }
-
-        .contract-info strong {
-            color: #333;
-        }
-
-        .btn-sm {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
-        }
-
-        .table th {
-            background-color: #f8f9fa;
-            border-bottom: 2px solid #dee2e6;
-            font-weight: 600;
-        }
-
-        .table td {
-            vertical-align: middle;
-            padding: 0.75rem;
-        }
-
-        .filters-section {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .filter-card {
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .filter-card .card-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: black;
-            border-radius: 8px 8px 0 0;
-        }
-
-        .filter-card .form-control,
-        .filter-card .form-select {
-            border-radius: 6px;
-            border: 1px solid #e9ecef;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .filter-card .form-control:focus,
-        .filter-card .form-select:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-
-        .filter-card .form-label {
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 0.5rem;
-        }
-
-        .statistics-card {
-            transition: transform 0.2s ease-in-out;
-        }
-
-        .statistics-card:hover {
-            transform: translateY(-2px);
-        }
-
-        .table-responsive {
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .btn-action {
-            margin: 0 2px;
-            transition: all 0.2s ease;
-        }
-
-        .btn-action:hover {
-            transform: scale(1.05);
-        }
-
-        .badge {
-            font-size: 0.75rem;
-            padding: 0.35rem 0.65rem;
-            font-weight: 600;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-        }
-
-        /* تحسين ألوان البادجات لتكون أكثر وضوحاً */
-        .badge.bg-primary {
-            background-color: #0d6efd !important;
-            color: white !important;
-        }
-
-        .badge.bg-success {
-            background-color: #198754 !important;
-            color: white !important;
-        }
-
-        .badge.bg-warning {
-            background-color: #ffc107 !important;
-            color: #212529 !important;
-        }
-
-        .badge.bg-info {
-            background-color: #2794eb!important;
-            color: white !important;
-        }
-
-        .badge.bg-danger {
-            background-color: #dc3545 !important;
-            color: white !important;
-        }
-
-        .badge.bg-secondary {
-            background-color: #6c757d !important;
-            color: white !important;
-        }
-
-        .badge.bg-dark {
-            background-color: #212529 !important;
-            color: white !important;
-        }
-
-        /* تحسين مظهر بادج حالة العقد */
-        .status-badge {
-            font-size: 0.8rem;
-            padding: 0.4rem 0.8rem;
-            font-weight: 600;
-            border-radius: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
-        }
-
-        .status-badge:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-
-        .modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .modal-header .btn-close {
-            filter: invert(1);
-        }
-
-        .maid-image-container {
-            position: relative;
-            display: inline-block;
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
-
-        .maid-image-container:hover {
-            transform: scale(1.05);
-        }
-
-        .maid-image-container img {
-            border-radius: 8px;
-            border: 2px solid #e9ecef;
-            transition: border-color 0.2s ease;
-        }
-
-        .maid-image-container:hover img {
-            border-color: #007bff;
-            box-shadow: 0 4px 8px rgba(0,123,255,0.2);
-        }
-
-        .shadow {
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
-        }
-
-        .table-hover {
-            background-color: #f8f9fa !important;
-        }
-
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        .fade-in {
-            animation: fadeIn 0.5s ease-in;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* تحسين مظهر البادجات في الإحصائيات */
-        .statistics-card .badge {
-            font-size: 0.9rem;
-            padding: 0.5rem 1rem;
-            font-weight: 700;
-            border-radius: 25px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-        }
-
-        .statistics-card .badge.bg-primary {
-            background-color: #ffffff !important;
-            color: #0d6efd !important;
-        }
-
-        .statistics-card .badge.bg-success {
-            background-color: #ffffff !important;
-            color: #198754 !important;
-        }
-
-        .statistics-card .badge.bg-warning {
-            background-color: #ffffff !important;
-            color: #ffc107 !important;
-        }
-
-        .statistics-card .badge.bg-info {
-            background-color: #ffffff !important;
-            color: #2794eb!important;
-        }
-
-        .statistics-card .badge.bg-danger {
-            background-color: #ffffff !important;
-            color: #dc3545 !important;
-        }
-
-        .statistics-card .badge.bg-secondary {
-            background-color: #ffffff !important;
-            color: #6c757d !important;
-        }
-         /* تحسين مظهر الفلاتر */
-    .filter-card {
-        border: 1px solid #e3e6f0;
-        border-radius: 0.35rem;
-        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-    }
-
-    .filter-card .card-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 0.35rem 0.35rem 0 0;
-    }
-
-    /* تحسين مظهر القائمة المنسدلة */
-    .dropdown-menu {
-        border: none;
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-        border-radius: 0.5rem;
-        min-width: 200px;
-    }
-
-    .dropdown-item {
-        padding: 0.75rem 1rem;
-        border-bottom: 1px solid #f8f9fa;
-        transition: all 0.2s ease;
-    }
-
-    .dropdown-item:last-child {
-        border-bottom: none;
-    }
-
-    .dropdown-item:hover {
-        background-color: #f8f9fa;
-        transform: translateX(5px);
-    }
-
-    .dropdown-item.btn-info {
-        color: #0dcaf0;
-    }
-
-    .dropdown-item.btn-info:hover {
-        background-color: #0dcaf0;
-        color: white;
-    }
-
-    .dropdown-item.btn-secondary {
-        color: #6c757d;
-    }
-
-    .dropdown-item.btn-secondary:hover {
-        background-color: #6c757d;
-        color: white;
-    }
-
-    .dropdown-item.btn-warning {
-        color: #ffc107;
-    }
-
-    .dropdown-item.btn-warning:hover {
-        background-color: #ffc107;
-        color: white;
-    }
-
-    .dropdown-item.btn-primary {
-        color: #0d6efd;
-    }
-
-    .dropdown-item.btn-primary:hover {
-        background-color: #0d6efd;
-        color: white;
-    }
-
-    .dropdown-item.btn-success {
-        color: #198754;
-    }
-
-    .dropdown-item.btn-success:hover {
-        background-color: #198754;
-        color: white;
-    }
-
-    .dropdown-item.btn-danger {
-        color: #dc3545;
-    }
-
-    .dropdown-item.btn-danger:hover {
-        background-color: #dc3545;
-        color: white;
-    }
-
-    /* تحسين مظهر الجدول */
-    /* .table th {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        font-weight: 600;
-    } */
-
-    .table td {
-        vertical-align: middle;
-        border-color: #e3e6f0;
-        color: black;
-        font-style: bold;
-    }
-
-    .table tbody tr:hover {
-        background-color: #f8f9fa;
-    }
-
-    /* تحسين مظهر الأزرار */
-    .btn-action {
-        transition: all 0.2s ease;
-        border: 1px solid #e3e6f0;
-
-    }
-
-    .btn-action:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
-    }
-
-    /* تحسين مظهر البطاقات */
-    .info-card {
-        border: 1px solid #e3e6f0;
-        border-radius: 0.5rem;
-        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-        transition: all 0.3s ease;
-    }
-
-    .info-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.2);
-    }
-
-    /* تحسين مظهر الفلاتر */
-    .form-control, .form-select {
-        border-radius: 0.5rem;
-        border: 1px solid #d1d3e2;
-        transition: all 0.2s ease;
-    }
-
-    .form-control:focus, .form-select:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-    }
-
-    /* تحسين مظهر أيقونة الفلاتر */
-    #filtersIcon {
-        transition: transform 0.3s ease;
-    }
-
-    #filtersCollapse.collapsing #filtersIcon {
-        transform: rotate(180deg);
-    }
-
-    /* تحسين مظهر البطاقات */
-    .card {
-        border: none;
-        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-        border-radius: 0.5rem;
-    }
-
-    .card-header {
-        border-bottom: 1px solid #e3e6f0;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 0.5rem 0.5rem 0 0;
-    }
-
-    /* تحسين مظهر الأزرار */
-    .btn {
-        border-radius: 0.5rem;
-        font-weight: 500;
-        transition: all 0.2s ease;
-    }
-
-    .btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
-    }
-
-    /* تحسين مظهر الجدول */
-    .table {
-        margin-bottom: 0;
-    }
-
-    .table th {
-      font-weight: 600;
-        padding: 1rem 0.75rem;
-text-align: center
-
-    }
-
-    .table td {
-        vertical-align: middle;
-        border-color: #e3e6f0;
-        padding: 0.75rem;
-    }
-
-    .table tbody tr:hover {
-        background-color: #f8f9fa;
-        /* transform: scale(1.01); */
-        transition: all 0.2s ease;
-    }
-
-    /* تحسين مظهر البطاقات المعلوماتية */
-    .user-info, .maid-info, .contract-info {
-        background: #f8f9fa;
-        padding: 0.5rem;
-        border-radius: 0.25rem;
-        border-left: 3px solid #667eea;
-    }
-
-    /* تحسين مظهر البطاقات */
-    .status-badge {
-        font-size: 0.8rem;
-        padding: 0.4rem 0.8rem;
-        border-radius: 20px;
-        font-weight: 600;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    /* تحسين مظهر القائمة المنسدلة */
-    .dropdown-toggle::after {
-        margin-right: 0.5rem;
-    }
-
-    /* تحسين مظهر الرسائل */
-    .alert {
-        border: none;
-        border-radius: 0.5rem;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    }
-
-    /* تحسين مظهر الفلاتر */
-    .form-label {
-        font-weight: 600;
-        color: #495057;
-        margin-bottom: 0.5rem;
-    }
-
-    /* تحسين مظهر أيقونات Font Awesome */
-    .fas, .fa {
-        width: 1rem;
-        text-align: center;
-    }
-        /* تحسين مظهر القائمة المنسدلة */
-        .dropdown-menu {
-            border: 1px solid #e3e6f0;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            border-radius: 8px;
-            padding: 0.5rem 0;
-            background-color: #f8f9fa;
-            color: black;
-            font-style: bold;
-            z-index: 9999 !important;
-            position: absolute !important;
-        }
-
-        .dropdown {
-            position: relative;
-        }
-
-        .dropdown-toggle {
-            position: relative;
-        }
-
-        .dropdown-toggle::after {
-            margin-right: 0.5em;
-        }
-
-        /* تحسين مظهر عناصر القائمة المنسدلة */
-        .dropdown-item {
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            margin: 0 0.25rem;
-            transition: all 0.2s ease;
-            color: black;
-            font-style: bold;
-            position: relative;
-            z-index: 10000;
-        }
-
-        /* .dropdown-item:hover {
-            background-color: #f8f9fa;
-            transform: translateX(2px);
-
-        } */
-
-        .dropdown-item.btn-danger:hover {
-            background-color: #dc3545;
-            color: white;
-        }
-
-        .dropdown-item.btn-warning:hover {
-            background-color: #ffc107;
-            color: #212529;
-        }
-
-        .dropdown-item.btn-info:hover {
-            background-color: #17a2b8;
-            color: white;
-        }
-
-        .dropdown-item.btn-success:hover {
-            background-color: #28a745;
-            color: white;
-        }
-
-        .dropdown-item.btn-secondary:hover {
-            background-color: #6c757d;
-            color: white;
-        }
-
-        .dropdown-item.badge {
-            margin: 0.25rem 0.5rem;
-            padding: 0.5rem 0.75rem;
-            border-radius: 4px;
-        }
-
-        /* تحسين مظهر زر الإجراءات */
-        .actions-dropdown {
-            position: relative;
-        }
-
-        .actions-dropdown .btn {
-            position: relative;
-            z-index: 1000;
-        }
-
-        /* إضافة tooltip لزر الإجراءات */
-        .actions-dropdown .btn[data-bs-toggle="tooltip"] {
-            position: relative;
-        }
-
-        /* تحسين مظهر الجدول لضمان عدم تداخل الصفوف مع القائمة المنسدلة */
-        .table-responsive {
-            position: relative;
-            z-index: 1;
-        }
-
-        .table {
-            position: relative;
-            z-index: 1;
-        }
-
-        .table tbody tr {
-            position: relative;
-            z-index: 1;
-        }
-
-        .table tbody tr td {
-            position: relative;
-            z-index: 1;
-        }
-
-        /* ضمان ظهور القائمة المنسدلة فوق جميع العناصر */
-        .table tbody tr td .dropdown {
-            position: relative;
-            z-index: 9999;
-        }
-
-        /* تحسين مظهر الصفوف لضمان عدم التداخل */
-        .table tbody tr {
-            position: relative;
-            z-index: 1;
-        }
-
-        .table tbody tr:hover {
-            z-index: 2;
-        }
-
-        .table tbody tr td {
-            position: relative;
-            z-index: 1;
-            background-color: white;
-        }
-
-        /* ضمان ظهور القائمة المنسدلة فوق الصفوف */
-        .dropdown-menu.show {
-            z-index: 10000 !important;
-            position: absolute !important;
-        }
-
-        /* تحسين مظهر زر الإجراءات */
-        .actions-dropdown .btn {
-            position: relative;
-            z-index: 1000;
-            background-color: white;
-            border: 1px solid #dee2e6;
-        }
-
-        .actions-dropdown .btn:hover {
-            background-color: #f8f9fa;
-            border-color: #adb5bd;
-        }
-
-        /* إضافة تأثير بصرية للقائمة المنسدلة */
-        .dropdown-menu {
-            animation: fadeInDown 0.2s ease-in-out;
-        }
-
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* ضمان عدم تداخل الصفوف مع القائمة المنسدلة */
-        .table-container {
-            position: relative;
-            overflow: visible;
-        }
-
-        .table tbody tr {
-            position: relative;
-        }
-
-        .table tbody tr:last-child .dropdown-menu {
-            top: auto !important;
-            bottom: 100% !important;
-        }
-
-        /* تحسين مظهر القائمة المنسدلة للصفوف الأخيرة */
-        .dropdown-menu.dropdown-menu-end {
-            right: 0;
-            left: auto;
-        }
-
-        /* إضافة مساحة إضافية للصفوف الأخيرة */
-        .table tbody tr:last-child td {
-            padding-bottom: 20px;
-        }
-
-        /* إضافة مساحة إضافية للصفوف الأخيرة */
-        .table tbody tr:last-child td {
-            padding-bottom: 20px;
-        }
-
-        /* ضمان عدم تداخل الصفوف مع القائمة المنسدلة */
-        .table-responsive {
-            overflow: visible !important;
-        }
-
-        .table {
-            margin-bottom: 50px;
-        }
-
-        /* تحسين مظهر القائمة المنسدلة */
-        .dropdown-menu {
-            min-width: 200px;
-            max-width: 300px;
-        }
-
-        /* إضافة تأثير بصرية للقائمة المنسدلة */
-        .dropdown-menu.show {
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-        }
-
-        /* تحسين مظهر عناصر القائمة المنسدلة */
-        .dropdown-item {
-            font-size: 0.9rem;
-            padding: 0.6rem 1rem;
-        }
-
-        .dropdown-item i {
-            width: 16px;
-            text-align: center;
-            margin-left: 8px;
-        }
-
-        /* ضمان عدم تداخل الصفوف مع القائمة المنسدلة */
-        .table-container {
-            position: relative;
-            overflow: visible;
-        }
-
-        .table tbody tr {
-            position: relative;
-        }
-
-        .table tbody tr:last-child {
-            margin-bottom: 100px;
-        }
-
-        /* تحسين مظهر القائمة المنسدلة */
-        .dropdown-menu {
-            position: absolute !important;
-            z-index: 10000 !important;
-        }
-
-        /* ضمان ظهور القائمة المنسدلة فوق جميع العناصر */
-        .dropdown-menu.show {
-            display: block !important;
-            position: absolute !important;
-            z-index: 10000 !important;
-        }
-
-        /* تحسين مظهر زر الإجراءات */
-        .actions-dropdown .btn {
-            position: relative;
-            z-index: 1000;
-        }
-
-        /* إضافة تأثير بصرية للقائمة المنسدلة */
-        .dropdown-menu {
-            transform-origin: top center;
-            animation: dropdownFadeIn 0.2s ease-out;
-        }
-
-        @keyframes dropdownFadeIn {
-            from {
-                opacity: 0;
-                transform: scaleY(0.8) translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: scaleY(1) translateY(0);
-            }
-        }
-
-        /* ضمان عدم تداخل الصفوف مع القائمة المنسدلة */
-        .table-responsive {
-            overflow: visible !important;
-        }
-
-        .table {
-            margin-bottom: 100px;
-        }
-
-        /* تحسين مظهر القائمة المنسدلة للصفوف الأخيرة */
-        .table tbody tr:last-child .dropdown-menu {
-            top: auto !important;
-            bottom: 100% !important;
-            margin-bottom: 10px;
-        }
-
-        /* تحسين مظهر القائمة المنسدلة للصفوف العادية */
-        .table tbody tr:not(:last-child) .dropdown-menu {
-            top: 100% !important;
-            bottom: auto !important;
-            margin-top: 5px;
-        }
-
-        /* ضمان ظهور القائمة المنسدلة فوق جميع العناصر */
-        .dropdown-menu {
-            position: absolute !important;
-            z-index: 10000 !important;
-            background-color: white !important;
-            border: 1px solid #dee2e6 !important;
-            margin-top: 20px
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-        }
-
-        /* تحسين مظهر زر الإجراءات */
-        .actions-dropdown .btn {
-            position: relative;
-            z-index: 1000;
-            background-color: white;
-            border: 1px solid #dee2e6;
-            color: #495057;
-        }
-
-        .actions-dropdown .btn:hover {
-            background-color: #f8f9fa;
-            border-color: #adb5bd;
-        }
-
-        /* إضافة تأثير بصرية للقائمة المنسدلة */
-        .dropdown-menu.show {
-            animation: dropdownFadeIn 0.2s ease-out;
-        }
-
-        /* ضمان ظهور القائمة المنسدلة للصف الواحد */
-        .table tbody tr:only-child .dropdown-menu {
-            top: 100% !important;
-            bottom: auto !important;
-            margin-top: 5px;
-            position: absolute !important;
-            z-index: 99999 !important;
-            transform: none !important;
-            max-height: none !important;
-            overflow: visible !important;
-        }
-
-        /* ضمان ظهور القائمة المنسدلة للصفوف الأخيرة */
-        .table tbody tr:last-child:not(:only-child) .dropdown-menu {
-            top: auto !important;
-            bottom: 100% !important;
-            margin-bottom: 10px;
-        }
-
-        /* ضمان ظهور القائمة المنسدلة للصفوف العادية */
-        .table tbody tr:not(:last-child):not(:only-child) .dropdown-menu {
-            top: 100% !important;
-            bottom: auto !important;
-            margin-top: 5px;
-        }
-
-        /* إضافة مساحة للصف الواحد */
-        .table tbody tr:only-child {
-            margin-bottom: 200px !important;
-        }
-
-        /* ضمان عدم قطع القائمة */
-        .table-container {
-            overflow: visible !important;
-        }
-
-        .table {
-            overflow: visible !important;
-        }
-
-        .table tbody {
-            overflow: visible !important;
-        }
-    </style>
+    <link rel="stylesheet" href="{{asset("admin")}}/custom/admin-tables.css">
 
 @endsection
 @section('page-title')
@@ -1025,9 +12,20 @@ text-align: center
 @section('content')
 @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
 
+  <!-- Header Section -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h3 class="h3 mb-0 text-gray-800">
+        <i class="fas fa-file-contract text-primary me-2"></i>
+        {{helperTrans("ingaz.All Recruitment contracts")}}
+    </h3>
+    <a href="{{ route('RecruitmentContract.create') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>
+        {{helperTrans("ingaz.add_recruitment_contract")}}
+    </a>
+</div>
     <!-- Filters Section -->
-    <div class="card mb-4">
-        <div class="card-header bg-light text-black" id="filtersHeader" style="cursor: pointer;" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="true" aria-controls="filtersCollapse">
+    <div class="card filter-card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <div class="d-flex justify-content-between align-items-center">
                 <h6 class="mb-0">
                     <i class="fas fa-filter me-2"></i>
@@ -1035,9 +33,11 @@ text-align: center
                 </h6>
 
             </div>
-            <i class="fas fa-chevron-up "    id="filtersIcon"></i>
+            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="false" aria-controls="filtersCollapse">
+                <i class="fas fa-chevron-down" id="filtersIcon"></i>
+            </button>
         </div>
-        <div class="collapse show" id="filtersCollapse">
+        <div class="card-body collapse" id="filtersCollapse">
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-3">
@@ -1182,7 +182,7 @@ text-align: center
     </div>
 
     <div class="table-responsive">
-        <div class="card">
+        <div class="card shadow">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">
                     <i class="fas fa-table me-2"></i>
@@ -1190,7 +190,7 @@ text-align: center
                 </h5>
             </div>
             <div class="card-body p-0">
-                <table id="dataTableObject" class="table table-hover mb-0" style="width:100%">
+                <table id="dataTableObject" class="table table-hover align-middle mb-0" style="width:100%">
         <thead>
         <tr>
             <th>ID</th>
@@ -1277,7 +277,81 @@ text-align: center
             </div>
         </div>
     </div>
+<!-- موديل إلغاء العقد -->
+<div class="modal fade" id="cancelContractModal" tabindex="-1" aria-labelledby="cancelContractModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelContractModalLabel">
+                    <i class="fas fa-times-circle text-danger"></i>
+                    إلغاء العقد
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- معلومات العقد -->
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-exclamation-triangle"></i> تحذير:</h6>
+                    <p>سيتم إلغاء العقد رقم <strong id="contractNumber"></strong></p>
+                    <p>العميل: <strong id="clientName"></strong></p>
+                    <p>العاملة: <strong id="maidName"></strong></p>
+                </div>
 
+                <form id="cancelContractForm">
+                    @csrf
+                    <input type="hidden" id="contractId" name="contract_id">
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group mb-3">
+                                <label for="cancel_reason" class="form-label">
+                                    <i class="fas fa-comment"></i>
+                                    سبب الإلغاء
+                                </label>
+                                <textarea class="form-control" id="cancel_reason" name="cancel_reason" rows="3"
+                                          placeholder="اكتب سبب إلغاء العقد..." required></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-user-minus"></i>
+                                    حالة العاملة بعد الإلغاء
+                                </label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="maid_status_after_cancel"
+                                           id="status_available" value="available" required>
+                                    <label class="form-check-label" for="status_available">
+                                        <i class="fas fa-check text-success"></i>
+                                        متاحة
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="maid_status_after_cancel"
+                                           id="status_unavailable" value="backout" required>
+                                    <label class="form-check-label" for="status_unavailable">
+                                        <i class="fas fa-ban text-danger"></i>
+                                        باك اوت
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i>
+                    إلغاء
+                </button>
+                <button type="button" class="btn btn-danger" onclick="submitCancelContract()">
+                    <i class="fas fa-trash"></i>
+                    تأكيد الإلغاء
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 
 @else
@@ -1288,6 +362,9 @@ text-align: center
 @section('js')
 
     <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{asset("admin")}}/custom/admin-tables.js"></script>
+
     <script>
         $(document).ready(function () {
             // دالة لقراءة الـ status من الـ URL
@@ -1603,16 +680,7 @@ text-align: center
                 $('#filtersIcon').removeClass('fa-chevron-up').addClass('fa-chevron-down');
             });
 
-            // معالج أزرار الإجراءات من القائمة المنسدلة
-            $(document).on('click', '.dropdown-item.complete-trip-btn', function() {
-                var tripId = $(this).data('trip-id');
-                completeTrip(tripId);
-            });
 
-            $(document).on('click', '.dropdown-item.backContract', function() {
-                var rowId = $(this).data('row-id');
-                backContract(rowId);
-            });
 
             // معالج زر إكمال الرحلة من عمود المرحلة التالية
             $(document).on('click', '.complete-trip-btn', function() {
@@ -1838,22 +906,6 @@ text-align: center
                 });
             }
 
-            // إضافة تأثيرات بصرية للأزرار
-            $('.btn-action').hover(
-                function() {
-                    $(this).addClass('shadow');
-                },
-                function() {
-                    $(this).removeClass('shadow');
-                }
-            );
-
-            // تحسين تجربة المستخدم
-            $('.table').on('mouseenter', 'tr', function() {
-                $(this).addClass('table-hover');
-            }).on('mouseleave', 'tr', function() {
-                $(this).removeClass('table-hover');
-            });
 
             // معالج فتح Modal تحديث الحالة
         $('#updateStatusModal').on('show.bs.modal', function (event) {
@@ -2113,11 +1165,7 @@ text-align: center
                 return true;
             });
 
-            // معالج زر إضافة عاملة من القائمة المنسدلة
-            $(document).on('click', '.dropdown-item[href*="selectMaid"]', function(e) {
-                // السماح بالانتقال الطبيعي للرابط
-                return true;
-            });
+
 
             // معالج زر إضافة عاملة من عمود المرحلة التالية
             $(document).on('click', '.btn-action[href*="selectMaid"]', function(e) {
@@ -2125,76 +1173,6 @@ text-align: center
                 return true;
             });
 
-            // ضبط موضع القائمة المنسدلة للصفوف الأخيرة
-            $('.dropdown-toggle').on('click', function() {
-                var $dropdown = $(this).closest('.dropdown');
-                var $dropdownMenu = $dropdown.find('.dropdown-menu');
-                var $row = $(this).closest('tr');
-                var isLastRow = $row.is(':last-child');
-                var isOnlyChild = $row.is(':only-child');
-
-                if (isOnlyChild) {
-                    // للصف الواحد، إضافة مساحة كافية
-                    $row.css('margin-bottom', '200px');
-                    // ضمان ظهور القائمة كاملة
-                    $dropdownMenu.css({
-                        'z-index': '99999',
-                        'max-height': 'none',
-                        'overflow': 'visible'
-                    });
-                } else if (isLastRow) {
-                    // للصف الأخير (ولكن ليس الوحيد)، اعرض القائمة لأعلى
-                    $dropdownMenu.removeClass('dropdown-menu-end').addClass('dropdown-menu-start');
-                    $dropdownMenu.css({
-                        'top': 'auto',
-                        'bottom': '100%',
-                        'margin-bottom': '5px'
-                    });
-                } else {
-                    // للصفوف العادية، اعرض القائمة لأسفل
-                    $dropdownMenu.removeClass('dropdown-menu-start').addClass('dropdown-menu-end');
-                    $dropdownMenu.css({
-                        'top': '100%',
-                        'bottom': 'auto',
-                        'margin-bottom': '0'
-                    });
-                }
-            });
-
-            // ضمان عدم تداخل الصفوف مع القائمة المنسدلة
-            $(document).on('show.bs.dropdown', '.dropdown', function() {
-                var $dropdown = $(this);
-                var $dropdownMenu = $dropdown.find('.dropdown-menu');
-                var $row = $dropdown.closest('tr');
-                var isLastRow = $row.is(':last-child');
-                var isOnlyChild = $row.is(':only-child');
-
-                if (isOnlyChild) {
-                    // للصف الواحد، لا نحتاج لإضافة مساحة إضافية
-                    $row.css('margin-bottom', '0');
-                } else if (isLastRow) {
-                    // إضافة مساحة إضافية للصف الأخير (ولكن ليس الوحيد)
-                    $row.css('margin-bottom', '100px');
-                } else {
-                    // للصفوف العادية، لا نحتاج لإضافة مساحة إضافية
-                    $row.css('margin-bottom', '0');
-                }
-            });
-
-            // إزالة المساحة الإضافية عند إغلاق القائمة المنسدلة
-            $(document).on('hide.bs.dropdown', '.dropdown', function() {
-                var $dropdown = $(this);
-                var $row = $dropdown.closest('tr');
-                var isOnlyChild = $row.is(':only-child');
-
-                if (isOnlyChild) {
-                    // إزالة المساحة الإضافية للصف الواحد
-                    $row.css('margin-bottom', '0');
-                } else {
-                    // إزالة المساحة الإضافية للصفوف الأخرى
-                    $row.css('margin-bottom', '');
-                }
-            });
 
             // معالج زر إلغاء العقد
             $(document).on('click', '.cancel-contract-btn', function(e) {
@@ -2289,120 +1267,11 @@ text-align: center
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
 
-            // ضبط موضع القائمة المنسدلة للصفوف الأخيرة
-            $('.dropdown-toggle').on('click', function() {
-                var $dropdown = $(this).closest('.dropdown');
-                var $dropdownMenu = $dropdown.find('.dropdown-menu');
-                var $row = $(this).closest('tr');
-                var isLastRow = $row.is(':last-child');
-                var isOnlyChild = $row.is(':only-child');
 
-                if (isOnlyChild) {
-                    // للصف الواحد، إضافة مساحة كافية
-                    $row.css('margin-bottom', '200px');
-                    // ضمان ظهور القائمة كاملة
-                    $dropdownMenu.css({
-                        'z-index': '99999',
-                        'max-height': 'none',
-                        'overflow': 'visible'
-                    });
-                } else if (isLastRow) {
-                    // للصف الأخير (ولكن ليس الوحيد)، اعرض القائمة لأعلى
-                    $dropdownMenu.removeClass('dropdown-menu-end').addClass('dropdown-menu-start');
-                    $dropdownMenu.css({
-                        'top': 'auto',
-                        'bottom': '100%',
-                        'margin-bottom': '5px'
-                    });
-                } else {
-                    // للصفوف العادية، اعرض القائمة لأسفل
-                    $dropdownMenu.removeClass('dropdown-menu-start').addClass('dropdown-menu-end');
-                    $dropdownMenu.css({
-                        'top': '100%',
-                        'bottom': 'auto',
-                        'margin-bottom': '0'
-                    });
-                }
-            });
         });
     });
     </script>
 
-    <!-- موديل إلغاء العقد -->
-    <div class="modal fade" id="cancelContractModal" tabindex="-1" aria-labelledby="cancelContractModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="cancelContractModalLabel">
-                        <i class="fas fa-times-circle text-danger"></i>
-                        إلغاء العقد
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <!-- معلومات العقد -->
-                    <div class="alert alert-warning">
-                        <h6><i class="fas fa-exclamation-triangle"></i> تحذير:</h6>
-                        <p>سيتم إلغاء العقد رقم <strong id="contractNumber"></strong></p>
-                        <p>العميل: <strong id="clientName"></strong></p>
-                        <p>العاملة: <strong id="maidName"></strong></p>
-                    </div>
-
-                    <form id="cancelContractForm">
-                        @csrf
-                        <input type="hidden" id="contractId" name="contract_id">
-
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="form-group mb-3">
-                                    <label for="cancel_reason" class="form-label">
-                                        <i class="fas fa-comment"></i>
-                                        سبب الإلغاء
-                                    </label>
-                                    <textarea class="form-control" id="cancel_reason" name="cancel_reason" rows="3"
-                                              placeholder="اكتب سبب إلغاء العقد..." required></textarea>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group mb-3">
-                                    <label class="form-label">
-                                        <i class="fas fa-user-minus"></i>
-                                        حالة العاملة بعد الإلغاء
-                                    </label>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="maid_status_after_cancel"
-                                               id="status_available" value="available" required>
-                                        <label class="form-check-label" for="status_available">
-                                            <i class="fas fa-check text-success"></i>
-                                            متاحة
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="maid_status_after_cancel"
-                                               id="status_unavailable" value="backout" required>
-                                        <label class="form-check-label" for="status_unavailable">
-                                            <i class="fas fa-ban text-danger"></i>
-                                            باك اوت
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times"></i>
-                        إلغاء
-                    </button>
-                    <button type="button" class="btn btn-danger" onclick="submitCancelContract()">
-                        <i class="fas fa-trash"></i>
-                        تأكيد الإلغاء
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <script>
     // دالة فتح موديل إلغاء العقد

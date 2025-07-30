@@ -11859,9 +11859,9 @@ wi-wind-default._345-deg {
     --color-800: #252525;
     --color-900: #181818;
     --color-000: #000000;
-    --border-color: #e9e6e1;
+    --border-color: #f8f9fa;
     --card-color: #ffffff;
-    --body-color: #f8f6f2;
+    --body-color: #f8f9fa;
     --white-color: #ffffff;
     --sidebar-color: #ffffff;
     --primary-color: #191A1C;
@@ -11884,7 +11884,7 @@ wi-wind-default._345-deg {
 }
 
 :root [data-luno=theme-blue] {
-    --body-color: #f4f7f6
+    --body-color: #f8f9fa
 }
 
 [data-luno=theme-black] {

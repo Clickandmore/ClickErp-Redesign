@@ -285,8 +285,7 @@
 
     <!-- رأس الصفحة المخصص -->
     <div class="page-header">
-        <h2><i class="fas fa-user-times me-2"></i>العاملات باك اوت</h2>
-        <p>عرض العاملات التي تم وضعها في حالة باك اوت مع أسباب عدم التوفر</p>
+        <h2 style="color: #007bff;"><i class="fas fa-user-times text-primary me-2"></i>عاملات باك اوت</h2>
     </div>
 
     <div class="card">

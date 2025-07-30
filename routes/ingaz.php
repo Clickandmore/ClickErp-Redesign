@@ -19,6 +19,25 @@ use App\Http\Controllers\ingaz\RentContractController;
 use App\Http\Controllers\ingaz\NotificationController;
 use App\Http\Controllers\ingaz\StatisticController;
 use App\Http\Controllers\ingaz\DeportationTravelController;
+use App\Http\Controllers\ingaz\UserController;
+use App\Http\Controllers\ingaz\MaidController;
+use App\Http\Controllers\ingaz\SettingController;
+use App\Http\Controllers\ingaz\DevelopSettingController;
+use App\Http\Controllers\ingaz\JobTitleController;
+use App\Http\Controllers\ingaz\NationalityController;
+use App\Http\Controllers\ingaz\SliderController;
+use App\Http\Controllers\ingaz\ReligionController;
+use App\Http\Controllers\ingaz\QuestionController;
+use App\Http\Controllers\ingaz\ContactController;
+use App\Http\Controllers\ingaz\ServiceController;
+use App\Http\Controllers\ingaz\AboutUsController;
+use App\Http\Controllers\ingaz\SkillController;
+use App\Http\Controllers\ingaz\MaidTestController;
+use App\Http\Controllers\ingaz\PackageController;
+use App\Http\Controllers\ingaz\ComplaintController;
+use App\Http\Controllers\ingaz\StepController;
+use App\Http\Controllers\ingaz\ReturnRequestController;
+use App\Http\Controllers\ingaz\ComplaintTypeController;
 
 
 /*

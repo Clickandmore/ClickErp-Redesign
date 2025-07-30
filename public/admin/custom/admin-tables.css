@@ -1862,6 +1862,22 @@ body.rtl-fix .btn {
     color: #28a745;
 }
 
+.statistics-card.deportation-card {
+    border-right: 4px solid #ffc107;
+}
+
+.statistics-card.deportation-card i {
+    color: #ffc107;
+}
+
+.statistics-card.undecided-card {
+    border-right: 4px solid #6c757d;
+}
+
+.statistics-card.undecided-card i {
+    color: #6c757d;
+}
+
 .statistics-card.within-guarantee-card {
     border-right: 4px solid #17a2b8;
 }
