@@ -279,38 +279,55 @@
                 <!-- Rent Contracts -->
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#rentcontracts" href="#">
-                        <i class="icon-note"></i>
+                        <i class="fas fa-handshake"></i>
                         <span class="ms-2"> {{ helperTrans('ingaz.Rent contracts') }} </span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
-                    <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['RentContract.index'])) ? 'show' : '' }}"
+                    <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['RentContract.index', 'RentContract.create', 'RentContract.show', 'RentContract.edit'])) ? 'show' : '' }}"
                         id="rentcontracts">
-                        @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL))
+                        @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE))
                             <li>
-                                <a class="m-link {{ (Route::currentRouteName() == 'viewFullOrderContract') ? 'active' : '' }}"
-                                    href="{{route('viewFullOrderContract')}}">
-                                    <i class="fa fa-user"></i>
+                                <a class="m-link {{ (Route::currentRouteName() == 'RentContract.create') ? 'active' : '' }}"
+                                    href="{{route('RentContract.create')}}">
+                                    <i class="fas fa-plus"></i>
                                     <span class="ms-2">{{ helperTrans('ingaz.add Rent contract') }}</span>
                                 </a>
                             </li>
                         @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_VIEW))
                             <li>
-                                <a class="m-link" href="{{ route('RentContract.index') }}">
-                                    <i class="icon-loop"></i>
+                                <a class="m-link {{ (Route::currentRouteName() == 'RentContract.index' && !request('status')) ? 'active' : '' }}"
+                                   href="{{ route('RentContract.index') }}">
+                                    <i class="fas fa-list"></i>
                                     <span class="ms-2">{{ helperTrans('ingaz.All Rent contracts') }}</span>
                                 </a>
                             </li>
                             <li>
-                                <a class="m-link" href="{{ route('RentContract.index', ['status' => $sariStatus->value]) }}">
-                                    <i class="icon-star"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.sari') }}</span>
+                                <a class="m-link {{ (Route::currentRouteName() == 'RentContract.index' && request('status') == 'new') ? 'active' : '' }}"
+                                   href="{{ route('RentContract.index', ['status' => 'new']) }}">
+                                    <i class="fas fa-file-plus text-primary"></i>
+                                    <span class="ms-2">العقود الجديدة</span>
                                 </a>
                             </li>
                             <li>
-                                <a class="m-link" href="{{ route('RentContract.index', ['status' => $closedStatus->value]) }}">
-                                    <i class="icon-star"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.closed') }}</span>
+                                <a class="m-link {{ (Route::currentRouteName() == 'RentContract.index' && request('status') == 'active') ? 'active' : '' }}"
+                                   href="{{ route('RentContract.index', ['status' => 'active']) }}">
+                                    <i class="fas fa-check-circle text-success"></i>
+                                    <span class="ms-2">العقود النشطة</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'RentContract.index' && request('status') == 'completed') ? 'active' : '' }}"
+                                   href="{{ route('RentContract.index', ['status' => 'completed']) }}">
+                                    <i class="fas fa-flag-checkered text-info"></i>
+                                    <span class="ms-2">العقود المكتملة</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'RentContract.index' && request('status') == 'cancelled') ? 'active' : '' }}"
+                                   href="{{ route('RentContract.index', ['status' => 'cancelled']) }}">
+                                    <i class="fas fa-times-circle text-danger"></i>
+                                    <span class="ms-2">العقود الملغية</span>
                                 </a>
                             </li>
                         @endif
@@ -318,8 +335,8 @@
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'contract.settings') ? 'active' : '' }}"
                                     href="{{route('contract.settings')}}">
-                                    <i class="fa fa-cogs"></i>
-                                    <span class="ms-2"> {{ __('admin.contract_settings') }}</span>
+                                    <i class="fas fa-cog"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.contract_settings') }}</span>
                                 </a>
                             </li>
                         @endif

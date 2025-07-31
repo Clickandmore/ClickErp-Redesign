@@ -22,12 +22,12 @@ $user = getAuthUser();
                         <span class="line"></span>
                     </span>
                 </button>
-                <a href="{{route('dashboard.index')}}" class="brand-icon d-flex align-items-center mx-2 mx-sm-3 text-primary">
+                {{-- <a href="{{route('dashboard.index')}}" class="brand-icon d-flex align-items-center mx-2 mx-sm-3 text-primary">
                     <img src="@if(isset($settings) && isset($settings->logo_header))
                     {{ showFile($settings->logo_header) }}
                     @else
                     {{url('/')}}/web/img/logo.svg
-                @endif" style="height: 30px;filter: none;" alt="">
+                @endif" style="height: 30px;filter: none;" alt=""> --}}
                     {{-- <svg height="22" viewBox="0 0 67 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path class="fill-muted"
                             d="M0.863281 18.9997V1.14968H3.11328V16.9997H10.9133V18.9997H0.863281Z" />

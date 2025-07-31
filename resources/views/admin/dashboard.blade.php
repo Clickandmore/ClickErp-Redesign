@@ -105,6 +105,31 @@
         </div>
         @endif
 
+        @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_VIEW))
+        <div class="col-lg-4 col-md-6 col-sm-6">
+            <div class="card overflow-hidden">
+                <div class="card-body">
+                    <svg class="position-absolute top-0 end-0 mt-4 me-3" xmlns="http://www.w3.org/2000/svg"
+                         width="26" fill="currentColor" viewBox="0 0 16 16">
+                        <path class="fill-muted"
+                              d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                        <path class="fill-primary"
+                              d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                        <path class="fill-primary"
+                              d="M8 6.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V11a.5.5 0 0 1-1 0V9.5H6a.5.5 0 0 1 0-1h1.5V7a.5.5 0 0 1 .5-.5z"/>
+                    </svg>
+                    <a href="{{route('RentContract.index')}}">
+                        <div class="mb-2 text-uppercase">{{ helperTrans('ingaz.Rent contracts') }}</div>
+                        <div>
+                            <span class="h4" id="rental-contracts-count">0</span>
+                            <small class="text-success d-block" id="rental-contracts-value">0 ريال</small>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+        @endif
+
         @if (@AdminGuardHasPerm(\App\PermKeys::DASHBOARD_EMPLOYEES_COUNT))
         <div class="col-lg-4 col-md-6 col-sm-6">
             <div class="card overflow-hidden">
@@ -348,6 +373,28 @@
         }
         var chart = new ApexCharts(document.querySelector("#apex-optionsForType"), optionsForType);
         chart.render();
+
+        // Load Rental Contracts Statistics
+        @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_VIEW))
+        function loadRentalContractsStats() {
+            $.ajax({
+                url: "{{ route('RentContract.statistics') }}",
+                method: 'GET',
+                success: function(data) {
+                    $('#rental-contracts-count').text(data.total || 0);
+                    $('#rental-contracts-value').text((data.totalValue || 0).toLocaleString() + ' ريال');
+                },
+                error: function() {
+                    console.log('Error loading rental contracts statistics');
+                }
+            });
+        }
+
+        // Load stats on page load
+        $(document).ready(function() {
+            loadRentalContractsStats();
+        });
+        @endif
     </script>
 
 @endsection

@@ -134,8 +134,8 @@
                                     <th>{{helperTrans("ingaz.phone")}}</th>
                                     <th>{{helperTrans("ingaz.nationality")}}</th>
                                     <th>{{helperTrans("ingaz.passport_num")}}</th>
-                                    <th>{{helperTrans("ingaz.maid")}}</th>
-                                    <th>{{helperTrans("ingaz.deliver_status")}}</th>
+                                    {{-- <th>{{helperTrans("ingaz.maid")}}</th> --}}
+                                    {{-- <th>{{helperTrans("ingaz.deliver_status")}}</th> --}}
                                     <th>{{helperTrans("ingaz.order_job_type")}}</th>
                                     <th>{{helperTrans("ingaz.status")}}</th>
                                     <th>{{helperTrans("ingaz.timer")}}</th>

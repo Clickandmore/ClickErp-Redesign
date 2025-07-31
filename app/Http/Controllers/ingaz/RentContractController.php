@@ -140,6 +140,7 @@ class RentContractController extends Controller
         // الحصول على الطلبات المنتهية من نوع تأجير (job_type_id = 2)
         $endedOrders = Order::where('job_type_id', 2)
                            ->whereIn('status', [OrderEnum::Done->value])
+                           ->with(['user', 'maid'])
                            ->latest()
                            ->get();
 
@@ -149,23 +150,50 @@ class RentContractController extends Controller
                                        $query->where('job_type_id', 2); // تأجير
                                    })
                                    ->where('available', true)
+                                   ->with(['nationality.translations', 'religion.translations'])
                                    ->latest()
                                    ->get();
 
-        // الحصول على المسوقين
-        $marketers = Admin::whereNull('deleted_at')->orderBy('name')->get();
+        // الحصول على المسوقين النشطين
+        $marketers = Admin::whereNull('deleted_at')
+                         ->orderBy('name')
+                         ->get();
 
-        // الحصول على الجنسيات
+        // الحصول على الجنسيات مع الترجمات
         $nationalities = Nationality::with('translations')->get();
 
+        // الحصول على العملاء الموجودين (للبحث السريع)
+        $existing_clients = User::select('id', 'name', 'phone', 'email', 'nationality_id', 'national_num', 'birthdate', 'address', 'city', 'family_num', 'children', 'profession', 'monthly_income', 'phone2', 'rooms_num', 'job')
+                              ->whereNotNull('name')
+                              ->where('name', '!=', '')
+                              ->where('name', 'not like', '+966%')
+                              ->where('name', 'not like', '10%')
+                              ->where('name', 'not like', '05%')
+                              ->where('name', 'not like', '2%')
+                              ->whereNotNull('phone')
+                              ->orderBy('name')
+                              ->limit(200) // زيادة العدد لخيارات أكثر
+                              ->get();
+
+        // تسجيل عدد العملاء للتشخيص
+        \Log::info('Existing clients loaded for rent contract create', [
+            'count' => $existing_clients->count(),
+            'first_3' => $existing_clients->take(3)->pluck('name', 'id')->toArray()
+        ]);
+
         $offices = $officeAction->getAllOffices();
+
+        // إضافة متغير لتحديد ما إذا كانت هناك طلبات متاحة
+        $hasEndedOrders = $endedOrders->count() > 0;
 
         return view($this->folderPath . '.create', compact(
             'endedOrders',
             'availableRentalMaids',
             'marketers',
             'nationalities',
-            'offices'
+            'existing_clients',
+            'offices',
+            'hasEndedOrders'
         ));
     }
 
@@ -489,5 +517,197 @@ class RentContractController extends Controller
         ];
 
         return $badges[$status] ?? '<span class="badge bg-secondary">' . $status . '</span>';
+    }
+
+    public function statistics()
+    {
+        try {
+            $total = RentalContract::count();
+            $active = RentalContract::where('status', 'active')->count();
+            $completed = RentalContract::where('status', 'completed')->count();
+            $totalValue = RentalContract::with('info')
+                                      ->get()
+                                      ->sum(function($contract) {
+                                          return $contract->info ? $contract->info->contract_value : 0;
+                                      });
+
+            return response()->json([
+                'total' => $total,
+                'active' => $active,
+                'completed' => $completed,
+                'totalValue' => $totalValue
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'total' => 0,
+                'active' => 0,
+                'completed' => 0,
+                'totalValue' => 0
+            ]);
+        }
+    }
+
+    public function exportExcel(Request $request)
+    {
+        try {
+            $query = RentalContract::with(['user', 'maid', 'info', 'marketer']);
+
+            // Apply filters
+            if ($request->status) {
+                $query->where('status', $request->status);
+            }
+            if ($request->date_from) {
+                $query->whereDate('contract_date', '>=', $request->date_from);
+            }
+            if ($request->date_to) {
+                $query->whereDate('contract_date', '<=', $request->date_to);
+            }
+            if ($request->marketer_id) {
+                $query->where('marketer_id', $request->marketer_id);
+            }
+            if ($request->warranty_status) {
+                $query->where('warranty_status', $request->warranty_status);
+            }
+
+            $contracts = $query->get();
+
+            $filename = 'rental_contracts_' . date('Y-m-d_H-i-s') . '.csv';
+
+            $headers = [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ];
+
+            $callback = function() use ($contracts) {
+                $file = fopen('php://output', 'w');
+
+                // Add BOM for UTF-8
+                fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+
+                // Headers
+                fputcsv($file, [
+                    'رقم العقد',
+                    'اسم العميل',
+                    'رقم الجوال',
+                    'اسم العاملة',
+                    'رقم الجواز',
+                    'المسوق',
+                    'الحالة',
+                    'تاريخ العقد',
+                    'مدة العقد (شهور)',
+                    'التكلفة الشهرية',
+                    'قيمة العقد',
+                    'تاريخ الإنجاز من',
+                    'تاريخ الإنجاز إلى'
+                ]);
+
+                // Data
+                foreach ($contracts as $contract) {
+                    fputcsv($file, [
+                        $contract->contract_number ?? '',
+                        $contract->user ? $contract->user->name : '',
+                        $contract->user ? $contract->user->phone_code . $contract->user->phone : '',
+                        $contract->maid ? $contract->maid->name : 'لم يتم اختيار عاملة',
+                        $contract->maid ? $contract->maid->passport_num : '',
+                        $contract->marketer ? $contract->marketer->name : '',
+                        $this->getStatusText($contract->status),
+                        $contract->contract_date ? $contract->contract_date->format('Y-m-d') : '',
+                        $contract->info ? $contract->info->contract_duration_months : '',
+                        $contract->info ? $contract->info->monthly_cost : '',
+                        $contract->info ? $contract->info->contract_value : '',
+                        $contract->info && $contract->info->ingaz_from ? $contract->info->ingaz_from->format('Y-m-d') : '',
+                        $contract->info && $contract->info->ingaz_to ? $contract->info->ingaz_to->format('Y-m-d') : ''
+                    ]);
+                }
+
+                fclose($file);
+            };
+
+            return response()->stream($callback, 200, $headers);
+
+        } catch (\Exception $e) {
+            Log::error('Error exporting rental contracts: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'حدث خطأ أثناء تصدير البيانات');
+        }
+    }
+
+    private function getStatusText($status)
+    {
+        $statuses = [
+            'new' => 'جديد',
+            'active' => 'نشط',
+            'completed' => 'مكتمل',
+            'cancelled' => 'ملغي',
+            'suspended' => 'معلق',
+        ];
+
+        return $statuses[$status] ?? $status;
+    }
+
+    private function getWarrantyStatusText($status)
+    {
+        $statuses = [
+            'not_applicable' => 'غير قابل للتطبيق',
+            'active' => 'نشط',
+            'expired' => 'منتهي',
+        ];
+
+        return $statuses[$status] ?? $status;
+    }
+
+    // Add method to pass status texts to view
+    public function getStatusTexts()
+    {
+        return [
+            'new' => 'جديد',
+            'active' => 'نشط',
+            'completed' => 'مكتمل',
+            'cancelled' => 'ملغي',
+            'suspended' => 'معلق',
+        ];
+    }
+
+    public function getWarrantyStatusTexts()
+    {
+        return [
+            'not_applicable' => 'غير قابل للتطبيق',
+            'active' => 'نشط',
+            'expired' => 'منتهي',
+        ];
+    }
+
+    /**
+     * Get existing clients for AJAX requests
+     */
+    public function getExistingClients(Request $request)
+    {
+        $search = $request->get('search', '');
+
+        $clients = User::select('id', 'name', 'phone', 'email', 'nationality_id', 'national_num', 'birthdate', 'address', 'city', 'family_num', 'children', 'profession', 'monthly_income')
+                      ->whereNotNull('name')
+                      ->where('name', '!=', '')
+                      ->where('name', 'not like', '+966%')
+                      ->where('name', 'not like', '10%')
+                      ->where('name', 'not like', '05%')
+                      ->where('name', 'not like', '2%')
+                      ->whereNotNull('phone');
+
+        if ($search) {
+            $clients->where(function($query) use ($search) {
+                $query->where('name', 'like', "%{$search}%")
+                      ->orWhere('phone', 'like', "%{$search}%")
+                      ->orWhere('national_num', 'like', "%{$search}%");
+            });
+        }
+
+        $clients = $clients->orderBy('name')
+                          ->limit(50)
+                          ->get();
+
+        return response()->json([
+            'success' => true,
+            'clients' => $clients,
+            'count' => $clients->count()
+        ]);
     }
 }

@@ -127,6 +127,29 @@ class AdminContractController extends Controller
         return view('admin.print.rent_contract', compact('data', 'info'));
     }
 
+    public function printRentalContract($contractId)
+    {
+        try {
+            $contract = \App\Models\RentalContract::with([
+                'user.nationality',
+                'maid.nationality.translations',
+                'maid.religion.translations',
+                'info',
+                'marketer'
+            ])->findOrFail($contractId);
+
+            // Get settings for contract printing
+            $settings = Setting::where('key', 'contract_settings')->first();
+            $contractSettings = $settings ? json_decode($settings->value, true) : [];
+
+            return view('admin.print.rental-contract', compact('contract', 'contractSettings'));
+
+        } catch (\Exception $e) {
+            \Log::error('Error printing rental contract: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'حدث خطأ أثناء طباعة العقد');
+        }
+    }
+
     public function checkTazkerContracts()
     {
         try {
