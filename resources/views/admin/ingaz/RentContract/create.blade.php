@@ -227,6 +227,30 @@
             flex-direction: column;
         }
     }
+
+    .select2-container--default .select2-search--dropdown .select2-search__field {
+        border: 1px solid #ddd;
+        padding: 4px 6px;
+        outline: none;
+    }
+
+    .select2-dropdown {
+        z-index: 9999 !important;
+    }
+
+    .select2-container--open .select2-dropdown {
+        border: 1px solid var(--primary-color);
+    }
+
+    .select2-results__option {
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+
+    .select2-results__option--highlighted {
+        background-color: var(--primary-color) !important;
+        color: white !important;
+    }
 </style>
 @endsection
 
@@ -301,6 +325,11 @@
                       @endif
                     </select>
                     <a href="{{ route('clients.create') }}" target="_blank" class="btn btn-outline-primary mt-2" title="إضافة عميل جديد"><i class="fas fa-user-plus"></i> إضافة عميل جديد</a>
+
+                    <!-- Test Button -->
+                    <button type="button" class="btn btn-warning btn-sm mt-2" onclick="testClientSelection()">
+                        <i class="fas fa-bug"></i> اختبار التعبئة التلقائية
+                    </button>
                   </div>
                 <!-- Client Preview -->
                 <div class="col-12" id="client-preview" style="display: none;">
@@ -706,49 +735,87 @@
 
 <script>
 $(document).ready(function() {
-    // Initialize Select2
-    $('.select2').select2({
-        placeholder: 'اختر...',
+    // تهيئة Select2 - نفس الطريقة المستخدمة في عقود الاستقدام
+    $('#new_existing_client_id').select2({
+        placeholder: 'اختر عميل...',
         allowClear: true,
+        dir: 'rtl',
+        width: '100%',
         language: {
-            noResults: function() {
-                return "لا توجد نتائج";
-            },
-            searching: function() {
-                return "جاري البحث...";
-            }
+            noResults: function() { return "لا توجد نتائج"; },
+            searching: function() { return "جاري البحث..."; }
         }
     });
 
-    // Handle existing client selection - simple approach like recruitment contracts
-    $('#new_existing_client_id').change(function() {
+    // تهيئة باقي Select2
+    $('.select2').select2({
+        placeholder: 'اختر...',
+        allowClear: true,
+        dir: 'rtl',
+        width: '100%',
+        language: {
+            noResults: function() { return "لا توجد نتائج"; },
+            searching: function() { return "جاري البحث..."; }
+        }
+    });
+
+    // إعادة تهيئة Select2 بعد تحميل الصفحة للتأكد من عمل البحث
+    setTimeout(function() {
+        if ($.fn.select2) {
+            $('#new_existing_client_id').select2('destroy').select2({
+                placeholder: 'اختر عميل...',
+                allowClear: true,
+                dir: 'rtl',
+                width: '100%',
+                language: {
+                    noResults: function() { return "لا توجد نتائج"; },
+                    searching: function() { return "جاري البحث..."; }
+                }
+            });
+        }
+    }, 500);
+
+    console.log('Select2 initialized. Client options count:', $('#new_existing_client_id option').length);
+
+    // معالج تغيير العميل - نفس الطريقة المستخدمة في عقود الاستقدام
+    $('#new_existing_client_id').on('change', function() {
         var selectedOption = $(this).find('option:selected');
+        console.log('Client selection changed:', selectedOption.val(), selectedOption.text());
 
         if (selectedOption.val()) {
-            // Populate client data from data attributes - using the same names as recruitment contracts
+            console.log('Populating client data...');
+
+            // تعبئة بيانات العميل - نفس الطريقة المستخدمة في عقود الاستقدام
             $('#client_name').val(selectedOption.data('name') || '');
             $('#client_phone').val(selectedOption.data('phone') || '');
             $('#client_email').val(selectedOption.data('email') || '');
-            $('#client_nationality_id').val(selectedOption.data('nationality') || '').trigger('change');
             $('#client_national_num').val(selectedOption.data('national-num') || '');
             $('#client_birthdate').val(selectedOption.data('birthdate') || '');
             $('#client_address').val(selectedOption.data('address') || '');
             $('#client_city').val(selectedOption.data('city') || '');
             $('#family_num').val(selectedOption.data('family-num') || '');
             $('#children').val(selectedOption.data('children') || '');
-            $('#profession').val(selectedOption.data('job') || ''); // Using 'job' data attribute
-            $('#monthly_income').val(''); // This field doesn't exist in the data attributes you provided
+            $('#profession').val(selectedOption.data('job') || '');
 
-            // Show client preview
+            // معالجة الجنسية
+            if (selectedOption.data('nationality')) {
+                $('#client_nationality_id').val(selectedOption.data('nationality')).trigger('change');
+            }
+
+            console.log('Client data populated successfully');
+
+            // إظهار معاينة العميل
             $('#client-preview').show();
             $('#preview-name').text(selectedOption.data('name') || '-');
             $('#preview-phone').text(selectedOption.data('phone') || '-');
             $('#preview-profession').text(selectedOption.data('job') || '-');
             $('#preview-city').text(selectedOption.data('city') || '-');
             $('#preview-national').text(selectedOption.data('national-num') || '-');
-            $('#preview-income').text('-'); // No income data available
+            $('#preview-income').text('-');
+
         } else {
-            // Clear all fields
+            console.log('No client selected, clearing fields...');
+            // مسح جميع الحقول
             $('#client_name, #client_phone, #client_email, #client_national_num, #client_address, #client_city, #profession').val('');
             $('#client_nationality_id, #client_birthdate, #monthly_income, #family_num, #children').val('');
             $('#client_nationality_id').trigger('change');
@@ -945,6 +1012,60 @@ $(document).ready(function() {
             }
         });
     }
+});
+
+// دالة اختبار التعبئة التلقائية
+function testClientSelection() {
+    console.log('=== بدء اختبار التعبئة التلقائية ===');
+
+    // اختبار وجود العناصر
+    var selectElement = document.getElementById('new_existing_client_id');
+    console.log('1. عنصر القائمة موجود:', !!selectElement);
+    console.log('2. عدد الخيارات:', selectElement ? selectElement.options.length : 0);
+
+    if (selectElement && selectElement.options.length > 1) {
+        // اختبار أول عميل
+        var firstOption = selectElement.options[1]; // تجاهل الخيار الفارغ
+        console.log('3. أول عميل:', {
+            value: firstOption.value,
+            text: firstOption.text,
+            'data-name': firstOption.getAttribute('data-name'),
+            'data-phone': firstOption.getAttribute('data-phone'),
+            'data-email': firstOption.getAttribute('data-email')
+        });
+
+        // محاولة اختيار العميل برمجياً
+        console.log('4. محاولة اختيار العميل...');
+        $('#new_existing_client_id').val(firstOption.value).trigger('change');
+
+        // فحص الحقول بعد التعبئة
+        setTimeout(function() {
+            console.log('5. فحص الحقول بعد التعبئة:');
+            console.log('   - اسم العميل:', $('#client_name').val());
+            console.log('   - رقم الجوال:', $('#client_phone').val());
+            console.log('   - البريد الإلكتروني:', $('#client_email').val());
+            console.log('   - رقم الهوية:', $('#client_national_num').val());
+
+            // إظهار النتيجة
+            var isWorking = $('#client_name').val() !== '';
+            alert(isWorking ?
+                'التعبئة التلقائية تعمل! ✅\nتم تعبئة: ' + $('#client_name').val() :
+                'التعبئة التلقائية لا تعمل! ❌\nتحقق من Console للتفاصيل'
+            );
+        }, 500);
+    } else {
+        console.log('❌ لا توجد خيارات في القائمة');
+        alert('لا توجد عملاء في القائمة!');
+    }
+}
+
+// اختبار تلقائي عند تحميل الصفحة
+$(document).ready(function() {
+    setTimeout(function() {
+        console.log('🔍 اختبار تلقائي للنظام...');
+        console.log('Select2 جاهز:', $('#new_existing_client_id').hasClass('select2-hidden-accessible'));
+        console.log('عدد العملاء:', $('#new_existing_client_id option').length - 1);
+    }, 2000);
 });
 </script>
 @endsection
