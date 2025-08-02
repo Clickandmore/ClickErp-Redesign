@@ -2334,3 +2334,397 @@ body.rtl-fix .btn {
         height: 10px;
     }
 }
+
+/*
+=======================================================
+   تصميم صفحات إضافة العقود - التصميم الموحد
+   Rental & Recruitment Contracts Forms
+=======================================================
+*/
+
+/* متغيرات الألوان */
+:root {
+    --contract-primary: #2794eb;
+    --contract-primary-dark: #1e7bc8;
+    --contract-primary-light: #e3f2fd;
+    --contract-success: #48bb78;
+    --contract-success-dark: #38a169;
+    --contract-border: #e2e8f0;
+    --contract-text: #2d3748;
+    --contract-text-muted: #718096;
+    --contract-shadow: 0 4px 15px rgba(39, 148, 235, 0.1);
+}
+
+/* رأس العقد */
+.contract-header {
+    background: linear-gradient(135deg, var(--contract-primary), var(--contract-primary-dark));
+    border-radius: 12px;
+    padding: 1.5rem;
+    color: white;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--contract-shadow);
+}
+
+.contract-header h4 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.contract-header p {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    margin: 0;
+}
+
+/* أقسام النموذج */
+.form-section {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--contract-shadow);
+    border-left: 4px solid var(--contract-primary);
+    transition: all 0.3s ease;
+}
+
+.form-section:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(39, 148, 235, 0.15);
+}
+
+/* رأس القسم */
+.section-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.section-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--contract-primary);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 8px;
+    color: white;
+    font-size: 16px;
+    margin-left: 12px;
+    box-shadow: 0 2px 8px rgba(39, 148, 235, 0.3);
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--contract-text);
+    margin: 0;
+}
+
+.section-subtitle {
+    color: var(--contract-text-muted);
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+/* حقول النموذج */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 0.4rem;
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.required-star {
+    color: #e53e3e;
+    margin-right: 4px;
+}
+
+/* تحسين عناصر النموذج */
+.form-control, .form-select {
+    border: 1px solid var(--contract-border);
+    border-radius: 8px;
+    padding: .675rem 2.25rem .675rem .75rem;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    background-color: #f8f9fa;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--contract-primary);
+    box-shadow: 0 0 0 3px rgba(39, 148, 235, 0.1);
+    background-color: white;
+}
+
+/* Select2 Customization */
+.select2-container--default .select2-selection--single {
+    border: 1px solid var(--contract-border);
+    border-radius: 8px;
+    height: 40px;
+    padding: 6px 10px;
+    background-color: #f8f9fa;
+}
+
+.select2-container--default .select2-selection--single:focus,
+.select2-container--default.select2-container--focus .select2-selection--single {
+    border-color: var(--contract-primary);
+    box-shadow: 0 0 0 3px rgba(39, 148, 235, 0.1);
+    background-color: white;
+}
+
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1px solid #ddd;
+    padding: 4px 6px;
+    outline: none;
+    border-radius: 4px;
+}
+
+.select2-dropdown {
+    z-index: 9999 !important;
+    border: 1px solid var(--contract-primary);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.select2-results__option {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+}
+
+.select2-results__option--highlighted {
+    background-color: var(--contract-primary) !important;
+    color: white !important;
+}
+
+/* معاينة البيانات */
+.client-preview, .maid-preview {
+    background: var(--contract-primary-light);
+    border: 1px solid var(--contract-primary);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 1rem;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.maid-photo {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--contract-primary);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* ملخص العقد */
+.contract-summary {
+    background: linear-gradient(135deg, var(--contract-success), var(--contract-success-dark));
+    color: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+    animation: slideIn 0.4s ease;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.summary-item {
+    text-align: center;
+    padding: 0.75rem;
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.summary-item:hover {
+    background: rgba(255,255,255,0.2);
+    transform: translateY(-2px);
+}
+
+.summary-value {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 0.25rem;
+}
+
+.summary-label {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+/* أزرار الإجراءات */
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.btn-primary {
+    background: var(--contract-primary);
+    border: none;
+    border-radius: 8px;
+    padding: 12px 30px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(39, 148, 235, 0.3);
+}
+
+.btn-primary:hover {
+    background: var(--contract-primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(39, 148, 235, 0.4);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 30px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+}
+
+/* رسائل التنبيه */
+.alert-info {
+    background: var(--contract-primary-light);
+    color: var(--contract-primary-dark);
+    border: 1px solid var(--contract-primary);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* التجاوب */
+@media (max-width: 768px) {
+    .contract-header {
+        padding: 1rem;
+    }
+
+    .contract-header h4 {
+        font-size: 1.25rem;
+    }
+
+    .form-section {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .section-icon {
+        width: 35px;
+        height: 35px;
+        font-size: 14px;
+    }
+
+    .section-title {
+        font-size: 1rem;
+    }
+
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .btn-primary, .btn-secondary {
+        width: 100%;
+    }
+}
+
+/* تحسينات إضافية للنماذج */
+input[type="date"] {
+    position: relative;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    cursor: pointer;
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Loading States */
+.form-control:disabled,
+.form-select:disabled {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
+/* تحسين مظهر الأرقام */
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* تحسين الـ Focus */
+*:focus {
+    outline: none;
+}
+
+/* تحسين التحقق من الصحة */
+.form-control.is-invalid,
+.form-select.is-invalid {
+    border-color: #dc3545;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: left calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+    padding-left: calc(1.5em + 0.75rem);
+}
+
+.form-control.is-valid,
+.form-select.is-valid {
+    border-color: #28a745;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2328a745' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: left calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+    padding-left: calc(1.5em + 0.75rem);
+}

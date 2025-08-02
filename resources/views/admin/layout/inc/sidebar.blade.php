@@ -285,7 +285,7 @@
                     </a>
                     <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['RentContract.index', 'RentContract.create', 'RentContract.show', 'RentContract.edit'])) ? 'show' : '' }}"
                         id="rentcontracts">
-                        @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE))
+
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'RentContract.create') ? 'active' : '' }}"
                                     href="{{route('RentContract.create')}}">
@@ -293,7 +293,6 @@
                                     <span class="ms-2">{{ helperTrans('ingaz.add Rent contract') }}</span>
                                 </a>
                             </li>
-                        @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_VIEW))
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'RentContract.index' && !request('status')) ? 'active' : '' }}"

@@ -162,63 +162,8 @@ class RentContractController extends Controller
         // الحصول على الجنسيات مع الترجمات
         $nationalities = Nationality::with('translations')->get();
 
-        // الحصول على العملاء الموجودين (للبحث السريع)
-        $existing_clients = User::select('id', 'name', 'phone', 'email', 'nationality_id', 'national_num', 'birthdate', 'address', 'city', 'family_num', 'children', 'profession', 'monthly_income', 'phone2', 'rooms_num', 'job')
-                              ->whereNotNull('name')
-                              ->where('name', '!=', '')
-                              ->where('name', 'not like', '+966%')
-                              ->where('name', 'not like', '10%')
-                              ->where('name', 'not like', '05%')
-                              ->where('name', 'not like', '2%')
-                              ->where('name', 'not like', '3%')
-                              ->where('name', 'not like', '4%')
-                              ->where('name', 'not like', '5%')
-                              ->where('name', 'not like', '6%')
-                              ->where('name', 'not like', '7%')
-                              ->where('name', 'not like', '8%')
-                              ->where('name', 'not like', '9%')
-                              ->where('name', 'not like', '1%')
-                              ->where(function($query) {
-                                  $query->where('name', 'like', '%ا%')
-                                        ->orWhere('name', 'like', '%ب%')
-                                        ->orWhere('name', 'like', '%ت%')
-                                        ->orWhere('name', 'like', '%ث%')
-                                        ->orWhere('name', 'like', '%ج%')
-                                        ->orWhere('name', 'like', '%ح%')
-                                        ->orWhere('name', 'like', '%خ%')
-                                        ->orWhere('name', 'like', '%د%')
-                                        ->orWhere('name', 'like', '%ذ%')
-                                        ->orWhere('name', 'like', '%ر%')
-                                        ->orWhere('name', 'like', '%ز%')
-                                        ->orWhere('name', 'like', '%س%')
-                                        ->orWhere('name', 'like', '%ش%')
-                                        ->orWhere('name', 'like', '%ص%')
-                                        ->orWhere('name', 'like', '%ض%')
-                                        ->orWhere('name', 'like', '%ط%')
-                                        ->orWhere('name', 'like', '%ظ%')
-                                        ->orWhere('name', 'like', '%ع%')
-                                        ->orWhere('name', 'like', '%غ%')
-                                        ->orWhere('name', 'like', '%ف%')
-                                        ->orWhere('name', 'like', '%ق%')
-                                        ->orWhere('name', 'like', '%ك%')
-                                        ->orWhere('name', 'like', '%ل%')
-                                        ->orWhere('name', 'like', '%م%')
-                                        ->orWhere('name', 'like', '%ن%')
-                                        ->orWhere('name', 'like', '%ه%')
-                                        ->orWhere('name', 'like', '%و%')
-                                        ->orWhere('name', 'like', '%ي%')
-                                        ->orWhere('name', 'like', '%ى%')
-                                        ->orWhere('name', 'like', '%ة%')
-                                        ->orWhere('name', 'like', '%أ%')
-                                        ->orWhere('name', 'like', '%إ%')
-                                        ->orWhere('name', 'like', '%آ%')
-                                        ->orWhere('name', 'like', '%ؤ%')
-                                        ->orWhere('name', 'like', '%ئ%');
-                              })
-                              ->whereNotNull('phone')
-                              ->orderBy('name')
-                              ->limit(300) // زيادة العدد
-                              ->get();
+        // الحصول على العملاء الموجودين - نفس الطريقة المستخدمة في عقود الاستقدام
+        $existing_clients = User::with('nationality')->get();
 
         // تسجيل عدد العملاء للتشخيص
         \Log::info('Existing clients loaded for rent contract create', [
