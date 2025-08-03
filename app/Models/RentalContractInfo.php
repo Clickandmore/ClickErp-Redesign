@@ -16,6 +16,8 @@ class RentalContractInfo extends Model
         'monthly_salary',
         'sponsorship_transfer_amount',
         'salary_after_sponsorship',
+        'sponsorship_transfer',
+        'rental_type',
         'monthly_cost',
         'contract_duration_months',
         'contract_duration_days',

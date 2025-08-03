@@ -1,574 +1,354 @@
 @extends('admin.layout.indexs.index')
 @section('page-title')
-    {{helperTrans("ingaz.add Rent contract")}}
+إضافة عقد تأجير جديد
 @endsection
 
 @section('style')
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link rel="stylesheet" href="{{ asset('admin/custom/admin-tables.css') }}">
-
-<style>
-/* Form Sections Styling */
-.form-section {
-    margin-bottom: 2rem;
-    padding: 1.5rem;
-    border-radius: 12px;
-    background: #f8f9fa;
-    border: 1px solid #e9ecef;
-    position: relative;
-}
-
-.section-header {
-    margin-bottom: 1.5rem;
-}
-
-.section-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: #007bff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    box-shadow: 0 2px 10px rgba(0,123,255,0.3);
-}
-
-.section-title {
-    color: #2c3e50;
-    font-weight: 600;
-    margin: 0;
-}
-
-/* Form Groups */
-.form-group {
-    margin-bottom: 1.5rem;
-}
-
-.form-label {
-    font-weight: 600;
-    color: #495057;
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-}
-
-.required-star {
-    color: #dc3545;
-    margin-left: 0.25rem;
-    font-weight: bold;
-}
-
-/* Form Controls */
-.form-control, .form-select {
-    border-radius: 8px;
-    border: 1px solid #ced4da;
-    padding: 0.75rem 1rem;
-    font-size: 0.95rem;
-    transition: all 0.3s ease;
-}
-
-.form-control:focus, .form-select:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
-}
-
-/* Select2 Styling */
-.select2-container--default .select2-selection--single {
-    height: 48px !important;
-    border-radius: 8px !important;
-    border: 1px solid #ced4da !important;
-    padding: 0.75rem 1rem !important;
-}
-
-.select2-container--default .select2-selection--single .select2-selection__rendered {
-    line-height: 30px !important;
-    padding-left: 0 !important;
-}
-
-.select2-container--default .select2-selection--single .select2-selection__arrow {
-    height: 46px !important;
-}
-
-/* Buttons */
-.btn-lg {
-    padding: 0.75rem 2rem;
-    font-size: 1.1rem;
-    border-radius: 8px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-    border: none;
-    box-shadow: 0 4px 15px rgba(0,123,255,0.3);
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,123,255,0.4);
-}
-
-.btn-outline-secondary {
-    border: 2px solid #6c757d;
-    color: #6c757d;
-    font-weight: 600;
-}
-
-.btn-outline-secondary:hover {
-    background: #6c757d;
-    color: white;
-    transform: translateY(-2px);
-}
-
-/* Contract Header */
-.contract-header-icon {
-    animation: bounce 2s infinite;
-}
-
-@keyframes bounce {
-    0%, 20%, 50%, 80%, 100% {
-        transform: translateY(0);
-    }
-    40% {
-        transform: translateY(-10px);
-    }
-    60% {
-        transform: translateY(-5px);
-    }
-}
-
-/* Card Styling */
-.card {
-    border: none;
-    border-radius: 15px;
-    overflow: hidden;
-}
-
-.card-header {
-    border-bottom: 1px solid #e9ecef;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-}
-
-.shadow-sm {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .form-section {
-        padding: 1rem;
-    }
-
-    .section-icon {
-        width: 40px;
-        height: 40px;
-        font-size: 1rem;
-    }
-
-    .d-flex.gap-3 {
-        flex-direction: column;
-        gap: 1rem !important;
-    }
-
-    .btn-lg {
-        width: 100%;
-    }
-}
-
-/* Loading Animation */
-.btn .fa-spinner {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-</style>
 @endsection
 
 @section('content')
-<div class="row">
-    <div class="col-12">
-        <!-- Page Header -->
-        <div class="card mb-4">
-            <div class="card-body text-center">
-                <div class="contract-header-icon mb-3">
-                    <i class="fas fa-handshake text-primary" style="font-size: 3rem;"></i>
-                </div>
-                <h3 class="text-primary mb-2">إنشاء عقد تأجير جديد</h3>
-                <p class="text-muted mb-0">قم بتعبئة البيانات المطلوبة لإنشاء عقد تأجير احترافي</p>
-            </div>
-        </div>
 
-        <!-- Main Form Card -->
-        <div class="card shadow-sm">
-            <div class="card-header bg-light">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-edit me-2 text-primary"></i>
-                    بيانات العقد
-                </h5>
-            </div>
-            <div class="card-body">
-                <form id="rentalContractForm" action="{{ route('RentContract.store') }}" method="POST" enctype="multipart/form-data">
-                    @csrf
+@if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE))
 
-                    <!-- Client Section -->
-                    <div class="form-section">
-                        <div class="section-header mb-4">
-                            <div class="d-flex align-items-center">
-                                <div class="section-icon me-3">
-                                    <i class="fas fa-user text-white"></i>
-                                </div>
-                                <div>
-                                    <h5 class="section-title mb-1">بيانات العميل</h5>
-                                    <small class="text-muted">المعلومات الشخصية والمهنية للعميل</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row mb-4">
+<form id="rentalContractForm" method="post" action="{{ route('RentContract.store') }}">
+  @csrf
+  <input type="hidden" name="contract_type" value="new_contract">
+  <input type="hidden" name="client_type" value="new_client">
 
-                        <div class="col-md-12">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <span class="required-star">*</span>
-                                    اختر عميل موجود
-                                </label>
-                                <select name="new_existing_client_id" id="new_existing_client_id" class="form-select select2" style="width:100%" required>
-                                    <option value="" selected disabled>ابحث عن عميل بالاسم أو رقم الجوال أو الهوية...</option>
-                                    @if(isset($existing_clients))
-                                        @foreach($existing_clients as $client)
-                                            <option value="{{$client->id}}"
-                                                data-name="{{$client->name}}"
-                                                data-phone="{{$client->phone}}"
-                                                data-email="{{$client->email}}"
-                                                data-nationality="{{$client->nationality_id}}"
-                                                data-national-num="{{$client->national_num}}"
-                                                data-birthdate="{{$client->birthdate}}"
-                                                data-phone2="{{$client->phone2}}"
-                                                data-address="{{$client->address}}"
-                                                data-city="{{$client->city}}"
-                                                data-beds-num="{{$client->rooms_num}}"
-                                                data-family-num="{{$client->family_num}}"
-                                                data-children="{{$client->children}}"
-                                                data-job="{{$client->job}}">
-                                                {{$client->name}} - {{$client->phone}} - {{$client->national_num}}
-                                            </option>
-                                        @endforeach
-                                    @endif
-                                </select>
-                                <div class="d-flex gap-2 mt-2">
-                                    <a href="{{ route('clients.create') }}" target="_blank" class="btn btn-outline-primary btn-sm">
-                                        <i class="fas fa-user-plus me-1"></i> إضافة عميل جديد
-                                    </a>
-                                    <small class="text-muted align-self-center">أو ابحث في القائمة أعلاه</small>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <span class="required-star">*</span>
-                                    اسم العميل
-                                </label>
-                                <input type="text" class="form-control" id="client_name" name="client_name" required>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <span class="required-star">*</span>
-                                    رقم الجوال
-                                </label>
-                                <input type="text" class="form-control" id="client_phone" name="client_phone" required>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <span class="required-star">*</span>
-                                    رقم الهوية
-                                </label>
-                                <input type="text" class="form-control" id="client_national_num" name="client_national_num" required>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <span class="required-star">*</span>
-                                    الجنسية
-                                </label>
-                                <select class="form-select select2" id="client_nationality_id" name="client_nationality_id" required>
-                                    <option value="">اختر الجنسية</option>
-                                    @foreach($nationalities as $nationality)
-                                        <option value="{{$nationality->id}}">
-                                            {{ $nationality->translations->first()->title ?? $nationality->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">البريد الإلكتروني</label>
-                                <input type="email" class="form-control" id="client_email" name="client_email">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <span class="required-star">*</span>
-                                    تاريخ الميلاد
-                                </label>
-                                <input type="date" class="form-control" id="client_birthdate" name="client_birthdate" required>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <span class="required-star">*</span>
-                                    المهنة
-                                </label>
-                                <input type="text" class="form-control" id="profession" name="profession" required>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">الدخل الشهري</label>
-                                <input type="number" class="form-control" id="monthly_income" name="monthly_income" step="0.01">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">العنوان</label>
-                                <input type="text" class="form-control" id="client_address" name="client_address">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">المدينة</label>
-                                <input type="text" class="form-control" id="client_city" name="client_city">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">عدد أفراد الأسرة</label>
-                                <input type="number" class="form-control" id="family_num" name="family_num">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">عدد الأطفال</label>
-                                <input type="number" class="form-control" id="children" name="children">
-                                                         </div>
-                         </div>
-                        </div>
-                    </div>
-
-                    <!-- Maid Section -->
-                    <div class="form-section">
-                        <div class="section-header mb-4">
-                            <div class="d-flex align-items-center">
-                                <div class="section-icon me-3" style="background: #e91e63;">
-                                    <i class="fas fa-female text-white"></i>
-                                </div>
-                                <div>
-                                    <h5 class="section-title mb-1">بيانات العاملة</h5>
-                                    <small class="text-muted">اختيار العاملة المناسبة للتأجير</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row mb-4">
-
-                                                <div class="col-md-12">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <span class="required-star">*</span>
-                                    اختر عاملة للتأجير
-                                </label>
-                                <select name="maid_id" id="maid_id" class="form-select select2" required>
-                                    <option value="" selected disabled>ابحث عن عاملة بالاسم أو رقم الجواز أو الجنسية...</option>
-                                    @if(isset($availableRentalMaids))
-                                        @foreach($availableRentalMaids as $maid)
-                                            <option value="{{$maid->id}}"
-                                                data-name="{{$maid->name}}"
-                                                data-passport="{{$maid->passport_num}}"
-                                                data-nationality="{{$maid->nationality->title ?? ''}}"
-                                                data-age="{{$maid->age}}"
-                                                data-experience="{{$maid->experience_years}}"
-                                                data-salary="{{$maid->salary}}"
-                                                data-photo="{{$maid->photo}}">
-                                                {{$maid->name}} - {{$maid->passport_num}} - {{$maid->nationality->title ?? ''}} - {{$maid->age}} سنة
-                                            </option>
-                                        @endforeach
-                                    @else
-                                        <option value="" disabled>لا توجد عاملات متاحة للتأجير حالياً</option>
-                                    @endif
-                                </select>
-                                @if(!isset($availableRentalMaids) || $availableRentalMaids->count() == 0)
-                                    <div class="alert alert-warning mt-2">
-                                        <i class="fas fa-exclamation-triangle me-2"></i>
-                                        لا توجد عاملات متاحة للتأجير حالياً. يرجى التواصل مع الإدارة.
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Contract Section -->
-                    <div class="form-section">
-                        <div class="section-header mb-4">
-                            <div class="d-flex align-items-center">
-                                <div class="section-icon me-3" style="background: #28a745;">
-                                    <i class="fas fa-file-contract text-white"></i>
-                                </div>
-                                <div>
-                                    <h5 class="section-title mb-1">تفاصيل العقد</h5>
-                                    <small class="text-muted">المعلومات المالية والزمنية للعقد</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row mb-4">
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <span class="required-star">*</span>
-                                    تاريخ العقد
-                                </label>
-                                <input type="date" class="form-control" id="contract_date" name="contract_date" required>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">عدد ساعات العمل</label>
-                                <input type="number" class="form-control" id="working_hours" name="working_hours" step="0.5">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">أجرة الساعة</label>
-                                <input type="number" class="form-control" id="hourly_rate" name="hourly_rate" step="0.01">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">الراتب الشهري</label>
-                                <input type="number" class="form-control" id="monthly_salary" name="monthly_salary" step="0.01">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">مبلغ نقل الكفالة</label>
-                                <input type="number" class="form-control" id="sponsorship_transfer" name="sponsorship_transfer" step="0.01">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <span class="required-star">*</span>
-                                    التكلفة الشهرية
-                                </label>
-                                <input type="number" class="form-control" id="monthly_cost" name="monthly_cost" step="0.01" required>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">مدة العقد (بالشهور)</label>
-                                <input type="number" class="form-control" id="contract_duration_months" name="contract_duration_months" step="0.1">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">مدة العقد (بالأيام)</label>
-                                <input type="number" class="form-control" id="contract_duration_days" name="contract_duration_days">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">قيمة العقد الإجمالية</label>
-                                <input type="number" class="form-control" id="contract_value" name="contract_value" step="0.01" readonly>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">تاريخ بداية الإنجاز</label>
-                                <input type="date" class="form-control" id="ingaz_start_date" name="ingaz_start_date">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">تاريخ نهاية الإنجاز</label>
-                                <input type="date" class="form-control" id="ingaz_end_date" name="ingaz_end_date">
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <span class="required-star">*</span>
-                                    المسوق
-                                </label>
-                                <select class="form-select select2" id="marketer_id" name="marketer_id" required>
-                                    <option value="">اختر المسوق</option>
-                                    @foreach($marketers as $marketer)
-                                        <option value="{{$marketer->id}}" {{ auth()->id() == $marketer->id ? 'selected' : '' }}>
-                                            {{$marketer->name}}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                                         </div>
-                         </div>
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="form-section">
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="d-flex justify-content-center gap-3 pt-4 border-top">
-                                    <a href="{{ route('RentContract.index') }}" class="btn btn-outline-secondary btn-lg px-5">
-                                        <i class="fas fa-arrow-left me-2"></i>
-                                        العودة للقائمة
-                                    </a>
-                                    <button type="submit" class="btn btn-primary btn-lg px-5" id="submit-btn">
-                                        <i class="fas fa-save me-2"></i>
-                                        حفظ عقد التأجير
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
+  <div class="card mb-4">
+    <div class="contract-header">
+        <div class="text-center">
+            <h4 class="mb-2">
+                <i class="fas fa-handshake me-2"></i>
+                إنشاء عقد تأجير جديد
+            </h4>
+            <p class="mb-0 opacity-75">قم بتعبئة البيانات المطلوبة لإنشاء عقد تأجير احترافي</p>
         </div>
     </div>
-</div>
+    <div class="card-body">
+      <div class="row align-items-end">
+        <div class="col-md-6 mb-3">
+          <label for="new_existing_client_id" class="form-label">اختر عميل <span class="text-danger">*</span></label>
+          <select name="new_existing_client_id" id="new_existing_client_id" class="form-select select2" style="width:100%">
+            <option value="" selected disabled>اختر عميل...</option>
+            @if(isset($existing_clients))
+              @foreach($existing_clients as $client)
+                <option value="{{$client->id}}"
+                  data-name="{{$client->name}}"
+                  data-phone="{{$client->phone}}"
+                  data-email="{{$client->email}}"
+                  data-nationality="{{$client->nationality_id}}"
+                  data-national-num="{{$client->national_num}}"
+                  data-birthdate="{{$client->birthdate}}"
+                  data-phone2="{{$client->phone2}}"
+                  data-address="{{$client->address}}"
+                  data-city="{{$client->city}}"
+                  data-beds-num="{{$client->rooms_num}}"
+                  data-family-num="{{$client->family_num}}"
+                  data-children="{{$client->children}}"
+                  data-job="{{$client->job}}">
+                  {{$client->name}} - {{$client->phone}} - {{$client->national_num}}
+                </option>
+              @endforeach
+            @endif
+          </select>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label for="maid_id" class="form-label">اختر عاملة <span class="text-danger">*</span></label>
+          <select name="maid_id" id="maid_id" class="form-select select2" style="width:100%">
+            <option value="" selected>اختر عاملة...</option>
+            @if(isset($availableRentalMaids))
+              @foreach($availableRentalMaids as $maid)
+                <option value="{{$maid->id}}"
+                  data-name="{{$maid->name}}"
+                  data-passport="{{$maid->passport_num}}"
+                  data-religion="{{$maid->religion ? $maid->religion->title : ''}}"
+                  data-job="{{$maid->jobTitles && $maid->jobTitles->first() ? $maid->jobTitles->first()->title : ''}}"
+                  data-nationality="{{$maid->nationality ? $maid->nationality->sub_title : ''}}"
+                  data-salary="{{$maid->salary}}"
+                  data-experience="{{$maid->experience_years}}"
+                  data-age="{{$maid->age}}">
+                  {{$maid->name}} - {{$maid->passport_num}} - {{$maid->nationality ? $maid->nationality->sub_title : ''}}
+                </option>
+              @endforeach
+            @endif
+          </select>
+        </div>
+      </div>
+      <div class="row mb-3">
+        <div class="col-md-12">
+            <a href="{{ route('clients.create') }}" target="_blank" class="btn btn-outline-primary mt-2" title="إضافة عميل جديد"><i class="fas fa-user-plus"></i> إضافة عميل جديد</a>
+        </div>
+      </div>
+      <!-- بيانات العميل والعاملة (تظهر بعد الاختيار) -->
+      <div class="col-md-12">
+          <div class="form-section">
+            <div class="section-header">
+                <div class="section-icon">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div>
+                    <h5 class="section-title">معلومات العميل</h5>
+                    <p class="section-subtitle">البيانات الشخصية والمهنية</p>
+                </div>
+            </div>
+            <div class="card-body p-2">
+              <div class="row">
+                <div class="col-md-6 mb-2">
+                  <label class="form-label">اسم العميل <span class="text-danger">*</span></label>
+                  <input type="text" id="new_client_name" name="new_client_name" class="form-control" data-validation="required">
+                  <div class="invalid-feedback" id="err_new_client_name"></div>
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label">رقم الجوال <span class="text-danger">*</span></label>
+                  <input type="tel" id="new_client_phone" name="new_client_phone" class="form-control" data-validation="required" dir="rtl">
+                  <div class="invalid-feedback" id="err_new_client_phone"></div>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <label for="client_nationality_id" class="form-label">{{helperTrans("ingaz.nationality_id")}} <span class="text-danger">*</span></label>
+                    <select id="client_nationality_id" name="client_nationality_id" class="form-select form-control select2" data-validation="required">
+                        <option value="">{{helperTrans('ingaz.choose')}}</option>
+                        @foreach($countries as $country)
+                            <option value="{{$country->id}}" {{ $country->code === 'SA' ? 'selected' : '' }}>{{$country->name_ar}}</option>
+                        @endforeach
+                    </select>
+                    <div class="invalid-feedback" id="err_client_nationality_id"></div>
+                  </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label">رقم الهوية <span class="text-danger">*</span></label>
+                  <input type="text" id="new_client_national_num" name="new_client_national_num" class="form-control" data-validation="required">
+                  <div class="invalid-feedback" id="err_new_client_national_num"></div>
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label">المدينة/العنوان <span class="text-danger">*</span></label>
+                  <input type="text" id="new_client_city" name="new_client_city" class="form-control" data-validation="required">
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label">البريد الإلكتروني <small class="text-muted">(اختياري)</small></label>
+                  <input type="email" id="new_client_email" name="new_client_email" class="form-control">
+                  <div class="invalid-feedback" id="err_new_client_email"></div>
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label">تاريخ الميلاد <small class="text-muted">(اختياري)</small></label>
+                  <input type="date" id="new_client_birthdate" name="new_client_birthdate" class="form-control" max="{{ date('Y-m-d') }}">
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label">رقم جوال إضافي <small class="text-muted">(اختياري)</small></label>
+                  <input type="tel" id="new_client_phone2" name="new_client_phone2" class="form-control">
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label">العنوان التفصيلي <small class="text-muted">(اختياري)</small></label>
+                  <input type="text" id="new_client_address" name="new_client_address" class="form-control">
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label">عدد الغرف <small class="text-muted">(اختياري)</small></label>
+                  <input type="text" id="new_client_beds_num" name="new_client_beds_num" class="form-control">
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label">عدد أفراد الأسرة <small class="text-muted">(اختياري)</small></label>
+                  <input type="text" id="new_client_family_num" name="new_client_family_num" class="form-control">
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label">عدد الأطفال <small class="text-muted">(اختياري - تحت سن 12)</small></label>
+                  <input type="number" id="new_client_children" name="new_client_children" class="form-control" max="50">
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label">المهنة <small class="text-muted">(اختياري)</small></label>
+                  <input type="text" id="new_client_job" name="new_client_job" class="form-control">
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label">الدخل الشهري <small class="text-muted">(اختياري)</small></label>
+                  <input type="number" id="monthly_income" name="monthly_income" class="form-control">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-12">
+          <div class="form-section">
+            <div class="section-header">
+                <div class="section-icon">
+                    <i class="fas fa-female"></i>
+                </div>
+                <div>
+                    <h5 class="section-title">بيانات العاملة</h5>
+                    <p class="section-subtitle">البيانات الشخصية والمهنية</p>
+                </div>
+            </div>
+            <div class="card-body p-2" id="maid-section-card">
+              <div class="row">
+                <div class="col-6 mb-2">
+                  <label class="form-label">الاسم</label>
+                  <input type="text" id="maid_name" name="maid_name" class="form-control">
+                  <div class="invalid-feedback" id="err_maid_name"></div>
+                </div>
+                <div class="col-6 mb-2">
+                  <label class="form-label">رقم الجواز</label>
+                  <input type="text" id="maid_passport" name="maid_passport" class="form-control">
+                </div>
+                <div class="col-6 mb-2">
+                  <label class="form-label">الديانة</label>
+                  <input type="text" id="maid_religion" name="maid_religion" class="form-control">
+                </div>
+                <div class="col-6 mb-2">
+                  <label class="form-label">المهنة</label>
+                  <input type="text" id="maid_job" name="maid_job" class="form-control">
+                </div>
+                <div class="col-6 mb-2">
+                  <label class="form-label">الجنسية</label>
+                  <input type="text" id="maid_nationality" name="maid_nationality" class="form-control">
+                </div>
+                <div class="col-6 mb-2">
+                  <label class="form-label">الراتب</label>
+                  <input type="text" id="maid_salary" name="maid_salary" class="form-control">
+                </div>
+                <div class="col-6 mb-2">
+                  <label class="form-label">سنوات الخبرة</label>
+                  <input type="text" id="maid_experience_years" name="maid_experience_years" class="form-control">
+                </div>
+                <div class="col-6 mb-2">
+                  <label class="form-label">العمر</label>
+                  <input type="text" id="maid_age" name="maid_age" class="form-control">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      <!-- بيانات العقد -->
+      <div class="col-12 mt-4">
+        <div class="form-section">
+            <div class="section-header">
+                <div class="section-icon">
+                    <i class="fas fa-file-contract"></i>
+                </div>
+                <div>
+                    <h5 class="section-title">بيانات العقد</h5>
+                    <p class="section-subtitle">البيانات الفنية والزمنية</p>
+                </div>
+            </div>
+          <div class="card-body">
+            <div class="row">
+                <div class="col-6">
+                    <label class="form-label">تاريخ العقد <span class="text-danger">*</span></label>
+                    <input type="date" id="contract_date" name="contract_date" class="form-control"
+                           value="{{ date('Y-m-d') }}" data-validation="required">
+                </div>
+
+                <div class="col-6">
+                    <label class="form-label">التكلفة الشهرية <span class="text-danger">*</span></label>
+                    <input type="number" id="monthly_cost" name="monthly_cost" class="form-control"
+                           step="0.01" data-validation="required">
+                </div>
+
+                <div class="col-6">
+                    <label class="form-label">مدة العقد بالشهور <span class="text-danger">*</span></label>
+                    <input type="number" id="contract_duration_months" name="contract_duration_months" class="form-control"
+                           min="1" data-validation="required">
+                </div>
+
+                <div class="col-6">
+                    <label class="form-label">مدة العقد بالأيام</label>
+                    <input type="number" id="contract_duration_days" name="contract_duration_days" class="form-control" readonly>
+                    <small class="text-muted">(يتم حسابها تلقائياً)</small>
+                </div>
+
+                <div class="col-6">
+                    <label class="form-label">تكلفة العقد الإجمالية</label>
+                    <input type="number" id="total_contract_value" name="total_contract_value" class="form-control" readonly>
+                    <small class="text-muted">(يتم حسابها تلقائياً)</small>
+                </div>
+
+                <div class="col-6">
+                    <label class="form-label">ساعات العمل اليومية</label>
+                    <input type="number" id="working_hours" name="working_hours" class="form-control" value="8" min="1" max="24">
+                    <small class="text-muted">(افتراضي: 8 ساعات)</small>
+                </div>
+
+                <div class="col-6">
+                    <label class="form-label">الإنجاز من <span class="text-danger">*</span></label>
+                    <input type="date" id="ingaz_from" name="ingaz_from" class="form-control"
+                           value="{{ date('Y-m-d') }}" data-validation="required">
+                </div>
+
+                <div class="col-6">
+                    <label class="form-label">الإنجاز إلى</label>
+                    <input type="date" id="ingaz_to" name="ingaz_to" class="form-control" readonly>
+                    <small class="text-muted">(يتم حسابها تلقائياً)</small>
+                </div>
+
+                <div class="col-6">
+                    <label class="form-label">المسوق <span class="text-danger">*</span></label>
+                    <select name="marketer_id" id="marketer_id" class="form-select" data-validation="required">
+                        <option value="">اختر المسوق</option>
+                        @php
+                            $currentAdmin = auth('admin')->user();
+                            $admins = \App\Models\auth\Admin::whereNull('deleted_at')->orderBy('name')->get();
+                        @endphp
+                        @foreach($admins as $admin)
+                            <option value="{{ $admin->id }}"
+                                @if($currentAdmin && $currentAdmin->id == $admin->id) selected @endif>
+                                {{ $admin->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <div class="invalid-feedback" id="err_marketer_id"></div>
+                </div>
+
+                <div class="col-6">
+                    <label class="form-label">نوع التأجير <small class="text-muted">(اختياري)</small></label>
+                    <select name="rental_type" id="rental_type" class="form-select">
+                        <option value="">اختر نوع التأجير</option>
+                        <option value="daily">يومي</option>
+                        <option value="weekly">أسبوعي</option>
+                        <option value="monthly">شهري</option>
+                        <option value="yearly">سنوي</option>
+                    </select>
+                </div>
+
+                {{-- <div class="col-6">
+                    <label class="form-label">نقل الكفالة <small class="text-muted">(اختياري)</small></label>
+                    <select name="sponsorship_transfer" id="sponsorship_transfer" class="form-select">
+                        <option value="">اختر</option>
+                        <option value="yes">نعم</option>
+                        <option value="no">لا</option>
+                    </select>
+                </div> --}}
+
+                <div class="col-6">
+                    <label class="form-label">الراتب الشهري <small class="text-muted">(اختياري)</small></label>
+                    <input type="number" id="monthly_salary" name="monthly_salary" class="form-control" step="0.01">
+                </div>
+
+                <div class="col-6">
+                    <label class="form-label">الأجر بالساعة <small class="text-muted">(اختياري)</small></label>
+                    <input type="number" id="hourly_rate" name="hourly_rate" class="form-control" step="0.01">
+                </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- زر الحفظ -->
+  <div class="col-12 mt-3">
+    <div class="card">
+      <div class="card-body text-center">
+        <button class="btn btn-primary btn-lg px-5" type="submit" id="rentalContractSubmitBtn">
+          <i class="fa-solid fa-floppy-disk me-2"></i>
+          حفظ عقد التأجير
+        </button>
+      </div>
+    </div>
+  </div>
+</form>
+
+@else
+    @include('components.no_permissions')
+@endif
+
 @endsection
 
 @section('js')
@@ -582,48 +362,77 @@ $(document).ready(function() {
         placeholder: 'اختر...',
         allowClear: true,
         dir: 'rtl',
-        width: '100%',
-        language: {
-            noResults: function() { return "لا توجد نتائج"; },
-            searching: function() { return "جاري البحث..."; }
-        }
+        width: '100%'
     });
 
-    // معالج تغيير العميل
+    // معالج تغيير العميل المحدد
     $('#new_existing_client_id').on('change', function() {
-        var selectedOption = $(this).find('option:selected');
-
+        const selectedOption = $(this).find('option:selected');
         if (selectedOption.val()) {
-            $('#client_name').val(selectedOption.data('name') || '');
-            $('#client_phone').val(selectedOption.data('phone') || '');
-            $('#client_email').val(selectedOption.data('email') || '');
-            $('#client_national_num').val(selectedOption.data('national-num') || '');
-            $('#client_birthdate').val(selectedOption.data('birthdate') || '');
-            $('#client_address').val(selectedOption.data('address') || '');
-            $('#client_city').val(selectedOption.data('city') || '');
-            $('#family_num').val(selectedOption.data('family-num') || '');
-            $('#children').val(selectedOption.data('children') || '');
-            $('#profession').val(selectedOption.data('job') || '');
-
-            var nationalityId = selectedOption.data('nationality');
-            if (nationalityId) {
-                $('#client_nationality_id').val(nationalityId).trigger('change');
-            }
-        } else {
-            // مسح البيانات
-            $('#client_name, #client_phone, #client_email, #client_national_num, #client_birthdate, #client_address, #client_city, #family_num, #children, #profession').val('');
-            $('#client_nationality_id').val('').trigger('change');
+            // تعبئة بيانات العميل
+            $('#new_client_name').val(selectedOption.data('name') || '');
+            $('#new_client_phone').val(selectedOption.data('phone') || '');
+            $('#new_client_email').val(selectedOption.data('email') || '');
+            $('#client_nationality_id').val(selectedOption.data('nationality') || '').trigger('change');
+            $('#new_client_national_num').val(selectedOption.data('national-num') || '');
+            $('#new_client_birthdate').val(selectedOption.data('birthdate') || '');
+            $('#new_client_phone2').val(selectedOption.data('phone2') || '');
+            $('#new_client_address').val(selectedOption.data('address') || '');
+            $('#new_client_city').val(selectedOption.data('city') || '');
+            $('#new_client_beds_num').val(selectedOption.data('beds-num') || '');
+            $('#new_client_family_num').val(selectedOption.data('family-num') || '');
+            $('#new_client_children').val(selectedOption.data('children') || '');
+            $('#new_client_job').val(selectedOption.data('job') || '');
         }
     });
 
-    // حساب قيمة العقد
-    function calculateContractValue() {
-        var monthlyCost = parseFloat($('#monthly_cost').val()) || 0;
-        var durationMonths = parseFloat($('#contract_duration_months').val()) || 0;
-        var totalValue = monthlyCost * durationMonths;
-        $('#contract_value').val(totalValue.toFixed(2));
+    // معالج تغيير العاملة المحددة
+    $('#maid_id').on('change', function() {
+        const selectedOption = $(this).find('option:selected');
+        if (selectedOption.val()) {
+            // تعبئة بيانات العاملة
+            $('#maid_name').val(selectedOption.data('name') || '');
+            $('#maid_passport').val(selectedOption.data('passport') || '');
+            $('#maid_religion').val(selectedOption.data('religion') || '');
+            $('#maid_job').val(selectedOption.data('job') || '');
+            $('#maid_nationality').val(selectedOption.data('nationality') || '');
+            $('#maid_salary').val(selectedOption.data('salary') || '');
+            $('#maid_experience_years').val(selectedOption.data('experience') || '');
+            $('#maid_age').val(selectedOption.data('age') || '');
+        }
+    });
+
+    // حساب مدة العقد بالأيام عند تغيير الشهور
+    $('#contract_duration_months').on('input', function() {
+        const months = parseInt($(this).val()) || 0;
+        const days = months * 30; // تقريبي
+        $('#contract_duration_days').val(days);
+        calculateIngazTo();
+        calculateContractValue();
+    });
+
+    // حساب تاريخ الإنجاز إلى
+    function calculateIngazTo() {
+        const ingazFrom = $('#ingaz_from').val();
+        const days = parseInt($('#contract_duration_days').val()) || 0;
+
+        if (ingazFrom && days > 0) {
+            const fromDate = new Date(ingazFrom);
+            const toDate = new Date(fromDate.getTime() + (days * 24 * 60 * 60 * 1000));
+            $('#ingaz_to').val(toDate.toISOString().split('T')[0]);
+        }
     }
 
+    // حساب تكلفة العقد الإجمالية
+    function calculateContractValue() {
+        const monthlyCost = parseFloat($('#monthly_cost').val()) || 0;
+        const months = parseInt($('#contract_duration_months').val()) || 0;
+        const totalValue = monthlyCost * months;
+        $('#total_contract_value').val(totalValue.toFixed(2));
+    }
+
+    // ربط الأحداث
+    $('#ingaz_from').on('change', calculateIngazTo);
     $('#monthly_cost, #contract_duration_months').on('input', calculateContractValue);
 
     // معالج إرسال النموذج
@@ -631,8 +440,8 @@ $(document).ready(function() {
         e.preventDefault();
 
         // التحقق من البيانات الأساسية
-        if (!$('#new_existing_client_id').val() && !$('#client_name').val()) {
-            Swal.fire('خطأ', 'يرجى اختيار عميل', 'error');
+        if (!$('#new_existing_client_id').val() && !$('#new_client_name').val()) {
+            Swal.fire('خطأ', 'يرجى اختيار عميل أو تعبئة اسم العميل', 'error');
             return;
         }
 
@@ -641,42 +450,127 @@ $(document).ready(function() {
             return;
         }
 
-        // إرسال النموذج
-        const submitBtn = $('#submit-btn');
-        const originalText = submitBtn.html();
+        // التحقق من الحقول المطلوبة
+        let isValid = true;
+        let firstError = '';
 
-        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...');
-
-        $.ajax({
-            url: $(this).attr('action'),
-            method: 'POST',
-            data: new FormData(this),
-            processData: false,
-            contentType: false,
-            success: function(response) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'تم بنجاح',
-                    text: 'تم إنشاء عقد التأجير بنجاح'
-                }).then(() => {
-                    window.location.href = "{{ route('RentContract.index') }}";
-                });
-            },
-            error: function(xhr) {
-                let errorMessage = 'حدث خطأ أثناء حفظ العقد';
-
-                if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    const errors = xhr.responseJSON.errors;
-                    errorMessage = Object.values(errors)[0][0];
+        $('[data-validation="required"]').each(function() {
+            if (!$(this).val()) {
+                $(this).addClass('is-invalid');
+                isValid = false;
+                if (!firstError) {
+                    const label = $(this).closest('.col-6, .col-md-6').find('label').text().replace('*', '').trim();
+                    firstError = 'يرجى تعبئة حقل: ' + label;
                 }
+            } else {
+                $(this).removeClass('is-invalid');
+            }
+        });
 
-                Swal.fire('خطأ', errorMessage, 'error');
-            },
-            complete: function() {
-                submitBtn.prop('disabled', false).html(originalText);
+        // التحقق من رقم الجوال
+        const phone = $('#new_client_phone').val();
+        if (phone && !/^(05|5)[0-9]{8}$/.test(phone)) {
+            $('#new_client_phone').addClass('is-invalid');
+            Swal.fire('خطأ', 'رقم الجوال يجب أن يبدأ بـ 05 ويكون 10 أرقام', 'error');
+            return;
+        }
+
+        // التحقق من رقم الهوية
+        const nationalNum = $('#new_client_national_num').val();
+        if (nationalNum && !/^[12][0-9]{9}$/.test(nationalNum)) {
+            $('#new_client_national_num').addClass('is-invalid');
+            Swal.fire('خطأ', 'رقم الهوية يجب أن يبدأ بـ 1 أو 2 ويكون 10 أرقام', 'error');
+            return;
+        }
+
+        if (!isValid) {
+            Swal.fire({
+                icon: 'error',
+                title: 'بيانات ناقصة',
+                text: firstError,
+                confirmButtonText: 'حسناً'
+            });
+            return;
+        }
+
+        // تأكيد الحفظ
+        Swal.fire({
+            title: 'تأكيد الحفظ',
+            text: 'هل أنت متأكد من حفظ عقد التأجير؟',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'نعم، احفظ',
+            cancelButtonText: 'إلغاء'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // إرسال النموذج عبر AJAX
+                $('#rentalContractSubmitBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...');
+
+                var formData = new FormData(this);
+
+                $.ajax({
+                    url: $(this).attr('action'),
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(response) {
+                        $('#rentalContractSubmitBtn').prop('disabled', false).html('<i class="fas fa-save me-2"></i>حفظ العقد');
+
+                        if (response.success) {
+                            Swal.fire({
+                                title: 'تم بنجاح!',
+                                text: response.message,
+                                icon: 'success',
+                                confirmButtonText: 'حسناً'
+                            }).then(() => {
+                                window.location.href = response.redirect_url;
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'خطأ!',
+                                text: response.message || 'حدث خطأ غير متوقع',
+                                icon: 'error',
+                                confirmButtonText: 'حسناً'
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        $('#rentalContractSubmitBtn').prop('disabled', false).html('<i class="fas fa-save me-2"></i>حفظ العقد');
+
+                        var errorMessage = 'حدث خطأ أثناء الحفظ';
+
+                        if (xhr.responseJSON) {
+                            if (xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                            } else if (xhr.responseJSON.errors) {
+                                var errors = xhr.responseJSON.errors;
+                                errorMessage = Object.values(errors).flat().join('\n');
+                            }
+                        }
+
+                        Swal.fire({
+                            title: 'خطأ!',
+                            text: errorMessage,
+                            icon: 'error',
+                            confirmButtonText: 'حسناً'
+                        });
+                    }
+                });
             }
         });
     });
+
+    // إعادة حساب القيم عند التحميل
+    setTimeout(function() {
+        calculateIngazTo();
+        calculateContractValue();
+    }, 500);
 });
 </script>
 @endsection

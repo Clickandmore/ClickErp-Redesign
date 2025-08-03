@@ -8,6 +8,7 @@ use App\Models\ingaz\Maid;
 use App\Models\ingaz\User;
 use App\Models\ingaz\Order;
 use App\Models\ingaz\Nationality;
+use App\Models\Country;
 use App\Models\auth\Admin;
 use Illuminate\Http\Request;
 use App\Enums\ingaz\OrderEnum;
@@ -175,6 +176,7 @@ class RentContractController extends Controller
 
         // إضافة متغير لتحديد ما إذا كانت هناك طلبات متاحة
         $hasEndedOrders = $endedOrders->count() > 0;
+        $countries = Country::active()->ordered()->get();
 
         return view($this->folderPath . '.create', compact(
             'endedOrders',
@@ -183,7 +185,8 @@ class RentContractController extends Controller
             'nationalities',
             'existing_clients',
             'offices',
-            'hasEndedOrders'
+            'hasEndedOrders',
+            'countries'
         ));
     }
 
@@ -193,38 +196,43 @@ class RentContractController extends Controller
             DB::beginTransaction();
 
             // إنشاء أو تحديث بيانات العميل
-            if ($request->order_id) {
-                // إذا كان هناك طلب موجود
-                $order = Order::find($request->order_id);
-                $user = $order->user;
+            if ($request->new_existing_client_id) {
+                // استخدام عميل موجود وتحديث بياناته
+                $user = User::find($request->new_existing_client_id);
                 $user->update([
-                    'name' => $request->client_name,
-                    'phone' => $request->client_phone,
+                    'name' => $request->new_client_name,
+                    'phone' => $request->new_client_phone,
                     'nationality_id' => $request->client_nationality_id,
-                    'email' => $request->client_email,
-                    'national_num' => $request->client_national_num,
-                    'birthdate' => $request->client_birthdate,
-                    'address' => $request->client_address,
-                    'city' => $request->client_city,
-                    'family_num' => $request->family_num,
-                    'children' => $request->children,
+                    'email' => $request->new_client_email,
+                    'national_num' => $request->new_client_national_num,
+                    'birthdate' => $request->new_client_birthdate,
+                    'phone2' => $request->new_client_phone2,
+                    'address' => $request->new_client_address,
+                    'city' => $request->new_client_city,
+                    'rooms_num' => $request->new_client_beds_num,
+                    'family_num' => $request->new_client_family_num,
+                    'children' => $request->new_client_children,
+                    'job' => $request->new_client_job,
                     'profession' => $request->profession,
                     'monthly_income' => $request->monthly_income,
                 ]);
             } else {
                 // إنشاء عميل جديد
                 $user = User::create([
-                    'name' => $request->client_name,
-                    'phone' => $request->client_phone,
-                    'phone_code' => '+966', // افتراضي
+                    'name' => $request->new_client_name,
+                    'phone' => $request->new_client_phone,
+                    'phone_code' => '+966',
                     'nationality_id' => $request->client_nationality_id,
-                    'email' => $request->client_email,
-                    'national_num' => $request->client_national_num,
-                    'birthdate' => $request->client_birthdate,
-                    'address' => $request->client_address,
-                    'city' => $request->client_city,
-                    'family_num' => $request->family_num,
-                    'children' => $request->children,
+                    'email' => $request->new_client_email,
+                    'national_num' => $request->new_client_national_num,
+                    'birthdate' => $request->new_client_birthdate,
+                    'phone2' => $request->new_client_phone2,
+                    'address' => $request->new_client_address,
+                    'city' => $request->new_client_city,
+                    'rooms_num' => $request->new_client_beds_num,
+                    'family_num' => $request->new_client_family_num,
+                    'children' => $request->new_client_children,
+                    'job' => $request->new_client_job,
                     'profession' => $request->profession,
                     'monthly_income' => $request->monthly_income,
                     'register_from' => 'admin',
@@ -244,28 +252,27 @@ class RentContractController extends Controller
             ]);
 
             // حساب تاريخ انتهاء الإنجاز
-            $ingazTo = \Carbon\Carbon::parse($request->ingaz_from)
-                                  ->addDays($request->contract_duration_days);
+            $contractDurationDays = $request->contract_duration_days ?: ($request->contract_duration_months * 30);
+            $ingazTo = $request->ingaz_to ?: \Carbon\Carbon::parse($request->ingaz_from)->addDays($contractDurationDays);
 
             // حساب قيمة العقد
-            $contractValue = $request->monthly_cost * $request->contract_duration_months;
+            $contractValue = $request->total_contract_value ?: ($request->monthly_cost * $request->contract_duration_months);
 
             // إنشاء معلومات العقد
             RentalContractInfo::create([
                 'rental_contract_id' => $rentalContract->id,
-                'working_hours_per_day' => $request->working_hours_per_day,
+                'working_hours_per_day' => $request->working_hours ?: 8,
                 'hourly_rate' => $request->hourly_rate,
                 'monthly_salary' => $request->monthly_salary,
-                'sponsorship_transfer_amount' => $request->sponsorship_transfer_amount,
-                'salary_after_sponsorship' => $request->salary_after_sponsorship,
+                'sponsorship_transfer' => $request->sponsorship_transfer,
+                'rental_type' => $request->rental_type,
                 'monthly_cost' => $request->monthly_cost,
                 'contract_duration_months' => $request->contract_duration_months,
-                'contract_duration_days' => $request->contract_duration_days,
+                'contract_duration_days' => $contractDurationDays,
                 'contract_value' => $contractValue,
                 'ingaz_from' => $request->ingaz_from,
                 'ingaz_to' => $ingazTo,
                 'notes' => $request->notes,
-                'additional_terms' => $request->additional_terms,
             ]);
 
             // تحديث حالة العاملة
@@ -285,12 +292,32 @@ class RentContractController extends Controller
 
             DB::commit();
 
+            // إذا كان الطلب AJAX، أرجع استجابة JSON
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'تم إنشاء عقد التأجير بنجاح',
+                    'contract_id' => $rentalContract->id,
+                    'contract_number' => $rentalContract->contract_number,
+                    'redirect_url' => route($this->mainRoute . '.index')
+                ]);
+            }
+
             return redirect()->route($this->mainRoute . '.index')
                            ->with('success', 'تم إنشاء عقد التأجير بنجاح');
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error creating rental contract: ' . $e->getMessage());
+
+            // إذا كان الطلب AJAX، أرجع استجابة JSON للخطأ
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'حدث خطأ أثناء إنشاء عقد التأجير: ' . $e->getMessage(),
+                    'errors' => []
+                ], 422);
+            }
 
             return redirect()->back()
                            ->withInput()

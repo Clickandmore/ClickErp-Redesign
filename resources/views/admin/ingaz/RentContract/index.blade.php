@@ -247,9 +247,16 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
+        console.log('Script loaded, jQuery available:', typeof $);
+        console.log('DataTable available:', typeof $.fn.DataTable);
+
         $(document).ready(function() {
-            // Initialize DataTable
-            let dataTable = $('#dataTableObject').DataTable({
+            console.log('Document ready, initializing DataTable...');
+            console.log('Table element found:', $('#dataTableObject').length);
+
+            try {
+                // Initialize DataTable
+                let dataTable = $('#dataTableObject').DataTable({
                 processing: true,
                 serverSide: true,
                 ajax: {
@@ -266,13 +273,20 @@
                         d.contract_number = $('#contractNumberFilter').val();
                         d.marketer_id = $('#marketerFilter').val();
                         d.warranty_status = $('#warrantyStatusFilter').val();
+                        console.log('DataTable request data:', d);
+                    },
+                    success: function(response) {
+                        console.log('DataTable success response:', response);
                     },
                     error: function(xhr, error, code) {
                         console.error('DataTable AJAX Error:', error);
+                        console.error('XHR:', xhr);
+                        console.error('Status:', xhr.status);
+                        console.error('Response Text:', xhr.responseText);
                         Swal.fire({
                             icon: 'error',
                             title: 'خطأ في تحميل البيانات',
-                            text: 'حدث خطأ أثناء تحميل عقود التأجير'
+                            text: 'حدث خطأ أثناء تحميل عقود التأجير: ' + error
                         });
                     }
                 },
@@ -453,6 +467,15 @@
 
             // Load initial statistics
             updateStatistics();
+
+            } catch (error) {
+                console.error('Error initializing DataTable:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ في تحميل الصفحة',
+                    text: 'حدث خطأ أثناء تحميل جدول البيانات: ' + error.message
+                });
+            }
         });
     </script>
 @endsection
