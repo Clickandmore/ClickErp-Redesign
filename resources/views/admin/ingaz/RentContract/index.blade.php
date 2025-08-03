@@ -6,7 +6,7 @@
 @endsection
 
 @section('page-title')
-    {{helperTrans("ingaz.All Rent contracts")}}
+{{helperTrans("ingaz.All Rent contracts")}}
 @endsection
 
 @section('content')
@@ -107,7 +107,7 @@
             </div>
             <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="false" aria-controls="filtersCollapse">
                 <i class="fas fa-chevron-down" id="filtersIcon"></i>
-            </button>
+                    </button>
         </div>
         <div class="card-body collapse" id="filtersCollapse">
             <div class="row">
@@ -240,13 +240,13 @@
 
 @endsection
 
-@section("script")
+@section("js")
     <script src="{{asset("admin")}}/assets/jsbundle/dataTables.bundle.js"></script>
     <script src="{{asset("admin")}}/custom/admin-tables.js"></script>
     <script src="{{asset("admin")}}/custom/orders-dropdown-fix.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <script>
+<script>
         console.log('Script loaded, jQuery available:', typeof $);
         console.log('DataTable available:', typeof $.fn.DataTable);
 
@@ -401,9 +401,9 @@
                                 });
                             }
                         });
-                    }
-                });
+                }
             });
+        });
 
             // Delete Contract Handler
             $(document).on('click', '.delete-contract', function() {
@@ -442,9 +442,9 @@
 
             // Update Statistics
             function updateStatistics() {
-                $.ajax({
+            $.ajax({
                     url: "{{ route('RentContract.statistics') }}",
-                    method: 'GET',
+                method: 'GET',
                     success: function(data) {
                         $('#totalContracts').text(data.total || 0);
                         $('#activeContracts').text(data.active || 0);
@@ -477,5 +477,5 @@
                 });
             }
         });
-    </script>
+</script>
 @endsection
