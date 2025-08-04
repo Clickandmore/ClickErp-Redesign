@@ -251,7 +251,7 @@
     <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 
     <!-- الملفات المحلية -->
-    <script src="{{asset("admin")}}/assets/jsbundle/dataTables.bundle.js"></script>
+    <!-- <script src="{{asset("admin")}}/assets/jsbundle/dataTables.bundle.js"></script> -->
     <script src="{{asset("admin")}}/custom/admin-tables.js"></script>
     <script src="{{asset("admin")}}/custom/orders-dropdown-fix.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -275,85 +275,45 @@
                 return;
             }
 
-            try {
-                // Initialize DataTable
+                        try {
+                // Initialize DataTable with simplified settings
                 let dataTable = $('#dataTableObject').DataTable({
-                processing: true,
-                serverSide: true,
-                ajax: {
-                    url: "{{ route('RentContract.index') }}",
-                    type: 'GET',
-                    timeout: 30000,
-                    beforeSend: function() {
-                        console.log('Sending AJAX request to:', "{{ route('RentContract.index') }}");
-                    },
-                    success: function(response) {
-                        console.log('DataTable success response:', response);
-                    },
-                    error: function(xhr, error, code) {
-                        console.error('DataTable AJAX Error Details:');
-                        console.error('Error:', error);
-                        console.error('Code:', code);
-                        console.error('Status:', xhr.status);
-                        console.error('Status Text:', xhr.statusText);
-                        console.error('Response Text:', xhr.responseText);
-                        console.error('Ready State:', xhr.readyState);
-
-                        let errorMessage = 'حدث خطأ أثناء تحميل عقود التأجير';
-                        if (xhr.status === 0) {
-                            errorMessage = 'لا يمكن الاتصال بالخادم';
-                        } else if (xhr.status === 404) {
-                            errorMessage = 'الصفحة غير موجودة (404)';
-                        } else if (xhr.status === 500) {
-                            errorMessage = 'خطأ في الخادم (500)';
-                        } else if (xhr.status === 403) {
-                            errorMessage = 'ممنوع الوصول (403)';
+                    processing: true,
+                    serverSide: true,
+                    ajax: "{{ route('RentContract.index') }}",
+                    columns: [
+                        {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
+                        {data: 'user_id', name: 'user_id'},
+                        {data: 'phone', name: 'phone'},
+                        {data: 'maid_id', name: 'maid_id'},
+                        {data: 'contract_info', name: 'contract_info'},
+                        {data: 'marketer', name: 'marketer'},
+                        {data: 'status', name: 'status'},
+                        {data: 'remaining_days', name: 'remaining_days'},
+                        {data: 'actions', name: 'actions', orderable: false, searchable: false}
+                    ],
+                    language: {
+                        "sProcessing": "جارٍ التحميل...",
+                        "sLengthMenu": "أظهر _MENU_ مدخلات",
+                        "sZeroRecords": "لم يعثر على أية سجلات",
+                        "sInfo": "إظهار _START_ إلى _END_ من أصل _TOTAL_ مدخل",
+                        "sInfoEmpty": "يعرض 0 إلى 0 من أصل 0 سجل",
+                        "sInfoFiltered": "(منتقاة من مجموع _MAX_ مُدخل)",
+                        "sInfoPostFix": "",
+                        "sSearch": "ابحث:",
+                        "sUrl": "",
+                        "oPaginate": {
+                            "sFirst": "الأول",
+                            "sPrevious": "السابق",
+                            "sNext": "التالي",
+                            "sLast": "الأخير"
                         }
-
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'خطأ في تحميل البيانات',
-                            text: errorMessage + ' - Status: ' + xhr.status
-                        });
+                    },
+                    drawCallback: function() {
+                        console.log('Table drawn successfully');
+                        $('#loadingOverlay').hide();
                     }
-                },
-                columns: [
-                    {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
-                    {data: 'user_id', name: 'user_id', orderable: true, searchable: true},
-                    {data: 'phone', name: 'phone', orderable: false, searchable: false},
-                    {data: 'maid_id', name: 'maid_id', orderable: false, searchable: false},
-                    {data: 'contract_info', name: 'contract_info', orderable: false, searchable: false},
-                    {data: 'marketer', name: 'marketer', orderable: true, searchable: true},
-                    {data: 'status', name: 'status', orderable: true, searchable: true},
-                    {data: 'remaining_days', name: 'remaining_days', orderable: false, searchable: false},
-                    {data: 'actions', name: 'actions', orderable: false, searchable: false}
-                ],
-                pageLength: 10,
-                lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-                stateSave: false,
-                deferRender: true,
-                autoWidth: false,
-                destroy: true,
-                dom: 'lrtip',
-                language: {
-                    url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/ar.json'
-                },
-                initComplete: function() {
-                    $('#loadingOverlay').hide();
-                    $('body').removeClass('loading');
-                },
-                preDrawCallback: function() {
-                    $('#loadingOverlay').show();
-                    $('body').addClass('loading');
-                },
-                drawCallback: function() {
-                    $('#loadingOverlay').hide();
-                    $('body').removeClass('loading');
-
-                    // Update statistics
-                    updateStatistics();
-                }
-            });
+                });
 
             // Apply Filters
             $('#applyFilters').click(function() {

@@ -38,8 +38,8 @@ class RecruitmentContractController extends Controller
         'visa_number',
         'visa_hijry_date',
         'visa_milad_date',
-        'working_hours_num'
-        ,
+        'working_hours_num',
+        'arrival_date',
         'sponsorship_price',
         'salary_after_sponsorship',
         'monthly_cost',

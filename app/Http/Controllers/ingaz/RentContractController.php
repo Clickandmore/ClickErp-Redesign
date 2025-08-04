@@ -47,7 +47,13 @@ class RentContractController extends Controller
                     return $row->user ? $row->user->name : 'غير محدد';
                 })
                 ->addColumn('phone', function ($row) {
-                    return $row->user ? getPhoneWithTag($row->user->phone_code . $row->user->phone) : 'غير محدد';
+                    if ($row->user && $row->user->phone) {
+                        $fullPhone = $row->user->phone_code . $row->user->phone;
+                        return '<a href="tel:' . $fullPhone . '" class="text-decoration-none">
+                                    <i class="fas fa-phone-alt me-1"></i>' . $fullPhone . '
+                                </a>';
+                    }
+                    return '<span class="text-muted">غير محدد</span>';
                 })
                 ->editColumn('maid_id', function ($row) {
                     if ($row->maid) {
@@ -127,7 +133,7 @@ class RentContractController extends Controller
 
                     return $actions;
                 })
-                ->rawColumns(['maid_id', 'contract_info', 'remaining_days', 'actions', 'status'])
+                ->rawColumns(['phone', 'maid_id', 'contract_info', 'remaining_days', 'actions', 'status'])
                 ->make(true);
         }
 
