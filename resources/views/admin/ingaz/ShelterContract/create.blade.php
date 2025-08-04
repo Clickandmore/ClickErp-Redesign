@@ -95,7 +95,7 @@
 
             <div class="col-4 mt-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.arrival_date")}}</label>
-                <input type="date" name="arrival_date" id="arrival_date" class="form-control" data-validation="required">
+                <input type="date" name="arrival_date" id="arrival_date" class="form-control" data-validation="required" value="{{old('arrival_date')}}">
             </div>
             <div class="col-4 mt-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.duration_from_enter")}}</label>

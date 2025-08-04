@@ -1011,7 +1011,7 @@ class ShelterContractController extends Controller
                 })
                 ->editColumn('arrival_date', function ($row) {
                     $arrivalDate = $row->info ?
-                        ($row->info->visa_milad_date ?? $row->info->contract_date ?? $row->info->ingaz_from) : null;
+                        ($row->info->arrival_date) : null;
 
                     if (!$arrivalDate) {
                         return '<span class="text-muted">غير محدد</span>';

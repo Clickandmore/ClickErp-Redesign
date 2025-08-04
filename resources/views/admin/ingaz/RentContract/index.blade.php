@@ -1,5 +1,9 @@
 @extends('admin.layout.indexs.index')
 @section("style")
+    <!-- DataTables CSS من CDN -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+
+    <!-- الملفات المحلية -->
     <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{asset("admin")}}/custom/admin-tables.css">
@@ -241,6 +245,12 @@
 @endsection
 
 @section("js")
+    <!-- DataTables JS من CDN كبديل آمن -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+    <!-- الملفات المحلية -->
     <script src="{{asset("admin")}}/assets/jsbundle/dataTables.bundle.js"></script>
     <script src="{{asset("admin")}}/custom/admin-tables.js"></script>
     <script src="{{asset("admin")}}/custom/orders-dropdown-fix.js"></script>
@@ -254,6 +264,17 @@
             console.log('Document ready, initializing DataTable...');
             console.log('Table element found:', $('#dataTableObject').length);
 
+            // التحقق من تحميل DataTables
+            if (typeof $.fn.DataTable === 'undefined') {
+                console.error('DataTables library is not loaded!');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ في تحميل المكتبات',
+                    text: 'لم يتم تحميل مكتبة DataTables بشكل صحيح'
+                });
+                return;
+            }
+
             try {
                 // Initialize DataTable
                 let dataTable = $('#dataTableObject').DataTable({
@@ -261,32 +282,38 @@
                 serverSide: true,
                 ajax: {
                     url: "{{ route('RentContract.index') }}",
-                    timeout: 15000,
-                    data: function(d) {
-                        d.status = $('#statusFilter').val();
-                        d.date_from = $('#dateFromFilter').val();
-                        d.date_to = $('#dateToFilter').val();
-                        d.client_phone = $('#clientPhoneFilter').val();
-                        d.client_name = $('#clientNameFilter').val();
-                        d.maid_passport = $('#maidPassportFilter').val();
-                        d.maid_name = $('#maidNameFilter').val();
-                        d.contract_number = $('#contractNumberFilter').val();
-                        d.marketer_id = $('#marketerFilter').val();
-                        d.warranty_status = $('#warrantyStatusFilter').val();
-                        console.log('DataTable request data:', d);
+                    type: 'GET',
+                    timeout: 30000,
+                    beforeSend: function() {
+                        console.log('Sending AJAX request to:', "{{ route('RentContract.index') }}");
                     },
                     success: function(response) {
                         console.log('DataTable success response:', response);
                     },
                     error: function(xhr, error, code) {
-                        console.error('DataTable AJAX Error:', error);
-                        console.error('XHR:', xhr);
+                        console.error('DataTable AJAX Error Details:');
+                        console.error('Error:', error);
+                        console.error('Code:', code);
                         console.error('Status:', xhr.status);
+                        console.error('Status Text:', xhr.statusText);
                         console.error('Response Text:', xhr.responseText);
+                        console.error('Ready State:', xhr.readyState);
+
+                        let errorMessage = 'حدث خطأ أثناء تحميل عقود التأجير';
+                        if (xhr.status === 0) {
+                            errorMessage = 'لا يمكن الاتصال بالخادم';
+                        } else if (xhr.status === 404) {
+                            errorMessage = 'الصفحة غير موجودة (404)';
+                        } else if (xhr.status === 500) {
+                            errorMessage = 'خطأ في الخادم (500)';
+                        } else if (xhr.status === 403) {
+                            errorMessage = 'ممنوع الوصول (403)';
+                        }
+
                         Swal.fire({
                             icon: 'error',
                             title: 'خطأ في تحميل البيانات',
-                            text: 'حدث خطأ أثناء تحميل عقود التأجير: ' + error
+                            text: errorMessage + ' - Status: ' + xhr.status
                         });
                     }
                 },
