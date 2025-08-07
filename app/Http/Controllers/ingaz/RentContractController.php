@@ -305,6 +305,7 @@ class RentContractController extends Controller
                     'message' => 'تم إنشاء عقد التأجير بنجاح',
                     'contract_id' => $rentalContract->id,
                     'contract_number' => $rentalContract->contract_number,
+                    'print_url' => route('print.rental.contract', $rentalContract->id),
                     'redirect_url' => route($this->mainRoute . '.index')
                 ]);
             }

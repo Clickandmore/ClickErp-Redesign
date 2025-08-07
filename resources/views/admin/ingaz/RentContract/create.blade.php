@@ -527,9 +527,22 @@ $(document).ready(function() {
                                 title: 'تم بنجاح!',
                                 text: response.message,
                                 icon: 'success',
-                                confirmButtonText: 'حسناً'
-                            }).then(() => {
-                                window.location.href = response.redirect_url;
+                                showCancelButton: true,
+                                confirmButtonText: 'طباعة العقد',
+                                cancelButtonText: 'الذهاب للقائمة',
+                                confirmButtonColor: '#2794eb',
+                                cancelButtonColor: '#6c757d'
+                            }).then((result) => {
+                                if (result.isConfirmed && response.print_url) {
+                                    // فتح صفحة الطباعة في نافذة جديدة
+                                    window.open(response.print_url, '_blank');
+                                    // ثم الانتقال للقائمة
+                                    setTimeout(() => {
+                                        window.location.href = response.redirect_url;
+                                    }, 1000);
+                                } else {
+                                    window.location.href = response.redirect_url;
+                                }
                             });
                         } else {
                             Swal.fire({

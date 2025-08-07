@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عقد تأجير عاملة منزلية</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #000;
+            background: white;
+            direction: rtl;
+        }
+
+        .container {
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 10mm;
+            position: relative;
+        }
+
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0.08;
+            width: 400px;
+            height: auto;
+            z-index: 0;
+        }
+
+        .page-1, .page-2, .page-3 {
+            position: relative;
+            z-index: 1;
+            min-height: 297mm;
+            padding: 15mm;
+            background: white;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .logo-container {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .logo-container img {
+            max-width: 180px;
+            height: auto;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+
+        h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 12px 0 8px;
+            color: #000;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+
+        .contract-info {
+            margin-bottom: 15px;
+        }
+
+        .contract-info p {
+            line-height: 1.7;
+        }
+
+        .parties-section {
+            margin: 20px 0;
+        }
+
+        .party {
+            margin-bottom: 8px;
+            line-height: 1.7;
+        }
+
+        .party-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .contract-body {
+            margin: 20px 0;
+        }
+
+        .contract-body p {
+            margin-bottom: 4px;
+        }
+
+        .terms-section {
+            margin: 20px 0;
+        }
+
+        .term-item {
+            margin-bottom: 8px;
+            line-height: 1.6;
+            text-align: justify;
+            padding: 3px 0;
+        }
+
+        .term-number {
+            font-weight: 600;
+            margin-left: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        table td {
+            border: 1px solid #333;
+            padding: 8px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        table tr:first-child td {
+            background-color: #f5f5f5;
+            font-weight: 600;
+        }
+
+        .signature-section {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .signature-box {
+            width: 45%;
+            text-align: center;
+            padding: 15px;
+            border: 1px solid #ddd;
+        }
+
+        .signature-box h4 {
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .signature-line {
+            margin: 10px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #333;
+            min-height: 30px;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .container {
+                padding: 0;
+            }
+
+            .page-1, .page-2, .page-3 {
+                padding: 10mm;
+                page-break-after: always;
+            }
+
+            .no-print {
+                display: none;
+            }
+
+            h3 {
+                margin-top: 8px;
+                margin-bottom: 6px;
+            }
+
+            .term-item {
+                margin-bottom: 6px;
+                padding: 2px 0;
+            }
+        }
+
+        .print-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            z-index: 1000;
+        }
+
+        .print-button:hover {
+            background: #0056b3;
+        }
+
+        @media print {
+            .print-button {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="print-button no-print" onclick="window.print()">
+        طباعة العقد
+    </button>
+
+    <div class="container">
+        @php
+            $logoUrl = asset('logo.png');
+            if(isset($contractSettings['logo'])) {
+                $logoUrl = asset('storage/' . $contractSettings['logo']);
+            }
+        @endphp
+        <img src="{{ $logoUrl }}" class="watermark" alt="">
+
+        <!-- الصفحة الأولى -->
+        <div class="page-1">
+            <div class="header">
+                <div class="logo-container">
+                    <img src="{{ $logoUrl }}" alt="شركة أسس الإنجاز">
+                </div>
+                <h1>عقد</h1>
+            </div>
+
+            <div class="contract-info">
+                <p style="text-align: center;">الحمد لله وحده وبعد ففي يوم الموافق {{ \Carbon\Carbon::parse($contract->contract_date ?? now())->format('Y/m/d') }} تم الاتفاق بمدينة الرياض بين كل من:</p>
+            </div>
+
+            <div class="parties-section">
+                <div class="party">
+                    <div class="party-title">1- شركة أسس الإنجاز للاستقدام</div>
+                    <div>لاستقدام العمالة المنزلية ترخيص وزارة العمل رقم / {{ $contractSettings['license_number'] ?? '4001772' }} وتاريخ : {{ $contractSettings['license_date'] ?? '2022/10/13' }} م سجل تجاري رقم / {{ $contractSettings['commercial_register'] ?? '1010601958' }}</div>
+                    <div>وتاريخ: {{ \Carbon\Carbon::parse($contractSettings['commercial_date'] ?? '1441/03/03')->format('Y/m/d') }} هـ صادر من الرياض</div>
+                    <div>وعنوانه الرياض صندوق بريد: الرمز البريدي: مكتب: جوال: البريد الالكتروني</div>
+                    <div>ويمثله في التوقيع من هذا العقد المدير بصفته المالك ويشار إليه فيما بعد بـ (الطرف الأول).</div>
+                </div>
+
+                <div class="party">
+                    <div class="party-title">2- {{ $contract->user->name ?? 'اسم العميل' }}</div>
+                    <div>الجنسية {{ $contract->user->nationality->name ?? 'السعودية' }} - بموجب هوية وطنية رقم {{ $contract->user->iqama_number ?? '' }} وعنوانه {{ $contract->user->address ?? '' }} الرمز البريدي مكتب جوال {{ $contract->user->phone ?? '' }}</div>
+                    <div>ويشار إليه فيما بعد بـ (الطرف الثاني) -------------- فاكس {{ $contractSettings['fax'] ?? '' }}</div>
+                </div>
+            </div>
+
+            <div class="contract-body">
+                <p><strong>تمهيد:</strong></p>
+                <p>حيث أن الطرف الأول مرخص ويسمح له بتقديم خدمات العمالة المنزلية ولديه الخبرات والإمكانيات اللازمة لتوفير خدمات العمالة المنزلية، وذلك وفق الأنظمة والقرارات والتعليمات المعمول بها في المملكة العربية السعودية وبما لا يتعارض مع أحكام الشريعة الإسلامية، وأحاجة الطرف الثاني لخدمات بعض العمالة المنزلية، فقد اتفق الطرفان وهما بكامل أهليتهما المعتبرة شرعا ونظاما على ما يلي:</p>
+            </div>
+
+            <div class="terms-section">
+                @if(isset($termsPage1) && $termsPage1->count() > 0)
+                    @php $currentSection = '' @endphp
+                    @foreach($termsPage1 as $term)
+                        @if($currentSection != $term->section_title)
+                            <h3>{{ $term->section_title }}</h3>
+                            @php $currentSection = $term->section_title @endphp
+                        @endif
+
+                        <div class="term-item">
+                            @if($term->term_number)
+                                <span class="term-number">{{ $term->term_number }}-</span>
+                            @endif
+                            {!! nl2br(e($term->term_content)) !!}
+                        </div>
+                    @endforeach
+                @else
+                    <h3>أولاً: موضوع العقد</h3>
+                    <div class="term-item">
+                        يقر الطرف الأول بأنه يزاول نشاط تقديم خدمات العمالة المنزلية بموجب ترخيص رقم -------------- ويقدم الطرف الأول خدمات العمالة المنزلية للطرف الثاني بناء على طلبه وفقا للشروط والأحكام الواردة في هذا العقد.
+                    </div>
+                @endif
+
+                <!-- جدول بيانات العاملة -->
+                <table>
+                    <tr>
+                        <td><strong>الجنسية</strong></td>
+                        <td><strong>رقم جواز السفر</strong></td>
+                        <td><strong>المؤهلات والخبرات</strong></td>
+                        <td><strong>ساعات العمل اليومية</strong></td>
+                        <td><strong>مدة الخدمة المطلوبة</strong></td>
+                        <td><strong>التكلفة الشهرية</strong></td>
+                    </tr>
+                    <tr>
+                        <td>{{ $contract->maid->nationality->name ?? '-' }}</td>
+                        <td>{{ $contract->maid->passport_num ?? '-' }}</td>
+                        <td>{{ $contract->maid->experience ?? '-' }}</td>
+                        <td>{{ $contract->info->working_hours ?? '8' }} ساعات</td>
+                        <td>{{ $contract->info->contract_duration ?? '-' }} يوم</td>
+                        <td>{{ $contract->info->monthly_cost ?? '-' }} ريال</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- الصفحة الثانية -->
+        <div class="page-2 page-break">
+            @if(isset($termsPage2) && $termsPage2->count() > 0)
+                @php $currentSection = '' @endphp
+                @foreach($termsPage2 as $term)
+                    @if($currentSection != $term->section_title)
+                        <h3>{{ $term->section_title }}</h3>
+                        @php $currentSection = $term->section_title @endphp
+                    @endif
+
+                    <div class="term-item">
+                        @if($term->term_number)
+                            <span class="term-number">{{ $term->term_number }}-</span>
+                        @endif
+                        {!! nl2br(e($term->term_content)) !!}
+                    </div>
+                @endforeach
+            @else
+                <p>لا توجد بنود للصفحة الثانية</p>
+            @endif
+        </div>
+
+        <!-- الصفحة الثالثة -->
+        <div class="page-3 page-break">
+            @if(isset($termsPage3) && $termsPage3->count() > 0)
+                @php $currentSection = '' @endphp
+                @foreach($termsPage3 as $term)
+                    @if($currentSection != $term->section_title)
+                        <h3>{{ $term->section_title }}</h3>
+                        @php $currentSection = $term->section_title @endphp
+                    @endif
+
+                    <div class="term-item">
+                        @if($term->term_number)
+                            <span class="term-number">{{ $term->term_number }}-</span>
+                        @endif
+                        {!! nl2br(e($term->term_content)) !!}
+                    </div>
+                @endforeach
+            @else
+                <p>لا توجد بنود للصفحة الثالثة</p>
+            @endif
+
+            <!-- قسم التوقيعات -->
+            <div class="signature-section">
+                <div class="signature-box">
+                    <h4>الطرف الأول</h4>
+                    <div class="signature-line">الاسم: شركة أسس الإنجاز</div>
+                    <div class="signature-line">التوقيع: ........................</div>
+                    <div class="signature-line">التاريخ: {{ \Carbon\Carbon::now()->format('Y/m/d') }}</div>
+                </div>
+
+                <div class="signature-box">
+                    <h4>الطرف الثاني</h4>
+                    <div class="signature-line">الاسم: {{ $contract->user->name ?? '' }}</div>
+                    <div class="signature-line">التوقيع: ........................</div>
+                    <div class="signature-line">التاريخ: {{ \Carbon\Carbon::now()->format('Y/m/d') }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

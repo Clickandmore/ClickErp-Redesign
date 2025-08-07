@@ -22,12 +22,18 @@
         <i class="fas fa-handshake text-primary me-2"></i>
         {{helperTrans("ingaz.All Rent contracts")}}
     </h3>
-    @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE))
-    <a href="{{ route('RentContract.create') }}" class="btn btn-primary">
-        <i class="fas fa-plus me-2"></i>
-        {{helperTrans("ingaz.add Rent contract")}}
-    </a>
-    @endif
+    <div>
+        @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE))
+        <a href="{{ route('rent-contract-terms.edit') }}" class="btn btn-warning me-2">
+            <i class="fas fa-cog me-2"></i>
+            إدارة بنود العقد
+        </a>
+        <a href="{{ route('RentContract.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>
+            {{helperTrans("ingaz.add Rent contract")}}
+        </a>
+        @endif
+    </div>
 </div>
 
     <!-- Statistics Cards -->

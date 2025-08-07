@@ -38,6 +38,7 @@ use App\Http\Controllers\ingaz\ComplaintController;
 use App\Http\Controllers\ingaz\StepController;
 use App\Http\Controllers\ingaz\ReturnRequestController;
 use App\Http\Controllers\ingaz\ComplaintTypeController;
+use App\Http\Controllers\ingaz\RentalContractTermsController;
 
 
 /*
@@ -71,7 +72,7 @@ Route::group(
             Route::get('viewFullOrderContract', [AdminFullOrderContractController::class, 'viewFullOrderContract'])->name('viewFullOrderContract');
             Route::post('createFullOrderContract', [AdminFullOrderContractController::class, 'createFullOrderContract'])->name('createFullOrderContract');
             /** */
-            Route::get('printRentContract/{contractId}', [AdminContractController::class, 'printRentContract'])->name('printRentContract');
+            Route::get('print/rental-contract/{id}', [AdminContractController::class, 'printRentalContract'])->name('print.rental.contract');
             //** */
             Route::get('/shelter_workers', [ShelterWorkersController::class, 'index'])->name('shelter_workers');
             // Route::get('/shelter_workers/{shelter_worker}', [ShelterWorkersController::class, 'show'])->name('shelter_workers.show');
@@ -162,6 +163,12 @@ Route::group(
             Route::get('RentContract/export/excel', [RentContractController::class, 'exportExcel'])->name('RentContract.export.excel');
             Route::get('RentContract/existing-clients', [RentContractController::class, 'getExistingClients'])->name('RentContract.existing.clients');
             Route::get('print/rental-contract/{id}', [AdminContractController::class, 'printRentalContract'])->name('print.rental.contract');
+
+            // إدارة بنود عقد التأجير
+            Route::get('rent-contract-terms', [RentalContractTermsController::class, 'index'])->name('rent-contract-terms.index');
+            Route::get('rent-contract-terms/edit', [RentalContractTermsController::class, 'edit'])->name('rent-contract-terms.edit');
+            Route::put('rent-contract-terms/update', [RentalContractTermsController::class, 'update'])->name('rent-contract-terms.update');
+            Route::get('rent-contract-terms/import-default', [RentalContractTermsController::class, 'importDefault'])->name('rent-contract-terms.import-default');
             Route::get('showDataOfOrder', [OrderController::class, 'showDataOfOrder'])->name('showDataOfOrder');
             Route::get('showDataOfMaid', [OrderController::class, 'showDataOfMaid'])->name('showDataOfMaid');
             Route::get('showUserFromContract', [OrderController::class, 'showUserFromContract'])->name('showUserFromContract');

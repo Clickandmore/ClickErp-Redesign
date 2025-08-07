@@ -14,6 +14,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Models\ingaz\Setting;
+use App\Models\RentalContractTerm;
 
 class AdminContractController extends Controller
 {
@@ -142,7 +143,12 @@ class AdminContractController extends Controller
             $settings = Setting::where('key', 'contract_settings')->first();
             $contractSettings = $settings ? json_decode($settings->value, true) : [];
 
-            return view('admin.print.rental-contract', compact('contract', 'contractSettings'));
+            // Get contract terms from database
+            $termsPage1 = RentalContractTerm::active()->byPage(1)->ordered()->get();
+            $termsPage2 = RentalContractTerm::active()->byPage(2)->ordered()->get();
+            $termsPage3 = RentalContractTerm::active()->byPage(3)->ordered()->get();
+
+            return view('admin.print.rental-contract-dynamic', compact('contract', 'contractSettings', 'termsPage1', 'termsPage2', 'termsPage3'));
 
         } catch (\Exception $e) {
             \Log::error('Error printing rental contract: ' . $e->getMessage());
