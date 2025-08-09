@@ -169,6 +169,10 @@ Route::group(
             Route::get('rent-contract-terms/edit', [RentalContractTermsController::class, 'edit'])->name('rent-contract-terms.edit');
             Route::put('rent-contract-terms/update', [RentalContractTermsController::class, 'update'])->name('rent-contract-terms.update');
             Route::get('rent-contract-terms/import-default', [RentalContractTermsController::class, 'importDefault'])->name('rent-contract-terms.import-default');
+
+            // إعدادات عقد التأجير
+            Route::get('rent-contract/settings', [RentalContractTermsController::class, 'showSettings'])->name('rent-contract.settings');
+            Route::put('rent-contract/settings', [RentalContractTermsController::class, 'updateSettings'])->name('rent-contract.settings.update');
             Route::get('showDataOfOrder', [OrderController::class, 'showDataOfOrder'])->name('showDataOfOrder');
             Route::get('showDataOfMaid', [OrderController::class, 'showDataOfMaid'])->name('showDataOfMaid');
             Route::get('showUserFromContract', [OrderController::class, 'showUserFromContract'])->name('showUserFromContract');

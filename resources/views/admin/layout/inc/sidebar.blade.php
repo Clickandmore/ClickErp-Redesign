@@ -236,7 +236,13 @@
                                     <span class="badge bg-primary">{{ $contractsCount['tazker'] }}</span>
                                 </a>
                             </li>
-
+                            <li>
+                                <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $underWarrantyStatus->value]) }}">
+                                    <i class="fa fa-clock-o"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.under_warranty') }}</span>&nbsp;&nbsp;
+                                    <span class="badge bg-primary">{{ $contractsCount['under_warranty'] }}</span>
+                                </a>
+                            </li>
                             @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
                             <li>
                                 <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $completedStatus->value]) }}">
@@ -254,25 +260,7 @@
                             </li>
                             @endif
                         @endif
-                        @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CANCEL_VIEW))
-                            <li>
-                                <a class="m-link" href="{{ route('cancel_contracts') }}">
-                                    <i class="fa fa-times-circle"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.cancel_contract_requests') }}</span>
-                                </a>
-                            </li>
-                        @endif
-                        @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW_TRAVEL))
-                            <li>
-                                <a class="m-link" href="{{ route('travel') }}">
-                                    <i class="fa fa-plane"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.travel') }}</span>
-                                </a>
-                            </li>
-                        @endif
-                        @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN_VIEW))
-
-                @endif
+                        
                     </ul>
                 </li>
 

@@ -24,8 +24,12 @@
     </h3>
     <div>
         @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE))
+        <a href="{{ route('rent-contract.settings') }}" class="btn btn-info me-2">
+            <i class="fas fa-sliders-h me-2"></i>
+            إعدادات العقد
+        </a>
         <a href="{{ route('rent-contract-terms.edit') }}" class="btn btn-warning me-2">
-            <i class="fas fa-cog me-2"></i>
+            <i class="fas fa-list-alt me-2"></i>
             إدارة بنود العقد
         </a>
         <a href="{{ route('RentContract.create') }}" class="btn btn-primary">

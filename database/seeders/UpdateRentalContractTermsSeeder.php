@@ -1,0 +1,279 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use App\Models\RentalContractTerm;
+
+class UpdateRentalContractTermsSeeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     *
+     * @return void
+     */
+    public function run()
+    {
+        // حذف البنود القديمة
+        RentalContractTerm::truncate();
+
+        // البنود الجديدة مع المتغيرات
+        $terms = [
+            // الصفحة الأولى
+            [
+                'section_title' => 'أولاً: موضوع العقد',
+                'section_order' => 1,
+                'term_number' => null,
+                'term_content' => 'يقر الطرف الأول بأنه يزاول نشاط تقديم خدمات العمالة المنزلية بموجب ترخيص رقم -------------- ويقدم الطرف الأول خدمات العمالة المنزلية للطرف الثاني بناء على طلبه وفقا للشروط والأحكام الواردة في هذا العقد.',
+                'term_order' => 1,
+                'page_number' => 1,
+                'is_active' => true
+            ],
+
+            // الصفحة الثانية
+            [
+                'section_title' => 'ثانياً: مدة العقد',
+                'section_order' => 2,
+                'term_number' => null,
+                'term_content' => 'مدة العقد [مدة_العقد] يوماً على أن تبدأ من [تاريخ_البداية] قابلة للتجديد لمدة أو مدد مماثلة بموجب إشعار مكتوب من الطرف الثاني للطرف الأول قبل نهاية العقد',
+                'term_order' => 1,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'ثالثاً: قيمة العقد',
+                'section_order' => 3,
+                'term_number' => 1,
+                'term_content' => 'يدفع الطرف الثاني للطرف الأول تكلفة مقابل تقديم خدمات العاملة المنزلية: وفقا للتكلفة الشهرية ([التكلفة_الشهرية] ريال) المعلنة في تاريخ التعاقد',
+                'term_order' => 1,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'ثالثاً: قيمة العقد',
+                'section_order' => 3,
+                'term_number' => 2,
+                'term_content' => 'إجمالي قيمة العقد: [إجمالي_التكلفة] ريال سعودي',
+                'term_order' => 2,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'ثالثاً: قيمة العقد',
+                'section_order' => 3,
+                'term_number' => 3,
+                'term_content' => 'في حال تجديد هذا العقد، ومرافقة العامل على الاستمرار في العمل لدى الطرف الثاني، يدفع الطرف الثاني للطرف الأول تكلفة مقابل تقديم خدمات العامل المنزلي للمدة الجديدة تعادل التكلفة السابقة.',
+                'term_order' => 3,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'رابعا: التزامات الطرف الأول',
+                'section_order' => 4,
+                'term_number' => 1,
+                'term_content' => 'أن يقدم للطرف الثاني عاملة منزلية ([اسم_العاملة]) من جنسية ([جنسية_العاملة]) ذات كفاءة وخبرة بمهنة خدمة المنازل.',
+                'term_order' => 1,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'رابعا: التزامات الطرف الأول',
+                'section_order' => 4,
+                'term_number' => 2,
+                'term_content' => 'إعداد العامل وتهيئته للعمل، والتأكد من جاهزيته لتقديم الخدمة.',
+                'term_order' => 2,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'رابعا: التزامات الطرف الأول',
+                'section_order' => 4,
+                'term_number' => 3,
+                'term_content' => 'تسليم العامل للطرف الثاني في الوقت والمكان المتفق عليه.',
+                'term_order' => 3,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'رابعا: التزامات الطرف الأول',
+                'section_order' => 4,
+                'term_number' => 4,
+                'term_content' => 'استبدال العامل في حال عدم كفاءته، أو رغبة الطرف الثاني في استبداله خلال (24) ساعة.',
+                'term_order' => 4,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'خامسا: التزامات الطرف الثاني',
+                'section_order' => 5,
+                'term_number' => 1,
+                'term_content' => 'دفع المبالغ المستحقة عليه للطرف الأول في المواعيد المحددة.',
+                'term_order' => 1,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'خامسا: التزامات الطرف الثاني',
+                'section_order' => 5,
+                'term_number' => 2,
+                'term_content' => 'توفير مكان مناسب لإقامة العامل.',
+                'term_order' => 2,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'خامسا: التزامات الطرف الثاني',
+                'section_order' => 5,
+                'term_number' => 3,
+                'term_content' => 'توفير الغذاء والكساء المناسب للعامل.',
+                'term_order' => 3,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'خامسا: التزامات الطرف الثاني',
+                'section_order' => 5,
+                'term_number' => 4,
+                'term_content' => 'توفير العلاج الطبي اللازم للعامل في حالة المرض أو الإصابة.',
+                'term_order' => 4,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'خامسا: التزامات الطرف الثاني',
+                'section_order' => 5,
+                'term_number' => 5,
+                'term_content' => 'معاملة العامل معاملة حسنة وعدم تكليفه بأعمال غير متفق عليها.',
+                'term_order' => 5,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'خامسا: التزامات الطرف الثاني',
+                'section_order' => 5,
+                'term_number' => 6,
+                'term_content' => 'عدم السماح للعامل بالعمل لدى الغير.',
+                'term_order' => 6,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'خامسا: التزامات الطرف الثاني',
+                'section_order' => 5,
+                'term_number' => 7,
+                'term_content' => 'تسليم العامل جواز سفره ووثائقه الشخصية.',
+                'term_order' => 7,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'خامسا: التزامات الطرف الثاني',
+                'section_order' => 5,
+                'term_number' => 8,
+                'term_content' => 'إعادة العامل للطرف الأول عند انتهاء مدة العقد أو عند فسخه.',
+                'term_order' => 8,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'خامسا: التزامات الطرف الثاني',
+                'section_order' => 5,
+                'term_number' => 9,
+                'term_content' => 'تحمل كافة المسؤوليات القانونية الناتجة عن مخالفة الأنظمة والقوانين.',
+                'term_order' => 9,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'خامسا: التزامات الطرف الثاني',
+                'section_order' => 5,
+                'term_number' => 10,
+                'term_content' => 'إبلاغ الطرف الأول كتابيا في حال تغيب العامل عن العمل أو رفضه العمل خلال (24) ساعة من وقت التغيب أو الرفض.',
+                'term_order' => 10,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+
+            // الصفحة الثالثة
+            [
+                'section_title' => 'خامسا: التزامات الطرف الثاني',
+                'section_order' => 5,
+                'term_number' => 11,
+                'term_content' => 'إعادة العامل عند انتهاء مدة الاختبار أو التقييم خدماته للطرف الأول، وفي حال عدم التزام الطرف الثاني بذلك فأنه يعوض الطرف الأول بما يعادل (150) مائة وخمسون ريال سعودي عن كل يوم تأخير.',
+                'term_order' => 11,
+                'page_number' => 3,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'خامسا: التزامات الطرف الثاني',
+                'section_order' => 5,
+                'term_number' => 12,
+                'term_content' => 'في حالة إعادة العاملة خلال مدة العقد يتم احتساب معادلة الخصم (150) مائة وخمسون ريال سعودي عن كل يوم عمل به لدى الطرف الثاني ويتم إعادة المبلغ المتبقي.',
+                'term_order' => 12,
+                'page_number' => 3,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'سادسا: أحكام عامه',
+                'section_order' => 6,
+                'term_number' => 1,
+                'term_content' => 'لايجوز للطرف الثاني القيام بإعادة تقديم خدمات العامل لأي طرف آخر سواء بطريقة مباشره أو غير مباشرة',
+                'term_order' => 1,
+                'page_number' => 3,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'سادسا: أحكام عامه',
+                'section_order' => 6,
+                'term_number' => 2,
+                'term_content' => 'يرتبط العامل مع الطرف الأول بعقد عمل منتهي، ينقل الكفالة للطرف الأول بعد انتهاء مدة الاختبار المتفق عليها في العقد، ويعمل تحت إشرافه وإدارته وفقا لنظام العمل.',
+                'term_order' => 2,
+                'page_number' => 3,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'سادسا: أحكام عامه',
+                'section_order' => 6,
+                'term_number' => 3,
+                'term_content' => 'يخضع العامل لتعليمات الطرف الثاني، وعليه الحفاظ على أسرار أعماله وأسرار أسرته ويكون للطرف الثاني حق توجيهه حسب مقتضيات العمل أدبية، ووفقا للأنظمة السارية.',
+                'term_order' => 3,
+                'page_number' => 3,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'سادسا: أحكام عامه',
+                'section_order' => 6,
+                'term_number' => 4,
+                'term_content' => 'يحق للطرف الثاني إنهاء هذا العقد في أي وقت يشاء بشرط أن يشعر الطرف الأول كتابيا برغبته في إنهاء العقد قبل موعد الإنهاء بمدة لا تقل عن (30) يوم.',
+                'term_order' => 4,
+                'page_number' => 3,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'سابعا',
+                'section_order' => 7,
+                'term_number' => null,
+                'term_content' => 'يخضع هذا العقد للأنظمة والقوانين المعمول بها في المملكة العربية السعودية، وفي حال حدوث أي خلاف أو نزاع بين الطرفين بشأن تفسير أو تنفيذ هذا العقد، يتم حله بالطرق الودية، وإذا تعذر ذلك يحال النزاع إلى الجهات المختصة في المملكة العربية السعودية.',
+                'term_order' => 1,
+                'page_number' => 3,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'ثامنا',
+                'section_order' => 8,
+                'term_number' => null,
+                'term_content' => 'حرر هذا العقد من نسختين أصليتين باللغة العربية، وتم التوقيع عليه من قبل الطرفين، وتسلم كل طرف نسخة للعمل بموجبها.',
+                'term_order' => 1,
+                'page_number' => 3,
+                'is_active' => true
+            ]
+        ];
+
+        // إدراج البنود
+        foreach ($terms as $term) {
+            RentalContractTerm::create($term);
+        }
+
+        echo "تم تحديث بنود عقد التأجير بالمتغيرات الديناميكية بنجاح!\n";
+    }
+}

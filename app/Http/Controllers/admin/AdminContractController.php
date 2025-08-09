@@ -139,9 +139,19 @@ class AdminContractController extends Controller
                 'marketer'
             ])->findOrFail($contractId);
 
-            // Get settings for contract printing
-            $settings = Setting::where('key', 'contract_settings')->first();
-            $contractSettings = $settings ? json_decode($settings->value, true) : [];
+                        // Get settings for contract printing
+            $contractSettings = [];
+            $settingKeys = [
+                'company_name', 'license_number', 'license_date', 'commercial_register',
+                'commercial_date', 'city', 'address', 'po_box', 'postal_code',
+                'phone', 'mobile', 'fax', 'email', 'default_trial_period',
+                'default_working_hours', 'daily_deduction', 'notice_period', 'logo'
+            ];
+
+            foreach ($settingKeys as $key) {
+                $setting = Setting::where('key', 'rent_contract_' . $key)->first();
+                $contractSettings[$key] = $setting ? $setting->value : null;
+            }
 
             // Get contract terms from database
             $termsPage1 = RentalContractTerm::active()->byPage(1)->ordered()->get();

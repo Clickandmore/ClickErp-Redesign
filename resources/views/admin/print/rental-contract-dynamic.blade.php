@@ -231,14 +231,12 @@
     </button>
 
     <div class="container">
-        @php
-            $logoUrl = asset('logo.png');
-            if(isset($contractSettings['logo'])) {
-                $logoUrl = asset('storage/' . $contractSettings['logo']);
-            }
-        @endphp
-        <img src="{{ $logoUrl }}" class="watermark" alt="">
-
+         <!-- Watermark Logo -->
+         @php
+         $logoPath = public_path('admin/images/logo.png');
+         $logoUrl = file_exists($logoPath) ? asset('admin/images/logo.png') : asset('a.png');
+     @endphp
+     <img src="{{ $logoUrl }}" class="watermark" alt="">
         <!-- الصفحة الأولى -->
         <div class="page-1">
             <div class="header">
@@ -286,7 +284,19 @@
                             @if($term->term_number)
                                 <span class="term-number">{{ $term->term_number }}-</span>
                             @endif
-                            {!! nl2br(e($term->term_content)) !!}
+                            @php
+                                // استبدال المتغيرات في النص
+                                $content = $term->term_content;
+                                $content = str_replace('----------', '________', $content);
+                                $content = str_replace('[مدة_العقد]', $contract->info->contract_duration ?? '______', $content);
+                                $content = str_replace('[تاريخ_البداية]', \Carbon\Carbon::parse($contract->info->contract_date ?? now())->format('Y/m/d'), $content);
+                                $content = str_replace('[التكلفة_الشهرية]', number_format($contract->info->monthly_cost ?? 0), $content);
+                                $content = str_replace('[إجمالي_التكلفة]', number_format($contract->info->total_cost ?? 0), $content);
+                                $content = str_replace('[اسم_العاملة]', $contract->maid->name ?? '______', $content);
+                                $content = str_replace('[جنسية_العاملة]', $contract->maid->nationality->name ?? '______', $content);
+                                $content = str_replace('[رقم_الجواز]', $contract->maid->passport_num ?? '______', $content);
+                            @endphp
+                            {!! nl2br(e($content)) !!}
                         </div>
                     @endforeach
                 @else
@@ -332,7 +342,19 @@
                         @if($term->term_number)
                             <span class="term-number">{{ $term->term_number }}-</span>
                         @endif
-                        {!! nl2br(e($term->term_content)) !!}
+                        @php
+                            // استبدال المتغيرات في النص
+                            $content = $term->term_content;
+                            $content = str_replace('----------', '________', $content);
+                            $content = str_replace('[مدة_العقد]', $contract->info->contract_duration ?? '______', $content);
+                            $content = str_replace('[تاريخ_البداية]', \Carbon\Carbon::parse($contract->info->contract_date ?? now())->format('Y/m/d'), $content);
+                            $content = str_replace('[التكلفة_الشهرية]', number_format($contract->info->monthly_cost ?? 0), $content);
+                            $content = str_replace('[إجمالي_التكلفة]', number_format($contract->info->total_cost ?? 0), $content);
+                            $content = str_replace('[اسم_العاملة]', $contract->maid->name ?? '______', $content);
+                            $content = str_replace('[جنسية_العاملة]', $contract->maid->nationality->name ?? '______', $content);
+                            $content = str_replace('[رقم_الجواز]', $contract->maid->passport_num ?? '______', $content);
+                        @endphp
+                        {!! nl2br(e($content)) !!}
                     </div>
                 @endforeach
             @else
@@ -354,7 +376,19 @@
                         @if($term->term_number)
                             <span class="term-number">{{ $term->term_number }}-</span>
                         @endif
-                        {!! nl2br(e($term->term_content)) !!}
+                        @php
+                            // استبدال المتغيرات في النص
+                            $content = $term->term_content;
+                            $content = str_replace('----------', '________', $content);
+                            $content = str_replace('[مدة_العقد]', $contract->info->contract_duration ?? '______', $content);
+                            $content = str_replace('[تاريخ_البداية]', \Carbon\Carbon::parse($contract->info->contract_date ?? now())->format('Y/m/d'), $content);
+                            $content = str_replace('[التكلفة_الشهرية]', number_format($contract->info->monthly_cost ?? 0), $content);
+                            $content = str_replace('[إجمالي_التكلفة]', number_format($contract->info->total_cost ?? 0), $content);
+                            $content = str_replace('[اسم_العاملة]', $contract->maid->name ?? '______', $content);
+                            $content = str_replace('[جنسية_العاملة]', $contract->maid->nationality->name ?? '______', $content);
+                            $content = str_replace('[رقم_الجواز]', $contract->maid->passport_num ?? '______', $content);
+                        @endphp
+                        {!! nl2br(e($content)) !!}
                     </div>
                 @endforeach
             @else

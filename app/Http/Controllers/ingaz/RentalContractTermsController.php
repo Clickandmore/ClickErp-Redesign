@@ -4,6 +4,7 @@ namespace App\Http\Controllers\ingaz;
 
 use App\Http\Controllers\Controller;
 use App\Models\RentalContractTerm;
+use App\Models\ingaz\Setting;
 use Illuminate\Http\Request;
 use DB;
 
@@ -155,5 +156,57 @@ class RentalContractTermsController extends Controller
 
             return redirect()->route('rent-contract-terms.edit')
                            ->with('success', 'تم استيراد البنود الافتراضية بنجاح');
+    }
+
+    /**
+     * عرض صفحة إعدادات العقد
+     */
+    public function showSettings()
+    {
+        // جلب الإعدادات الحالية
+        $settings = [];
+        $settingKeys = [
+            'company_name', 'license_number', 'license_date', 'commercial_register',
+            'commercial_date', 'city', 'address', 'po_box', 'postal_code',
+            'phone', 'mobile', 'fax', 'email', 'default_trial_period',
+            'default_working_hours', 'daily_deduction', 'notice_period', 'logo'
+        ];
+
+        foreach ($settingKeys as $key) {
+            $setting = Setting::where('key', 'rent_contract_' . $key)->first();
+            $settings[$key] = $setting ? $setting->value : null;
+        }
+
+        return view('admin.ingaz.RentContract.settings', compact('settings'));
+    }
+
+    /**
+     * تحديث إعدادات العقد
+     */
+    public function updateSettings(Request $request)
+    {
+        $data = $request->except(['_token', '_method', 'logo']);
+
+        // حفظ الإعدادات
+        foreach ($data as $key => $value) {
+            Setting::updateOrCreate(
+                ['key' => 'rent_contract_' . $key],
+                ['value' => $value]
+            );
+        }
+
+        // معالجة الشعار إذا تم رفعه
+        if ($request->hasFile('logo')) {
+            $logo = $request->file('logo');
+            $logoPath = $logo->store('contract_logos', 'public');
+
+            Setting::updateOrCreate(
+                ['key' => 'rent_contract_logo'],
+                ['value' => $logoPath]
+            );
+        }
+
+        return redirect()->route('rent-contract.settings')
+                       ->with('success', 'تم حفظ الإعدادات بنجاح');
     }
 }
