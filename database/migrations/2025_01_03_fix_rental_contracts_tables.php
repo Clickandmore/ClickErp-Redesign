@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
-class FixRentalContractsTables extends Migration
+class FixRentalContractsTablesV1 extends Migration
 {
     /**
      * Run the migrations.

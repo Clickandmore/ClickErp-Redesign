@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
-class FixDeportationProceduresTable extends Migration
+class FixDeportationProceduresTableV2 extends Migration
 {
     /**
      * Run the migrations.
