@@ -223,15 +223,33 @@ class RecruitmentContractController extends Controller
                         $remainingDays = 0;
                         if ($row->warranty_end_date) {
                             $endDate = \Carbon\Carbon::parse($row->warranty_end_date);
-                            $remainingDays = max(0, $endDate->diffInDays(now(), false));
-                            if ($remainingDays < 0) $remainingDays = abs($remainingDays);
+                            $now = \Carbon\Carbon::now();
+
+                            // إذا كان تاريخ انتهاء الضمان في المستقبل (ضمان نشط)
+                            if ($endDate->isFuture()) {
+                                $remainingDays = $now->diffInDays($endDate);
+                                // تحديث حالة الضمان إذا كانت غير صحيحة
+                                if ($warrantyStatus !== 'active') {
+                                    $row->update(['warranty_status' => 'active']);
+                                    $warrantyStatus = 'active';
+                                }
+                            }
+                            // إذا كان تاريخ انتهاء الضمان في الماضي (ضمان منتهي)
+                            else {
+                                $remainingDays = 0;
+                                // تحديث حالة الضمان إذا كانت غير صحيحة
+                                if ($warrantyStatus !== 'expired') {
+                                    $row->update(['warranty_status' => 'expired']);
+                                    $warrantyStatus = 'expired';
+                                }
+                            }
                         }
 
                         switch ($warrantyStatus) {
                             case 'active':
                                 $warrantyColor = 'success';
                                 $warrantyIcon = 'fas fa-shield-alt';
-                                $warrantyText = "ضمان نشط ({$remainingDays} يوم)";
+                                $warrantyText = $remainingDays > 0 ? "ضمان نشط ({$remainingDays} يوم)" : "ضمان نشط";
                                 break;
                             case 'expired':
                                 $warrantyColor = 'danger';
@@ -324,6 +342,20 @@ class RecruitmentContractController extends Controller
                         if ($row->info->contract_date) {
                             $contractInfo .= '<br><div><strong>تاريخ العقد:</strong> ' . \Carbon\Carbon::parse($row->info->contract_date)->format('Y-m-d') . '</div>';
                         }
+
+                        // إضافة معلومات الضمان للعقود المكتملة
+                        if ($row->status === 'completed' && $row->warranty_end_date) {
+                            $endDate = \Carbon\Carbon::parse($row->warranty_end_date);
+                            $now = \Carbon\Carbon::now();
+
+                            if ($endDate->isFuture()) {
+                                $remainingDays = $now->diffInDays($endDate);
+                                $contractInfo .= '<br><div class="text-success"><strong>أيام الضمان:</strong> ' . $remainingDays . ' يوم</div>';
+                            } else {
+                                $contractInfo .= '<br><div class="text-danger"><strong>الضمان:</strong> منتهي</div>';
+                            }
+                        }
+
                         $contractInfo .= '</div>';
                     }
                     return $contractInfo ?: '<span class="text-muted">غير محدد</span>';

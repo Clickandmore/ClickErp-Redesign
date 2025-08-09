@@ -167,7 +167,7 @@
                         </div>
                         <div class="col-md-6 mb-2">
                           <label class="form-label">{{helperTrans("ingaz.birthdate")}} <span class="text-danger">*</span></label>
-                          <input type="text" id="new_client_birthdate" name="new_client_birthdate" class="form-control" data-validation="required" max="{{ date('Y-m-d') }}">
+                          <input type="date" id="new_client_birthdate" name="new_client_birthdate" class="form-control" data-validation="required" max="{{ date('Y-m-d') }}">
                         </div>
                         <div class="col-md-6 mb-2">
                           <label class="form-label">{{helperTrans("ingaz.phone2")}} <span class="text-danger">*</span></label>

@@ -415,8 +415,16 @@
                 return urlParams.get('status');
             }
 
+            // دالة لقراءة warranty_status من الـ URL
+            function getWarrantyStatusFromUrl() {
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get('warranty_status');
+            }
+
             // تطبيق الـ status من الـ URL على الفلتر أولاً
             const urlStatus = getStatusFromUrl();
+            const urlWarrantyStatus = getWarrantyStatusFromUrl();
+
             if (urlStatus) {
                 $('#statusFilter').val(urlStatus);
                 console.log('Status from URL applied to filter:', urlStatus);
@@ -427,6 +435,12 @@
                 if (urlStatus === 'completed') {
                     $('#warrantyStatusFilter').parent().show();
                     $('#warrantyStatusFilter').show();
+
+                    // تطبيق فلتر warranty_status إذا كان موجود في URL
+                    if (urlWarrantyStatus) {
+                        $('#warrantyStatusFilter').val(urlWarrantyStatus);
+                        console.log('Warranty status from URL applied to filter:', urlWarrantyStatus);
+                    }
                 }
             }
 
