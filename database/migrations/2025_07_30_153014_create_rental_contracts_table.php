@@ -13,7 +13,9 @@ class CreateRentalContractsTable extends Migration
      */
     public function up()
     {
-        Schema::create('rental_contracts', function (Blueprint $table) {
+        // التحقق من وجود الجدول قبل إنشائه
+        if (!Schema::hasTable('rental_contracts')) {
+            Schema::create('rental_contracts', function (Blueprint $table) {
             $table->id();
 
             // العلاقات الأساسية
@@ -40,7 +42,8 @@ class CreateRentalContractsTable extends Migration
             $table->date('warranty_end_date')->nullable()->comment('تاريخ انتهاء الضمان');
 
             $table->timestamps();
-        });
+            });
+        }
     }
 
     /**
