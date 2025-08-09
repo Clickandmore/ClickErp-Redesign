@@ -66,18 +66,22 @@
                             <label class="form-label">{{helperTrans("ingaz.job_type")}}</label>
                             <select class="form-select" name="job_type" id="job_type">
                                 <option value="">{{helperTrans("ingaz.all")}}</option>
-                                @foreach(\App\Models\ingaz\JobType::all() as $jobType)
-                                    <option value="{{ $jobType->id }}">{{ $jobType->title }}</option>
-                                @endforeach
+                                @if(isset($jobTypes))
+                                    @foreach($jobTypes as $jobType)
+                                        <option value="{{ $jobType->id }}">{{ $jobType->title }}</option>
+                                    @endforeach
+                                @endif
                             </select>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">{{helperTrans("ingaz.responsible_employee")}}</label>
                             <select class="form-select" name="admin_id" id="admin_id">
                                 <option value="">{{helperTrans("ingaz.all")}}</option>
-                                @foreach(\App\Models\auth\Admin::all() as $admin)
-                                    <option value="{{ $admin->id }}">{{ $admin->name }}</option>
-                                @endforeach
+                                @if(isset($admins))
+                                    @foreach($admins as $admin)
+                                        <option value="{{ $admin->id }}">{{ $admin->name }}</option>
+                                    @endforeach
+                                @endif
                             </select>
                         </div>
                         <div class="col-md-2">
@@ -173,8 +177,8 @@ $(document).ready(function () {
         { "data": "phone", orderable: true, searchable: true },
         { "data": "nationality_name", orderable: true, searchable: true, className: 'd-none d-md-table-cell' },
         { "data": "maid_passport_num", orderable: true, searchable: true },
-        { "data": "maid_id", orderable: false, searchable: false },
-        { "data": "deliver_status", orderable: false, searchable: false, className: 'd-none d-lg-table-cell' },
+        // { "data": "maid_id", orderable: false, searchable: false },
+        // { "data": "deliver_status", orderable: false, searchable: false, className: 'd-none d-lg-table-cell' },
         { "data": "job_type_id", orderable: true, searchable: true },
         { "data": "status", orderable: true, searchable: true },
         { "data": "timer", orderable: false, searchable: false, className: 'd-none d-lg-table-cell' },
@@ -197,8 +201,12 @@ $(document).ready(function () {
         serverSide: true,
         responsive: true,
         searching: false,
+        deferRender: true, // تأجيل رسم الصفوف لتحسين الأداء
+        pageLength: 25, // عرض 25 صف فقط بدلاً من 10
+        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
         ajax: {
             url: "{{ route('orders.index') }}",
+            type: 'GET',
             data: function(d) {
                 d.from_date = $('#from_date').val();
                 d.to_date = $('#to_date').val();
@@ -214,12 +222,29 @@ $(document).ready(function () {
                 console.error('DataTables AJAX Error:', error);
                 console.error('XHR:', xhr);
                 console.error('Thrown:', thrown);
+            },
+            dataSrc: function(json) {
+                // معالجة البيانات قبل عرضها
+                console.log('Received ' + json.data.length + ' records');
+                return json.data;
             }
         },
         columns: columns,
         language: {
-            url: "https://cdn.datatables.net/plug-ins/1.10.25/i18n/Arabic.json",
-            processing: '<div class="text-primary">جاري التحميل...</div>'
+            processing: '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">جاري التحميل...</span></div>',
+            loadingRecords: "جاري التحميل...",
+            emptyTable: "لا توجد بيانات متاحة",
+            info: "عرض _START_ إلى _END_ من _TOTAL_ سجل",
+            infoEmpty: "عرض 0 إلى 0 من 0 سجل",
+            infoFiltered: "(تمت التصفية من _MAX_ إجمالي السجلات)",
+            lengthMenu: "عرض _MENU_ سجلات",
+            zeroRecords: "لم يتم العثور على سجلات مطابقة",
+            paginate: {
+                first: "الأول",
+                last: "الأخير",
+                next: "التالي",
+                previous: "السابق"
+            }
         },
         drawCallback: function() {
             // admin-tables.js يتولى معالجة القوائم المنسدلة
@@ -229,7 +254,9 @@ $(document).ready(function () {
         fixedColumns: {
             leftColumns: 0,
             rightColumns: 1
-        }
+        },
+        stateSave: false, // عدم حفظ حالة الجدول
+        autoWidth: false // عدم حساب العرض تلقائياً
     });
 
     // Handle filter form submission

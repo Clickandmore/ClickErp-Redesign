@@ -42,6 +42,15 @@ class OrderController extends Controller
         if ($request->ajax()) {
             $query = objModel::query();
 
+            // Eager load relationships to avoid N+1 queries
+            $query->with([
+                'user',
+                'maid.nationality',
+                'jobType',
+                'details.admin',
+                'contracts'
+            ]);
+
             // Order by created_at desc to show newest orders first
             $query->orderBy('created_at', 'desc');
 
@@ -138,7 +147,7 @@ class OrderController extends Controller
                     return ($row->maid) ? getImgTag($row->maid->cv_file, "50px", "50px", "maid-image") : '<span class="text-muted">-</span>';
                 })
                 ->editColumn('nationality_name', function ($row) {
-                    return ($row->maid) ? $row->maid->nationality->title : '';
+                    return ($row->maid) ? $row->maid->nationality->sub_title : '';
                 })
                 ->editColumn('maid_passport_num', function ($row) {
                     return ($row->maid) ? $row->maid->passport_num : '';
@@ -228,12 +237,40 @@ class OrderController extends Controller
                     return $actions;
                 })
                 ->escapeColumns([])
-                ->rawColumns(['actions'])
+                ->rawColumns(['actions', 'status', 'timer', 'user_id', 'phone', 'maid_id', 'deliver_status', 'contract_status', 'order_code', 'created_at', 'admin_name'])
                 ->make(true);
         }
 
+                // Preload data for the main page to avoid multiple queries
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["modalType"] = "modal-lg";
+
+        // Cache filter data for 5 minutes to avoid repeated queries
+        $data['jobTypes'] = \Cache::remember('job_types_list', 300, function() {
+            return JobTitle::with('translations')->get();
+        });
+
+        $data['admins'] = \Cache::remember('admins_list', 300, function() {
+            return \App\Models\auth\Admin::select('id', 'name')->whereNull('deleted_at')->get();
+        });
+
+        // Get statistics with optimized queries (cache for 1 minute)
+        $data['totalOrders'] = \Cache::remember('total_orders_count', 60, function() {
+            return objModel::count();
+        });
+
+        $data['newOrders'] = \Cache::remember('new_orders_count', 60, function() {
+            return objModel::where('status', OrderEnum::New->value)->count();
+        });
+
+        $data['underProcessOrders'] = \Cache::remember('under_process_orders_count', 60, function() {
+            return objModel::where('status', OrderEnum::UnderProcess->value)->count();
+        });
+
+        $data['completedOrders'] = \Cache::remember('completed_orders_count', 60, function() {
+            return objModel::whereIn('status', [OrderEnum::Completed->value, OrderEnum::Done->value, OrderEnum::Contracted->value])->count();
+        });
+
         return view($this->folderPath . '.index', $data);
     }
 
