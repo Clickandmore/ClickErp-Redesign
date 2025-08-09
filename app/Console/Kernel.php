@@ -21,8 +21,109 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')->hourly();
 
-        // تحديث حالة الضمان للعقود المكتملة يومياً
-        $schedule->command('contracts:update-warranty-status')->daily();
+        // ============ تحديثات الضمان ============
+
+        // 1. تحديث حالة الضمان للعقود المكتملة يومياً في الساعة 1 صباحاً
+        $schedule->command('contracts:update-warranty-status')
+            ->dailyAt('01:00')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/warranty-update.log'));
+
+        // 2. تهيئة الضمان للعقود الجديدة كل 6 ساعات
+        $schedule->command('contracts:initialize-warranty')
+            ->everySixHours()
+            ->withoutOverlapping()
+            ->runInBackground();
+
+        // ============ تحديثات الطلبات ============
+
+        // 3. تحديث تايمر الطلبات كل 30 دقيقة
+        $schedule->call(function () {
+            // تحديث حالة الطلبات المتأخرة
+            $overdueOrders = Order::where('status', OrderEnum::New->value)
+                ->where('deadline_at', '<', now())
+                ->get();
+
+            foreach ($overdueOrders as $order) {
+                \Log::warning('Order overdue', [
+                    'order_id' => $order->id,
+                    'deadline' => $order->deadline_at,
+                    'hours_overdue' => $order->deadline_at->diffInHours(now())
+                ]);
+            }
+
+            // إرسال تنبيهات للطلبات العاجلة (أقل من ساعتين)
+            $urgentOrders = Order::where('status', OrderEnum::New->value)
+                ->where('deadline_at', '>', now())
+                ->where('deadline_at', '<', now()->addHours(2))
+                ->get();
+
+            foreach ($urgentOrders as $order) {
+                \Log::info('Order urgent', [
+                    'order_id' => $order->id,
+                    'deadline' => $order->deadline_at,
+                    'minutes_remaining' => $order->deadline_at->diffInMinutes(now())
+                ]);
+            }
+        })->everyThirtyMinutes()
+          ->name('update-orders-timer')
+          ->withoutOverlapping()
+          ->runInBackground();
+
+        // 4. تنظيف الطلبات القديمة المعلقة شهرياً
+        $schedule->call(function () {
+            // الطلبات المعلقة لأكثر من 30 يوم
+            $oldPendingOrders = Order::whereIn('status', [OrderEnum::New->value, OrderEnum::UnderProcess->value])
+                ->where('created_at', '<', now()->subDays(30))
+                ->count();
+
+            if ($oldPendingOrders > 0) {
+                \Log::warning("Found {$oldPendingOrders} old pending orders (>30 days)");
+            }
+        })->monthly()
+          ->name('check-old-orders')
+          ->withoutOverlapping();
+
+        // ============ تحديثات العاملات ============
+
+        // 5. تحديث حالة توفر العاملات يومياً
+        $schedule->call(function () {
+            // تحديث العاملات المحجوزة التي انتهت عقودهن
+            $maidsToRelease = Maid::where('status', 'unavailable')
+                ->whereDoesntHave('contracts', function($q) {
+                    $q->whereNotIn('status', ['completed', 'closed', 'back']);
+                })
+                ->update(['status' => 'available']);
+
+            if ($maidsToRelease > 0) {
+                \Log::info("Released {$maidsToRelease} maids back to available status");
+            }
+        })->daily()
+          ->at('02:00')
+          ->name('update-maids-availability')
+          ->withoutOverlapping();
+
+        // ============ تنظيف عام ============
+
+        // 6. تنظيف ملفات السجلات القديمة أسبوعياً
+        $schedule->command('log:clear --keep=30')
+            ->weekly()
+            ->sundays()
+            ->at('03:00');
+
+        // 7. تحسين قاعدة البيانات أسبوعياً
+        $schedule->call(function () {
+            \DB::statement('OPTIMIZE TABLE contracts');
+            \DB::statement('OPTIMIZE TABLE orders');
+            \DB::statement('OPTIMIZE TABLE maids');
+            \DB::statement('OPTIMIZE TABLE users');
+            \Log::info('Database tables optimized');
+        })->weekly()
+          ->sundays()
+          ->at('04:00')
+          ->name('optimize-database')
+          ->withoutOverlapping();
     }
 
     /**

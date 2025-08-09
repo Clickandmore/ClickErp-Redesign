@@ -88,8 +88,24 @@ class RecruitmentContractController extends Controller
             $statusFilter = $request->get('status');
             if ($statusFilter) {
                 $query->where('status', $statusFilter);
+
+                // إذا كانت الحالة completed وهناك فلتر warranty_status
+                if ($statusFilter === 'completed' && $request->filled('warranty_status')) {
+                    $warrantyStatuses = explode(',', $request->warranty_status);
+                    if (count($warrantyStatuses) > 1) {
+                        $query->whereIn('warranty_status', $warrantyStatuses);
+                    } else {
+                        $query->where('warranty_status', $request->warranty_status);
+                    }
+                    \Log::info('Warranty status filter applied:', [
+                        'warranty_status' => $request->warranty_status,
+                        'warranty_statuses' => $warrantyStatuses
+                    ]);
+                }
+
                 \Log::info('Status filter applied:', [
                     'request_status' => $request->get('status'),
+                    'warranty_status' => $request->get('warranty_status'),
                     'final_status_filter' => $statusFilter
                 ]);
             }

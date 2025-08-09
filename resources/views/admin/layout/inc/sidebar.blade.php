@@ -237,18 +237,18 @@
                                 </a>
                             </li>
                             <li>
-                                <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $underWarrantyStatus->value]) }}">
-                                    <i class="fa fa-clock-o"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.under_warranty') }}</span>&nbsp;&nbsp;
-                                    <span class="badge bg-primary">{{ $contractsCount['under_warranty'] }}</span>
+                                <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => 'completed', 'warranty_status' => 'active']) }}">
+                                    <i class="fa fa-shield"></i>
+                                    <span class="ms-2"> تحت الضمان</span>&nbsp;&nbsp;
+                                    <span class="badge bg-warning">{{ $contractsCount['under_warranty'] }}</span>
                                 </a>
                             </li>
                             @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
                             <li>
-                                <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $completedStatus->value]) }}">
+                                <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => 'completed', 'warranty_status' => 'expired,not_applicable']) }}">
                                     <i class="fa fa-check-circle"></i>
                                     <span class="ms-2">عقود مكتملة</span>&nbsp;&nbsp;
-                                    <span class="badge bg-primary ms-2">{{ $contractsCount['completed'] }}</span>
+                                    <span class="badge bg-primary ms-2">{{ $contractsCount['completed'] - $contractsCount['under_warranty'] }}</span>
                                 </a>
                             </li>
                             <li>
@@ -260,7 +260,7 @@
                             </li>
                             @endif
                         @endif
-                        
+
                     </ul>
                 </li>
 
