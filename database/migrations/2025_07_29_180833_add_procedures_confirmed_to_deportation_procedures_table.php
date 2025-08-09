@@ -14,9 +14,10 @@ class AddProceduresConfirmedToDeportationProceduresTable extends Migration
     public function up()
     {
         Schema::table('deportation_procedures', function (Blueprint $table) {
-            $table->boolean('procedures_confirmed')->default(false)->after('trip_id');
-            $table->timestamp('confirmed_at')->nullable()->after('procedures_confirmed');
-            $table->foreignId('confirmed_by')->nullable()->after('confirmed_at')->constrained('admins')->onDelete('set null');
+            // إزالة after() لتجنب الخطأ إذا كان العمود غير موجود
+            $table->boolean('procedures_confirmed')->default(false);
+            $table->timestamp('confirmed_at')->nullable();
+            $table->foreignId('confirmed_by')->nullable()->constrained('admins')->onDelete('set null');
         });
     }
 
