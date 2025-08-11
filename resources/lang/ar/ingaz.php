@@ -665,4 +665,8 @@
   'contract_settings' => 'إعدادات العقود',
   'close' => 'Close',
   'respond' => 'Respond',
+  'resolved' => 'Resolved',
+  'response' => 'Response',
+  'response_to_complaint' => 'Response to complaint',
+  'add_complaint' => 'Add complaint',
 );

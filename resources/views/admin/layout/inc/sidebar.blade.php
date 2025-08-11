@@ -434,7 +434,7 @@
                         <span class="ms-2">{{ helperTrans('ingaz.complaints_management') }}</span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
-                    <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['complaints.index', 'complaint-types.index'])) ? 'show' : '' }}" id="complaintsMenu">
+                    <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['complaints.index', 'complaints.create', 'complaint-types.index'])) ? 'show' : '' }}" id="complaintsMenu">
                         <li>
                             <a class="m-link {{ Route::currentRouteName() == 'complaints.index' ? 'active' : '' }}" href="{{ route('complaints.index') }}">
                                 <i class="fa fa-list"></i>
@@ -444,6 +444,14 @@
                                 @endif
                             </a>
                         </li>
+                        @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_CREATE))
+                        <li>
+                            <a class="m-link {{ Route::currentRouteName() == 'complaints.create' ? 'active' : '' }}" href="{{ route('complaints.create') }}">
+                                <i class="fa fa-plus-circle"></i>
+                                <span class="ms-2">إضافة شكوى جديدة</span>
+                            </a>
+                        </li>
+                        @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_TYPE_VIEW))
                         <li>
                             <a class="m-link {{ Route::currentRouteName() == 'complaint-types.index' ? 'active' : '' }}" href="{{ route('complaint-types.index') }}">

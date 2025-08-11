@@ -29,7 +29,7 @@ class Nationality extends Model
         'monthly_salary' => 'decimal:2'
     ];
 
-    public $translatedAttributes = ['sub_title'];
+    public $translatedAttributes = ['title', 'sub_title'];
     protected $translationForeignKey = 'nationality_id';
     public $translationModel = NationalitiesTranslation::class;
     protected $with = ['translations'];

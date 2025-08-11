@@ -129,6 +129,7 @@ class PermKeys
     const COMPLAINT_EDIT = 'complaint_edit';
     const COMPLAINT_DELETE = 'complaint_delete';
     const COMPLAINT_CONTROL = 'complaint_control';
+    const COMPLAINT_RESPONSE = 'complaint_response';
 
     // أنواع الشكاوى
     const COMPLAINT_TYPE_VIEW = 'complaint_type_view';

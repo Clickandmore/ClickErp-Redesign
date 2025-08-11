@@ -133,6 +133,12 @@ Route::group(
             Route::resource('maids-test', MaidTestController::class);
             Route::resource('packages', PackageController::class);
             Route::resource('complaints', ComplaintController::class);
+            Route::get('complaints/cards/view', [ComplaintController::class, 'cards'])->name('complaints.cards');
+            Route::post('complaints/quick-response', [ComplaintController::class, 'quickResponse'])->name('complaints.quick-response');
+            Route::post('complaints/add-comment', [ComplaintController::class, 'addComment'])->name('complaints.add-comment');
+            Route::post('complaints/update-status', [ComplaintController::class, 'updateStatus'])->name('complaints.update-status');
+            Route::post('complaints/assign', [ComplaintController::class, 'assign'])->name('complaints.assign');
+            Route::post('complaints/change-priority', [ComplaintController::class, 'changePriority'])->name('complaints.change-priority');
             Route::post('completeOrder/{id}', [OrderController::class, 'completeOrder'])->name('orders.completeOrder');
             Route::post('getOrderById/{id}', [OrderController::class, 'getOrderById'])->name('orders.getOrderById');
             Route::resource('orders', OrderController::class);

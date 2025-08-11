@@ -52,14 +52,27 @@
         console.log(errorObj.status);
         if (errorObj.status == 422 || errorObj.status == 400) {
             let errorsObj = $.parseJSON(errorObj.responseText);
-            let listObject = errorsObj.data;
+            let listObject = errorsObj.data || errorsObj.errors || {};
             let testArr = [];
             $.each(listObject, function (errorKey, errorArr) {
-                $.each(errorArr, function (key, value) {
-                    testArr.push(value);
-                });
+                if (Array.isArray(errorArr)) {
+                    $.each(errorArr, function (key, value) {
+                        testArr.push(value);
+                    });
+                } else {
+                    testArr.push(errorArr);
+                }
             });
-            validToster('{{__("auth.an error occurred")}}', testArr)
+            validToster('{{__("auth.an error occurred")}}', testArr.length > 0 ? testArr : ['حدث خطأ في البيانات المدخلة'])
+        } else if (errorObj.status == 500) {
+            let message = 'حدث خطأ في الخادم';
+            try {
+                let errorsObj = $.parseJSON(errorObj.responseText);
+                if (errorsObj.message) {
+                    message = errorsObj.message;
+                }
+            } catch(e) {}
+            errorToster('{{__("auth.an error occurred")}}', message);
         } else {
             errorToster('{{__("auth.an error occurred")}}', "{{__("auth.code error")}}");
         }
@@ -72,8 +85,14 @@
             successToster('{{__("auth.done successfully")}}', result.message);
         } else if (result.code == 201) {
             successToster('{{__("auth.done successfully")}}', result.message);
-            location.reload();
-            //location.href = result.data.url;
+            // إذا كان هناك URL للتوجيه، استخدمه
+            if (result.data && result.data.url) {
+                setTimeout(function() {
+                    location.href = result.data.url;
+                }, 1500);
+            } else {
+                location.reload();
+            }
         } else if (result.code == 401) {
             warningToster('{{__("auth.an error occurred")}}', result.message)
         } else {

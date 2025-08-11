@@ -2467,9 +2467,9 @@ body.rtl-fix .btn {
 
 /* Select2 Customization */
 .select2-container--default .select2-selection--single {
+    height: 40px;
     border: 1px solid var(--contract-border);
     border-radius: 8px;
-    height: 40px;
     padding: 6px 10px;
     background-color: #f8f9fa;
 }
