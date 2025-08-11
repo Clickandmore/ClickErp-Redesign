@@ -23,30 +23,10 @@
 
     .stats-card.total { border-left-color: #667eea; }
     .stats-card.pending { border-left-color: #ffc107; }
-    .stats-card.progress { border-left-color: #17a2b8; }
+    .stats-card.progress2 { border-left-color: #17a2b8; }
     .stats-card.resolved { border-left-color: #28a745; }
 
-    .stats-number {
-        font-size: 32px;
-        font-weight: bold;
-        color: #2c3e50;
-        margin-bottom: 5px;
-    }
 
-    .stats-label {
-        font-size: 14px;
-        color: #6c757d;
-        font-weight: 500;
-    }
-
-    .stats-icon {
-        font-size: 40px;
-        opacity: 0.2;
-        position: absolute;
-        right: 20px;
-        top: 50%;
-        transform: translateY(-50%);
-    }
 
     /* فلاتر محسنة */
     .filter-section {
@@ -201,10 +181,10 @@
 <div class="container-fluid">
     <!-- Header Section -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">
+        <h3 class="h3 mb-0 text-gray-800">
             <i class="fas fa-exclamation-triangle text-primary me-2"></i>
             إدارة الشكاوى والتذاكر
-        </h1>
+        </h3>
         @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_CREATE))
         <a href="{{ route('complaints.create') }}" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>
@@ -232,7 +212,7 @@
         </div>
 
         <div class="col-xl-3 col-md-6 mb-3">
-            <div class="stats-card progress position-relative">
+            <div class="stats-card progress2 position-relative">
                 <div class="stats-number" id="inProgressTickets">0</div>
                 <div class="stats-label">قيد المعالجة</div>
                 <i class="fas fa-spinner stats-icon"></i>
@@ -595,33 +575,36 @@ $(document).ready(function() {
                 data: 'actions',
                 orderable: false,
                 searchable: false,
-                render: function(data, type, row) {
+                                render: function(data, type, row) {
                     let actions = '<div class="action-buttons">';
+                    let isClosed = (row.status === 'closed' || row.status === 'resolved' || row.status === 'rejected');
 
-                    // View button
+                    // View button - متاح دائماً
                     actions += '<a href="/admin/complaints/' + row.id + '" class="btn btn-icon btn-sm btn-info" title="عرض التفاصيل">';
                     actions += '<i class="fas fa-eye"></i></a>';
 
-                    // Edit button
-                    @if(@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT))
-                    if (row.status === 'pending' || row.status === 'in_progress') {
-                        actions += '<a href="/admin/complaints/' + row.id + '/edit" class="btn btn-icon btn-sm btn-warning" title="تعديل">';
-                        actions += '<i class="fas fa-edit"></i></a>';
-                    }
-                    @endif
-
-                    // Quick response button
+                    // Quick response button - غير متاح للتذاكر المغلقة
                     @if(@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_RESPONSE))
-                    if (row.status !== 'closed' && row.status !== 'resolved') {
+                    if (!isClosed) {
                         actions += '<button class="btn btn-icon btn-sm btn-success quick-response" data-id="' + row.id + '" title="رد سريع">';
                         actions += '<i class="fas fa-reply"></i></button>';
                     }
                     @endif
 
-                    // Delete button
+                    // Edit button - غير متاح للتذاكر المغلقة
+                    @if(@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT))
+                    if (!isClosed) {
+                        actions += '<a href="/admin/complaints/' + row.id + '/edit" class="btn btn-icon btn-sm btn-warning" title="تعديل">';
+                        actions += '<i class="fas fa-edit"></i></a>';
+                    }
+                    @endif
+
+                    // Delete button - غير متاح للتذاكر المغلقة
                     @if(@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_DELETE))
-                    actions += '<button class="btn btn-icon btn-sm btn-danger delete-complaint" data-id="' + row.id + '" title="حذف">';
-                    actions += '<i class="fas fa-trash"></i></button>';
+                    if (!isClosed) {
+                        actions += '<button class="btn btn-icon btn-sm btn-danger delete-complaint" data-id="' + row.id + '" title="حذف">';
+                        actions += '<i class="fas fa-trash"></i></button>';
+                    }
                     @endif
 
                     actions += '</div>';

@@ -388,11 +388,22 @@ class ComplaintController extends Controller
     public function updateStatus(Request $request)
     {
         $complaint = objModel::findOrFail($request->complaint_id);
+        $previousStatus = $complaint->status;
         $complaint->status = $request->status;
 
         if ($request->status == 'resolved') {
             $complaint->resolved_at = now();
             $complaint->resolved_by = auth('admin')->id();
+
+            // إرسال رسالة التقييم إذا كان مفعلاً وهناك رقم هاتف
+            $smsEnabled = env('SMS_FEEDBACK_ENABLED', false);
+            if ($smsEnabled && $previousStatus != 'resolved' && $complaint->complainant_phone) {
+                try {
+                    \App\Http\Controllers\ComplaintFeedbackController::sendFeedbackSMS($complaint);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send feedback SMS: ' . $e->getMessage());
+                }
+            }
         }
 
         $complaint->save();

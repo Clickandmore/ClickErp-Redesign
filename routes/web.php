@@ -186,3 +186,7 @@ Route::prefix('admin')->middleware(['auth:admin'])->group(function () {
     Route::post('/notifications/mark-all-read', [App\Http\Controllers\Admin\NotificationController::class, 'markAllAsRead']);
 });
 
+// روابط التقييم العامة (بدون تسجيل دخول)
+Route::get('/feedback/{token}', [\App\Http\Controllers\ComplaintFeedbackController::class, 'show'])->name('complaint.feedback');
+Route::post('/feedback/submit', [\App\Http\Controllers\ComplaintFeedbackController::class, 'submit'])->name('complaint.feedback.submit');
+
