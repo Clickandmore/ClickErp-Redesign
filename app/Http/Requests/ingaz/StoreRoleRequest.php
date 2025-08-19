@@ -39,12 +39,12 @@ class StoreRoleRequest extends MainRequest
     public function messages()
     {
         return [
-            'name.required' => helperTrans('ingaz.the name is required'),
-            'name.unique' => helperTrans('ingaz.you entered this role before'),
-            'description.required' => helperTrans('ingaz.the description is required'),
-            'display_name.required' => helperTrans('ingaz.the display name is required'),
-            'display_name.unique' => helperTrans('ingaz.you entered this display name before'),
-            'permission.required' => helperTrans('ingaz.please select the permissions'),
+            'name.required' => 'The name is required',
+            'name.unique' => 'You entered this role before',
+            'description.required' => 'The description is required',
+            'display_name.required' => 'The display name is required',
+            'display_name.unique' => 'You entered this display name before',
+            'permission.required' => 'Please select the permissions',
         ];
     }
 }

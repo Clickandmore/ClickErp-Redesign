@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\worldedge\slider;
+namespace App\Http\Requests\ingaz\slider;
 
 use Illuminate\Validation\Rule;
 use App\Http\Requests\MainRequest;
