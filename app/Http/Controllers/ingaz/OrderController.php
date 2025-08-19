@@ -154,9 +154,9 @@ class OrderController extends Controller
                 })
                 ->editColumn('deliver_status', function ($row) {
                     if (@$row->details->deliver_maid == '1') {
-                        return '<span class="badge bg-success status-badge">' . __('web.yes') . '</span>';
-                    } else {
-                        return '<span class="badge bg-danger status-badge">' . __('web.no') . '</span>';
+                                return '<span class="badge bg-success status-badge">Yes</span>';
+    } else {
+        return '<span class="badge bg-danger status-badge">No</span>';
                     }
                 })
                 ->addColumn('contract_status', function ($row) {

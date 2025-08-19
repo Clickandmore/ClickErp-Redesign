@@ -487,6 +487,11 @@ if (!function_exists('helperTrans')) {
             return $str;
         }
 
+        // If trying to access web language file, return the key directly
+        if ($file === 'web') {
+            return ucfirst(str_replace('_', ' ', $key));
+        }
+
         $local = get_api_lang();
         $lang_file_path = resource_path("lang/$local/$file.php");
 

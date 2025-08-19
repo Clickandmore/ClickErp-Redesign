@@ -1,22 +1,9 @@
 <?php
 
-use Web\MaidController;
-use Web\OrderController;
-use Web\ContractsController;
-use Illuminate\Support\Str;
-use Web\ComplaintController;
-use App\Models\ingaz\Service;
-use Web\UserAddressController;
-use Web\NotificationController;
-use Web\ReturnRequestController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
-use Web\ContactUsController as ContactUs;
-use App\Http\Controllers\Web\AuthController;
-use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Admin\AdminContractController;
-use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use App\Http\Controllers\ingaz\MaidController as IngazMaidController;
 use App\Http\Controllers\ingaz\UserController;
 use App\Http\Controllers\Admin\CountryController;
@@ -89,71 +76,10 @@ Route::get('apis-generate', function () {
 
 // update contracts when status is tazker and travel_histories
 
-
-Route::group(
-    [
-        'as' => 'web.',
-        'prefix' => LaravelLocalization::setLocale(),
-        'middleware' => ["webLocale", 'localeSessionRedirect', 'localizationRedirect', 'localeViewPath']
-    ],
-    function () {
-        Route::get('/', [HomeController::class, 'index'])->name('home');
-        Route::get('/rights-maids', [HomeController::class, 'rightsMaids'])->name('rights-maids');
-        Route::get('/rights-users', [HomeController::class, 'rightsUsers'])->name('rights-users');
-        Route::get('/privacy-policy', [HomeController::class, 'privacyPolicy'])->name('privacyPolicy');
-        Route::get('/terms-conditions', [HomeController::class, 'termsConditions'])->name('termsConditions');
-        Route::get('/faqs', [\App\Http\Controllers\Web\FAQsController::class, 'index'])->name('faqs');
-        Route::resource('return_requests', ReturnRequestController::class);
-        Route::resource('maids', MaidController::class);
-
-        //================ authanticaion  =============
-        Route::get('auth', [AuthController::class, 'index'])->name('auth');
-        Route::get('reset-password', [AuthController::class, 'resetPassword'])->name('reset_password');
-        Route::get('sendOtp', [AuthController::class, 'sendOtp'])->name('sendOtp');
-        Route::get('otp', [AuthController::class, 'otp'])->name('otp');
-        Route::post('confirm-code', [AuthController::class, 'confirm_code'])->name('confirm-code');
-        Route::post('sendLogin', [AuthController::class, 'sendLogin'])->name('sendLogin');
-        Route::group(
-            [
-                'middleware' => ["auth_web"]
-            ],
-            function () {
-                Route::get('profile', [AuthController::class, 'profile'])->name('profile');
-                Route::post('update-profile', [AuthController::class, 'updateProfile'])->name('update-profile');
-Route::get('edit-profile', [AuthController::class, 'editProfile'])->name('edit-profile');
-                Route::get('deleteAccount', [AuthController::class, 'deleteAccount'])->name('deleteAccount');
-                Route::get("logout", [AuthController::class, "logout"])->name("logout");
-                Route::resource('orders', OrderController::class);
-
-                Route::resource('contracts', ContractsController::class);
-                Route::post('/contracts/cancel', [\App\Http\Controllers\Web\ContractsController::class, 'cancel'])->name('contracts.cancel');
-
-
-
-                Route::post('bank_transfer_submit', [App\Http\Controllers\Web\OrderController::class, 'submitBankTransfer'])->name('bank_transfer.submit');
-                Route::resource('addresses', UserAddressController::class);
-                Route::resource('complaints', ComplaintController::class);
-                Route::resource('notifications', NotificationController::class);
-
-                // طلبات استرجاع العقود
-                Route::get('contracts/{contract}/return-request', [\App\Http\Controllers\Web\ContractReturnRequestController::class, 'create'])->name('contract-return-requests.create');
-                Route::post('contracts/{contract}/return-request', [\App\Http\Controllers\Web\ContractReturnRequestController::class, 'store'])->name('contract-return-requests.store');
-                Route::get('return-requests', [\App\Http\Controllers\Web\ContractReturnRequestController::class, 'index'])->name('contract-return-requests.index');
-                Route::get('return-requests/{returnRequest}', [\App\Http\Controllers\Web\ContractReturnRequestController::class, 'show'])->name('contract-return-requests.show');
-                Route::delete('return-requests/{returnRequest}', [\App\Http\Controllers\Web\ContractReturnRequestController::class, 'cancel'])->name('contract-return-requests.cancel');
-            }
-        );
-        Route::resource('contact-us', ContactUs::class);
-        Route::get('/about-us', [\App\Http\Controllers\Web\AboutUsController::class, 'index'])->name('about-us');
-        Route::get('/clients/export/pdf', [UserController::class, 'exportPdf'])->name('clients.export.pdf');
-        Route::get('/clients/export/excel', [UserController::class, 'exportExcel'])->name('clients.export.excel');
-        Route::resource('skills', 'ingaz\SkillController');
-        Route::get('/get-offices-by-nationality', [App\Http\Controllers\ingaz\MaidController::class, 'getOfficesByNationality'])->name('getOfficesByNationality');
-
-        // Dashboard route for clients
-        Route::get('dashboard', [\App\Http\Controllers\Web\AuthController::class, 'dashboard'])->name('dashboard')->middleware('auth_web');
-    }
-);
+// توجيه المسار الأساسي إلى صفحة تسجيل دخول لوحة التحكم
+Route::get('/', function () {
+    return redirect()->route('admin.form.login');
+})->name('home');
 
 Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () {
     Route::group(['prefix' => 'ingaz'], function () {

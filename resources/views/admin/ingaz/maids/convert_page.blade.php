@@ -40,7 +40,7 @@
             <p class="dis"> {{$data->salary}} ريال </p>
         </div>
         <div class="sub">
-            <h5 class="title"> {{helperTrans('web.recruitment_price')}}: </h5>
+                            <h5 class="title"> Recruitment Price: </h5>
             <p class="dis"> {{$data->price}} ريال </p>
         </div>
         <!-- sub -->
@@ -91,12 +91,12 @@
                 <div class="infoRow">
                     <!-- data -->
                     <div class="data">
-                        <h6 class=" innerTitle"> {{helperTrans('web.nationality')}} </h6>
+                        <h6 class=" innerTitle"> Nationality </h6>
                         <h3 class="innerData"> {{$data->nationality->title}} </h3>
                     </div>
                     <!-- data -->
                     <div class="data">
-                        <h6 class=" innerTitle"> {{helperTrans('web.age')}} </h6>
+                        <h6 class=" innerTitle"> Age </h6>
                         <h3 class="innerData"> {{$data->age}} </h3>
                     </div>
                     <!-- data -->
@@ -109,12 +109,12 @@
                 <div class="infoRow">
                     <!-- data -->
                     <div class="data">
-                        <h6 class=" innerTitle"> {{helperTrans('web.religion')}}  </h6>
+                        <h6 class=" innerTitle"> Religion </h6>
                         <h3 class="innerData"> {{$data->religion->title}} </h3>
                     </div>
                     <!-- data -->
                     <div class="data">
-                        <h6 class=" innerTitle"> {{helperTrans('web.skills')}} </h6>
+                        <h6 class=" innerTitle"> Skills </h6>
                         <h5 class="innerData"
                             style="display: flex ; align-items: center; gap: 8px ; flex-wrap: wrap">
                             @foreach($data->jobTitles as $job)
