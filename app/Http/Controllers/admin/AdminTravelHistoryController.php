@@ -12,6 +12,7 @@ use App\Models\TravelHistoryFiles;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\DB;
 use DataTables;
 
 class AdminTravelHistoryController extends Controller
@@ -22,6 +23,15 @@ class AdminTravelHistoryController extends Controller
             $query = TravelHistory::with(['user', 'maid', 'maid.nationality', 'maid.nationality.translations'])
                 ->where('travel_type', '!=', 'deportation') // استبعاد رحلات الترحيل
                 ->orderBy('id', 'desc');
+
+            // Default to show only active/new trips unless filtered
+            if (!$request->filled('status') || $request->status === '') {
+                $query->whereIn('status', ['new', 'active', 'scheduled', 'in_progress', 'pending', 'confirmed']);
+            } elseif ($request->status !== 'all') {
+                // If status is not 'all', filter by specific status
+                $query->where('status', $request->status);
+            }
+            // If status is 'all', don't add any status filter
 
             // Apply filters
             if ($request->filled('search')) {
@@ -139,11 +149,18 @@ class AdminTravelHistoryController extends Controller
                                     <i class="fas fa-edit"></i> ' . __('admin.edit') . '
                                 </a></li>';
 
+                    // إكتمال الرحلة (للرحلات النشطة أو غير المكتملة)
+                    if (in_array($row->status, ['pending', 'scheduled', 'new', 'active', 'in_progress', 'confirmed'])) {
+                        $actions .= '<li><a class="dropdown-item text-success" href="javascript:void(0)" onclick="completeTrip(' . $row->id . ')">
+                                        <i class="fas fa-check-circle"></i> إكتمال الرحلة
+                                    </a></li>';
+                    }
+
                     if (auth('admin')->user() && \AdminGuardHasPerm(\App\PermKeys::TRAVEL_CONTROL)) {
                         $actions .= '<li><hr class="dropdown-divider"></li>';
 
                         // حذف
-                        $actions .= '<li><a class="dropdown-item" href="javascript:void(0)" onclick="deleteTravel(' . $row->id . ')">
+                        $actions .= '<li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="deleteTravel(' . $row->id . ')">
                                         <i class="fas fa-trash"></i> ' . __('admin.delete') . '
                                     </a></li>';
                     }
@@ -158,6 +175,124 @@ class AdminTravelHistoryController extends Controller
 
         // For non-AJAX requests (initial page load)
         return view('admin.travel_history.index');
+    }
+
+    public function statistics()
+    {
+        try {
+            $total = TravelHistory::where('travel_type', '!=', 'deportation')->count();
+            $active = TravelHistory::where('travel_type', '!=', 'deportation')
+                ->whereIn('status', ['new', 'active', 'scheduled', 'in_progress', 'pending', 'confirmed'])
+                ->count();
+            $completed = TravelHistory::where('travel_type', '!=', 'deportation')
+                ->where('status', 'completed')
+                ->count();
+            $upcoming = TravelHistory::where('travel_type', '!=', 'deportation')
+                ->whereIn('status', ['new', 'scheduled', 'pending'])
+                ->where('arrival_date', '>', now())
+                ->count();
+
+            return response()->json([
+                'total' => $total,
+                'active' => $active,
+                'completed' => $completed,
+                'upcoming' => $upcoming
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'total' => 0,
+                'active' => 0,
+                'completed' => 0,
+                'upcoming' => 0
+            ]);
+        }
+    }
+
+            /**
+     * إكتمال الرحلة
+     */
+    public function completeTrip(Request $request, $id)
+    {
+        try {
+            $travel = TravelHistory::findOrFail($id);
+
+            \DB::beginTransaction();
+
+            // تحديث حالة الرحلة إلى مكتملة
+            $travel->status = 'completed';
+            $travel->arrived_at = now();
+            $travel->arrival_confirmed_by = auth('admin')->id();
+            $travel->save();
+
+            // البحث عن العقد المرتبط بالرحلة
+            $contract = null;
+            if ($travel->order_id) {
+                // البحث في جدول العقود العادية
+                $contract = \App\Models\Contract::where('id', $travel->order_id)->first();
+
+                // إذا لم يوجد في العقود العادية، البحث في عقود الإيجار
+                if (!$contract) {
+                    $contract = \App\Models\RentalContract::where('id', $travel->order_id)->first();
+                }
+            }
+
+            // إذا وجد العقد، تحديث حالته وتفعيل الضمان
+            if ($contract) {
+                // تحديث حالة العقد إلى مكتمل
+                $contract->update(['status' => 'completed']);
+
+                // حساب وتفعيل الضمان إذا كان العقد من نوع Contract
+                if ($contract instanceof \App\Models\Contract) {
+                    $contract->calculateWarrantyStatus();
+
+                    // إنشاء سجل حالة العقد
+                    $contract->contract_status_logs()->create([
+                        'status' => 'completed',
+                        'date' => now(),
+                        'notes' => 'تم إكمال الرحلة وتحديث حالة العقد إلى مكتمل وتفعيل الضمان'
+                    ]);
+                }
+                // إذا كان عقد إيجار، تفعيل الضمان بشكل مختلف
+                else if ($contract instanceof \App\Models\RentalContract) {
+                    $contract->update([
+                        'warranty_status' => 'active',
+                        'warranty_start_date' => now(),
+                        'warranty_end_date' => now()->addDays(90), // 90 يوم ضمان
+                    ]);
+                }
+
+                \Log::info('Trip completed and contract updated', [
+                    'travel_id' => $travel->id,
+                    'contract_id' => $contract->id,
+                    'contract_type' => get_class($contract),
+                    'contract_status' => $contract->status,
+                    'warranty_status' => $contract->warranty_status ?? 'N/A'
+                ]);
+            }
+
+            \DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => $contract
+                    ? 'تم إكتمال الرحلة وتحديث حالة العقد إلى مكتمل وتفعيل الضمان بنجاح'
+                    : 'تم إكتمال الرحلة بنجاح'
+            ]);
+
+        } catch (\Exception $e) {
+            \DB::rollback();
+
+            \Log::error('Error in completeTrip', [
+                'travel_id' => $id,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء إكتمال الرحلة: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function create(Request $request, $id = null)

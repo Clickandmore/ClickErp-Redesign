@@ -73,6 +73,16 @@ class Contract extends Model
         return $this->hasOne(\App\Models\DeportationProcedure::class, 'contract_id');
     }
 
+    public function returnRequests()
+    {
+        return $this->hasMany(ContractReturnRequest::class);
+    }
+
+    public function hasPendingReturnRequest()
+    {
+        return $this->returnRequests()->where('status', 'pending')->exists();
+    }
+
     // get last contract status log
     public function getLastContractStatusLog()
     {
@@ -169,4 +179,5 @@ class Contract extends Model
         $remaining = \Carbon\Carbon::now()->diffInDays($this->warranty_end_date, false);
         return max(0, $remaining);
     }
+
 }

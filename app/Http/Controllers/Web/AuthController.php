@@ -114,17 +114,148 @@ class AuthController extends Controller
         ]);
     }
 
+    public function dashboard()
+    {
+        $user = auth()->user();
+
+        // Get user statistics
+        $stats = [
+            'orders' => [
+                'total' => \App\Models\ingaz\Order::where('user_id', $user->id)->count(),
+                'active' => \App\Models\ingaz\Order::where('user_id', $user->id)
+                    ->whereNotIn('status', ['done', 'refused', 'cancelled'])->count(),
+                'completed' => \App\Models\ingaz\Order::where('user_id', $user->id)
+                    ->where('status', 'done')->count(),
+            ],
+            'contracts' => [
+                'total' => \App\Models\Contract::where('user_id', $user->id)->count(),
+                'active' => \App\Models\Contract::where('user_id', $user->id)
+                    ->whereNotIn('status', ['arrival', 'closed', 'shelter'])->count(),
+                'completed' => \App\Models\Contract::where('user_id', $user->id)
+                    ->whereIn('status', ['arrival', 'closed'])->count(),
+            ],
+            'complaints' => [
+                'total' => \App\Models\ingaz\Complaint::where('user_id', $user->id)->count(),
+                'pending' => \App\Models\ingaz\Complaint::where('user_id', $user->id)
+                    ->where('status', 'pending')->count(),
+                'resolved' => \App\Models\ingaz\Complaint::where('user_id', $user->id)
+                    ->where('status', 'closed')->count(),
+            ]
+        ];
+
+        // Get recent orders
+        $recentOrders = \App\Models\ingaz\Order::where('user_id', $user->id)
+            ->with(['maid', 'jobType'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Get recent contracts
+        $recentContracts = \App\Models\Contract::where('user_id', $user->id)
+            ->with(['maid'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Get recent complaints
+        $recentComplaints = \App\Models\ingaz\Complaint::where('user_id', $user->id)
+            ->with(['complaintType'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        return view('web.ingaz.auth.dashboard', compact('stats', 'recentOrders', 'recentContracts', 'recentComplaints'));
+    }
+
     public function profile()
     {
-        return view('web.ingaz.auth.profile');
+        $user = auth()->user();
+
+        // Get user statistics
+        $stats = [
+            'orders' => [
+                'total' => \App\Models\ingaz\Order::where('user_id', $user->id)->count(),
+                'active' => \App\Models\ingaz\Order::where('user_id', $user->id)
+                    ->whereNotIn('status', ['done', 'refused', 'cancelled'])->count(),
+                'completed' => \App\Models\ingaz\Order::where('user_id', $user->id)
+                    ->where('status', 'done')->count(),
+            ],
+            'contracts' => [
+                'total' => \App\Models\Contract::where('user_id', $user->id)->count(),
+                'active' => \App\Models\Contract::where('user_id', $user->id)
+                    ->whereNotIn('status', ['arrival', 'closed', 'shelter'])->count(),
+                'completed' => \App\Models\Contract::where('user_id', $user->id)
+                    ->whereIn('status', ['arrival', 'closed'])->count(),
+            ],
+            'complaints' => [
+                'total' => \App\Models\ingaz\Complaint::where('user_id', $user->id)->count(),
+                'pending' => \App\Models\ingaz\Complaint::where('user_id', $user->id)
+                    ->where('status', 'pending')->count(),
+                'resolved' => \App\Models\ingaz\Complaint::where('user_id', $user->id)
+                    ->where('status', 'closed')->count(),
+            ]
+        ];
+
+        // Get recent orders
+        $recentOrders = \App\Models\ingaz\Order::where('user_id', $user->id)
+            ->with(['maid', 'jobType'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Get recent contracts
+        $recentContracts = \App\Models\Contract::where('user_id', $user->id)
+            ->with(['maid'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Get recent complaints
+        $recentComplaints = \App\Models\ingaz\Complaint::where('user_id', $user->id)
+            ->with(['complaintType'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        return view('web.ingaz.auth.dashboard', compact('stats', 'recentOrders', 'recentContracts', 'recentComplaints'));
     }
 
     public function updateProfile(Request $request, UserAction $action)
     {
-        $dataInsert = $request->only(['name', 'email']);
-        $data = $action->updateUser(auth()->id(),$dataInsert);
-        toastr()->addSuccess(helperTrans('web.data_updated_successfully'));
-        return back();
+        try {
+            $dataInsert = $request->only(['name', 'email']);
+
+            // Validate the data
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email,' . auth()->id(),
+            ]);
+
+            $data = $action->updateUser(auth()->id(), $dataInsert);
+
+            if ($data) {
+                return response()->json([
+                    'success' => true,
+                    'message' => helperTrans('web.data_updated_successfully')
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => helperTrans('web.error_updating_profile')
+                ], 400);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => helperTrans('web.error_updating_profile')
+            ], 500);
+        }
+    }
+
+    public function editProfile()
+    {
+        $user = auth()->user();
+        return view('web.ingaz.auth.edit-profile', compact('user'));
     }
 
     public function logout()

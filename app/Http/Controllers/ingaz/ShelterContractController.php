@@ -191,7 +191,13 @@ class ShelterContractController extends Controller
 
                 $receiptSource = 'غير محدد';
                 if ($contract->info && $contract->info->receipt_source) {
-                    $receiptSource = __('shelter_worker_statuses.received_by.' . $contract->info->receipt_source) ?: $contract->info->receipt_source;
+                    $translationKey = 'shelter_worker_statuses.received_by.' . $contract->info->receipt_source;
+                    $receiptSource = __($translationKey);
+
+                    // If translation not found, use the original value
+                    if ($receiptSource === $translationKey) {
+                        $receiptSource = $contract->info->receipt_source;
+                    }
                 }
 
                 $guaranteeStatus = 'غير محدد';
@@ -985,6 +991,7 @@ class ShelterContractController extends Controller
                         return '<span class="text-muted">غير محدد</span>';
                     }
 
+                    // Try to get nationality from translation first
                     $locale = app()->getLocale();
                     $translation = $row->maid->nationality->translations->where('locale', $locale)->first();
 
@@ -992,7 +999,17 @@ class ShelterContractController extends Controller
                         $translation = $row->maid->nationality->translations->first();
                     }
 
-                    $nationality = $translation ? $translation->sub_title : 'غير محدد';
+                    $nationality = 'غير محدد';
+                    if ($translation && !empty($translation->sub_title)) {
+                        $nationality = $translation->sub_title;
+                    } elseif (!empty($row->maid->nationality->sub_title)) {
+                        // Fallback to direct model attribute
+                        $nationality = $row->maid->nationality->sub_title;
+                    } elseif ($translation && !empty($translation->title)) {
+                        $nationality = $translation->title;
+                    } elseif (!empty($row->maid->nationality->title)) {
+                        $nationality = $row->maid->nationality->title;
+                    }
 
                     \Log::info('Nationality for contract ' . $row->id . ': ' . $nationality);
 
@@ -1030,8 +1047,16 @@ class ShelterContractController extends Controller
                         return '<span class="text-muted">غير محدد</span>';
                     }
 
-                    $receiptSource = __('shelter_worker_statuses.received_by.' . $row->info->receipt_source) ?: $row->info->receipt_source;
-                    return $receiptSource;
+                    // Try to translate using shelter_worker_statuses.received_by
+                    $translationKey = 'shelter_worker_statuses.received_by.' . $row->info->receipt_source;
+                    $receiptSource = __($translationKey);
+
+                    // If translation not found, use the original value
+                    if ($receiptSource === $translationKey) {
+                        $receiptSource = $row->info->receipt_source;
+                    }
+
+                    return '<span class="badge bg-secondary">' . htmlspecialchars($receiptSource) . '</span>';
                 })
                 ->addColumn('guarantee_status', function ($row) {
                     if (!$row->info) {
@@ -1127,6 +1152,13 @@ class ShelterContractController extends Controller
                                     <i class="fas fa-edit"></i> تحرير
                                 </a></li>';
 
+                    // تغيير رغبة العمل
+                    $actions .= '<li><a class="dropdown-item change-work-desire" href="#" data-id="' . $row->id . '" data-current="' . ($row->info ? $row->info->wants_to_work : 'unknown') . '">
+                                    <i class="fas fa-exchange-alt"></i> تغيير رغبة العمل
+                                </a></li>';
+
+                    $actions .= '<li><hr class="dropdown-divider"></li>';
+
                     // حذف من الإيواء (متاح دائماً للعقود في الإيواء)
                     $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="back" data-id="' . $row->id . '" data-text="هل أنت متأكد من حذف العقد من الإيواء؟ سيعود العقد إلى العقود المكتملة">
                                     <i class="fas fa-undo"></i> حذف من الإيواء
@@ -1164,7 +1196,7 @@ class ShelterContractController extends Controller
 
                     return $actions;
                 })
-                ->rawColumns(['maid_data', 'client', 'nationality', 'arrival_date', 'return_date', 'guarantee_status', 'work_willingness', 'deportation_status', 'actions'])
+                ->rawColumns(['maid_data', 'client', 'nationality', 'shelter', 'receipt_source', 'arrival_date', 'return_date', 'guarantee_status', 'work_willingness', 'deportation_status', 'actions'])
                 ->toJson();
 
             \Log::info('DataTables processing completed');
@@ -1501,5 +1533,85 @@ class ShelterContractController extends Controller
         }
 
         return view('admin.ingaz.ShelterContract.deported');
+    }
+
+    /**
+     * تغيير رغبة العمل للعاملة
+     */
+    public function changeWorkDesire(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'wants_to_work' => 'required|in:yes,no,unknown',
+                'reason' => 'nullable|string|max:500'
+            ]);
+
+            $contract = Contract::with(['maid', 'info'])->findOrFail($id);
+
+            // التحقق من أن العقد في الإيواء
+            if ($contract->status !== ContractStatusEnum::Shelter->value) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العقد ليس في الإيواء'
+                ], 400);
+            }
+
+            $oldDesire = $contract->info ? $contract->info->wants_to_work : 'unknown';
+            $newDesire = $request->wants_to_work;
+
+            // التحقق من أن القيمة الجديدة مختلفة
+            if ($oldDesire === $newDesire) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'رغبة العمل لم تتغير'
+                ], 400);
+            }
+
+            // تحديث رغبة العمل
+            if ($contract->info) {
+                $contract->info->update([
+                    'wants_to_work' => $newDesire
+                ]);
+            } else {
+                $contract->info()->create([
+                    'contract_id' => $contract->id,
+                    'wants_to_work' => $newDesire
+                ]);
+            }
+
+            // تسجيل التغيير في اللوج
+            \Log::info('Work desire changed for contract', [
+                'contract_id' => $contract->id,
+                'maid_name' => $contract->maid->name,
+                'old_desire' => $oldDesire,
+                'new_desire' => $newDesire,
+                'reason' => $request->reason,
+                'changed_by' => auth('admin')->id()
+            ]);
+
+            // تحديد رسالة النجاح
+            $desireText = [
+                'yes' => 'ترغب بالعمل',
+                'no' => 'لا ترغب بالعمل',
+                'unknown' => 'غير محدد'
+            ];
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تغيير رغبة العمل إلى: ' . $desireText[$newDesire],
+                'data' => [
+                    'old_desire' => $oldDesire,
+                    'new_desire' => $newDesire,
+                    'maid_name' => $contract->maid->name
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error changing work desire: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تغيير رغبة العمل'
+            ], 500);
+        }
     }
 }

@@ -46,6 +46,76 @@
         </div>
     </div>
 
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                إجمالي رحلات الاستقدام</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalTrips">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-plane fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                الرحلات النشطة</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="activeTrips">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-plane-departure fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">الرحلات المكتملة</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="completedTrips">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-plane-arrival fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                الرحلات القادمة</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="upcomingTrips">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Filters -->
     <div class="row mb-4">
         <div class="col-12">
@@ -62,6 +132,7 @@
                                 <option value="">{{ __('admin.travel_type') }}</option>
                                 @forelse (__('travel_types.travel_types') ?? [] as $k => $name)
                                     <option value="{{$k}}">{{ $name }}</option>
+
                                 @empty
                                 @endforelse
                             </select>
@@ -69,11 +140,9 @@
                         <div class="col-md-3">
                             <label class="form-label">{{ __('admin.status') }}</label>
                             <select id="status" class="form-control">
-                                <option value="">{{ __('admin.status') }}</option>
-                                @forelse (__('travel_types.status') ?? [] as $k => $name)
-                                    <option value="{{$k}}">{{ $name }}</option>
-                                @empty
-                                @endforelse
+                                <option value="">الرحلات النشطة (افتراضي)</option>
+                                <option value="completed">الرحلات المكتملة</option>
+                                <option value="all">جميع الرحلات</option>
                             </select>
                         </div>
                         <div class="col-md-3 d-flex align-items-end">
@@ -142,7 +211,24 @@
 <script>
 $(document).ready(function() {
     loadTable();
+    loadStatistics();
 });
+
+function loadStatistics() {
+    $.ajax({
+        url: "{{ route('travel.statistics') }}",
+        method: 'GET',
+        success: function(data) {
+            $('#totalTrips').text(data.total || 0);
+            $('#activeTrips').text(data.active || 0);
+            $('#completedTrips').text(data.completed || 0);
+            $('#upcomingTrips').text(data.upcoming || 0);
+        },
+        error: function() {
+            console.log('Error loading statistics');
+        }
+    });
+}
 
 function loadTable() {
     if ($.fn.DataTable.isDataTable('#travelHistoryTable')) {
@@ -214,7 +300,10 @@ function loadTable() {
         order: [[0, 'desc']],
         pageLength: 10,
         lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
-
+        drawCallback: function() {
+            // Update statistics after table is loaded
+            loadStatistics();
+        }
     });
 }
 
@@ -245,6 +334,47 @@ function deleteTravel(id) {
                 },
                 error: function(xhr) {
                     Swal.fire('خطأ!', xhr.responseJSON?.message || 'حدث خطأ أثناء الحذف', 'error');
+                }
+            });
+        }
+    });
+}
+
+// إكتمال الرحلة
+function completeTrip(id) {
+    Swal.fire({
+        title: 'إكتمال الرحلة',
+        text: 'هل أنت متأكد من إكتمال هذه الرحلة؟',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'نعم، إكتملت الرحلة',
+        cancelButtonText: 'إلغاء'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: "{{ route('travel.complete', ':id') }}".replace(':id', id),
+                method: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم بنجاح',
+                            text: response.message
+                        }).then(() => {
+                            loadTable(); // إعادة تحميل الجدول
+                            loadStatistics(); // إعادة تحميل الإحصائيات
+                        });
+                    } else {
+                        Swal.fire('خطأ!', response.message, 'error');
+                    }
+                },
+                error: function(xhr) {
+                    Swal.fire('خطأ!', xhr.responseJSON?.message || 'حدث خطأ أثناء إكتمال الرحلة', 'error');
                 }
             });
         }

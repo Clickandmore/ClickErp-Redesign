@@ -552,34 +552,107 @@ class OrderController extends Controller
         try {
             $order = Order::findOrFail($id);
 
-            // If maid_id is provided in request
-            if ($request->has('maid_id')) {
-                $maid = \App\Models\ingaz\Maid::findOrFail($request->maid_id);
+            // Validate input
+            $request->validate([
+                'maid_id' => 'required|exists:maids,id',
+                'old_maid_status' => 'required|in:available,backout',
+                'reason' => 'nullable|string|max:500'
+            ]);
 
-                // Check if maid is available
-                if (!$maid->available || $maid->status !== 'available') {
-                    return jsonError(['message' => 'The maid is not available or reserved']);
-                }
+            $newMaidId = $request->maid_id;
+            $oldMaidStatus = $request->old_maid_status;
+            $reason = $request->reason;
 
-                // Check if maid is already assigned to another active order
-                $existingOrder = Order::where('maid_id', $request->maid_id)
-                    ->where('id', '!=', $id)
-                    ->whereNotIn('status', ['completed', 'refused', 'done'])
-                    ->first();
+            // Check if new maid is available
+            $newMaid = \App\Models\ingaz\Maid::findOrFail($newMaidId);
 
-                if ($existingOrder) {
-                    return jsonError(['message' => 'The maid is reserved for another order']);
-                }
-
-                // Update order with new maid
-                $order->maid_id = $request->maid_id;
-                $order->save();
-
-                return jsonSuccess(['message' => 'The maid has been changed successfully']);
+            if (!$newMaid->available || $newMaid->status !== 'available') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العاملة المختارة غير متاحة حالياً'
+                ], 400);
             }
 
-            // If no maid_id, return success (for compatibility)
-            return jsonSuccess(['message' => 'The maid has been changed successfully']);
+            // Check if maid is already assigned to another active order
+            $existingOrder = Order::where('maid_id', $newMaidId)
+                ->where('id', '!=', $id)
+                ->whereNotIn('status', ['completed', 'refused', 'done'])
+                ->first();
+
+            if ($existingOrder) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العاملة المختارة محجوزة لطلب آخر'
+                ], 400);
+            }
+
+            \DB::beginTransaction();
+
+            try {
+                // Save old maid info
+                $oldMaid = $order->maid;
+                $oldMaidId = $oldMaid->id;
+
+                \Log::info('Changing maid in order', [
+                    'order_id' => $id,
+                    'old_maid_id' => $oldMaidId,
+                    'new_maid_id' => $newMaidId,
+                    'old_maid_status' => $oldMaidStatus,
+                    'reason' => $reason
+                ]);
+
+                // Update old maid status
+                $oldMaid->update([
+                    'status' => $oldMaidStatus,
+                    'available' => ($oldMaidStatus === 'available') ? true : false
+                ]);
+
+                // Update order with new maid
+                $order->update([
+                    'maid_id' => $newMaidId
+                ]);
+
+                // Update new maid status to reserved
+                $newMaid->update([
+                    'status' => 'reserved',
+                    'available' => false
+                ]);
+
+                \Log::info('Maid changed in order successfully', [
+                    'order_id' => $id,
+                    'old_maid_id' => $oldMaidId,
+                    'new_maid_id' => $newMaidId,
+                    'old_maid_new_status' => $oldMaid->status,
+                    'new_maid_status' => $newMaid->status
+                ]);
+
+                \DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'تم تغيير العاملة بنجاح',
+                    'data' => [
+                        'order_id' => $id,
+                        'old_maid' => [
+                            'id' => $oldMaid->id,
+                            'name' => $oldMaid->name,
+                            'status' => $oldMaid->status,
+                            'available' => $oldMaid->available
+                        ],
+                        'new_maid' => [
+                            'id' => $newMaid->id,
+                            'name' => $newMaid->name,
+                            'status' => $newMaid->status,
+                            'available' => $newMaid->available
+                        ]
+                    ]
+                ]);
+
+            } catch (\Exception $e) {
+                \DB::rollback();
+                throw $e;
+            }
+
         } catch (\Exception $e) {
             return jsonError(['message' => 'An error occurred while changing the maid']);
         }

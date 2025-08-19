@@ -4,6 +4,12 @@ namespace App\Http\Actions\ingaz;
 
 use App\Http\Actions\MainAction;
 use App\Models\ingaz\Maid;
+use App\Models\Contract;
+use App\Models\ContractInfo;
+use App\Models\ingaz\JobType;
+use App\Models\ingaz\User as ClientUser;
+use App\Enums\ingaz\ContractStatusEnum;
+use Illuminate\Support\Facades\DB;
 
 class MaidAction extends MainAction
 {
@@ -194,6 +200,59 @@ class MaidAction extends MainAction
         \Log::info('About to attach job types: ' . print_r($request->type_id, true));
         $maid->jobTypes()->attach($request->type_id);
         \Log::info('Job types attached successfully');
+
+        // Create Shelter contract if user selected the option
+        try {
+            $createShelterContract = $request->create_shelter_contract ?? '0';
+
+            if ($createShelterContract === '1') {
+                                        DB::beginTransaction();
+                    // Find or create company client (أسس الانجاز)
+                    $companyClient = ClientUser::where('name', 'like', '%شركة اسس الانجاز%')
+                        ->orWhere('email', 'company@asas-alinjaz.com')
+                        ->orWhere('phone', '0500000002')
+                        ->first();
+
+                    if (!$companyClient) {
+                        $companyClient = ClientUser::create([
+                            'name' => 'شركة اسس الانجاز للاستقدام',
+                            'email' => 'company@asas-alinjaz.com',
+                            'phone' => '0500000002',
+                            'password' => bcrypt('password123'),
+                        ]);
+                    }
+
+                    // Create shelter contract
+                    $contract = Contract::create([
+                        'user_id' => $companyClient->id,
+                        'maid_id' => $maid->id,
+                        'status' => ContractStatusEnum::Shelter->value,
+                        'contract_date' => now()->toDateString(),
+                    ]);
+
+                    // Create contract info with complete data
+                    ContractInfo::create([
+                        'contract_id' => $contract->id,
+                        'contract_date' => now()->toDateString(),
+                        'msaned_number' => '',
+                        'shelter_id' => 1, // Default shelter
+                        'wants_to_work' => 'unknown',
+                        'receipt_source' => 'company', // Use translatable key
+                    ]);
+
+                    // Update maid status to in accommodation
+                    $maid->update([
+                        'status' => 'in_accommodation',
+                        'available' => 0,
+                    ]);
+
+                    DB::commit();
+                    \Log::info('Shelter contract created by user choice for maid ID: ' . $maid->id . ' with contract ID: ' . $contract->id);
+            }
+        } catch (\Throwable $t) {
+            DB::rollBack();
+            \Log::error('Failed to create shelter contract for maid: ' . $t->getMessage());
+        }
         return $maid;
     }
 
@@ -345,7 +404,82 @@ class MaidAction extends MainAction
         if ($request->type_id) {
             $maid->jobTypes()->sync($request->type_id);
         }
+
+        // Handle shelter contract creation for rental maids
+        if ($request->has('create_shelter_contract') && $request->create_shelter_contract == '1') {
+            $this->createShelterContractForMaid($maid);
+        }
+
         return parent::find($id);
+    }
+
+    /**
+     * Create shelter contract for a rental maid
+     */
+    private function createShelterContractForMaid($maid)
+    {
+        try {
+            DB::beginTransaction();
+
+            // Check if maid already has a shelter contract
+            $existingShelterContract = Contract::where('maid_id', $maid->id)
+                ->where('shelter_id', '!=', null)
+                ->first();
+
+            if ($existingShelterContract) {
+                \Log::info('Maid already has a shelter contract', ['maid_id' => $maid->id]);
+                return;
+            }
+
+            // Find or create the company client
+            $companyClient = ClientUser::where('name', 'أسس الانجاز')
+                ->orWhere('phone', '0112345678')
+                ->first();
+
+            if (!$companyClient) {
+                $companyClient = ClientUser::create([
+                    'name' => 'أسس الانجاز',
+                    'phone' => '0112345678',
+                    'email' => 'info@asas-alinjaz.com',
+                    'nationality_id' => 1, // Saudi Arabia
+                    'password' => bcrypt('password123'),
+                    'status' => 'active'
+                ]);
+            }
+
+            // Create shelter contract
+            $contractData = [
+                'user_id' => $companyClient->id,
+                'maid_id' => $maid->id,
+                'status' => ContractStatusEnum::MSANED->value,
+                'type' => 'shelter',
+                'shelter_id' => 1, // Default shelter
+                'wants_to_work' => 1,
+                'created_at' => now(),
+                'updated_at' => now()
+            ];
+
+            $contract = Contract::create($contractData);
+
+            // Create contract info
+            ContractInfo::create([
+                'contract_id' => $contract->id,
+                'receipt_source' => 'company',
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            DB::commit();
+            \Log::info('Shelter contract created successfully', ['contract_id' => $contract->id, 'maid_id' => $maid->id]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            \Log::error('Failed to create shelter contract', [
+                'maid_id' => $maid->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
     }
 
     public function togglePin($id)

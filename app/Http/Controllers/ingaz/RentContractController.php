@@ -4,6 +4,8 @@ namespace App\Http\Controllers\ingaz;
 
 use App\Models\RentalContract;
 use App\Models\RentalContractInfo;
+use App\Models\Contract;
+use App\Models\ContractPayment;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\User;
 use App\Models\ingaz\Order;
@@ -12,6 +14,7 @@ use App\Models\Country;
 use App\Models\auth\Admin;
 use Illuminate\Http\Request;
 use App\Enums\ingaz\OrderEnum;
+use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +22,7 @@ use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\Facades\DataTables;
 use App\Http\Actions\ingaz\RecruitmentOfficeAction;
 use App\Http\Requests\StoreRentalContractRequest;
+use Carbon\Carbon;
 
 class RentContractController extends Controller
 {
@@ -32,8 +36,42 @@ class RentContractController extends Controller
 
             $query = RentalContract::with(['user', 'maid', 'info', 'marketer']);
 
+            // Apply status filter with closure type consideration
             if ($status) {
-                $query->where('status', $status);
+                if ($status === 'transferred') {
+                    // Show only transferred contracts
+                    $query->where('status', 'completed')->where('closure_type', 'transferred');
+                } elseif ($status === 'available') {
+                    // Show only contracts closed and made available
+                    $query->where('status', 'completed')->where('closure_type', 'available');
+                } else {
+                    // Other statuses
+                    $query->where('status', $status);
+                }
+            }
+
+            // Apply other filters
+            if ($request->filled('status_filter')) {
+                $statusFilter = $request->status_filter;
+                if ($statusFilter === 'transferred') {
+                    $query->where('status', 'completed')->where('closure_type', 'transferred');
+                } elseif ($statusFilter === 'available') {
+                    $query->where('status', 'completed')->where('closure_type', 'available');
+                } else {
+                    $query->where('status', $statusFilter);
+                }
+            }
+
+            if ($request->filled('date_from')) {
+                $query->whereDate('contract_date', '>=', $request->date_from);
+            }
+
+            if ($request->filled('date_to')) {
+                $query->whereDate('contract_date', '<=', $request->date_to);
+            }
+
+            if ($request->filled('marketer_id')) {
+                $query->where('marketer_id', $request->marketer_id);
             }
 
             $contracts = $query->latest();
@@ -41,7 +79,7 @@ class RentContractController extends Controller
             return DataTables::eloquent($contracts)
                 ->addIndexColumn()
                 ->editColumn('status', function ($row) {
-                    return $this->getStatusBadge($row->status);
+                    return $this->getStatusBadge($row->status, $row->closure_type);
                 })
                 ->editColumn('user_id', function ($row) {
                     return $row->user ? $row->user->name : 'غير محدد';
@@ -81,22 +119,34 @@ class RentContractController extends Controller
                     return $row->marketer ? $row->marketer->name : 'غير محدد';
                 })
                 ->addColumn('remaining_days', function ($row) {
-                    $remainingDays = $row->calculateRemainingDays();
-                    if ($remainingDays !== null) {
-                        if ($remainingDays > 0) {
-                            return '<span class="badge bg-success">' . $remainingDays . ' يوم متبقي</span>';
+                    // Only show remaining days for active contracts
+                    if ($row->status !== 'completed') {
+                        $remainingDays = $row->calculateRemainingDays();
+                        if ($remainingDays !== null) {
+                            if ($remainingDays > 0) {
+                                return '<span class="badge bg-success">' . $remainingDays . ' يوم متبقي</span>';
+                            } else {
+                                return '<span class="badge bg-danger">منتهي</span>';
+                            }
+                        }
+                        return '<span class="badge bg-secondary">غير محدد</span>';
+                    } else {
+                        // For completed contracts, show closure info
+                        if ($row->closure_type === 'transferred') {
+                            return '<span class="badge bg-warning">تم النقل</span>';
+                        } elseif ($row->closure_type === 'available') {
+                            return '<span class="badge bg-info">أصبحت متاحة</span>';
                         } else {
-                            return '<span class="badge bg-danger">منتهي</span>';
+                            return '<span class="badge bg-secondary">مكتمل</span>';
                         }
                     }
-                    return '<span class="badge bg-secondary">غير محدد</span>';
                 })
                 ->addColumn('actions', function ($row) {
-                    $actions = '<div class="dropdown">
-                                    <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    $actions = '<div class="dropdown actions-dropdown">
+                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" >
                                         <i class="fas fa-cogs"></i> الإجراءات
                                     </button>
-                                    <ul class="dropdown-menu">';
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
 
                     // عرض التفاصيل
                     $actions .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.show', $row->id) . '">
@@ -249,7 +299,7 @@ class RentContractController extends Controller
             // إنشاء عقد التأجير
             $rentalContract = RentalContract::create([
                 'user_id' => $user->id,
-                'maid_id' => $request->maid_id,
+            'maid_id' => $request->maid_id,
                 'marketer_id' => $request->marketer_id,
                 'order_id' => $request->order_id,
                 'status' => 'new',
@@ -290,7 +340,7 @@ class RentContractController extends Controller
             }
 
             // تحديث حالة الطلب إذا كان موجود
-            if ($request->order_id) {
+        if ($request->order_id) {
                 Order::where('id', $request->order_id)->update([
                     'status' => 'contracted'
                 ]);
@@ -530,12 +580,21 @@ class RentContractController extends Controller
         }
     }
 
-    private function getStatusBadge($status)
+    private function getStatusBadge($status, $closureType = null)
     {
+        if ($status === 'completed') {
+            if ($closureType === 'transferred') {
+                return '<span class="badge bg-warning">تم النقل</span>';
+            } elseif ($closureType === 'available') {
+                return '<span class="badge bg-success">مكتمل - متاحة</span>';
+            } else {
+                return '<span class="badge bg-info">مكتمل</span>';
+            }
+        }
+
         $badges = [
             'new' => '<span class="badge bg-primary">جديد</span>',
             'active' => '<span class="badge bg-success">نشط</span>',
-            'completed' => '<span class="badge bg-info">مكتمل</span>',
             'cancelled' => '<span class="badge bg-danger">ملغي</span>',
             'suspended' => '<span class="badge bg-warning">معلق</span>',
         ];
@@ -547,8 +606,11 @@ class RentContractController extends Controller
     {
         try {
             $total = RentalContract::count();
-            $active = RentalContract::where('status', 'active')->count();
+            $active = RentalContract::whereNotIn('status', ['completed', 'cancelled'])->count();
             $completed = RentalContract::where('status', 'completed')->count();
+            $available = RentalContract::where('status', 'completed')->where('closure_type', 'available')->count();
+            $transferred = RentalContract::where('status', 'completed')->where('closure_type', 'transferred')->count();
+
             $totalValue = RentalContract::with('info')
                                       ->get()
                                       ->sum(function($contract) {
@@ -559,6 +621,8 @@ class RentContractController extends Controller
                 'total' => $total,
                 'active' => $active,
                 'completed' => $completed,
+                'available' => $available,
+                'transferred' => $transferred,
                 'totalValue' => $totalValue
             ]);
         } catch (\Exception $e) {
@@ -566,6 +630,8 @@ class RentContractController extends Controller
                 'total' => 0,
                 'active' => 0,
                 'completed' => 0,
+                'available' => 0,
+                'transferred' => 0,
                 'totalValue' => 0
             ]);
         }
@@ -734,4 +800,187 @@ class RentContractController extends Controller
             'count' => $clients->count()
         ]);
     }
+
+    /**
+     * Get contract details for closing modal
+     */
+    public function getContractDetails($id)
+    {
+        try {
+            $contract = RentalContract::with(['user', 'maid'])->findOrFail($id);
+
+            // Calculate remaining days
+            $endDate = $contract->end_date ? Carbon::parse($contract->end_date) : null;
+            $remainingDays = $endDate ? max(0, Carbon::now()->diffInDays($endDate, false)) : 0;
+
+            $contractData = [
+                'id' => $contract->id,
+                'client_name' => $contract->user->name ?? 'غير محدد',
+                'maid_name' => $contract->maid->name ?? 'غير محدد',
+                'status_text' => $this->getStatusText($contract->status),
+                'start_date' => $contract->start_date ? Carbon::parse($contract->start_date)->format('Y-m-d') : null,
+                'end_date' => $contract->end_date ? Carbon::parse($contract->end_date)->format('Y-m-d') : null,
+                'remaining_days' => $remainingDays . ' يوم',
+                'amount' => $contract->amount ?? 0
+            ];
+
+            return response()->json([
+                'success' => true,
+                'contract' => $contractData
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء جلب بيانات العقد: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Close contract and make maid available
+     */
+    public function closeAndMakeAvailable($id)
+    {
+        try {
+            DB::beginTransaction();
+
+            $contract = RentalContract::findOrFail($id);
+
+            // Update contract status to completed and set closure type
+            $contract->status = 'completed';
+            $contract->closure_type = 'available';
+            $contract->closed_at = now();
+            $contract->save();
+
+            // Make maid available
+            if ($contract->maid) {
+                $contract->maid->status = 'available';
+                $contract->maid->available = 1; // Set available to true
+                $contract->maid->available_at = now(); // Set availability timestamp
+                $contract->maid->save();
+            }
+
+            // Log the action
+            \Log::info('Rent contract closed and maid made available', [
+                'contract_id' => $contract->id,
+                'maid_id' => $contract->maid_id,
+                'closed_by' => auth()->id()
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إغلاق العقد وإرجاع العاملة متاحة بنجاح'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            \Log::error('Error closing rent contract', [
+                'contract_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء إغلاق العقد: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Close contract and transfer sponsorship
+     */
+    public function transferSponsorship($id, Request $request)
+    {
+        $request->validate([
+            'transfer_amount' => 'required|numeric|min:0',
+            'total_amount' => 'required|numeric|min:0',
+            'paid_amount' => 'required|numeric|min:0',
+            'notes' => 'nullable|string'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $oldContract = RentalContract::findOrFail($id);
+
+            // Close the old contract and set closure type to transferred
+            $oldContract->status = 'completed';
+            $oldContract->closure_type = 'transferred';
+            $oldContract->closed_at = now();
+            $oldContract->save();
+
+            // Use the existing client from the rental contract
+            $newClient = $oldContract->user;
+
+            if (!$newClient) {
+                throw new \Exception('لا يمكن العثور على بيانات العميل في عقد الإيجار');
+            }
+
+            // Create new contract for sponsorship transfer
+            $newContract = Contract::create([
+                'user_id' => $newClient->id,
+                'maid_id' => $oldContract->maid_id,
+                'status' => ContractStatusEnum::Msaned->value,
+                'type' => 'recruitment', // Change to recruitment contract
+                'contract_date' => now()
+                // Note: previous_contract_id removed due to foreign key constraint between different table types
+            ]);
+
+            // Create contract payment record
+            if ($request->total_amount > 0) {
+                ContractPayment::create([
+                    'contract_id' => $newContract->id,
+                    'total_amount' => $request->total_amount,
+                    'paid_amount' => $request->paid_amount,
+                    'remaining_amount' => $request->remaining_amount,
+                    'payment_date' => now(),
+                    'notes' => 'نقل كفالة من العقد رقم ' . $oldContract->id
+                ]);
+            }
+
+            // Update maid status
+            if ($oldContract->maid) {
+                $oldContract->maid->status = 'contracted';
+                $oldContract->maid->save();
+            }
+
+            // Log the action
+            \Log::info('Sponsorship transferred', [
+                'old_contract_id' => $oldContract->id,
+                'new_contract_id' => $newContract->id,
+                'new_client_id' => $newClient->id,
+                'transferred_by' => auth()->id()
+            ]);
+
+            // Link the old contract to the new one
+            $oldContract->transferred_to_contract_id = $newContract->id;
+            $oldContract->save();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إغلاق عقد الإيجار ونقل الكفالة للعميل بنجاح. العقد الجديد رقم: ' . $newContract->id,
+                'new_contract_id' => $newContract->id,
+                'status' => 'transferred'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            \Log::error('Error transferring sponsorship', [
+                'contract_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء نقل الكفالة: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+
 }

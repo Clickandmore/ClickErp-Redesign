@@ -66,6 +66,16 @@
                     </select>
                 </div>
 
+                <!-- خيار تسكين للإيواء -->
+                <div class="col-4" id="shelter_option" style="display: none;">
+                    <label for="create_shelter_contract" class="form-label">تسكين للإيواء</label>
+                    <select name="create_shelter_contract" id="create_shelter_contract" class="form-control">
+                        <option value="0">لا - لا تسكين</option>
+                        <option value="1">نعم - تسكين للإيواء</option>
+                    </select>
+                    <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم شركة أسس الانجاز</small>
+                </div>
+
                 <!-- الوظائف -->
                 <div class="col-4">
                     <label for="TextInput" class="form-label">{{helperTrans("ingaz.job_2")}} </label>
@@ -277,6 +287,7 @@
                 var jobField = $('select[name="job_id[]"]').closest('.col-4');
                 var languagesField = $('.col-12:has(label:contains("اللغات"))');
                 var priceLabel = $('.price-label');
+                var shelterOption = $('#shelter_option');
 
                 // Reset all fields to default state
                 idFields.show();
@@ -286,6 +297,8 @@
                 salaryField.show();
                 jobField.show();
                 languagesField.show();
+                shelterOption.hide(); // Hide shelter option by default
+                $('#create_shelter_contract').val('0'); // Reset shelter option
                 priceLabel.text('{{helperTrans("ingaz.price")}}');
                 $('input[name="id_number"], input[name="id_expiry_date"]').attr('required', 'required');
                 $('input[name="height"], input[name="weight"]').attr('required', 'required');
@@ -332,6 +345,9 @@
                     languagesField.hide();
                     idFields.hide();
                     priceLabel.text('تكلفه الايجار الشهري');
+
+                    // Show shelter option for rental maids
+                    shelterOption.show();
 
                     // Remove required attribute from hidden fields
                     $('input[name="height"], input[name="weight"]').removeAttr('required');
@@ -661,6 +677,22 @@
                     }
                 });
             });
+
+            // Function to show/hide shelter option based on type on page load
+            function initializeShelterOption() {
+                var selectedType = $('select[name="type_id"] option:selected').text().trim();
+                var shelterOption = $('#shelter_option');
+
+                if (selectedType === 'ايجار عمالة' || selectedType === 'تأجير') {
+                    shelterOption.show();
+                } else {
+                    shelterOption.hide();
+                    $('#create_shelter_contract').val('0'); // Reset to default
+                }
+            }
+
+            // Initialize shelter option on page load
+            initializeShelterOption();
         });
     </script>
 @endsection

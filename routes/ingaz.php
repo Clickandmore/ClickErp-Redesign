@@ -89,6 +89,8 @@ Route::group(
             Route::post('createFullShelterWorkerContract', [AdminShelterWorkersContractCTLR::class, 'createFullShelterWorkerContract'])->name('createFullShelterWorkerContract');
             //** */
             Route::get('/travel', [AdminTravelHistoryController::class, 'index'])->name('travel');
+            Route::get('/travel/statistics', [AdminTravelHistoryController::class, 'statistics'])->name('travel.statistics');
+            Route::post('/travel/{id}/complete', [AdminTravelHistoryController::class, 'completeTrip'])->name('travel.complete');
             Route::get('/travel/create/{id?}', [AdminTravelHistoryController::class, 'create'])->name('travel.control');
             Route::get('/travel/{id}/edit', [AdminTravelHistoryController::class, 'edit'])->name('travel.edit');
             Route::post('/travel', [AdminTravelHistoryController::class, 'store'])->name('travel.store');
@@ -168,6 +170,11 @@ Route::group(
             Route::get('RentContract/statistics/data', [RentContractController::class, 'statistics'])->name('RentContract.statistics');
             Route::get('RentContract/export/excel', [RentContractController::class, 'exportExcel'])->name('RentContract.export.excel');
             Route::get('RentContract/existing-clients', [RentContractController::class, 'getExistingClients'])->name('RentContract.existing.clients');
+
+            // إغلاق عقود الإيجار
+            Route::get('RentContract/{id}/details', [RentContractController::class, 'getContractDetails'])->name('RentContract.details');
+            Route::post('RentContract/{id}/close-and-make-available', [RentContractController::class, 'closeAndMakeAvailable'])->name('RentContract.closeAndMakeAvailable');
+            Route::post('RentContract/{id}/transfer-sponsorship', [RentContractController::class, 'transferSponsorship'])->name('RentContract.transferSponsorship');
             Route::get('print/rental-contract/{id}', [AdminContractController::class, 'printRentalContract'])->name('print.rental.contract');
 
             // إدارة بنود عقد التأجير
@@ -221,7 +228,45 @@ Route::group(
             Route::post('ShelterContract/deportation/{id}/update', [ShelterContractController::class, 'updateDeportationProcedures'])->name('ShelterContract.deportation.update');
             Route::get('ShelterContract/deported', [ShelterContractController::class, 'deported'])->name('ShelterContract.deported');
 
+            // Work desire route
+            Route::post('ShelterContract/{id}/change-work-desire', [ShelterContractController::class, 'changeWorkDesire'])->name('ShelterContract.changeWorkDesire');
+
             Route::resource('ShelterContract', ShelterContractController::class);
+
+            // Istiqdam Integration Routes
+            Route::prefix('istiqdam')->name('istiqdam.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\admin\IstiqdasmController::class, 'index'])->name('index');
+                Route::get('/test-connection', [\App\Http\Controllers\admin\IstiqdasmController::class, 'testConnection'])->name('test.connection');
+
+                // Real API Routes (for actual integration)
+                Route::prefix('real')->name('real.')->group(function () {
+                    Route::get('/', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'index'])->name('index');
+                    Route::get('/test-connection', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'testConnection'])->name('test.connection');
+                    Route::get('/packages/data', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'getPackages'])->name('packages.data');
+                    Route::get('/packages/{packageId}', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'getPackage'])->name('packages.show');
+                    Route::post('/contracts', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'storeContract'])->name('contracts.store');
+                    Route::get('/contracts/{contractId}', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'getContractDetails'])->name('contracts.show');
+                    Route::delete('/contracts/{contractId}', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'cancelContract'])->name('contracts.cancel');
+                    Route::get('/contracts/{contractId}/download/{type?}', [\App\Http\Controllers\Admin\IstiqdasmRealController::class, 'downloadContract'])->name('contracts.download');
+                });
+
+                                // Packages (Mock/Test)
+                Route::get('/packages', [\App\Http\Controllers\admin\IstiqdasmController::class, 'packages'])->name('packages');
+                Route::get('/packages/data', [\App\Http\Controllers\admin\IstiqdasmController::class, 'getPackages'])->name('packages.data');
+                Route::get('/packages/{packageId}', [\App\Http\Controllers\admin\IstiqdasmController::class, 'getPackage'])->name('packages.show');
+
+                // Contracts (Mock/Test)
+                Route::get('/contracts', [\App\Http\Controllers\admin\IstiqdasmController::class, 'contracts'])->name('contracts');
+                Route::get('/contracts/create', [\App\Http\Controllers\admin\IstiqdasmController::class, 'createContract'])->name('contracts.create');
+                Route::post('/contracts', [\App\Http\Controllers\admin\IstiqdasmController::class, 'storeContract'])->name('contracts.store');
+                Route::get('/contracts/{contractId}', [\App\Http\Controllers\admin\IstiqdasmController::class, 'getContractDetails'])->name('contracts.show');
+                Route::delete('/contracts/{contractId}', [\App\Http\Controllers\admin\IstiqdasmController::class, 'cancelContract'])->name('contracts.cancel');
+                Route::get('/contracts/{contractId}/download/{type?}', [\App\Http\Controllers\admin\IstiqdasmController::class, 'downloadContract'])->name('contracts.download');
+
+                // Work Permits (Mock/Test)
+                Route::get('/contracts/{contractId}/work-permit', [\App\Http\Controllers\admin\IstiqdasmController::class, 'showWorkPermitForm'])->name('work-permit.form');
+                Route::post('/contracts/{contractId}/work-permit', [\App\Http\Controllers\admin\IstiqdasmController::class, 'assignWorkPermit'])->name('work-permit.assign');
+            });
 
             //** New */
             Route::get('show_single_order/{orderId}', [OrderController::class, 'showSingleOrder'])->name('showSingleOrder');

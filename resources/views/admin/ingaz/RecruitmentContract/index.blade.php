@@ -277,13 +277,21 @@
 
                     <div class="mb-3">
                         <label for="statusDate" class="form-label">تاريخ التحديث:</label>
-                    <input type="date" id="statusDate" required name="statusDate" class="form-control" value="{{date('Y-m-d')}}">
+                    <input type="date" id="statusDate" required name="statusDate" class="form-control" value="{{date('Y-m-d')}}" max="{{date('Y-m-d')}}">
                     </div>
 
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        سيتم تحديث حالة العقد إلى المرحلة التالية في التاريخ المحدد
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="sendSmsNotification" name="sendSmsNotification" checked>
+                            <label class="form-check-label" for="sendSmsNotification">
+                                <i class="fas fa-sms me-1"></i>
+                                إرسال رسالة نصية للعميل بتحديث الحالة
+                            </label>
+                        </div>
+                        <small class="text-muted">سيتم إرسال رسالة نصية للعميل تحتوي على الحالة الجديدة للعقد</small>
                     </div>
+
+                   
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
@@ -817,7 +825,10 @@
                 $('#updateStatusModal #rowId').val(rowId);
                 $('#updateStatusModal #status').val(status);
                 $('#updateStatusModal #nextStatus').val(nextStatus);
-                $('#updateStatusModal #statusDate').val(date);
+
+                // تعيين تاريخ اليوم دائماً
+                var today = new Date().toISOString().split('T')[0];
+                $('#updateStatusModal #statusDate').val(today);
 
                 // عرض Modal
                 $('#updateStatusModal').modal('show');
@@ -828,6 +839,7 @@
                 var rowId = $('#updateStatusModal #rowId').val();
                 var nextStatus = $('#updateStatusModal #nextStatus').val();
                 var date = $('#updateStatusModal #statusDate').val();
+                var sendSms = $('#updateStatusModal #sendSmsNotification').is(':checked');
 
                 $.ajax({
                     url: '{{ route("RecruitmentContract.updateStatus") }}',
@@ -836,6 +848,7 @@
                         row_id: rowId,
                         next_status: nextStatus,
                         date: date,
+                        send_sms: sendSms,
                         _token: '{{ csrf_token() }}'
                     },
                     success: function(response) {

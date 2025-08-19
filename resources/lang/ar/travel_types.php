@@ -18,9 +18,15 @@ return [
     ],
 
     'status' => [
-        'pending' => 'جديد',
-        'approved' => 'تمت المراجعة',
+        'new' => 'جديد',
+        'pending' => 'معلق',
+        'scheduled' => 'مجدول',
+        'confirmed' => 'مؤكد',
+        'active' => 'نشط',
+        'in_progress' => 'قيد التنفيذ',
         'completed' => 'مكتمل',
+        'cancelled' => 'ملغي',
+        'delayed' => 'مؤجل',
     ],
 
 ];

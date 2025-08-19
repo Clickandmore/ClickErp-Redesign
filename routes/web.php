@@ -120,6 +120,7 @@ Route::group(
             function () {
                 Route::get('profile', [AuthController::class, 'profile'])->name('profile');
                 Route::post('update-profile', [AuthController::class, 'updateProfile'])->name('update-profile');
+Route::get('edit-profile', [AuthController::class, 'editProfile'])->name('edit-profile');
                 Route::get('deleteAccount', [AuthController::class, 'deleteAccount'])->name('deleteAccount');
                 Route::get("logout", [AuthController::class, "logout"])->name("logout");
                 Route::resource('orders', OrderController::class);
@@ -133,6 +134,13 @@ Route::group(
                 Route::resource('addresses', UserAddressController::class);
                 Route::resource('complaints', ComplaintController::class);
                 Route::resource('notifications', NotificationController::class);
+
+                // طلبات استرجاع العقود
+                Route::get('contracts/{contract}/return-request', [\App\Http\Controllers\Web\ContractReturnRequestController::class, 'create'])->name('contract-return-requests.create');
+                Route::post('contracts/{contract}/return-request', [\App\Http\Controllers\Web\ContractReturnRequestController::class, 'store'])->name('contract-return-requests.store');
+                Route::get('return-requests', [\App\Http\Controllers\Web\ContractReturnRequestController::class, 'index'])->name('contract-return-requests.index');
+                Route::get('return-requests/{returnRequest}', [\App\Http\Controllers\Web\ContractReturnRequestController::class, 'show'])->name('contract-return-requests.show');
+                Route::delete('return-requests/{returnRequest}', [\App\Http\Controllers\Web\ContractReturnRequestController::class, 'cancel'])->name('contract-return-requests.cancel');
             }
         );
         Route::resource('contact-us', ContactUs::class);
@@ -141,6 +149,9 @@ Route::group(
         Route::get('/clients/export/excel', [UserController::class, 'exportExcel'])->name('clients.export.excel');
         Route::resource('skills', 'ingaz\SkillController');
         Route::get('/get-offices-by-nationality', [App\Http\Controllers\ingaz\MaidController::class, 'getOfficesByNationality'])->name('getOfficesByNationality');
+
+        // Dashboard route for clients
+        Route::get('dashboard', [\App\Http\Controllers\Web\AuthController::class, 'dashboard'])->name('dashboard')->middleware('auth_web');
     }
 );
 
@@ -184,6 +195,16 @@ Route::prefix('admin')->middleware(['auth:admin'])->group(function () {
     Route::get('/notifications', [App\Http\Controllers\Admin\NotificationController::class, 'index']);
     Route::post('/notifications/{id}/mark-as-read', [App\Http\Controllers\Admin\NotificationController::class, 'markAsRead']);
     Route::post('/notifications/mark-all-read', [App\Http\Controllers\Admin\NotificationController::class, 'markAllAsRead']);
+
+    // SMS Templates Management
+    Route::get('sms-templates', [\App\Http\Controllers\admin\SmsTemplateController::class, 'index'])->name('admin.sms-templates.index');
+    Route::get('sms-templates/create', [\App\Http\Controllers\admin\SmsTemplateController::class, 'create'])->name('admin.sms-templates.create');
+    Route::post('sms-templates', [\App\Http\Controllers\admin\SmsTemplateController::class, 'store'])->name('admin.sms-templates.store');
+    Route::get('sms-templates/{smsTemplate}', [\App\Http\Controllers\admin\SmsTemplateController::class, 'show'])->name('admin.sms-templates.show');
+    Route::get('sms-templates/{smsTemplate}/edit', [\App\Http\Controllers\admin\SmsTemplateController::class, 'edit'])->name('admin.sms-templates.edit');
+    Route::put('sms-templates/{smsTemplate}', [\App\Http\Controllers\admin\SmsTemplateController::class, 'update'])->name('admin.sms-templates.update');
+    Route::delete('sms-templates/{smsTemplate}', [\App\Http\Controllers\admin\SmsTemplateController::class, 'destroy'])->name('admin.sms-templates.destroy');
+    Route::post('sms-templates/{smsTemplate}/test', [\App\Http\Controllers\admin\SmsTemplateController::class, 'test'])->name('admin.sms-templates.test');
 });
 
 // روابط التقييم العامة (بدون تسجيل دخول)

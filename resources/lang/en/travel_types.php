@@ -16,8 +16,15 @@ return [
     ],
 
     'status' => [
+        'new' => 'New',
         'pending' => 'Pending',
-        'approved' => 'Approved',
+        'scheduled' => 'Scheduled',
+        'confirmed' => 'Confirmed',
+        'active' => 'Active',
+        'in_progress' => 'In Progress',
+        'completed' => 'Completed',
+        'cancelled' => 'Cancelled',
+        'delayed' => 'Delayed',
     ],
 
 ];

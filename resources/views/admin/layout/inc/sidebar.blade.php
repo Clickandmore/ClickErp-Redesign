@@ -660,6 +660,18 @@
                                 </a>
                             </li>
                         @endif
+                        <li>
+                            <a class="m-link" href="/admin/sms-templates">
+                                <i class="fa fa-sms"></i>
+                                <span class="ms-2">قوالب الرسائل النصية</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="m-link" href="{{route('istiqdam.index')}}">
+                                <i class="fa fa-building"></i>
+                                <span class="ms-2">منصة الاستقدام</span>
+                            </a>
+                        </li>
                         @if (@AdminGuardHasPerm(\App\PermKeys::ABOUT_US_VIEW))
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'about-us.index') ? 'active' : '' }}"

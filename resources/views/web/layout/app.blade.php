@@ -61,12 +61,12 @@
 </head>
 
 <body>
-    <!-- Loading indicator -->
+    {{-- <!-- Loading indicator -->
     <div class="page-loader">
         <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
-    </div>
+    </div> --}}
 
     <!-- ================ loader ================= -->
     <div class="preloader">
@@ -90,7 +90,7 @@
         @include('web.layout.inc._js_custom')
     </div>
 
-    
+
     <!-- Add script to remove loader -->
     <script>
         window.addEventListener('load', function() {

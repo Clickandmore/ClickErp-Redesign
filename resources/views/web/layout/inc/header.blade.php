@@ -81,7 +81,7 @@
             @auth
                 <div class="btns">
                     <a href="{{ route('web.profile') }}">
-                        <i class="fa-solid fa-user"></i> {{ helperTrans('web.profile') }} </a>
+                        <i class="fa-solid fa-user"></i> {{ helperTrans('web.my_account') }} </a>
                 </div>
             @endauth
 

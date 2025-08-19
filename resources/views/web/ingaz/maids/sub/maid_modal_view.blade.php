@@ -24,23 +24,23 @@
                             <div class="col-md-9">
                                 <div class="row d-flex">
                                     <p class="col-md-6 cv-prop">@lang('web.age')</p>
-                                    <p class="col-md-6"></p>
+                                    <p class="col-md-6" id="age-trgt"></p>
                                 </div>
                                 <div class="row d-flex">
                                     <p class="col-md-6 cv-prop">@lang('web.nationality')</p>
-                                    <p class="col-md-6" id="nationality-trgt"></p>
+                                    <p class="col-md-6" id="nationality-trgt-1"></p>
                                 </div>
                                 <div class="row d-flex">
                                     <p class="col-md-6 cv-prop">@lang('web.religion')</p>
-                                    <p class="col-md-6" id="religion-trgt"></p>
+                                    <p class="col-md-6" id="religion-trgt-1"></p>
                                 </div>
                                 <div class="row d-flex">
                                     <p class="col-md-6 cv-prop">@lang('web.passport_num')</p>
-                                    <p class="col-md-6" id="passport_number-trgt"></p>
+                                    <p class="col-md-6" id="passport_number-trgt-1"></p>
                                 </div>
                                 <div class="row d-flex">
                                     <p class="col-md-6 cv-prop">@lang('web.recruitment_price')</p>
-                                    <p class="col-md-6" id="recruitment_price-trgt"></p>
+                                    <p class="col-md-6" id="recruitment_price-trgt-1"></p>
                                 </div>
                             </div>
                         </div>
@@ -71,94 +71,7 @@
                         </div>
                     </div>
 
-                    {{-- <div class="" style="background-color: #edf4fa; border-radius: 3px">
-                        <div class="row">
-                            <div class="col-md-12 text-center justify-content-center align-content-center">
-                                <b class="">@lang('web.cv')</b>
-                            </div>
-                            <div class="col-md-6 d-flex justify-content-center my-2 img-fluid">
-                                <img src="{{ asset('/') }}" alt="cv1" id="maidImgTarget"
-                                    style="height: 150px; width: 150px; border-radius: 50%; object-fit: cover;">
-                            </div>
-                            <div class="col-md-6 d-flex justify-content-center my-2 img-fluid">
-                                <img src="{{ asset('/') }}" alt="cv1" id="maidCVTarget"
-                                    style="height: 150px; width: 150px; border-radius: 50%; object-fit: cover;">
-                            </div>
-                        </div>
-                    </div> --}}
 
-                    {{-- <div class="row mt-2 text-center">
-                        <div class="col-md-3">
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="fs-6"><b>{{ helperTrans('web.salary') }}</b></div>
-                                    <b id="salary-trgt">{{ helperTrans('web.none') }}</b>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="fs-6"><b>{{ helperTrans('web.recruitment_price') }}</b></div>
-                                    <b id="recruitment_price-trgt">{{ helperTrans('web.none') }}</b>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="fs-6"><b>{{ helperTrans('web.experience_years') }}</b></div>
-                                    <b id="experience_years-trgt">{{ helperTrans('web.none') }}</b>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card">
-                                <div class="card-body">
-                                    <div class="fs-6"><b>{{ helperTrans('web.passport_number') }}</b></div>
-                                    <b id="passport_number-trgt">{{ helperTrans('web.none') }}</b>
-                                </div>
-                            </div>
-                        </div>
-                    </div> --}}
-
-
-                    {{-- <div class="cv mt-2 card card-body">
-                        <div>
-                            <b>{{ helperTrans('web.personal_info') }}</b>
-                        </div>
-                        <div class="">
-                            <div class="info text-center">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div>{{ helperTrans('web.nationality') }}</div>
-                                        <b id="nationality-trgt">{{ helperTrans('web.none') }}</b>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div>{{ helperTrans('web.religion') }}</div>
-                                        <b id="religion-trgt">{{ helperTrans('web.none') }}</b>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div>{{ helperTrans('web.height') }}</div>
-                                        <b id="height-trgt">{{ helperTrans('web.none') }}</b>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div>{{ helperTrans('web.weight') }}</div>
-                                        <b id="weight-trgt">{{ helperTrans('web.none') }}</b>
-                                    </div>
-                                    @if(@$type->title)
-                                    <div class="col-md-6">
-                                        <div>{{ helperTrans('web.occupation') }}</div>
-                                        <b id="occupation-trgt">{{ @$type->title }}</b>
-                                    </div>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    </div> --}}
-
-
-                </div>
             </div>
         </div>
     </div>
@@ -177,39 +90,138 @@
                     url: '{{ route('is.getMaidDetails', ['maidId' => ':maidId']) }}'.replace(':maidId', maidId),
                     method: 'GET',
                     success: function (data) {
+                        console.log('Maid data received:', data); // للتشخيص
+
                         // Update modal content with fetched data
+                        // الصورة
                         if (data.image) {
                             $('#maidImgTarget').attr('src', data.image);
+                            $('#maidImgTarget2').attr('src', data.image);
+                        } else {
+                            var defaultImg = '{{ asset("web/assets/images/default-avatar.png") }}';
+                            $('#maidImgTarget').attr('src', defaultImg);
+                            $('#maidImgTarget2').attr('src', defaultImg);
                         }
-                        if (data.cv_file) {
-                            $('#maidCVTarget').attr('href', data.cv_file).attr('data-passport', data.passport_num);
+
+                        // ملف السيرة الذاتية
+                        if (data.cv_file || data.cv_preview) {
+                            var cvUrl = data.cv_preview || data.cv_file;
+                            console.log('CV URL:', cvUrl); // للتشخيص
+
+                            // التأكد من أن الرابط صحيح
+                            if (cvUrl && cvUrl !== 'null' && cvUrl !== '') {
+                                $('#maidCVTarget').attr('href', cvUrl).attr('data-passport', data.passport_num);
+                                $('#maidCVTarget').show(); // إظهار زر التحميل
+
+                                // إذا كان الملف صورة، اعرضها
+                                if (cvUrl.match(/\.(jpg|jpeg|png|gif)$/i)) {
+                                    $('#maidCVImg').attr('src', cvUrl);
+                                } else {
+                                    // إذا كان PDF أو ملف آخر، اعرض أيقونة
+                                    $('#maidCVImg').attr('src', '{{ asset("web/assets/images/pdf-icon.png") }}');
+                                }
+                            } else {
+                                $('#maidCVTarget').hide(); // إخفاء زر التحميل إذا لم يكن هناك CV
+                                $('#maidCVImg').attr('src', '{{ asset("web/assets/images/no-cv.png") }}');
+                            }
+                        } else {
+                            $('#maidCVTarget').hide();
+                            $('#maidCVImg').attr('src', '{{ asset("web/assets/images/no-cv.png") }}');
                         }
+
+                        // العمر
+                        if (data.age) {
+                            $('#age-trgt').text(data.age + ' سنة');
+                        } else if (data.birth_date) {
+                            // حساب العمر من تاريخ الميلاد
+                            var birthDate = new Date(data.birth_date);
+                            var today = new Date();
+                            var age = today.getFullYear() - birthDate.getFullYear();
+                            $('#age-trgt').text(age + ' سنة');
+                        }
+
+                        // الراتب
                         if (data.salary) {
                             $('#salary-trgt').text(data.salary + ' ر.س');
+                        } else {
+                            $('#salary-trgt').text('غير محدد');
                         }
+
+                        // سعر الاستقدام
                         if (data.price) {
                             $('#recruitment_price-trgt').text(data.price + ' ر.س');
+                            $('#recruitment_price-trgt-1').text(data.price + ' ر.س');
+                            $('[id^="recruitment_price-trgt"]').text(data.price + ' ر.س');
+                        } else {
+                            $('[id^="recruitment_price-trgt"]').text('غير محدد');
                         }
+
+                        // سنوات الخبرة
                         if (data.experience_years) {
-                            $('#experience_years-trgt').text(data.experience_years);
+                            $('#experience_years-trgt').text(data.experience_years + ' سنوات');
+                        } else {
+                            $('#experience_years-trgt').text('غير محدد');
                         }
+
+                        // رقم الجواز
                         if (data.passport_num) {
                             $('#passport_number-trgt').text(data.passport_num);
+                            $('#passport_number-trgt-1').text(data.passport_num);
+                            $('[id^="passport_number-trgt"]').text(data.passport_num);
+                        } else {
+                            $('[id^="passport_number-trgt"]').text('غير محدد');
                         }
-                        if (data.nationality && data.nationality.title) {
-                            $('#nationality-trgt').text(data.nationality.title);
+
+                        // الجنسية
+                        if (data.nationality) {
+                            var nationalityText = data.nationality.title || data.nationality.name || data.nationality;
+                            $('#nationality-trgt').text(nationalityText);
+                            $('#nationality-trgt-1').text(nationalityText);
+                            $('[id^="nationality-trgt"]').text(nationalityText);
+                        } else {
+                            $('[id^="nationality-trgt"]').text('غير محدد');
                         }
-                        if (data.religion_title) {
-                            $('#religion-trgt').text(data.religion_title);
+
+                        // الديانة
+                        if (data.religion_title || data.religion) {
+                            var religionText = data.religion_title || (data.religion && data.religion.title) || data.religion;
+                            $('#religion-trgt').text(religionText);
+                            $('#religion-trgt-1').text(religionText);
+                            $('[id^="religion-trgt"]').text(religionText);
+                        } else {
+                            $('[id^="religion-trgt"]').text('غير محدد');
                         }
+
+                        // الطول
                         if (data.height) {
-                            $('#height-trgt').text(data.height);
+                            $('#height-trgt').text(data.height + ' سم');
+                            $('[id^="height-trgt"]').text(data.height + ' سم');
+                        } else {
+                            $('[id^="height-trgt"]').text('غير محدد');
                         }
+
+                        // الوزن
                         if (data.weight) {
-                            $('#weight-trgt').text(data.weight);
+                            $('#weight-trgt').text(data.weight + ' كجم');
+                            $('[id^="weight-trgt"]').text(data.weight + ' كجم');
+                        } else {
+                            $('[id^="weight-trgt"]').text('غير محدد');
                         }
+
+                        // الحالة الاجتماعية
                         if (data.marital_status) {
-                            $('#marital_status').text('@lang('web.marital_status_single')');
+                            var maritalText = data.marital_status == 'single' ? 'عزباء' :
+                                            data.marital_status == 'married' ? 'متزوجة' :
+                                            data.marital_status == 'divorced' ? 'مطلقة' :
+                                            data.marital_status == 'widowed' ? 'أرملة' : data.marital_status;
+                            $('#marital_status').text(maritalText);
+                        } else {
+                            $('#marital_status').text('غير محدد');
+                        }
+
+                        // المهنة
+                        if (data.job_title || data.occupation) {
+                            $('#occupation-trgt').text(data.job_title || data.occupation);
                         }
                     },
                     error: function (error) {
@@ -217,21 +229,41 @@
                     }
                 });
             });
-            // 
+            // تحميل السيرة الذاتية
             $('#maidCVTarget').on('click', function (event) {
-                event.preventDefault(); // Prevent the default link behavior
+                event.preventDefault(); // منع السلوك الافتراضي للرابط
 
-                const imageUrl = $(this).attr('href'); // Replace with your actual image URL
-                const maidPassport = $(this).data('passport');
-                const link = $('<a>')
-                    .attr('href', imageUrl)
-                    .attr('download', maidPassport + '.jpg') // Customize the downloaded file name
-                    .appendTo('body');
+                const cvUrl = $(this).attr('href');
+                const maidPassport = $(this).data('passport') || 'cv';
 
-                link[0].click(); // Trigger the download
-                link.remove(); // Clean up
+                // التحقق من أن الرابط صحيح وليس صفحة HTML
+                if (!cvUrl || cvUrl === '#' || cvUrl === '{{ asset("/") }}') {
+                    alert('السيرة الذاتية غير متوفرة');
+                    return false;
+                }
+
+                // فتح السيرة الذاتية في نافذة جديدة للعرض/التحميل
+                window.open(cvUrl, '_blank');
+
+                // أو استخدام طريقة التحميل المباشر
+                // fetch(cvUrl)
+                //     .then(response => response.blob())
+                //     .then(blob => {
+                //         const url = window.URL.createObjectURL(blob);
+                //         const link = document.createElement('a');
+                //         link.href = url;
+                //         link.download = maidPassport + '_cv.pdf';
+                //         document.body.appendChild(link);
+                //         link.click();
+                //         document.body.removeChild(link);
+                //         window.URL.revokeObjectURL(url);
+                //     })
+                //     .catch(error => {
+                //         console.error('Error downloading CV:', error);
+                //         alert('حدث خطأ في تحميل السيرة الذاتية');
+                //     });
             });
-            // 
+            //
         });
     </script>
 @endpush

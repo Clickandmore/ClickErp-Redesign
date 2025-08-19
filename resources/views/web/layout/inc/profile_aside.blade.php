@@ -1,58 +1,120 @@
 
 <div class="col-lg-4 col-12 mb-lg-0 mb-4">
     <div class="profile_side_bar">
-        <div class="info">
-            <h4>{{getGuardedUser('name')}}</h4>
-            <span>{{getGuardedUser('phone_code').getGuardedUser('phone')}}</span>
+        <div class="profile_header">
+            <div class="profile_avatar">
+                <i class="fa-light fa-user-circle"></i>
+            </div>
+            <div class="profile_info">
+                <h4>{{getGuardedUser('name')}}</h4>
+                <span class="profile_phone">{{getGuardedUser('phone_code').getGuardedUser('phone')}}</span>
+                <span class="profile_email">{{getGuardedUser('email')}}</span>
+            </div>
         </div>
-        <ul class="links">
-            <li class="{{ (Route::currentRouteName() == 'web.profile') ? 'active' : '' }}">
-                <a href="{{route('web.profile')}}"><i class="fa-light fa-user-pen"></i> {{ helperTrans('web.edit_profile') }}</a>
-            </li>
-            <li class="{{ (Route::currentRouteName() == 'web.notifications.index') ? 'active' : '' }}">
-                <a href="{{route('web.notifications.index')}}"><i class="fa-light fa-bell"></i></i>{{ helperTrans('web.notifications') }}</a>
-            </li>
-            <li class="{{ (Route::currentRouteName() == 'web.orders.index') ? 'active' : '' }}">
-                <a href="{{route('web.orders.index')}}"><i class="fa-regular fa-list-check"></i> {{ helperTrans('web.my_orders') }}</a>
-            </li>
-            <li class="{{ (Route::currentRouteName() == 'web.contracts.index') ? 'active' : '' }}">
-                <a href="{{route('web.contracts.index')}}"><i class="fa-regular fa-list-check"></i> {{ helperTrans('web.my_contracts') }}</a>
-            </li>
-            <li class="{{ (Route::currentRouteName() == 'web.complaints.index') ? 'active' : '' }}">
-                <a href="{{route('web.complaints.index')}}"><i class="fa-light fa-triangle-exclamation"></i> {{ helperTrans('web.my_complaints') }}</a>
-            </li>
-           {{-- <li class="">
-                <button class="complain" data-bs-toggle="modal" data-bs-target="#complain">
-                    <i class="fa-light fa-triangle-exclamation"></i>{{helperTrans('web.complaint_or_inquiry')}}
-                </button>
-            </li> --}}
 
-            <li>
-                <a href="{{route('web.logout')}}">
-                    <i class="fa-sharp fa-regular fa-arrow-right-from-bracket"></i>
-                    {{ helperTrans('web.logout') }}
-                </a>
-            </li>
+        <div class="profile_nav">
+            <ul class="nav_links">
+                <li class="nav_item {{ (Route::currentRouteName() == 'web.profile') ? 'active' : '' }}">
+                    <a href="{{route('web.profile')}}" class="nav_link">
+                        <div class="nav_icon">
+                            <i class="fa-light fa-home"></i>
+                        </div>
+                        <div class="nav_content">
+                            <span class="nav_title">{{ helperTrans('web.dashboard') }}</span>
+                            <span class="nav_desc">{{ helperTrans('web.dashboard_welcome_message') }}</span>
+                        </div>
+                    </a>
+                </li>
 
+                <li class="nav_item">
+                    <a href="{{ route('web.edit-profile') }}" class="nav_link">
+                        <div class="nav_icon">
+                            <i class="fa-light fa-user-pen"></i>
+                        </div>
+                        <div class="nav_content">
+                            <span class="nav_title">{{ helperTrans('web.edit_profile') }}</span>
+                            <span class="nav_desc">{{ helperTrans('web.update_profile') }}</span>
+                        </div>
+                    </a>
+                </li>
 
+                <li class="nav_item {{ (Route::currentRouteName() == 'web.notifications.index') ? 'active' : '' }}">
+                    <a href="{{route('web.notifications.index')}}" class="nav_link">
+                        <div class="nav_icon">
+                            <i class="fa-light fa-bell"></i>
+                        </div>
+                        <div class="nav_content">
+                            <span class="nav_title">{{ helperTrans('web.notifications') }}</span>
+                            <span class="nav_desc">{{ helperTrans('web.view_notifications') }}</span>
+                        </div>
+                    </a>
+                </li>
 
-            <li>
-                <a href=" {{route('web.deleteAccount')}}"><i class="fa-regular fa-user-xmark"></i>  {{ helperTrans('web.deleteAccount') }}</a>
-            </li>
-        </ul>
+                <li class="nav_item {{ (Route::currentRouteName() == 'web.orders.index') ? 'active' : '' }}">
+                    <a href="{{route('web.orders.index')}}" class="nav_link">
+                        <div class="nav_icon">
+                            <i class="fa-regular fa-list-check"></i>
+                        </div>
+                        <div class="nav_content">
+                            <span class="nav_title">{{ helperTrans('web.my_orders') }}</span>
+                            <span class="nav_desc">{{ helperTrans('web.view_my_orders') }}</span>
+                        </div>
+                    </a>
+                </li>
+
+                <li class="nav_item {{ (Route::currentRouteName() == 'web.contracts.index') ? 'active' : '' }}">
+                    <a href="{{route('web.contracts.index')}}" class="nav_link">
+                        <div class="nav_icon">
+                            <i class="fa-regular fa-file-contract"></i>
+                        </div>
+                        <div class="nav_content">
+                            <span class="nav_title">{{ helperTrans('web.my_contracts') }}</span>
+                            <span class="nav_desc">{{ helperTrans('web.view_my_contracts') }}</span>
+                        </div>
+                    </a>
+                </li>
+
+                <li class="nav_item {{ (Route::currentRouteName() == 'web.complaints.index') ? 'active' : '' }}">
+                    <a href="{{route('web.complaints.index')}}" class="nav_link">
+                        <div class="nav_icon">
+                            <i class="fa-light fa-triangle-exclamation"></i>
+                        </div>
+                        <div class="nav_content">
+                            <span class="nav_title">{{ helperTrans('web.my_complaints') }}</span>
+                            <span class="nav_desc">{{ helperTrans('web.view_my_complaints') }}</span>
+                        </div>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="profile_actions">
+            <div class="action_divider">
+                <span>{{ helperTrans('web.account_actions') }}</span>
+            </div>
+
+            <ul class="action_links">
+                <li class="action_item">
+                    <a href="{{route('web.logout')}}" class="action_link logout_link">
+                        <div class="action_icon">
+                            <i class="fa-sharp fa-regular fa-arrow-right-from-bracket"></i>
+                        </div>
+                        <span>{{ helperTrans('web.logout') }}</span>
+                    </a>
+                </li>
+
+                <li class="action_item">
+                    <a href="{{route('web.deleteAccount')}}" class="action_link delete_link">
+                        <div class="action_icon">
+                            <i class="fa-regular fa-user-xmark"></i>
+                        </div>
+                        <span>{{ helperTrans('web.deleteAccount') }}</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
     </div>
 </div>
 
-<div class="modal fade add_location" id="complain" tabindex="-1" aria-labelledby="complainLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                @include('web.ingaz.complaints._form')
-            </div>
-        </div>
-    </div>
-</div>
+
 

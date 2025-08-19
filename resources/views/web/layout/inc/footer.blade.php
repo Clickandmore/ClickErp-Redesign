@@ -158,7 +158,7 @@
                         <a href="{{ route('web.contact-us.index') }}">{{ helperTrans('web.Contact_Us') }}</a>
                     </li>
                     <li>
-                        <a href="{{ route('web.profile') }}"> {{ helperTrans('web.profile') }}</a>
+                        <a href="{{ route('web.profile') }}"> {{ helperTrans('web.my_account') }}</a>
                     </li>
                 </ul>
             </div>

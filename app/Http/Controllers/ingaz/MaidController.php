@@ -25,7 +25,7 @@ class MaidController extends Controller
 {
 
     public $folderPath = "admin.ingaz.maids";
-    public $postData = ["nationality_id", 'image', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date'];
+    public $postData = ["nationality_id", 'image', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'create_shelter_contract'];
     public $mainRoute = "maids";
 
     public function __construct()
@@ -943,8 +943,9 @@ class MaidController extends Controller
             ->findOrFail($maidId);
 
         // Ensure the image URL is correctly formatted
-        $maid->image = $maid->image ? showFile($maid->image) : null;
-        $maid->cv_file = $maid->cv_file ? showFile($maid->cv_file) : null;
+        $imageUrl = $maid->image ? showFile($maid->image) : null;
+        $cvFileUrl = $maid->cv_file ? showFile($maid->cv_file) : null;
+        $cvPreviewUrl = $maid->cv_preview ? showFile($maid->cv_preview) : $cvFileUrl;
 
         // Determine the locale from the URL
         $locale = request()->segment(1); // Assuming language segment is the first part of the URL
@@ -977,6 +978,7 @@ class MaidController extends Controller
             'name' => $maid->name,
             'passport_num' => $maid->passport_num,
             'religion_title' => $regTitle,
+            'religion' => $regTitle,
             'nationality' => [
                 'id' => $maid->nationality ? $maid->nationality->id : null,
                 'title' => $nationalityTitle
@@ -987,9 +989,19 @@ class MaidController extends Controller
                     'title' => $jobTypeTitle
                 ]
             ],
+            'job_title' => $jobTypeTitle,
+            'occupation' => $jobTypeTitle,
             'salary' => $maid->salary,
+            'price' => $maid->price,
             'experience_years' => $maid->experience_years,
-            'age' => $maid->age
+            'age' => $maid->age,
+            'birth_date' => $maid->birth_date,
+            'height' => $maid->height,
+            'weight' => $maid->weight,
+            'marital_status' => $maid->marital_status ?? 'single',
+            'image' => $imageUrl,
+            'cv_file' => $cvFileUrl,
+            'cv_preview' => $cvPreviewUrl
         ];
 
         return response()->json($response);

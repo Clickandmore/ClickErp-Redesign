@@ -302,6 +302,49 @@
             </div>
         </div>
 
+        <!-- Change Work Desire Modal -->
+        <div class="modal fade" id="changeWorkDesireModal" tabindex="-1" role="dialog" aria-labelledby="changeWorkDesireModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="changeWorkDesireModalLabel">تغيير رغبة العمل</h5>
+                        <button type="button" class="close btn" data-bs-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="changeWorkDesireForm">
+                            <input type="hidden" id="workDesireContractId" name="contract_id">
+
+                            <div class="mb-3">
+                                <label class="form-label"><strong>الرغبة الحالية:</strong></label>
+                                <div id="currentWorkDesire" class="alert alert-info"></div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="newWorkDesire" class="form-label">الرغبة الجديدة <span class="text-danger">*</span></label>
+                                <select class="form-select" id="newWorkDesire" name="wants_to_work" required>
+                                    <option value="">اختر رغبة العمل</option>
+                                    <option value="yes">ترغب بالعمل</option>
+                                    <option value="no">لا ترغب بالعمل</option>
+                                    <option value="unknown">غير محدد</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="changeReason" class="form-label">سبب التغيير (اختياري)</label>
+                                <textarea class="form-control" id="changeReason" name="reason" rows="3" placeholder="اكتب سبب تغيير رغبة العمل..."></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="button" class="btn btn-primary" id="saveWorkDesireBtn">حفظ التغيير</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     @else
         @include('components.no_permissions')
     @endif
@@ -491,6 +534,92 @@
                 }
             });
         }
+
+        // Handle change work desire action
+        $(document).on('click', '.change-work-desire', function(e) {
+            e.preventDefault();
+            const contractId = $(this).data('id');
+            const currentDesire = $(this).data('current') || 'unknown';
+
+            // Set values in modal
+            $('#workDesireContractId').val(contractId);
+
+            // Display current desire
+            let currentDesireText = '';
+            let badgeClass = '';
+            switch(currentDesire) {
+                case 'yes':
+                    currentDesireText = 'ترغب بالعمل';
+                    badgeClass = 'bg-success';
+                    break;
+                case 'no':
+                    currentDesireText = 'لا ترغب بالعمل';
+                    badgeClass = 'bg-warning';
+                    break;
+                default:
+                    currentDesireText = 'غير محدد';
+                    badgeClass = 'bg-secondary';
+            }
+
+            $('#currentWorkDesire').html('<span class="badge ' + badgeClass + '">' + currentDesireText + '</span>');
+
+            // Reset form
+            $('#newWorkDesire').val('');
+            $('#changeReason').val('');
+
+            // Show modal
+            $('#changeWorkDesireModal').modal('show');
+        });
+
+        // Handle save work desire
+        $('#saveWorkDesireBtn').on('click', function() {
+            const contractId = $('#workDesireContractId').val();
+            const newDesire = $('#newWorkDesire').val();
+            const reason = $('#changeReason').val();
+
+            // Validation
+            if (!newDesire) {
+                Swal.fire('خطأ!', 'يرجى اختيار رغبة العمل الجديدة', 'error');
+                return;
+            }
+
+            // Show confirmation
+            Swal.fire({
+                title: 'تأكيد تغيير رغبة العمل',
+                text: 'هل أنت متأكد من تغيير رغبة العمل؟',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'نعم، تغيير',
+                cancelButtonText: 'إلغاء'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Perform the change
+                    $.ajax({
+                        url: '{{ route("ShelterContract.changeWorkDesire", ":id") }}'.replace(':id', contractId),
+                        type: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            wants_to_work: newDesire,
+                            reason: reason
+                        },
+                        success: function(response) {
+                            $('#changeWorkDesireModal').modal('hide');
+                            Swal.fire('نجح!', response.message || 'تم تغيير رغبة العمل بنجاح', 'success');
+                            dataTable.ajax.reload();
+                        },
+                        error: function(xhr) {
+                            let errorMessage = 'حدث خطأ أثناء تغيير رغبة العمل';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                            }
+                            Swal.fire('خطأ!', errorMessage, 'error');
+                        }
+                    });
+                }
+            });
+        });
     }); // نهاية window.addEventListener
     </script>
 @endsection

@@ -93,11 +93,47 @@
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                مغلقة - متاحة</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="availableContracts">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-user-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-warning shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                تم النقل</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="transferredContracts">0</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exchange-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-secondary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
                                 قيمة العقود الإجمالية</div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalValue">0 ريال</div>
                         </div>
@@ -132,6 +168,8 @@
                         <option value="new">جديد</option>
                         <option value="active">نشط</option>
                         <option value="completed">مكتمل</option>
+                        <option value="available">مغلق - متاحة</option>
+                        <option value="transferred">تم النقل</option>
                         <option value="cancelled">ملغي</option>
                         <option value="suspended">معلق</option>
                     </select>
@@ -252,6 +290,193 @@
     @include('components.no_permissions')
 @endif
 
+<!-- Modal لإغلاق العقد -->
+<div class="modal fade" id="closeContractModal" tabindex="-1" aria-labelledby="closeContractModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="closeContractModalLabel">
+                    <i class="fas fa-times-circle me-2"></i>
+                    إنهاء عقد الإيجار
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- معلومات العقد -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card bg-light">
+                            <div class="card-header">
+                                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>معلومات العقد</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row" id="contractDetails">
+                                    <div class="col-md-3">
+                                        <strong>رقم العقد:</strong>
+                                        <p id="contractId">-</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>العميل:</strong>
+                                        <p id="clientName">-</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>العاملة:</strong>
+                                        <p id="maidName">-</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>الحالة الحالية:</strong>
+                                        <p id="currentStatus">-</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>تاريخ البداية:</strong>
+                                        <p id="startDate">-</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>تاريخ النهاية:</strong>
+                                        <p id="endDate">-</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>المدة المتبقية:</strong>
+                                        <p id="remainingDays">-</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>قيمة العقد:</strong>
+                                        <p id="contractValue">-</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- خيارات الإغلاق -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border-success h-100">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-user-check me-2"></i>
+                                    إغلاق العقد وإرجاع العاملة متاحة
+                                </h6>
+                            </div>
+                            <div class="card-body text-center">
+                                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                                <p class="mb-3">سيتم إغلاق العقد وإرجاع العاملة لتصبح متاحة للإيجار مرة أخرى</p>
+                                <button type="button" class="btn btn-success btn-lg" id="closeAndMakeAvailableBtn">
+                                    <i class="fas fa-check me-2"></i>
+                                    إغلاق وإرجاع العاملة
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-warning h-100">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-exchange-alt me-2"></i>
+                                    إغلاق العقد ونقل الكفالة
+                                </h6>
+                            </div>
+                            <div class="card-body text-center">
+                                <i class="fas fa-handshake fa-3x text-warning mb-3"></i>
+                                <p class="mb-3">سيتم إغلاق العقد ونقل كفالة العاملة لعميل آخر</p>
+                                <button type="button" class="btn btn-warning btn-lg" id="transferSponsorshipBtn">
+                                    <i class="fas fa-exchange-alt me-2"></i>
+                                    إغلاق ونقل الكفالة
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- نموذج نقل الكفالة (مخفي في البداية) -->
+                <div id="transferSponsorshipForm" style="display: none;" class="mt-4">
+                    <div class="card border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">
+                                <i class="fas fa-exchange-alt me-2"></i>
+                                تأكيد نقل الكفالة
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <!-- معلومات النقل -->
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card bg-light">
+                                        <div class="card-header">
+                                            <small class="text-muted">الكفيل القديم</small>
+                                        </div>
+                                        <div class="card-body">
+                                            <h6 class="mb-1">شركة أسس الإنجاز للاستقدام</h6>
+                                            <small class="text-muted">عقد إيجار</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card bg-light">
+                                        <div class="card-header">
+                                            <small class="text-muted">الكفيل الجديد</small>
+                                        </div>
+                                        <div class="card-body">
+                                            <h6 class="mb-1" id="transferClientName">-</h6>
+                                            <small class="text-muted">عقد استقدام</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <form id="sponsorshipTransferForm">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="transferAmount" class="form-label">قيمة العقد الجديد <span class="text-danger">*</span></label>
+                                            <input type="number" class="form-control" id="transferAmount" name="transferAmount" step="0.01" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="totalAmount" class="form-label">المبلغ الكامل <span class="text-danger">*</span></label>
+                                            <input type="number" class="form-control" id="totalAmount" name="totalAmount" step="0.01" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="paidAmount" class="form-label">المبلغ المدفوع <span class="text-danger">*</span></label>
+                                            <input type="number" class="form-control" id="paidAmount" name="paidAmount" step="0.01" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="remainingAmount" class="form-label">المبلغ المتبقي</label>
+                                            <input type="number" class="form-control" id="remainingAmount" name="remainingAmount" step="0.01" readonly>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="mb-3">
+                                            <label for="transferNotes" class="form-label">ملاحظات</label>
+                                            <textarea class="form-control" id="transferNotes" name="transferNotes" rows="3" placeholder="ملاحظات إضافية حول عملية نقل الكفالة..."></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-end gap-2">
+                                    <button type="button" class="btn btn-secondary" id="cancelTransferBtn">
+                                        <i class="fas fa-times me-2"></i>
+                                        إلغاء
+                                    </button>
+                                    <button type="submit" class="btn btn-warning">
+                                        <i class="fas fa-check me-2"></i>
+                                        تأكيد نقل الكفالة
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section("js")
@@ -290,7 +515,15 @@
                 let dataTable = $('#dataTableObject').DataTable({
                     processing: true,
                     serverSide: true,
-                    ajax: "{{ route('RentContract.index') }}",
+                    ajax: {
+                        url: "{{ route('RentContract.index') }}",
+                        data: function(d) {
+                            d.status_filter = $('#statusFilter').val();
+                            d.date_from = $('#dateFromFilter').val();
+                            d.date_to = $('#dateToFilter').val();
+                            d.marketer_id = $('#marketerFilter').val();
+                        }
+                    },
                     columns: [
                         {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                         {data: 'user_id', name: 'user_id'},
@@ -353,54 +586,7 @@
                 });
             });
 
-            // Complete Contract Handler
-            $(document).on('click', '.complete-contract', function() {
-                let contractId = $(this).data('id');
 
-                Swal.fire({
-                    title: 'تأكيد إنهاء العقد',
-                    text: 'هل أنت متأكد من إنهاء هذا العقد؟',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#28a745',
-                    cancelButtonColor: '#dc3545',
-                    confirmButtonText: 'نعم، إنهاء العقد',
-                    cancelButtonText: 'إلغاء'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            url: "{{ route('RentContract.complete', ':id') }}".replace(':id', contractId),
-                            method: 'POST',
-                            data: {
-                                _token: '{{ csrf_token() }}'
-                            },
-                            success: function(response) {
-                                if (response.success) {
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'تم بنجاح',
-                                        text: response.message
-                                    });
-                                    dataTable.ajax.reload();
-                                } else {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'خطأ',
-                                        text: response.message
-                                    });
-                                }
-                            },
-                            error: function(xhr) {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'خطأ',
-                                    text: 'حدث خطأ أثناء إنهاء العقد'
-                                });
-                            }
-                        });
-                }
-            });
-        });
 
             // Delete Contract Handler
             $(document).on('click', '.delete-contract', function() {
@@ -446,6 +632,8 @@
                         $('#totalContracts').text(data.total || 0);
                         $('#activeContracts').text(data.active || 0);
                         $('#completedContracts').text(data.completed || 0);
+                        $('#availableContracts').text(data.available || 0);
+                        $('#transferredContracts').text(data.transferred || 0);
                         $('#totalValue').text((data.totalValue || 0).toLocaleString() + ' ريال');
                     },
                     error: function() {
@@ -473,6 +661,170 @@
                     text: 'حدث خطأ أثناء تحميل جدول البيانات: ' + error.message
                 });
             }
+
+            // إضافة متغير لحفظ معرف العقد المحدد
+            let selectedContractId = null;
+
+            // التعامل مع زر إنهاء العقد
+            $(document).on('click', '.complete-contract', function() {
+                selectedContractId = $(this).data('id');
+
+                // جلب بيانات العقد
+                $.ajax({
+                    url: `/admin/RentContract/${selectedContractId}/details`,
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            const contract = response.contract;
+
+                            // تعبئة بيانات العقد في الـ modal
+                            $('#contractId').text(contract.id);
+                            $('#clientName').text(contract.client_name || '-');
+                            $('#maidName').text(contract.maid_name || '-');
+                            $('#currentStatus').text(contract.status_text || '-');
+                            $('#startDate').text(contract.start_date || '-');
+                            $('#endDate').text(contract.end_date || '-');
+                            $('#remainingDays').text(contract.remaining_days || '-');
+                            $('#contractValue').text((contract.amount || 0) + ' ريال');
+
+                            // تعبئة اسم العميل في نموذج نقل الكفالة
+                            $('#transferClientName').text(contract.client_name || '-');
+
+                            // إظهار الـ modal
+                            $('#closeContractModal').modal('show');
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'خطأ',
+                                text: response.message || 'حدث خطأ أثناء جلب بيانات العقد'
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ',
+                            text: 'حدث خطأ أثناء جلب بيانات العقد'
+                        });
+                    }
+                });
+            });
+
+            // إغلاق العقد وإرجاع العاملة متاحة
+            $('#closeAndMakeAvailableBtn').click(function() {
+                Swal.fire({
+                    title: 'تأكيد الإغلاق',
+                    text: 'هل أنت متأكد من إغلاق العقد وإرجاع العاملة متاحة؟',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'نعم، إغلاق العقد',
+                    cancelButtonText: 'إلغاء'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/admin/RentContract/${selectedContractId}/close-and-make-available`,
+                            type: 'POST',
+                data: {
+                                _token: '{{ csrf_token() }}'
+                            },
+                            success: function(response) {
+                                if (response.success) {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'تم بنجاح',
+                                        text: response.message || 'تم إغلاق العقد وإرجاع العاملة متاحة بنجاح'
+                                    }).then(() => {
+                                        $('#closeContractModal').modal('hide');
+                                        dataTable.ajax.reload();
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'خطأ',
+                                        text: response.message || 'حدث خطأ أثناء إغلاق العقد'
+                                    });
+                                }
+                            },
+                            error: function() {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'خطأ',
+                                    text: 'حدث خطأ أثناء إغلاق العقد'
+                                });
+                            }
+                        });
+                }
+            });
+        });
+
+            // إظهار نموذج نقل الكفالة
+            $('#transferSponsorshipBtn').click(function() {
+                $('#transferSponsorshipForm').show();
+                $(this).closest('.row').hide();
+            });
+
+            // إلغاء نقل الكفالة
+            $('#cancelTransferBtn').click(function() {
+                $('#transferSponsorshipForm').hide();
+                $('.row').first().show();
+                $('#sponsorshipTransferForm')[0].reset();
+            });
+
+            // حساب المبلغ المتبقي تلقائياً
+            $('#totalAmount, #paidAmount').on('input', function() {
+                const total = parseFloat($('#totalAmount').val()) || 0;
+                const paid = parseFloat($('#paidAmount').val()) || 0;
+                const remaining = total - paid;
+                $('#remainingAmount').val(remaining.toFixed(2));
+            });
+
+            // تأكيد نقل الكفالة
+            $('#sponsorshipTransferForm').submit(function(e) {
+                e.preventDefault();
+
+                const formData = {
+                    contract_id: selectedContractId,
+                    transfer_amount: $('#transferAmount').val(),
+                    total_amount: $('#totalAmount').val(),
+                    paid_amount: $('#paidAmount').val(),
+                    remaining_amount: $('#remainingAmount').val(),
+                    notes: $('#transferNotes').val(),
+                    _token: '{{ csrf_token() }}'
+                };
+
+            $.ajax({
+                    url: `/admin/RentContract/${selectedContractId}/transfer-sponsorship`,
+                    type: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'تم بنجاح',
+                                text: response.message || 'تم إغلاق العقد ونقل الكفالة بنجاح'
+                            }).then(() => {
+                                $('#closeContractModal').modal('hide');
+                                dataTable.ajax.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'خطأ',
+                                text: response.message || 'حدث خطأ أثناء نقل الكفالة'
+                            });
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ',
+                            text: 'حدث خطأ أثناء نقل الكفالة'
+                        });
+                    }
+                });
+            });
         });
 </script>
 @endsection

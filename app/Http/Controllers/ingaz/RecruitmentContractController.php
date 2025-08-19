@@ -6,6 +6,7 @@ use App\Enums\ingaz\ContractStatusEnum;
 use App\Enums\ingaz\OrderEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ingaz\StoreContractRequest;
+use App\Http\Traits\ContractSMSTrait;
 use App\Models\Contract;
 use App\Models\ContractInfo;
 use App\Models\ContractStatusLog;
@@ -32,6 +33,7 @@ use App\Helpers\NewPermKeys;
 
 class RecruitmentContractController extends Controller
 {
+    use ContractSMSTrait;
     public $folderPath = "admin.ingaz.RecruitmentContract";
     public $mainRoute = "RecruitmentContract";
     public $contractInfoData = [
@@ -97,17 +99,10 @@ class RecruitmentContractController extends Controller
                     } else {
                         $query->where('warranty_status', $request->warranty_status);
                     }
-                    \Log::info('Warranty status filter applied:', [
-                        'warranty_status' => $request->warranty_status,
-                        'warranty_statuses' => $warrantyStatuses
-                    ]);
+
                 }
 
-                \Log::info('Status filter applied:', [
-                    'request_status' => $request->get('status'),
-                    'warranty_status' => $request->get('warranty_status'),
-                    'final_status_filter' => $statusFilter
-                ]);
+
             }
 
 
@@ -1887,9 +1882,27 @@ class RecruitmentContractController extends Controller
                 'notes' => 'تم تحديث الحالة من ' . getContractStatus($contract->getOriginal('status')) . ' إلى ' . getContractStatus($nextStatus)
             ]);
 
+            // إرسال رسالة نصية للعميل إذا كان مطلوباً
+            $smsResult = false;
+            if ($request->send_sms == 'true' || $request->send_sms === true) {
+                $smsResult = $this->sendContractStatusSMS($contract, $nextStatus);
+            }
+
+            $message = 'تم تحديث الحالة بنجاح إلى ' . getContractStatus($nextStatus);
+
+            // إضافة معلومات الرسالة النصية للرد
+            if ($request->send_sms == 'true' || $request->send_sms === true) {
+                if ($smsResult) {
+                    $message .= ' وتم إرسال رسالة نصية للعميل';
+                } else {
+                    $message .= ' لكن فشل في إرسال الرسالة النصية للعميل';
+                }
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'تم تحديث الحالة بنجاح إلى ' . getContractStatus($nextStatus)
+                'message' => $message,
+                'sms_sent' => $smsResult
             ]);
 
         } catch (\Exception $e) {
@@ -2018,10 +2031,46 @@ class RecruitmentContractController extends Controller
     {
         // استخدام cache لتسريع التحميل
         return \Cache::remember('recruitment_contract_filter_options', 300, function () { // 5 دقائق
+            // جلب الجنسيات مع الترجمات وتحويلها للشكل المطلوب
+            $nationalities = \App\Models\ingaz\Nationality::with('translations')->get()->map(function($nationality) {
+                $translation = $nationality->translations->where('locale', app()->getLocale())->first();
+                if (!$translation) {
+                    $translation = $nationality->translations->first(); // fallback to first translation
+                }
+                return (object)[
+                    'id' => $nationality->id,
+                    'sub_title' => $translation ? $translation->sub_title : $nationality->sub_title
+                ];
+            });
+
+            // جلب الديانات مع الترجمات وتحويلها للشكل المطلوب
+            $religions = \App\Models\ingaz\Religion::with('translations')->get()->map(function($religion) {
+                $translation = $religion->translations->where('locale', app()->getLocale())->first();
+                if (!$translation) {
+                    $translation = $religion->translations->first(); // fallback to first translation
+                }
+                return (object)[
+                    'id' => $religion->id,
+                    'title' => $translation ? $translation->title : $religion->title
+                ];
+            });
+
+            // جلب المكاتب الخارجية مع الترجمات وتحويلها للشكل المطلوب
+            $offices = \App\Models\RecruitmentOffices::with('translations')->get()->map(function($office) {
+                $translation = $office->translations->where('locale', app()->getLocale())->first();
+                if (!$translation) {
+                    $translation = $office->translations->first(); // fallback to first translation
+                }
+                return (object)[
+                    'id' => $office->id,
+                    'title' => $translation ? $translation->title : $office->title
+                ];
+            });
+
             return [
-                'nationalities' => \App\Models\ingaz\Nationality::select('id')->with('translations:nationality_id,sub_title')->get(),
-                'religions' => \App\Models\ingaz\Religion::select('id')->with('translations:religion_id,title')->get(),
-                'offices' => \App\Models\RecruitmentOffices::select('id')->with('translations:rec_office_id,title')->get(),
+                'nationalities' => $nationalities,
+                'religions' => $religions,
+                'offices' => $offices,
                 'marketers' => \App\Models\auth\Admin::select('id', 'name')->whereNull('deleted_at')->orderBy('name')->get(),
             ];
         });

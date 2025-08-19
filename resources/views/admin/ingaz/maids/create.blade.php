@@ -29,12 +29,22 @@
                 <!-- أنواع الوظائف -->
                 <div class="col-4">
                     <label for="TextInput" class="form-label">{{helperTrans("ingaz.job_types_2")}} </label>
-                    <select name="type_id" class="form-control" required>
+                    <select name="type_id" id="type_id" class="form-control" required>
                         <option value="">اختر نوع السيرة</option>
                         @foreach($types as $type)
                             <option value="{{$type->id}}" {{$type->title == 'استقدام' ? 'selected' : ''}}>{{$type->title}}</option>
                         @endforeach
                     </select>
+                </div>
+
+                <!-- خيار تسكين للإيواء -->
+                <div class="col-4" id="shelter_option" style="display: none;">
+                    <label for="create_shelter_contract" class="form-label">تسكين للإيواء</label>
+                    <select name="create_shelter_contract" id="create_shelter_contract" class="form-control">
+                        <option value="0">لا - عاملة عادية</option>
+                        <option value="1">نعم - تسكين للإيواء</option>
+                    </select>
+                    <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم شركة أسس الانجاز</small>
                 </div>
 
                 <!-- الجنسية -->
@@ -348,7 +358,25 @@
             $('select[name="type_id"]').change(function() {
                 console.log('Type changed');
                 toggleFields();
+                toggleShelterOption();
             });
+
+            // Function to show/hide shelter option based on type
+            function toggleShelterOption() {
+                var selectedType = $('select[name="type_id"] option:selected').text().trim();
+                var shelterOption = $('#shelter_option');
+
+                if (selectedType && (selectedType.includes('إيجار') || selectedType.includes('ايجار') ||
+                    selectedType.includes('تأجير') || selectedType.toLowerCase().includes('rent'))) {
+                    shelterOption.show();
+                } else {
+                    shelterOption.hide();
+                    $('#create_shelter_contract').val('0'); // Reset to default
+                }
+            }
+
+            // Call on page load
+            toggleShelterOption();
 
             // التحقق من رقم الهوية
             $('#id_number').on('input', function() {

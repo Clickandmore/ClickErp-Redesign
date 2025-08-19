@@ -474,7 +474,8 @@ $(document).ready(function () {
         });
     });
 
-    // Handle change maid with search functionality
+    // Old change maid code removed - using new advanced system below
+    /*
     $(document).on('click', '.change-maid', function() {
         const orderId = $(this).data('id');
 
@@ -649,6 +650,7 @@ $(document).ready(function () {
             }
         });
     }
+    */
 
     // Handle change responsible employee
     $(document).on('click', '.change-responsible', function() {
@@ -990,6 +992,352 @@ $(document).ready(function () {
             passport_num: $('#passport_num').val()
         });
     });
+
+    // Handle action buttons
+    $(document).on('click', '.addNewContract', function(e) {
+        e.preventDefault();
+        var orderId = $(this).data('id');
+
+        if (orderId) {
+            window.location.href = '{{ route('RecruitmentContract.create') }}?orderId=' + orderId;
+        } else {
+            console.error('Order ID not found!');
+            Swal.fire('خطأ!', 'لم يتم العثور على معرف الطلب', 'error');
+        }
+    });
+
+    $(document).on('click', '.change-maid', function(e) {
+        e.preventDefault();
+        var orderId = $(this).data('id');
+
+        if (orderId) {
+            // Show change maid modal
+            showChangeMaidModal(orderId);
+        } else {
+            console.error('Order ID not found!');
+            Swal.fire('خطأ!', 'لم يتم العثور على معرف الطلب', 'error');
+        }
+    });
+
+    $(document).on('click', '.change-responsible', function(e) {
+        e.preventDefault();
+        var orderId = $(this).data('id');
+
+        if (orderId) {
+            // Show change responsible modal
+            showChangeResponsibleModal(orderId);
+        } else {
+            console.error('Order ID not found!');
+            Swal.fire('خطأ!', 'لم يتم العثور على معرف الطلب', 'error');
+        }
+    });
+
+    $(document).on('click', '.refuse-order', function(e) {
+        e.preventDefault();
+        var orderId = $(this).data('id');
+
+        Swal.fire({
+            title: 'تأكيد رفض الطلب',
+            text: 'هل أنت متأكد من رفض هذا الطلب؟',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'نعم، ارفض الطلب',
+            cancelButtonText: 'إلغاء'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                refuseOrder(orderId);
+            }
+        });
+    });
+
+    $(document).on('click', '.delete-order', function(e) {
+        e.preventDefault();
+        var orderId = $(this).data('id');
+
+        Swal.fire({
+            title: 'تأكيد حذف الطلب',
+            text: 'هل أنت متأكد من حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'نعم، احذف الطلب',
+            cancelButtonText: 'إلغاء'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                deleteOrder(orderId);
+            }
+        });
+    });
 });
+
+// Functions for modals and actions
+function showChangeMaidModal(orderId) {
+    // Create and show the modal
+    const modalHtml = `
+        <div class="modal fade" id="changeMaidOrderModal" tabindex="-1" aria-labelledby="changeMaidOrderModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="changeMaidOrderModalLabel">
+                            <i class="fas fa-exchange-alt"></i>
+                            تغيير العاملة في الطلب رقم #${orderId}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="changeMaidOrderForm">
+                            <input type="hidden" id="order_id" value="${orderId}">
+
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="form-group mb-3">
+                                        <label for="maid_search_order" class="form-label">
+                                            <i class="fas fa-search"></i>
+                                            البحث في العاملات
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="maid_search_order"
+                                                   placeholder="ابحث بالاسم أو رقم الجواز..."
+                                                   onkeyup="searchMaidsOrderWithDelay(this.value)"
+                                                   onkeydown="handleSearchOrderKeydown(event)">
+                                            <button class="btn btn-outline-secondary" type="button" onclick="clearOrderSearch()">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                        <small class="form-text text-muted">
+                                            اكتب للبحث في العاملات المتاحات - اضغط Enter لفتح القائمة
+                                        </small>
+                                    </div>
+
+                                    <div class="form-group mb-3">
+                                        <label for="new_maid_id_order" class="form-label">
+                                            <i class="fas fa-user-plus"></i>
+                                            اختيار العاملة الجديدة
+                                        </label>
+                                        <select class="form-control" id="new_maid_id_order" name="new_maid_id" required>
+                                            <option value="">اختر العاملة الجديدة...</option>
+                                        </select>
+                                        <small class="form-text text-muted">
+                                            سيتم تحميل العاملات المتاحات...
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group mb-3">
+                                        <label class="form-label">
+                                            <i class="fas fa-user-minus"></i>
+                                            حالة العاملة السابقة
+                                        </label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="old_maid_status"
+                                                   id="status_available_order" value="available" required>
+                                            <label class="form-check-label" for="status_available_order">
+                                                <i class="fas fa-check text-success"></i>
+                                                متاحة
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="old_maid_status"
+                                                   id="status_unavailable_order" value="backout" required>
+                                            <label class="form-check-label" for="status_unavailable_order">
+                                                <i class="fas fa-ban text-danger"></i>
+                                                باك اوت
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label for="reason_order" class="form-label">
+                                    <i class="fas fa-comment"></i>
+                                    سبب التغيير (اختياري)
+                                </label>
+                                <textarea class="form-control" id="reason_order" name="reason" rows="3"
+                                          placeholder="اكتب سبب تغيير العاملة..."></textarea>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times"></i>
+                            إلغاء
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="submitChangeMaidOrder()">
+                            <i class="fas fa-save"></i>
+                            حفظ التغيير
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Remove existing modal if any
+    $('#changeMaidOrderModal').remove();
+
+    // Add modal to body
+    $('body').append(modalHtml);
+
+    // Show modal
+    $('#changeMaidOrderModal').modal('show');
+
+    // Load available maids after modal is shown
+    setTimeout(function() {
+        loadAvailableMaidsOrder();
+    }, 300);
+}
+
+// تحميل العاملات المتاحات للطلبات
+function loadAvailableMaidsOrder(searchTerm = '') {
+    console.log('Loading available maids for order with search term:', searchTerm);
+
+    $.ajax({
+        url: '{{ route("RecruitmentContract.availableMaids") }}',
+        method: 'GET',
+        data: {
+            search: searchTerm,
+            limit: 50
+        },
+        success: function(response) {
+            console.log('Maids loaded:', response);
+
+            if (response.success && response.maids) {
+                const select = $('#new_maid_id_order');
+                select.empty();
+                select.append('<option value="">اختر العاملة الجديدة...</option>');
+
+                if (response.maids.length > 0) {
+                    response.maids.forEach(function(maid) {
+                        const optionText = `${maid.name} - ${maid.passport_num}` +
+                                         (maid.nationality_name ? ` (${maid.nationality_name})` : '');
+                        select.append(`<option value="${maid.id}">${optionText}</option>`);
+                    });
+
+                    select.siblings('.form-text').text(`تم تحميل ${response.maids.length} عاملة متاحة`);
+                } else {
+                    select.siblings('.form-text').text('لا توجد عاملات متاحة');
+                }
+            } else {
+                console.error('Failed to load maids:', response);
+                $('#new_maid_id_order').siblings('.form-text').text('فشل في تحميل العاملات');
+            }
+        },
+        error: function(xhr) {
+            console.error('Error loading maids:', xhr);
+            $('#new_maid_id_order').siblings('.form-text').text('حدث خطأ أثناء تحميل العاملات');
+        }
+    });
+}
+
+// البحث في العاملات مع تأخير للطلبات
+let searchTimeoutOrder;
+function searchMaidsOrderWithDelay(searchTerm) {
+    clearTimeout(searchTimeoutOrder);
+    searchTimeoutOrder = setTimeout(function() {
+        loadAvailableMaidsOrder(searchTerm);
+    }, 300);
+}
+
+// التعامل مع الضغط على Enter في البحث للطلبات
+function handleSearchOrderKeydown(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        const searchTerm = event.target.value;
+        loadAvailableMaidsOrder(searchTerm);
+
+        // فتح القائمة المنسدلة
+        setTimeout(function() {
+            $('#new_maid_id_order').focus().click();
+        }, 500);
+    }
+}
+
+// مسح البحث للطلبات
+function clearOrderSearch() {
+    $('#maid_search_order').val('');
+    loadAvailableMaidsOrder('');
+}
+
+// إرسال نموذج تغيير العاملة للطلبات
+function submitChangeMaidOrder() {
+    const form = document.getElementById('changeMaidOrderForm');
+    const formData = new FormData(form);
+    const orderId = document.getElementById('order_id').value;
+
+    // التحقق من البيانات
+    if (!formData.get('new_maid_id')) {
+        Swal.fire('خطأ!', 'يرجى اختيار العاملة الجديدة', 'error');
+        return;
+    }
+
+    if (!formData.get('old_maid_status')) {
+        Swal.fire('خطأ!', 'يرجى اختيار حالة العاملة السابقة', 'error');
+        return;
+    }
+
+    // تأكيد العملية
+    Swal.fire({
+        title: 'تأكيد تغيير العاملة',
+        text: 'هل أنت متأكد من تغيير العاملة في هذا الطلب؟',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'نعم، غير العاملة',
+        cancelButtonText: 'إلغاء'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // إرسال البيانات
+            $.ajax({
+                url: `{{ route('orders.changeMaidById', ':id') }}`.replace(':id', orderId),
+                method: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    maid_id: formData.get('new_maid_id'),
+                    old_maid_status: formData.get('old_maid_status'),
+                    reason: formData.get('reason')
+                },
+                success: function(response) {
+                    console.log('Change maid response:', response);
+
+                    if (response.success) {
+                        Swal.fire('نجح!', response.message || 'تم تغيير العاملة بنجاح', 'success');
+                        $('#changeMaidOrderModal').modal('hide');
+                        dataTable.ajax.reload();
+                    } else {
+                        Swal.fire('خطأ!', response.message || 'فشل في تغيير العاملة', 'error');
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Error changing maid:', xhr);
+                    let message = 'حدث خطأ أثناء تغيير العاملة';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
+                    Swal.fire('خطأ!', message, 'error');
+                }
+            });
+        }
+    });
+}
+
+function showChangeResponsibleModal(orderId) {
+    // This function can be implemented similar to change maid
+    Swal.fire('قريباً!', 'هذه الميزة قيد التطوير', 'info');
+}
+
+function refuseOrder(orderId) {
+    // This function can be implemented to refuse orders
+    Swal.fire('قريباً!', 'هذه الميزة قيد التطوير', 'info');
+}
+
+function deleteOrder(orderId) {
+    // This function can be implemented to delete orders
+    Swal.fire('قريباً!', 'هذه الميزة قيد التطوير', 'info');
+}
 </script>
 @endsection
