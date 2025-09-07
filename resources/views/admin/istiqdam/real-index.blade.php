@@ -66,9 +66,13 @@
                                 <i class="fas fa-wifi me-2"></i>
                                 اختبار الاتصال
                             </button>
-                            <button type="button" class="btn btn-info" onclick="showApiInfo()">
+                            <button type="button" class="btn btn-info me-2" onclick="showApiInfo()">
                                 <i class="fas fa-info-circle me-2"></i>
                                 معلومات الـ API
+                            </button>
+                            <button type="button" class="btn btn-warning" id="diagnoseBtn">
+                                <i class="fas fa-stethoscope me-2"></i>
+                                تشخيص الاتصال
                             </button>
                         </div>
                     </div>
@@ -478,6 +482,70 @@ function searchRealContract(contractId) {
         }
     });
 }
+
+// تشخيص الاتصال
+$(document).on('click', '#diagnoseBtn', function() {
+    Swal.fire({
+        title: 'جاري التشخيص...',
+        html: 'جاري تشخيص مشاكل الاتصال مع المنصة الحكومية',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+
+            $.ajax({
+                url: '{{ route("istiqdam.real.diagnose") }}',
+                type: 'GET',
+                timeout: 30000,
+                success: function(response) {
+                    Swal.close();
+                    if (response.success) {
+                        let diagnosisHtml = `
+                            <div class="text-start">
+                                <h6>نتائج التشخيص:</h6>
+                                <table class="table table-sm">
+                                    <tr><td><strong>البيئة:</strong></td><td>${response.diagnosis.environment}</td></tr>
+                                    <tr><td><strong>رابط API:</strong></td><td><code>${response.diagnosis.base_url}</code></td></tr>
+                                    <tr><td><strong>معرف العميل:</strong></td><td>${response.diagnosis.client_id}</td></tr>
+                                    <tr><td><strong>طول مفتاح API:</strong></td><td>${response.diagnosis.api_key_length}</td></tr>
+                                    <tr><td><strong>مهلة الانتظار:</strong></td><td>${response.diagnosis.timeout} ثانية</td></tr>
+                                </table>
+
+                                <h6 class="mt-3">اختبار الاتصال الأساسي:</h6>
+                                <p>الحالة: <span class="badge ${response.diagnosis.health_check.success ? 'bg-success' : 'bg-danger'}">${response.diagnosis.health_check.success ? 'نجح' : 'فشل'}</span></p>
+                                <p>رمز الاستجابة: ${response.diagnosis.health_check.status}</p>
+
+                                <h6 class="mt-3">اختبار API الرئيسي:</h6>
+                                <p>الحالة: <span class="badge ${response.diagnosis.api_test.success ? 'bg-success' : 'bg-danger'}">${response.diagnosis.api_test.success ? 'نجح' : 'فشل'}</span></p>
+                                <p>رمز الاستجابة: ${response.diagnosis.api_test.status}</p>
+
+                                ${response.diagnosis.api_test.response ? `<p>الاستجابة: <code>${JSON.stringify(response.diagnosis.api_test.response, null, 2)}</code></p>` : ''}
+                            </div>
+                        `;
+
+                        Swal.fire({
+                            title: 'نتائج التشخيص',
+                            html: diagnosisHtml,
+                            width: '800px',
+                            confirmButtonText: 'حسناً'
+                        });
+
+                        logTestResult('تشخيص الاتصال', 'نجح', 'تم إكمال التشخيص');
+                    } else {
+                        Swal.fire('خطأ في التشخيص', response.message, 'error');
+                        logTestResult('تشخيص الاتصال', 'فشل', response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    Swal.close();
+                    let errorMsg = status === 'timeout' ? 'انتهت مهلة الانتظار' : 'حدث خطأ في التشخيص';
+                    Swal.fire('خطأ!', errorMsg, 'error');
+                    logTestResult('تشخيص الاتصال', 'خطأ', errorMsg);
+                }
+            });
+        }
+    });
+});
 </script>
 
 <style>

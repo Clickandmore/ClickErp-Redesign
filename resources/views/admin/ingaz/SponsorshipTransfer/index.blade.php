@@ -14,10 +14,16 @@
                 <i class="fas fa-exchange-alt text-primary me-2"></i>
                 {{helperTrans("ingaz.sponsorship_transfer_requests")}}
             </h1>
-            <a href="{{ route('SponsorshipTransfer.create') }}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>
-                {{helperTrans("ingaz.add_sponsorship_transfer_request")}}
-            </a>
+            <div class="d-flex gap-2">
+                <a href="{{ route('SponsorshipTransfer.webRequests') }}" class="btn btn-info">
+                    <i class="fas fa-globe me-2"></i>
+                    طلبات الموقع الخارجي
+                </a>
+                <a href="{{ route('SponsorshipTransfer.create') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>
+                    {{helperTrans("ingaz.add_sponsorship_transfer_request")}}
+                </a>
+            </div>
         </div>
 
         <!-- Statistics Cards -->

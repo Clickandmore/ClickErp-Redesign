@@ -27,27 +27,99 @@
             </div>
         </div>
 
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-xl-4 col-md-4 mb-4">
+                <div class="card border-left-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                    إجمالي رحلات الترحيل</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalTrips">0</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-plane-departure fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-4 mb-4">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                    الرحلات النشطة</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="activeTrips">0</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-play-circle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-4 mb-4">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                    الرحلات المكتملة</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="completedTrips">0</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Filters -->
         <div class="row mb-4">
             <div class="col-12">
                 <div class="card shadow">
                     <div class="card-body">
                         <div class="row g-3">
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label for="contract_number" class="form-label">رقم العقد</label>
                                 <input type="text" class="form-control" id="contract_number" placeholder="ابحث برقم العقد">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label for="maid_name" class="form-label">اسم العاملة</label>
                                 <input type="text" class="form-control" id="maid_name" placeholder="ابحث باسم العاملة">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label for="travel_date" class="form-label">تاريخ السفر</label>
                                 <input type="date" class="form-control" id="travel_date">
                             </div>
-                            <div class="col-md-3 d-flex align-items-end">
-                                <button class="btn btn-primary w-100" onclick="loadTable()">
+                            <div class="col-md-3">
+                                <label for="status_filter" class="form-label">حالة الرحلة</label>
+                                <select class="form-select" id="status_filter">
+                                    <option value="">الرحلات النشطة والمجدولة</option>
+                                    <option value="all">جميع الرحلات</option>
+                                    <option value="new">جديدة</option>
+                                    <option value="active">نشطة</option>
+                                    <option value="scheduled">مجدولة</option>
+                                    <option value="in_progress">قيد التنفيذ</option>
+                                    <option value="pending">في الانتظار</option>
+                                    <option value="confirmed">مؤكدة</option>
+                                    <option value="completed">مكتملة</option>
+                                    <option value="cancelled">ملغية</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end gap-2">
+                                <button class="btn btn-primary flex-fill" onclick="loadTable()">
                                     <i class="fa fa-search"></i> بحث
+                                </button>
+                                <button class="btn btn-secondary" onclick="resetFilters()">
+                                    <i class="fa fa-refresh"></i>
                                 </button>
                             </div>
                         </div>
@@ -99,9 +171,21 @@
 <script>
 $(document).ready(function() {
     loadTable();
+    updateStatistics();
 });
 
+function resetFilters() {
+    $('#contract_number').val('');
+    $('#maid_name').val('');
+    $('#travel_date').val('');
+    $('#status_filter').val('');
+    loadTable();
+}
+
 function loadTable() {
+    // تحديث الإحصائيات عند تغيير الفلاتر
+    updateStatistics();
+    
     if ($.fn.DataTable.isDataTable('#deportationTravelTable')) {
         $('#deportationTravelTable').DataTable().destroy();
     }
@@ -121,6 +205,7 @@ function loadTable() {
                 d.contract_number = $('#contract_number').val();
                 d.maid_name = $('#maid_name').val();
                 d.travel_date = $('#travel_date').val();
+                d.status = $('#status_filter').val();
             },
             dataSrc: function(json) {
                 console.log('DataTables Response:', json);
@@ -151,13 +236,9 @@ function loadTable() {
         drawCallback: function(settings) {
             // إخفاء الـ loader بعد اكتمال التحميل
             $('.dataTables_processing').hide();
-
-
         }
     });
 }
-
-
 
 // دالة حذف الرحلة
 function deleteTravel(id) {
@@ -217,6 +298,34 @@ function completeTrip(id) {
                     Swal.fire('خطأ!', xhr.responseJSON?.message || 'حدث خطأ', 'error');
                 }
             });
+        }
+    });
+}
+
+// دالة تحديث الإحصائيات
+function updateStatistics() {
+    console.log('Updating statistics...');
+    $.ajax({
+        url: '{{ route("DeportationTravel.statistics") }}',
+        method: 'GET',
+        data: {
+            status: $('#status_filter').val(),
+            date_from: $('#travel_date').val(),
+            date_to: $('#travel_date').val()
+        },
+        success: function(response) {
+            console.log('Statistics response:', response);
+            if (response.success) {
+                $('#totalTrips').text(response.data.total || 0);
+                $('#activeTrips').text(response.data.active || 0);
+                $('#completedTrips').text(response.data.completed || 0);
+                console.log('Statistics updated successfully');
+            } else {
+                console.error('Statistics response not successful:', response);
+            }
+        },
+        error: function(xhr) {
+            console.error('Error loading statistics:', xhr);
         }
     });
 }

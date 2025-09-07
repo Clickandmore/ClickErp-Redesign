@@ -40,6 +40,11 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
+            \Log::info('Orders AJAX request received', [
+                'request_data' => $request->all(),
+                'user_id' => auth('admin')->id()
+            ]);
+
             $query = objModel::query();
 
             // Eager load relationships to avoid N+1 queries
@@ -53,6 +58,9 @@ class OrderController extends Controller
 
             // Order by created_at desc to show newest orders first
             $query->orderBy('created_at', 'desc');
+
+            // Filter for recruitment orders only (job_type_id = 1)
+            $query->where('job_type_id', 1);
 
             // Apply status filter
             if ($request->has('status') && $request->status != '') {
@@ -154,9 +162,9 @@ class OrderController extends Controller
                 })
                 ->editColumn('deliver_status', function ($row) {
                     if (@$row->details->deliver_maid == '1') {
-                                return '<span class="badge bg-success status-badge">Yes</span>';
-    } else {
-        return '<span class="badge bg-danger status-badge">No</span>';
+                        return '<span class="badge bg-success status-badge">' . __('web.yes') . '</span>';
+                    } else {
+                        return '<span class="badge bg-danger status-badge">' . __('web.no') . '</span>';
                     }
                 })
                 ->addColumn('contract_status', function ($row) {
@@ -254,21 +262,21 @@ class OrderController extends Controller
             return \App\Models\auth\Admin::select('id', 'name')->whereNull('deleted_at')->get();
         });
 
-        // Get statistics with optimized queries (cache for 1 minute)
-        $data['totalOrders'] = \Cache::remember('total_orders_count', 60, function() {
-            return objModel::count();
+        // Get statistics with optimized queries (cache for 1 minute) - Recruitment orders only
+        $data['totalOrders'] = \Cache::remember('recruitment_orders_count', 60, function() {
+            return objModel::where('job_type_id', 1)->count();
         });
 
-        $data['newOrders'] = \Cache::remember('new_orders_count', 60, function() {
-            return objModel::where('status', OrderEnum::New->value)->count();
+        $data['newOrders'] = \Cache::remember('recruitment_new_orders_count', 60, function() {
+            return objModel::where('job_type_id', 1)->where('status', OrderEnum::New->value)->count();
         });
 
-        $data['underProcessOrders'] = \Cache::remember('under_process_orders_count', 60, function() {
-            return objModel::where('status', OrderEnum::UnderProcess->value)->count();
+        $data['underProcessOrders'] = \Cache::remember('recruitment_under_process_orders_count', 60, function() {
+            return objModel::where('job_type_id', 1)->where('status', OrderEnum::UnderProcess->value)->count();
         });
 
-        $data['completedOrders'] = \Cache::remember('completed_orders_count', 60, function() {
-            return objModel::whereIn('status', [OrderEnum::Completed->value, OrderEnum::Done->value, OrderEnum::Contracted->value])->count();
+        $data['completedOrders'] = \Cache::remember('recruitment_completed_orders_count', 60, function() {
+            return objModel::where('job_type_id', 1)->whereIn('status', [OrderEnum::Completed->value, OrderEnum::Done->value, OrderEnum::Contracted->value])->count();
         });
 
         return view($this->folderPath . '.index', $data);
@@ -930,5 +938,45 @@ class OrderController extends Controller
 
         // Return file
         return response()->download($tempFile, 'orders.xlsx', $headers)->deleteFileAfterSend(true);
+    }
+
+    /**
+     * تحديث حالة الطلب
+     */
+    public function changeStatus(Request $request, $id)
+    {
+        try {
+            $order = objModel::findOrFail($id);
+
+            // التحقق من أن الحالة الجديدة صحيحة
+            $validStatuses = ['new', 'paid', 'started', 'completed', 'done', 'refused', 'canceled'];
+            if (!in_array($request->status, $validStatuses)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'الحالة غير صحيحة'
+                ], 400);
+            }
+
+            $oldStatus = $order->status;
+            $order->status = $request->status;
+            $order->save();
+
+            // إرسال SMS إذا كان مطلوباً
+            if ($request->status == 'started') {
+                $objAction = new objAction();
+                $objAction->sendSMS($order->id);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تحديث حالة الطلب بنجاح من ' . $oldStatus . ' إلى ' . $request->status
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تحديث الحالة: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

@@ -291,7 +291,7 @@
                         <small class="text-muted">سيتم إرسال رسالة نصية للعميل تحتوي على الحالة الجديدة للعقد</small>
                     </div>
 
-                   
+
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
@@ -337,8 +337,8 @@
                     إلغاء العقد
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
+                </div>
+                <div class="modal-body">
                 <!-- معلومات العقد -->
                 <div class="alert alert-warning">
                     <h6><i class="fas fa-exclamation-triangle"></i> تحذير:</h6>
@@ -388,8 +388,8 @@
                         </div>
                     </div>
                 </form>
-            </div>
-            <div class="modal-footer">
+                </div>
+                <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="fas fa-times"></i>
                     إلغاء
@@ -398,10 +398,10 @@
                     <i class="fas fa-trash"></i>
                     تأكيد الإلغاء
                 </button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
 
 @else
@@ -474,7 +474,7 @@
                 searching: false,
                 paging: true, // التأكد من تفعيل التصفح
                 pageLength: 10, // تقليل عدد الصفوف لتسريع التحميل
-                lengthMenu: [[10, 25, 50], [10, 25, 50]], // خيارات أقل
+                lengthMenu: [[10, 25, 50, 100,500], [10, 25, 50, 100,500]], // خيارات أقل
                 stateSave: false, // إيقاف حفظ الحالة لتسريع التحميل
                 deferRender: true, // تحسين الأداء للبيانات الكبيرة
                 scroller: false,
@@ -525,7 +525,7 @@
                 columns: columns,
                 order: [[0, 'desc']],
                 pageLength: 10, // تقليل عدد الصفوف لتسريع التحميل
-                lengthMenu: [[10, 25, 50], [10, 25, 50]], // خيارات أقل
+                lengthMenu: [[10, 25, 50, 100,500], [10, 25, 50, 100,500]], // خيارات أقل
                 stateSave: false, // إيقاف حفظ الحالة لتسريع التحميل
                 deferRender: true, // تحسين الأداء للبيانات الكبيرة
                 scroller: false,
@@ -1446,5 +1446,145 @@
             }
         });
     }
+    </script>
+
+    <!-- موديل حذف العقد -->
+    <div class="modal fade" id="deleteContractModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-trash me-2"></i>
+                        حذف العقد
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>تنبيه:</strong> سيتم حذف العقد نهائياً ولا يمكن التراجع عن هذا الإجراء.
+                    </div>
+
+                    <div class="mb-3">
+                        <strong>تفاصيل العقد:</strong>
+                        <ul class="list-unstyled mt-2">
+                            <li><strong>رقم العقد:</strong> <span id="deleteContractNumber"></span></li>
+                            <li><strong>اسم العميل:</strong> <span id="deleteClientName"></span></li>
+                            <li><strong>اسم العاملة:</strong> <span id="deleteMaidName"></span></li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><strong>حالة العاملة بعد الحذف:</strong></label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="maid_status" id="maidAvailable" value="available" checked>
+                            <label class="form-check-label" for="maidAvailable">
+                                <i class="fas fa-check-circle text-success me-1"></i>
+                                متاحة (يمكن إضافتها لعقود أخرى)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="maid_status" id="maidBackOut" value="back_out">
+                            <label class="form-check-label" for="maidBackOut">
+                                <i class="fas fa-times-circle text-danger me-1"></i>
+                                Back Out (غير متاحة)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>
+                        إلغاء
+                    </button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                        <i class="fas fa-trash me-1"></i>
+                        تأكيد الحذف
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    $(document).ready(function() {
+        var contractToDelete = null;
+
+        // فتح موديل الحذف
+        $(document).on('click', '.delete-contract-btn', function() {
+            var contractId = $(this).data('contract-id');
+            var contractNumber = $(this).data('contract-number');
+            var clientName = $(this).data('client-name');
+            var maidName = $(this).data('maid-name');
+
+            contractToDelete = contractId;
+            $('#deleteContractNumber').text(contractNumber);
+            $('#deleteClientName').text(clientName);
+            $('#deleteMaidName').text(maidName);
+
+            $('#deleteContractModal').modal('show');
+        });
+
+        // تأكيد الحذف
+        $('#confirmDeleteBtn').click(function() {
+            if (!contractToDelete) return;
+
+            var maidStatus = $('input[name="maid_status"]:checked').val();
+            var button = $(this);
+            var originalText = button.html();
+
+            button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i>جاري الحذف...');
+
+            $.ajax({
+                url: '{{ route("RecruitmentContract.destroy", ":id") }}'.replace(':id', contractToDelete),
+                type: 'DELETE',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    maid_status: maidStatus
+                },
+                success: function(response) {
+                    if (response.success) {
+                        $('#deleteContractModal').modal('hide');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم بنجاح',
+                            text: response.message,
+                            confirmButtonText: 'حسناً'
+                        }).then(() => {
+                            $('#dataTableObject').DataTable().ajax.reload(null, false);
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ',
+                            text: response.message,
+                            confirmButtonText: 'حسناً'
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Delete contract error:', {
+                        status: status,
+                        error: error,
+                        response: xhr.responseText
+                    });
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: 'حدث خطأ أثناء حذف العقد',
+                        confirmButtonText: 'حسناً'
+                    });
+                },
+                complete: function() {
+                    button.prop('disabled', false).html(originalText);
+                }
+            });
+        });
+
+        // إعادة تعيين المتغير عند إغلاق الموديل
+        $('#deleteContractModal').on('hidden.bs.modal', function () {
+            contractToDelete = null;
+        });
+    });
     </script>
 @endsection

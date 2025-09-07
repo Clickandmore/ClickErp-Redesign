@@ -96,7 +96,7 @@ class RecruitmentContractController extends Controller
                     $warrantyStatuses = explode(',', $request->warranty_status);
                     if (count($warrantyStatuses) > 1) {
                         $query->whereIn('warranty_status', $warrantyStatuses);
-                    } else {
+            } else {
                         $query->where('warranty_status', $request->warranty_status);
                     }
 
@@ -307,16 +307,42 @@ class RecruitmentContractController extends Controller
                         }
                        $maidInfo .= '</div>';
                     } else {
-                        // رسالة محسنة عندما لا توجد عاملة مع إظهار الجنسية المفضلة
+                        // رسالة محسنة عندما لا توجد عاملة مع إظهار جميع المتطلبات المفضلة
                         if ($row->status == ContractStatusEnum::PendingMaidSelection->value) {
                             $maidInfo = '<div class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i><strong>في انتظار اختيار العاملة</strong></div>';
                         } else {
                             $maidInfo = '<div class="text-danger"><i class="fas fa-times-circle me-1"></i><strong>لا توجد عاملة مخصصة</strong></div>';
                         }
 
-                        // إضافة الجنسية المفضلة إذا كانت متوفرة
-                        if ($row->requiredMaidNationality) {
-                            $maidInfo .= '<div class="text-info mt-1"><i class="fas fa-flag me-1"></i><small>الجنسية المفضلة: <strong>' . $row->requiredMaidNationality->sub_title . '</strong></small></div>';
+                        // إضافة جميع المتطلبات المفضلة
+                        $preferredRequirements = [];
+
+                        if ($row->required_maid_nationality_id && $row->requiredMaidNationality) {
+                            $preferredRequirements[] = '<span class="badge bg-info">الجنسية: ' . $row->requiredMaidNationality->sub_title . '</span>';
+                        }
+
+                        if ($row->required_maid_religion_id && $row->requiredMaidReligion) {
+                            $preferredRequirements[] = '<span class="badge bg-success">الدين: ' . $row->requiredMaidReligion->title . '</span>';
+                        }
+
+                        if ($row->required_maid_age_min && $row->required_maid_age_max) {
+                            $preferredRequirements[] = '<span class="badge bg-warning">العمر: ' . $row->required_maid_age_min . '-' . $row->required_maid_age_max . '</span>';
+                        } elseif ($row->required_maid_age_min) {
+                            $preferredRequirements[] = '<span class="badge bg-warning">العمر: من ' . $row->required_maid_age_min . '</span>';
+                        } elseif ($row->required_maid_age_max) {
+                            $preferredRequirements[] = '<span class="badge bg-warning">العمر: إلى ' . $row->required_maid_age_max . '</span>';
+                        }
+
+                        if ($row->required_maid_experience_min) {
+                            $preferredRequirements[] = '<span class="badge bg-primary">الخبرة: ' . $row->required_maid_experience_min . ' سنوات</span>';
+                        }
+
+                        if ($row->required_maid_job_title_id && $row->requiredMaidJobTitle) {
+                            $preferredRequirements[] = '<span class="badge bg-secondary">المهنة: ' . $row->requiredMaidJobTitle->title . '</span>';
+                        }
+
+                        if (!empty($preferredRequirements)) {
+                            $maidInfo .= '<div class="mt-2"><strong>المتطلبات المفضلة:</strong><br>' . implode(' ', $preferredRequirements) . '</div>';
                         }
                     }
                     return $maidInfo;
@@ -353,6 +379,38 @@ class RecruitmentContractController extends Controller
 
                         $contractInfo .= '</div>';
                     }
+
+                    // إضافة المتطلبات المفضلة للعاملة
+                    $preferredRequirements = [];
+
+                    if ($row->required_maid_nationality_id && $row->requiredMaidNationality) {
+                        $preferredRequirements[] = '<span class="badge bg-info">الجنسية: ' . $row->requiredMaidNationality->sub_title . '</span>';
+                    }
+
+                    if ($row->required_maid_religion_id && $row->requiredMaidReligion) {
+                        $preferredRequirements[] = '<span class="badge bg-success">الديانة: ' . $row->requiredMaidReligion->title . '</span>';
+                    }
+
+                    if ($row->required_maid_age_min && $row->required_maid_age_max) {
+                        $preferredRequirements[] = '<span class="badge bg-warning">العمر: ' . $row->required_maid_age_min . '-' . $row->required_maid_age_max . '</span>';
+                    } elseif ($row->required_maid_age_min) {
+                        $preferredRequirements[] = '<span class="badge bg-warning">العمر: من ' . $row->required_maid_age_min . '</span>';
+                    } elseif ($row->required_maid_age_max) {
+                        $preferredRequirements[] = '<span class="badge bg-warning">العمر: إلى ' . $row->required_maid_age_max . '</span>';
+                    }
+
+                    if ($row->required_maid_experience_min) {
+                        $preferredRequirements[] = '<span class="badge bg-primary">الخبرة: ' . $row->required_maid_experience_min . ' سنوات</span>';
+                    }
+
+                    if ($row->required_maid_job_title_id && $row->requiredMaidJobTitle) {
+                        $preferredRequirements[] = '<span class="badge bg-secondary">المهنة: ' . $row->requiredMaidJobTitle->title . '</span>';
+                    }
+
+                    // if (!empty($preferredRequirements)) {
+                    //     $contractInfo .= '<br><div class="mt-2"><strong>المتطلبات المفضلة:</strong><br>' . implode(' ', $preferredRequirements) . '</div>';
+                    // }
+
                     return $contractInfo ?: '<span class="text-muted">غير محدد</span>';
                 })
                 ->addColumn('marketer', function ($row) {
@@ -566,11 +624,11 @@ class RecruitmentContractController extends Controller
 
                         // زر الحذف
                         if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
-                            $actions .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . ".destroy", $row->id) . '" onclick="return confirm(\'هل أنت متأكد من الحذف؟\')">
+                            $actions .= '<li><button class="dropdown-item delete-contract-btn" data-contract-id="' . $row->id . '" data-contract-number="' . $row->id . '">
                                             <i class="fas fa-trash"></i> حذف العقد
-                                        </a></li>';
+                                        </button></li>';
                         }
-                    } else {
+                        } else {
                         // للعقود المكتملة والمرتجعة والتي في الإيواء - إضافة رسالة توضيحية
                         if ($row->status === ContractStatusEnum::Completed->value) {
                             $actions .= '<li><span class="dropdown-item disabled">
@@ -580,7 +638,7 @@ class RecruitmentContractController extends Controller
                             $actions .= '<li><span class="dropdown-item disabled">
                                             <span class="badge bg-info">العقد في الإيواء - لا يمكن التعديل</span>
                                         </span></li>';
-                        } else {
+                            } else {
                             $actions .= '<li><span class="dropdown-item disabled">
                                             <span class="badge bg-danger">العقد مرتجع - لا يمكن التعديل</span>
                                         </span></li>';
@@ -610,13 +668,13 @@ class RecruitmentContractController extends Controller
 
                     // زر الإرجاع - لا يظهر للعقود المكتملة أو التي في الإيواء
                     if ($row->status !== ContractStatusEnum::Completed->value && $row->status !== ContractStatusEnum::Shelter->value) {
-                        if ($row->status == ContractStatusEnum::Back->value) {
+                    if ($row->status == ContractStatusEnum::Back->value) {
                             $actions .= '<li><span class="dropdown-item disabled">
                                             <span class="badge bg-warning">مرتجع</span>
                                         </span></li>';
-                        } else {
-                            // التحقق من صلاحية إرجاع العقد
-                            if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
+                    } else {
+                        // التحقق من صلاحية إرجاع العقد
+                        if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
                                 $actions .= '<li><button class="dropdown-item backContract" data-row-id="' . $row->id . '">
                                                 <i class="fas fa-undo"></i> إرجاع العقد
                                             </button></li>';
@@ -628,7 +686,7 @@ class RecruitmentContractController extends Controller
                     if ($row->status !== ContractStatusEnum::Completed->value &&
                         $row->status !== ContractStatusEnum::Back->value &&
                         $row->status !== ContractStatusEnum::Shelter->value) {
-                        if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
+                    if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
                             $actions .= '<li><button class="dropdown-item cancel-contract-btn" data-contract-id="' . $row->id . '" data-contract-number="' . $row->id . '" data-client-name="' . ($row->user ? $row->user->name : 'غير محدد') . '" data-maid-name="' . ($row->maid ? $row->maid->name : 'غير محدد') . '">
                                             <i class="fas fa-times-circle"></i> إلغاء العقد
                                         </button></li>';
@@ -835,6 +893,12 @@ class RecruitmentContractController extends Controller
                 'status' => $contractStatus,
                 'maid_id' => ($isNoMaid || $isMaidSelectionPostponed) ? null : $maidId,
                 'required_maid_nationality_id' => $request->required_maid_nationality, // حفظ الجنسية المفضلة
+                'required_maid_religion_id' => $request->required_maid_religion, // حفظ الدين المطلوب
+                'required_maid_age_min' => $request->required_maid_age_min, // حفظ الحد الأدنى للعمر
+                'required_maid_age_max' => $request->required_maid_age_max, // حفظ الحد الأقصى للعمر
+                'required_maid_experience_min' => $request->required_maid_experience_min, // حفظ الحد الأدنى للخبرة
+                'required_maid_job_title_id' => $request->required_maid_job_title, // حفظ المهنة المطلوبة
+                'required_maid_notes' => $request->required_maid_notes, // حفظ الملاحظات
             ];
 
             if ($request->order_id) {
@@ -1379,7 +1443,7 @@ class RecruitmentContractController extends Controller
         }
     }
 
-    public function destroy($id)
+    public function destroy($id, Request $request)
     {
         // التحقق من صلاحية حذف العقد
         if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
@@ -1419,6 +1483,27 @@ class RecruitmentContractController extends Controller
                 'success' => false,
                 'message' => 'لا يمكن حذف العقد الذي في الإيواء'
             ], 400);
+        }
+
+        // التحقق من وجود عاملة في العقد
+        if ($contract->maid_id) {
+            $maidStatus = $request->input('maid_status', 'available');
+
+            // تحديث حالة العاملة
+            $maid = \App\Models\ingaz\Maid::find($contract->maid_id);
+            if ($maid) {
+                if ($maidStatus === 'back_out') {
+                    $maid->update([
+                        'status' => 'back_out',
+                        'available' => false
+                    ]);
+                } else {
+                    $maid->update([
+                        'status' => 'available',
+                        'available' => true
+                    ]);
+                }
+            }
         }
 
         $contract->delete();
@@ -2145,7 +2230,7 @@ class RecruitmentContractController extends Controller
     public function selectMaidForContract($contractId, Request $request)
     {
         try {
-            $contract = Contract::with(['user', 'info'])->find($contractId);
+            $contract = Contract::with(['user', 'info', 'requiredMaidNationality'])->find($contractId);
 
             // التحقق من وجود العقد
             if (!$contract) {
@@ -2182,7 +2267,24 @@ class RecruitmentContractController extends Controller
                     $q->whereIn('status', ['pending', 'approved', 'in_progress']);
                 });
 
-            // تطبيق الفلاتر
+                        // فلترة تلقائية بناءً على الجنسية المفضلة في العقد
+            if ($contract->required_maid_nationality_id && !$request->has('show_all_nationalities')) {
+                $query->where('nationality_id', $contract->required_maid_nationality_id);
+
+                // إضافة رسالة إعلامية
+                $preferredNationality = \App\Models\ingaz\Nationality::find($contract->required_maid_nationality_id);
+                if ($preferredNationality) {
+                    session()->flash('info', 'تم فلترة العاملات حسب الجنسية المفضلة: ' . $preferredNationality->sub_title . ' - يمكنك النقر على "عرض جميع الجنسيات" لإلغاء الفلترة');
+                }
+            } elseif ($request->has('show_all_nationalities') && $contract->required_maid_nationality_id) {
+                // رسالة إعلامية عند عرض جميع الجنسيات
+                $preferredNationality = \App\Models\ingaz\Nationality::find($contract->required_maid_nationality_id);
+                if ($preferredNationality) {
+                    session()->flash('info', 'تم عرض جميع الجنسيات - الجنسية المفضلة: ' . $preferredNationality->sub_title);
+                }
+            }
+
+            // تطبيق الفلاتر الإضافية
             if ($request->filled('search')) {
                 $search = $request->search;
                 $query->where(function($q) use ($search) {

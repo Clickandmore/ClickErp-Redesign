@@ -6,7 +6,7 @@
 
 @endsection
 @section('page-title')
-{{helperTrans("ingaz.orders")}}
+طلبات الاستقدام
 @endsection
 
 @section('content')
@@ -17,7 +17,7 @@
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
             <h3 class="h3 mb-0 text-gray-800">
                 <i class="fas fa-exchange-alt text-primary me-2"></i>
-                {{helperTrans("ingaz.orders_list")}}
+                طلبات الاستقدام
             </h3>
             <div class="export-buttons text-end">
                 @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EXPORT))
@@ -124,7 +124,7 @@
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
                     <h5 class="card-title mb-0">
-                        <i class="fa fa-list"></i> {{helperTrans("ingaz.orders_list")}}
+                        <i class="fa fa-list"></i> قائمة طلبات الاستقدام
                     </h5>
                 </div>
                 <div class="card-body p-0">
@@ -222,6 +222,8 @@ $(document).ready(function () {
                 console.error('DataTables AJAX Error:', error);
                 console.error('XHR:', xhr);
                 console.error('Thrown:', thrown);
+                console.error('Response Text:', xhr.responseText);
+                console.error('Status:', xhr.status);
             },
             dataSrc: function(json) {
                 // معالجة البيانات قبل عرضها

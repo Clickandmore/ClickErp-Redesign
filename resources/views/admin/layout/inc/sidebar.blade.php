@@ -123,7 +123,7 @@
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#my_dashboard2" href="#">
                         <i class="fa fa-shopping-cart"></i>
-                        <span class="ms-2"> {{ helperTrans('ingaz.orders') }} </span>
+                        <span class="ms-2"> طلبات الاستقدام </span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
                     <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['orders.current', 'orders.ended'])) ? 'show' : '' }}"
@@ -245,19 +245,20 @@
                             </li>
                             @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
                             <li>
-                                <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => 'completed', 'warranty_status' => 'expired,not_applicable']) }}">
-                                    <i class="fa fa-check-circle"></i>
-                                    <span class="ms-2">عقود مكتملة</span>&nbsp;&nbsp;
-                                    <span class="badge bg-primary ms-2">{{ $contractsCount['completed'] - $contractsCount['under_warranty'] }}</span>
-                                </a>
-                            </li>
-                            <li>
                                 <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => $backStatus->value]) }}">
                                     <i class="fa fa-undo"></i>
                                     <span class="ms-2">{{ helperTrans('ingaz.back_contracts') }}</span>&nbsp;
                                     <span class="badge bg-danger">{{ $contractsCount['back'] }}</span>
                                 </a>
                             </li>
+                            <li>
+                                <a class="m-link" href="{{ route('RecruitmentContract.index', ['status' => 'completed', 'warranty_status' => 'expired,not_applicable']) }}">
+                                    <i class="fa fa-check-circle"></i>
+                                    <span class="ms-2">عقود مكتملة</span>&nbsp;&nbsp;
+                                    <span class="badge bg-primary ms-2">{{ $contractsCount['completed'] - $contractsCount['under_warranty'] }}</span>
+                                </a>
+                            </li>
+
                             @endif
                         @endif
 
@@ -283,6 +284,13 @@
                             </li>
                         @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_VIEW))
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'rental-orders.index') ? 'active' : '' }}"
+                                   href="{{ route('rental-orders.index') }}">
+                                    <i class="fas fa-shopping-cart"></i>
+                                    <span class="ms-2">طلبات الإيجار</span>
+                                </a>
+                            </li>
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'RentContract.index' && !request('status')) ? 'active' : '' }}"
                                    href="{{ route('RentContract.index') }}">
@@ -464,6 +472,23 @@
                 </li>
                 @endif
 
+                <!-- طلبات استرجاع العقود -->
+                <li class="collapsed">
+                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#returnRequestsMenu" href="#">
+                        <i class="fa fa-undo"></i>
+                        <span class="ms-2">طلبات استرجاع العقود</span>
+                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                    </a>
+                    <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['contract-return-requests.index', 'contract-return-requests.show'])) ? 'show' : '' }}" id="returnRequestsMenu">
+                        <li>
+                            <a class="m-link {{ Route::currentRouteName() == 'contract-return-requests.index' ? 'active' : '' }}" href="{{ route('contract-return-requests.index') }}">
+                                <i class="fa fa-list"></i>
+                                <span class="ms-2">جميع الطلبات</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
                 <!-- Additional Services Section -->
 
                 @if (@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_VIEW))
@@ -473,12 +498,19 @@
                             <span class="ms-2">{{ helperTrans('ingaz.sponsorship_transfer') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['SponsorshipTransfer.create', 'SponsorshipTransfer.index', 'ShelterContract.availableForTransfer', 'SponsorshipTransfer.trial', 'SponsorshipTransfer.failed', 'SponsorshipTransfer.transferred'])) ? 'show' : '' }}" id="sponsorshipTransfer">
+                        <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['SponsorshipTransfer.create', 'SponsorshipTransfer.index', 'SponsorshipTransfer.webRequests', 'ShelterContract.availableForTransfer', 'SponsorshipTransfer.trial', 'SponsorshipTransfer.failed', 'SponsorshipTransfer.transferred'])) ? 'show' : '' }}" id="sponsorshipTransfer">
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.index') ? 'active' : '' }}"
                                     href="{{ route('SponsorshipTransfer.index') }}">
                                     <i class="fa fa-list"></i>
                                     <span class="ms-2">{{ helperTrans('ingaz.sponsorship_transfer_requests') }}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.webRequests') ? 'active' : '' }}"
+                                    href="{{ route('SponsorshipTransfer.webRequests') }}">
+                                    <i class="fa fa-globe"></i>
+                                    <span class="ms-2">طلبات الموقع الخارجي</span>
                                 </a>
                             </li>
                             <li>

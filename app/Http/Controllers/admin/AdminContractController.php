@@ -245,4 +245,67 @@ class AdminContractController extends Controller
         }
     }
 
+    /**
+     * حفظ توقيع العقد
+     */
+    public function saveSignature(Request $request, $contractId)
+    {
+        try {
+            // التحقق من وجود العقد
+            $contract = \App\Models\RentalContract::findOrFail($contractId);
+
+            // التحقق من البيانات المرسلة
+            $request->validate([
+                "signature" => "required|string"
+            ]);
+
+            // تحويل base64 إلى ملف
+            $signatureData = $request->signature;
+
+            // إزالة header من base64
+            $signatureData = str_replace("data:image/png;base64,", "", $signatureData);
+            $signatureData = str_replace(" ", "+", $signatureData);
+
+            // فك تشفير base64
+            $signatureImage = base64_decode($signatureData);
+
+            if (!$signatureImage) {
+                return response()->json([
+                    "success" => false,
+                    "message" => "بيانات التوقيع غير صحيحة"
+                ], 400);
+            }
+
+            // إنشاء اسم فريد للملف
+            $fileName = "signature_" . $contractId . "_" . time() . ".png";
+
+            // حفظ الملف في storage
+            $filePath = "signatures/" . $fileName;
+            \Storage::disk("public")->put($filePath, $signatureImage);
+
+            // حفظ مسار الملف في قاعدة البيانات
+            $contract->update([
+                "signature" => $fileName
+            ]);
+
+            // إعادة تحميل العقد للتأكد من التحديث
+            $contract->refresh();
+
+            return response()->json([
+                "success" => true,
+                "message" => "تم حفظ التوقيع بنجاح",
+                "signature_path" => $filePath,
+                "signature_file" => $fileName
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error("Error saving signature: " . $e->getMessage());
+
+            return response()->json([
+                "success" => false,
+                "message" => "حدث خطأ أثناء حفظ التوقيع: " . $e->getMessage()
+            ], 500);
+        }
+    }
+
 }

@@ -201,11 +201,23 @@
                     </select>
                 </div>
 
+                <!-- حالة الخبرة -->
                 <div class="col-4">
-                    <label for="TextInput" class="form-label">
-                        {{helperTrans("ingaz.experience_years")}} <small class="text-muted">(اختياري)</small>
+                    <label for="experience_status" class="form-label">
+                        حالة الخبرة <small class="text-muted">(مطلوب)</small>
                     </label>
-                    <select name="experience_years" class="form-control">
+                    <select name="experience_status" id="experience_status" class="form-control" required>
+                        <option value="">اختر حالة الخبرة</option>
+                        <option value="has_experience" {{$obj->experience_status == 'has_experience' ? 'selected' : ''}}>سبق لها العمل</option>
+                        <option value="no_experience" {{$obj->experience_status == 'no_experience' ? 'selected' : ''}}>لم يسبق لها العمل</option>
+                    </select>
+                </div>
+
+                <div class="col-4" id="experience_years_container" style="display: {{$obj->experience_status == 'has_experience' ? 'block' : 'none'}};">
+                    <label for="TextInput" class="form-label">
+                        {{helperTrans("ingaz.experience_years")}} <small class="text-muted">(مطلوب)</small>
+                    </label>
+                    <select name="experience_years" id="experience_years" class="form-control" {{$obj->experience_status == 'has_experience' ? 'required' : ''}}>
                         <option value="">اختر سنوات الخبرة</option>
                         @for($i = 1; $i <= 10; $i++)
                             <option value="{{$i}}" {{$obj->experience_years == $i ? 'selected' : ''}}>{{$i}} {{$i == 1 ? 'سنة' : 'سنوات'}}</option>

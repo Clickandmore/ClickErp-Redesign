@@ -12,6 +12,7 @@ use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use App\Http\Controllers\admin\AdminShelterWorkersContractCTLR;
 use App\Http\Controllers\admin\AdminFullOrderContractController;
 use App\Http\Controllers\ingaz\OrderController;
+use App\Http\Controllers\ingaz\RentalOrderController;
 use App\Http\Controllers\ingaz\ShelterContractController;
 use App\Http\Controllers\ingaz\RecruitmentContractController;
 use App\Http\Controllers\ingaz\SponsorshipTransferController;
@@ -58,7 +59,7 @@ Route::group(
         'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath'],
     ],
     function () {
-        Route::group(["prefix" => "admin", "middleware" => "admin"], function () {
+        Route::group(["prefix" => "admin", "middleware" => "auth:admin"], function () {
 
             Route::get('getMaidByNationality/{nationalityId}', [RecruitmentContractController::class, 'getMaidByNationality'])->name('getMaidByNationality');
             Route::get('clients/{id}/details', [RecruitmentContractController::class, 'getClientDetails'])->name('clients.details');
@@ -73,6 +74,7 @@ Route::group(
             Route::post('createFullOrderContract', [AdminFullOrderContractController::class, 'createFullOrderContract'])->name('createFullOrderContract');
             /** */
             Route::get('print/rental-contract/{id}', [AdminContractController::class, 'printRentalContract'])->name('print.rental.contract');
+            Route::post('contracts/{id}/save-signature', [AdminContractController::class, 'saveSignature'])->name('admin.contracts.save-signature');
             //** */
             Route::get('/shelter_workers', [ShelterWorkersController::class, 'index'])->name('shelter_workers');
             // Route::get('/shelter_workers/{shelter_worker}', [ShelterWorkersController::class, 'show'])->name('shelter_workers.show');
@@ -145,6 +147,11 @@ Route::group(
             Route::post('getOrderById/{id}', [OrderController::class, 'getOrderById'])->name('orders.getOrderById');
             Route::resource('orders', OrderController::class);
             Route::post('orders/{id}/restore', [OrderController::class, 'restore'])->name('orders.restore');
+
+            // Rental Orders Routes
+            Route::resource('rental-orders', RentalOrderController::class);
+            Route::post('rental-orders/{id}/approve', [RentalOrderController::class, 'approveOrder'])->name('rental-orders.approve');
+            Route::post('rental-orders/{id}/reject', [RentalOrderController::class, 'rejectOrder'])->name('rental-orders.reject');
             Route::get('orders/current', [OrderController::class, 'index'])->name('orders.current');
             Route::get('orders/ended', [OrderController::class, 'index'])->name('orders.ended');
             Route::get('orders/completed', [OrderController::class, 'index'])->name('orders.completed');
@@ -189,6 +196,17 @@ Route::group(
             Route::get('showDataOfOrder', [OrderController::class, 'showDataOfOrder'])->name('showDataOfOrder');
             Route::get('showDataOfMaid', [OrderController::class, 'showDataOfMaid'])->name('showDataOfMaid');
             Route::get('showUserFromContract', [OrderController::class, 'showUserFromContract'])->name('showUserFromContract');
+
+            // Routes لطلبات نقل الكفالة من الموقع الخارجي - يجب أن تكون قبل resource route
+            Route::get('SponsorshipTransfer/web-requests', [SponsorshipTransferController::class, 'webRequests'])->name('SponsorshipTransfer.webRequests');
+            Route::get('SponsorshipTransfer/web-requests/{id}', [SponsorshipTransferController::class, 'showWebRequest'])->name('SponsorshipTransfer.webRequest.show');
+            Route::post('SponsorshipTransfer/web-requests/{id}/cancel', [SponsorshipTransferController::class, 'cancelOrder'])->name('SponsorshipTransfer.webRequest.cancel');
+
+            // Routes للصفحات المختلفة حسب الحالة - يجب أن تكون قبل resource route
+            Route::get('SponsorshipTransfer/status/trial', [SponsorshipTransferController::class, 'trial'])->name('SponsorshipTransfer.trial');
+            Route::get('SponsorshipTransfer/status/transferred', [SponsorshipTransferController::class, 'transferred'])->name('SponsorshipTransfer.transferred');
+            Route::get('SponsorshipTransfer/status/failed', [SponsorshipTransferController::class, 'failed'])->name('SponsorshipTransfer.failed');
+
             Route::resource('SponsorshipTransfer', SponsorshipTransferController::class);
             Route::get('Contract/searchClients', [SponsorshipTransferController::class, 'searchClients'])->name('Contract.searchClients');
             Route::post('SponsorshipTransfer/{id}/approve', [SponsorshipTransferController::class, 'approve'])->name('SponsorshipTransfer.approve');
@@ -196,11 +214,6 @@ Route::group(
             Route::post('SponsorshipTransfer/{id}/complete', [SponsorshipTransferController::class, 'complete'])->name('SponsorshipTransfer.complete');
             Route::post('SponsorshipTransfer/{id}/confirm-transfer', [SponsorshipTransferController::class, 'confirmTransfer'])->name('SponsorshipTransfer.confirmTransfer');
             Route::post('SponsorshipTransfer/{id}/cancel-transfer', [SponsorshipTransferController::class, 'cancelTransfer'])->name('SponsorshipTransfer.cancelTransfer');
-
-            // Routes للصفحات المختلفة حسب الحالة
-            Route::get('SponsorshipTransfer/status/trial', [SponsorshipTransferController::class, 'trial'])->name('SponsorshipTransfer.trial');
-            Route::get('SponsorshipTransfer/status/transferred', [SponsorshipTransferController::class, 'transferred'])->name('SponsorshipTransfer.transferred');
-            Route::get('SponsorshipTransfer/status/failed', [SponsorshipTransferController::class, 'failed'])->name('SponsorshipTransfer.failed');
             Route::resource('notifications', NotificationController::class);
             Route::resource('statistics', StatisticController::class);
             Route::resource('steps', StepController::class);
@@ -225,11 +238,15 @@ Route::group(
             // Deportation routes
             Route::post('ShelterContract/{id}/deportation/start', [ShelterContractController::class, 'startDeportation'])->name('ShelterContract.deportation.start');
             Route::get('ShelterContract/{id}/deportation/procedures', [ShelterContractController::class, 'showDeportationProcedures'])->name('ShelterContract.deportation.procedures');
-            Route::post('ShelterContract/deportation/{id}/update', [ShelterContractController::class, 'updateDeportationProcedures'])->name('ShelterContract.deportation.update');
+Route::post('ShelterContract/deportation/{id}/update', [ShelterContractController::class, 'updateDeportationProcedures'])->name('ShelterContract.deportation.update');
+Route::get('ShelterContract/deportation/{id}/activity-log', [ShelterContractController::class, 'getActivityLog'])->name('ShelterContract.deportation.activity-log');
             Route::get('ShelterContract/deported', [ShelterContractController::class, 'deported'])->name('ShelterContract.deported');
 
             // Work desire route
             Route::post('ShelterContract/{id}/change-work-desire', [ShelterContractController::class, 'changeWorkDesire'])->name('ShelterContract.changeWorkDesire');
+
+            // Instant receipt toggle route
+            Route::post('ShelterContract/{id}/toggle-instant-receipt', [ShelterContractController::class, 'toggleInstantReceipt'])->name('ShelterContract.toggleInstantReceipt');
 
             Route::resource('ShelterContract', ShelterContractController::class);
 
@@ -242,6 +259,7 @@ Route::group(
                 Route::prefix('real')->name('real.')->group(function () {
                     Route::get('/', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'index'])->name('index');
                     Route::get('/test-connection', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'testConnection'])->name('test.connection');
+   Route::get('/diagnose', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'diagnoseConnection'])->name('diagnose');
                     Route::get('/packages/data', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'getPackages'])->name('packages.data');
                     Route::get('/packages/{packageId}', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'getPackage'])->name('packages.show');
                     Route::post('/contracts', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'storeContract'])->name('contracts.store');
@@ -276,6 +294,7 @@ Route::group(
             Route::post('orders/{id}/change-responsible', [OrderController::class, 'changeResponsible'])->name('orders.changeResponsibleById');
             Route::post('orders/{id}/refuse-return', [OrderController::class, 'refuseReturn'])->name('orders.refuseReturn');
             Route::post('orders/{id}/change-maid', [OrderController::class, 'changeMaid'])->name('orders.changeMaidById');
+            Route::post('orders/{id}/change-status', [OrderController::class, 'changeStatus'])->name('orders.changeStatus');
             Route::get('/cancel_contracts', [App\Http\Controllers\ingaz\ContractsController::class, 'cancel_contracts'])->name('cancel_contracts');
 
             Route::resource('complaint-types', ComplaintTypeController::class);
@@ -289,6 +308,14 @@ Route::group(
                 Route::post('create', [App\Http\Controllers\ingaz\ContractController::class, 'createContract'])->name('Contract.create');
                 Route::post('create-completed', [App\Http\Controllers\ingaz\ContractController::class, 'createCompletedContract'])->name('Contract.createCompleted');
                 Route::get('create-completed-page', [App\Http\Controllers\ingaz\ContractController::class, 'createCompletedPage'])->name('Contract.createCompletedPage');
+            });
+
+            // طلبات استرجاع العقود - الإدارة
+            Route::prefix('contract-return-requests')->name('contract-return-requests.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Admin\ContractReturnRequestController::class, 'index'])->name('index');
+                Route::get('/{returnRequest}', [\App\Http\Controllers\Admin\ContractReturnRequestController::class, 'show'])->name('show');
+                Route::post('/{returnRequest}/process', [\App\Http\Controllers\Admin\ContractReturnRequestController::class, 'process'])->name('process');
+                Route::get('/statistics', [\App\Http\Controllers\Admin\ContractReturnRequestController::class, 'statistics'])->name('statistics');
             });
 
         });
@@ -338,12 +365,14 @@ Route::group(
 );
 
     // DeportationTravel routes
-    Route::prefix('DeportationTravel')->name('DeportationTravel.')->group(function () {
-        Route::get('/', [DeportationTravelController::class, 'index'])->name('index');
-        Route::get('/create', [DeportationTravelController::class, 'create'])->name('create');
-        Route::post('/store', [DeportationTravelController::class, 'store'])->name('store');
-        Route::get('/{id}', [DeportationTravelController::class, 'show'])->name('show');
-        Route::post('/{id}/complete', [DeportationTravelController::class, 'complete'])->name('complete');
-        Route::delete('/{id}', [DeportationTravelController::class, 'destroy'])->name('destroy');
-    });
+Route::prefix('DeportationTravel')->name('DeportationTravel.')->group(function () {
+    Route::get('/', [DeportationTravelController::class, 'index'])->name('index');
+    Route::get('/create', [DeportationTravelController::class, 'create'])->name('create');
+    Route::get('/statistics', [DeportationTravelController::class, 'statistics'])->name('statistics');
+    Route::post('/store', [DeportationTravelController::class, 'store'])->name('store');
+    Route::get('/{id}', [DeportationTravelController::class, 'show'])->name('show');
+    Route::post('/{id}/complete', [DeportationTravelController::class, 'complete'])->name('complete');
+    Route::delete('/{id}', [DeportationTravelController::class, 'destroy'])->name('destroy');
+});
 
+Route::get("ShelterContract/deportation/{id}/activity-log", [ShelterContractController::class, "getActivityLog"])->name("ShelterContract.deportation.activity-log");

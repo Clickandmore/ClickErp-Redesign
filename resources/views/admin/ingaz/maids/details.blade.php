@@ -56,37 +56,37 @@
 
                     <div class="col-md-4 mb-3">
                         <div class="p-3 border rounded">
-                            <span class="fw-bold">Nationality:</span>
+                            <span class="fw-bold">{{ helperTrans('web.nationality') }}:</span>
                             <h5 class="d-inline">{{ $maid->nationality->sub_title }}</h5>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
                         <div class="p-3 border rounded">
-                            <span class="fw-bold">Salary:</span>
+                            <span class="fw-bold">{{ helperTrans('web.salary') }}:</span>
                             <h5 class="d-inline">{{ $maid->salary }} ر.س</h5>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
                         <div class="p-3 border rounded">
-                            <span class="fw-bold">Passport Number:</span>
+                            <span class="fw-bold">{{ helperTrans('web.passport_number') }}:</span>
                             <h5 class="d-inline">{{ $maid->passport_num }}</h5>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
                         <div class="p-3 border rounded">
-                            <span class="fw-bold">Experience Years:</span>
+                            <span class="fw-bold">{{ helperTrans('web.experience_years') }}:</span>
                             <h5 class="d-inline">{{ $maid->experience_years }}</h5>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
                         <div class="p-3 border rounded">
-                            <span class="fw-bold">Religion:</span>
+                            <span class="fw-bold">{{ helperTrans('web.religion') }}:</span>
                             <h5 class="d-inline">{{ $maid->religion->title }}</h5>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
                         <div class="p-3 border rounded">
-                            <span class="fw-bold">Recruitment Price:</span>
+                            <span class="fw-bold">{{ helperTrans('web.recruitment_price') }}:</span>
                             <h5 class="d-inline">{{ $maid->nationality->price }} ر.س</h5>
                         </div>
                     </div>

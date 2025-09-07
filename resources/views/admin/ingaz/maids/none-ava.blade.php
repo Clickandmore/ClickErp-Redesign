@@ -385,7 +385,7 @@
         </table>
     </div>
 
-    {{-- Modal view removed --}}
+    @include('web.ingaz.maids.sub.maid_modal_view')
 
 @else
     @include('components.no_permissions')

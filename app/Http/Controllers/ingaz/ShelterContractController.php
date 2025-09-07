@@ -45,6 +45,12 @@ class ShelterContractController extends Controller
                 });
             })->count();
 
+        // العاملات المتاحة للاستلام الفوري (يرغبن بالعمل)
+        $availableForInstantReceipt = Contract::where('status', ContractStatusEnum::Shelter->value)
+            ->whereHas('info', function($query) {
+                $query->where('wants_to_work', 'yes');
+            })->count();
+
         // حساب حالة الضمان بناءً على تاريخ الوصول
         $today = now();
         $withinGuarantee = Contract::where('status', ContractStatusEnum::Shelter->value)
@@ -87,6 +93,12 @@ class ShelterContractController extends Controller
                 });
             })->count();
 
+        // العاملات المتاحة للاستلام الفوري (يرغبن بالعمل)
+        $availableForInstantReceipt = Contract::where('status', ContractStatusEnum::Shelter->value)
+            ->whereHas('info', function($query) {
+                $query->where('wants_to_work', 'yes');
+            })->count();
+
         // Get filter options
         $nationalities = Nationality::with('translations')->get();
         $shelters = ShelterPlaces::with('translations')->get();
@@ -98,6 +110,7 @@ class ShelterContractController extends Controller
             'undecided',
             'withinGuarantee',
             'expiredGuarantee',
+            'availableForInstantReceipt',
             'nationalities',
             'shelters'
         ));
@@ -444,6 +457,7 @@ class ShelterContractController extends Controller
             'salary_final_status' => 'required|in:received,not_received',
             'duration_from_enter' => 'required',
             'wants_to_work' => 'required|in:yes,no,unknown',
+            'is_available_for_instant' => 'required|boolean',
             'back_reasons' => 'nullable|string',
             'arrival_date' => 'required|date',
         ]);
@@ -456,6 +470,7 @@ class ShelterContractController extends Controller
             'salary_final_status' => $request->salary_final_status,
             'duration_from_enter' => $request->duration_from_enter,
             'wants_to_work' => $request->wants_to_work,
+            'is_available_for_instant' => $request->is_available_for_instant,
             'back_reasons' => $request->back_reasons,
             'arrival_date' => $request->arrival_date,
         ]);
@@ -591,11 +606,58 @@ class ShelterContractController extends Controller
      */
     public function deportationStage(Request $request)
     {
-
-
         $filterStatus = Request('s');
 
+        // حساب الإحصائيات لمرحلة الترحيل
+        $deportationContracts = Contract::where('status', ContractStatusEnum::Shelter->value)
+            ->whereHas('info', function ($query) {
+                $query->where('wants_to_work', 'no');
+            });
+
+        // إجمالي العقود في مرحلة الترحيل
+        $totalDeportation = $deportationContracts->count();
+
+        // العقود التي لم تبدأ إجراءات الترحيل بعد
+        $notStarted = $deportationContracts->clone()
+            ->whereDoesntHave('deportationProcedure')
+            ->count();
+
+        // العقود قيد التنفيذ (لديها إجراءات ترحيل ولكن لم تكتمل)
+        $inProgress = $deportationContracts->clone()
+            ->whereHas('deportationProcedure', function($query) {
+                $query->where('status', 'pending');
+            })
+            ->count();
+
+        // العقود التي تم حجز التذاكر لها
+        $ticketsBooked = $deportationContracts->clone()
+            ->whereHas('deportationProcedure', function($query) {
+                $query->where('has_final_exit', true)
+                      ->whereNotNull('final_exit_date');
+            })
+            ->count();
+
+        // العقود التي تم ترحيلها (مكتملة)
+        $completed = $deportationContracts->clone()
+            ->whereHas('deportationProcedure', function($query) {
+                $query->where('status', 'completed');
+            })
+            ->count();
+
         if ($request->ajax()) {
+            // إذا كان الطلب للإحصائيات فقط
+            if ($request->has('statistics') && $request->input('statistics') == 'true') {
+                return response()->json([
+                    'statistics' => [
+                        'total' => $totalDeportation,
+                        'not_started' => $notStarted,
+                        'in_progress' => $inProgress,
+                        'tickets_booked' => $ticketsBooked,
+                        'completed' => $completed
+                    ]
+                ]);
+            }
+
             try {
                 $rows = Contract::where('status', ContractStatusEnum::Shelter->value)
                     ->with([
@@ -646,6 +708,16 @@ class ShelterContractController extends Controller
         $data["nationalities"] = \App\Models\ingaz\Nationality::with('translations')->get();
         $data["shelterPlaces"] = \App\Models\ShelterPlaces::with('translations')->get();
         $data["jobTypes"] = \App\Models\ingaz\JobType::with('translations')->get();
+
+        // إضافة الإحصائيات للبيانات المرسلة للعرض
+        $data["statistics"] = [
+            'total' => $totalDeportation,
+            'not_started' => $notStarted,
+            'in_progress' => $inProgress,
+            'tickets_booked' => $ticketsBooked,
+            'completed' => $completed
+        ];
+
         return view($this->folderPath . '.deportation-stage', $data);
     }
 
@@ -808,6 +880,46 @@ class ShelterContractController extends Controller
             $rows->whereHas('info', function ($query) use ($returnDate) {
                 $query->whereDate('maid_date_back', $returnDate);
             });
+        }
+
+        // فلتر الاستلام الفوري (العاملات التي ترغب بالعمل)
+        if ($request->filled('instant_receipt')) {
+            $instantReceipt = $request->input('instant_receipt');
+            if ($instantReceipt === 'yes') {
+                $rows->whereHas('info', function ($query) {
+                    $query->where('wants_to_work', 'yes');
+                });
+            } elseif ($instantReceipt === 'no') {
+                $rows->whereHas('info', function ($query) {
+                    $query->where('wants_to_work', '!=', 'yes');
+                });
+            }
+        }
+
+        // فلتر حالة الإجراءات لمرحلة الترحيل
+        if ($request->filled('procedure_status')) {
+            $procedureStatus = $request->input('procedure_status');
+
+            if ($procedureStatus === 'not_started') {
+                // العقود التي لم تبدأ إجراءات الترحيل بعد
+                $rows->whereDoesntHave('deportationProcedure');
+            } elseif ($procedureStatus === 'in_progress') {
+                // العقود قيد التنفيذ (لديها إجراءات ترحيل ولكن لم تكتمل)
+                $rows->whereHas('deportationProcedure', function($query) {
+                    $query->where('status', 'pending');
+                });
+            } elseif ($procedureStatus === 'tickets_booked') {
+                // العقود التي تم حجز التذاكر لها
+                $rows->whereHas('deportationProcedure', function($query) {
+                    $query->where('has_final_exit', true)
+                          ->whereNotNull('final_exit_date');
+                });
+            } elseif ($procedureStatus === 'completed') {
+                // العقود التي تم ترحيلها (مكتملة)
+                $rows->whereHas('deportationProcedure', function($query) {
+                    $query->where('status', 'completed');
+                });
+            }
         }
 
         return $rows;
@@ -1098,6 +1210,20 @@ class ShelterContractController extends Controller
                         return '<span class="badge bg-secondary">غير محدد</span>';
                     }
                 })
+                ->addColumn('instant_receipt_availability', function ($row) {
+                    $isAvailable = $row->info ? $row->info->is_available_for_instant : false;
+                    $workWillingness = $row->info ? $row->info->wants_to_work : null;
+
+                    if ($workWillingness === 'yes' && $isAvailable) {
+                        return '<span class="badge bg-success"><i class="fas fa-eye me-1"></i>متاحة للاستلام الفوري</span>';
+                    } elseif ($workWillingness === 'yes' && !$isAvailable) {
+                        return '<span class="badge bg-warning"><i class="fas fa-eye-slash me-1"></i>غير متاحة للاستلام الفوري</span>';
+                    } elseif ($workWillingness === 'no') {
+                        return '<span class="badge bg-secondary"><i class="fas fa-ban me-1"></i>لا ترغب بالعمل</span>';
+                    } else {
+                        return '<span class="badge bg-secondary"><i class="fas fa-question me-1"></i>غير محدد</span>';
+                    }
+                })
                 ->addColumn('deportation_status', function ($row) {
                     // التحقق من وجود إجراءات ترحيل
                     $procedure = \App\Models\DeportationProcedure::where('contract_id', $row->id)->first();
@@ -1157,6 +1283,18 @@ class ShelterContractController extends Controller
                                     <i class="fas fa-exchange-alt"></i> تغيير رغبة العمل
                                 </a></li>';
 
+                    // تغيير حالة الاستلام الفوري (فقط إذا كانت ترغب بالعمل)
+                    if ($row->info && $row->info->wants_to_work === 'yes') {
+                        $currentStatus = $row->info->is_available_for_instant ? 'متاحة' : 'غير متاحة';
+                        $newStatus = $row->info->is_available_for_instant ? 'إخفاء من الموقع' : 'إظهار على الموقع';
+                        $icon = $row->info->is_available_for_instant ? 'fa-eye-slash' : 'fa-eye';
+                        $badgeClass = $row->info->is_available_for_instant ? 'text-success' : 'text-warning';
+
+                        $actions .= '<li><a class="dropdown-item toggle-instant-receipt ' . $badgeClass . '" href="#" data-id="' . $row->id . '" data-current="' . ($row->info->is_available_for_instant ? '1' : '0') . '" data-text="تغيير حالة الاستلام الفوري من ' . $currentStatus . ' إلى ' . $newStatus . '">
+                                        <i class="fas ' . $icon . ' me-1"></i> ' . $newStatus . '
+                                    </a></li>';
+                    }
+
                     $actions .= '<li><hr class="dropdown-divider"></li>';
 
                     // حذف من الإيواء (متاح دائماً للعقود في الإيواء)
@@ -1170,6 +1308,12 @@ class ShelterContractController extends Controller
                         $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="transfer" data-id="' . $row->id . '" data-text="سيتم فتح صفحة إضافة طلب نقل كفالة">
                                         <i class="fas fa-exchange-alt"></i> إضافة طلب نقل كفالة
                                     </a></li>';
+
+                        // إضافة معلومات إضافية
+                        $actions .= '<li><div class="dropdown-item-text text-muted small">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        <strong>الحالة الحالية:</strong> ' . ($row->info->is_available_for_instant ? 'متاحة للاستلام الفوري' : 'غير متاحة للاستلام الفوري') . '
+                                    </div></li>';
                     }
 
                     // إجراءات الترحيل (فقط إذا كانت لا ترغب بالعمل)
@@ -1196,7 +1340,7 @@ class ShelterContractController extends Controller
 
                     return $actions;
                 })
-                ->rawColumns(['maid_data', 'client', 'nationality', 'shelter', 'receipt_source', 'arrival_date', 'return_date', 'guarantee_status', 'work_willingness', 'deportation_status', 'actions'])
+                ->rawColumns(['maid_data', 'client', 'nationality', 'shelter', 'receipt_source', 'arrival_date', 'return_date', 'guarantee_status', 'work_willingness', 'instant_receipt_availability', 'deportation_status', 'actions'])
                 ->toJson();
 
             \Log::info('DataTables processing completed');
@@ -1308,6 +1452,25 @@ class ShelterContractController extends Controller
                 ], 400);
             }
 
+            // التحقق من التواريخ المستقبلية
+            $today = now()->format('Y-m-d');
+            $dateFields = [
+                'salary_received_date' => $request->salary_received_date,
+                'passport_date' => $request->passport_date,
+                'deportation_letter_date' => $request->deportation_letter_date,
+                'settlement_date' => $request->settlement_date,
+                'final_exit_date' => $request->final_exit_date
+            ];
+
+            foreach ($dateFields as $field => $date) {
+                if ($date && $date > $today) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "التاريخ في حقل {$field} لا يمكن أن يكون مستقبلياً"
+                    ], 400);
+                }
+            }
+
             // التحقق من طلب تأكيد الإجراءات
             if ($request->has('confirm_procedures') && $request->confirm_procedures) {
                 if (!$procedure->areAllQuestionsAnswered()) {
@@ -1317,11 +1480,19 @@ class ShelterContractController extends Controller
                     ], 400);
                 }
 
+                $oldStatus = $procedure->procedures_confirmed;
                 $procedure->update([
                     'procedures_confirmed' => true,
                     'confirmed_at' => now(),
                     'confirmed_by' => auth('admin')->id()
                 ]);
+
+                // تسجيل التحرك
+                \App\Models\DeportationProcedureLog::logConfirmation(
+                    $procedure->id,
+                    auth('admin')->id(),
+                    'تم تأكيد اكتمال الإجراءات'
+                );
 
                 return response()->json([
                     'success' => true,
@@ -1347,12 +1518,20 @@ class ShelterContractController extends Controller
                     ], 400);
                 }
 
+                $oldStatus = $procedure->status;
                 // إكمال الترحيل
                 $procedure->update([
                     'status' => 'completed',
                     'completed_at' => now(),
                     'completed_by' => auth('admin')->id()
                 ]);
+
+                // تسجيل التحرك
+                \App\Models\DeportationProcedureLog::logCompletion(
+                    $procedure->id,
+                    auth('admin')->id(),
+                    'تم إكمال إجراءات الترحيل'
+                );
 
                 // تحديث حالة العقد إلى "تم الترحيل"
                 $procedure->contract->update([
@@ -1376,6 +1555,13 @@ class ShelterContractController extends Controller
                 ]);
             }
 
+            // حفظ القيم القديمة لتسجيل التحركات
+            $oldValues = $procedure->only([
+                'salary_received', 'salary_received_date', 'has_passport', 'passport_date',
+                'has_deportation_letter', 'deportation_letter_date', 'has_settlement_session',
+                'settlement_date', 'has_final_exit', 'final_exit_date', 'notes'
+            ]);
+
             // Update procedure data
             $procedure->update([
                 'salary_received' => $request->input('salary_received') == '1' ? true : false,
@@ -1385,29 +1571,151 @@ class ShelterContractController extends Controller
                 'has_deportation_letter' => $request->input('has_deportation_letter') == '1' ? true : false,
                 'deportation_letter_date' => $request->input('has_deportation_letter') == '1' ? $request->deportation_letter_date : null,
                 'has_settlement_session' => $request->input('has_settlement_session') == '1' ? true : false,
-                'settlement_date' => $request->input('has_settlement_session') == '1' ? $request->settlement_date : null,
+                'settlement_date' => $request->settlement_date, // حفظ التاريخ دائماً في جلسة التسوية
                 'has_final_exit' => $request->input('has_final_exit') == '1' ? true : false,
                 'final_exit_date' => $request->input('has_final_exit') == '1' ? $request->final_exit_date : null,
                 'notes' => $request->notes,
                 'status' => 'in_progress'
             ]);
 
-            // معالجة المرفقات
-            if ($request->hasFile('attachments')) {
-                $attachments = [];
-                foreach ($request->file('attachments') as $file) {
-                    $path = $file->store('deportation-attachments', 'public');
-                    $attachments[] = [
-                        'name' => $file->getClientOriginalName(),
-                        'path' => $path,
-                        'uploaded_at' => now()
-                    ];
+            // تسجيل التحركات للتغييرات
+            $newValues = $procedure->only([
+                'salary_received', 'salary_received_date', 'has_passport', 'passport_date',
+                'has_deportation_letter', 'deportation_letter_date', 'has_settlement_session',
+                'settlement_date', 'has_final_exit', 'final_exit_date', 'notes'
+            ]);
+
+            foreach ($newValues as $field => $newValue) {
+                $oldValue = $oldValues[$field];
+                if ($oldValue !== $newValue) {
+                    \App\Models\DeportationProcedureLog::logUpdate(
+                        $procedure->id,
+                        auth('admin')->id(),
+                        $field,
+                        $oldValue,
+                        $newValue,
+                        "تم تحديث {$this->getFieldDisplayName($field)}"
+                    );
                 }
-                $procedure->attachments = array_merge($procedure->attachments ?? [], $attachments);
-                $procedure->save();
             }
 
-            // لا ننقل العقد تلقائياً - يجب أن يتم ذلك فقط عند النقر على "إكمال الترحيل"
+            // معالجة المرفقات لكل مرحلة
+            $allAttachments = [];
+
+            // مرفقات استلام الراتب
+            if ($request->hasFile('salary_attachments')) {
+                foreach ($request->file('salary_attachments') as $file) {
+                    $path = $file->store('deportation-attachments/salary', 'public');
+                    $allAttachments[] = [
+                        'name' => $file->getClientOriginalName(),
+                        'path' => $path,
+                        'type' => 'salary',
+                        'uploaded_at' => now()
+                    ];
+
+                    \App\Models\DeportationProcedureLog::logAttachmentAdded(
+                        $procedure->id,
+                        auth('admin')->id(),
+                        $file->getClientOriginalName(),
+                        "تم إضافة مرفق استلام الراتب: {$file->getClientOriginalName()}"
+                    );
+                }
+            }
+
+            // مرفقات الجواز
+            if ($request->hasFile('passport_attachments')) {
+                \Log::info('Passport attachments found', [
+                    'count' => count($request->file('passport_attachments')),
+                    'files' => array_map(function($file) {
+                        return $file->getClientOriginalName();
+                    }, $request->file('passport_attachments'))
+                ]);
+
+                foreach ($request->file('passport_attachments') as $file) {
+                    $path = $file->store('deportation-attachments/passport', 'public');
+                    $allAttachments[] = [
+                        'name' => $file->getClientOriginalName(),
+                        'path' => $path,
+                        'type' => 'passport',
+                        'uploaded_at' => now()
+                    ];
+
+                    \App\Models\DeportationProcedureLog::logAttachmentAdded(
+                        $procedure->id,
+                        auth('admin')->id(),
+                        $file->getClientOriginalName(),
+                        "تم إضافة مرفق الجواز: {$file->getClientOriginalName()}"
+                    );
+                }
+            } else {
+                \Log::info('No passport attachments found');
+            }
+
+            // مرفقات خطاب الترحيل
+            if ($request->hasFile('letter_attachments')) {
+                foreach ($request->file('letter_attachments') as $file) {
+                    $path = $file->store('deportation-attachments/letter', 'public');
+                    $allAttachments[] = [
+                        'name' => $file->getClientOriginalName(),
+                        'path' => $path,
+                        'type' => 'letter',
+                        'uploaded_at' => now()
+                    ];
+
+                    \App\Models\DeportationProcedureLog::logAttachmentAdded(
+                        $procedure->id,
+                        auth('admin')->id(),
+                        $file->getClientOriginalName(),
+                        "تم إضافة مرفق خطاب الترحيل: {$file->getClientOriginalName()}"
+                    );
+                }
+            }
+
+            // مرفقات جلسة التسوية
+            if ($request->hasFile('settlement_attachments')) {
+                foreach ($request->file('settlement_attachments') as $file) {
+                    $path = $file->store('deportation-attachments/settlement', 'public');
+                    $allAttachments[] = [
+                        'name' => $file->getClientOriginalName(),
+                        'path' => $path,
+                        'type' => 'settlement',
+                        'uploaded_at' => now()
+                    ];
+
+                    \App\Models\DeportationProcedureLog::logAttachmentAdded(
+                        $procedure->id,
+                        auth('admin')->id(),
+                        $file->getClientOriginalName(),
+                        "تم إضافة مرفق جلسة التسوية: {$file->getClientOriginalName()}"
+                    );
+                }
+            }
+
+            // مرفقات الخروج النهائي
+            if ($request->hasFile('exit_attachments')) {
+                foreach ($request->file('exit_attachments') as $file) {
+                    $path = $file->store('deportation-attachments/exit', 'public');
+                    $allAttachments[] = [
+                        'name' => $file->getClientOriginalName(),
+                        'path' => $path,
+                        'type' => 'exit',
+                        'uploaded_at' => now()
+                    ];
+
+                    \App\Models\DeportationProcedureLog::logAttachmentAdded(
+                        $procedure->id,
+                        auth('admin')->id(),
+                        $file->getClientOriginalName(),
+                        "تم إضافة مرفق الخروج النهائي: {$file->getClientOriginalName()}"
+                    );
+                }
+            }
+
+            // حفظ جميع المرفقات
+            if (!empty($allAttachments)) {
+                $procedure->attachments = array_merge($procedure->attachments ?? [], $allAttachments);
+                $procedure->save();
+            }
 
             return response()->json([
                 'success' => true,
@@ -1611,6 +1919,108 @@ class ShelterContractController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ أثناء تغيير رغبة العمل'
+            ], 500);
+        }
+    }
+
+    private function getFieldDisplayName($field)
+    {
+        $fields = [
+            "salary_received" => "استلام الراتب",
+            "salary_received_date" => "تاريخ استلام الراتب",
+            "has_passport" => "وجود الجواز",
+            "passport_date" => "تاريخ الجواز",
+            "has_deportation_letter" => "خطاب الترحيل",
+            "deportation_letter_date" => "تاريخ خطاب الترحيل",
+            "has_settlement_session" => "جلسة التسوية",
+            "settlement_date" => "تاريخ جلسة التسوية",
+            "has_final_exit" => "الخروج النهائي",
+            "final_exit_date" => "تاريخ الخروج النهائي",
+            "notes" => "الملاحظات"
+        ];
+
+        return $fields[$field] ?? $field;
+    }
+    public function getActivityLog($id)
+    {
+        try {
+            $procedure = \App\Models\DeportationProcedure::findOrFail($id);
+            $logs = $procedure->logs()->with("admin")->get();
+
+            $html = view("admin.ingaz.ShelterContract.partials.activity-log", compact("logs"))->render();
+
+            return response()->json([
+                "success" => true,
+                "html" => $html
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                "success" => false,
+                "message" => "حدث خطأ في تحميل سجل التحركات"
+            ], 500);
+        }
+    }
+
+    /**
+     * تغيير حالة الاستلام الفوري
+     */
+    public function toggleInstantReceipt(Request $request, $id)
+    {
+        try {
+            $contract = Contract::with(['maid', 'info'])->findOrFail($id);
+
+            // التحقق من أن العقد في الإيواء
+            if ($contract->status !== ContractStatusEnum::Shelter->value) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العقد ليس في الإيواء'
+                ], 400);
+            }
+
+            // التحقق من أن العاملة ترغب بالعمل
+            if (!$contract->info || $contract->info->wants_to_work !== 'yes') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العاملة لا ترغب بالعمل - لا يمكن تغيير حالة الاستلام الفوري'
+                ], 400);
+            }
+
+            $oldStatus = $contract->info->is_available_for_instant;
+            $newStatus = !$oldStatus;
+
+            // تحديث حالة الاستلام الفوري
+            $contract->info->update([
+                'is_available_for_instant' => $newStatus
+            ]);
+
+            // تسجيل التغيير في اللوج
+            \Log::info('Instant receipt availability changed for contract', [
+                'contract_id' => $contract->id,
+                'maid_name' => $contract->maid->name,
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+                'changed_by' => auth('admin')->id()
+            ]);
+
+            $statusText = $newStatus ? 'متاحة للاستلام الفوري' : 'غير متاحة للاستلام الفوري';
+            $actionText = $newStatus ? 'إظهار' : 'إخفاء';
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم ' . $actionText . ' العاملة من الموقع الخارجي بنجاح',
+                'data' => [
+                    'old_status' => $oldStatus,
+                    'new_status' => $newStatus,
+                    'maid_name' => $contract->maid->name,
+                    'status_text' => $statusText
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error toggling instant receipt: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تغيير حالة الاستلام الفوري'
             ], 500);
         }
     }

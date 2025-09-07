@@ -300,6 +300,13 @@
                             <option value="backout" {{ ($request->cv_status == 'backout') ? 'selected' : '' }}>باك اوت</option>
                         </select>
                     </div>
+                    <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
+                        <select name="experience_status" class="form-control">
+                            <option value="">جميع حالات الخبرة</option>
+                            <option value="has_experience" {{ ($request->experience_status == "has_experience") ? "selected" : "" }}>سبق لها العمل</option>
+                            <option value="no_experience" {{ ($request->experience_status == "no_experience") ? "selected" : "" }}>لم يسبق لها العمل</option>
+                        </select>
+                    </div>
                     <div class="col-lg-3 col-md-3 col-sm-6 mb-2">
                         <input type="text" class="form-control" name="daterange" placeholder="مدى التاريخ" data-separator=" - " autocomplete="off" data-advanced-range="true">
                     </div>
@@ -362,7 +369,7 @@
         </table>
     </div>
 
-    {{-- Modal view removed --}}
+    @include('web.ingaz.maids.sub.maid_modal_view')
 
 @else
     @include('components.no_permissions')
@@ -774,3 +781,4 @@
 
     </script>
 @endsection
+

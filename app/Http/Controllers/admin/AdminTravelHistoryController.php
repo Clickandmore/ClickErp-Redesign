@@ -38,24 +38,24 @@ class AdminTravelHistoryController extends Controller
                 $search = $request->search;
                 $query->where(function ($q) use ($search) {
                     $q->where('travel_type', 'like', '%' . $search . '%')
-                        ->orWhere('travel_with', 'like', '%' . $search . '%')
-                        ->orWhere('notes', 'like', '%' . $search . '%')
-                        ->orWhere('status', 'like', '%' . $search . '%')
-                        ->orWhere('arrival_airport', 'like', '%' . $search . '%')
-                        ->orWhere('arrival_date', 'like', '%' . $search . '%')
-                        ->orWhere('arrival_time', 'like', '%' . $search . '%')
-                        ->orWhere('flight_company', 'like', '%' . $search . '%')
-                        ->orWhere('flight_number', 'like', '%' . $search . '%')
-                        ->orWhere('order_id', 'like', '%' . $search . '%')
-                        ->orWhereHas('user', function($q) use ($search) {
-                            $q->where('name', 'like', '%' . $search . '%');
-                        })
-                        ->orWhereHas('maid', function($q) use ($search) {
+                    ->orWhere('travel_with', 'like', '%' . $search . '%')
+                    ->orWhere('notes', 'like', '%' . $search . '%')
+                    ->orWhere('status', 'like', '%' . $search . '%')
+                    ->orWhere('arrival_airport', 'like', '%' . $search . '%')
+                    ->orWhere('arrival_date', 'like', '%' . $search . '%')
+                    ->orWhere('arrival_time', 'like', '%' . $search . '%')
+                    ->orWhere('flight_company', 'like', '%' . $search . '%')
+                    ->orWhere('flight_number', 'like', '%' . $search . '%')
+                    ->orWhere('order_id', 'like', '%' . $search . '%')
+                    ->orWhereHas('user', function($q) use ($search) {
+                        $q->where('name', 'like', '%' . $search . '%');
+                    })
+                    ->orWhereHas('maid', function($q) use ($search) {
                             $q->where('passport_num', 'like', '%' . $search . '%')
                                 ->orWhere('name', 'like', '%' . $search . '%');
-                        });
-                });
-            }
+                    });
+            });
+        }
 
             if ($request->filled('travel_type')) {
                 $query->where('travel_type', $request->travel_type);

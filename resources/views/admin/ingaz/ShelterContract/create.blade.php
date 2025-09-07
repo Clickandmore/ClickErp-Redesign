@@ -90,7 +90,8 @@
 
             <div class="col-4 mt-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.maid date back")}}</label>
-                <input type="date" name="maid_date_back" class="form-control" data-validation="required">
+                <input type="date" name="maid_date_back" class="form-control" data-validation="required" readonly>
+                <small class="form-text text-muted">سيتم تعيين تاريخ الإرجاع تلقائياً إلى اليوم الحالي</small>
             </div>
 
             <div class="col-4 mt-4">
@@ -561,6 +562,28 @@
                 $('input[name="duration_from_enter"]').removeClass('border-success border-warning').addClass('border-danger');
             }
         }
+
+        // تعيين تاريخ الإرجاع في نفس اليوم تلقائياً
+        function setReturnDateToToday() {
+            let today = new Date();
+            let year = today.getFullYear();
+            let month = String(today.getMonth() + 1).padStart(2, '0');
+            let day = String(today.getDate()).padStart(2, '0');
+            let todayString = year + '-' + month + '-' + day;
+
+            $('input[name="maid_date_back"]').val(todayString);
+            console.log('تم تعيين تاريخ الإرجاع إلى اليوم:', todayString);
+        }
+
+        // تعيين تاريخ الإرجاع عند تحميل الصفحة
+        $(document).ready(function() {
+            setReturnDateToToday();
+        });
+
+        // تعيين تاريخ الإرجاع عند تغيير العقد
+        $('#contract_id').on('change', function() {
+            setReturnDateToToday();
+        });
     });
 </script>
 

@@ -57,7 +57,7 @@ class UserController extends Controller
 
                     // Show client details
                     if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_SHOW)) {
-                        $buttons .= '<a href="' . route($this->mainRoute . '.show', $row->id) . '" class="btn btn-sm btn-info me-1">' . __('ingaz.show') . '</a> ';
+                        $buttons .= '<a href="' . route($this->mainRoute . '.show', $row->id) . '" class="btn btn-sm btn-info me-1" title="عرض التفاصيل وطلبات نقل الكفالة">' . __('ingaz.show') . '</a> ';
                     }
 
                     // Edit client
@@ -187,7 +187,21 @@ class UserController extends Controller
         }
 
         $client = objModel::findOrFail($id);
-        return view($this->folderPath . '.show', compact('client'));
+
+        // جلب طلبات نقل الكفالة للعميل
+        $sponsorshipTransfers = \App\Models\SponsorshipTransfer::with([
+            'contract',
+            'oldSponsor',
+            'newSponsor',
+            'approvedBy',
+            'transferredBy',
+            'failedBy'
+        ])->where(function($query) use ($client) {
+            $query->where('old_sponsor_id', $client->id)
+                  ->orWhere('new_sponsor_id', $client->id);
+        })->orderBy('created_at', 'desc')->get();
+
+        return view($this->folderPath . '.show', compact('client', 'sponsorshipTransfers'));
     }
 
     /**

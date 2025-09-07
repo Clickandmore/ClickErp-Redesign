@@ -189,10 +189,21 @@
                 </div>
 
                 <div class="col-4">
-                    <label for="TextInput" class="form-label">
-                        {{helperTrans("ingaz.experience_years")}} <small class="text-muted">(اختياري)</small>
+                    <label for="experience_status" class="form-label">
+                        حالة الخبرة <small class="text-muted">(مطلوب)</small>
                     </label>
-                    <select name="experience_years" class="form-control">
+                    <select name="experience_status" id="experience_status" class="form-control" required>
+                        <option value="">اختر حالة الخبرة</option>
+                        <option value="has_experience">سبق لها العمل</option>
+                        <option value="no_experience">لم يسبق لها العمل</option>
+                    </select>
+                </div>
+
+                <div class="col-4" id="experience_years_container">
+                    <label for="TextInput" class="form-label">
+                        {{helperTrans("ingaz.experience_years")}} <small class="text-muted"></small>
+                    </label>
+                    <select name="experience_years" id="experience_years" class="form-control">
                         <option value="">اختر سنوات الخبرة</option>
                         @for($i = 1; $i <= 10; $i++)
                             <option value="{{$i}}">{{$i}} {{$i == 1 ? 'سنة' : 'سنوات'}}</option>
@@ -261,6 +272,10 @@
             $('.js-example-basic-multiple').select2();
 
             // Function to handle fields visibility based on job type
+            // هذه الدالة تتحكم في إظهار/إخفاء الحقول بناءً على نوع السيرة المختار
+            // استقدام: عاملة جديدة من الخارج
+            // إستلام فورى: نقل عمالة موجودة من موقع إلى آخر
+            // ايجار عمالة: تأجير عمالة لفترة محددة
             function toggleFields() {
                 var selectedType = $('select[name="type_id"] option:selected').text();
                 console.log('Selected type:', selectedType);
@@ -301,7 +316,8 @@
                     $('input[name="id_number"], input[name="id_expiry_date"]').removeAttr('required');
                 } else if (selectedType === 'إستلام فورى') {
                     console.log('Hiding fields for إستلام فورى');
-                    // Hide multiple fields for إستلام فورى
+                    // إستلام فورى: خدمة نقل العمالة من موقع إلى آخر بدون استقدام جديد
+                    // يتم إخفاء الحقول غير المطلوبة لهذا النوع من الخدمة
                     idFields.hide();
                     heightWeightFields.hide();
                     maritalStatusField.hide();
@@ -476,7 +492,8 @@
                                     $('#price').val(rentalCost);
                                 }
                             } else if (selectedType === 'إستلام فورى') {
-                                // Set service transfer cost for immediate delivery
+                                // إستلام فورى: خدمة نقل العمالة من موقع إلى آخر
+                                // يتم تعيين تكلفة نقل الخدمات تلقائياً
                                 if (serviceTransferCost) {
                                     $('#price').val(serviceTransferCost);
                                 }

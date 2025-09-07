@@ -192,14 +192,39 @@ class RentContractController extends Controller
         return view($this->folderPath . '.index', $data);
     }
 
-    public function create(RecruitmentOfficeAction $officeAction)
+    public function create(RecruitmentOfficeAction $officeAction, Request $request)
     {
+        \Log::info('RentContract create method called', [
+            'request_params' => $request->all(),
+            'has_order_id' => $request->has('order_id'),
+            'order_id' => $request->get('order_id')
+        ]);
+
         // الحصول على الطلبات المنتهية من نوع تأجير (job_type_id = 2)
         $endedOrders = Order::where('job_type_id', 2)
                            ->whereIn('status', [OrderEnum::Done->value])
                            ->with(['user', 'maid'])
                            ->latest()
                            ->get();
+
+        // إذا تم تمرير order_id، احصل على بيانات الطلب
+        $selectedOrder = null;
+        if ($request->has('order_id')) {
+            $selectedOrder = Order::with(['user', 'maid', 'details.package'])
+                                ->where('job_type_id', 2)
+                                ->find($request->order_id);
+
+            \Log::info('Selected order for rent contract', [
+                'order_id' => $request->order_id,
+                'selected_order' => $selectedOrder ? [
+                    'id' => $selectedOrder->id,
+                    'user_id' => $selectedOrder->user_id,
+                    'maid_id' => $selectedOrder->maid_id,
+                    'user_name' => $selectedOrder->user ? $selectedOrder->user->name : null,
+                    'maid_name' => $selectedOrder->maid ? $selectedOrder->maid->name : null,
+                ] : null
+            ]);
+        }
 
         // الحصول على العاملات المتاحة من نوع تأجير
         $availableRentalMaids = Maid::Shown()
@@ -234,6 +259,18 @@ class RentContractController extends Controller
         $hasEndedOrders = $endedOrders->count() > 0;
         $countries = Country::active()->ordered()->get();
 
+        \Log::info('RentContract create view data', [
+            'selectedOrder' => $selectedOrder ? [
+                'id' => $selectedOrder->id,
+                'user_id' => $selectedOrder->user_id,
+                'maid_id' => $selectedOrder->maid_id,
+                'user_name' => $selectedOrder->user ? $selectedOrder->user->name : null,
+                'maid_name' => $selectedOrder->maid ? $selectedOrder->maid->name : null,
+            ] : null,
+            'availableRentalMaids_count' => $availableRentalMaids->count(),
+            'existing_clients_count' => $existing_clients->count()
+        ]);
+
         return view($this->folderPath . '.create', compact(
             'endedOrders',
             'availableRentalMaids',
@@ -242,7 +279,8 @@ class RentContractController extends Controller
             'existing_clients',
             'offices',
             'hasEndedOrders',
-            'countries'
+            'countries',
+            'selectedOrder'
         ));
     }
 

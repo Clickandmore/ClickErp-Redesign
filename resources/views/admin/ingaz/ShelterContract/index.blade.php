@@ -6,6 +6,24 @@
 <link rel="stylesheet" href="{{asset("admin")}}/custom/admin-tables.css">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
+<style>
+.instant-receipt-card {
+    border-left: 4px solid #ffc107;
+}
+
+.instant-receipt-card .card-body {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+}
+
+.instant-receipt-card .text-xs {
+    color: #856404;
+}
+
+.instant-receipt-card .h5 {
+    color: #856404;
+}
+</style>
+
 @endsection
 
 @section('page-title')
@@ -65,7 +83,7 @@
                             <div class="row no-gutters align-items-center">
                                 <div class="col mr-2">
                                     <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                        ترغب بالعمل
+                                        متاح للنقل
                                     </div>
                                     <div class="h5 mb-0 font-weight-bold">
                                         {{ $wantsToWork ?? 0 }}
@@ -85,10 +103,10 @@
                             <div class="row no-gutters align-items-center">
                                 <div class="col mr-2">
                                     <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                        ضمن الضمان
+                                        في مرحلة الترحيل
                                     </div>
                                     <div class="h5 mb-0 font-weight-bold">
-                                        {{ $withinGuarantee ?? 0 }}
+                                        {{ $inDeportation ?? 0 }}
                                     </div>
                                 </div>
                                 <div class="col-auto">
@@ -113,6 +131,26 @@
                                 </div>
                                 <div class="col-auto">
                                     <i class="fas fa-exclamation-triangle fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6 mb-4">
+                    <div class="card statistics-card instant-receipt-card shadow h-100">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
+                                <div class="col mr-2">
+                                    <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                        متاحة للاستلام الفوري
+                                    </div>
+                                    <div class="h5 mb-0 font-weight-bold">
+                                        {{ $availableForInstantReceipt ?? 0 }}
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-bolt fa-2x text-warning"></i>
                                 </div>
                             </div>
                         </div>
@@ -198,6 +236,14 @@
                                 <label for="filterReturnDate" class="form-label">تاريخ العودة</label>
                                 <input type="date" id="filterReturnDate" class="form-control">
                             </div>
+                            <div class="col-md-3">
+                                <label for="filterInstantReceipt" class="form-label">الاستلام الفوري</label>
+                                <select id="filterInstantReceipt" class="form-select">
+                                    <option value="">جميع العاملات</option>
+                                    <option value="yes">متاحة للاستلام الفوري</option>
+                                    <option value="no">غير متاحة للاستلام الفوري</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="row mt-3">
                             <div class="col-12 text-end">
@@ -237,6 +283,7 @@
                                     <th>مصدر الاستلام</th>
                                     <th>حالة الضمان</th>
                                     <th>رغبة العمل</th>
+                                    <th>متاحة للاستلام الفوري</th>
                                     <th>الإجراءات</th>
                                 </tr>
                             </thead>
@@ -404,6 +451,7 @@
                     d.work_willingness = $('#filterWorkWillingness').val();
                     d.arrival_date = $('#filterArrivalDate').val();
                     d.return_date = $('#filterReturnDate').val();
+                    d.instant_receipt = $('#filterInstantReceipt').val();
                     d._timestamp = new Date().getTime(); // منع cache
                 },
                 dataSrc: function(json) {
@@ -443,6 +491,7 @@
                 { data: 'receipt_source', name: 'receipt_source', orderable: false },
                 { data: 'guarantee_status', name: 'guarantee_status', orderable: false },
                 { data: 'work_willingness', name: 'work_willingness', orderable: false },
+                { data: 'instant_receipt_availability', name: 'instant_receipt_availability', orderable: false },
                 { data: 'actions', name: 'actions', orderable: false, searchable: false }
             ],
             createdRow: function(row, data, dataIndex) {
@@ -476,6 +525,7 @@
             $('#filterWorkWillingness').val('');
             $('#filterArrivalDate').val('');
             $('#filterReturnDate').val('');
+            $('#filterInstantReceipt').val('');
             dataTable.ajax.reload();
         });
 
@@ -611,6 +661,48 @@
                         },
                         error: function(xhr) {
                             let errorMessage = 'حدث خطأ أثناء تغيير رغبة العمل';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                            }
+                            Swal.fire('خطأ!', errorMessage, 'error');
+                        }
+                    });
+                }
+            });
+        });
+
+        // Handle toggle instant receipt action
+        $(document).on('click', '.toggle-instant-receipt', function(e) {
+            e.preventDefault();
+            const contractId = $(this).data('id');
+            const currentStatus = $(this).data('current');
+            const actionText = $(this).data('text');
+
+            // Show confirmation
+            Swal.fire({
+                title: 'تأكيد تغيير حالة الاستلام الفوري',
+                text: actionText,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'نعم، تأكيد',
+                cancelButtonText: 'إلغاء'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Perform the toggle
+                    $.ajax({
+                        url: '{{ route("ShelterContract.toggleInstantReceipt", ":id") }}'.replace(':id', contractId),
+                        type: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}'
+                        },
+                        success: function(response) {
+                            Swal.fire('نجح!', response.message || 'تم تغيير حالة الاستلام الفوري بنجاح', 'success');
+                            dataTable.ajax.reload();
+                        },
+                        error: function(xhr) {
+                            let errorMessage = 'حدث خطأ أثناء تغيير حالة الاستلام الفوري';
                             if (xhr.responseJSON && xhr.responseJSON.message) {
                                 errorMessage = xhr.responseJSON.message;
                             }

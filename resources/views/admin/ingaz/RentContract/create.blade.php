@@ -365,6 +365,36 @@ $(document).ready(function() {
         width: '100%'
     });
 
+    // إذا كان هناك طلب محدد، اختر العميل والعاملة تلقائياً
+    @if(isset($selectedOrder) && $selectedOrder)
+        console.log('Selected order found:', {
+            id: '{{ $selectedOrder->id }}',
+            user_id: '{{ $selectedOrder->user_id }}',
+            maid_id: '{{ $selectedOrder->maid_id }}',
+            user_name: '{{ $selectedOrder->user ? $selectedOrder->user->name : "No user" }}',
+            maid_name: '{{ $selectedOrder->maid ? $selectedOrder->maid->name : "No maid" }}'
+        });
+
+        // انتظار تحميل Select2
+        setTimeout(function() {
+            // اختيار العميل
+            $('#new_existing_client_id').val('{{ $selectedOrder->user_id }}').trigger('change');
+
+            // اختيار العاملة
+            @if($selectedOrder->maid_id)
+                $('#maid_id').val('{{ $selectedOrder->maid_id }}').trigger('change');
+            @endif
+
+            // إضافة order_id مخفي
+            $('form').append('<input type="hidden" name="order_id" value="{{ $selectedOrder->id }}">');
+
+            // إظهار رسالة تأكيد
+            toastr.info('تم تحميل بيانات الطلب تلقائياً');
+        }, 1000);
+    @else
+        console.log('No selected order found');
+    @endif
+
     // معالج تغيير العميل المحدد
     $('#new_existing_client_id').on('change', function() {
         const selectedOption = $(this).find('option:selected');
