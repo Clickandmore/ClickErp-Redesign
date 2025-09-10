@@ -66,7 +66,7 @@ class OfficeController extends Controller
                     $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
                     // }
                     return $editButton . " " . $deleteButton;
-                })->rawColumns(['actions', 'license_number','title', 'nationality_id', 'office_number'])->make(true);
+                })->rawColumns(['actions', 'license_number', 'title', 'nationality_id', 'office_number'])->make(true);
         }
         $data["createRoute"] = route($this->mainRoute . ".create");
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
@@ -96,7 +96,7 @@ class OfficeController extends Controller
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function store(OfficeRequest           $request, objAction $action, JopTypeOfficeAction $jopTypeOfficeAction,
+    public function store(OfficeRequest     $request, objAction $action, JopTypeOfficeAction $jopTypeOfficeAction,
                           AdminOfficeAction $adminOfficeAction, AdminAction $adminAction)
     {
         $data = $request->only($this->postData);
@@ -109,15 +109,15 @@ class OfficeController extends Controller
                 'jop_type_id' => $jobTitleId,
             ]);
         }
-        $adminOfficeAction->store([
-            'office_id' => $office->id,
-            'admin_id' => Auth::guard('admin')->user()->id,
-        ]);
-        $adminAction->store([
+        $admin = $adminAction->store([
             'name' => $data['manager_name'],
             'phone' => $data['manager_phone'],
             'email' => $data['manager_email'],
             'password' => Hash::make($data['password']),
+        ]);
+        $adminOfficeAction->store([
+            'office_id' => $office->id,
+            'admin_id' => $admin->id,
         ]);
         return jsonSuccess($data, null, 201);
     }
