@@ -252,6 +252,7 @@ class PermKeys
     const ABOUT_US_CONTROL = 'about_us_control';
 
     const CONTACT_VIEW = 'contact_view';
+    const OFFICE = 'office';
     const CONTACT_CREATE = 'contact_create';
     const CONTACT_EDIT = 'contact_edit';
     const CONTACT_DELETE = 'contact_delete';

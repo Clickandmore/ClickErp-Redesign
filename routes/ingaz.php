@@ -1,4 +1,6 @@
 <?php
+
+use App\Http\Controllers\office\OfficeController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\admin\ActivityLogController;
 use App\Http\Controllers\Permissions\RolesController;
@@ -317,7 +319,6 @@ Route::get('ShelterContract/deportation/{id}/activity-log', [ShelterContractCont
                 Route::post('/{returnRequest}/process', [\App\Http\Controllers\Admin\ContractReturnRequestController::class, 'process'])->name('process');
                 Route::get('/statistics', [\App\Http\Controllers\Admin\ContractReturnRequestController::class, 'statistics'])->name('statistics');
             });
-
         });
 
     }

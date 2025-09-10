@@ -34,7 +34,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot()
     {
         Schema::defaultStringLength(255);
-        //Register custom migration paths
+//        Register custom migration paths
         $migrationsPath = database_path('migrations');
         $directories = glob($migrationsPath . '/*', GLOB_ONLYDIR);
         $paths = array_merge([$migrationsPath], $directories);

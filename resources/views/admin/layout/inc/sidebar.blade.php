@@ -765,6 +765,15 @@
                         </a>
                     </li>
                 @endif
+{{--                @if (@AdminGuardHasPerm(\App\PermKeys::OFFICE))--}}
+                    <li>
+                        <a class="m-link {{ (Route::currentRouteName() == 'offices.index') ? 'active' : '' }}"
+                            href="{{route('offices.index')}}">
+                            <i class="fa fa-envelope"></i>
+                            <span class="ms-2"> {{ helperTrans('ingaz.offices') }}</span>
+                        </a>
+                    </li>
+{{--                @endif--}}
             </ul>
         </div>
 
