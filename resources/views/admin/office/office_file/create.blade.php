@@ -1,10 +1,7 @@
 @extends('admin.layout.indexs.index')
 @section("style")
-
-
     <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
     <style>
-
         .wizard-container {
             background: #fff;
             border-radius: 0; /* ممكن تشيله عشان يملي الصفحة بدون زوايا */
@@ -173,7 +170,7 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 @endsection
 @section('page-title')
-    {{helperTrans("ingaz.add_office")}}
+    {{helperTrans("ingaz.add_office_file")}}
 @endsection
 {{--@section('page-links')--}}
 {{--    <li class="breadcrumb-item active" aria-current="page"> {{__("finance.clients")}}</li>--}}

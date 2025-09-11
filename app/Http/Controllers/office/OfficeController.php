@@ -92,11 +92,11 @@ class OfficeController extends Controller
                     // }
                     if (isset($row->file)) {
                         $fileButton = '<a href="' . route('offices-file.edit', @$row->file->id) . '" class="btn btn-sm btn-dark mx-1">
-                                    <i class="fa fa-plus"></i> ' . __("ingaz.add_office_file") . '
+                                    <i class="fa fa-plus"></i> ' . __("ingaz.office_file") . '
                                    </a>';
                     } else {
                         $fileButton = '<a href="' . route('offices-file.create', ['office_id' => $row->id]) . '" class="btn btn-sm btn-dark mx-1">
-                                    <i class="fa fa-plus"></i> ' . __("ingaz.add_office_file") . '
+                                    <i class="fa fa-plus"></i> ' . __("ingaz.office_file") . '
                                    </a>';
                     }
 

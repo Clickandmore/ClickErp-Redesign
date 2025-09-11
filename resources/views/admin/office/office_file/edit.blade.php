@@ -171,7 +171,7 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 @endsection
 @section('page-title')
-    {{helperTrans("ingaz.edit_office")}}
+    {{helperTrans("ingaz.edit_office_file")}}
 @endsection
 {{--@section('page-links')--}}
 {{--    <li class="breadcrumb-item active" aria-current="page"> {{__("finance.clients")}}</li>--}}
