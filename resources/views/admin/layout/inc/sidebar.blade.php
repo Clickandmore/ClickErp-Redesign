@@ -618,14 +618,21 @@
                         @if (@AdminGuardHasPerm(\App\PermKeys::USERS_VIEW))
                         <li>
                             <a class="m-link {{ (Route::currentRouteName() == 'countries.index') ? 'active' : '' }}" href="{{ route('countries.index') }}">
-                                <i class="fa fa-arrow-left"></i>
+                                <i class="fa fa-globe"></i>
                                 <span class="ms-2">{{ helperTrans('ingaz.countries') }}</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="m-link {{ (Route::currentRouteName() == 'cities.index') ? 'active' : '' }}" href="{{ route('cities.index') }}">
+                                <i class="fa fa-city"></i>
+                                <span class="ms-2">المدن</span>
                             </a>
                         </li>
                         @endif
 
                     </ul>
                 </li>
+
 
                 <!-- Staff Management Section -->
                 <li class="collapsed">
