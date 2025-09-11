@@ -132,6 +132,12 @@ class NewRolesSeeder extends Seeder
             NewPermKeys::STATISTICS_EXPORT,
             NewPermKeys::STATISTICS_MANAGE,
 
+
+            NewPermKeys::OFFICES_VIEW,
+            NewPermKeys::OFFICES_CREATE,
+            NewPermKeys::OFFICES_EDIT,
+            NewPermKeys::OFFICES_DELETE,
+
             // إدارة النظام (محدودة)
             NewPermKeys::SETTINGS_VIEW,
             NewPermKeys::SETTINGS_EDIT,
@@ -202,6 +208,11 @@ class NewRolesSeeder extends Seeder
             NewPermKeys::REPORTS_EXPORT,
             NewPermKeys::STATISTICS_VIEW,
             NewPermKeys::STATISTICS_EXPORT,
+
+            NewPermKeys::OFFICES_VIEW,
+            NewPermKeys::OFFICES_CREATE,
+            NewPermKeys::OFFICES_EDIT,
+            NewPermKeys::OFFICES_DELETE,
         ];
 
         $manager->syncPermissions($managerPermissions);
@@ -329,6 +340,7 @@ class NewRolesSeeder extends Seeder
             NewPermKeys::MAIDS_VIEW,
             NewPermKeys::CONTENT_VIEW,
             NewPermKeys::REPORTS_VIEW,
+            NewPermKeys::OFFICES_VIEW,
             NewPermKeys::STATISTICS_VIEW,
         ];
 

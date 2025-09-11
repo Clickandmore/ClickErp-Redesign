@@ -130,12 +130,32 @@
                 transform: translateY(0);
             }
         }
+        .steps .step {
+            cursor: pointer; /* يخلي المؤشر زي اليد */
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .steps .step:hover {
+            background-color: #f8f9fa; /* لون فاتح عند المرور */
+            transform: scale(1.05);    /* تكبير بسيط */
+            border-radius: 8px;        /* شكل الزرار */
+        }
+
+        .steps .step .circle {
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .steps .step:hover .circle {
+            background-color: #066f63; /* أزرق */
+            color: #fff;
+        }
+
     </style>
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 @endsection
 @section('page-title')
-    {{helperTrans("ingaz.offices")}}
+    {{helperTrans("ingaz.add_office")}}
 @endsection
 {{--@section('page-links')--}}
 {{--    <li class="breadcrumb-item active" aria-current="page"> {{__("finance.clients")}}</li>--}}
@@ -145,13 +165,13 @@
         <div class="steps">
             <div class="step active">
                 <div class="circle">1</div>
-                <p>بيانات المكتب</p></div>
+                <p>{{helperTrans("ingaz.office_information")}}</p></div>
             <div class="step">
                 <div class="circle">2</div>
-                <p>بيانات مدير المكتب</p></div>
+                <p>{{helperTrans("ingaz.office_manager_information")}}</p></div>
             <div class="step">
                 <div class="circle">3</div>
-                <p>بيانات الحساب البنكي</p></div>
+                <p>{{helperTrans("ingaz.bank_account_details")}}</p></div>
         </div>
 
         <form id="wizardForm" class="from-submit-global" action="{{ route('offices.store') }}" method="POST"
@@ -200,7 +220,7 @@
                     </div>
                 </div>
                 <div class="btns">
-                    <button type="button" class="btn btn-next">التالي</button>
+                    <button type="button" class="btn btn-next">{{helperTrans("ingaz.next")}}</button>
                 </div>
             </div>
 
@@ -225,8 +245,8 @@
                     </div>
                 </div>
                 <div class="btns">
-                    <button type="button" class="btn btn-prev">رجوع</button>
-                    <button type="button" class="btn btn-next">التالي</button>
+                    <button type="button" class="btn btn-prev">{{helperTrans("ingaz.back")}}</button>
+                    <button type="button" class="btn btn-next">{{helperTrans("ingaz.next")}}</button>
                 </div>
             </div>
 
@@ -264,8 +284,8 @@
                     </div>
                 </div>
                 <div class="btns">
-                    <button type="button" class="btn btn-prev">رجوع</button>
-                    <button type="submit" class="btn btn-next">إرسال</button>
+                    <button type="button" class="btn btn-prev">{{helperTrans("ingaz.back")}}</button>
+                    <button type="submit" class="btn btn-next">{{helperTrans("ingaz.save")}}</button>
                 </div>
             </div>
         </form>
@@ -333,10 +353,10 @@
     </script>
 
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
             $('.select2').select2({
                 placeholder: "{{ helperTrans('ingaz.choose') }}",
-                allowClear: true
+                allowClear: true ,
             });
         });
     </script>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\office;
 
+use App\Enums\Office\OfficesStatusEnum;
 use App\Http\Actions\auth\AdminAction;
 use App\Http\Actions\ingaz\JobTitleAction;
 use App\Http\Actions\ingaz\JobTypeAction;
@@ -15,6 +16,7 @@ use App\Models\office\Office as objModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 
 //use function App\Http\Controllers\ingaz\__;
@@ -40,33 +42,67 @@ class OfficeController extends Controller
     public function index(Request $request, objAction $Action)
     {
         if ($request->ajax()) {
-            $units = objModel::all();
-            return DataTables::of($units)
+            $offices = objModel::query()->latest('id');
+            return DataTables::of($offices)
                 ->addIndexColumn()
                 ->editColumn('nationality_id', function ($row) {
                     return $row->nationality->title ?? '';
                 })
-                ->editColumn('license_number', function ($row) {
-                    return $row->license_number ?? '';
-                })
-                ->editColumn('office_number', function ($row) {
-                    return $row->office_number ?? '';
+                ->editColumn('manager_email', function ($row) {
+                    return $row->manager_email ?? '';
                 })
                 ->editColumn('title', function ($row) {
-                    return $row->title ?? '';
+                    return Str::limit($row->title, 20, '...') ?? '';
+                })
+                ->addColumn('office_type', function ($row) {
+                    return $row->jobTypes()
+                        ->with(['translations' => fn($q) => $q->where('locale', app()->getLocale())])
+                        ->get()
+                        ->map(fn($jt) => optional($jt->translations->first())->title)
+                        ->implode(', ');
+                })
+                ->addColumn('status', function ($row) {
+                    if ($row->status == OfficesStatusEnum::Active->value) {
+                        return '<button type="button"
+                        class="btn btn-sm btn-success toggle-status"
+                        data-action="active"
+                        data-id="' . $row->id . '">'
+                            . __('ingaz.active') . '
+                    </button>';
+                    } else {
+                        return '<button type="button"
+                        class="btn btn-sm btn-danger toggle-status"
+                        data-action="dis_active"
+                        data-id="' . $row->id . '">'
+                            . __('ingaz.dis_active') . '
+                    </button>';
+                    }
                 })
                 ->addColumn('actions', function ($row) {
                     $editButton = '';
                     $deleteButton = '';
+                    $fileButton = '';
                     // if (Auth::guard('admin')->user()->hasPermission('programs-update')) {
-                    $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
+                    $editButton = '<a href="' . route('offices.edit', $row->id) . '" class="btn btn-primary">
+                                    <i class="fa fa-pencil"></i>
+                                   </a>';
                     // }
-
                     // if (Auth::guard('admin')->user()->hasPermission('programs-delete')) {
                     $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
                     // }
-                    return $editButton . " " . $deleteButton;
-                })->rawColumns(['actions', 'license_number', 'title', 'nationality_id', 'office_number'])->make(true);
+                    if (isset($row->file)) {
+                        $fileButton = '<a href="' . route('offices-file.edit', @$row->file->id) . '" class="btn btn-sm btn-dark mx-1">
+                                    <i class="fa fa-plus"></i> ' . __("ingaz.add_office_file") . '
+                                   </a>';
+                    } else {
+                        $fileButton = '<a href="' . route('offices-file.create', ['office_id' => $row->id]) . '" class="btn btn-sm btn-dark mx-1">
+                                    <i class="fa fa-plus"></i> ' . __("ingaz.add_office_file") . '
+                                   </a>';
+                    }
+
+                    return $fileButton . " " . $editButton . " " . $deleteButton;
+                })
+                ->rawColumns(['actions', 'license_number', 'title', 'nationality_id', 'office_number', 'status'])->make(true);
         }
         $data["createRoute"] = route($this->mainRoute . ".create");
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
@@ -74,7 +110,6 @@ class OfficeController extends Controller
         $data["addButtonText"] = __("auth.admin");
         $data["modalType"] = "";
         return view($this->folderPath . '.index', $data);
-
     }
 
     /**
@@ -119,7 +154,7 @@ class OfficeController extends Controller
             'office_id' => $office->id,
             'admin_id' => $admin->id,
         ]);
-        return jsonSuccess($data, null, 201);
+        return jsonSuccess(['url' => route('offices.index')], null, 201);
     }
 
     /**
@@ -143,14 +178,12 @@ class OfficeController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function edit(Request $request, $id)
+    public function edit(Request $request, $id, NationalityAction $nationalityAction, JobTypeAction $jobTypeAction)
     {
-        if ($request->ajax()) {
-            $unit = objModel::findorfail($id);
-            $returnHTML = view($this->folderPath . '.edit')
-                ->with(['unit' => $unit])->render();
-            return jsonSuccess(["html" => $returnHTML]);
-        }
+        $office = objModel::findorfail($id);
+        $nationalities = $nationalityAction->get();
+        $jobTypes = $jobTypeAction->get();
+        return view($this->folderPath . ".edit", compact('nationalities', 'jobTypes', 'office'));
     }
 
     /**
@@ -160,11 +193,37 @@ class OfficeController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function update(JobTypeControllerRequest $request, objAction $action, $id)
+    public function update(OfficeRequest $request, objAction $action, $id, AdminAction $adminAction, AdminOfficeAction $adminOfficeAction)
     {
-        $unitData = $request->only($this->postData);
-        $data = $action->update($id, $unitData);
-        return jsonSuccess($data);
+        $data = $request->only($this->postData);
+        $obj = $action->find($id);
+        if (isset($obj->officeManager->admin_id)) {
+            $admin = $adminAction->find($obj->officeManager->admin_id);
+            $adminData['name'] = $data['manager_name'];
+            $adminData['phone'] = $data['manager_phone'];
+            $adminData['email'] = $data['manager_email'];
+            $adminData['password'] = Hash::make($data['password']);
+            $admin->update($adminData);
+        } else {
+            $admin = $adminAction->store([
+                'name' => $data['manager_name'],
+                'phone' => $data['manager_phone'],
+                'email' => $data['manager_email'],
+                'password' => Hash::make($data['password']),
+            ]);
+            $adminOfficeAction->store([
+                'office_id' => $id,
+                'admin_id' => $admin->id,
+            ]);
+        }
+
+        $jobTitleIds = $data['job_title_id'] ?? [];
+        unset($data['job_title_id']);
+
+
+        $obj->update($data);
+        $obj->jobTypes()->sync($jobTitleIds);
+        return jsonSuccess(['url' => route('offices.index')], null, 201);
 
     }
 
@@ -174,8 +233,13 @@ class OfficeController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id, objAction $action)
+    public function destroy($id, objAction $action, AdminAction $adminAction)
     {
+        $obj = $action->find($id);
+        if (isset($obj->officeManager->admin_id)) {
+            $admin = $adminAction->find($obj->officeManager->admin_id);
+            $adminAction->delete($admin->id);
+        }
         $action->delete($id);
         return jsonSuccess();
     }

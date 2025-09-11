@@ -1,6 +1,18 @@
 @extends('admin.layout.indexs.index')
 @section("style")
     <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
+    <style>
+        /* خلّي القائمة تظهر فوق كل عناصر الجدول */
+        .table .dropdown-menu {
+            z-index: 2000 !important;
+        }
+
+        /* لو الـ wrapper بيقصّ المحتوى */
+        .dataTables_wrapper {
+            overflow: visible !important;
+        }
+
+    </style>
 @endsection
 @section('page-title')
     {{helperTrans("ingaz.offices")}}
@@ -25,9 +37,10 @@
             <tr>
                 <th>#</th>
                 <th>{{helperTrans("ingaz.title")}}</th>
-                <th>{{helperTrans("ingaz.office_number")}}</th>
-                <th>{{helperTrans("ingaz.license_number")}}</th>
+                <th>{{helperTrans("ingaz.manager_email")}}</th>
+                <th>{{helperTrans("ingaz.office_type")}}</th>
                 <th>{{helperTrans("ingaz.nationality")}}</th>
+                <th>{{helperTrans("ingaz.status")}}</th>
                 <th>{{helperTrans("ingaz.actions")}}</th>
             </tr>
             </thead>
@@ -49,12 +62,29 @@
             let columns = [
                 {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                 {"data": "title", orderable: true, searchable: true},
-                {"data": "office_number", orderable: true, searchable: true},
-                {"data": "license_number", orderable: true, searchable: true},
+                {"data": "manager_email", orderable: true, searchable: true},
+                {"data": "office_type", orderable: true, searchable: true},
                 {"data": "nationality_id", orderable: true, searchable: true},
+                {"data": "status", orderable: true, searchable: true},
                 {"data": "actions", orderable: false, searchable: false}
             ];
             showDataTable("{{route("offices.index")}}", columns);
         });
+        $(document).on('click', '.toggle-status', function () {
+            const id = $(this).data('id');
+            var url = "{{route('offices-status.update',"officeId")}}".replace('officeId', id);
+            $.ajax({
+                url: url,
+                type: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    _method: "PUT",
+                },
+                success: function (res) {
+                    $('#dataTableObject').DataTable().ajax.reload();
+                },
+            });
+        });
+
     </script>
 @endsection

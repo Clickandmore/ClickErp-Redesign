@@ -277,6 +277,13 @@ return [
     'contact_delete' => 'حذف التواصل',
     'contact_control' => 'التحكم في التواصل',
 
+
+    'office_view' => 'عرض المكاتب',
+    'office_create' => 'إضافة المكاتب',
+    'office_edit' => 'تعديل المكاتب',
+    'office_delete' => 'حذف المكاتب',
+    'office_control' => 'التحكم في المكاتب',
+
     'steps_view' => 'عرض الخطوات',
     'steps_create' => 'إضافة خطوة',
     'steps_edit' => 'تعديل الخطوات',

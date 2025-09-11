@@ -18,7 +18,7 @@ class CreateAdminOfficesTable extends Migration
             $table->unsignedBigInteger('office_id');
             $table->unsignedBigInteger('admin_id');
             $table->foreign('admin_id')->references('id')->on('admins')->onDelete('cascade')->onUpdate('cascade');
-            $table->foreign('office_id')->references('id')->on('offices')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreign('office_id')->references('id')->on('recruitment_offices')->onDelete('cascade')->onUpdate('cascade');
             $table->timestamps();
         });
     }
