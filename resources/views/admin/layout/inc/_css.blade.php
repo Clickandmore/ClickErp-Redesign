@@ -19,4 +19,9 @@
     .tox .tox-statusbar {
         display: none !important;
     }
+    .table tbody tr,
+    tr , td{
+        position: unset !important;
+    }
+
 </style>

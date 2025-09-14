@@ -3,6 +3,8 @@
 use App\Http\Controllers\office\OfficeController;
 use App\Http\Controllers\office\OfficeFileController;
 use App\Http\Controllers\office\OfficeStatusController;
+use App\Http\Controllers\office\ResetPasswordController;
+use App\Http\Controllers\office\SendEmailResetPasswordController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\admin\ActivityLogController;
 use App\Http\Controllers\Permissions\RolesController;
@@ -68,6 +70,8 @@ Route::group(
             Route::resource('offices', OfficeController::class);
             Route::resource('offices-status', OfficeStatusController::class);
             Route::resource('offices-file', OfficeFileController::class);
+            Route::resource('send-email-reset-password', SendEmailResetPasswordController::class);
+            Route::resource('reset-password', ResetPasswordController::class);
 
         });
 

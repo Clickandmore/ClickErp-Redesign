@@ -5,6 +5,7 @@ namespace App\Models\office;
 use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Nationality;
+use App\Models\Maid;
 use App\Models\RecruitmentOfficeTranslation;
 use Astrotomic\Translatable\Translatable;
 
@@ -41,4 +42,10 @@ class Office extends Model
     {
         return $this->hasOne(OfficeFile::class, 'recruitment_office_id');
     }
+
+    public function maids()
+    {
+        return $this->hasMany(Maid::class, 'office_id');
+    }
+
 }

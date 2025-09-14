@@ -16,22 +16,13 @@ class StepAction extends MainAction
 
     public function store($data)
     {
-        if ($data['icon']) {
-            $image = $data['icon'];
-            $data['icon'] = uploadFile($image, $this->fileFolder);
-        }
+
         return parent::store($data);
     }
 
     public function updateStep($id, $data)
     {
         $row = $this->find($id);
-
-        if (request()->hasFile('icon')) {
-            Storage::delete($row->icon);
-            $data['icon'] = uploadFile($data['icon'], $this->fileFolder, 1);
-        }
-
         return $row->update($data);
     }
 }

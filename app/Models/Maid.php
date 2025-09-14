@@ -42,4 +42,9 @@ class Maid extends Model
     {
         return $this->belongsTo(\App\Models\ingaz\Nationality::class, 'nationality_id');
     }
+
+    public function contracts()
+    {
+        return $this->hasMany(\App\Models\Contract::class, 'maid_id');
+    }
 }

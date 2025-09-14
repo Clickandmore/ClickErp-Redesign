@@ -11,6 +11,7 @@ use App\Http\Actions\office\AdminOfficeAction;
 use App\Http\Actions\office\JopTypeOfficeAction;
 use App\Http\Actions\office\OfficeAction as objAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\office\DeleteOfficeRequest;
 use App\Http\Requests\office\OfficeRequest;
 use App\Models\office\Office as objModel;
 use Illuminate\Http\Request;
@@ -82,6 +83,7 @@ class OfficeController extends Controller
                     $editButton = '';
                     $deleteButton = '';
                     $fileButton = '';
+                    $sendEmailButton = '';
                     // if (Auth::guard('admin')->user()->hasPermission('programs-update')) {
                     $editButton = '<a href="' . route('offices.edit', $row->id) . '" class="btn btn-primary">
                                     <i class="fa fa-pencil"></i>
@@ -99,8 +101,9 @@ class OfficeController extends Controller
                                     <i class="fa fa-plus"></i> ' . __("ingaz.office_file") . '
                                    </a>';
                     }
+                    $sendEmailButton = '<button class="btn btn-success sendEmailResetPassword" data-id="' . $row->id . '"data-email="' . $row->manager_email . '">' . '  <i class="fa fa-email"></i> ' . __("ingaz.send_email_reset_password") . '</button>';
 
-                    return $fileButton . " " . $editButton . " " . $deleteButton;
+                    return $fileButton . " " . $editButton . " " . $sendEmailButton . " " . $deleteButton;
                 })
                 ->rawColumns(['actions', 'license_number', 'title', 'nationality_id', 'office_number', 'status'])->make(true);
         }
@@ -233,7 +236,7 @@ class OfficeController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id, objAction $action, AdminAction $adminAction)
+    public function destroy(DeleteOfficeRequest $request, $id, objAction $action, AdminAction $adminAction)
     {
         $obj = $action->find($id);
         if (isset($obj->officeManager->admin_id)) {

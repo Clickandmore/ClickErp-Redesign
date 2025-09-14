@@ -76,7 +76,6 @@ class OfficeRequest extends MainRequest
 
         if ($this->isMethod('put') || $this->isMethod('patch')) {
             $officeId = $this->route('office');
-
             $rules["manager_email"] = [
                 "nullable",
                 "email",
@@ -96,9 +95,6 @@ class OfficeRequest extends MainRequest
                     }
                 },
             ];
-
-
-
             $rules["manager_phone"] = [
                 "nullable",
                 "numeric",

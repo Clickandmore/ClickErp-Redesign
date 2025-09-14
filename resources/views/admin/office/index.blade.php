@@ -84,6 +84,51 @@
                     $('#dataTableObject').DataTable().ajax.reload();
                 },
             });
+
+        });
+        $(document).on('click', '.sendEmailResetPassword', function () {
+            var $btn = $(this);
+            var id = $btn.data('id');
+            var email = $btn.data('email');
+            var originalHtml = $btn.html();
+            var url = "{{route('send-email-reset-password.store')}}";
+            $btn.prop('disabled', true)
+                .html('<i class="fa fa-spinner fa-spin"></i> {{ __("ingaz.sending") }}');
+            $.ajax({
+                url: url,
+                type: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    office_id: id,
+                    email: email,
+                },
+                success: function (response) {
+                    if (response.code && response.code === 422) {
+                        validToster('{{ __("auth.an error occurred") }}', response.message);
+                    } else {
+                        successToster('{{__("ingaz.success")}}', '{{__("ingaz.mail_sent_successfully")}}');
+                    }
+                },
+                error: function (xhr) {
+                    if (xhr.status === 422) {
+                        var json = xhr.responseJSON;
+                        var allErrors = [];
+                        if (json.errors) {
+                            Object.values(json.errors).forEach(function (messages) {
+                                allErrors = allErrors.concat(messages);
+                            });
+                        }
+                        var msg = allErrors.join('<br>');
+                        validToster('{{ __("auth.an error occurred") }}', msg);
+                    } else {
+                        validToster('{{ __("auth.an error occurred") }}',
+                            '{{__("ingaz.this_email_is_invalid")}}');
+                    }
+                },
+                complete: function () {
+                    $btn.prop('disabled', false).html(originalHtml);
+                }
+            });
         });
 
     </script>
