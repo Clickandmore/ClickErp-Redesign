@@ -1,0 +1,4 @@
+name,email,phone,password,address,city,country,birthdate,national_num,phone2
+"أحمد محمد علي","ahmed@example.com","0501234567","123456","شارع الملك فهد، الرياض","الرياض","Saudi Arabia","1985-01-15","1234567890","0509876543"
+"فاطمة أحمد","fatima@example.com","0507654321","654321","شارع العليا، الرياض","الرياض","Saudi Arabia","1990-03-22","0987654321","0501112233"
+"محمد عبدالله","mohammed@example.com","0555555555","password","شارع التحلية، جدة","جدة","Saudi Arabia","1988-07-10","1122334455","0544444444"

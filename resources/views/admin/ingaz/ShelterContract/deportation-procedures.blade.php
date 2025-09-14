@@ -173,6 +173,46 @@ use Illuminate\Support\Facades\Storage;
             font-weight: 600;
         }
 
+        .activity-item {
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .activity-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-description {
+            color: #495057;
+            font-weight: 500;
+        }
+
+        .activity-details .badge {
+            font-size: 0.75rem;
+        }
+
+        .activity-meta {
+            min-width: 120px;
+        }
+
         .attachments-section .list-group-item {
             border: 1px solid #dee2e6;
             margin-bottom: 5px;
@@ -221,6 +261,7 @@ use Illuminate\Support\Facades\Storage;
         </div>
     </div>
     <div class="row g-3">
+
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
@@ -349,7 +390,7 @@ use Illuminate\Support\Facades\Storage;
                             @if($percentage == 0)
                                 لم يتم الإجابة على أي أسئلة
                             @elseif($percentage < 100)
-                                تم الإجابة على {{ round($percentage / 20) }} من 5 أسئلة
+                                تم الإجابة على {{ round(($percentage / 100) * 5) }} من 5 أسئلة
                             @else
                                 تم الإجابة على جميع الأسئلة
                             @endif
@@ -386,20 +427,55 @@ use Illuminate\Support\Facades\Storage;
                                         <div class="col-md-3">
                                             <div class="btn-group w-100" role="group">
                                                 <input type="radio" class="btn-check" name="salary_received" id="salary_yes" value="1"
-                                                    {{ $procedure->salary_received == 1 ? 'checked' : '' }}
+                                                    {{ $procedure->salary_received === true ? 'checked' : '' }}
                                                     {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
                                                 <label class="btn btn-outline-success" for="salary_yes">نعم</label>
 
                                                 <input type="radio" class="btn-check" name="salary_received" id="salary_no" value="0"
-                                                    {{ $procedure->salary_received == 0 && $procedure->salary_received !== null ? 'checked' : '' }}
+                                                    {{ $procedure->salary_received === false ? 'checked' : '' }}
                                                     {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
                                                 <label class="btn btn-outline-danger" for="salary_no">لا</label>
                                             </div>
                                         </div>
-                                        <div class="col-md-3" id="salary_date_container" style="{{ $procedure->salary_received == 1 ? '' : 'display:none;' }}">
+                                        <div class="col-md-3" id="salary_date_container" style="{{ $procedure->salary_received === true ? '' : 'display:none;' }}">
                                             <input type="date" class="form-control" name="salary_received_date" id="salary_received_date"
-                                                value="{{ $procedure->salary_received_date ? \Carbon\Carbon::parse($procedure->salary_received_date)->format('Y-m-d') : date('Y-m-d') }}"
+                                                value="{{ $procedure->salary_received_date ? \Carbon\Carbon::parse($procedure->salary_received_date)->format('Y-m-d') : '' }}"
                                                 {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
+                                        </div>
+                                    </div>
+                                    <!-- مرفقات استلام الراتب -->
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <label class="form-label small text-muted">
+                                                <i class="fas fa-paperclip"></i> مرفقات استلام الراتب
+                                            </label>
+                                            <input type="file" class="form-control form-control-sm" name="salary_attachments[]" multiple accept=".pdf,.jpg,.jpeg,.png">
+                                            <small class="text-muted">إيصال الراتب، صورة من الوثيقة، إلخ</small>
+
+                                            @if($procedure->attachments && count($procedure->attachments) > 0)
+                                                @php
+                                                    $salaryAttachments = collect($procedure->attachments)->where('type', 'salary');
+                                                @endphp
+                                                @if($salaryAttachments->count() > 0)
+                                                    <div class="mt-2">
+                                                        <small class="text-success">المرفقات المرفوعة:</small>
+                                                        <div class="d-flex flex-wrap gap-1 mt-1">
+                                                            @foreach($salaryAttachments as $attachment)
+                                                                @php
+                                                                    $filePath = $attachment['path'] ?? '';
+                                                                    $fileUrl = $filePath ? asset('storage/' . $filePath) : '#';
+                                                                @endphp
+                                                                <span class="badge bg-success">
+                                                                    <i class="fa fa-file"></i> {{ $attachment['name'] ?? basename($attachment['path'] ?? 'ملف') }}
+                                                                    <a href="{{ $fileUrl }}" target="_blank" class="text-white ms-1" title="عرض الملف">
+                                                                        <i class="fa fa-eye"></i>
+                                                                    </a>
+                                                                </span>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -415,19 +491,55 @@ use Illuminate\Support\Facades\Storage;
                                         <div class="col-md-3">
                                             <div class="btn-group w-100" role="group">
                                                 <input type="radio" class="btn-check" name="has_passport" id="passport_yes" value="1"
-                                                    {{ $procedure->has_passport == 1 ? 'checked' : '' }}
+                                                    {{ $procedure->has_passport === true ? 'checked' : '' }}
                                                     {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
                                                 <label class="btn btn-outline-success" for="passport_yes">نعم</label>
 
                                                 <input type="radio" class="btn-check" name="has_passport" id="passport_no" value="0"
-                                                    {{ $procedure->has_passport == 0 && $procedure->has_passport !== null ? 'checked' : '' }}
+                                                    {{ $procedure->has_passport === false ? 'checked' : '' }}
                                                     {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
                                                 <label class="btn btn-outline-danger" for="passport_no">لا</label>
                                             </div>
                                         </div>
-                                        <div class="col-md-3" id="passport_date_container" style="{{ $procedure->has_passport == 1 ? '' : 'display:none;' }}">
+                                        <div class="col-md-3" id="passport_date_container" style="{{ $procedure->has_passport === true ? '' : 'display:none;' }}">
+
                                             <input type="date" class="form-control" name="passport_date"
-                                                value="{{ date('Y-m-d') }}">
+                                                value="{{ $procedure->passport_date ? \Carbon\Carbon::parse($procedure->passport_date)->format('Y-m-d') : date('Y-m-d') }}" >
+                                        </div>
+                                    </div>
+                                    <!-- مرفقات الجواز -->
+                                    <div class="row mt-2">
+                                        <div class="col-12">
+                                            <label class="form-label small text-muted">
+                                                <i class="fas fa-paperclip"></i> مرفقات الجواز
+                                            </label>
+                                            <input type="file" class="form-control form-control-sm" name="passport_attachments[]" multiple accept=".pdf,.jpg,.jpeg,.png">
+                                            <small class="text-muted">صورة من الجواز، وثائق السفر، إلخ</small>
+
+                                            @if($procedure->attachments && count($procedure->attachments) > 0)
+                                                @php
+                                                    $passportAttachments = collect($procedure->attachments)->where('type', 'passport');
+                                                @endphp
+                                                @if($passportAttachments->count() > 0)
+                                                    <div class="mt-2">
+                                                        <small class="text-success">المرفقات المرفوعة:</small>
+                                                        <div class="d-flex flex-wrap gap-1 mt-1">
+                                                            @foreach($passportAttachments as $attachment)
+                                                                @php
+                                                                    $filePath = $attachment['path'] ?? '';
+                                                                    $fileUrl = $filePath ? asset('storage/' . $filePath) : '#';
+                                                                @endphp
+                                                                <span class="badge bg-primary">
+                                                                    <i class="fa fa-file"></i> {{ $attachment['name'] ?? basename($attachment['path'] ?? 'ملف') }}
+                                                                    <a href="{{ $fileUrl }}" target="_blank" class="text-white ms-1" title="عرض الملف">
+                                                                        <i class="fa fa-eye"></i>
+                                                                    </a>
+                                                                </span>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -443,21 +555,56 @@ use Illuminate\Support\Facades\Storage;
                                         <div class="col-md-3">
                                             <div class="btn-group w-100" role="group">
                                                 <input type="radio" class="btn-check" name="has_deportation_letter" id="letter_yes" value="1"
-                                                    {{ $procedure->has_deportation_letter == 1 ? 'checked' : '' }}
+                                                    {{ $procedure->has_deportation_letter === true ? 'checked' : '' }}
                                                     {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
                                                 <label class="btn btn-outline-success" for="letter_yes">نعم</label>
 
                                                 <input type="radio" class="btn-check" name="has_deportation_letter" id="letter_no" value="0"
-                                                    {{ $procedure->has_deportation_letter == 0 && $procedure->has_deportation_letter !== null ? 'checked' : '' }}
+                                                    {{ $procedure->has_deportation_letter === false ? 'checked' : '' }}
                                                     {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
                                                 <label class="btn btn-outline-danger" for="letter_no">لا</label>
                                             </div>
                                         </div>
-                                        <div class="col-md-3" id="letter_date_container" style="{{ $procedure->has_deportation_letter == 1 ? '' : 'display:none;' }}">
+                                        <div class="col-md-3" id="letter_date_container" style="{{ $procedure->has_deportation_letter === true ? '' : 'display:none;' }}">
                                             <input type="date" class="form-control" name="deportation_letter_date"
-                                                value="{{ date('Y-m-d') }}">
+                                                value="{{ $procedure->deportation_letter_date ? \Carbon\Carbon::parse($procedure->deportation_letter_date)->format('Y-m-d') : date('Y-m-d') }}">
                                         </div>
                                     </div>
+                                        <!-- مرفقات خطاب الترحيل -->
+                                        <div class="row mt-2">
+                                            <div class="col-12">
+                                                <label class="form-label small text-muted">
+                                                    <i class="fas fa-paperclip"></i> مرفقات خطاب الترحيل
+                                                </label>
+                                                <input type="file" class="form-control form-control-sm" name="letter_attachments[]" multiple accept=".pdf,.jpg,.jpeg,.png">
+                                                <small class="text-muted">خطاب الترحيل، الوثائق الرسمية، إلخ</small>
+
+                                                @if($procedure->attachments && count($procedure->attachments) > 0)
+                                                    @php
+                                                        $letterAttachments = collect($procedure->attachments)->where('type', 'letter');
+                                                    @endphp
+                                                    @if($letterAttachments->count() > 0)
+                                                        <div class="mt-2">
+                                                            <small class="text-success">المرفقات المرفوعة:</small>
+                                                            <div class="d-flex flex-wrap gap-1 mt-1">
+                                                                @foreach($letterAttachments as $attachment)
+                                                                    @php
+                                                                        $filePath = $attachment['path'] ?? '';
+                                                                        $fileUrl = $filePath ? asset('storage/' . $filePath) : '#';
+                                                                    @endphp
+                                                                    <span class="badge bg-warning">
+                                                                        <i class="fa fa-file"></i> {{ $attachment['name'] ?? basename($attachment['path'] ?? 'ملف') }}
+                                                                        <a href="{{ $fileUrl }}" target="_blank" class="text-white ms-1" title="عرض الملف">
+                                                                            <i class="fa fa-eye"></i>
+                                                                        </a>
+                                                                    </span>
+                                                                @endforeach
+                                                            </div>
+                                                        </div>
+                                                    @endif
+                                                @endif
+                                            </div>
+                                        </div>
                                 </div>
 
                                 <!-- جلسة التسوية -->
@@ -471,19 +618,55 @@ use Illuminate\Support\Facades\Storage;
                                         <div class="col-md-3">
                                             <div class="btn-group w-100" role="group">
                                                 <input type="radio" class="btn-check" name="has_settlement_session" id="settlement_yes" value="1"
-                                                    {{ $procedure->has_settlement_session == 1 ? 'checked' : '' }}
+                                                    {{ $procedure->has_settlement_session === true ? 'checked' : '' }}
                                                     {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
                                                 <label class="btn btn-outline-success" for="settlement_yes">نعم</label>
 
                                                 <input type="radio" class="btn-check" name="has_settlement_session" id="settlement_no" value="0"
-                                                    {{ $procedure->has_settlement_session == 0 && $procedure->has_settlement_session !== null ? 'checked' : '' }}
+                                                    {{ $procedure->has_settlement_session === false ? 'checked' : '' }}
+
                                                     {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
                                                 <label class="btn btn-outline-danger" for="settlement_no">لا</label>
                                             </div>
                                         </div>
-                                        <div class="col-md-3" id="settlement_date_container" style="{{ $procedure->has_settlement_session == 1 ? '' : 'display:none;' }}">
+                                        <div class="col-md-3" id="settlement_date_container">
                                             <input type="date" class="form-control" name="settlement_date"
-                                                value="{{ date('Y-m-d') }}">
+                                                value="{{ $procedure->settlement_date ? \Carbon\Carbon::parse($procedure->settlement_date)->format('Y-m-d') : '' }}">
+                                        </div>
+                                    </div>
+                                     <!-- مرفقات جلسة التسوية -->
+                                     <div class="row mt-2">
+                                        <div class="col-12">
+                                            <label class="form-label small text-muted">
+                                                <i class="fas fa-paperclip"></i> مرفقات جلسة التسوية
+                                            </label>
+                                            <input type="file" class="form-control form-control-sm" name="settlement_attachments[]" multiple accept=".pdf,.jpg,.jpeg,.png">
+                                            <small class="text-muted">محضر الجلسة، الوثائق الموقعة، إلخ</small>
+
+                                            @if($procedure->attachments && count($procedure->attachments) > 0)
+                                                @php
+                                                    $settlementAttachments = collect($procedure->attachments)->where('type', 'settlement');
+                                                @endphp
+                                                @if($settlementAttachments->count() > 0)
+                                                    <div class="mt-2">
+                                                        <small class="text-success">المرفقات المرفوعة:</small>
+                                                        <div class="d-flex flex-wrap gap-1 mt-1">
+                                                            @foreach($settlementAttachments as $attachment)
+                                                                @php
+                                                                    $filePath = $attachment['path'] ?? '';
+                                                                    $fileUrl = $filePath ? asset('storage/' . $filePath) : '#';
+                                                                @endphp
+                                                                <span class="badge bg-info">
+                                                                    <i class="fa fa-file"></i> {{ $attachment['name'] ?? basename($attachment['path'] ?? 'ملف') }}
+                                                                    <a href="{{ $fileUrl }}" target="_blank" class="text-white ms-1" title="عرض الملف">
+                                                                        <i class="fa fa-eye"></i>
+                                                                    </a>
+                                                                </span>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                @endif
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -497,29 +680,65 @@ use Illuminate\Support\Facades\Storage;
                                             </label>
                                         </div>
                                         <div class="col-md-3">
+
                                             <div class="btn-group w-100" role="group">
                                                 <input type="radio" class="btn-check" name="has_final_exit" id="exit_yes" value="1"
-                                                    {{ $procedure->has_final_exit == 1 ? 'checked' : '' }}
+                                                    {{ $procedure->has_final_exit === true ? 'checked' : '' }}
                                                     {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
                                                 <label class="btn btn-outline-success" for="exit_yes">نعم</label>
 
                                                 <input type="radio" class="btn-check" name="has_final_exit" id="exit_no" value="0"
-                                                    {{ $procedure->has_final_exit == 0 && $procedure->has_final_exit !== null ? 'checked' : '' }}
+                                                    {{ $procedure->has_final_exit === false ? 'checked' : '' }}
                                                     {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
                                                 <label class="btn btn-outline-danger" for="exit_no">لا</label>
                                             </div>
                                         </div>
-                                        <div class="col-md-3" id="exit_date_container" style="{{ $procedure->has_final_exit == 1 ? '' : 'display:none;' }}">
+                                        <div class="col-md-3" id="exit_date_container" style="{{ $procedure->has_final_exit === true ? '' : 'display:none;' }}">
                                             <input type="date" class="form-control" name="final_exit_date"
-                                                value="{{ date('Y-m-d') }}">
+                                                value="{{ $procedure->final_exit_date ? \Carbon\Carbon::parse($procedure->final_exit_date)->format('Y-m-d') : date('Y-m-d') }}">
                                         </div>
+                                    </div>
+                                </div>
+                                  <!-- مرفقات الخروج النهائي -->
+                                  <div class="row mt-2">
+                                    <div class="col-12">
+                                        <label class="form-label small text-muted">
+                                            <i class="fas fa-paperclip"></i> مرفقات الخروج النهائي
+                                        </label>
+                                        <input type="file" class="form-control form-control-sm" name="exit_attachments[]" multiple accept=".pdf,.jpg,.jpeg,.png">
+                                        <small class="text-muted">تأكيد الخروج، تذكرة السفر، إلخ</small>
+
+                                        @if($procedure->attachments && count($procedure->attachments) > 0)
+                                            @php
+                                                $exitAttachments = collect($procedure->attachments)->where('type', 'exit');
+                                            @endphp
+                                            @if($exitAttachments->count() > 0)
+                                                <div class="mt-2">
+                                                    <small class="text-success">المرفقات المرفوعة:</small>
+                                                    <div class="d-flex flex-wrap gap-1 mt-1">
+                                                        @foreach($exitAttachments as $attachment)
+                                                            @php
+                                                                $filePath = $attachment['path'] ?? '';
+                                                                $fileUrl = $filePath ? asset('storage/' . $filePath) : '#';
+                                                            @endphp
+                                                            <span class="badge bg-danger">
+                                                                <i class="fa fa-file"></i> {{ $attachment['name'] ?? basename($attachment['path'] ?? 'ملف') }}
+                                                                <a href="{{ $fileUrl }}" target="_blank" class="text-white ms-1" title="عرض الملف">
+                                                                    <i class="fa fa-eye"></i>
+                                                                </a>
+                                                            </span>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        @endif
                                     </div>
                                 </div>
                             </div>
 
                             <!-- المرفقات -->
                             <div class="attachments-section">
-                                <h6><i class="fa fa-paperclip"></i> المرفقات</h6>
+                                <h6><i class="fa fa-paperclip"></i> مرفقات اخرى</h6>
 
                                 @if(!$procedure->procedures_confirmed && $procedure->status !== 'completed')
                                 <input type="file" class="form-control" name="attachments[]" multiple accept=".pdf,.jpg,.jpeg,.png">
@@ -543,7 +762,7 @@ use Illuminate\Support\Facades\Storage;
                                                     <div>
                                                         @php
                                                             $filePath = is_array($attachment) ? ($attachment['path'] ?? $attachment) : $attachment;
-                                                            $fullPath = Storage::exists($filePath) ? Storage::url($filePath) : asset($filePath);
+                                                            $fullPath = $filePath ? asset('storage/' . $filePath) : '#';
                                                         @endphp
                                                         <a href="{{ $fullPath }}" target="_blank" class="btn btn-sm btn-primary">
                                                             <i class="fa fa-download"></i> عرض
@@ -572,8 +791,12 @@ use Illuminate\Support\Facades\Storage;
                             <!-- أزرار الإجراءات -->
                             <div class="action-buttons">
                                 @if($procedure->status !== 'completed' && !$procedure->procedures_confirmed)
-                                <button type="button" class="btn btn-save" onclick="confirmUpdate()">
-                                    <i class="fa fa-save"></i> حفظ التحديثات
+                                <button type="button" class="btn btn-save" onclick="savePartialProgress()">
+                                    <i class="fa fa-save"></i> حفظ التقدم الجزئي
+                                </button>
+
+                                <button type="button" class="btn btn-primary" onclick="confirmUpdate()">
+                                    <i class="fa fa-check-circle"></i> حفظ التحديثات الكاملة
                                 </button>
                                 @endif
 
@@ -603,9 +826,38 @@ use Illuminate\Support\Facades\Storage;
                     </div>
                 </div>
             </div>
+ <!-- سجل التحركات والتحديثات -->
+ <div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history"></i> سجل التحركات والتحديثات
+                    </h5>
+                    <button type="button" class="btn btn-sm btn-outline-primary refresh-activity-log" id="refreshActivityLog">
+                        <i class="fas fa-sync-alt"></i> تحديث
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="activityLogContainer">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">جاري التحميل...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+    </div>
+
 
 </div>
+
+        </div>
+
+
 @endsection
 
 @section('js')
@@ -615,6 +867,64 @@ use Illuminate\Support\Facades\Storage;
 <!-- JavaScript للدوال المطلوبة -->
 <script>
 // تعريف الدوال بشكل global قبل استخدامها
+window.savePartialProgress = function() {
+    console.log('savePartialProgress called');
+
+    if (typeof $ === 'undefined') {
+        alert('jQuery غير محمل!');
+        return;
+    }
+
+    if (typeof Swal === 'undefined') {
+        if (confirm('هل تريد حفظ التقدم الجزئي؟')) {
+            $('#deportationForm').submit();
+        }
+        return;
+    }
+
+    Swal.fire({
+        title: 'حفظ التقدم الجزئي',
+        text: 'سيتم حفظ التقدم الحالي حتى لو لم يتم الإجابة على جميع الأسئلة',
+        icon: 'info',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'حفظ التقدم',
+        cancelButtonText: 'إلغاء'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const form = document.getElementById('deportationForm');
+            const formData = new FormData(form);
+
+            // إضافة flag للتقدم الجزئي
+            formData.append('partial_save', '1');
+
+            $.ajax({
+                url: form.action,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    console.log('Partial save success:', response);
+                    Swal.fire({
+                        title: 'تم الحفظ!',
+                        text: response.message || 'تم حفظ التقدم الجزئي بنجاح',
+                        icon: 'success',
+                        confirmButtonText: 'حسناً'
+                    }).then(() => {
+                        location.reload();
+                    });
+                },
+                error: function(xhr) {
+                    console.log('Partial save error:', xhr);
+                    Swal.fire('خطأ!', xhr.responseJSON?.message || 'حدث خطأ أثناء الحفظ', 'error');
+                }
+            });
+        }
+    });
+}
+
 window.confirmUpdate = function() {
     console.log('confirmUpdate called - inline');
 
@@ -821,14 +1131,11 @@ $(document).ready(function() {
         }
     });
 
-    // إظهار/إخفاء تاريخ جلسة التسوية
+    // إظهار تاريخ جلسة التسوية دائماً
     $('input[name="has_settlement_session"]').on('change', function() {
         console.log('Settlement changed to:', $(this).val());
-        if ($(this).val() === '1') {
-            $('#settlement_date_container').show();
-        } else {
-            $('#settlement_date_container').hide();
-        }
+        // دائماً نظهر حقل التاريخ لجلسة التسوية
+        $('#settlement_date_container').show();
     });
 
     // إظهار/إخفاء تاريخ الخروج النهائي
@@ -849,9 +1156,17 @@ $(document).ready(function() {
         const formData = new FormData(this);
 
         // طباعة البيانات المرسلة
+        console.log('Form data entries:');
         for (let pair of formData.entries()) {
-            console.log(pair[0] + ': ' + pair[1]);
+            if (pair[1] instanceof File) {
+                console.log(pair[0] + ': [File] ' + pair[1].name + ' (' + pair[1].size + ' bytes)');
+            } else {
+                console.log(pair[0] + ': ' + pair[1]);
+            }
         }
+
+        // إظهار loading indicator
+        $('#submitBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...');
 
         $.ajax({
             url: $(this).attr('action'),
@@ -879,6 +1194,37 @@ $(document).ready(function() {
                 Swal.fire('خطأ!', xhr.responseJSON?.message || 'حدث خطأ أثناء الحفظ', 'error');
             }
         });
+    });
+
+
+    // تحميل سجل التحركات
+    function loadActivityLog() {
+        console.log('Loading activity log...');
+
+        $("#activityLogContainer").html('<div class="text-center"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>');
+
+        $.ajax({
+            url: "{{ route("ShelterContract.deportation.activity-log", $procedure->id) }}",
+            type: "GET",
+            success: function(response) {
+                if (response.success && response.html) {
+                    $("#activityLogContainer").html(response.html);
+                } else {
+                    $("#activityLogContainer").html('<div class="alert alert-warning">لا توجد تحركات مسجلة</div>');
+                }
+            },
+            error: function(xhr) {
+                $("#activityLogContainer").html('<div class="alert alert-danger">حدث خطأ في تحميل سجل النشاطات</div>');
+            }
+        });
+    }
+
+    // تحميل سجل النشاطات عند تحميل الصفحة
+    loadActivityLog();
+
+    // زر إعادة التحميل
+    $(document).on('click', '.refresh-activity-log', function() {
+        loadActivityLog();
     });
 });
 </script>

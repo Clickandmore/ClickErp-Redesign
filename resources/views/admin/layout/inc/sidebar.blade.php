@@ -498,7 +498,7 @@
                             <span class="ms-2">{{ helperTrans('ingaz.sponsorship_transfer') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['SponsorshipTransfer.create', 'SponsorshipTransfer.index', 'SponsorshipTransfer.webRequests', 'ShelterContract.availableForTransfer', 'SponsorshipTransfer.trial', 'SponsorshipTransfer.failed', 'SponsorshipTransfer.transferred'])) ? 'show' : '' }}" id="sponsorshipTransfer">
+                        <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['SponsorshipTransfer.create', 'SponsorshipTransfer.index', 'SponsorshipTransfer.webRequests', 'ShelterContract.availableForTransfer', 'SponsorshipTransfer.trial', 'SponsorshipTransfer.failed', 'SponsorshipTransfer.transferred', 'transfer-contract-terms.index', 'transfer-contract-terms.create', 'transfer-contract-terms.edit'])) ? 'show' : '' }}" id="sponsorshipTransfer">
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.index') ? 'active' : '' }}"
                                     href="{{ route('SponsorshipTransfer.index') }}">
@@ -546,6 +546,20 @@
                                     href="{{ route('SponsorshipTransfer.transferred') }}">
                                     <i class="fa fa-check"></i>
                                     <span class="ms-2">{{ helperTrans('ingaz.transferred') }}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (in_array(Route::currentRouteName(), ['transfer-contract-terms.index', 'transfer-contract-terms.create', 'transfer-contract-terms.edit'])) ? 'active' : '' }}"
+                                    href="{{ route('transfer-contract-terms.index') }}">
+                                    <i class="fa fa-file-text"></i>
+                                    <span class="ms-2">بنود عقد نقل الكفالة</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (in_array(Route::currentRouteName(), ['rent-contract-terms.index', 'rent-contract-terms.create', 'rent-contract-terms.edit'])) ? 'active' : '' }}"
+                                    href="{{ route('rent-contract-terms.index') }}">
+                                    <i class="fa fa-file-contract"></i>
+                                    <span class="ms-2">بنود عقد الإيجار</span>
                                 </a>
                             </li>
                         </ul>
@@ -632,7 +646,6 @@
 
                     </ul>
                 </li>
-
 
                 <!-- Staff Management Section -->
                 <li class="collapsed">

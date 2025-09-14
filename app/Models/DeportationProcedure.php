@@ -89,6 +89,11 @@ class DeportationProcedure extends Model
         return $this->belongsTo(\App\Models\TravelHistory::class, 'trip_id');
     }
 
+    public function logs()
+    {
+        return $this->hasMany(\App\Models\DeportationProcedureLog::class)->orderBy('created_at', 'desc');
+    }
+
     // Scopes
     public function scopePending($query)
     {
@@ -173,11 +178,6 @@ class DeportationProcedure extends Model
     // حساب نسبة الإكمال
     public function getCompletionPercentageAttribute()
     {
-        // إذا لم تبدأ الإجراءات بعد، النسبة 0
-        if ($this->status === 'pending') {
-            return 0;
-        }
-
         // إذا اكتملت الإجراءات، النسبة 100
         if ($this->status === 'completed') {
             return 100;
@@ -187,42 +187,34 @@ class DeportationProcedure extends Model
         $answered = 0;
 
         // نحسب الأسئلة المجاب عليها بشكل صحيح
-        // السؤال يعتبر مجاب عليه إذا كانت قيمته ليست null
+        // السؤال يعتبر مجاب عليه إذا:
+        // 1. الإجابة "لا" (0)
+        // 2. الإجابة "نعم" (1) مع وجود تاريخ
 
         // الراتب
-        if ($this->salary_received !== null) {
-            // إذا كانت الإجابة "نعم" يجب أن يكون هناك تاريخ
-            if ($this->salary_received == 0 || ($this->salary_received == 1 && $this->salary_received_date)) {
-                $answered++;
-            }
+        if ($this->salary_received === false || ($this->salary_received === true && $this->salary_received_date)) {
+            $answered++;
         }
 
         // الجواز
-        if ($this->has_passport !== null) {
-            if ($this->has_passport == 0 || ($this->has_passport == 1 && $this->passport_date)) {
-                $answered++;
-            }
+        if ($this->has_passport === false || ($this->has_passport === true && $this->passport_date)) {
+            $answered++;
         }
 
         // خطاب الترحيل
-        if ($this->has_deportation_letter !== null) {
-            if ($this->has_deportation_letter == 0 || ($this->has_deportation_letter == 1 && $this->deportation_letter_date)) {
-                $answered++;
-            }
+        if ($this->has_deportation_letter === false || ($this->has_deportation_letter === true && $this->deportation_letter_date)) {
+            $answered++;
         }
 
-        // جلسة التسوية
-        if ($this->has_settlement_session !== null) {
-            if ($this->has_settlement_session == 0 || ($this->has_settlement_session == 1 && $this->settlement_date)) {
-                $answered++;
-            }
+        // جلسة التسوية - التاريخ مطلوب دائماً
+        if (($this->has_settlement_session === false && $this->settlement_date) ||
+            ($this->has_settlement_session === true && $this->settlement_date)) {
+            $answered++;
         }
 
         // الخروج النهائي
-        if ($this->has_final_exit !== null) {
-            if ($this->has_final_exit == 0 || ($this->has_final_exit == 1 && $this->final_exit_date)) {
-                $answered++;
-            }
+        if ($this->has_final_exit === false || ($this->has_final_exit === true && $this->final_exit_date)) {
+            $answered++;
         }
 
         return round(($answered / $total) * 100);

@@ -240,10 +240,11 @@ class MaidAction extends MainAction
                         'receipt_source' => 'company', // Use translatable key
                     ]);
 
-                    // Update maid status to in accommodation
+                    // Update maid status to in accommodation but available for work
                     $maid->update([
                         'status' => 'in_accommodation',
-                        'available' => 0,
+                        'available' => 1, // متاحة للعمل
+                        'available_at' => now()->toDateString(),
                     ]);
 
                     DB::commit();
@@ -284,7 +285,9 @@ class MaidAction extends MainAction
             $query->whereBetween('age', [$request->age_from, $request->age_to]);
         }
 
-        return $query->orderBy('is_pinned', 'desc')
+        if ($request->experience_status) {
+            $query->where('experience_status', $request->experience_status);
+        }        return $query->orderBy('is_pinned', 'desc')
                     ->orderBy('created_at', 'desc');
     }
 
