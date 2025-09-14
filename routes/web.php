@@ -93,6 +93,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () 
 
         // مسارات الدول
         Route::get('countries', [CountryController::class, 'index'])->name('countries.index');
+        Route::get('countries/{country}', [CountryController::class, 'show'])->name('countries.show');
         Route::get('countries/create', [CountryController::class, 'create'])->name('countries.create');
         Route::post('countries', [CountryController::class, 'store'])->name('countries.store');
         Route::get('countries/{country}/edit', [CountryController::class, 'edit'])->name('countries.edit');
@@ -100,6 +101,22 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () 
         Route::delete('countries/{country}', [CountryController::class, 'destroy'])->name('countries.destroy');
         Route::patch('countries/{country}/toggle-status', [CountryController::class, 'toggleStatus'])->name('countries.toggle-status');
         Route::post('countries/update-order', [CountryController::class, 'updateOrder'])->name('countries.update-order');
+
+        // مسارات المدن
+        Route::get('cities', [CountryController::class, 'citiesIndex'])->name('cities.index');
+        Route::get('cities/create', [CountryController::class, 'createCity'])->name('cities.create');
+        Route::post('cities', [CountryController::class, 'storeCity'])->name('cities.store');
+        Route::get('cities/{city}/edit', [CountryController::class, 'editCity'])->name('cities.edit');
+        Route::put('cities/{city}', [CountryController::class, 'updateCity'])->name('cities.update');
+        Route::delete('cities/{city}', [CountryController::class, 'destroyCity'])->name('cities.destroy');
+
+        // API routes للدول والمدن
+        Route::get('api/countries', [CountryController::class, 'getCountries'])->name('api.countries');
+        Route::get('api/countries/{countryId}/cities', [CountryController::class, 'getCities'])->name('api.countries.cities');
+        Route::get('api/countries/search', [CountryController::class, 'search'])->name('api.countries.search');
+        Route::get('api/cities', [CountryController::class, 'getAllCities'])->name('api.cities');
+        Route::get('api/cities/{city}', [CountryController::class, 'getCityDetails'])->name('api.cities.show');
+        Route::get('api/cities/search', [CountryController::class, 'searchCities'])->name('api.cities.search');
 
         // Recruitment routes
         Route::get('/recruitment/select-maid/{client_id}', [RecruitmentController::class, 'create'])->name('admin.recruitment.select.maid');
