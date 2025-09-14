@@ -36,20 +36,4 @@ class Country extends Model
     {
         return $query->orderBy('sort_order')->orderBy('name_' . app()->getLocale());
     }
-
-    /**
-     * العلاقة مع المدن
-     */
-    public function cities()
-    {
-        return $this->hasMany(City::class);
-    }
-
-    /**
-     * الحصول على العاصمة
-     */
-    public function capital()
-    {
-        return $this->cities()->where('is_capital', true)->first();
-    }
 }

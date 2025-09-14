@@ -77,6 +77,113 @@
             <i class="fas fa-plane-departure text-warning me-2"></i>
             مرحلة الترحيل
         </h1>
+        <button class="btn btn-info" onclick="loadStatistics()">
+            <i class="fas fa-chart-bar"></i>
+            تحديث الإحصائيات
+        </button>
+    </div>
+
+        <!-- Statistics Cards -->
+    <div class="row mb-4" id="statistics-section">
+        <div class="col-xl-3 col-md-4 mb-4">
+            <div class="card statistics-card deportation-total-card shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                إجمالي العقود
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold" id="total-count">
+                                {{ $statistics['total'] ?? 0 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-file-contract fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="card statistics-card deportation-not-started-card shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                لم تبدأ الإجراءات
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold" id="not-started-count">
+                                {{ $statistics['not_started'] ?? 0 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="card statistics-card deportation-in-progress-card shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                قيد التنفيذ
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold" id="in-progress-count">
+                                {{ $statistics['in_progress'] ?? 0 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-spinner fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="card statistics-card deportation-tickets-booked-card shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                تم حجز التذاكر
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold" id="tickets-booked-count">
+                                {{ $statistics['tickets_booked'] ?? 0 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-ticket-alt fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-4 mb-4">
+            <div class="card statistics-card deportation-completed-card shadow h-100">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                تم الترحيل
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold" id="completed-count">
+                                {{ $statistics['completed'] ?? 0 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-plane fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Filter Section -->
@@ -104,6 +211,16 @@
                         <label class="form-label">الإيواء</label>
                         <select class="form-select" id="filterShelter">
                             <option value="">جميع الأماكن</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">حالة الإجراءات</label>
+                        <select class="form-select" id="filterProcedureStatus">
+                            <option value="">جميع الحالات</option>
+                            <option value="not_started">لم تبدأ الإجراءات</option>
+                            <option value="in_progress">قيد التنفيذ</option>
+                            <option value="tickets_booked">تم حجز التذاكر</option>
+                            <option value="completed">تم الترحيل</option>
                         </select>
                     </div>
                     <div class="col-md-3">
@@ -171,6 +288,7 @@
                     d.contract_number = $('#filterContractNumber').val();
                     d.nationality = $('#filterNationality').val();
                     d.shelter = $('#filterShelter').val();
+                    d.procedure_status = $('#filterProcedureStatus').val();
                 },
                 error: function(xhr, error, thrown) {
                     console.error('DataTables error:', error);
@@ -232,8 +350,30 @@
             $('#filterContractNumber').val('');
             $('#filterNationality').val('');
             $('#filterShelter').val('');
+            $('#filterProcedureStatus').val('');
             dataTable.ajax.reload();
         });
+
+        // Function to load statistics
+        function loadStatistics() {
+            $.ajax({
+                url: '{{ route("ShelterContract.deportationStage") }}',
+                type: 'GET',
+                data: { statistics: true },
+                success: function(response) {
+                    if (response.statistics) {
+                        $('#total-count').text(response.statistics.total || 0);
+                        $('#not-started-count').text(response.statistics.not_started || 0);
+                        $('#in-progress-count').text(response.statistics.in_progress || 0);
+                        $('#tickets-booked-count').text(response.statistics.tickets_booked || 0);
+                        $('#completed-count').text(response.statistics.completed || 0);
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Error loading statistics:', xhr);
+                }
+            });
+        }
 
         // Handle action buttons
         $(document).on('click', '.confirm-action', function(e) {
@@ -299,6 +439,7 @@
                             success: function(response) {
                                 Swal.fire('نجح!', response.message || 'تم تنفيذ العملية بنجاح', 'success');
                                 dataTable.ajax.reload();
+                                loadStatistics(); // تحديث الإحصائيات بعد العملية
                             },
                             error: function(xhr) {
                                 Swal.fire('خطأ!', xhr.responseJSON?.message || 'حدث خطأ أثناء تنفيذ العملية', 'error');
@@ -308,6 +449,30 @@
                 });
             }
         });
+
+        // Function to load statistics
+        function loadStatistics() {
+            $.ajax({
+                url: '{{ route("ShelterContract.deportationStage") }}',
+                type: 'GET',
+                data: { statistics: true },
+                success: function(response) {
+                    if (response.statistics) {
+                        $('#total-count').text(response.statistics.total || 0);
+                        $('#not-started-count').text(response.statistics.not_started || 0);
+                        $('#in-progress-count').text(response.statistics.in_progress || 0);
+                        $('#tickets-booked-count').text(response.statistics.tickets_booked || 0);
+                        $('#completed-count').text(response.statistics.completed || 0);
+                    }
+                },
+                error: function(xhr) {
+                    console.error('Error loading statistics:', xhr);
+                }
+            });
+        }
+
+        // تحديث الإحصائيات عند تحميل الصفحة
+        loadStatistics();
     });
     </script>
 @endsection

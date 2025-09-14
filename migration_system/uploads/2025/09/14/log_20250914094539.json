@@ -1,0 +1,38 @@
+{
+    "batch_id": "batch_68c68ec39ba7a",
+    "file_info": {
+        "original_name": "test_users.csv",
+        "saved_name": "20250914094539_68c68ec39b156_test_users.csv",
+        "path": "\/Applications\/MAMP\/htdocs\/ERP_V\/migration_system\/api\/..\/uploads\/2025\/09\/14\/20250914094539_68c68ec39b156_test_users.csv",
+        "size": 179
+    },
+    "analysis": {
+        "headers": [
+            "name",
+            "email",
+            "phone"
+        ],
+        "data": [
+            {
+                "name": "أحمد محمد",
+                "email": "ahmed@test.com",
+                "phone": "0501234567"
+            },
+            {
+                "name": "فاطمة أحمد",
+                "email": "fatima@test.com",
+                "phone": "0507654321"
+            },
+            {
+                "name": "محمد عبدالله",
+                "email": "mohammed@test.com",
+                "phone": "0555555555"
+            }
+        ],
+        "total_rows": 3,
+        "analyzed_at": "2025-09-14 09:45:39"
+    },
+    "uploaded_at": "2025-09-14 09:45:39",
+    "uploaded_by": 1,
+    "status": "uploaded"
+}

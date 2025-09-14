@@ -35,6 +35,11 @@ class IstiqdasmService
                 'client-id' => $this->clientId,
                 'Content-Type' => 'application/json',
                 'Accept' => 'application/json',
+                'User-Agent' => 'Asas-AlInjaz/1.0 (Laravel)',
+            ])
+            ->withOptions([
+                'verify' => true,
+                'http_errors' => false,
             ]);
     }
 
@@ -201,6 +206,20 @@ class IstiqdasmService
                 ];
             }
 
+            // معالجة خاصة لخطأ 529
+            if ($response->status() === 529) {
+                $errorData = $response->json();
+                $supportId = $errorData['support-id'] ?? 'غير متوفر';
+
+                return [
+                    'success' => false,
+                    'error' => 'خطأ في الخادم (529) - يرجى التواصل مع الدعم الفني. Support ID: ' . $supportId,
+                    'status_code' => $response->status(),
+                    'support_id' => $supportId,
+                    'details' => $errorData,
+                ];
+            }
+
             return [
                 'success' => false,
                 'error' => $response->json()['message'] ?? 'فشل في جلب الباقات',
@@ -332,13 +351,96 @@ class IstiqdasmService
     public function testConnection()
     {
         try {
-            $result = $this->getPackages(['size' => 1]);
-            return $result;
+            // اختبار اتصال مبسط أولاً
+            $endpoint = '/api/protected/istiqdam/packages';
+            $url = $this->baseUrl . $endpoint . '?size=1&page=0';
+
+            $response = $this->getHttpClient()->get($url);
+
+            $this->logApiCall('GET', $endpoint, ['size' => 1, 'page' => 0], $response);
+
+            if ($response->successful()) {
+                return [
+                    'success' => true,
+                    'message' => 'تم الاتصال بمنصة الاستقدام بنجاح',
+                    'data' => $response->json(),
+                ];
+            }
+
+            // معالجة خاصة لخطأ 529
+            if ($response->status() === 529) {
+                $errorData = $response->json();
+                $supportId = $errorData['support-id'] ?? 'غير متوفر';
+
+                return [
+                    'success' => false,
+                    'error' => 'خطأ في الخادم (529) - يرجى التواصل مع الدعم الفني. Support ID: ' . $supportId,
+                    'status_code' => $response->status(),
+                    'support_id' => $supportId,
+                    'details' => $errorData,
+                    'suggestions' => [
+                        'تأكد من أن IP الخادم مسموح له بالوصول',
+                        'تحقق من صحة API Key و Client ID',
+                        'تواصل مع الدعم الفني للمنصة الحكومية'
+                    ]
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => 'فشل في الاتصال بمنصة الاستقدام: ' . ($response->json()['message'] ?? 'خطأ غير معروف'),
+                'status_code' => $response->status(),
+            ];
+
         } catch (\Exception $e) {
             return [
                 'success' => false,
                 'error' => 'فشل في الاتصال بمنصة الاستقدام: ' . $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * تشخيص مشاكل الاتصال
+     */
+    public function diagnoseConnection()
+    {
+        $diagnosis = [
+            'timestamp' => now()->toISOString(),
+            'environment' => config('istiqdam.current_env'),
+            'base_url' => $this->baseUrl,
+            'client_id' => $this->clientId,
+            'api_key_length' => strlen($this->apiKey),
+            'timeout' => $this->timeout,
+        ];
+
+        try {
+            // اختبار الاتصال الأساسي
+            $response = $this->getHttpClient()->get($this->baseUrl . '/health');
+            $diagnosis['health_check'] = [
+                'status' => $response->status(),
+                'success' => $response->successful(),
+            ];
+        } catch (\Exception $e) {
+            $diagnosis['health_check'] = [
+                'error' => $e->getMessage(),
+            ];
+        }
+
+        try {
+            // اختبار نقطة النهاية الرئيسية
+            $response = $this->getHttpClient()->get($this->baseUrl . '/api/protected/istiqdam/packages?size=1');
+            $diagnosis['api_test'] = [
+                'status' => $response->status(),
+                'success' => $response->successful(),
+                'response' => $response->json(),
+            ];
+        } catch (\Exception $e) {
+            $diagnosis['api_test'] = [
+                'error' => $e->getMessage(),
+            ];
+        }
+
+        return $diagnosis;
     }
 }

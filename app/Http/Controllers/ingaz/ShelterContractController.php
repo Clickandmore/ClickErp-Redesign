@@ -1452,6 +1452,9 @@ class ShelterContractController extends Controller
                 ], 400);
             }
 
+            // التحقق من حفظ التقدم الجزئي
+            $isPartialSave = $request->has('partial_save') && $request->partial_save == '1';
+
             // التحقق من التواريخ المستقبلية
             $today = now()->format('Y-m-d');
             $dateFields = [
@@ -1563,20 +1566,26 @@ class ShelterContractController extends Controller
             ]);
 
             // Update procedure data
-            $procedure->update([
-                'salary_received' => $request->input('salary_received') == '1' ? true : false,
-                'salary_received_date' => $request->input('salary_received') == '1' ? $request->salary_received_date : null,
-                'has_passport' => $request->input('has_passport') == '1' ? true : false,
-                'passport_date' => $request->input('has_passport') == '1' ? $request->passport_date : null,
-                'has_deportation_letter' => $request->input('has_deportation_letter') == '1' ? true : false,
-                'deportation_letter_date' => $request->input('has_deportation_letter') == '1' ? $request->deportation_letter_date : null,
-                'has_settlement_session' => $request->input('has_settlement_session') == '1' ? true : false,
+            $updateData = [
+                'salary_received' => $request->input('salary_received') !== null ? ($request->input('salary_received') == '1' ? true : false) : null,
+                'salary_received_date' => ($request->input('salary_received') == '1' && $request->salary_received_date) ? $request->salary_received_date : null,
+                'has_passport' => $request->input('has_passport') !== null ? ($request->input('has_passport') == '1' ? true : false) : null,
+                'passport_date' => ($request->input('has_passport') == '1' && $request->passport_date) ? $request->passport_date : null,
+                'has_deportation_letter' => $request->input('has_deportation_letter') !== null ? ($request->input('has_deportation_letter') == '1' ? true : false) : null,
+                'deportation_letter_date' => ($request->input('has_deportation_letter') == '1' && $request->deportation_letter_date) ? $request->deportation_letter_date : null,
+                'has_settlement_session' => $request->input('has_settlement_session') !== null ? ($request->input('has_settlement_session') == '1' ? true : false) : null,
                 'settlement_date' => $request->settlement_date, // حفظ التاريخ دائماً في جلسة التسوية
-                'has_final_exit' => $request->input('has_final_exit') == '1' ? true : false,
-                'final_exit_date' => $request->input('has_final_exit') == '1' ? $request->final_exit_date : null,
-                'notes' => $request->notes,
-                'status' => 'in_progress'
-            ]);
+                'has_final_exit' => $request->input('has_final_exit') !== null ? ($request->input('has_final_exit') == '1' ? true : false) : null,
+                'final_exit_date' => ($request->input('has_final_exit') == '1' && $request->final_exit_date) ? $request->final_exit_date : null,
+                'notes' => $request->notes
+            ];
+
+            // إذا كان حفظ جزئي، لا نغير الحالة إلى in_progress
+            if (!$isPartialSave) {
+                $updateData['status'] = 'in_progress';
+            }
+
+            $procedure->update($updateData);
 
             // تسجيل التحركات للتغييرات
             $newValues = $procedure->only([
@@ -1587,14 +1596,21 @@ class ShelterContractController extends Controller
 
             foreach ($newValues as $field => $newValue) {
                 $oldValue = $oldValues[$field];
+
+                // في حالة الحفظ الجزئي، نتجاهل التغييرات من null إلى null
+                if ($isPartialSave && $oldValue === null && $newValue === null) {
+                    continue;
+                }
+
                 if ($oldValue !== $newValue) {
+                    $description = $isPartialSave ? "تم تحديث جزئي {$this->getFieldDisplayName($field)}" : "تم تحديث {$this->getFieldDisplayName($field)}";
                     \App\Models\DeportationProcedureLog::logUpdate(
                         $procedure->id,
                         auth('admin')->id(),
                         $field,
                         $oldValue,
                         $newValue,
-                        "تم تحديث {$this->getFieldDisplayName($field)}"
+                        $description
                     );
                 }
             }
@@ -1713,14 +1729,40 @@ class ShelterContractController extends Controller
 
             // حفظ جميع المرفقات
             if (!empty($allAttachments)) {
-                $procedure->attachments = array_merge($procedure->attachments ?? [], $allAttachments);
+                $existingAttachments = $procedure->attachments ?? [];
+
+                // تجنب التكرار عن طريق التحقق من وجود المرفق بنفس الاسم والنوع
+                $filteredAttachments = [];
+                foreach ($allAttachments as $newAttachment) {
+                    $exists = false;
+                    foreach ($existingAttachments as $existing) {
+                        if (is_array($existing) &&
+                            isset($existing['name']) && isset($newAttachment['name']) &&
+                            $existing['name'] === $newAttachment['name'] &&
+                            isset($existing['type']) && isset($newAttachment['type']) &&
+                            $existing['type'] === $newAttachment['type']) {
+                            $exists = true;
+                            break;
+                        }
+                    }
+                    if (!$exists) {
+                        $filteredAttachments[] = $newAttachment;
+                    }
+                }
+
+                $procedure->attachments = array_merge($existingAttachments, $filteredAttachments);
                 $procedure->save();
             }
 
+            $message = $isPartialSave ?
+                'تم حفظ التقدم الجزئي بنجاح' :
+                'تم تحديث إجراءات الترحيل بنجاح';
+
             return response()->json([
                 'success' => true,
-                'message' => 'تم تحديث إجراءات الترحيل بنجاح',
-                'completion_percentage' => $procedure->completion_percentage
+                'message' => $message,
+                'completion_percentage' => $procedure->completion_percentage,
+                'partial_save' => $isPartialSave
             ]);
 
         } catch (\Exception $e) {
@@ -1945,18 +1987,20 @@ class ShelterContractController extends Controller
     {
         try {
             $procedure = \App\Models\DeportationProcedure::findOrFail($id);
-            $logs = $procedure->logs()->with("admin")->get();
+            $logs = $procedure->logs()->with("admin")->orderBy('created_at', 'desc')->get();
 
             $html = view("admin.ingaz.ShelterContract.partials.activity-log", compact("logs"))->render();
 
             return response()->json([
                 "success" => true,
-                "html" => $html
+                "html" => $html,
+                "logs_count" => $logs->count()
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 "success" => false,
-                "message" => "حدث خطأ في تحميل سجل التحركات"
+                "message" => "حدث خطأ في تحميل سجل التحركات",
+                "error" => $e->getMessage()
             ], 500);
         }
     }

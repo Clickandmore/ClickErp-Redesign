@@ -28,7 +28,7 @@
             <i class="fas fa-sliders-h me-2"></i>
             إعدادات العقد
         </a>
-        <a href="{{ route('rent-contract-terms.edit') }}" class="btn btn-warning me-2">
+        <a href="{{ route('rent-contract-terms.index') }}" class="btn btn-warning me-2">
             <i class="fas fa-list-alt me-2"></i>
             إدارة بنود العقد
         </a>
@@ -825,6 +825,124 @@
                     }
                 });
             });
+
+        // إجراءات workflow الجديدة
+        $(document).on('click', '.send-contract', function() {
+            const contractId = $(this).data('id');
+
+            Swal.fire({
+                title: 'تأكيد إرسال العقد',
+                text: 'هل تم إرسال العقد للعميل فعلاً؟',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#17a2b8',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'نعم، تم الإرسال',
+                cancelButtonText: 'إلغاء'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    executeWorkflowAction(contractId, 'send-contract', 'تم تأكيد إرسال العقد بنجاح');
+                }
+            });
+        });
+
+        $(document).on('click', '.sign-contract', function() {
+            const contractId = $(this).data('id');
+
+            Swal.fire({
+                title: 'تأكيد توقيع العقد',
+                text: 'هل تم توقيع العقد من العميل فعلاً؟',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'نعم، تم التوقيع',
+                cancelButtonText: 'إلغاء'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    executeWorkflowAction(contractId, 'sign-contract', 'تم تأكيد توقيع العقد بنجاح');
+                }
+            });
+        });
+
+        $(document).on('click', '.deliver-maid', function() {
+            const contractId = $(this).data('id');
+
+            Swal.fire({
+                title: 'تأكيد تسليم العاملة',
+                text: 'هل تم تسليم العاملة للعميل فعلاً؟',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#007bff',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'نعم، تم التسليم',
+                cancelButtonText: 'إلغاء'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    executeWorkflowAction(contractId, 'deliver-maid', 'تم تأكيد تسليم العاملة بنجاح');
+                }
+            });
+        });
+
+        $(document).on('click', '.activate-contract', function() {
+            const contractId = $(this).data('id');
+
+            Swal.fire({
+                title: 'تأكيد تفعيل العقد',
+                text: 'هل تريد تفعيل العقد وبدء الخدمة؟',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'نعم، فعّل العقد',
+                cancelButtonText: 'إلغاء'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    executeWorkflowAction(contractId, 'activate-contract', 'تم تفعيل العقد بنجاح');
+                }
+            });
+        });
+
+        function executeWorkflowAction(contractId, action, successMessage) {
+            $.ajax({
+                url: `{{ url('/admin') }}/RentContract/${contractId}/${action}`,
+                type: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}'
+                },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم بنجاح!',
+                            text: response.message || successMessage,
+                            confirmButtonText: 'موافق'
+                        }).then(() => {
+                            dataTable.ajax.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ!',
+                            text: response.message || 'حدث خطأ أثناء تنفيذ العملية'
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    let errorMessage = 'حدث خطأ أثناء تنفيذ العملية';
+
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ!',
+                        text: errorMessage
+                    });
+                }
+            });
+        }
         });
 </script>
 @endsection
