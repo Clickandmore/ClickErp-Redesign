@@ -1,0 +1,5888 @@
+@charset "UTF-8";
+@font-face {
+  font-family: SF_Regular;
+  font-display: swap;
+  src: url(../font/SF_Regular.ttf);
+}
+:target {
+  scroll-margin-top: 100px;
+}
+
+.fancybox__container {
+  z-index: 1999;
+}
+
+.fancybox__track,
+.fancybox__content,
+.carousel__track {
+  direction: ltr !important;
+}
+
+:root {
+  --mainColor: #005ca9;
+  --secondColor: #41cde969;
+  --black: #000000;
+  --white: #ffffff;
+  --gray: #ccc;
+  --transition: all 0.3s ease-in-out;
+  --shadow: 0px 2px 4px #00000020;
+  --mainColor80: #cdebeaf5; /* 80% */
+  --mainColor20: #005ca933; /* 20% */
+  --mainColor10: #a5cff11a; /* 10% */
+  --BigShadow: 0px 8px 24px var(--mainColor10);
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: var(--white);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--black);
+  height: 300px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  line-height: 1.5;
+  box-sizing: border-box;
+  scroll-behavior: smooth;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  font-family: "SF_Regular", sans-serif;
+}
+
+body {
+  background-color: var(--white);
+  overflow-x: hidden;
+  position: relative;
+}
+
+html[lang=ar] {
+  direction: rtl;
+}
+html[lang=ar] [type=email], html[lang=ar] [type=number], html[lang=ar] [type=tel], html[lang=ar] [type=url] {
+  direction: rtl;
+}
+
+html[lang=en] {
+  direction: ltr;
+}
+html[lang=en] footer .footer .head::after {
+  left: 0;
+}
+html[lang=en] footer .footer .head::before {
+  left: 0;
+}
+html[lang=en] main .requirements .requirement ul li p {
+  margin-left: 10px;
+}
+html[lang=en] main .statistics .specifications h6 {
+  margin-left: 10px;
+}
+html[lang=en] header .mainNav .dropdown .dropdown-toggle::after {
+  content: "\f105" !important;
+}
+html[lang=en] main .countries .animatedLink i, html[lang=en] .mainBanner .Back .fa-angle-left {
+  transform: rotate(180deg);
+}
+html[lang=en] main .allWorkers .workers-list .worker-box .worker-content p.worker-job {
+  left: 50%;
+}
+html[lang=en] .mainBanner ul li::after {
+  left: 100%;
+}
+
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+a {
+  text-decoration: none;
+}
+
+button,
+input,
+textarea {
+  border: none;
+  outline: none;
+  background: none;
+}
+
+.row {
+  margin: 0;
+  padding: 0;
+}
+
+.headTitle {
+  text-align: center;
+  margin-bottom: 50px;
+}
+.headTitle h2 {
+  font-size: 36px !important;
+  color: var(--mainColor);
+}
+@media (max-width: 768px) {
+  .headTitle h2 {
+    font-size: 28px !important;
+  }
+}
+.headTitle h1 {
+  font-weight: bold;
+}
+.headTitle a {
+  margin-top: 20px;
+}
+
+.SectionTitle {
+  position: relative;
+  padding: 30px;
+  text-align: center;
+}
+.SectionTitle .title {
+  font-weight: bold;
+  font-size: 40px !important;
+  color: var(--white);
+  margin-bottom: 10px;
+}
+@media (max-width: 768px) {
+  .SectionTitle .title {
+    font-size: 28px !important;
+  }
+}
+.SectionTitle .hint {
+  color: var(--gray);
+}
+
+.preloader {
+  background-color: var(--white);
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 999999;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.preloader .preloaderImg {
+  width: 200px;
+  height: 200px;
+  -webkit-mask-image: url("../images/logo.svg");
+          mask-image: url("../images/logo.svg");
+  -webkit-mask-size: contain;
+          mask-size: contain;
+  -webkit-mask-position: center;
+          mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+  position: relative;
+}
+.preloader .preloaderImg::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 300px;
+  height: 300px;
+  z-index: 2;
+  background-color: var(--mainColor);
+  transform: translateY(100%);
+  animation: slide-up 1.5s forwards;
+}
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0%);
+  }
+}
+
+.mainBanner {
+  display: flex;
+  align-items: center;
+  padding: 100px 30px 120px;
+  transition: var(--transition);
+  margin-bottom: 20px;
+  background-image: linear-gradient(45deg, var(--mainColor80), var(--mainColor)), url(../images/s2.webp);
+  background-size: cover;
+  background-attachment: fixed;
+  animation: sky 100s infinite;
+  position: relative;
+}
+@keyframes sky {
+  0% {
+    background-position: left bottom;
+  }
+  100% {
+    background-position: right top;
+  }
+}
+.mainBanner .Back {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 40px;
+  height: 40px;
+  background-color: rgba(204, 204, 204, 0.4862745098);
+  color: var(--white);
+  border-radius: 100%;
+  margin-left: 30px;
+  transition: var(--transition);
+  font-size: 20px;
+  border: none;
+}
+.mainBanner .Back:hover {
+  background-color: var(--mainColor);
+  color: var(--white);
+}
+.mainBanner .Back .fa-angle-left:before {
+  content: "\f105";
+}
+.mainBanner ul {
+  margin: 0;
+  list-style: none;
+  transition: var(--transition);
+  padding: 0;
+}
+.mainBanner ul li {
+  display: inline-flex;
+  padding: 10px;
+  color: var(--secondColor);
+  transition: var(--transition);
+  position: relative;
+}
+.mainBanner ul li a {
+  transition: var(--transition);
+  color: var(--white);
+  text-transform: uppercase;
+  font-size: 18px !important;
+  padding-left: 10px;
+}
+.mainBanner ul li a:hover {
+  color: var(--secondColor);
+}
+.mainBanner ul li a.active {
+  color: var(--white);
+  cursor: default;
+}
+.mainBanner ul li::after {
+  content: " / ";
+  font-size: 20px;
+  font-weight: bold;
+  position: absolute;
+  left: -3px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--white);
+}
+.mainBanner ul li:last-child:after {
+  display: none;
+}
+@media (max-width: 768px) {
+  .mainBanner {
+    padding: 70px 15px 45px;
+  }
+  .mainBanner .Back {
+    margin-left: 20px;
+  }
+  .mainBanner ul li a {
+    font-size: 16px !important;
+  }
+}
+.mainBanner figure {
+  width: 100%;
+  position: absolute;
+  bottom: 0px;
+  right: 0;
+}
+.mainBanner figure svg {
+  width: 100%;
+  height: 150px;
+}
+@media (max-width: 768px) {
+  .mainBanner figure svg {
+    height: 70px;
+  }
+}
+
+.mapEarth .title {
+  color: var(--mainColor);
+  margin-bottom: 20px;
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.mapEarth .title::after {
+  content: "";
+  width: 95%;
+  height: 2px;
+  background-color: var(--mainColor80);
+  position: absolute;
+  right: 0;
+  bottom: 50%;
+  transform: translateY(50%);
+}
+.mapEarth .title::before {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border-radius: 100px;
+  background-color: var(--mainColor80);
+  position: absolute;
+  left: 5%;
+  bottom: 50%;
+  transform: translateY(50%);
+}
+.mapEarth .title a,
+.mapEarth .title span {
+  background-color: #fdfdfd;
+  padding: 20px 30px;
+  position: relative;
+  z-index: 2;
+  border-radius: 100px;
+  border: 2px solid var(--mainColor80);
+  font-weight: bold;
+}
+@media (max-width: 768px) {
+  .mapEarth .title a,
+  .mapEarth .title span {
+    padding: 15px 20px;
+  }
+}
+.mapEarth .title a {
+  font-weight: normal;
+  font-size: 14px;
+  background-color: var(--mainColor);
+  color: var(--secondColor);
+  padding: 10px 15px;
+  transition: var(--transition);
+}
+.mapEarth .title a:hover {
+  background-color: var(--secondColor);
+  color: var(--mainColor);
+}
+.mapEarth .section-title {
+  text-align: left;
+  margin: 0 auto 25px 0;
+  max-width: 100%;
+}
+.mapEarth .section-title h2 {
+  padding-left: 0;
+}
+.mapEarth .worldMap {
+  width: 500px;
+  height: 500px;
+  order: 2;
+  position: relative;
+}
+.mapEarth .worldMap .earth {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 80%;
+  height: 80%;
+  margin: -40%;
+  background: #fff url(../images/map.webp) 0 50% repeat-x;
+  background-size: auto 90%;
+  box-shadow: rgba(0, 0, 0, 0.05) 0 1em 2em;
+  border-radius: 100%;
+  overflow: hidden;
+  animation: map linear 90s infinite;
+}
+.mapEarth .worldMap .orbic {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.mapEarth .worldMap .orbic svg {
+  width: 100%;
+  height: 100%;
+  vertical-align: top;
+}
+.mapEarth .worldMap #orbic_path {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.1);
+  stroke-linecap: round;
+  stroke-width: 4px;
+  stroke-dasharray: 1 9;
+  animation: orbic linear 2s infinite;
+}
+.mapEarth .worldMap #orbic_dots use {
+  fill: #fff;
+  stroke: rgba(30, 144, 255, 0.25);
+  stroke-width: 4;
+  animation: dots ease 1s infinite alternate;
+}
+.mapEarth .worldMap #orbic_dot1 {
+  transform: translate(50.4%, 29.6%);
+}
+.mapEarth .worldMap #orbic_dot2 {
+  transform: translate(5%, 62.8%);
+  animation-delay: 0.2s !important;
+}
+.mapEarth .worldMap #orbic_dot3 {
+  transform: translate(97%, 41%);
+  animation-delay: 0.3s !important;
+}
+.mapEarth .worldMap #orbic_dot4 {
+  transform: translate(50%, 70.2%);
+  animation-delay: 0.5s !important;
+}
+.mapEarth .worldMap #orbic_dot5 {
+  transform: translate(31.5%, 51.5%);
+  animation-delay: 0.7s !important;
+}
+.mapEarth .worldMap #orbic_user1 {
+  transform: translate(1%, 40%) scale(0.666667);
+}
+.mapEarth .worldMap #orbic_user2 {
+  transform: translate(18%, 64%) scale(0.666667);
+}
+.mapEarth .worldMap #orbic_user3 {
+  transform: translate(39.5%, 31%) scale(0.666667);
+}
+.mapEarth .worldMap #orbic_user4 {
+  transform: translate(69%, 22%) scale(0.666667);
+}
+.mapEarth .worldMap #orbic_user5 {
+  transform: translate(75%, 53%) scale(0.666667);
+}
+@keyframes map {
+  100% {
+    background-position: 220% 50%;
+  }
+}
+@keyframes orbic {
+  100% {
+    stroke-dashoffset: 10;
+  }
+}
+@keyframes dots {
+  100%, 80% {
+    stroke: #1e90ff;
+  }
+}
+@media only screen and (max-width: 1000px) {
+  .mapEarth .worldMap {
+    width: 100%;
+    order: 2;
+    position: relative;
+  }
+  .mapEarth .worldMap .earth {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    background-color: transparent;
+    background-size: 100% auto;
+    box-shadow: none;
+    border-radius: 0;
+    animation: none;
+  }
+}
+@media (max-width: 600px) {
+  .mapEarth .worldMap {
+    height: 300px;
+  }
+}
+.mapEarth .companyInfo {
+  margin-top: 30px;
+}
+.mapEarth .companyInfo ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.mapEarth .companyInfo ul li {
+  margin-bottom: 15px;
+  display: flex;
+}
+.mapEarth .companyInfo ul li span {
+  min-width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid var(--mainColor);
+  border-radius: 50%;
+  transition: 0.3s ease-in-out;
+  color: var(--mainColor);
+}
+.mapEarth .companyInfo ul li:hover span {
+  background-color: var(--mainColor);
+  color: #fff;
+}
+.mapEarth .companyInfo ul li p {
+  font-weight: bold;
+  color: var(--black);
+}
+.mapEarth .companyInfo ul li a {
+  color: var(--mainColor);
+  display: block;
+  font-weight: normal;
+  margin: 5px 0;
+}
+.mapEarth .companyTeam {
+  margin-bottom: 50px;
+}
+.mapEarth .companyTeam .team {
+  margin: 20px 0px;
+  border-bottom: 1px solid var(--mainColor);
+  padding-bottom: 5px;
+}
+.mapEarth .companyTeam .team span {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid var(--mainColor);
+  border-radius: 50%;
+  transition: 0.3s ease-in-out;
+  color: var(--mainColor);
+}
+.mapEarth .companyTeam .team:hover span {
+  background-color: var(--mainColor);
+  color: #fff;
+}
+.mapEarth .companyTeam .team h4 {
+  display: inline-block;
+  margin: 0px 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.defaultBtn {
+  position: relative;
+  display: inline-block;
+  text-align: center;
+  overflow: hidden;
+  z-index: 1;
+  background-color: var(--mainColor);
+  color: var(--white);
+  transition: var(--transition);
+  border-radius: 500px;
+  padding: 8px 16px;
+  border: 1px solid transparent;
+}
+.defaultBtn span {
+  position: absolute;
+  top: 50%;
+  right: 0%;
+  display: inline-block;
+  width: 0;
+  height: 0;
+  background-color: var(--white);
+  transition: all 0.5s ease-in-out;
+  transform: translate(50%, -50%);
+  border-radius: 500px;
+  z-index: -1;
+}
+.defaultBtn:hover {
+  color: var(--mainColor);
+  border: 1px solid var(--mainColor);
+}
+.defaultBtn:hover span {
+  width: 300%;
+  height: 600%;
+}
+
+.form-check-input:checked {
+  background-color: var(--mainColor);
+  border-color: var(--mainColor);
+  transition: var(--transition);
+}
+.form-check-input:focus {
+  box-shadow: 0 0 0 0.25rem rgba(121, 37, 74, 0.1882352941);
+}
+
+header .mainNav {
+  background-color: var(--white);
+  transition: var(--transition);
+  box-shadow: var(--BigShadow);
+  padding: 0 90px;
+}
+@media (max-width: 768px) {
+  header .mainNav {
+    padding: 20px;
+  }
+}
+header .mainNav .navbar-brand {
+  display: flex;
+  margin: 0;
+  align-items: center;
+  position: relative;
+}
+header .mainNav .navbar-brand .logo {
+  height: 30px;
+  width: 100%;
+  -o-object-fit: contain;
+     object-fit: contain;
+}
+header .mainNav .language {
+  padding: 20px 12px;
+}
+@media (max-width: 768px) {
+  header .mainNav .language {
+    padding: 10px 12px;
+  }
+}
+header .mainNav .language .dropdown-toggle {
+  color: var(--mainColor);
+}
+header .mainNav .language i {
+  font-size: 20px;
+}
+header .mainNav .language .dropdown-item {
+  text-align: start;
+}
+header .mainNav .language .dropdown-item img {
+  width: 30px;
+  height: 20px;
+  -o-object-fit: cover;
+     object-fit: cover;
+  border-radius: 4px;
+  margin-left: 5px;
+}
+header .mainNav .nav-item {
+  display: flex;
+  align-items: center;
+}
+@media (max-width: 768px) {
+  header .mainNav .nav-item {
+    display: block;
+  }
+}
+header .mainNav .nav-item a i {
+  color: var(--mainColor);
+}
+header .mainNav .nav-item .fa-globe {
+  color: var(--black);
+}
+header .mainNav .nav-item .nav-link {
+  color: var(--black);
+  padding: 10px 10px;
+  margin: 0 2px;
+  border-radius: 4px;
+  position: relative;
+  display: inline-block;
+  font-size: 0.94rem;
+}
+@media (max-width: 768px) {
+  header .mainNav .nav-item .nav-link {
+    margin-bottom: 5px;
+    padding: 10px;
+  }
+}
+header .mainNav .nav-item .nav-link.active, header .mainNav .nav-item .nav-link:hover, header .mainNav .nav-item .nav-link:focus {
+  color: var(--mainColor);
+}
+header .mainNav .nav-item .nav-link.active::after, header .mainNav .nav-item .nav-link:hover::after, header .mainNav .nav-item .nav-link:focus::after {
+  width: 30%;
+}
+header .mainNav .dropdown {
+  text-align: center;
+}
+header .mainNav .dropdown .userImg {
+  width: 36px;
+  height: 36px;
+  -o-object-fit: cover;
+     object-fit: cover;
+  border-radius: 100%;
+  border: 1px solid var(--mainColor80);
+}
+header .mainNav .dropdown .dropdown-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+@media (max-width: 768px) {
+  header .mainNav .dropdown .dropdown-toggle {
+    align-items: start;
+    justify-content: start;
+  }
+}
+header .mainNav .dropdown .dropdown-toggle::after {
+  border: none !important;
+  content: "\f104" !important;
+  font-family: "Font Awesome 6 Pro";
+  transition: var(--transition);
+  margin-right: 5px;
+  width: 10px !important;
+}
+header .mainNav .dropdown:hover .dropdown-toggle::after {
+  transform: rotate(-90deg);
+}
+header .mainNav .dropdown .dropdown-menu {
+  animation-duration: 0.5s;
+  animation-fill-mode: both;
+  animation-name: fadeOutDown !important;
+  animation-delay: 0s;
+  background-color: var(--white);
+  box-shadow: var(--BigShadow);
+  padding: 5px 0;
+  right: unset;
+  top: 100%;
+  left: -50%;
+  margin-top: 0;
+  border: none;
+}
+header .mainNav .dropdown .dropdown-menu a {
+  border-radius: 2px;
+  padding: 8px 12px;
+  padding-right: 16px;
+  margin-bottom: 5px;
+  position: relative;
+}
+header .mainNav .dropdown .dropdown-menu a::before {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  content: "";
+  width: 0px;
+  height: 80%;
+  background-color: var(--mainColor);
+  border-bottom-left-radius: 50%;
+  border-top-left-radius: 50%;
+  transition: 0.1s ease-in-out;
+  transform: translateY(-50%);
+}
+header .mainNav .dropdown .dropdown-menu a:hover::before {
+  width: 5px;
+}
+header .mainNav .dropdown .dropdown-menu a:focus {
+  background-color: var(--mainColor);
+  color: var(--white);
+}
+header .mainNav .dropdown:hover .dropdown-menu, header .mainNav .dropdown:focus .dropdown-menu {
+  animation-duration: 0.5s;
+  animation-fill-mode: both;
+  animation-name: fadeInUp !important;
+}
+@media (min-width: 768px) {
+  header .mainNav .dropdown:hover .dropdown-menu, header .mainNav .dropdown:focus .dropdown-menu {
+    display: block;
+  }
+}
+@media (max-width: 768px) {
+  header .mainNav .dropdown .dropdown-menu {
+    animation-name: unset !important;
+    box-shadow: none;
+    background-color: var(--mainColor10);
+    margin: 10px 0;
+  }
+  header .mainNav .dropdown:hover .dropdown-menu {
+    animation-name: unset !important;
+  }
+}
+header .mainNav .login-btn {
+  position: relative;
+  display: inline-block;
+  text-align: center;
+  overflow: hidden;
+  z-index: 1;
+  background-color: var(--mainColor);
+  color: var(--white);
+  transition: var(--transition);
+  border-radius: 500px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  font-size: 0.8rem;
+}
+header .mainNav .login-btn span {
+  position: absolute;
+  top: 50%;
+  right: 0%;
+  display: inline-block;
+  width: 0;
+  height: 0;
+  background-color: var(--white);
+  transition: all 0.5s ease-in-out;
+  transform: translate(50%, -50%);
+  border-radius: 500px;
+  z-index: -1;
+}
+header .mainNav .login-btn:hover {
+  color: var(--mainColor);
+  border: 1px solid var(--mainColor);
+}
+header .mainNav .login-btn:hover span {
+  width: 300%;
+  height: 600%;
+}
+
+main .goDown {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  padding: 0;
+  animation: bounce 2s infinite;
+  background-color: var(--white);
+  box-shadow: var(--shadow);
+  color: var(--mainColor);
+  position: absolute;
+  z-index: 4;
+  bottom: calc(0% - 25px);
+  left: calc(50% - 25px);
+}
+main .mainSlider {
+  position: relative;
+  overflow: hidden;
+}
+main .mainSlider .swiper {
+  width: 100%;
+  height: 100%;
+  padding-bottom: 0px;
+}
+main .mainSlider .swiper .swiper-slide {
+  position: relative;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 90dvh;
+  min-height: 600px;
+  isolation: isolate;
+  border-radius: 0 0 24px 24px;
+  overflow: hidden;
+}
+main .mainSlider .swiper .swiper-slide::after {
+  content: "";
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(60deg, var(--black) 10%, var(--black) 90%);
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  opacity: 0.7;
+  z-index: -1;
+  transition: 0.3s ease-in-out;
+  mix-blend-mode: multiply;
+}
+main .mainSlider .swiper .swiper-slide .info {
+  width: min(100% - 24px, 700px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+@media (max-width: 768px) {
+  main .mainSlider .swiper .swiper-slide .info {
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+  }
+}
+main .mainSlider .swiper .swiper-slide .info .sliderTitle {
+  color: var(--white);
+  font-size: 20px;
+}
+@media (max-width: 768px) {
+  main .mainSlider .swiper .swiper-slide .info .sliderTitle {
+    font-size: 18px;
+  }
+}
+main .mainSlider .swiper .swiper-slide .info .hint {
+  color: var(--white);
+  font-size: 30px;
+}
+main .mainSlider .swiper-slide-active .sliderTitle {
+  animation: fadeInUp 1s 0.75s both;
+}
+main .mainSlider .swiper-slide-active .hint {
+  animation: fadeInUp 1s 0s both;
+}
+main .mainSlider .swiper-slide-active .customBtn {
+  animation: fadeInUp 1s 1.5s both;
+}
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translateZ(0);
+  }
+}
+main .hero-services {
+  position: relative;
+  z-index: 2;
+  margin: -80px auto 0;
+  background-color: var(--white);
+  width: min(100% - 24px, 1320px);
+  padding: 12px;
+  border-radius: 24px;
+  box-shadow: var(--BigShadow);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+main .hero-services .expertise {
+  position: absolute;
+  left: 50%;
+  top: -100px;
+  transform: translateX(-50%);
+  width: 200px;
+  aspect-ratio: 1;
+  z-index: -1;
+  background-color: var(--white);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  border-radius: 200px;
+  border-radius: 100%;
+  padding: 24px 0;
+}
+main .hero-services .expertise span {
+  font-family: "fontBold";
+  font-size: 50px;
+  line-height: 40px;
+  color: var(--mainColor);
+}
+main .hero-services .expertise span small {
+  color: var(--black);
+  font-size: 18px;
+}
+main .hero-services .service {
+  padding: 24px;
+  flex: 1;
+  min-width: 250px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: var(--mainColor10);
+  border-radius: 20px;
+  position: relative;
+  color: var(--black);
+  overflow: hidden;
+}
+@media (max-width: 768px) {
+  main .hero-services .service {
+    padding: 18px;
+  }
+}
+main .hero-services .service:before {
+  content: "";
+  position: absolute;
+  top: -100px;
+  left: -100px;
+  width: 100px;
+  height: 100px;
+  border-radius: 100%;
+  background-color: var(--mainColor);
+  z-index: -1;
+  transition: var(--transition);
+  box-shadow: 0px 20px 100px var(--mainColor);
+}
+main .hero-services .service .icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+main .hero-services .service .icon svg {
+  width: 64px;
+  height: 64px;
+}
+main .hero-services .service .icon svg * {
+  fill: var(--mainColor);
+}
+@media (max-width: 768px) {
+  main .hero-services .service .icon svg {
+    width: 50px;
+    height: 50px;
+  }
+}
+main .hero-services .service .text {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+}
+main .hero-services .service .text h4 {
+  font-size: 1.1rem;
+}
+main .hero-services .service .text p {
+  font-size: 1rem;
+}
+main .hero-services .service:hover:before {
+  top: -50px;
+  left: -50px;
+}
+main .hero-services .warning {
+  width: 100%;
+  background-color: #c10e0e;
+  color: var(--white);
+  text-align: center;
+  padding: 12px;
+  border-radius: 12px;
+}
+main .about-section {
+  padding: 50px 0;
+}
+main .about-section .section-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--mainColor);
+}
+main .about-section .section-subtitle {
+  max-width: 750px;
+  margin: auto;
+  font-size: 1.1rem;
+  line-height: 1.9;
+  color: #444;
+}
+main .about-section .about-highlights {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+}
+main .about-section .about-highlights li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--mainColor10);
+  padding: 10px 18px;
+  border-radius: 15px;
+  font-size: 0.95rem;
+  color: var(--black);
+  transition: var(--transition);
+}
+main .about-section .about-highlights li:hover {
+  background: var(--mainColor20);
+  transform: translateY(-3px);
+}
+main .about-section .about-highlights li i {
+  font-size: 1.2rem;
+  color: var(--mainColor);
+  background: var(--white);
+  border: 1px solid var(--mainColor20);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+li:hover main .about-section .about-highlights li i {
+  background: var(--mainColor);
+  color: var(--white);
+  border-color: var(--mainColor);
+}
+main .about-section .about-card {
+  background: #fff;
+  padding: 30px 20px;
+  border-radius: 15px;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 6px 20px rgba(var(--mainColor), 0.15);
+  transition: all 0.3s ease;
+  border: 1px solid var(--gray);
+  min-height: 100%;
+}
+main .about-section .about-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 10px 25px rgba(var(--mainColor), 0.25);
+}
+main .about-section .about-card .about-number {
+  position: absolute;
+  top: -20px;
+  left: 20px;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--mainColor80);
+}
+main .about-section .about-card i {
+  font-size: 2.2rem;
+  color: var(--mainColor);
+  margin-bottom: 15px;
+}
+main .about-section .about-card h4 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--mainColor);
+}
+main .about-section .about-card p {
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.7;
+}
+main .services-sec {
+  background-color: var(--mainColor10);
+  padding: 50px 0;
+}
+main .services-sec .service {
+  display: block;
+  position: relative;
+  padding: 30px 20px;
+  border-radius: 15px;
+  text-align: center;
+  background-size: 100% auto;
+  height: 100%;
+  min-width: 250px;
+  transition: var(--transition);
+  max-width: 100%;
+}
+main .services-sec .service::after {
+  content: "";
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  height: 100%;
+  width: 100%;
+  transition: all 0.3s ease-in-out;
+  border-radius: 15px;
+  background-size: cover;
+  background-position: center;
+  z-index: 1;
+  background-image: linear-gradient(-10deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.5));
+}
+main .services-sec .service i {
+  font-size: 35px;
+  color: #e9e7c8;
+  margin-bottom: 30px;
+  position: relative;
+  z-index: 2;
+}
+main .services-sec .service .serviceTitle {
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #fff;
+  position: relative;
+  z-index: 2;
+  padding: 0px 30px;
+  white-space: nowrap;
+}
+main .services-sec .service .serviceP {
+  color: #eee;
+  position: relative;
+  z-index: 2;
+  line-height: 24px;
+}
+main .services-sec .service:hover {
+  background-size: 110% auto;
+}
+main .countries {
+  padding: 50px 0;
+  background: linear-gradient(45deg, rgba(243, 243, 249, 0.9098039216), rgba(243, 243, 249, 0.9607843137)), url(../images/countries.webp);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: bottom;
+}
+@media (max-width: 768px) {
+  main .countries {
+    background-size: contain;
+  }
+}
+main .countries .allCountries {
+  margin-top: 30px;
+}
+@media (max-width: 768px) {
+  main .countries .allCountries {
+    margin-top: 0;
+  }
+}
+main .countries .country {
+  position: relative;
+  isolation: isolate;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-radius: 15px;
+  margin-top: 60px;
+  text-align: center;
+  transition: var(--transition);
+  background-image: linear-gradient(-45deg, var(--mainColor), var(--mainColor80));
+}
+main .countries .country:hover {
+  box-shadow: 6px 10px 15px #dddde3, -10px -12px 15px #ffffff;
+  z-index: 1;
+  background-color: var(--white);
+}
+main .countries .country img {
+  width: 80px;
+  height: 80px;
+  -o-object-fit: cover;
+     object-fit: cover;
+  -o-object-position: center;
+     object-position: center;
+  margin: auto;
+  margin-top: -50px;
+  margin-bottom: 20px;
+  border-radius: 100px;
+}
+main .countries .country h2 {
+  font-weight: bold;
+  color: var(--white);
+  margin-bottom: 20px;
+}
+main .countries .country p {
+  color: var(--white);
+  margin-bottom: 20px;
+}
+main .countries .animatedLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  transition: var(--transition);
+  position: relative;
+  width: -moz-fit-content;
+  width: fit-content;
+}
+main .countries .animatedLink i {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 48px;
+  height: 48px;
+  transition: width 0.3s ease-in-out;
+}
+main .countries .animatedLink i img {
+  width: 100%;
+  height: 100%;
+  -o-object-fit: contain;
+     object-fit: contain;
+  padding: 10px;
+}
+main .countries .animatedLink i span {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  z-index: -1;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--white);
+  border-radius: 100px;
+  transition: var(--transition);
+}
+main .countries .animatedLink:hover {
+  padding: 0 20px;
+  color: var(--mainColor);
+}
+main .countries .animatedLink:hover i {
+  width: 20px;
+}
+main .countries .animatedLink:hover i span {
+  width: 100%;
+  border: 1px solid var(--white);
+  background-color: var(--white);
+}
+main .statistics {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 50px 0;
+}
+main .statistics .section-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+main .statistics .section-header .title {
+  font-size: 2.8rem;
+  color: var(--mainColor);
+  margin-bottom: 1rem;
+  position: relative;
+  display: inline-block;
+}
+main .statistics .section-header .hint {
+  font-size: 1.2rem;
+  color: #6c757d;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+main .statistics .stats-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 25px;
+  margin-top: 2rem;
+  /* Responsive */
+}
+@media (max-width: 992px) {
+  main .statistics .stats-container {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 0 10px;
+  }
+}
+main .statistics .stats-container .stat-card {
+  background: linear-gradient(135deg, var(--white) 0%, #f5f7fa 100%);
+  border-radius: 20px;
+  padding: 30px 25px;
+  box-shadow: var(--BigShadow);
+  transition: var(--transition);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  border: 1px solid var(--mainColor10);
+}
+main .statistics .stats-container .stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 0;
+  background: linear-gradient(135deg, var(--mainColor10) 0%, transparent 100%);
+  transition: var(--transition);
+  z-index: -1;
+}
+main .statistics .stats-container .stat-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+main .statistics .stats-container .stat-card:hover::before {
+  height: 100%;
+}
+main .statistics .stats-container .stat-card .icon-wrapper {
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--mainColor10) 0%, transparent 100%);
+  border-radius: 50%;
+  transition: var(--transition);
+  position: relative;
+}
+@media (max-width: 768px) {
+  main .statistics .stats-container .stat-card .icon-wrapper {
+    width: 60px;
+    height: 60px;
+  }
+}
+main .statistics .stats-container .stat-card .icon-wrapper i {
+  font-size: 2.5rem;
+  color: var(--mainColor);
+  transition: var(--transition);
+}
+@media (max-width: 768px) {
+  main .statistics .stats-container .stat-card .icon-wrapper i {
+    font-size: 1.5rem;
+  }
+}
+main .statistics .stats-container .stat-card:hover .icon-wrapper {
+  background: linear-gradient(135deg, var(--mainColor) 0%, var(--mainColor80) 100%);
+  transform: scale(1.1);
+}
+main .statistics .stats-container .stat-card:hover .icon-wrapper i {
+  color: var(--white);
+}
+main .statistics .stats-container .stat-card:hover .counter {
+  color: var(--mainColor);
+}
+main .statistics .stats-container .stat-card:hover h6 {
+  color: var(--black);
+}
+main .statistics .stats-container .stat-card .counter {
+  font-size: 3rem;
+  font-weight: 800;
+  margin: 15px 0;
+  display: block;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+  height: 70px;
+}
+@media (max-width: 768px) {
+  main .statistics .stats-container .stat-card .counter {
+    font-size: 1.5rem;
+    margin: 0;
+    height: 40px;
+  }
+}
+main .statistics .stats-container .stat-card .counter span {
+  display: inline-block;
+}
+main .statistics .stats-container .stat-card h6 {
+  font-size: 1.2rem;
+  color: #6c757d;
+  transition: var(--transition);
+}
+@media (max-width: 768px) {
+  main .statistics .stats-container .stat-card h6 {
+    font-size: 1rem;
+  }
+}
+main .statistics .stats-container .stat-card::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transform: rotate(45deg);
+  transition: var(--transition);
+  z-index: -1;
+}
+main .statistics .stats-container .stat-card:hover::after {
+  animation: shine 1.5s infinite;
+}
+main .statistics .stats-container .stat-card:nth-child(1) .icon-wrapper::after {
+  content: "مميز";
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  background: var(--mainColor);
+  color: var(--white);
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  border-radius: 15px;
+  font-weight: 500;
+}
+@keyframes shine {
+  0% {
+    left: -50%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+main .steps {
+  padding: 50px 0;
+}
+main .steps .SectionTitle .title {
+  color: var(--mainColor);
+}
+main .steps .SectionTitle .hint {
+  color: #6c757d;
+}
+main .steps .allSteps {
+  display: flex;
+  padding: 20px 0px;
+  text-align: center;
+  position: relative;
+}
+@media (max-width: 678px) {
+  main .steps .allSteps {
+    flex-direction: column;
+  }
+}
+main .steps .allSteps::before {
+  content: "";
+  width: 100%;
+  height: 1px;
+  border-bottom: 1px dashed var(--secondColor);
+  position: absolute;
+  top: 50%;
+  left: 0;
+}
+@media (max-width: 678px) {
+  main .steps .allSteps::before {
+    display: none;
+  }
+}
+main .steps .allSteps .step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  height: 250px;
+  width: 100%;
+}
+@media (max-width: 678px) {
+  main .steps .allSteps .step {
+    height: auto;
+    padding-top: 70px;
+    padding-bottom: 40px;
+  }
+}
+main .steps .allSteps .step::after {
+  content: "";
+  width: 30px;
+  height: 30px;
+  border: 1px dashed var(--secondColor);
+  background-color: var(--mainColor);
+  border-radius: 100px;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  z-index: 2;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--white);
+}
+@media (max-width: 678px) {
+  main .steps .allSteps .step::after {
+    top: 0;
+    bottom: unset;
+  }
+}
+main .steps .allSteps .step:nth-child(1):after {
+  content: "1";
+}
+main .steps .allSteps .step:nth-child(2):after {
+  content: "2";
+}
+main .steps .allSteps .step:nth-child(3):after {
+  content: "3";
+}
+main .steps .allSteps .step:nth-child(4):after {
+  content: "4";
+}
+main .steps .allSteps .step:nth-child(5):after {
+  content: "5";
+}
+main .steps .allSteps .step:nth-child(6):after {
+  content: "6";
+}
+main .steps .allSteps .step:nth-child(7):after {
+  content: "7";
+}
+main .steps .allSteps .step::before {
+  content: "";
+  width: 2px;
+  height: 15px;
+  border-left: 1px dashed var(--secondColor);
+  border-radius: 100px;
+  position: absolute;
+  bottom: 30px;
+  left: calc(50% + 1px);
+  transform: translateX(-50%);
+  z-index: 2;
+}
+@media (max-width: 678px) {
+  main .steps .allSteps .step::before {
+    top: -15px;
+    height: 60px;
+    bottom: unset;
+  }
+}
+@media (max-width: 678px) {
+  main .steps .allSteps .step:first-child::before {
+    top: 0;
+    height: 45px;
+  }
+}
+main .steps .allSteps .step .images {
+  display: flex;
+  margin-top: 10px;
+}
+main .steps .allSteps .step .images img {
+  -o-object-fit: contain;
+     object-fit: contain;
+  margin: 50px 0 20px 0;
+  height: 40px;
+  width: 60px;
+  border-radius: 8px;
+}
+@media (max-width: 678px) {
+  main .steps .allSteps .step .images img {
+    margin: 2px;
+  }
+}
+main .steps .allSteps .step .icon {
+  position: relative;
+  margin-bottom: 30px;
+}
+main .steps .allSteps .step .icon i {
+  font-size: 40px;
+  color: var(--mainColor);
+}
+main .steps .allSteps .step .icon::after {
+  content: "";
+  width: 80px;
+  height: 50px;
+  background-color: var(--mainColor);
+  opacity: 0.1;
+  position: absolute;
+  left: calc(50% - 44px);
+  top: 12px;
+  transform: skewX(-55deg) rotateX(60deg) rotateY(14deg);
+  z-index: -1;
+}
+main .steps .allSteps .step:nth-child(even) {
+  margin-top: 220px;
+  padding-bottom: 0px;
+  padding-top: 60px;
+}
+@media (max-width: 678px) {
+  main .steps .allSteps .step:nth-child(even) {
+    margin-top: unset;
+    padding-bottom: 30px;
+    padding-top: 70px;
+  }
+}
+main .steps .allSteps .step:nth-child(even)::after {
+  bottom: unset;
+  top: 0;
+}
+main .steps .allSteps .step:nth-child(even)::before {
+  top: 30px;
+  bottom: unset;
+}
+@media (max-width: 678px) {
+  main .steps .allSteps .step:nth-child(even)::before {
+    top: -15px;
+  }
+}
+main .references {
+  padding-top: 40px;
+  background-image: linear-gradient(45deg, rgba(255, 255, 255, 0), rgba(233, 231, 200, 0.4941176471)), url(../images/map.webp);
+  background-attachment: fixed;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+main .references .swiper-slide {
+  width: auto;
+}
+main .references .referenceLogo {
+  height: 150px;
+  padding: 10px 20px;
+}
+main .references .referenceLogo img {
+  height: 100%;
+  width: 100%;
+  -o-object-fit: contain;
+     object-fit: contain;
+}
+main .requirements {
+  padding: 100px 0 70px;
+  background-color: var(--mainColor10);
+}
+main .requirements .requirement {
+  padding: 30px;
+  border: 1px solid var(--mainColor80);
+  border-radius: 15px;
+  height: 100%;
+  transition: var(--transition);
+  background-color: #fff;
+}
+main .requirements .requirement .head {
+  margin-bottom: 20px;
+  text-align: center;
+}
+main .requirements .requirement .head h4 {
+  margin-bottom: 10px;
+  font-weight: bold;
+  color: var(--mainColor);
+}
+main .requirements .requirement .head p {
+  color: #777;
+}
+main .requirements .requirement .head p a {
+  color: var(--mainColor);
+  font-weight: bold;
+  white-space: nowrap;
+}
+main .requirements .requirement ul {
+  padding: 0;
+  margin: 0;
+}
+main .requirements .requirement ul li {
+  padding: 10px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+}
+main .requirements .requirement ul li .icon {
+  min-width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid var(--mainColor80);
+  margin-left: 10px;
+  border-radius: 100px;
+  background: var(--mainColor80);
+  transition: var(--transition);
+}
+main .requirements .requirement ul li .icon i {
+  font-size: 20px;
+  color: var(--mainColor);
+}
+main .requirements .requirement ul li:hover .icon {
+  background-color: #fff;
+  border-color: var(--mainColor);
+  box-shadow: var(--shadow);
+}
+main .requirements .requirement:hover {
+  box-shadow: var(--BigShadow);
+}
+main .contactForm,
+main .dailyForm,
+main .contractRenew {
+  padding: 70px 0;
+}
+main .contactForm .title,
+main .dailyForm .title,
+main .contractRenew .title {
+  text-align: center;
+  margin-bottom: 50px;
+}
+main .contactForm form,
+main .dailyForm form,
+main .contractRenew form {
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 50px 20px 20px;
+  transition: var(--transition);
+}
+main .contactForm form:hover,
+main .dailyForm form:hover,
+main .contractRenew form:hover {
+  box-shadow: var(--BigShadow);
+  border: 1px solid var(--mainColor);
+  background-color: #fff;
+}
+main .contactForm form label,
+main .dailyForm form label,
+main .contractRenew form label {
+  font-size: small;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+main .contactForm form .form-control,
+main .dailyForm form .form-control,
+main .contractRenew form .form-control {
+  box-shadow: none !important;
+  min-height: 48px;
+}
+main .contactForm form .form-control:focus,
+main .dailyForm form .form-control:focus,
+main .contractRenew form .form-control:focus {
+  border-color: var(--mainColor);
+  background-color: var(--mainColor80);
+}
+main .contactForm form .defaultBtn i,
+main .dailyForm form .defaultBtn i,
+main .contractRenew form .defaultBtn i {
+  transform: scaleX(-1);
+}
+main .contactForm .info,
+main .dailyForm .info,
+main .contractRenew .info {
+  background-color: var(--mainColor80);
+}
+main .contactForm .googleMap,
+main .dailyForm .googleMap,
+main .contractRenew .googleMap {
+  height: 100%;
+  border: 2px solid #ffffff;
+  border-radius: 8px;
+}
+main .contactForm .googleMap iframe,
+main .dailyForm .googleMap iframe,
+main .contractRenew .googleMap iframe {
+  width: 100%;
+  min-height: 300px;
+  height: 100%;
+  border-radius: 8px;
+}
+main .recruitmentVisa {
+  padding: 50px 0;
+}
+main .recruitmentVisa .nav {
+  background-color: var(--mainColor80);
+  border-radius: 8px;
+  margin-bottom: 50px;
+  height: -moz-fit-content;
+  height: fit-content;
+  transition: var(--transition);
+}
+@media (min-width: 768px) {
+  main .recruitmentVisa .nav {
+    position: sticky;
+    top: 100px;
+    z-index: 2;
+    box-shadow: var(--BigShadow);
+  }
+}
+@media (max-width: 768px) {
+  main .recruitmentVisa .nav {
+    flex-wrap: nowrap;
+  }
+}
+main .recruitmentVisa .nav .nav-link {
+  background-color: var(--white);
+  color: var(--mainColor);
+  box-shadow: var(--shadow);
+  border-radius: 4px;
+  margin: 5px;
+  transition: var(--transition);
+  padding: 20px;
+  text-align: center;
+  border: none;
+  width: 100%;
+}
+main .recruitmentVisa .nav .nav-link i {
+  font-size: 25px;
+  margin-bottom: 10px;
+}
+main .recruitmentVisa .nav .nav-link.active {
+  background-color: var(--mainColor);
+  color: var(--white);
+}
+main .recruitmentVisa .secondaryTitle {
+  font-weight: bold;
+  color: var(--mainColor);
+  margin-bottom: 20px;
+  font-size: 1rem;
+}
+main .recruitmentVisa .thirdTitle {
+  margin-bottom: 20px;
+}
+main .recruitmentVisa .step {
+  background-color: #fff;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  border-radius: 4px;
+  margin-bottom: 30px;
+}
+main .recruitmentVisa .step .head {
+  background-color: var(--mainColor80);
+  padding: 10px 20px;
+  color: var(--mainColor);
+  margin-bottom: 20px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+main .recruitmentVisa .step .info {
+  color: #777;
+  margin-bottom: 20px;
+  padding-right: 20px;
+  position: relative;
+}
+main .recruitmentVisa .step .info::before {
+  content: "\f05a" !important;
+  font-family: "Font Awesome 6 pro";
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+main .recruitmentVisa .step .secondaryTitle {
+  margin: 30px 0 10px;
+}
+main .recruitmentVisa .step ul {
+  list-style: auto;
+  padding-right: 20px;
+}
+main .recruitmentVisa .step ul ::marker {
+  color: var(--mainColor);
+}
+main .recruitmentVisa .step ul li {
+  position: relative;
+  padding: 10px;
+  font-size: 13px;
+}
+main .recruitmentVisa .step ul li:before {
+  position: absolute;
+  content: "";
+  display: block;
+  width: 25px;
+  height: 25px;
+  top: 8px;
+  right: -23px;
+  background: var(--white);
+  border-radius: 100px;
+  border: 1px solid var(--mainColor);
+  z-index: -1;
+}
+main .recruitmentVisa .requirement {
+  padding: 20px;
+  background-color: var(--mainColor80);
+  border-radius: 4px;
+  margin-bottom: 30px;
+}
+main .recruitmentVisa .requirement ul {
+  list-style: auto;
+  padding-right: 20px;
+}
+main .recruitmentVisa .requirement ul ::marker {
+  color: var(--mainColor);
+}
+main .recruitmentVisa .requirement ul li {
+  position: relative;
+  padding: 10px;
+  font-size: 13px;
+}
+main .available {
+  padding: 70px 0;
+  text-align: center;
+}
+main .available h4 {
+  font-weight: bold;
+  color: var(--mainColor);
+  margin-bottom: 30px;
+}
+main .available .specifications {
+  padding: 30px;
+  background-color: var(--white);
+  box-shadow: var(--shadow);
+  border-radius: 4px;
+  height: 100%;
+  transition: var(--transition);
+}
+main .available .specifications i {
+  font-size: 45px;
+  margin-bottom: 30px;
+  color: var(--mainColor);
+  transition: var(--transition);
+  display: block;
+}
+main .available .specifications h1 {
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: var(--mainColor);
+  transition: var(--transition);
+  display: block;
+}
+main .available .specifications .odometer-inside {
+  direction: ltr !important;
+}
+main .available .specifications h5 {
+  white-space: nowrap;
+  transition: var(--transition);
+}
+main .available .specifications:hover {
+  background-color: var(--mainColor);
+  transform: translateY(-5px);
+}
+main .available .specifications:hover i {
+  color: var(--white);
+}
+main .available .specifications:hover h1,
+main .available .specifications:hover h5 {
+  color: var(--white);
+}
+main .arriveWorker {
+  padding: 70px 0 50px;
+  position: relative;
+  overflow: hidden;
+}
+main .arriveWorker .arriveWorkerInfo {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+main .arriveWorker .arriveWorkerInfo .image {
+  position: relative;
+  width: 30%;
+}
+main .arriveWorker .arriveWorkerInfo .image img {
+  width: 100%;
+  height: 400px;
+  -o-object-fit: cover;
+     object-fit: cover;
+  border-radius: 4px;
+  border-radius: 70px 4px 70px;
+  position: relative;
+  z-index: 2;
+  border: 1px solid var(--secondColor);
+}
+main .arriveWorker .arriveWorkerInfo .image::before {
+  content: "";
+  width: 150px;
+  height: 150px;
+  position: absolute;
+  right: -50px;
+  top: -50px;
+  background: url(../images/fav.svg);
+  background-repeat: no-repeat;
+  background-size: contain;
+  z-index: 1;
+  transform: rotate(45deg);
+  animation: bounceIn 3s infinite ease-in-out both;
+}
+main .arriveWorker .arriveWorkerInfo .info {
+  position: relative;
+  width: 70%;
+  padding: 20px;
+}
+main .arriveWorker .arriveWorkerInfo .info::before {
+  content: "";
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  background: var(--mainColor80);
+}
+main .arriveWorker .arriveWorkerInfo .info::after {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 10px;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--mainColor);
+  z-index: 1;
+}
+main .arriveWorker .arriveWorkerInfo .info h3 {
+  font-weight: bold;
+  font-size: 35px !important;
+  margin-bottom: 20px;
+  color: var(--mainColor);
+  position: relative;
+  z-index: 3;
+}
+main .arriveWorker .arriveWorkerInfo .info p {
+  color: #777;
+  position: relative;
+  z-index: 3;
+  margin-bottom: 20px;
+}
+main .arriveWorker .arriveWorkerInfo .info a {
+  position: relative;
+  z-index: 3;
+}
+main .arriveWorker .arriveWorkerInfo .info h5 {
+  font-size: 20px !important;
+  color: var(--mainColor);
+  position: relative;
+  z-index: 3;
+}
+main .arriveWorker .arriveWorkerInfo:nth-child(odd) {
+  flex-direction: row-reverse;
+}
+main .arriveWorker .arriveWorkerInfo:nth-child(odd) .image::before {
+  right: unset;
+  left: -50px;
+  animation: heartBeat 5s infinite ease-in-out both reverse;
+}
+main .arriveWorker .arriveWorkerInfo:nth-child(odd) .info::after {
+  left: 10px;
+  top: 10px;
+}
+@media (max-width: 768px) {
+  main .arriveWorker .arriveWorkerInfo {
+    flex-direction: column !important;
+  }
+  main .arriveWorker .arriveWorkerInfo .image {
+    width: 100%;
+    margin: 0 !important;
+    margin-bottom: 20px !important;
+  }
+  main .arriveWorker .arriveWorkerInfo .image img {
+    border-radius: 8px !important;
+    height: 200px;
+  }
+  main .arriveWorker .arriveWorkerInfo .image::before {
+    width: 80px;
+    height: 80px;
+  }
+  main .arriveWorker .arriveWorkerInfo .info {
+    margin-bottom: 40px;
+    width: 90%;
+    text-align: center !important;
+  }
+  main .arriveWorker .arriveWorkerInfo .info h3 {
+    font-size: 25px !important;
+    margin-bottom: 10px !important;
+  }
+  main .arriveWorker .arriveWorkerInfo .info h5 {
+    font-size: 15px !important;
+  }
+  main .arriveWorker .arriveWorkerInfo:last-child .info {
+    margin-bottom: 0;
+  }
+}
+main .accountForm {
+  padding: 20px;
+  display: flex;
+  height: 100%;
+  gap: 24px;
+  min-height: 100dvh;
+}
+@media screen and (max-width: 992px) {
+  main .accountForm {
+    padding: 12px;
+    min-height: unset;
+  }
+}
+main .accountForm .imageBG {
+  flex: 1;
+}
+@media screen and (max-width: 992px) {
+  main .accountForm .imageBG {
+    display: none;
+  }
+}
+main .accountForm .imageBG img {
+  width: 100%;
+  height: 100%;
+  -o-object-fit: cover;
+     object-fit: cover;
+  border-radius: 24px;
+}
+main .accountForm .cardForm {
+  flex: 1;
+  padding: 100px 12px 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+@media screen and (max-width: 992px) {
+  main .accountForm .cardForm {
+    padding: 100px 0 40px;
+  }
+}
+main .accountForm .cardForm form {
+  width: min(100%, 500px);
+}
+@media screen and (max-width: 992px) {
+  main .accountForm .cardForm form {
+    padding: 12px;
+  }
+}
+main .formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+main .formGroup label {
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+main .formGroup label .icon svg {
+  width: 20px;
+  height: 20px;
+}
+main .formGroup label .icon svg * {
+  fill: var(--mainColor);
+}
+main .formGroup label img {
+  width: 20px;
+  height: 20px;
+}
+main .formGroup label i {
+  color: var(--mainColor);
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+main .formGroup .inputDiv {
+  position: relative;
+  border: 1px solid var(--mainColor);
+  padding-left: 16px;
+  border-radius: 12px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+main .formGroup .inputDiv input {
+  width: 100%;
+  border: none;
+  background: none;
+  height: 24px;
+  min-width: 40px;
+}
+main .formGroup .inputDiv span {
+  font-weight: bold;
+  color: var(--mainColor);
+}
+main .formGroup .inputDiv.ltr {
+  direction: ltr;
+}
+main .formGroup .inputDiv.ltr * {
+  direction: ltr;
+}
+main .formLabel {
+  text-align: center;
+}
+main .formLabel span {
+  color: var(--mainColor);
+  font-weight: bold;
+}
+main .form-control {
+  border-radius: 12px;
+  background-color: transparent;
+  border: 1px solid var(--mainColor);
+}
+main .form-control {
+  min-height: 40px;
+}
+main .form-control:focus {
+  box-shadow: none;
+  border: var(--mainColor);
+}
+main .form-control[type=radio], main .form-control[type=checkbox] {
+  min-height: unset;
+}
+main .form-control::-moz-placeholder {
+  font-size: 14px;
+  color: #858484;
+}
+main .form-control::placeholder {
+  font-size: 14px;
+  color: #858484;
+}
+main .cardForm form {
+  padding: 30px;
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background-color: var(--mainColor80);
+  border: 1px solid var(--mainColor80);
+}
+main .cardForm form a {
+  color: var(--mainColor);
+}
+main .cardForm form button[type=submit] {
+  margin: 0 auto;
+}
+main .cardForm form button[type=submit]:hover {
+  color: var(--white);
+}
+main .cardForm .loginLogo {
+  padding: 4px 16px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  position: relative;
+  flex-direction: column;
+}
+main .cardForm .loginLogo img {
+  height: 60px;
+  -o-object-fit: contain;
+     object-fit: contain;
+  width: 100%;
+}
+main .cardForm .loginLogo .back {
+  background-color: var(--white);
+  padding: 4px 12px;
+  border: none;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  border-radius: 100px;
+  color: var(--black);
+}
+@media screen and (min-width: 768px) {
+  main .cardForm .loginLogo .back {
+    position: absolute;
+    right: -5%;
+    top: 0%;
+    transform: translateY(-50%);
+  }
+}
+main .otp {
+  direction: ltr;
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+main .otp .otp-input {
+  min-width: 40px;
+  flex: 1;
+  height: 64px;
+  background-color: #ffffff;
+  border: none;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  border-radius: 8px;
+}
+main .allWorkers {
+  padding: 50px 0;
+  position: relative;
+}
+main .allWorkers .filter {
+  padding: 40px 20px 20px;
+  background-color: #fff;
+  border-radius: 16px;
+  position: sticky;
+  top: 90px;
+  right: 0;
+  z-index: 2;
+  box-shadow: var(--BigShadow);
+  margin-bottom: 30px;
+}
+main .allWorkers .filter h4 {
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: var(--mainColor);
+}
+main .allWorkers .filter .toggleBtns {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  width: -moz-fit-content;
+  width: fit-content;
+  flex-wrap: wrap;
+}
+main .allWorkers .filter .toggleBtns .toggle-btn {
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  padding: 8px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #333;
+  transition: all 0.3s ease;
+}
+main .allWorkers .filter .toggleBtns .toggle-btn:hover {
+  background: #f0f0f0;
+  border-color: #bbb;
+}
+main .allWorkers .filter .toggleBtns .toggle-btn.active {
+  background: var(--mainColor);
+  color: #fff;
+  border-color: var(--mainColor);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+main .allWorkers .filter select {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  border-color: #ced4da;
+  border-radius: 12px;
+}
+main .allWorkers .filter label {
+  margin-bottom: 8px;
+}
+main .allWorkers .filter label i {
+  color: var(--mainColor);
+}
+main .allWorkers .filter .confirm,
+main .allWorkers .filter .clear {
+  border-radius: 12px;
+  background-color: #eee;
+  color: var(--mainColor);
+  padding: 8px 16px;
+}
+main .allWorkers .filter .confirm {
+  background-color: var(--mainColor);
+  color: var(--white);
+}
+main .allWorkers .modal {
+  z-index: 99999;
+}
+main .allWorkers .workers-list .worker-box-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+main .allWorkers .workers-list .worker-box {
+  background-color: var(--mainColor10);
+  border: 1px solid var(--mainColor80);
+  border-radius: 15px;
+  padding: 16px;
+  position: relative;
+  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.05);
+  min-height: 100%;
+}
+main .allWorkers .workers-list .worker-box .worker-media {
+  width: 90px;
+  height: 90px;
+  display: inline-block;
+  text-align: center;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0px 0px 40px rgba(0, 137, 126, 0.1176470588);
+  margin-right: 40px;
+  position: absolute;
+  top: -30px;
+  overflow: hidden;
+}
+main .allWorkers .workers-list .worker-box .worker-media img {
+  width: 100%;
+  height: 100%;
+  -o-object-fit: cover;
+     object-fit: cover;
+  -o-object-position: top;
+     object-position: top;
+  border-radius: inherit;
+}
+main .allWorkers .workers-list .worker-box .worker-header {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 8px;
+}
+main .allWorkers .workers-list .worker-box .worker-header .worker-age {
+  font-weight: 700;
+  color: var(--mainColor);
+  font-size: 16px;
+  text-align: center;
+}
+main .allWorkers .workers-list .worker-box .worker-header .worker-id {
+  background: var(--white);
+  border: 1px solid #ddd;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #333;
+}
+main .allWorkers .workers-list .worker-box h4 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #17171d;
+}
+main .allWorkers .workers-list .worker-box .workerInfo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+main .allWorkers .workers-list .worker-box .workerInfo p {
+  font-size: 14px;
+  color: #333;
+  margin: 0;
+}
+main .allWorkers .workers-list .worker-box .guarantee {
+  color: red;
+  border: 1px solid red;
+  text-align: center;
+  border-radius: 8px;
+  padding: 6px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+main .allWorkers .workers-list .worker-box .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  background-color: var(--mainColor80);
+  border-radius: 20px;
+  padding: 8px;
+}
+main .allWorkers .workers-list .worker-box .actions .btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 15px;
+  border: 1px solid #ddd;
+  background: #fafafa;
+  font-size: 14px;
+  font-weight: 600;
+  transition: 0.3s;
+}
+main .allWorkers .workers-list .worker-box .actions .btn:hover {
+  background: var(--mainColor);
+  color: var(--white);
+  border-color: var(--mainColor);
+}
+main .allWorkers .workers-list .worker-box .actions .icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  color: #555;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+main .allWorkers .workers-list .worker-box .actions .icon-btn:hover {
+  background: var(--mainColor);
+  color: #fff;
+  border-color: var(--mainColor);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+main .allWorkers .cvModal {
+  padding-top: 24px;
+}
+main .allWorkers .cvModal .modal-content {
+  border-radius: 24px;
+  padding: 24px;
+}
+main .allWorkers .cvModal .closeBtn {
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  top: 0;
+  background-color: var(--mainColor);
+  border: 2px solid #ffffff;
+  border-radius: 100px;
+  display: flex;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  transform: translate(10px, -50%);
+}
+main .allWorkers .cvModal .closeBtn i {
+  font-size: 24px;
+  color: #ffffff;
+}
+main .allWorkers .cvModal .modal-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 0;
+  padding-top: 20px;
+}
+main .allWorkers .cvModal .modal-footer .btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--mainColor);
+  background: #fff;
+  color: var(--mainColor);
+}
+main .allWorkers .cvModal .modal-footer .btn.book {
+  background: var(--mainColor);
+  color: #fff;
+}
+main .allWorkers .cv .info {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  flex: 1;
+  margin: auto;
+  width: 100%;
+}
+main .allWorkers .cv .info ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-radius: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px 16px;
+}
+main .allWorkers .cv .info ul li {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  border-radius: 4px;
+  min-width: 160px;
+}
+main .allWorkers .cv .info ul li .title {
+  color: #777;
+  white-space: nowrap;
+}
+main .allWorkers .cv .info ul li .data {
+  color: #231f20;
+  font-weight: bold;
+  white-space: nowrap;
+  font-size: 15px;
+}
+main .allWorkers .cv .info .alertText {
+  color: red;
+}
+main .allWorkers .cv .mainImg img {
+  width: 100%;
+  aspect-ratio: 4/3;
+  border-radius: 8px;
+  max-height: 300px;
+  background-color: #f3f3f9;
+  border-radius: 8px;
+  border: 1px solid #f3f3f9;
+  cursor: zoom-in;
+}
+main .allWorkers .cv .moreImgs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background-color: #f3f3f9;
+}
+main .allWorkers .cv .moreImgs img {
+  width: 100%;
+  max-width: 70px;
+  height: 70px;
+  border-radius: 4px;
+  -o-object-fit: cover;
+  object-fit: cover;
+  cursor: zoom-in;
+}
+main .allWorkers .pagination-outer {
+  padding: 15px 0;
+  display: flex;
+  justify-content: center;
+}
+main .allWorkers .pagination-outer .pagination-style1 {
+  position: relative;
+  display: inline-block;
+}
+main .allWorkers .pagination-outer .pagination-style1 ul {
+  list-style: none;
+  margin-bottom: 0px;
+}
+main .allWorkers .pagination-outer .pagination-style1 ul li {
+  position: relative;
+  margin: 0px 3px 0px;
+  display: inline-block;
+}
+main .allWorkers .pagination-outer .pagination-style1 ul li a {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  color: #17171d;
+  font-size: 16px;
+  line-height: 50px;
+  text-align: center;
+  display: inline-block;
+  transition: 0.5s all ease;
+  font-weight: 600;
+  border-radius: 10px;
+}
+main .allWorkers .pagination-outer .pagination-style1 ul li:hover a {
+  background-color: var(--mainColor);
+  color: #fff;
+}
+main .allWorkers .pagination-outer .pagination-style1 ul li.prev a {
+  width: 50px;
+  height: 50px;
+  font-size: 16px;
+  color: #17171d;
+  font-weight: 500;
+  transition: 0.5s all ease;
+  letter-spacing: 1px;
+}
+main .allWorkers .pagination-outer .pagination-style1 ul li.active a {
+  background-color: var(--mainColor);
+  color: #fff;
+}
+main .allWorkers .customOrder {
+  padding: 10px 20px;
+  border-radius: 8px;
+  background-color: var(--mainColor);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  position: sticky;
+  bottom: 0;
+  color: var(--white);
+  z-index: 3;
+  margin-bottom: 30px;
+  border-top: 2px solid var(--black);
+  text-align: center;
+}
+main .allWorkers .customOrder a {
+  color: var(--white);
+  text-decoration: underline;
+}
+@media (max-width: 768px) {
+  main .allWorkers .customOrder {
+    align-items: center;
+    justify-content: center;
+  }
+  main .allWorkers .customOrder a {
+    margin-top: 10px;
+  }
+}
+main .musaned {
+  padding: 70px 0;
+}
+main .musaned .intro img {
+  height: 120px;
+  -o-object-fit: contain;
+     object-fit: contain;
+  margin-bottom: 20px;
+}
+main .musaned .intro .head {
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: var(--mainColor);
+}
+main .musaned .intro .info {
+  color: #777;
+  line-height: 28px;
+}
+@media (max-width: 768px) {
+  main .musaned .intro {
+    text-align: center;
+  }
+  main .musaned .intro img {
+    height: 80px;
+  }
+}
+main .musaned .introImg {
+  text-align: center;
+}
+main .musaned .introImg img {
+  -o-object-fit: contain;
+     object-fit: contain;
+  height: 320px;
+}
+main .musanedFeatures {
+  background-color: var(--mainColor80);
+  padding: 70px 0;
+}
+main .musanedFeatures .musanedServices {
+  padding: 20px;
+}
+main .musanedFeatures .musanedServices iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+main .musanedFeatures .Feature .singleFeature {
+  min-width: 250px;
+}
+main .musanedFeatures .Feature .singleFeature .info {
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 5px 5px 15px var(--mainColor80), -5px -5px 15px #fff;
+  background-color: #fff;
+  position: relative;
+  height: 100%;
+  text-align: start;
+}
+main .musanedFeatures .Feature .singleFeature .info::after {
+  height: 100%;
+  content: "";
+  left: 0px;
+  position: absolute;
+  top: 0px;
+  width: 100%;
+  transition: all 0.3s ease-in-out;
+  opacity: 0;
+  border-radius: 5px;
+  background-size: cover;
+  background-position: center;
+  z-index: 1;
+}
+main .musanedFeatures .Feature .singleFeature .info .content {
+  position: relative;
+  z-index: 2;
+  transition: all 0.3s ease-in-out;
+}
+main .musanedFeatures .Feature .singleFeature .info .content .icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 30px 10px;
+  transition: all 0.3s ease-in-out;
+}
+main .musanedFeatures .Feature .singleFeature .info .content .icon i {
+  font-size: 30px;
+  color: var(--mainColor);
+}
+main .musanedFeatures .Feature .singleFeature .info .content h3 {
+  font-size: 25px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  transition: all 0.3s ease-in-out;
+}
+main .musanedFeatures .Feature .singleFeature .info .content p {
+  color: #777;
+  font-size: 16px;
+  line-height: 30px;
+  transition: all 0.3s ease-in-out;
+}
+main .musanedFeatures .Feature .singleFeature .info .content a {
+  padding: 20px 0px 0;
+  display: block;
+  transition: all 0.3s ease-in-out;
+}
+main .musanedFeatures .Feature .singleFeature .info .content a i {
+  font-size: 20px;
+  color: var(--mainColor);
+}
+main .musanedFeatures .Feature .singleFeature .info:hover::after {
+  opacity: 1;
+}
+main .musanedFeatures .Feature .singleFeature .info:hover .content a i,
+main .musanedFeatures .Feature .singleFeature .info:hover .content .icon i {
+  color: #fff;
+}
+main .musanedFeatures .Feature .singleFeature .info:hover .content p,
+main .musanedFeatures .Feature .singleFeature .info:hover .content h3 {
+  color: #fff;
+}
+main .musanedFeatures .Feature .singleFeature:nth-child(1) .info::after {
+  background-image: linear-gradient(20deg, var(--mainColor), var(--mainColor80)), url(../images/f1.webp);
+}
+main .musanedFeatures .Feature .singleFeature:nth-child(2) .info::after {
+  background-image: linear-gradient(20deg, var(--mainColor), var(--mainColor80)), url(../images/f2.webp);
+}
+main .musanedFeatures .Feature .singleFeature:nth-child(3) .info::after {
+  background-image: linear-gradient(20deg, var(--mainColor), var(--mainColor80)), url(../images/f3.webp);
+}
+main .musanedFeatures .Feature .singleFeature:nth-child(4) .info::after {
+  background-image: linear-gradient(20deg, var(--mainColor), var(--mainColor80)), url(../images/f1.webp);
+}
+main .musanedRecruitment {
+  padding: 70px 0;
+}
+main .musanedRecruitment .headTitle h4 {
+  margin-bottom: 10px;
+}
+main .musanedRecruitment .headTitle h1 {
+  font-weight: bold;
+  color: var(--mainColor);
+}
+main .musanedRecruitment .headTitle p {
+  line-height: 30px;
+  margin-top: 30px;
+  color: #777;
+}
+main .musanedRecruitment .specifications {
+  padding: 30px;
+  background-color: var(--white);
+  box-shadow: var(--shadow);
+  border-radius: 4px;
+  height: 100%;
+  text-align: center;
+}
+main .musanedRecruitment .specifications i {
+  font-size: 55px;
+  margin-bottom: 30px;
+  color: var(--mainColor);
+}
+main .musanedRecruitment .specifications h1 {
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: var(--mainColor);
+}
+main .musanedRecruitment .specifications h5 {
+  white-space: nowrap;
+}
+main .musanedRecruitment .specifications p {
+  line-height: 30px;
+  margin-top: 30px;
+  color: #777;
+  min-width: 220px;
+}
+main .musanedFees {
+  background-color: #f2f3f8;
+  padding: 70px 0;
+  text-align: center;
+}
+main .musanedFees .headTitle h4 {
+  margin-bottom: 10px;
+}
+main .musanedFees p {
+  color: #777;
+  line-height: 30px;
+}
+main .musanedFees .images {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  justify-content: center;
+}
+main .musanedFees .images img {
+  -o-object-fit: contain;
+     object-fit: contain;
+  margin: 5px;
+  max-height: 70px;
+  border-radius: 8px;
+}
+main .musanedApp {
+  padding: 70px 0;
+}
+main .musanedApp .appImg {
+  text-align: center;
+}
+main .musanedApp .appImg img {
+  -o-object-fit: contain;
+     object-fit: contain;
+  min-height: 300px;
+}
+main .musanedApp .info {
+  padding: 20px;
+  background-color: var(--mainColor80);
+  border-radius: 16px;
+  text-align: center;
+}
+main .musanedApp .info img {
+  -o-object-fit: contain;
+     object-fit: contain;
+  height: 120px;
+  margin-bottom: 20px;
+}
+main .musanedApp .info h4 {
+  color: var(--mainColor);
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+main .musanedApp .info p {
+  color: #777;
+  line-height: 30px;
+  margin-bottom: 30px;
+}
+main .musanedApp .info .links {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+main .musanedApp .info .links img {
+  width: 100%;
+  height: 60px;
+  margin: 0;
+  -o-object-fit: contain;
+     object-fit: contain;
+  padding: 5px;
+}
+@media (max-width: 768px) {
+  main .musanedApp .info .links img {
+    height: 50px;
+  }
+}
+main .profile .userHeader {
+  margin: 20px 0px;
+  background-color: var(--white);
+  color: var(--mainColor);
+  border-radius: 20px;
+  box-shadow: var(--BigShadow);
+  padding: 20px;
+}
+@media (max-width: 768px) {
+  main .profile .userHeader {
+    padding: 10px;
+  }
+}
+main .profile .userHeader .userInfo {
+  position: relative;
+  margin: 0px 10px;
+}
+main .profile .userHeader .userInfo img {
+  width: 100px;
+  height: 100px;
+  -o-object-fit: cover;
+     object-fit: cover;
+  -o-object-position: top;
+     object-position: top;
+  border-radius: 100%;
+  border: 3px solid var(--mainColor80);
+}
+main .profile .userHeader .userInfo .userName h3 {
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+main .profile .userHeader .userInfo .control {
+  position: absolute;
+  right: 0;
+  top: 5px;
+}
+main .profile .userHeader .userInfo .control i {
+  font-size: 28px;
+  color: #ff0000;
+  cursor: pointer;
+}
+main .profile .userHeader .userInfo .control .switch {
+  position: relative;
+  width: 50px;
+  height: 28px;
+  margin: -3px 10px;
+}
+main .profile .userHeader .userInfo .control .switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+main .profile .userHeader .userInfo .control .switch .slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 34px;
+  margin: 0px !important;
+}
+main .profile .userHeader .userInfo .control .switch .slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+main .profile .userHeader .userInfo .control .switch input:checked + .slider {
+  background-color: #2196f3;
+}
+main .profile .userHeader .userInfo .control .switch input:focus + .slider {
+  box-shadow: 0 0 1px #2196f3;
+}
+main .profile .userHeader .userInfo .control .switch input:checked + .slider:before {
+  transform: translateX(22px);
+}
+@media (max-width: 760px) {
+  main .profile .userHeader .container {
+    padding: 0px !important;
+  }
+  main .profile .userHeader .userInfo {
+    padding: 20px 10px;
+  }
+  main .profile .userHeader .userInfo img {
+    width: 80px;
+    height: 80px;
+  }
+  main .profile .userHeader .userInfo span {
+    margin: 0px 10px;
+  }
+}
+main .profile .profileNavCol {
+  background-color: var(--white);
+  border-radius: 8px;
+  padding: 5px;
+  border: 1px solid #ccc;
+  margin-bottom: 50px;
+  position: sticky;
+  top: 100px;
+  left: 0;
+  z-index: 2;
+}
+main .profile .profileNavCol a {
+  padding: 13px;
+  display: flex;
+  align-items: center;
+  color: var(--mainColor);
+  margin: 5px 1px;
+  transition: var(--transition);
+  border-radius: 4px;
+  border: 1px solid var(--mainColor80);
+}
+main .profile .profileNavCol a i {
+  margin-left: 5px;
+}
+main .profile .profileNavCol a.active, main .profile .profileNavCol a:hover {
+  background-color: var(--mainColor);
+  color: var(--white);
+}
+@media (max-width: 760px) {
+  main .profile .profileNavCol {
+    margin-bottom: 10px;
+  }
+  main .profile .profileNavCol a {
+    padding: 8px 10px;
+    display: inline-flex;
+    margin: 3px 0px;
+    border-bottom: 1px solid var(--secondColor);
+    min-width: 48%;
+  }
+}
+@media (max-width: 335px) {
+  main .profile .profileNavCol {
+    margin-bottom: 10px;
+  }
+  main .profile .profileNavCol a {
+    padding: 8px 10px;
+    display: inline-flex;
+    margin: 3px 0px;
+    border-bottom: 1px solid var(--secondColor);
+    min-width: 100%;
+  }
+}
+main .profile .profileTitle {
+  background-color: #f8f8f8;
+  padding: 10px;
+  margin-bottom: 20px;
+}
+main .profileContent .newOrder {
+  width: 100%;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--mainColor);
+  background: var(--mainColor);
+  color: var(--white);
+}
+main .profileContent .newOrder i {
+  font-size: 30px;
+  margin: 0 20px;
+}
+main .profileContent .newOrder:hover {
+  background: var(--mainColor80);
+  color: var(--mainColor);
+}
+main .profileContent .order {
+  background-color: #fff;
+  border: 1px solid var(--mainColor80);
+}
+main .profileContent .order .workerCvSlider {
+  padding-bottom: 0px;
+}
+main .profileContent .order .workerCvSlider img {
+  height: 200px;
+  -o-object-fit: contain;
+     object-fit: contain;
+  width: 100%;
+  cursor: zoom-in;
+}
+main .profileContent .order .swiper-button-prev,
+main .profileContent .order .swiper-button-next {
+  color: var(--mainColor);
+  width: 30px;
+  height: 30px;
+}
+main .profileContent .order .swiper-button-prev:hover,
+main .profileContent .order .swiper-button-next:hover {
+  background-color: var(--secondColor);
+  color: var(--mainColor);
+}
+main .profileContent .order .swiper-button-prev::after, main .profileContent .order .swiper-button-prev::before,
+main .profileContent .order .swiper-button-next::after,
+main .profileContent .order .swiper-button-next::before {
+  font-weight: 300;
+  font-size: 20px;
+}
+main .profileContent .order ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+main .profileContent .order ul li {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 49%;
+  padding: 10px;
+}
+main .profileContent .order ul li h6 {
+  color: #777;
+}
+main .profileContent .order ul li p {
+  font-weight: bold;
+  margin-right: 5px;
+}
+main .profileContent .order .profileCustomerInfo {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 5px;
+  background-color: var(--mainColor80);
+}
+main .profileContent .order .profileCustomerInfo .info {
+  display: flex;
+  align-items: center;
+}
+main .profileContent .order .profileCustomerInfo .info img {
+  height: 40px;
+  width: 40px;
+  margin: 0 20px;
+  -o-object-fit: contain;
+     object-fit: contain;
+}
+main .profileContent .order .profileCustomerInfo .info .text h6 {
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: var(--mainColor);
+}
+main .profileContent .order .profileCustomerInfo .info .text p {
+  font-size: smaller !important;
+}
+main .profileContent .order .profileCustomerInfo .contact {
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+main .profileContent .order .profileCustomerInfo .contact a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 20px;
+  border-radius: 100px;
+  border: 1px solid var(--mainColor);
+  color: var(--mainColor);
+  margin: 5px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+main .profileContent .order .profileCustomerInfo .contact a p {
+  margin: 0;
+}
+main .profileContent .order .profileCustomerInfo .contact a i {
+  font-size: 16px;
+}
+main .profileContent .order .profileCustomerInfo .contact a:hover {
+  background-color: var(--mainColor);
+  color: var(--white);
+}
+main .profileContent .order .cancel {
+  color: #db1d00;
+}
+main .profileContent .order .done {
+  color: #038735;
+}
+main .profileContent .order .orderStatus {
+  padding: 10px;
+  font-weight: bold;
+}
+main .routeNav {
+  display: flex;
+  align-items: center;
+  background-color: var(--mainColor);
+  border-radius: 8px;
+  padding: 10px 30px;
+  margin-bottom: 10px;
+  transition: var(--transition);
+}
+main .routeNav .Back {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 40px;
+  height: 40px;
+  background-color: var(--white);
+  color: var(--mainColor);
+  border-radius: 100%;
+  margin-left: 30px;
+  transition: var(--transition);
+  font-size: 20px;
+  border: none;
+}
+main .routeNav .Back:hover {
+  background-color: var(--black);
+  color: var(--secondColor);
+}
+main .routeNav .Back .fa-angle-right:before {
+  content: "\f105";
+}
+main .routeNav ul {
+  margin: 0;
+  list-style: none;
+  transition: var(--transition);
+  padding: 0;
+}
+main .routeNav ul li {
+  display: inline-flex;
+  padding: 10px;
+  color: var(--gray);
+  transition: var(--transition);
+  position: relative;
+}
+main .routeNav ul li a {
+  transition: var(--transition);
+  color: var(--gray);
+}
+main .routeNav ul li a:hover {
+  color: var(--white);
+}
+main .routeNav ul li a.active {
+  color: var(--white);
+  cursor: default;
+  font-weight: bold;
+}
+main .routeNav ul li::after {
+  content: " / ";
+  font-size: 20px;
+  font-weight: bold;
+  position: absolute;
+  left: -3px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+main .routeNav ul li:last-child:after {
+  display: none;
+}
+@media (max-width: 768px) {
+  main .routeNav {
+    margin: 0px 0px 30px;
+    padding: 10px 10px;
+  }
+  main .routeNav .Back {
+    margin-left: 20px;
+  }
+  main .routeNav ul li a {
+    font-size: 16px;
+  }
+}
+main .selectedCustomer {
+  padding: 50px 0;
+  margin-top: 50px;
+  background-color: #ffffff;
+  width: min(100% - 24px, 600px);
+  margin: 100px auto 50px;
+  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.1254901961);
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+  position: relative;
+  padding-top: 80px;
+  text-align: center;
+}
+main .selectedCustomer img {
+  width: 100px;
+  height: 100px;
+  padding: 16px;
+  border-radius: 100px;
+  position: absolute;
+  top: -50px;
+  left: calc(50% - 50px);
+  background-color: #ffffff;
+  border: 4px solid #f3f3f9;
+}
+main .selectedCustomer .massage {
+  line-height: 34px;
+}
+main .selectedCustomer .massage span {
+  font-weight: bold;
+  color: var(--mainColor);
+  padding: 0 5px;
+}
+main .selectedCustomer .contactType {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 20px;
+  flex-wrap: wrap;
+}
+main .selectedCustomer .contactType .contact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  border: 1px solid var(--mainColor);
+  color: var(--mainColor);
+  padding: 9px 16px;
+  border-radius: 16px;
+  flex: 1;
+}
+main .selectedCustomer .contactType .contact i {
+  font-size: 32px;
+}
+main .selectedCustomer .contactType .contact i.fa-phone {
+  font-size: 23px;
+}
+main .selectedCustomer .contactType .contact p {
+  white-space: nowrap;
+}
+main .selectedCustomer .contactType .contact:hover {
+  background-color: var(--mainColor);
+  color: #ffffff;
+}
+main .selectedCustomerInfo .info {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  background: var(--white);
+}
+main .selectedCustomerInfo .info img {
+  height: 80px;
+  width: 80px;
+  margin: 0 20px;
+  -o-object-fit: contain;
+     object-fit: contain;
+}
+main .selectedCustomerInfo .info .text h5 {
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: var(--mainColor);
+}
+main .selectedCustomerInfo .contact {
+  padding: 10px 20px;
+  background-color: var(--white);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-shadow: var(--shadow);
+  height: 100%;
+  text-align: center;
+  color: var(--black);
+}
+main .selectedCustomerInfo .contact i {
+  font-size: 35px;
+  display: block;
+  margin-bottom: 10px;
+}
+main .selectedCustomerInfo .contact i.fa-whatsapp-square {
+  color: #038735;
+}
+main .selectedCustomerInfo .contact i.fa-square-phone {
+  color: #1e90ff;
+}
+main .selectedCustomerInfo .contact:hover {
+  background-color: var(--secondColor);
+  color: var(--mainColor);
+}
+main .selectCustomerService {
+  padding: 50px 0;
+  margin-top: 50px;
+}
+main .selectCustomerService .headTitle {
+  text-align: center;
+  margin-bottom: 50px;
+}
+main .selectCustomerService .headTitle h1 {
+  font-size: 36px !important;
+  color: var(--mainColor);
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+main .selectCustomerService .headTitle p {
+  color: #777;
+}
+main .selectCustomerService .choose {
+  position: relative;
+  display: flex;
+  justify-content: space-around;
+  background-color: rgba(0, 92, 169, 0.1254901961);
+  padding: 20px;
+  border-radius: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+main .selectCustomerService .choose .customerOption {
+  flex: 1;
+  min-width: 120px;
+}
+main .selectCustomerService .choose .btn {
+  padding: 15px 20px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1254901961);
+  box-shadow: none;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  transition: all 0.3s ease-in-out;
+  border: 4px solid transparent;
+  border-radius: 16px;
+  gap: 12px;
+}
+main .selectCustomerService .choose .btn img {
+  height: 87px;
+  width: 87px;
+}
+main .selectCustomerService .choose .btn span {
+  text-align: center;
+  font-size: 17px;
+  color: var(--gray);
+}
+main .selectCustomerService .choose .btn-check:active + .btn-outline {
+  background-color: #ffffff;
+  color: var(--mainColor);
+  border: 4px solid var(--mainColor);
+}
+main .selectCustomerService .choose .btn-check:active + .btn-outline::after {
+  content: "\f560" !important;
+  font-family: "Font Awesome 6 Pro";
+  font-weight: bold;
+  position: absolute;
+  font-size: 20px;
+  top: 5px;
+  right: 10px;
+}
+main .selectCustomerService .choose .btn-check:checked + .btn-outline {
+  background-color: #ffffff;
+  color: var(--mainColor);
+  border: 4px solid var(--mainColor);
+}
+main .selectCustomerService .choose .btn-check:checked + .btn-outline::after {
+  content: "\f560" !important;
+  font-family: "Font Awesome 6 Pro";
+  font-weight: bold;
+  position: absolute;
+  font-size: 20px;
+  top: 5px;
+  right: 10px;
+}
+main .selectCustomerService .choose .btn-outline.active {
+  background-color: #ffffff;
+  color: var(--mainColor);
+  border: 4px solid var(--mainColor);
+}
+main .selectCustomerService .choose .btn-outline.active::after {
+  content: "\f560" !important;
+  font-family: "Font Awesome 6 Pro";
+  font-weight: bold;
+  position: absolute;
+  font-size: 20px;
+  top: 5px;
+  right: 10px;
+}
+main .selectCustomerService .choose .btn-outline.dropdown-toggle.show {
+  background-color: #ffffff;
+  color: var(--mainColor);
+  border: 4px solid var(--mainColor);
+}
+main .selectCustomerService .choose .btn-outline.dropdown-toggle.show::after {
+  content: "\f560" !important;
+  font-family: "Font Awesome 6 Pro";
+  font-weight: bold;
+  position: absolute;
+  font-size: 20px;
+  top: 5px;
+  right: 10px;
+}
+main .selectCustomerService .choose .btn-outline:active {
+  background-color: #ffffff;
+  color: var(--mainColor);
+  border: 4px solid var(--mainColor);
+}
+main .selectCustomerService .choose .btn-outline:active::after {
+  content: "\f560" !important;
+  font-family: "Font Awesome 6 Pro";
+  font-weight: bold;
+  position: absolute;
+  font-size: 20px;
+  top: 5px;
+  right: 10px;
+}
+main .selectCustomerService .btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--mainColor);
+  color: #fff;
+}
+main #chat .Users {
+  position: relative;
+  display: block;
+  border-radius: 4px;
+  padding: 5px;
+  margin-left: 10px;
+  height: 89vh;
+  overflow-x: auto;
+  width: 100%;
+  box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1882352941);
+  background-color: #fff;
+}
+main #chat .Users .UsersHeder {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  background-color: var(--mainColor80);
+  color: var(--black);
+  width: 100%;
+  margin-bottom: 10px;
+}
+main #chat .Users .UsersHeder .closeUsers {
+  display: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 100%;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--black);
+  cursor: pointer;
+}
+main #chat .Users .UsersHeder .closeUsers i {
+  color: var(--white);
+  font-size: 18px;
+}
+@media (max-width: 992px) {
+  main #chat .Users {
+    height: 100%;
+    right: 0;
+    position: fixed;
+    top: 0;
+    width: 80%;
+    max-width: 350px;
+    z-index: 9999;
+    overflow: auto;
+    display: none;
+    animation-duration: 1s;
+    animation-fill-mode: both;
+    animation-name: slideInRight !important;
+    animation-delay: 0s;
+  }
+  main #chat .Users .UsersHeder {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1254901961);
+  }
+  main #chat .Users .UsersHeder .closeUsers {
+    display: flex;
+  }
+}
+main #chat .Users ul {
+  display: block;
+  border: none;
+}
+main #chat .Users ul li {
+  display: block;
+  margin-bottom: 5px;
+}
+main #chat .Users ul li .userInfo {
+  display: flex;
+  background-color: #fff;
+  padding: 10px 5px;
+  border-radius: 2px;
+  align-items: center;
+  transition: all 0.2s ease-in-out;
+  border-bottom: 1px solid #f6f6f6;
+}
+main #chat .Users ul li .userInfo img {
+  width: 100px;
+  height: 50px;
+  max-width: 50px !important;
+  border-radius: 100%;
+  box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.3137254902);
+  -o-object-fit: cover;
+     object-fit: cover;
+  -o-object-position: top;
+     object-position: top;
+}
+main #chat .Users ul li .userInfo .userDiv {
+  color: #777;
+  width: 100%;
+  padding-right: 8px;
+  margin-right: 8px;
+}
+main #chat .Users ul li .userInfo .userDiv .nameDate {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+main #chat .Users ul li .userInfo .userDiv .nameDate .name {
+  font-size: 16px;
+  color: #000;
+}
+main #chat .Users ul li .userInfo .userDiv .nameDate .date {
+  font-size: 12px;
+}
+main #chat .Users ul li .userInfo .userDiv p {
+  margin: 10px 0px 0px;
+  font-size: 12px;
+  overflow: hidden;
+  height: 25px;
+}
+main #chat .Users ul li .active .userInfo {
+  background-color: #f6f6f6;
+  border-radius: 3px;
+}
+main #chat .chatTop {
+  box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.1882352941);
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  padding: 20px;
+  background-color: var(--mainColor);
+  color: #fff;
+  position: relative;
+}
+main #chat .chatTop img {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #fff;
+  border-radius: 100%;
+  box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1882352941);
+  margin: 0px 10px;
+  -o-object-fit: cover;
+     object-fit: cover;
+  -o-object-position: top;
+     object-position: top;
+}
+main #chat .chatTop .default-btn {
+  color: var(--secondColor) !important;
+  border-radius: 0;
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: var(--white);
+  cursor: pointer;
+}
+main #chat .chatTop .default-btn span {
+  background-color: var(--black);
+  color: var(--white);
+}
+main #chat .chatTop .default-btn:hover {
+  color: var(--white) !important;
+}
+main #chat .chatBox {
+  position: relative;
+  width: 100%;
+  background-color: #fff;
+  display: block;
+  padding: 10px 10px 50px;
+  box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.1882352941);
+  background-image: url(../images/chat.webp);
+  background-size: contain;
+  height: 80vh;
+}
+main #chat .chatBox::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  background-color: rgba(0, 0, 0, 0.1254901961);
+}
+main #chat .chatBox .chatBody {
+  position: relative;
+  z-index: 3;
+  padding: 15px;
+  overflow-x: auto;
+  height: 100%;
+}
+main #chat .chatBox .chatBody p {
+  margin: 0px;
+  width: 100%;
+  display: inline-block;
+}
+main #chat .chatBox .chatBody .userSend {
+  display: flex;
+  position: relative;
+  margin-left: auto;
+}
+main #chat .chatBox .chatBody .userSend img {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #fff;
+  border-radius: 100%;
+  box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1882352941);
+  position: relative;
+  right: -10px;
+  top: -5px;
+  -o-object-fit: cover;
+     object-fit: cover;
+  -o-object-position: top;
+     object-position: top;
+}
+main #chat .chatBox .chatBody .userSend .sendMassage {
+  padding: 10px;
+  background-color: var(--mainColor);
+  border-radius: 8px 0px 8px 8px;
+  margin-bottom: 10px;
+  position: relative;
+  color: #fff;
+  display: inline-block;
+  padding-bottom: 25px;
+  min-width: 120px;
+  box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.1882352941);
+}
+main #chat .chatBox .chatBody .userSend .sendMassage .time {
+  position: absolute;
+  bottom: 2px;
+  left: 15px;
+  color: #f0f0f0;
+  font-size: 12px;
+}
+main #chat .chatBox .chatBody .userSend .sendMassage:before {
+  z-index: -1;
+  content: " ";
+  position: absolute;
+  width: 0;
+  height: 0;
+  left: auto;
+  right: -8px;
+  top: 0px;
+  bottom: auto;
+  border: 12px solid;
+  border-color: var(--mainColor) transparent transparent transparent;
+}
+main #chat .chatBox .chatBody .userReceive {
+  display: flex;
+  position: relative;
+  margin-right: auto;
+  direction: ltr;
+  text-align: left;
+}
+main #chat .chatBox .chatBody .userReceive img {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #fff;
+  border-radius: 100%;
+  box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1882352941);
+  position: relative;
+  left: -10px;
+  top: -5px;
+  -o-object-fit: cover;
+     object-fit: cover;
+  -o-object-position: top;
+     object-position: top;
+}
+main #chat .chatBox .chatBody .userReceive .sendMassage {
+  padding: 10px;
+  background-color: #fff;
+  border-radius: 0px 8px 8px 8px;
+  margin-bottom: 10px;
+  position: relative;
+  color: #000;
+  display: inline-block;
+  padding-bottom: 25px;
+  min-width: 120px;
+  box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.1882352941);
+}
+main #chat .chatBox .chatBody .userReceive .sendMassage .time {
+  position: absolute;
+  bottom: 2px;
+  left: 15px;
+  color: #c7c7c7;
+  font-size: 12px;
+}
+main #chat .chatBox .chatBody .userReceive .sendMassage:before {
+  z-index: -1;
+  content: " ";
+  position: absolute;
+  width: 0;
+  height: 0;
+  right: auto;
+  left: -8px;
+  top: 0px;
+  bottom: auto;
+  border: 12px solid;
+  border-color: #fff transparent transparent transparent;
+}
+main #chat .chatBox .chat-input {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  right: 0;
+  z-index: 4;
+}
+main #chat .chatBox .chat-input #chat-input {
+  background: #f4f7f9;
+  width: 100%;
+  position: relative;
+  height: 47px;
+  padding: 10px 15px 10px 50px;
+  border: none;
+  color: #888;
+  overflow: hidden;
+}
+main #chat .chatBox .chat-input .chat-submit {
+  position: absolute;
+  bottom: 3px;
+  left: 10px;
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  border-radius: 50%;
+  color: var(--mainColor);
+  transform: scaleX(-1);
+  width: 35px;
+  height: 35px;
+}
+main #chat .showUsers {
+  display: block !important;
+  animation-duration: 0.5s;
+  animation-fill-mode: both;
+  animation-name: slideInRight !important;
+  animation-delay: 0s;
+}
+main #chat .hideUsers {
+  display: block !important;
+  animation-duration: 0.3s;
+  animation-fill-mode: both;
+  animation-name: slideOutRight !important;
+  animation-delay: 0s;
+}
+main .chatTop {
+  box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.1882352941);
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  padding: 10px 20px;
+  background-color: var(--secondColor);
+  color: #fff;
+  position: relative;
+}
+main .chatTop img {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #fff;
+  border-radius: 100%;
+  box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1882352941);
+  margin: 0px 10px;
+  -o-object-fit: cover;
+     object-fit: cover;
+  -o-object-position: top;
+     object-position: top;
+}
+main .status {
+  position: relative;
+  padding: 20px 10px;
+  background-color: var(--secondColor);
+  margin: 20px 0;
+  border-radius: 8px;
+  border: 1px solid var(--mainColor);
+  overflow: hidden;
+}
+main .status ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+}
+main .status ol li {
+  position: relative;
+  text-align: center;
+  padding: 0 5px;
+  width: 100%;
+}
+main .status ol li:before {
+  content: "";
+  width: 25px;
+  height: 25px;
+  display: block;
+  border-radius: 50%;
+  background: #fff;
+  margin: 0 auto 4px auto;
+  border: 3px solid #ccc;
+}
+main .status ol li:not(:last-child)::after {
+  content: "";
+  width: 100%;
+  height: 2px;
+  display: block;
+  background: #ccc;
+  margin: 0;
+  position: absolute;
+  top: 12px;
+  left: -60px;
+  z-index: -222;
+}
+main .status ol li.completed:before {
+  background: var(--mainColor);
+  border: 3px solid var(--mainColor);
+}
+main .status ol p {
+  margin-top: 10px;
+}
+main .notifications {
+  padding: 10px;
+}
+main .notifications ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+main .notifications ul .notification {
+  padding: 20px;
+  background-color: var(--white);
+  box-shadow: var(--shadow);
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+main .notifications ul .notification .notificationTitle {
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+main .notifications ul .notification p {
+  color: #808080;
+  margin-bottom: 10px;
+}
+main .notifications ul .notification .date {
+  display: flex;
+  font-size: small;
+}
+main .notifications ul .notification .date i {
+  color: var(--mainColor);
+}
+main .editProfile {
+  padding: 20px;
+  background-color: var(--white);
+  margin-bottom: 20px;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+main .editProfile select {
+  width: 100%;
+  min-height: 45px;
+  display: flex;
+  align-items: center;
+  border-color: #ced4da;
+  border-radius: 8px;
+}
+main .editProfile label {
+  margin-bottom: 8px;
+}
+main .editProfile label i {
+  color: var(--mainColor);
+}
+main .editProfile .head {
+  background-color: var(--mainColor80);
+  color: var(--mainColor);
+  margin-bottom: 20px;
+  padding: 20px;
+  border-radius: 10px;
+}
+main .editProfile .head h5 {
+  font-weight: bold;
+  text-transform: uppercase;
+}
+main .supportPage {
+  padding: 60px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+main .supportPage .supportFaq {
+  border: 1px solid var(--secondColor);
+  padding: 30px 25px;
+  background-color: var(--white);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+}
+main .supportPage .supportFaq:hover {
+  box-shadow: var(--BigShadow);
+}
+main .supportPage .supportFaq .headTitle {
+  margin-bottom: 25px;
+}
+main .supportPage .supportFaq .headTitle h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--mainColor);
+}
+main .supportPage .supportFaq .accordion .accordion-item {
+  border: none;
+  margin-bottom: 15px;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+main .supportPage .supportFaq .accordion .accordion-item .accordion-button {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--mainColor);
+  background-color: var(--mainColor80);
+  transition: var(--transition);
+}
+main .supportPage .supportFaq .accordion .accordion-item .accordion-button:focus {
+  box-shadow: none;
+}
+main .supportPage .supportFaq .accordion .accordion-item .accordion-button:not(.collapsed) {
+  background-color: var(--mainColor);
+  color: var(--white);
+}
+main .supportPage .supportFaq .accordion .accordion-item .accordion-body {
+  background-color: var(--white);
+  padding: 15px 20px;
+}
+main .supportPage .supportFaq .accordion .accordion-item .accordion-body ul {
+  margin: 0;
+  padding: 0 20px;
+  list-style-type: style;
+}
+main .supportPage .supportFaq .accordion .accordion-item .accordion-body ul li {
+  margin-bottom: 8px;
+  color: var(--black);
+}
+main .recruitmentRequest {
+  padding: 50px 0;
+}
+main .recruitmentRequest .headTitle h2 {
+  font-size: 30px !important;
+}
+@media (max-width: 768px) {
+  main .recruitmentRequest .headTitle h2 {
+    font-size: 20px !important;
+  }
+}
+main .recruitmentRequest .headTitle p {
+  color: #777;
+}
+main .recruitmentRequest .formCard {
+  background-color: #fff;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  border-radius: 4px;
+}
+main .recruitmentRequest .formCard .head {
+  background-color: var(--mainColor80);
+  padding: 10px 20px;
+  color: var(--mainColor);
+  margin-bottom: 20px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+main .recruitmentRequest .formCard select {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  border-color: #ced4da;
+  border-radius: 12px;
+}
+main .recruitmentRequest .formCard label {
+  margin-bottom: 8px;
+}
+main .recruitmentRequest .formCard label i {
+  color: var(--mainColor);
+}
+main .recruitmentRequest .hint {
+  color: #777;
+  font-size: 10px;
+}
+main .recruitmentRequest .hint a {
+  font-weight: bold;
+  color: var(--mainColor);
+  font-size: 10px !important;
+}
+main .recruitmentRequest .form-check-label {
+  font-size: small;
+}
+main .cvPage {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  gap: 12px;
+  min-height: 100vh;
+  margin: auto;
+  background-color: var(--white);
+  isolation: isolate;
+  width: 100%;
+  max-width: 210mm;
+  padding: 0 20px;
+  margin: auto;
+}
+main .cvPage .title,
+main .cvPage .languages .title {
+  text-transform: uppercase;
+  color: var(--black);
+  font-family: "fontBold";
+}
+main .cvPage .languages .title {
+  color: var(--black);
+}
+main .cvPage table {
+  width: 100%;
+}
+main .cvPage table td,
+main .cvPage table th {
+  padding: 8px 12px;
+  border: 1px solid var(--mainColor80);
+}
+main .cvPage .sub {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--white);
+  padding-bottom: 12px;
+  gap: 4px;
+}
+main .cvPage .sub .title {
+  color: #413f3f;
+  font-family: "fontRegular";
+}
+main .cvPage .sub .dis {
+  font-weight: bold;
+  font-size: 18px;
+  color: var(--black);
+}
+@media (max-width: 768px) {
+  main .cvPage .sub .dis {
+    font-size: 12px;
+  }
+}
+main .cvPage .imageCol {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 200px;
+}
+@media (max-width: 768px) {
+  main .cvPage .imageCol {
+    min-width: 20%;
+  }
+}
+main .cvPage .imageCol::before {
+  content: "";
+  width: 100%;
+  min-height: 120px;
+  background-color: var(--mainColor80);
+  display: flex;
+  border-radius: 0 0 5000px 5000px;
+}
+main .cvPage .imageCol .mainInfo {
+  flex: 1;
+  background-color: var(--mainColor80);
+  border-radius: 5000px 5000px 0 0;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  gap: 12px;
+  padding: 92px 24px 24px;
+}
+main .cvPage .imageCol .image {
+  display: flex;
+  border-radius: 100%;
+  width: 200px;
+  height: 200px;
+  margin: -70px auto;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.1882352941);
+  background-color: var(--white);
+}
+@media (max-width: 768px) {
+  main .cvPage .imageCol .image {
+    width: 100px;
+    height: 100px;
+  }
+}
+main .cvPage .imageCol .image::before, main .cvPage .imageCol .image::after {
+  content: "";
+  display: flex;
+  border-radius: 100%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+main .cvPage .imageCol .image::before {
+  width: 110%;
+  height: 110%;
+  border: 2px solid var(--mainColor);
+}
+main .cvPage .imageCol .image::after {
+  width: 93%;
+  height: 93%;
+  border: 2px solid var(--mainColor) 20;
+}
+main .cvPage .imageCol .image img {
+  width: 100%;
+  height: 100%;
+  -o-object-fit: cover;
+  object-fit: cover;
+  -o-object-position: top;
+  object-position: top;
+  border-radius: 100%;
+}
+main .cvPage .imageCol .logo {
+  margin-top: auto;
+  width: 100%;
+  height: 80px;
+  padding: 12px 8px 8px;
+}
+@media (max-width: 768px) {
+  main .cvPage .imageCol .logo {
+    height: 60px;
+  }
+}
+main .cvPage .imageCol .logo img {
+  width: 100%;
+  height: 100%;
+  -o-object-fit: contain;
+     object-fit: contain;
+}
+main .cvPage .passportNumbers {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--mainColor80);
+  width: -moz-fit-content;
+  width: fit-content;
+  padding: 4px 12px;
+}
+main .cvPage .passportNumbers span {
+  font-weight: bold;
+}
+main .cvPage .informationCol {
+  flex: 2;
+  padding: 70px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: relative;
+}
+@media (max-width: 768px) {
+  main .cvPage .informationCol {
+    min-width: 70%;
+  }
+}
+main .cvPage .informationCol::before {
+  content: "";
+  width: 40px;
+  height: 50px;
+  display: flex;
+  border-radius: 100px 100px 0 0;
+  position: absolute;
+  bottom: 0;
+  left: 20px;
+  background-color: var(--mainColor);
+}
+@media (max-width: 768px) {
+  main .cvPage .informationCol::before {
+    width: 20px;
+    height: 30px;
+  }
+}
+main .cvPage .informationCol .head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+main .cvPage .informationCol .head .name {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  flex: 1;
+  gap: 4px;
+}
+main .cvPage .informationCol .head .name h3 {
+  color: var(--mainColor);
+  font-weight: bold;
+  line-height: 32px;
+  padding-bottom: 10px;
+  font-size: 26px;
+}
+@media (max-width: 768px) {
+  main .cvPage .informationCol .head .name h3 {
+    font-size: 18px;
+  }
+}
+main .cvPage .informationCol .head .logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+main .cvPage .informationCol .head .logo img {
+  height: 70px;
+}
+@media (max-width: 768px) {
+  main .cvPage .informationCol .head .logo img {
+    height: 40px;
+  }
+}
+main .cvPage .informationCol .head .logo .experiance {
+  background-color: var(--mainColor);
+  color: var(--white);
+  padding: 8px 16px;
+  font-family: "fontBold";
+  font-size: 13px;
+  width: 100%;
+  text-align: center;
+  border-radius: 8px;
+}
+@media (max-width: 768px) {
+  main .cvPage .informationCol .head .logo .experiance {
+    padding: 4px 9px;
+    font-size: 10px;
+  }
+}
+main .cvPage .informationCol .category {
+  display: flex;
+  flex-direction: column;
+}
+main .cvPage .informationCol .category .title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+main .cvPage .informationCol .category .title span {
+  padding: 8px 0 8px 24px;
+}
+main .cvPage .informationCol .category .title::before, main .cvPage .informationCol .category .title::after {
+  content: "";
+  display: flex;
+  background-color: var(--mainColor);
+}
+main .cvPage .informationCol .category .title::before {
+  width: 20px;
+  height: 40px;
+  border-radius: 100px 0 0 100px;
+}
+main .cvPage .informationCol .category .title::after {
+  height: 2px;
+  flex: 1;
+  border-radius: 10px;
+}
+main .cvPage .informationCol .category .infoRow {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+main .cvPage .informationCol .category .infoRow .data {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 16px;
+  flex: 1 calc(30% - 8px);
+  background-color: var(--mainColor80);
+  border-radius: 8px;
+}
+main .cvPage .informationCol .category .infoRow .data .innerTitle {
+  color: #777;
+}
+main .cvPage .informationCol .category .infoRow .data .innerData {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-weight: bold;
+}
+main .cvPage .informationCol .category .passportData {
+  padding-top: 8px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  height: -moz-max-content;
+  height: max-content;
+}
+main .cvPage .informationCol .category .passportData .data {
+  flex: 1;
+  padding: 12px 24px;
+  background-color: var(--mainColor80);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  white-space: nowrap;
+}
+main .cvPage .informationCol .category .passportData .data h6 {
+  color: #777;
+}
+main .cvPage .informationCol .category table {
+  width: 100%;
+}
+main .cvPage .informationCol .category table td,
+main .cvPage .informationCol .category table th {
+  padding: 8px 12px;
+  border: 1px solid var(--mainColor80);
+}
+main .cvPage .shape1 {
+  position: absolute;
+  top: -40px;
+  left: -70px;
+  width: 80%;
+  height: 90px;
+  z-index: -1;
+  background-color: var(--mainColor80);
+  clip-path: ellipse(61% 58% at 46% 19%);
+  transform: rotate(-4deg);
+}
+main .cvPage #btnSave {
+  padding: 10px 30px;
+  font-size: 18px;
+  background-color: #4caf50;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+main .cvPage .languages {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+main .cvPage .languages .Percentages {
+  display: flex;
+  gap: 16px;
+  justify-content: space-around;
+}
+@media (max-width: 768px) {
+  main .cvPage .languages .Percentages {
+    flex-direction: column;
+  }
+}
+main .cvPage .languages .Percentages .percentDiv {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+main .cvPage .languages .Percentages .percentDiv h5 {
+  color: var(--black);
+}
+main .cvPage .percent {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  overflow: hidden;
+}
+main .cvPage .percent .percentNum {
+  position: absolute;
+  width: 72px;
+  height: 72px;
+  z-index: 1;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 100%;
+  background-color: var(--mainColor) 20;
+  transform: translateX(-50%) translateY(-50%);
+  font-size: 18px !important;
+  font-weight: bold;
+}
+main .cvPage .percent .percentNum span {
+  font-weight: normal;
+  color: #777;
+  font-size: 10.8px !important;
+}
+main .cvPage .percent .slice {
+  position: absolute;
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 90px, 90px, 45px);
+}
+main .cvPage .percent .bar {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(0deg);
+}
+main .cvPage .percent.p51 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p51 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p51 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p52 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p52 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p52 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p53 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p53 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p53 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p54 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p54 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p54 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p55 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p55 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p55 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p56 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p56 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p56 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p57 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p57 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p57 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p58 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p58 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p58 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p59 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p59 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p59 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p60 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p60 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p60 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p61 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p61 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p61 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p62 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p62 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p62 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p63 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p63 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p63 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p64 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p64 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p64 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p65 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p65 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p65 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p66 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p66 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p66 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p67 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p67 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p67 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p68 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p68 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p68 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p69 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p69 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p69 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p70 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p70 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p70 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p71 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p71 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p71 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p72 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p72 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p72 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p73 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p73 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p73 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p74 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p74 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p74 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p75 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p75 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p75 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p76 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p76 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p76 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p77 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p77 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p77 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p78 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p78 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p78 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p79 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p79 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p79 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p80 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p80 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p80 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p81 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p81 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p81 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p82 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p82 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p82 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p83 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p83 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p83 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p84 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p84 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p84 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p85 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p85 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p85 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p86 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p86 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p86 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p87 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p87 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p87 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p88 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p88 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p88 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p89 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p89 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p89 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p90 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p90 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p90 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p91 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p91 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p91 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p92 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p92 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p92 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p93 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p93 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p93 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p94 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p94 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p94 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p95 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p95 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p95 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p96 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p96 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p96 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p97 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p97 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p97 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p98 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p98 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p98 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p99 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p99 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p99 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p100 .slice {
+  clip: rect(auto, auto, auto, auto);
+}
+main .cvPage .percent.p100 .bar:after {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p100 .fill {
+  position: absolute;
+  border: 3.6px solid var(--mainColor);
+  width: 90px;
+  height: 90px;
+  clip: rect(0px, 45px, 90px, 0px);
+  border-radius: 50%;
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p1 .bar {
+  transform: rotate(3.6deg);
+}
+main .cvPage .percent.p2 .bar {
+  transform: rotate(7.2deg);
+}
+main .cvPage .percent.p3 .bar {
+  transform: rotate(10.8deg);
+}
+main .cvPage .percent.p4 .bar {
+  transform: rotate(14.4deg);
+}
+main .cvPage .percent.p5 .bar {
+  transform: rotate(18deg);
+}
+main .cvPage .percent.p6 .bar {
+  transform: rotate(21.6deg);
+}
+main .cvPage .percent.p7 .bar {
+  transform: rotate(25.2deg);
+}
+main .cvPage .percent.p8 .bar {
+  transform: rotate(28.8deg);
+}
+main .cvPage .percent.p9 .bar {
+  transform: rotate(32.4deg);
+}
+main .cvPage .percent.p10 .bar {
+  transform: rotate(36deg);
+}
+main .cvPage .percent.p11 .bar {
+  transform: rotate(39.6deg);
+}
+main .cvPage .percent.p12 .bar {
+  transform: rotate(43.2deg);
+}
+main .cvPage .percent.p13 .bar {
+  transform: rotate(46.8deg);
+}
+main .cvPage .percent.p14 .bar {
+  transform: rotate(50.4deg);
+}
+main .cvPage .percent.p15 .bar {
+  transform: rotate(54deg);
+}
+main .cvPage .percent.p16 .bar {
+  transform: rotate(57.6deg);
+}
+main .cvPage .percent.p17 .bar {
+  transform: rotate(61.2deg);
+}
+main .cvPage .percent.p18 .bar {
+  transform: rotate(64.8deg);
+}
+main .cvPage .percent.p19 .bar {
+  transform: rotate(68.4deg);
+}
+main .cvPage .percent.p20 .bar {
+  transform: rotate(72deg);
+}
+main .cvPage .percent.p21 .bar {
+  transform: rotate(75.6deg);
+}
+main .cvPage .percent.p22 .bar {
+  transform: rotate(79.2deg);
+}
+main .cvPage .percent.p23 .bar {
+  transform: rotate(82.8deg);
+}
+main .cvPage .percent.p24 .bar {
+  transform: rotate(86.4deg);
+}
+main .cvPage .percent.p25 .bar {
+  transform: rotate(90deg);
+}
+main .cvPage .percent.p26 .bar {
+  transform: rotate(93.6deg);
+}
+main .cvPage .percent.p27 .bar {
+  transform: rotate(97.2deg);
+}
+main .cvPage .percent.p28 .bar {
+  transform: rotate(100.8deg);
+}
+main .cvPage .percent.p29 .bar {
+  transform: rotate(104.4deg);
+}
+main .cvPage .percent.p30 .bar {
+  transform: rotate(108deg);
+}
+main .cvPage .percent.p31 .bar {
+  transform: rotate(111.6deg);
+}
+main .cvPage .percent.p32 .bar {
+  transform: rotate(115.2deg);
+}
+main .cvPage .percent.p33 .bar {
+  transform: rotate(118.8deg);
+}
+main .cvPage .percent.p34 .bar {
+  transform: rotate(122.4deg);
+}
+main .cvPage .percent.p35 .bar {
+  transform: rotate(126deg);
+}
+main .cvPage .percent.p36 .bar {
+  transform: rotate(129.6deg);
+}
+main .cvPage .percent.p37 .bar {
+  transform: rotate(133.2deg);
+}
+main .cvPage .percent.p38 .bar {
+  transform: rotate(136.8deg);
+}
+main .cvPage .percent.p39 .bar {
+  transform: rotate(140.4deg);
+}
+main .cvPage .percent.p40 .bar {
+  transform: rotate(144deg);
+}
+main .cvPage .percent.p41 .bar {
+  transform: rotate(147.6deg);
+}
+main .cvPage .percent.p42 .bar {
+  transform: rotate(151.2deg);
+}
+main .cvPage .percent.p43 .bar {
+  transform: rotate(154.8deg);
+}
+main .cvPage .percent.p44 .bar {
+  transform: rotate(158.4deg);
+}
+main .cvPage .percent.p45 .bar {
+  transform: rotate(162deg);
+}
+main .cvPage .percent.p46 .bar {
+  transform: rotate(165.6deg);
+}
+main .cvPage .percent.p47 .bar {
+  transform: rotate(169.2deg);
+}
+main .cvPage .percent.p48 .bar {
+  transform: rotate(172.8deg);
+}
+main .cvPage .percent.p49 .bar {
+  transform: rotate(176.4deg);
+}
+main .cvPage .percent.p50 .bar {
+  transform: rotate(180deg);
+}
+main .cvPage .percent.p51 .bar {
+  transform: rotate(183.6deg);
+}
+main .cvPage .percent.p52 .bar {
+  transform: rotate(187.2deg);
+}
+main .cvPage .percent.p53 .bar {
+  transform: rotate(190.8deg);
+}
+main .cvPage .percent.p54 .bar {
+  transform: rotate(194.4deg);
+}
+main .cvPage .percent.p55 .bar {
+  transform: rotate(198deg);
+}
+main .cvPage .percent.p56 .bar {
+  transform: rotate(201.6deg);
+}
+main .cvPage .percent.p57 .bar {
+  transform: rotate(205.2deg);
+}
+main .cvPage .percent.p58 .bar {
+  transform: rotate(208.8deg);
+}
+main .cvPage .percent.p59 .bar {
+  transform: rotate(212.4deg);
+}
+main .cvPage .percent.p60 .bar {
+  transform: rotate(216deg);
+}
+main .cvPage .percent.p61 .bar {
+  transform: rotate(219.6deg);
+}
+main .cvPage .percent.p62 .bar {
+  transform: rotate(223.2deg);
+}
+main .cvPage .percent.p63 .bar {
+  transform: rotate(226.8deg);
+}
+main .cvPage .percent.p64 .bar {
+  transform: rotate(230.4deg);
+}
+main .cvPage .percent.p65 .bar {
+  transform: rotate(234deg);
+}
+main .cvPage .percent.p66 .bar {
+  transform: rotate(237.6deg);
+}
+main .cvPage .percent.p67 .bar {
+  transform: rotate(241.2deg);
+}
+main .cvPage .percent.p68 .bar {
+  transform: rotate(244.8deg);
+}
+main .cvPage .percent.p69 .bar {
+  transform: rotate(248.4deg);
+}
+main .cvPage .percent.p70 .bar {
+  transform: rotate(252deg);
+}
+main .cvPage .percent.p71 .bar {
+  transform: rotate(255.6deg);
+}
+main .cvPage .percent.p72 .bar {
+  transform: rotate(259.2deg);
+}
+main .cvPage .percent.p73 .bar {
+  transform: rotate(262.8deg);
+}
+main .cvPage .percent.p74 .bar {
+  transform: rotate(266.4deg);
+}
+main .cvPage .percent.p75 .bar {
+  transform: rotate(270deg);
+}
+main .cvPage .percent.p76 .bar {
+  transform: rotate(273.6deg);
+}
+main .cvPage .percent.p77 .bar {
+  transform: rotate(277.2deg);
+}
+main .cvPage .percent.p78 .bar {
+  transform: rotate(280.8deg);
+}
+main .cvPage .percent.p79 .bar {
+  transform: rotate(284.4deg);
+}
+main .cvPage .percent.p80 .bar {
+  transform: rotate(288deg);
+}
+main .cvPage .percent.p81 .bar {
+  transform: rotate(291.6deg);
+}
+main .cvPage .percent.p82 .bar {
+  transform: rotate(295.2deg);
+}
+main .cvPage .percent.p83 .bar {
+  transform: rotate(298.8deg);
+}
+main .cvPage .percent.p84 .bar {
+  transform: rotate(302.4deg);
+}
+main .cvPage .percent.p85 .bar {
+  transform: rotate(306deg);
+}
+main .cvPage .percent.p86 .bar {
+  transform: rotate(309.6deg);
+}
+main .cvPage .percent.p87 .bar {
+  transform: rotate(313.2deg);
+}
+main .cvPage .percent.p88 .bar {
+  transform: rotate(316.8deg);
+}
+main .cvPage .percent.p89 .bar {
+  transform: rotate(320.4deg);
+}
+main .cvPage .percent.p90 .bar {
+  transform: rotate(324deg);
+}
+main .cvPage .percent.p91 .bar {
+  transform: rotate(327.6deg);
+}
+main .cvPage .percent.p92 .bar {
+  transform: rotate(331.2deg);
+}
+main .cvPage .percent.p93 .bar {
+  transform: rotate(334.8deg);
+}
+main .cvPage .percent.p94 .bar {
+  transform: rotate(338.4deg);
+}
+main .cvPage .percent.p95 .bar {
+  transform: rotate(342deg);
+}
+main .cvPage .percent.p96 .bar {
+  transform: rotate(345.6deg);
+}
+main .cvPage .percent.p97 .bar {
+  transform: rotate(349.2deg);
+}
+main .cvPage .percent.p98 .bar {
+  transform: rotate(352.8deg);
+}
+main .cvPage .percent.p99 .bar {
+  transform: rotate(356.4deg);
+}
+main .cvPage .percent.p100 .bar {
+  transform: rotate(360deg);
+}
+main .cvPage .experienceYears {
+  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+  background-color: var(--mainColor);
+  width: 100px;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--white);
+  font-weight: bold;
+  flex-direction: column;
+  gap: 2px;
+  margin-right: auto;
+}
+main .cvPage .experienceYears span {
+  font-family: "fontBold";
+  margin-top: 4px;
+  font-size: 40px;
+  line-height: 30px;
+}
+main .cvPage .info_social {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+main .cvPage .info_social img {
+  height: 110px;
+  aspect-ratio: 1;
+  -o-object-fit: contain;
+     object-fit: contain;
+  background-color: var(--white);
+}
+@media (max-width: 768px) {
+  main .cvPage .info_social img {
+    height: 90px;
+  }
+}
+main .cvPage .data {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+main .cvPage .data .innerTitle {
+  color: #777;
+}
+main .cvPage .data .innerData {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-weight: bold;
+}
+main .cvPage .socialMedia {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+main .cvPage .socialMedia a {
+  border: 1px dashed #d1d1d1;
+  padding: 4px;
+  padding-left: 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  min-width: -moz-fit-content;
+  min-width: fit-content;
+  gap: 8px;
+  font-weight: bold;
+  flex: 1;
+}
+main .cv-actions-fixed {
+  position: fixed;
+  bottom: 0px;
+  left: 50%;
+  background-color: var(--mainColor);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateX(-50%);
+  display: flex;
+  padding: 10px;
+  gap: 15px;
+  z-index: 9999;
+}
+main .cv-actions-fixed .btn {
+  padding: 12px 25px;
+  border-radius: 6px;
+  background: #444;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  transition: 0.3s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+@media (max-width: 768px) {
+  main .cv-actions-fixed .btn {
+    font-size: 10px;
+    padding: 10px 20px;
+  }
+}
+main .cv-actions-fixed .btn {
+  background: var(--white);
+  color: var(--mainColor);
+}
+main .cv-actions-fixed .btn.book {
+  border: 1px solid var(--white);
+  background-color: transparent;
+  color: var(--white);
+}
+main .cv-actions-fixed .btn:hover {
+  opacity: 0.9;
+}
+
+.themeColor {
+  position: fixed;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  z-index: 20;
+  cursor: pointer;
+}
+
+.footer {
+  background: var(--mainColor80);
+  color: var(--black);
+  padding-top: 40px;
+}
+.footer .footer-logo {
+  height: 60px;
+  margin-bottom: 15px;
+}
+.footer .footer-desc {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+.footer .footer-social {
+  display: flex;
+  gap: 10px;
+  list-style: none;
+  padding: 0;
+}
+.footer .footer-social a {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--white);
+  color: var(--mainColor);
+  border-radius: 50%;
+  transition: var(--transition);
+}
+.footer .footer-social a:hover {
+  background: var(--mainColor);
+  color: var(--white);
+  transform: translateY(-3px);
+}
+.footer .footer-title {
+  font-weight: bold;
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+  color: var(--mainColor);
+}
+.footer .footer-links,
+.footer .footer-contact {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.footer .footer-links li,
+.footer .footer-contact li {
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+.footer .footer-links li a,
+.footer .footer-contact li a {
+  color: var(--black);
+  transition: var(--transition);
+}
+.footer .footer-links li a:hover,
+.footer .footer-contact li a:hover {
+  color: var(--mainColor);
+}
+.footer .footer-links li i,
+.footer .footer-contact li i {
+  margin-left: 8px;
+  color: var(--mainColor);
+}
+.footer .footer-bottom {
+  background: rgba(0, 0, 0, 0.02);
+  text-align: center;
+  padding: 15px;
+  margin-top: 20px;
+  font-size: 0.85rem;
+}
+.footer .footer-bottom a {
+  color: var(--mainColor);
+  font-weight: bold;
+  margin-right: 5px;
+}
+
+.support {
+  position: fixed;
+  left: 10px;
+  bottom: 20px;
+  z-index: 999;
+  background-color: var(--mainColor80);
+  border-radius: 1000px;
+  padding: 5px;
+}
+.support .supportBtn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 50px;
+  min-height: 50px;
+  border-radius: 50%;
+  background-color: var(--mainColor);
+  box-shadow: var(--BigShadow);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.support .supportBtn i {
+  font-size: 20px;
+  color: var(--white);
+}
+.support .links {
+  display: none;
+}
+.support .links a {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 50px;
+  min-height: 50px;
+  border-radius: 50%;
+  background-color: var(--white);
+  box-shadow: var(--BigShadow);
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+.support .links a i {
+  font-size: 24px;
+  color: var(--white);
+}
+.support .links a.whatsapp {
+  background-color: #25d366;
+}
+.support .links a.call {
+  background-color: #34b7f1;
+}/*# sourceMappingURL=style.css.map */

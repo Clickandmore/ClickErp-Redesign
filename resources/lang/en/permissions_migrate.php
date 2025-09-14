@@ -488,6 +488,32 @@ return [
         'guard_name' => 'admin',
     ],
 
+    // Contact Permissions
+    [
+        'name' => 'office_view',
+        'group_name' => 'offices',
+        'section_name' => 'customer_service',
+        'guard_name' => 'admin',
+    ],
+    [
+        'name' => 'office_create',
+        'group_name' => 'offices',
+        'section_name' => 'customer_service',
+        'guard_name' => 'admin',
+    ],
+    [
+        'name' => 'office_edit',
+        'group_name' => 'offices',
+        'section_name' => 'customer_service',
+        'guard_name' => 'admin',
+    ],
+    [
+        'name' => 'office_delete',
+        'group_name' => 'offices',
+        'section_name' => 'customer_service',
+        'guard_name' => 'admin',
+    ],
+
     // Statistics Permissions
     [
         'name' => 'stat_view',

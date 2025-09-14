@@ -56,3 +56,8 @@
 .input-error{
     border-color:red;
 }
+
+.table tbody tr,
+tr , td{
+    position: unset !important;
+}
