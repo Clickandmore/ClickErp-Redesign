@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\ingaz\JobTitle;
+use App\Models\ingaz\MaidJobTitles;
 use Illuminate\Database\Eloquent\Model;
 
 class Maid extends Model
@@ -31,6 +33,10 @@ class Maid extends Model
         'birth_date',
         'age',
         'religion_id',
+        'st_code',
+        'int_code',
+        'duration',
+        'video_preview',
     ];
 
     protected $casts = [
@@ -46,5 +52,11 @@ class Maid extends Model
     public function contracts()
     {
         return $this->hasMany(\App\Models\Contract::class, 'maid_id');
+    }
+
+
+    public function jobTitles()
+    {
+        return $this->belongsToMany(JobTitle::class, 'maid_job_titles', 'maid_id', 'job_title_id');
     }
 }
