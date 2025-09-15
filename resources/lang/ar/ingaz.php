@@ -821,5 +821,33 @@
     'account_settings'  => 'اعدادات الحساب',
     'logout'  => 'تسجيل الخروج',
     'my_account'  => 'حسابي',
+    'recruitment_request'  => 'طلب استقدام',
+    'musaned_initiative'  => 'مبادرة مساند',
+    'arrival_worker'  => 'وصول العمالة',
+    'recruitment_contract'  => ' عقد استقدام',
+    'selection_of_workers'  => 'اختيار العمالة',
+    'start_recruitment'  => 'ابدأ الاستقدام',
+    'visa_issuance'  => 'اصدار التأشيرة',
+    'recruitment_policies'  => 'سياسات الاستقدام',
+    'request_for_transfer_of_services'  => 'طلب نقل خدمات',
+    'labor_rental_request'  => 'طلب ايجار عمالة',
+    'request_professional_labor'  => 'طلب عمالة مهنية',
+    'renewing_employment_contract'  => 'تجديد عقد عمالة',
+    'support'  => 'مركز المساعدة',
+    'our_services'  => 'خدماتنا',
+    'all_rights_reserved'  => 'جميع الحقوق محفوظة',
+    'login'  => 'تسجيل دخول',
+    'name_required'   => 'الاسم مطلوب.',
+    'name_string'     => 'يجب أن يكون الاسم نصًا.',
+
+    // الهاتف
+    'phone_string'    => 'يجب أن يكون رقم الهاتف نصًا صحيحًا.',
+    'phone_unique'    => 'هذا الرقم مسجّل بالفعل.',
+
+    // البريد الإلكتروني
+    'email_string'    => 'يجب أن يكون البريد الإلكتروني نصًا صحيحًا.',
+    'email_unique'    => 'هذا البريد الإلكتروني مسجّل بالفعل.',
+    'register_successfully'    => 'تم تسجيلك في النظام بنجاح',
+
 
 );

@@ -1,5 +1,6 @@
 @extends('site.layouts.index')
 @section('title')
+    {{__("ingaz.support")}}
 @endsection
 @section('content')
     <!-- Main Banner  -->
@@ -9,10 +10,10 @@
         </button>
         <ul>
             <li>
-                <a href="index.html"> الرئيسية </a>
+                <a href="{{route('site.home.index')}}"> {{__("ingaz.home")}} </a>
             </li>
             <li>
-                <a href="#!" class="active"> مركز المساعدة</a>
+                <a href="#!" class="active">{{__("ingaz.support")}}</a>
             </li>
         </ul>
         <figure>
@@ -43,63 +44,92 @@
                     <!-- faq -->
                     <div class="supportFaq">
                         <div class="headTitle text-center wow fadeInUp">
-                            <h1>الأسئلة الشائعة</h1>
+                            <h1>{{__("ingaz.faq")}}</h1>
                         </div>
+
                         <div class="accordion" id="faqAccordion">
-                            <!-- question -->
-                            <div class="accordion-item wow fadeInUp">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button" data-bs-toggle="collapse"
-                                            data-bs-target="#question1"
-                                            aria-controls="question1">
-                                        كيف يتم استخراج التأشيرة ؟
-                                    </button>
-                                </h2>
-                                <div id="question1" class="accordion-collapse collapse show"
-                                     data-bs-parent="#faqAccordion">
-                                    <div class="accordion-body">
-                                        <ul>
-                                            <li>فتح حساب في مساند</li>
-                                            <li>ادخل حسابي</li>
-                                            <li>لوحة التحكم</li>
-                                            <li>فتح حساب في مساند</li>
-                                            <li>ادخل حسابي</li>
-                                            <li>لوحة التحكم</li>
-                                        </ul>
+                            @forelse($questions as $question)
+                                @php $collapseId = 'question'.$loop->index; @endphp
+
+                                <div class="accordion-item wow fadeInUp">
+                                    <h2 class="accordion-header" id="heading-{{ $loop->index }}">
+                                        <button class="accordion-button {{ $loop->first ? '' : 'collapsed' }}"
+                                                type="button"
+                                                data-bs-toggle="collapse"
+                                                data-bs-target="#{{ $collapseId }}"
+                                                aria-expanded="{{ $loop->first ? 'true' : 'false' }}"
+                                                aria-controls="{{ $collapseId }}">
+                                            {{ $question->title }}
+                                        </button>
+                                    </h2>
+                                    <div id="{{ $collapseId }}"
+                                         class="accordion-collapse collapse {{ $loop->first ? 'show' : '' }}"
+                                         aria-labelledby="heading-{{ $loop->index }}"
+                                         data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            {{ $question->description }}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <!-- question -->
-                            <div class="accordion-item wow fadeInUp">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button collapsed" data-bs-toggle="collapse"
-                                            data-bs-target="#question2"
-                                            aria-controls="question2">
-                                        كم مدة استخراج التأشيرة؟
-                                    </button>
-                                </h2>
-                                <div id="question2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                    <div class="accordion-body">
-                                        <p>خلال 24 ساعة. </p>
+                            @empty
+                                <!-- question -->
+                                <div class="accordion-item wow fadeInUp">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button" data-bs-toggle="collapse"
+                                                data-bs-target="#question1"
+                                                aria-controls="question1">
+                                            كيف يتم استخراج التأشيرة ؟
+                                        </button>
+                                    </h2>
+                                    <div id="question1" class="accordion-collapse collapse show"
+                                         data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            <ul>
+                                                <li>فتح حساب في مساند</li>
+                                                <li>ادخل حسابي</li>
+                                                <li>لوحة التحكم</li>
+                                                <li>فتح حساب في مساند</li>
+                                                <li>ادخل حسابي</li>
+                                                <li>لوحة التحكم</li>
+                                            </ul>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <!-- question -->
-                            <div class="accordion-item wow fadeInUp">
-                                <h2 class="accordion-header">
-                                    <button class="accordion-button collapsed" data-bs-toggle="collapse"
-                                            data-bs-target="#question3"
-                                            aria-controls="question3">
-                                        كم مدة استخراج التأشيرة؟
-                                    </button>
-                                </h2>
-                                <div id="question3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                    <div class="accordion-body">
-                                        <p>خلال 24 ساعة. </p>
+                                <!-- question -->
+                                <div class="accordion-item wow fadeInUp">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" data-bs-toggle="collapse"
+                                                data-bs-target="#question2"
+                                                aria-controls="question2">
+                                            كم مدة استخراج التأشيرة؟
+                                        </button>
+                                    </h2>
+                                    <div id="question2" class="accordion-collapse collapse"
+                                         data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            <p>خلال 24 ساعة. </p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                                <!-- question -->
+                                <div class="accordion-item wow fadeInUp">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" data-bs-toggle="collapse"
+                                                data-bs-target="#question3"
+                                                aria-controls="question3">
+                                            كم مدة استخراج التأشيرة؟
+                                        </button>
+                                    </h2>
+                                    <div id="question3" class="accordion-collapse collapse"
+                                         data-bs-parent="#faqAccordion">
+                                        <div class="accordion-body">
+                                            <p>خلال 24 ساعة. </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforelse
                         </div>
+
                     </div>
                 </div><!-- col -->
             </div><!-- row -->

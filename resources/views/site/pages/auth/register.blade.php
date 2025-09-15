@@ -5,12 +5,13 @@
 @section('content')
     <section class="accountForm">
         <div class="imageBG">
-            <img src="{{asset('site')}}/assets/images/s1.webp" alt="" />
+            <img src="{{asset('site')}}/assets/images/s1.webp" alt=""/>
         </div>
         <div class="cardForm" data-aos="fade-up">
-            <form action="code.html">
+            <form id="form-register" action="{{route('site.register.store')}}" method="post">
+                @csrf
                 <div class="loginLogo">
-                    <img src="{{asset('site')}}/assets/images/logo.svg" alt="img" class="img-fluid" />
+                    <img src="{{asset('site')}}/assets/images/logo.svg" alt="img" class="img-fluid"/>
                 </div>
                 <div class="formGroup">
                     <label for="userName">
@@ -23,12 +24,8 @@
                         </div>
                         اسم المستخدم
                     </label>
-                    <input
-                        type="text"
-                        class="form-control"
-                        id="userName"
-                        placeholder=" ادخل اسم المستخدم "
-                    />
+                    <input type="text" class="form-control" name="name" id="userName"
+                           placeholder=" ادخل اسم المستخدم "/>
                 </div>
                 <div class="formGroup">
                     <label for="phoneNum">
@@ -43,12 +40,7 @@
                     </label>
                     <div class="inputDiv ltr">
                         <span> +966 </span>
-                        <input
-                            type="tel"
-                            class="form-control"
-                            id="phoneNum"
-                            placeholder="05 000 0000"
-                        />
+                        <input type="tel" class="form-control" name="phone" id="phoneNum" placeholder="05 000 0000"/>
                     </div>
                 </div>
                 <div class="formGroup">
@@ -62,12 +54,8 @@
                         </div>
                         البريد الالكتروني
                     </label>
-                    <input
-                        type="email"
-                        class="form-control"
-                        id="email"
-                        placeholder="ادخل البريد الالكتروني"
-                    />
+                    <input type="email" class="form-control" name="email" id="email"
+                           placeholder="ادخل البريد الالكتروني"/>
                 </div>
                 <div class="formGroup">
                     <label for="password">
@@ -83,12 +71,8 @@
                         </div>
                         كلمة المرور
                     </label>
-                    <input
-                        type="password"
-                        class="form-control"
-                        id="password"
-                        placeholder="ادخل كلمة المرور "
-                    />
+                    <input type="password" class="form-control" name="password" id="password"
+                           placeholder="ادخل كلمة المرور "/>
                 </div>
                 <div class="formGroup">
                     <label for="confirmPassword">
@@ -104,12 +88,8 @@
                         </div>
                         تأكيد كلمة المرور
                     </label>
-                    <input
-                        type="password"
-                        class="form-control"
-                        id="confirmPassword"
-                        placeholder="ادخل كلمة المرور "
-                    />
+                    <input type="password" class="form-control" id="confirmPassword" name="password_confirmation"
+                           placeholder="ادخل كلمة المرور "/>
                 </div>
                 <button type="submit" class="defaultBtn mt-2">انشاء</button>
                 <p class="text-center w-100 mt-3">
@@ -121,4 +101,50 @@
     </section>
 @endsection
 @section('js')
+    <script>
+        $(document).ready(function () {
+            $('#form-register').on('submit', function (e) {
+                e.preventDefault();
+                let formData = new FormData(this);
+                let url = $(this).attr('action');
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        Toastify({
+                            text: response.message,
+                            duration: 4000,
+                            gravity: "top",
+                            position: "right",
+                            backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
+                            stopOnFocus: true
+                        }).showToast();
+                        setTimeout(function () {
+                            window.location.href = response.data.redirect_url;
+                        }, 1000);
+                    },
+                    error: function (xhr) {
+                        if (xhr.status === 422) {
+                            let errors = xhr.responseJSON.errors;
+                            let errorMessages = '';
+                            for (let key in errors) {
+                                errorMessages += `<p style="margin: 0 0 5px; color: red; text-align: center;">${errors[key][0]}</p>`;
+                            }
+                            Swal.fire({
+                                icon: 'error',
+                                title: '{{ __("ingaz.error") }}',
+                                html: `<div>${errorMessages}</div>`,
+                            });
+                        } else {
+                            Swal.fire('{{ __("ingaz.error") }}', '{{ __("ingaz.error_from_server") }}', 'error');
+                        }
+                    }
+
+                });
+            })
+        })
+    </script>
 @endsection

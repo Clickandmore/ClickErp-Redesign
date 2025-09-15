@@ -20,7 +20,7 @@
                         <form action="" class="row">
                             <div class="col-12 p-2">
                                 <label for="name" class="form-label"> <i class="fas fa-user me-2"></i> الاسم كامل </label>
-                                <input type="text" class="form-control" id="name" placeholder=" محمود جمال الكومي                  ">
+                                <input type="text" class="form-control" id="name" name="name" value="{{Auth::guard('web')->user()->name}}">
                             </div>
                             <div class="col-md-12 p-2">
                                 <label class="form-label"> <i class="fas fa-city me-2"></i> المدينة </label>
@@ -54,7 +54,7 @@
                         <form action="#!" class="row">
                             <div class="col-12 p-2">
                                 <label for="Phone" class="form-label"> <i class="fas fa-phone-alt me-2"></i> رقم الهاتف </label>
-                                <input type="tel" class="form-control" id="phoneNum" placeholder="05***********">
+                                <input type="tel" class="form-control" id="phoneNum" name="phone" value="{{Auth::guard('web')->user()->phone}}"  placeholder="05***********">
                             </div>
                             <div class="col-12 pt-4 p-2 text-center">
                                 <button class="defaultBtn " type="submit">
