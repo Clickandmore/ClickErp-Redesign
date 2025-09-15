@@ -703,6 +703,9 @@
     'account_settings' => 'Account Settings',
     'logout' => 'Logout',
     'my_account' => 'MY Account',
+    'widow' => 'Widow',
+    'client_address' => 'Client Address',
+
     'recruitment_request' => 'Recruitment Request',
     'musaned_initiative' => 'Musaned Initiative',
     'arrival_worker' => 'Arrival Worker',
@@ -714,21 +717,154 @@
     'request_for_transfer_of_services' => 'Request Transfer of services',
     'labor_rental_request' => 'Labor rental request',
     'request_professional_labor' => 'Request professional labor',
-    'renewing_employment_contract'  => 'Renewing employment contract',
-    'support'  => 'Support',
-    'our_services'  => 'Our Services',
-    'all_rights_reserved'  => 'All rights reserved',
-    'login'  => 'Login',
-    'name_required'   => 'The name field is required.',
-    'name_string'     => 'The name must be a valid string.',
+    'renewing_employment_contract' => 'Renewing employment contract',
+    'support' => 'Support',
+    'our_services' => 'Our Services',
+    'all_rights_reserved' => 'All rights reserved',
+    'login' => 'Login',
+    'name_required' => 'The name field is required.',
+    'name_string' => 'The name must be a valid string.',
 
-    'phone_string'    => 'The phone number must be a valid string.',
-    'phone_unique'    => 'This phone number is already registered.',
+    'phone_string' => 'The phone number must be a valid string.',
+    'phone_unique' => 'This phone number is already registered.',
 
     // Email
-    'email_string'    => 'The email must be a valid string.',
-    'email_unique'    => 'This email address is already registered.',
-    'register_successfully'    => 'You have been successfully registered in the system.',
+    'email_string' => 'The email must be a valid string.',
+    'email_unique' => 'This email address is already registered.',
+    'register_successfully' => 'You have been successfully registered in the system.',
+    'request_for_professional_labor' => 'Request for professional labor',
+    'facility_name' => 'Facility name',
+    'request_for_professional_labor_text' => 'We are able to bring in the best quality professional manpower from various and all surplus labor of the doctor.',
+    'contact_number' => 'Contact number',
+    'number_of_workers_required' => 'Number of workers required',
+    'type_of_labor_required' => 'Type of labor required',
+    'select_the_type_of_employment' => 'Select the type of employment',
+    'other_requirement' => 'Other Requirement',
+    'send_request' => 'Send Request',
+    'facility_name_required' => 'The facility name is required.',
+    'facility_name_string' => 'The facility name must be a valid string.',
 
+    'phone_required' => 'The phone number is required.',
+    'phone_string' => 'The phone number must be a valid string.',
 
+    'number_of_workers_required_required' => 'The number of required workers is required.',
+    'number_of_workers_required_string' => 'The number of required workers must be a valid string.',
+
+    'job_title_id_required' => 'The job title is required.',
+    'job_title_id_exists' => 'The selected job title does not exist.',
+
+    'visa_number_required' => 'The visa number is required.',
+    'visa_number_string' => 'The visa number must be a valid string.',
+
+    'other_requirement_required' => 'The other requirements field is required.',
+    'other_requirement_string' => 'The other requirements must be a valid string.',
+    'Daily_Labot_Demand_Request_Sent_Successfully' => 'Professional labor application has been successfully submitted.',
+    'please_login_first' => 'Please login first.',
+    'contract_renewal' => 'Contract Renewal',
+    'contract_renewal_text' => 'Contract renewal procedures take one week from the date of receipt of the application. To begin the process of renewing your worker contract, please fill out the following form.',
+    'worker_name' => 'Worker Name',
+    'worker_phone' => 'Worker Phone',
+    'worker_address' => 'Worker Address',
+    'name_of_relative' => 'Name of a Relative',
+    'address_of_relative' => 'Relative\'s Address',
+    'phone_of_relative' => 'Relative\'s Phone',
+    'worker_nationality' => 'Worker Nationality',
+    'worker_new_salary' => 'New Worker Salary',
+    'worker_old_salary' => 'Old Worker Salary',
+    'company' => 'Company',
+    'another_office' => 'Another Office',
+    'the_worker_was_brought_in_from' => 'The worker was brought in from',
+    'social_status_of_the_worker' => 'Social Status of the Worker',
+    'required_files' => 'Required Attachments',
+    'Sponsor_Civil_Status_Card' => 'Sponsor Civil Status Card',
+    'worker_residence' => 'Worker Residence',
+    'the_first_page_of_the_worker_passport' => 'First Page of the Worker Passport',
+    'travel_tickets' => 'Travel Tickets',
+    'the_visa_printed_in_the_worker_passport' => 'Visa Printed in the Worker Passport',
+    'exit_and_re_entry_visa' => 'Exit and Re-Entry Visa',
+    'customer_national_address' => 'Customer National Address',
+    'worker_information_written_on_an_external_sheet' => 'Worker Information (Written on External Sheet)',
+    'image_of_bank_transfer' => 'Image of Bank Transfer',
+    'please_select_an_option' => 'Please select an option',
+    'worker_data' => 'Worker Data',
+    'information_of_interest_to_you' => 'Information of Interest to You',
+    'company_owner' => 'Company Owner',
+    'account_number' => 'Account Number',
+    'IBAN_number' => 'IBAN Number',
+    'information_of_interest_to_you_text_1' => 'The contract renewal fee is 950 SAR including tax if the worker was recruited or her services were transferred from the company. The amount should be transferred to the company\'s account at the National Bank.',
+    'information_of_interest_to_you_text_2' => 'The contract renewal fee is 1500 SAR including tax if the worker was recruited or her services were transferred from another office. The amount should be transferred to the company\'s account at the National Bank.',
+    'client_name_required' => 'Client name is required.',
+    'client_name_string' => 'Client name must be a valid string.',
+
+    'client_phone_required' => 'Client phone is required.',
+    'client_phone_string' => 'Client phone must be a valid string.',
+
+    'client_address_required' => 'Client address is required.',
+    'client_address_string' => 'Client address must be a valid string.',
+
+    'city_required' => 'City is required.',
+    'city_exists' => 'The selected city does not exist.',
+
+    'worker_name_required' => 'Worker name is required.',
+    'worker_name_string' => 'Worker name must be a valid string.',
+
+    'worker_phone_required' => 'Worker phone is required.',
+    'worker_phone_string' => 'Worker phone must be a valid string.',
+
+    'worker_address_required' => 'Worker address is required.',
+    'worker_address_string' => 'Worker address must be a valid string.',
+
+    'passport_number_required' => 'Passport number is required.',
+    'passport_number_string' => 'Passport number must be a valid string.',
+
+    'name_of_relative_required' => 'Name of a relative is required.',
+    'name_of_relative_string' => 'Name of a relative must be a valid string.',
+
+    'address_of_relative_required' => 'Relative\'s address is required.',
+    'address_of_relative_string' => 'Relative\'s address must be a valid string.',
+
+    'phone_of_relative_required' => 'Relative\'s phone is required.',
+    'phone_of_relative_string' => 'Relative\'s phone must be a valid string.',
+
+    'nationality_id_required' => 'Nationality is required.',
+    'nationality_id_exists' => 'Selected nationality does not exist.',
+
+    'worker_new_salary_required' => 'Worker new salary is required.',
+    'worker_new_salary_string' => 'Worker new salary must be a valid string.',
+
+    'worker_old_salary_required' => 'Worker old salary is required.',
+    'worker_old_salary_string' => 'Worker old salary must be a valid string.',
+
+    'worker_brought_from_required' => 'Worker brought from is required.',
+    'worker_brought_from_string' => 'Worker brought from must be a valid string.',
+
+    'worker_marital_status_required' => 'Worker marital status is required.',
+    'worker_marital_status_string' => 'Worker marital status must be a valid string.',
+
+    'sponsor_card_required' => 'Sponsor civil status card is required.',
+    'sponsor_card_string' => 'Sponsor civil status card must be a valid string.',
+
+    'worker_residence_required' => 'Worker residence is required.',
+    'worker_residence_string' => 'Worker residence must be a valid string.',
+
+    'first_page_of_the_worker_passport_required' => 'First page of worker passport is required.',
+    'first_page_of_the_worker_passport_string' => 'First page of worker passport must be a valid string.',
+
+    'travel_tickets_required' => 'Travel tickets are required.',
+    'travel_tickets_string' => 'Travel tickets must be a valid string.',
+
+    'visa_printed_in_the_worker_passport_required' => 'Visa printed in worker passport is required.',
+    'visa_printed_in_the_worker_passport_string' => 'Visa printed in worker passport must be a valid string.',
+
+    'exit_and_re_entry_visa_required' => 'Exit and re-entry visa is required.',
+    'exit_and_re_entry_visa_string' => 'Exit and re-entry visa must be a valid string.',
+
+    'customer_national_address_required' => 'Customer national address is required.',
+    'customer_national_address_string' => 'Customer national address must be a valid string.',
+
+    'worker_information_required' => 'Worker information is required.',
+    'worker_information_string' => 'Worker information must be a valid string.',
+
+    'image_of_bank_transfer_required' => 'Image of bank transfer is required.',
+    'image_of_bank_transfer_string' => 'Image of bank transfer must be a valid string.'
 );

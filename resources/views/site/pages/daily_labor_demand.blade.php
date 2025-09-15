@@ -9,13 +9,13 @@
         </button>
         <ul>
             <li>
-                <a href="index.html"> الرئيسية </a>
+                <a href="{{route('site.home.index')}}"> {{__("ingaz.home")}} </a>
             </li>
             <li>
-                <a href="index.html#services">الخدمات </a>
+                <a href="{{route('site.home.index')}}#services">{{__("ingaz.services")}} </a>
             </li>
             <li>
-                <a href="#!" class="active">طلب عمالة مهنية </a>
+                <a href="#!" class="active">{{__("ingaz.request_for_professional_labor")}} </a>
             </li>
         </ul>
         <figure>
@@ -27,8 +27,7 @@
                 viewBox="0 0 300 100"
                 style="margin-bottom: -35px; enable-background: new 0 0 300 100"
                 class="injected-svg js-svg-injector"
-                data-parent="#SVGwave1BottomSMShape"
-            >
+                data-parent="#SVGwave1BottomSMShape">
                 <g>
                     <path
                         class="wave-bottom-1-sm-0"
@@ -63,53 +62,52 @@
             <div class="row justify-content-center">
                 <div class="col-md-10 fadeInUp">
                     <div class="headTitle text-center">
-                        <h2>طلب العمالة المهنية</h2>
+                        <h2>{{__("ingaz.request_for_professional_labor")}}</h2>
                         <p>
-                            نحن قادرون على جلب أفضل أنواع العمالة المهنية من مختلف ،
-                            وجميع العمالة الفائضة من العمل للطبيب.
+                            {{__("ingaz.request_for_professional_labor_text")}}
                         </p>
                     </div>
-
                     <!-- الفورم -->
-                    <form action="" class="row needs-validation" novalidate>
+                    <form id="form-daily-lebor-demand" method="post" action="{{route('site.daily-lebor-demand.store')}}"
+                          class="row needs-validation" novalidate>
+                        @csrf
                         <!-- اسم المنشأة -->
                         <div class="col-md-12 p-2">
                             <label class="form-label">
-                                <i class="fas fa-building me-2"></i> اسم المنشأة *
+                                <i class="fas fa-building me-2"></i>{{__("ingaz.facility_name")}} *
                             </label>
-                            <input type="text" class="form-control" required/>
+                            <input type="text" class="form-control" name="facility_name" required/>
                             <div class="invalid-feedback">هذا الحقل ضروري</div>
                         </div>
 
                         <!-- رقم التواصل -->
                         <div class="col-md-6 p-2">
                             <label class="form-label">
-                                <i class="fas fa-phone me-2"></i> رقم التواصل *
+                                <i class="fas fa-phone me-2"></i>{{__("ingaz.contact_number")}} *
                             </label>
-                            <input type="tel" class="form-control" required/>
+                            <input type="tel" class="form-control" name="phone"/>
                             <div class="invalid-feedback">هذا الحقل ضروري</div>
                         </div>
 
                         <!-- عدد العمال المطلوبين -->
                         <div class="col-md-6 p-2">
                             <label class="form-label">
-                                <i class="fas fa-users me-2"></i> عدد العمال المطلوبين *
+                                <i class="fas fa-users me-2"></i> {{__("ingaz.number_of_workers_required")}} *
                             </label>
-                            <input type="number" min="1" class="form-control" required/>
+                            <input type="number" min="1" name="number_of_workers_required" class="form-control"/>
                             <div class="invalid-feedback">هذا الحقل ضروري</div>
                         </div>
 
                         <!-- نوع العمالة المطلوبة -->
                         <div class="col-md-6 p-2">
                             <label class="form-label">
-                                <i class="fas fa-briefcase me-2"></i> نوع العمالة المطلوبة *
+                                <i class="fas fa-briefcase me-2"></i> {{__("ingaz.type_of_labor_required")}} *
                             </label>
-                            <select class="form-control" required>
-                                <option value="" disabled selected>اختر نوع العمالة</option>
-                                <option value="طبيب">طبيب</option>
-                                <option value="مهندس">مهندس</option>
-                                <option value="فني">فني</option>
-                                <option value="عامل">عامل</option>
+                            <select class="form-control" name="job_title_id" required>
+                                <option value="" disabled selected>{{__("ingaz.type_of_labor_required")}}</option>
+                                @foreach($jobTitles as  $jobTitle)
+                                    <option value="{{$jobTitle->id}}">{{$jobTitle->title}}</option>
+                                @endforeach
                             </select>
                             <div class="invalid-feedback">هذا الحقل ضروري</div>
                         </div>
@@ -117,24 +115,24 @@
                         <!-- رقم التأشيرة -->
                         <div class="col-md-6 p-2">
                             <label class="form-label">
-                                <i class="fas fa-passport me-2"></i> رقم التأشيرة *
+                                <i class="fas fa-passport me-2"></i> {{__("ingaz.visa_number")}} *
                             </label>
-                            <input type="text" class="form-control" required/>
+                            <input type="text" class="form-control" name="visa_number"/>
                             <div class="invalid-feedback">هذا الحقل ضروري</div>
                         </div>
 
                         <!-- متطلبات أخرى -->
                         <div class="col-md-12 p-2">
                             <label class="form-label">
-                                <i class="fas fa-feather-alt me-2"></i> متطلبات أخرى
+                                <i class="fas fa-feather-alt me-2"></i> {{__("ingaz.other_requirement")}}
                             </label>
-                            <textarea class="form-control" rows="4"></textarea>
+                            <textarea class="form-control" name="other_requirement" rows="4"></textarea>
                         </div>
 
                         <!-- زر الإرسال -->
                         <div class="col-md-12 text-center p-2">
                             <button type="submit" class="defaultBtn">
-                                إرسال الطلب <i class="fas fa-paper-plane ms-2"></i>
+                                {{__("ingaz.send_request")}} <i class="fas fa-paper-plane ms-2"></i>
                                 <span></span>
                             </button>
                         </div>
@@ -145,4 +143,48 @@
     </section>
 @endsection
 @section('js')
+    <script>
+        $(document).ready(function () {
+            $('#form-daily-lebor-demand').on('submit', function (e) {
+                e.preventDefault();
+                let formData = new FormData(this);
+                let url = $(this).attr('action');
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        Toastify({
+                            text: response.message,
+                            duration: 4000,
+                            gravity: "top",
+                            position: "right",
+                            backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
+                            stopOnFocus: true
+                        }).showToast();
+                        $('#form-daily-lebor-demand')[0].reset();
+                    },
+                    error: function (xhr) {
+                        if (xhr.status === 422) {
+                            let errors = xhr.responseJSON.errors;
+                            let errorMessages = '';
+                            for (let key in errors) {
+                                errorMessages += `<p style="margin: 0 0 5px; color: red; text-align: center;">${errors[key][0]}</p>`;
+                            }
+                            Swal.fire({
+                                icon: 'error',
+                                title: '{{ __("ingaz.error") }}',
+                                html: `<div>${errorMessages}</div>`,
+                            });
+                        } else {
+                            Swal.fire('{{ __("ingaz.error") }}', '{{ __("ingaz.error_from_server") }}', 'error');
+                        }
+                    }
+
+                });
+            })
+        })
+    </script>
 @endsection

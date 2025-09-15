@@ -63,12 +63,15 @@ Route::group(
         Route::resource('support', SupportController::class);
         Route::resource('contact-us', ContactUsController::class);
 
-        Route::resource('profile', ProfileController::class);
-        Route::resource('last-orders', OrderController::class);
-        Route::resource('chats', ChatController::class);
-        Route::resource('notifications', NotificationController::class);
-        Route::resource('settings', SettingController::class);
-        Route::resource('logout', LogoutController::class);
+        Route::middleware('site_auth')->group(function () {
+            Route::resource('profile', ProfileController::class);
+            Route::resource('last-orders', OrderController::class);
+            Route::resource('chats', ChatController::class);
+            Route::resource('notifications', NotificationController::class);
+            Route::resource('settings', SettingController::class);
+            Route::resource('logout', LogoutController::class);
+        });
+
 
     });
 
