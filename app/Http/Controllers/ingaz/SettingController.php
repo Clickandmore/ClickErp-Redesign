@@ -12,12 +12,12 @@ use Illuminate\Http\Request;
 class SettingController extends Controller
 {
     public $folderPath = "admin.ingaz.settings";
-    public $postData = ['logo_header','logo_footer','favicon','twitter','facebook','instagram','snapchat','linkedin',
-    'youtube','whatsapp','email','phone','other_phone','map_link',
-    'location:ar','location:en','copyright:ar','copyright:en','terms_conditions:ar','terms_conditions:en','about_us_app:ar','about_us_app:en',
-    'website_name:ar','website_name:en','privacy:ar','privacy:en',
-        "about_image","about_us_sub_title:ar","about_us_sub_title:en","footer_text:ar","footer_text:en",
-    "rights_maids:ar","rights_maids:en","rights_users:ar","rights_users:en","return_conditions:ar","return_conditions:en"];
+    public $postData = ['logo_header', 'logo_footer', 'favicon', 'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin',
+        'youtube', 'whatsapp', 'email', 'phone', 'other_phone', 'map_link',
+        'location:ar', 'location:en', 'copyright:ar', 'copyright:en', 'terms_conditions:ar', 'terms_conditions:en', 'about_us_app:ar', 'about_us_app:en',
+        'website_name:ar', 'website_name:en', 'privacy:ar', 'privacy:en',
+        "about_image", "about_us_sub_title:ar", "about_us_sub_title:en", "footer_text:ar", "footer_text:en",
+        "rights_maids:ar", "rights_maids:en", "rights_users:ar", "rights_users:en", "return_conditions:ar", "return_conditions:en"];
     public $mainRoute = "settings";
 
     function __construct()
@@ -59,20 +59,20 @@ class SettingController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function store(SettingRequest $request, objAction $action)
     {
         $dataInsert = $request->only($this->postData);
-        $data = $action->storeSetting($dataInsert,$request);
-        return jsonSuccess($data,null,201);
+        $data = $action->storeSetting($dataInsert, $request);
+        return jsonSuccess($data, null, 201);
     }
 
     /**
      * Display the specified resource.
      *
-     * @param  int  $id
+     * @param int $id
      * @return \Illuminate\Http\Response
      */
     public function show($id)
@@ -83,7 +83,7 @@ class SettingController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  int  $id
+     * @param int $id
      * @return \Illuminate\Http\Response
      */
     public function edit($id, Request $request, ObjAction $action)
@@ -107,13 +107,13 @@ class SettingController extends Controller
         }
 
         $action->updateSetting($setting->id, $dataInsert);
-        return redirect()->back()->with('success', __('admin.settings_updated_successfully'));
+        return jsonSuccess(null, null, 201);
     }
 
     /**
      * Remove the specified resource from storage.
      *
-     * @param  int  $id
+     * @param int $id
      * @return \Illuminate\Http\Response
      */
     public function destroy($id, ObjAction $action)

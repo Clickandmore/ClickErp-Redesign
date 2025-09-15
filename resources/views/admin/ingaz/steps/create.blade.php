@@ -2,10 +2,10 @@
 
     <form class="row g-3 from-submit-global" method="post" action="{{route("steps.store")}}">
         @csrf
-        <div class="col-12">
-            <label for="TextInput" class="form-label">{{helperTrans("ingaz.image")}}   </label>
-            <input type="file" data-default-file="" name="icon" class="dropify" data-validation="required">
-        </div>
+        <label for="TextInput" class="form-label">
+            {{helperTrans("ingaz.icon")}}
+        </label>
+        @include('admin.ingaz.steps.icons')
         @foreach (config('translatable.locales') as $locale)
             <div class="col-12">
                 <label for="TextInput" class="form-label">

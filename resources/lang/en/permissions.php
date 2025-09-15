@@ -289,6 +289,13 @@ return [
     'contact_delete' => 'Delete Contacts',
     'contact_control' => 'Control Contacts',
 
+
+    'office_view' => 'View Offices',
+    'office_create' => 'Create Offices',
+    'office_edit' => 'Edit Offices',
+    'office_delete' => 'Delete Offices',
+    'office_control' => 'Control Offices',
+
     'steps_view' => 'View Steps',
     'steps_create' => 'Create Step',
     'steps_edit' => 'Edit Steps',

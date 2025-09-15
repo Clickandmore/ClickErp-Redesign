@@ -78,9 +78,14 @@ class MainAction
         return $this->model->where($where)->get();
     }
 
-    public function getWhereIn($column,$where)
+    public function getWhereFirst($where)
     {
-        return $this->model->whereIn($column,$where)->get();
+        return $this->model->where($where)->first();
+    }
+
+    public function getWhereIn($column, $where)
+    {
+        return $this->model->whereIn($column, $where)->get();
     }
 
     public function lastId()
@@ -113,9 +118,10 @@ class MainAction
     }
 
 
-    public function UpdateOrStore($where,$data){
+    public function UpdateOrStore($where, $data)
+    {
         $data["created_by_id"] = auth('admin')->user()->id;
-        return $this->model->updateOrCreate($where,$data);
+        return $this->model->updateOrCreate($where, $data);
     }
 
 }

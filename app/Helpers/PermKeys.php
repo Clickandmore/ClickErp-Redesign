@@ -257,6 +257,12 @@ class PermKeys
     const CONTACT_DELETE = 'contact_delete';
     const CONTACT_CONTROL = 'contact_control';
 
+    const OFFICE_VIEW = 'office_view';
+    const OFFICE_CREATE = 'office_create';
+    const OFFICE_EDIT = 'office_edit';
+    const OFFICE_DELETE = 'office_delete';
+    const OFFICE_CONTROL = 'office_control';
+
     const STEPS_VIEW = 'steps_view';
     const STEPS_CREATE = 'steps_create';
     const STEPS_EDIT = 'steps_edit';

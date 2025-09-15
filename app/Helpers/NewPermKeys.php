@@ -381,6 +381,12 @@ class NewPermKeys
     const CONTACTS_EXPORT = 'contacts_export';
     const CONTACTS_MANAGE = 'contacts_manage';
 
+
+    const OFFICES_VIEW = 'offices_view';
+    const OFFICES_CREATE = 'offices_create';
+    const OFFICES_EDIT = 'offices_edit';
+    const OFFICES_DELETE = 'offices_delete';
+
     // ========================================
     // التقارير والإحصائيات (Reports & Statistics)
     // ========================================

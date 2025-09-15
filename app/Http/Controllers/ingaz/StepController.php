@@ -36,7 +36,7 @@ class StepController extends Controller
                 return DataTables::of($units)
                     ->addIndexColumn()
                     ->editColumn('icon', function ($row) {
-                        return getImgTag($row->icon);
+                        return $row->icon;
                     })
                     ->addColumn('actions', function ($row) {
                         $editButton = '';
