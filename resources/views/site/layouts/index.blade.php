@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html @if(app()->getLocale() == 'ar') lang="ar" dir="rtl" @else  lang="en" dir="ltr"@endif>
 <head>
     @include('site.includes.meta')
     @include('site.includes.css')

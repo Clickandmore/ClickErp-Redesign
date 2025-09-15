@@ -1,19 +1,27 @@
 <?php
 
 
+use App\Http\Controllers\site\AllWorkerController;
+use App\Http\Controllers\site\ArrivalWorkerController;
 use App\Http\Controllers\site\auth\ChangePasswordController;
 use App\Http\Controllers\site\auth\ForgetPasswordController;
 use App\Http\Controllers\site\auth\LoginController;
 use App\Http\Controllers\site\auth\LogoutController;
 use App\Http\Controllers\site\auth\OtpController;
 use App\Http\Controllers\site\auth\RegisterController;
+use App\Http\Controllers\site\ContactUsController;
+use App\Http\Controllers\site\DailyLabotDemandController;
 use App\Http\Controllers\site\HomeController;
+use App\Http\Controllers\site\MusanedController;
 use App\Http\Controllers\site\profile\ChatController;
-use App\Http\Controllers\site\profile\ContactUsController;
 use App\Http\Controllers\site\profile\NotificationController;
 use App\Http\Controllers\site\profile\OrderController;
 use App\Http\Controllers\site\profile\ProfileController;
 use App\Http\Controllers\site\profile\SettingController;
+use App\Http\Controllers\site\RenewContractController;
+use App\Http\Controllers\site\SelectWorkerController;
+use App\Http\Controllers\site\SupportController;
+use App\Http\Controllers\site\VisaController;
 use Illuminate\Support\Facades\Route;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
@@ -45,6 +53,14 @@ Route::group(
         Route::resource('forget-password', ForgetPasswordController::class);
         Route::resource('change-password', ChangePasswordController::class);
         Route::resource('otp', OtpController::class);
+        Route::resource('all-workers', AllWorkerController::class);
+        Route::resource('musaned', MusanedController::class);
+        Route::resource('arrival-worker', ArrivalWorkerController::class);
+        Route::resource('select-worker', SelectWorkerController::class);
+        Route::resource('visa', VisaController::class);
+        Route::resource('daily-lebor-demand', DailyLabotDemandController::class);
+        Route::resource('renew-contract', RenewContractController::class);
+        Route::resource('support', SupportController::class);
         Route::resource('contact-us', ContactUsController::class);
 
         Route::resource('profile', ProfileController::class);

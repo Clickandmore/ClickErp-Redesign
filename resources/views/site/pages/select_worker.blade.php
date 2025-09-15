@@ -27,8 +27,7 @@
                 viewBox="0 0 300 100"
                 style="margin-bottom: -35px; enable-background: new 0 0 300 100"
                 class="injected-svg js-svg-injector"
-                data-parent="#SVGwave1BottomSMShape"
-            >
+                data-parent="#SVGwave1BottomSMShape">
                 <g>
                     <path
                         class="wave-bottom-1-sm-0"
@@ -98,7 +97,7 @@
             <!-- arrive Worker Info -->
             <div class="arriveWorkerInfo">
                 <div class="image wow fadeInUp">
-                    <img src="assets/images/worker.webp">
+                    <img src="{{asset('site')}}/assets/images/worker.webp">
                 </div>
                 <div class="info wow fadeInUp">
                     <p>
@@ -114,7 +113,7 @@
                         معنا على
                         موقع مكتب الاستقدام
                     </p>
-                    <a class="defaultBtn " href="all-workers.html"><span></span> أبدا الاستقدام <i
+                    <a class="defaultBtn " href="{{route('site.all-workers.index')}}"><span></span>  {{__("ingaz.start_recruitment")}} <i
                             class="fa-regular fa-left-long ms-2"></i> </a>
                 </div>
             </div>
@@ -127,22 +126,22 @@
                 <div class="swiper-wrapper">
                     <div class="swiper-slide">
                         <div class="referenceLogo ">
-                            <img src="assets/images/Ministry-of-Foreign-Affairs-01.svg" alt="">
+                            <img src="{{asset('site')}}/assets/images/Ministry-of-Foreign-Affairs-01.svg" alt="">
                         </div>
                     </div>
                     <div class="swiper-slide">
                         <div class="referenceLogo ">
-                            <img src="assets/images/Ministry-of-Interior-01.svg" alt="">
+                            <img src="{{asset('site')}}/assets/images/Ministry-of-Interior-01.svg" alt="">
                         </div>
                     </div>
                     <div class="swiper-slide">
                         <div class="referenceLogo ">
-                            <img src="assets/images/Ministry-of-Labor-and-Social-Development.svg" alt="">
+                            <img src="{{asset('site')}}/assets/images/Ministry-of-Labor-and-Social-Development.svg" alt="">
                         </div>
                     </div>
                     <div class="swiper-slide">
                         <div class="referenceLogo ">
-                            <img src="assets/images/musand.svg" alt="">
+                            <img src="{{asset('site')}}/assets/images/musand.svg" alt="">
                         </div>
                     </div>
                 </div>

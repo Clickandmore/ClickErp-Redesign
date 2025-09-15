@@ -9,7 +9,7 @@
                 <div class="col-md-6 p-2">
                     <div class="intro">
                         <img
-                            src="assets/images/musand.svg"
+                            src="{{asset('site')}}/assets/images/musand.svg"
                             data-aos="zoom-in"
                             data-aos-delay="100"
                             alt=""
@@ -28,7 +28,7 @@
                 </div>
                 <div class="col-md-6 p-2">
                     <div class="introImg" data-aos="fade-left" data-aos-delay="400">
-                        <img src="assets/images/musanedMap.svg" alt=""/>
+                        <img src="{{asset('site')}}/assets/images/musanedMap.svg" alt=""/>
                     </div>
                 </div>
             </div>
@@ -256,9 +256,9 @@
                         فيزا أو ماستركارد
                     </p>
                     <div class="images">
-                        <img src="assets/images/mc.webp"/>
-                        <img src="assets/images/visa.webp"/>
-                        <img src="assets/images/mada.webp"/>
+                        <img src="{{asset('site')}}/assets/images/mc.webp"/>
+                        <img src="{{asset('site')}}/assets/images/visa.webp"/>
+                        <img src="{{asset('site')}}/assets/images/mada.webp"/>
                     </div>
                 </div>
             </div>
@@ -271,7 +271,7 @@
             <div class="row">
                 <div class="col-md-6 p-0 p-md-2 d-none d-md-block">
                     <div class="appImg">
-                        <img src="assets/images/app.webp" alt=""/>
+                        <img src="{{asset('site')}}/assets/images/app.webp" alt=""/>
                     </div>
                 </div>
                 <div class="col-md-6 p-2">
@@ -286,15 +286,15 @@
                         </p>
 
                         <div class="appImg d-md-none">
-                            <img src="assets/images/app.webp" alt=""/>
+                            <img src="{{asset('site')}}/assets/images/app.webp" alt=""/>
                         </div>
 
                         <div class="links">
                             <a href="#!" target="_blank">
-                                <img src="assets/images/google-play-android.webp" alt=""/>
+                                <img src="{{asset('site')}}/assets/images/google-play-android.webp" alt=""/>
                             </a>
                             <a href="#!" target="_blank">
-                                <img src="assets/images/apple-iphone-ios.webp" alt=""/>
+                                <img src="{{asset('site')}}/assets/images/apple-iphone-ios.webp" alt=""/>
                             </a>
                         </div>
                     </div>
