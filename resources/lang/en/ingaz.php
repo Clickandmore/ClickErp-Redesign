@@ -697,4 +697,11 @@
     'password_confirmed'  => 'The password confirmation does not match.',
     'change_password_successfully'  => 'Change password successfully',
     'incorrect_password'  => 'Incorrect Password',
+    'recruitment_requests'  => 'Recruitment Requests',
+    'order_history'  => 'Order History',
+    'chat_history'  => 'Chat History',
+    'account_settings'  => 'Account Settings',
+    'logout'  => 'Logout',
+    'my_account'  => 'MY Account',
+
 );

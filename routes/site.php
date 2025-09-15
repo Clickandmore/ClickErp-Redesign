@@ -8,7 +8,12 @@ use App\Http\Controllers\site\auth\LogoutController;
 use App\Http\Controllers\site\auth\OtpController;
 use App\Http\Controllers\site\auth\RegisterController;
 use App\Http\Controllers\site\HomeController;
+use App\Http\Controllers\site\profile\ChatController;
+use App\Http\Controllers\site\profile\ContactUsController;
+use App\Http\Controllers\site\profile\NotificationController;
+use App\Http\Controllers\site\profile\OrderController;
 use App\Http\Controllers\site\profile\ProfileController;
+use App\Http\Controllers\site\profile\SettingController;
 use Illuminate\Support\Facades\Route;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
@@ -40,8 +45,15 @@ Route::group(
         Route::resource('forget-password', ForgetPasswordController::class);
         Route::resource('change-password', ChangePasswordController::class);
         Route::resource('otp', OtpController::class);
+        Route::resource('contact-us', ContactUsController::class);
+
         Route::resource('profile', ProfileController::class);
+        Route::resource('last-orders', OrderController::class);
+        Route::resource('chats', ChatController::class);
+        Route::resource('notifications', NotificationController::class);
+        Route::resource('settings', SettingController::class);
         Route::resource('logout', LogoutController::class);
+
     });
 
 

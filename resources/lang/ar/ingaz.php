@@ -815,5 +815,11 @@
     'code_is_wrong' => 'الكود غير صحيح',
     'change_password_successfully'  => 'تم تغير كلمة المرور بنجاح',
     'incorrect_password'  => 'كلمة المرور غير صحيحة',
+    'recruitment_requests'  => 'طلبات الاستقدام',
+    'order_history'  => 'سجل الطلبات',
+    'chat_history'  => 'سجل المحادثات',
+    'account_settings'  => 'اعدادات الحساب',
+    'logout'  => 'تسجيل الخروج',
+    'my_account'  => 'حسابي',
 
 );
