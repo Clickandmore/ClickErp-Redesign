@@ -25,7 +25,7 @@ class SidebarServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        $unreadComplaintsCount = Complaint::where('is_read', false)->count();
+        $unreadComplaintsCount = 0; // سيتم تحديثه لاحقاً بعد إضافة العمود
         View::share('unreadComplaintsCount', $unreadComplaintsCount);
     }
 }

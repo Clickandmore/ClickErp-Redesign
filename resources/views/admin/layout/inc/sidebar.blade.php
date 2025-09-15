@@ -522,6 +522,7 @@
                             <span class="ms-2">{{ helperTrans('ingaz.sponsorship_transfer') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
+                        <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['SponsorshipTransfer.create', 'SponsorshipTransfer.index', 'SponsorshipTransfer.webRequests', 'ShelterContract.availableForTransfer', 'SponsorshipTransfer.trial', 'SponsorshipTransfer.failed', 'SponsorshipTransfer.transferred', 'transfer-contract-terms.index', 'transfer-contract-terms.create', 'transfer-contract-terms.edit'])) ? 'show' : '' }}" id="sponsorshipTransfer">
                         <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['SponsorshipTransfer.create', 'SponsorshipTransfer.index', 'SponsorshipTransfer.webRequests', 'ShelterContract.availableForTransfer', 'SponsorshipTransfer.trial', 'SponsorshipTransfer.failed', 'SponsorshipTransfer.transferred'])) ? 'show' : '' }}"
                             id="sponsorshipTransfer">
                             <li>
@@ -571,6 +572,20 @@
                                    href="{{ route('SponsorshipTransfer.transferred') }}">
                                     <i class="fa fa-check"></i>
                                     <span class="ms-2">{{ helperTrans('ingaz.transferred') }}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (in_array(Route::currentRouteName(), ['transfer-contract-terms.index', 'transfer-contract-terms.create', 'transfer-contract-terms.edit'])) ? 'active' : '' }}"
+                                    href="{{ route('transfer-contract-terms.index') }}">
+                                    <i class="fa fa-file-text"></i>
+                                    <span class="ms-2">بنود عقد نقل الكفالة</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (in_array(Route::currentRouteName(), ['rent-contract-terms.index', 'rent-contract-terms.create', 'rent-contract-terms.edit'])) ? 'active' : '' }}"
+                                    href="{{ route('rent-contract-terms.index') }}">
+                                    <i class="fa fa-file-contract"></i>
+                                    <span class="ms-2">بنود عقد الإيجار</span>
                                 </a>
                             </li>
                         </ul>
@@ -641,6 +656,18 @@
                             </li>
                         @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::USERS_VIEW))
+                        <li>
+                            <a class="m-link {{ (Route::currentRouteName() == 'countries.index') ? 'active' : '' }}" href="{{ route('countries.index') }}">
+                                <i class="fa fa-globe"></i>
+                                <span class="ms-2">{{ helperTrans('ingaz.countries') }}</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="m-link {{ (Route::currentRouteName() == 'cities.index') ? 'active' : '' }}" href="{{ route('cities.index') }}">
+                                <i class="fa fa-city"></i>
+                                <span class="ms-2">المدن</span>
+                            </a>
+                        </li>
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'countries.index') ? 'active' : '' }}"
                                    href="{{ route('countries.index') }}">
@@ -796,7 +823,7 @@
 {{--                @if (@AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW))--}}
                     <li>
                         <a class="m-link {{ (Route::currentRouteName() == 'offices.index') ? 'active' : '' }}"
-                           href="{{route('offices.index')}}">
+                           href="{{route('offices.index')}}"  >
                             <i class="fa fa-envelope"></i>
                             <span class="ms-2"> {{ helperTrans('ingaz.offices') }}</span>
                         </a>

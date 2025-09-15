@@ -1,9 +1,22 @@
 <?php
 
+use App\Http\Controllers\Web\MaidController;
+use App\Http\Controllers\Web\ContractsController;
+use App\Http\Controllers\Web\OrderController;
+use Illuminate\Support\Str;
+use App\Http\Controllers\Web\ComplaintController;
+use App\Models\ingaz\Service;
+use App\Http\Controllers\Web\UserAddressController;
+use App\Http\Controllers\Web\NotificationController;
+use App\Http\Controllers\Web\ReturnRequestController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\Web\ContactUsController as ContactUs;
+use App\Http\Controllers\Web\AuthController;
+use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Admin\AdminContractController;
+use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use App\Http\Controllers\ingaz\MaidController as IngazMaidController;
 use App\Http\Controllers\ingaz\UserController;
 use App\Http\Controllers\Admin\CountryController;
@@ -76,12 +89,183 @@ Route::get('apis-generate', function () {
 
 // update contracts when status is tazker and travel_histories
 
-// توجيه المسار الأساسي إلى صفحة تسجيل دخول لوحة التحكم
-Route::get('/', function () {
-    return redirect()->route('admin.form.login');
-})->name('home');
+
+Route::group(
+    [
+        'as' => 'web.',
+        'prefix' => LaravelLocalization::setLocale(),
+        'middleware' => ["webLocale", 'localeSessionRedirect', 'localizationRedirect', 'localeViewPath']
+    ],
+    function () {
+        Route::get('/', [HomeController::class, 'index'])->name('home');
+        Route::get('/rights-maids', [HomeController::class, 'rightsMaids'])->name('rights-maids');
+        Route::get('/rights-users', [HomeController::class, 'rightsUsers'])->name('rights-users');
+        Route::get('/privacy-policy', [HomeController::class, 'privacyPolicy'])->name('privacyPolicy');
+        Route::get('/terms-conditions', [HomeController::class, 'termsConditions'])->name('termsConditions');
+        Route::get('/faqs', [\App\Http\Controllers\Web\FAQsController::class, 'index'])->name('faqs');
+        Route::resource('return_requests', ReturnRequestController::class);
+        Route::resource('maids', MaidController::class);
+
+        //================ authanticaion  =============
+        Route::get('auth', [AuthController::class, 'index'])->name('auth');
+        Route::get('reset-password', [AuthController::class, 'resetPassword'])->name('reset_password');
+        Route::get('sendOtp', [AuthController::class, 'sendOtp'])->name('sendOtp');
+        Route::get('otp', [AuthController::class, 'otp'])->name('otp');
+        Route::post('confirm-code', [AuthController::class, 'confirm_code'])->name('confirm-code');
+        Route::post('sendLogin', [AuthController::class, 'sendLogin'])->name('sendLogin');
+        Route::group(
+            [
+                'middleware' => ["auth_web"]
+            ],
+            function () {
+                Route::get('profile', [AuthController::class, 'profile'])->name('profile');
+                Route::post('update-profile', [AuthController::class, 'updateProfile'])->name('update-profile');
+Route::get('edit-profile', [AuthController::class, 'editProfile'])->name('edit-profile');
+                Route::get('deleteAccount', [AuthController::class, 'deleteAccount'])->name('deleteAccount');
+                Route::get("logout", [AuthController::class, "logout"])->name("logout");
+                Route::resource('orders', \App\Http\Controllers\Web\OrderController::class);
+                Route::post('save-pending-order', [\App\Http\Controllers\Web\OrderController::class, 'savePendingOrder'])->name('save-pending-order');
+                Route::resource('contracts', ContractsController::class);
+                Route::post('/contracts/cancel', [\App\Http\Controllers\Web\ContractsController::class, 'cancel'])->name('contracts.cancel');
+
+
+
+                Route::post('bank_transfer_submit', [\App\Http\Controllers\Web\OrderController::class, 'submitBankTransfer'])->name('bank_transfer.submit');
+                Route::resource('addresses', UserAddressController::class);
+                Route::resource('complaints', ComplaintController::class);
+                Route::resource('notifications', NotificationController::class);
+
+                // طلبات استرجاع العقود
+                Route::get('contracts/{contract}/return-request', [\App\Http\Controllers\Web\ContractReturnRequestController::class, 'create'])->name('contract-return-requests.create');
+                Route::post('contracts/{contract}/return-request', [\App\Http\Controllers\Web\ContractReturnRequestController::class, 'store'])->name('contract-return-requests.store');
+                Route::get('return-requests', [\App\Http\Controllers\Web\ContractReturnRequestController::class, 'index'])->name('contract-return-requests.index');
+                Route::get('return-requests/{returnRequest}', [\App\Http\Controllers\Web\ContractReturnRequestController::class, 'show'])->name('contract-return-requests.show');
+                Route::delete('return-requests/{returnRequest}', [\App\Http\Controllers\Web\ContractReturnRequestController::class, 'cancel'])->name('contract-return-requests.cancel');
+
+                // طلبات نقل الكفالة
+                Route::get('sponsorship-transfers', [\App\Http\Controllers\Web\SponsorshipTransferController::class, 'index'])->name('sponsorship-transfers.index');
+                Route::get('sponsorship-transfers/{transfer}', [\App\Http\Controllers\Web\SponsorshipTransferController::class, 'show'])->name('sponsorship-transfers.show');
+                Route::post('sponsorship-transfers', [\App\Http\Controllers\Web\SponsorshipTransferController::class, 'store'])->name('sponsorship-transfers.store');
+            }
+        );
+        Route::resource('contact-us', ContactUs::class);
+        Route::get('/about-us', [\App\Http\Controllers\Web\AboutUsController::class, 'index'])->name('about-us');
+        Route::get('/clients/export/pdf', [UserController::class, 'exportPdf'])->name('clients.export.pdf');
+        Route::get('/clients/export/excel', [UserController::class, 'exportExcel'])->name('clients.export.excel');
+        Route::resource('skills', \App\Http\Controllers\ingaz\SkillController::class);
+        Route::get('/get-offices-by-nationality', [App\Http\Controllers\ingaz\MaidController::class, 'getOfficesByNationality'])->name('getOfficesByNationality');
+
+        // Dashboard route for clients
+        Route::get('dashboard', [\App\Http\Controllers\Web\AuthController::class, 'dashboard'])->name('dashboard')->middleware('auth_web');
+
+        // Test route for orders
+        Route::get('test-orders', function() {
+            return response()->json([
+                'orders_count' => \App\Models\ingaz\Order::count(),
+                'latest_orders' => \App\Models\ingaz\Order::latest()->take(3)->get(['id', 'user_id', 'maid_id', 'status', 'created_at'])
+            ]);
+        });
+
+        // Test route for admin orders
+        Route::get('test-admin-orders', function() {
+            return response()->json([
+                'orders_count' => \App\Models\ingaz\Order::count(),
+                'orders' => \App\Models\ingaz\Order::with(['user', 'maid', 'jobType'])->latest()->take(5)->get()
+            ]);
+        });
+
+        // Test route for orders display (no auth required)
+        Route::get('orders-display', function() {
+            $orders = \App\Models\ingaz\Order::with(['user', 'maid', 'jobType', 'details.admin'])->latest()->get();
+            return view('admin.ingaz.orders.index', [
+                'totalOrders' => $orders->count(),
+                'newOrders' => $orders->where('status', 'new')->count(),
+                'underProcessOrders' => $orders->where('status', 'under_process')->count(),
+                'completedOrders' => $orders->whereIn('status', ['completed', 'done'])->count(),
+                'jobTypes' => \App\Models\ingaz\JobType::with('translations')->get(),
+                'admins' => \App\Models\auth\Admin::select('id', 'name')->whereNull('deleted_at')->get(),
+                'orders' => $orders
+            ]);
+        });
+
+        // Test route for client orders display (no auth required)
+        Route::get('client-orders-display', function() {
+            // Get a test user ID (first user with orders)
+            $testUserId = \App\Models\ingaz\Order::first()?->user_id ?? 1;
+
+            // Get orders directly for testing
+            $currentOrders = \App\Models\ingaz\Order::where('user_id', $testUserId)
+                ->whereIn('status', ['new', 'completed', 'under_process', 'contracted', 'contracted_without_contract'])
+                ->with(['user', 'maid', 'jobType', 'details.admin'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $previousOrders = \App\Models\ingaz\Order::where('user_id', $testUserId)
+                ->whereIn('status', ['refused', 'done'])
+                ->with(['user', 'maid', 'jobType', 'details.admin'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $data['current'] = $currentOrders;
+            $data['previous'] = $previousOrders;
+            $data['order_progressbar'] = ['refused'=> 0,'new'=>20,'paid'=>40,'completed'=>60,'started'=>80,'done'=>100];
+
+            return view('web.ingaz.orders.index', $data);
+        });
+
+        // AJAX route for DataTable (no auth required)
+        Route::get('orders-ajax', function(\Illuminate\Http\Request $request) {
+            $query = \App\Models\ingaz\Order::query();
+
+            // Eager load relationships
+            $query->with([
+                'user',
+                'maid.nationality',
+                'jobType',
+                'details.admin',
+                'contracts'
+            ]);
+
+            // Order by created_at desc
+            $query->orderBy('created_at', 'desc');
+
+            $orders = $query->get();
+
+            return response()->json([
+                'draw' => intval($request->get('draw')),
+                'recordsTotal' => $orders->count(),
+                'recordsFiltered' => $orders->count(),
+                'data' => $orders->map(function($order) {
+                    return [
+                        'DT_RowId' => 'row_' . $order->id,
+                        'id' => $order->id,
+                        'order_code' => $order->order_code,
+                        'user_id' => $order->user ? $order->user->name : '-',
+                        'phone' => $order->user ? $order->user->phone_code . $order->user->phone : '-',
+                        'maid_id' => $order->maid ? $order->maid->name : '-',
+                        'nationality_name' => $order->maid && $order->maid->nationality ? $order->maid->nationality->sub_title : '',
+                        'maid_passport_num' => $order->maid ? $order->maid->passport_num : '',
+                        'job_type_id' => $order->jobType ? $order->jobType->title : '',
+                        'status' => $order->status,
+                        'created_at' => $order->created_at->format('Y-m-d H:i:s'),
+                        'admin_name' => $order->details && $order->details->admin ? $order->details->admin->name : '-',
+                        'deliver_status' => $order->details && $order->details->deliver_maid == '1' ? 'نعم' : 'لا',
+                        'contract_status' => $order->contracts()->exists() ? 'يوجد عقد' : 'لا يوجد عقد',
+                        'actions' => '<div class="btn-group">
+                            <a href="#" class="btn btn-sm btn-primary">عرض</a>
+                            <a href="#" class="btn btn-sm btn-warning">تعديل</a>
+                            <a href="#" class="btn btn-sm btn-danger">حذف</a>
+                        </div>'
+                    ];
+                })
+            ]);
+        });
+    }
+);
 
 Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () {
+    // Orders routes will be handled by routes/ingaz.php
+
     Route::group(['prefix' => 'ingaz'], function () {
         Route::get('/clients/export/pdf', [UserController::class, 'exportPdf'])->name('clients.export.pdf');
         Route::get('/clients/export/excel', [UserController::class, 'exportExcel'])->name('clients.export.excel');
@@ -90,17 +274,32 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () 
         // تحديث مسارات الإعدادات
         Route::get('settings', [App\Http\Controllers\ingaz\SettingController::class, 'index'])->name('admin.ingaz.settings.index');
         Route::put('settings', [App\Http\Controllers\ingaz\SettingController::class, 'update'])->name('admin.ingaz.settings.update');
+ // مسارات الدول
+ Route::get('countries', [CountryController::class, 'index'])->name('countries.index');
+ Route::get('countries/{country}', [CountryController::class, 'show'])->name('countries.show');
+ Route::get('countries/create', [CountryController::class, 'create'])->name('countries.create');
+ Route::post('countries', [CountryController::class, 'store'])->name('countries.store');
+ Route::get('countries/{country}/edit', [CountryController::class, 'edit'])->name('countries.edit');
+ Route::put('countries/{country}', [CountryController::class, 'update'])->name('countries.update');
+ Route::delete('countries/{country}', [CountryController::class, 'destroy'])->name('countries.destroy');
+ Route::patch('countries/{country}/toggle-status', [CountryController::class, 'toggleStatus'])->name('countries.toggle-status');
+ Route::post('countries/update-order', [CountryController::class, 'updateOrder'])->name('countries.update-order');
 
-        // مسارات الدول
-        Route::get('countries', [CountryController::class, 'index'])->name('countries.index');
-        Route::get('countries/create', [CountryController::class, 'create'])->name('countries.create');
-        Route::post('countries', [CountryController::class, 'store'])->name('countries.store');
-        Route::get('countries/{country}/edit', [CountryController::class, 'edit'])->name('countries.edit');
-        Route::put('countries/{country}', [CountryController::class, 'update'])->name('countries.update');
-        Route::delete('countries/{country}', [CountryController::class, 'destroy'])->name('countries.destroy');
-        Route::patch('countries/{country}/toggle-status', [CountryController::class, 'toggleStatus'])->name('countries.toggle-status');
-        Route::post('countries/update-order', [CountryController::class, 'updateOrder'])->name('countries.update-order');
+ // مسارات المدن
+ Route::get('cities', [CountryController::class, 'citiesIndex'])->name('cities.index');
+ Route::get('cities/create', [CountryController::class, 'createCity'])->name('cities.create');
+ Route::post('cities', [CountryController::class, 'storeCity'])->name('cities.store');
+ Route::get('cities/{city}/edit', [CountryController::class, 'editCity'])->name('cities.edit');
+ Route::put('cities/{city}', [CountryController::class, 'updateCity'])->name('cities.update');
+ Route::delete('cities/{city}', [CountryController::class, 'destroyCity'])->name('cities.destroy');
 
+ // API routes للدول والمدن
+ Route::get('api/countries', [CountryController::class, 'getCountries'])->name('api.countries');
+ Route::get('api/countries/{countryId}/cities', [CountryController::class, 'getCities'])->name('api.countries.cities');
+ Route::get('api/countries/search', [CountryController::class, 'search'])->name('api.countries.search');
+ Route::get('api/cities', [CountryController::class, 'getAllCities'])->name('api.cities');
+ Route::get('api/cities/{city}', [CountryController::class, 'getCityDetails'])->name('api.cities.show');
+ Route::get('api/cities/search', [CountryController::class, 'searchCities'])->name('api.cities.search');
         // Recruitment routes
         Route::get('/recruitment/select-maid/{client_id}', [RecruitmentController::class, 'create'])->name('admin.recruitment.select.maid');
         Route::get('/recruitment/show-maid-form/{client_id}/{maid_id}', [RecruitmentController::class, 'showMaidForm'])->name('admin.recruitment.show.maid.form');

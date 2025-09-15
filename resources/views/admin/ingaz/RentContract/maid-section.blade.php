@@ -70,6 +70,7 @@
                     </div>
                     <div class="col-md-6">
                         <small class="text-muted">العمر:</small> <span id="new_maid_age_display">-</span> سنة<br>
+                        <small class="text-muted">حالة الخبرة:</small> <span id="new_maid_experience_status_display">-</span><br>
                         <small class="text-muted">الخبرة:</small> <span id="new_maid_experience_display">-</span> سنة<br>
                         <small class="text-muted">الراتب:</small> <span id="new_maid_salary_display">-</span> ريال
                     </div>

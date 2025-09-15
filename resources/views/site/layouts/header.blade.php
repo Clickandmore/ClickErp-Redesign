@@ -158,9 +158,7 @@
             </li>
             <!-- Login Btn -->
             <li class="nav-item d-lg-block">
-                <a class="login-btn" href="login.html"
-                >تسجيل الدخول<span></span
-                    ></a>
+                <a class="login-btn" href="{{route('site.login.index')}}">تسجيل الدخول<span></span></a>
             </li>
         </ul>
     </div>

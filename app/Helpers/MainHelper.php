@@ -301,7 +301,18 @@ if (!function_exists('deleteFile')) {
 if (!function_exists('showFile')) {
     function showFile($fileFullPath)
     {
-        return asset('/storage/' . $fileFullPath);
+        if (!$fileFullPath || $fileFullPath === 'null' || $fileFullPath === '') {
+            return null;
+        }
+
+        // التحقق من وجود الملف
+        $fullPath = public_path('storage/' . $fileFullPath);
+        if (file_exists($fullPath)) {
+            return asset('/storage/' . $fileFullPath);
+        }
+
+        // إذا لم يكن الملف موجود، ارجع null
+        return null;
     }
 }
 
@@ -485,11 +496,6 @@ if (!function_exists('helperTrans')) {
 
         if (empty($file) || empty($key)) {
             return $str;
-        }
-
-        // If trying to access web language file, return the key directly
-        if ($file === 'web') {
-            return ucfirst(str_replace('_', ' ', $key));
         }
 
         $local = get_api_lang();

@@ -15,6 +15,7 @@ enum ContractStatusEnum: string
     case Sari = 'sari'; // عقد ساري
     case Shelter = 'shelter'; // عقد ايواء
     case PendingMaidSelection = 'pending_maid_selection'; // بانتظار اختيار العاملة
+    case Trial = 'trial'; // في فترة التجربة
 
     // الحالات القديمة للتوافق مع البيانات الموجودة
     case UnderWarranty = 'under_warranty'; // تحت الضمان (متروك للتوافق)

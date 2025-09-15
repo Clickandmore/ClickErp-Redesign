@@ -24,8 +24,19 @@ class DeportationTravelController extends Controller
                 'maid',
                 'maid.nationality.translations',
                 'order'
-            ])->where('travel_type', 'deportation');
+            ])->where('travel_type', 'deportation')
+            ->orderBy('id', 'desc');
 
+            // Default to show only active/new trips unless filtered
+            if (!$request->filled('status') || $request->status === '') {
+                $query->whereIn('status', ['new', 'active', 'scheduled', 'in_progress', 'pending', 'confirmed']);
+            } elseif ($request->status !== 'all') {
+                // If status is not 'all', filter by specific status
+                $query->where('status', $request->status);
+            }
+            // If status is 'all', don't add any status filter
+
+            // Apply filters
             if ($request->filled('contract_number')) {
                 $query->whereHas('order', function($q) use ($request) {
                     $q->where('id', 'like', '%' . $request->contract_number . '%');
@@ -179,6 +190,62 @@ class DeportationTravelController extends Controller
         // بما أن كل التفاصيل معروضة في الجدول، نعيد التوجيه إلى صفحة القائمة
         return redirect()->route('DeportationTravel.index')
             ->with('info', 'جميع تفاصيل الرحلة متوفرة في جدول رحلات الترحيل');
+    }
+
+    /**
+     * جلب إحصائيات رحلات الترحيل
+     */
+    public function statistics(Request $request)
+    {
+        try {
+            $query = TravelHistory::where('travel_type', 'deportation');
+
+            // فلتر الحالة
+            if ($request->filled('status')) {
+                if ($request->status !== 'all') {
+                    $query->where('status', $request->status);
+                }
+            }
+
+            // فلتر التاريخ من
+            if ($request->filled('date_from')) {
+                $query->whereDate('arrival_date', '>=', $request->date_from);
+            }
+
+            // فلتر التاريخ إلى
+            if ($request->filled('date_to')) {
+                $query->whereDate('arrival_date', '<=', $request->date_to);
+            }
+
+            $total = $query->count();
+            $active = $query->clone()->whereIn('status', ['new', 'active', 'scheduled', 'in_progress', 'pending', 'confirmed'])->count();
+            $completed = $query->clone()->where('status', 'completed')->count();
+            $upcoming = $query->clone()->whereIn('status', ['new', 'scheduled', 'pending'])
+                ->where('arrival_date', '>', now())->count();
+            $cancelled = $query->clone()->where('status', 'cancelled')->count();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total' => $total,
+                    'active' => $active,
+                    'completed' => $completed,
+                    'upcoming' => $upcoming,
+                    'cancelled' => $cancelled
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error in deportation travel statistics:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء جلب الإحصائيات'
+            ], 500);
+        }
     }
 
     /**

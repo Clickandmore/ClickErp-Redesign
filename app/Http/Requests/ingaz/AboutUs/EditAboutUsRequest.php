@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\ingaz\AboutUs;
+namespace App\Http\Requests\worldedge\AboutUs;
 
 use App\Http\Requests\MainRequest;
 use Illuminate\Foundation\Http\FormRequest;

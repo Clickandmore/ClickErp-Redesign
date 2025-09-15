@@ -153,17 +153,43 @@ class RentContractController extends Controller
                                     <i class="fas fa-eye"></i> عرض التفاصيل
                                 </a></li>';
 
+                    // طباعة العقد المحسّن
+                    $actions .= '<li><a class="dropdown-item" href="' . route('print.rental.contract', $row->id) . '" target="_blank">
+                                    <i class="fas fa-print"></i> طباعة العقد
+                                </a></li>';
+
+                    // إجراءات workflow الجديدة
+                    if ($row->canSendContract()) {
+                        $actions .= '<li><button class="dropdown-item text-info send-contract" data-id="' . $row->id . '">
+                                        <i class="fas fa-paper-plane"></i> تأكيد إرسال العقد
+                                    </button></li>';
+                    }
+
+                    if ($row->canSignContract()) {
+                        $actions .= '<li><button class="dropdown-item text-success sign-contract" data-id="' . $row->id . '">
+                                        <i class="fas fa-signature"></i> تأكيد توقيع العقد
+                                    </button></li>';
+                    }
+
+                    if ($row->canDeliverMaid()) {
+                        $actions .= '<li><button class="dropdown-item text-primary deliver-maid" data-id="' . $row->id . '">
+                                        <i class="fas fa-handshake"></i> تأكيد تسليم العاملة
+                                    </button></li>';
+                    }
+
+                    if ($row->canActivateContract()) {
+                        $actions .= '<li><button class="dropdown-item text-success activate-contract" data-id="' . $row->id . '">
+                                        <i class="fas fa-power-off"></i> تفعيل العقد
+                                    </button></li>';
+                    }
+
                     // تعديل العقد
                     if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_EDIT)) {
+                        $actions .= '<li><hr class="dropdown-divider"></li>';
                         $actions .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.edit', $row->id) . '">
                                         <i class="fas fa-edit"></i> تعديل العقد
                                     </a></li>';
                     }
-
-                    // طباعة العقد
-                    $actions .= '<li><a class="dropdown-item" href="' . route('print.rental.contract', $row->id) . '" target="_blank">
-                                    <i class="fas fa-print"></i> طباعة العقد
-                                </a></li>';
 
                     // إنهاء العقد
                     if ($row->status !== 'completed' && $row->status !== 'cancelled') {
@@ -174,6 +200,7 @@ class RentContractController extends Controller
 
                     // حذف العقد
                     if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_DELETE)) {
+                        $actions .= '<li><hr class="dropdown-divider"></li>';
                         $actions .= '<li><button class="dropdown-item text-danger delete-contract" data-id="' . $row->id . '">
                                         <i class="fas fa-trash"></i> حذف العقد
                                     </button></li>';
@@ -340,7 +367,7 @@ class RentContractController extends Controller
             'maid_id' => $request->maid_id,
                 'marketer_id' => $request->marketer_id,
                 'order_id' => $request->order_id,
-                'status' => 'new',
+                'status' => 'waiting_contract_send',
                 'contract_date' => $request->contract_date,
                 'contract_number' => $this->generateContractNumber(),
             ]);
@@ -632,6 +659,10 @@ class RentContractController extends Controller
 
         $badges = [
             'new' => '<span class="badge bg-primary">جديد</span>',
+            'waiting_contract_send' => '<span class="badge bg-warning">انتظار إرسال العقد</span>',
+            'contract_sent' => '<span class="badge bg-info">تم إرسال العقد</span>',
+            'contract_signed' => '<span class="badge bg-success">تم توقيع العقد</span>',
+            'maid_delivered' => '<span class="badge bg-primary">تم تسليم العاملة</span>',
             'active' => '<span class="badge bg-success">نشط</span>',
             'cancelled' => '<span class="badge bg-danger">ملغي</span>',
             'suspended' => '<span class="badge bg-warning">معلق</span>',
@@ -1019,6 +1050,215 @@ class RentContractController extends Controller
             ], 500);
         }
     }
+
+    // طرق workflow الجديدة مثل نقل الكفالة
+    public function sendContract(Request $request, $id)
+    {
+        try {
+            $contract = RentalContract::findOrFail($id);
+
+            if (!$contract->canSendContract()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن إرسال العقد في هذه المرحلة'
+                ], 400);
+            }
+
+            $contract->update([
+                'status' => 'contract_sent',
+                'contract_sent_at' => now(),
+                'contract_sent_by' => auth()->id()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تأكيد إرسال العقد بنجاح'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function signContract(Request $request, $id)
+    {
+        try {
+            $contract = RentalContract::findOrFail($id);
+
+            if (!$contract->canSignContract()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن توقيع العقد في هذه المرحلة'
+                ], 400);
+            }
+
+            $contract->update([
+                'status' => 'contract_signed',
+                'contract_signed_at' => now(),
+                'contract_signed_by' => auth()->id()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تأكيد توقيع العقد بنجاح'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function deliverMaid(Request $request, $id)
+    {
+        try {
+            $contract = RentalContract::findOrFail($id);
+
+            if (!$contract->canDeliverMaid()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن تسليم العاملة في هذه المرحلة'
+                ], 400);
+            }
+
+            $contract->update([
+                'status' => 'maid_delivered',
+                'maid_delivered_at' => now(),
+                'maid_delivered_by' => auth()->id()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تأكيد تسليم العاملة بنجاح'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function activateContract(Request $request, $id)
+    {
+        try {
+            $contract = RentalContract::findOrFail($id);
+
+            if (!$contract->canActivateContract()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن تفعيل العقد في هذه المرحلة'
+                ], 400);
+            }
+
+            $contract->update([
+                'status' => 'active',
+                'trial_started_at' => now(), // نعيد تسمية هذا الحقل لاحقاً إلى activated_at
+                'trial_started_by' => auth()->id() // نعيد تسمية هذا الحقل لاحقاً إلى activated_by
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تفعيل العقد بنجاح'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function printContract($id)
+    {
+        try {
+            $contract = RentalContract::with([
+                'user.nationality',
+                'maid.nationality.translations',
+                'maid.religion.translations',
+                'info',
+                'marketer'
+            ])->findOrFail($id);
+
+            // Get settings for contract printing
+            $contractSettings = [];
+            $settingKeys = [
+                'company_name', 'license_number', 'license_date', 'commercial_register',
+                'commercial_date', 'city', 'address', 'po_box', 'postal_code',
+                'phone', 'mobile', 'fax', 'email', 'default_trial_period',
+                'default_working_hours', 'daily_deduction', 'notice_period', 'logo'
+            ];
+
+            foreach ($settingKeys as $key) {
+                $setting = \App\Models\Setting::where('key', 'rent_contract_' . $key)->first();
+                $contractSettings[$key] = $setting ? $setting->value : null;
+            }
+
+            // Get contract terms from database
+            $termsPage1 = collect(); // Empty collection for now
+            $termsPage2 = collect();
+            $termsPage3 = collect();
+
+            // Try to get terms from RentContractTerm
+            try {
+                // Since we don't have page field in RentContractTerm, we'll split them by order
+                $allTerms = \App\Models\RentContractTerm::active()->ordered()->get();
+                $termsPage1 = $allTerms->take(5); // First 5 terms on page 1
+                $termsPage2 = $allTerms->slice(5, 5); // Next 5 terms on page 2
+                $termsPage3 = $allTerms->slice(10); // Remaining terms on page 3
+            } catch (\Exception $e) {
+                // If there's an issue with terms, use empty collections
+            }
+
+            // Check if contract allows signature (after being sent)
+            $allowSignature = in_array($contract->status, ['contract_sent', 'contract_signed', 'maid_delivered', 'active']);
+
+            return view('admin.print.rental-contract-dynamic', compact('contract', 'contractSettings', 'termsPage1', 'termsPage2', 'termsPage3', 'allowSignature'));
+
+        } catch (\Exception $e) {
+            \Log::error('Error printing rental contract: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'حدث خطأ أثناء طباعة العقد');
+        }
+    }
+
+    public function saveSignature(Request $request, $id)
+    {
+        try {
+            $contract = RentalContract::findOrFail($id);
+
+            $signatureData = $request->input('signature');
+
+            if (empty($signatureData)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لم يتم العثور على بيانات التوقيع'
+                ], 400);
+            }
+
+            $contract->update([
+                'signature' => $signatureData
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم حفظ التوقيع بنجاح'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء حفظ التوقيع: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 
 
 }

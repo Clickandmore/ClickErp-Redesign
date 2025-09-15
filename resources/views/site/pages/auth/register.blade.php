@@ -10,7 +10,7 @@
         <div class="cardForm" data-aos="fade-up">
             <form action="code.html">
                 <div class="loginLogo">
-                    <img src="assets/images/logo.svg" alt="img" class="img-fluid" />
+                    <img src="{{asset('site')}}/assets/images/logo.svg" alt="img" class="img-fluid" />
                 </div>
                 <div class="formGroup">
                     <label for="userName">
@@ -114,7 +114,7 @@
                 <button type="submit" class="defaultBtn mt-2">انشاء</button>
                 <p class="text-center w-100 mt-3">
                     لديك حساب بالفعل ؟
-                    <a href="login.html"> تسجيل الدخول </a>
+                    <a href="{{route('site.login.index')}}"> تسجيل الدخول </a>
                 </p>
             </form>
         </div>

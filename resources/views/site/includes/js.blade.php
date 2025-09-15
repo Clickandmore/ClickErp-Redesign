@@ -9,4 +9,10 @@
         });
     });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{{asset('admin')}}/assets/vendor/toster/js/jquery.toast.js"></script>
+<script src="{{asset('admin')}}/assets/js/custom.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+
 @yield('js')
