@@ -1,4 +1,4 @@
-<?php return array(
+<?php return array (
     'users' => 'المستخدمين',
     'banner' => 'البنر الرئيسي',
     'sliders' => 'الاعلانات',
@@ -841,11 +841,9 @@
     'name_required'   => 'الاسم مطلوب.',
     'name_string'     => 'يجب أن يكون الاسم نصًا.',
 
-    // الهاتف
     'phone_string'    => 'يجب أن يكون رقم الهاتف نصًا صحيحًا.',
     'phone_unique'    => 'هذا الرقم مسجّل بالفعل.',
 
-    // البريد الإلكتروني
     'email_string'    => 'يجب أن يكون البريد الإلكتروني نصًا صحيحًا.',
     'email_unique'    => 'هذا البريد الإلكتروني مسجّل بالفعل.',
     'register_successfully'    => 'تم تسجيلك في النظام بنجاح',
@@ -865,5 +863,15 @@
     'Labor_transfer' => 'إستلام فورى',
     'advanced_search' => 'بحث متقدم',
     'no_workers_found' => 'لا يوجد عمالة',
-
+    'requiremens' => 'المتطلبات',
+    'RecruitDomestic' => 'RecruitDomestic',
+    'VisaIssuance' => 'VisaIssuance',
+    'requirement_type' => 'Requirement type',
+    'Please_visit_the_Domestic_Workers_Program_Support_website' => 'يرجى زيارة موقع مساند برنامج العمالة المنزلية للمساعدة',
+    'Documents_domestic' => 'الوثائق إصدار التأشيرة',
+     'requirements_you_need' => 'الوثائق المطلوبة لإستقدام العماله المنزلية',
+    'Recruitment_requirements'=>' هذه هي المتطلبات التي تحتاجها للاستقدام ...',
+    'Documents_visa'=>'الوثائق إصدار التأشيرة',
+      'our_services'=>'خدماتنا',
+    'our_services_desc'=>'الخدمات التي نقدمها للمجتمع ...',
 );

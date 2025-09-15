@@ -7,6 +7,11 @@ class PermKeys
     // DO NOT CHANGES VALUES UNLESS YOU KNOW WHAT YOUR DOING
     // SOME FUNCTIONALITY DEPENDS ON THESE VALUES
     // RANDOM CHANGES MIGHT BREAK FUNCTIONALITY OF THE CODE
+Const PARTENR_CREATE = 'partenr_create';
+Const PARTENR_EDIT = 'partenr_edit';
+Const PARTENR_DELETE = 'partenr_delete';
+Const PARTENR_VIEW = 'partenr_view';
+const PARTENR_CONTROL = 'partenr_control';
 
     // ========================================
     // لوحة التحكم
