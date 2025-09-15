@@ -61,7 +61,7 @@ Route::group(
         Route::resource('daily-lebor-demand', DailyLabotDemandController::class);
         Route::resource('renew-contract', RenewContractController::class);
         Route::resource('support', SupportController::class);
-        Route::resource('contact-us', ContactUsController::class);
+        Route::resource('contact-us', ContactUsController::class)->names('contact-us');
 
         Route::middleware('site_auth')->group(function () {
             Route::resource('profile', ProfileController::class);
@@ -71,8 +71,6 @@ Route::group(
             Route::resource('settings', SettingController::class);
             Route::resource('logout', LogoutController::class);
         });
-
-
     });
 
 

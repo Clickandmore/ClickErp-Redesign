@@ -37,6 +37,7 @@ use App\Http\Controllers\ingaz\QuestionController;
 use App\Http\Controllers\ingaz\ContactController;
 use App\Http\Controllers\ingaz\ServiceController;
 use App\Http\Controllers\ingaz\AboutUsController;
+use App\Http\Controllers\ingaz\ClientController;
 use App\Http\Controllers\ingaz\SkillController;
 use App\Http\Controllers\ingaz\MaidTestController;
 use App\Http\Controllers\ingaz\PackageController;
@@ -45,7 +46,8 @@ use App\Http\Controllers\ingaz\StepController;
 use App\Http\Controllers\ingaz\ReturnRequestController;
 use App\Http\Controllers\ingaz\ComplaintTypeController;
 use App\Http\Controllers\ingaz\RentalContractTermsController;
-
+use App\Http\Controllers\ingaz\RequirementsController;
+use App\Models\Client;
 
 /*
 |--------------------------------------------------------------------------
@@ -65,6 +67,15 @@ Route::group(
     ],
     function () {
         Route::group(["prefix" => "admin", "middleware" => "auth:admin"], function () {
+
+
+
+
+  Route::resource('partenrs', ClientController::class);
+    Route::resource('requiremens', RequirementsController::class);
+
+            
+
 
             Route::get('getMaidByNationality/{nationalityId}', [RecruitmentContractController::class, 'getMaidByNationality'])->name('getMaidByNationality');
             Route::get('clients/{id}/details', [RecruitmentContractController::class, 'getClientDetails'])->name('clients.details');
@@ -244,6 +255,7 @@ Route::post('SponsorshipTransfer/{id}/start-trial', [SponsorshipTransferControll
             Route::post('SponsorshipTransfer/{id}/cancel-transfer', [SponsorshipTransferController::class, 'cancelTransfer'])->name('SponsorshipTransfer.cancelTransfer');
             Route::resource('notifications', NotificationController::class);
             Route::resource('statistics', StatisticController::class);
+          
             Route::resource('steps', StepController::class);
             Route::resource('return_requests', ReturnRequestController::class);
             Route::get('return_requests/export/pdf', [ReturnRequestController::class, 'exportPdf'])->name('return_requests.export.pdf');
