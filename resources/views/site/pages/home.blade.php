@@ -183,10 +183,21 @@
     <section class="services-sec" id="services">
         <div class="container">
             <div class="headTitle" data-aos="fade-up">
-                <h2>خدماتنا</h2>
-                <p>الخدمات التي نقدمها للمجتمع ...</p>
+                <h2>{{__('ingaz.our_services')}}</h2>
+                <p>{{__('ingaz.our_services_desc')}}</p>
             </div>
             <div class="row">
+                @forelse($services as $service)
+                       <div class="col p-2" data-aos="zoom-in" data-aos-delay="100">
+<a href="#" class="service" style="background-image: url({{ asset($service->image) }})">
+                        <i class="fa-solid fa-passport"></i>
+                        <h3 class="serviceTitle"> {{$service->title}}</h3>
+                        <h6 class="serviceP">
+    {{ Str::limit($service->description, 100) }}
+                         </h6>
+                    </a>
+                </div>
+@empty
                 <div class="col p-2" data-aos="zoom-in" data-aos-delay="100">
                     <a href="visa.html" class="service" style="background-image: url(assets/images/passport-bg.webp)">
                         <i class="fa-solid fa-passport"></i>
@@ -241,6 +252,7 @@
                         </h6>
                     </a>
                 </div>
+                @endforelse
             </div>
         </div>
     </section>
@@ -491,17 +503,26 @@
     <section class="requirements">
         <div class="container">
             <div class="headTitle">
-                <h2 data-aos="fade-up"> متطلبات الإستقدام </h2>
+                <h2 data-aos="fade-up">{{__('ingaz.Recruitment_requirements')}} </h2>
                 <p data-aos="fade-up">
-                    هذه هي المتطلبات التي تحتاجها للاستقدام ...
-                </p>
+{{__('ingaz.requirements_you_need')}}                </p>
             </div>
             <div class="row">
                 <div class="col-md-6 p-2">
                     <div class="requirement">
                         <div class="head" data-aos="fade-up">
-                            <h4>الوثائق المطلوبة لإستقدام العماله المنزلية</h4>
+                            <h4>{{__('ingaz.Documents_domestic')}}</h4>
                         </div>
+                        @forelse($Domestic as $domestic)
+                              <ul>
+                            <li data-aos="fade-up">
+                                <div class="icon">
+                                    <i class="{{$domestic->image}}"></i>
+                                </div>
+                                <p> {{$domestic->title}}</p>
+                            </li>
+                        </ul>
+                        @empty
                         <ul>
                             <li data-aos="fade-up">
                                 <div class="icon">
@@ -534,18 +555,29 @@
                                 <p> توقيع عقد إستقدام </p>
                             </li>
                         </ul>
+                        @endforelse
                     </div>
                 </div>
 
                 <div class="col-md-6 p-2">
                     <div class="requirement">
                         <div class="head" data-aos="fade-up">
-                            <h4>الوثائق إصدار التأشيرة </h4>
+                            <h4>{{__('ingaz.Documents_visa')}} </h4>
                             <p>
-                                يرجى زيارة موقع مساند برنامج العمالة المنزلية
-                                <a href="#!"> من هنا </a>
+{{__('ingaz.Please_visit_the_Domestic_Workers_Program_Support_website')}}         
+                       <a href="#!"> من هنا </a>
                             </p>
                         </div>
+                        @forelse($Visa as $visa)
+                              <ul>
+                            <li data-aos="fade-up">
+                                <div class="icon">
+                                    <i class="{{$visa->image}}"></i>
+                                </div>
+                                <p> {{$visa->title}} </p>
+                            </li>
+                        </ul>
+                        @empty
                         <ul>
                             <li data-aos="fade-up">
                                 <div class="icon">
@@ -578,6 +610,7 @@
                                 <p> توقيع عقد إستقدام </p>
                             </li>
                         </ul>
+                        @endforelse
                     </div>
                 </div>
             </div>

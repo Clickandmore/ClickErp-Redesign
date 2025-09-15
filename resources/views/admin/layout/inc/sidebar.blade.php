@@ -90,6 +90,14 @@
                     </a>
                 </li>
 
+                      <li>
+                    <a class="m-link {{ (Route::currentRouteName() == 'requiremens.index') ? 'active' : '' }}"
+                       href="{{route('requiremens.index')}}">
+                        <i class="fa fa-user"></i>
+                        <span class="ms-2"> {{ helperTrans('ingaz.requiremens') }}</span>
+                    </a>
+                </li>
+
 
                 <!-- CV Management Section -->
                 <li class="collapsed">

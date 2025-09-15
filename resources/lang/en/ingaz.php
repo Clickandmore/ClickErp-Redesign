@@ -742,6 +742,12 @@
     'email_string'    => 'The email must be a valid string.',
     'email_unique'    => 'This email address is already registered.',
     'register_successfully'    => 'You have been successfully registered in the system.',
-
+  'Please_visit_the_Domestic_Workers_Program_Support_website' => 'Please visit the Domestic Workers Program Support website',
+'Documents_domestic' => 'Documents for issuing a visa',
+'requirements_you_need' => 'Documents required to recruit domestic workers',
+'Recruitment_requirements'=>'These are the requirements you need to bring in...',
+'Documents_visa'=>'Documents for issuing a visa',
+'our_services'=>'Our Services',
+'our_services_desc'=>'The services we offer to the community ...',
 
 );

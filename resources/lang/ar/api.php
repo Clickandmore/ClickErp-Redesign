@@ -16,4 +16,5 @@
   'slider' => 'Slider',
   'return_request' => 'Return request',
   'parteners' => 'Parteners',
+  'Recruitment requirements' => 'Recruitment requirements',
 );
