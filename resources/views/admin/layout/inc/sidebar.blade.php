@@ -82,6 +82,15 @@
                     </a>
                 </li>
 
+                     <li>
+                    <a class="m-link {{ (Route::currentRouteName() == 'partenrs.index') ? 'active' : '' }}"
+                       href="{{route('partenrs.index')}}">
+                        <i class="fa fa-user"></i>
+                        <span class="ms-2"> {{ helperTrans('ingaz.partenrs') }}</span>
+                    </a>
+                </li>
+
+
                 <!-- CV Management Section -->
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#cvManagement" href="#">

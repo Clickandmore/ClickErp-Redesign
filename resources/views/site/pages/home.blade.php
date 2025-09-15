@@ -589,26 +589,34 @@
         <div class="container">
             <div class="swiper referencesSlider">
                 <div class="swiper-wrapper">
+                    @forelse($clients as $client)
+                     <div class="swiper-slide" data-aos="zoom-in">
+                        <div class="referenceLogo">
+                            <img src="{{showfile($client->image)}}" alt="">
+                        </div>
+                    </div>
+                    @empty
                     <div class="swiper-slide" data-aos="zoom-in">
                         <div class="referenceLogo">
-                            <img src="assets/images/Ministry-of-Foreign-Affairs-01.svg" alt="">
+                            <img src="{{asset('site')}}/assets/images/Ministry-of-Foreign-Affairs-01.svg" alt="">
                         </div>
                     </div>
                     <div class="swiper-slide" data-aos="zoom-in">
                         <div class="referenceLogo">
-                            <img src="assets/images/Ministry-of-Interior-01.svg" alt="">
+                            <img src="{{asset('site')}}/assets/images/Ministry-of-Interior-01.svg" alt="">
                         </div>
                     </div>
                     <div class="swiper-slide" data-aos="zoom-in">
                         <div class="referenceLogo">
-                            <img src="assets/images/Ministry-of-Labor-and-Social-Development.svg" alt="">
+                            <img src="{{asset('site')}}/assets/images/Ministry-of-Labor-and-Social-Development.svg" alt="">
                         </div>
                     </div>
                     <div class="swiper-slide" data-aos="zoom-in">
                         <div class="referenceLogo">
-                            <img src="assets/images/musand.svg" alt="">
+                            <img src="{{asset('site')}}/assets/images/musand.svg" alt="">
                         </div>
                     </div>
+                    @endforelse
                 </div>
                 <div class="swiper-pagination"></div>
             </div>
@@ -616,69 +624,148 @@
     </section>
 
     <!-- ================ contact Form ================= -->
-    <section class="contactForm">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6 p-2 mb-5 mb-md-0 wow fadeInUp">
-                    <div class="headTitle text-start">
-                        <h2 data-aos="fade-up">تواصل معنا</h2>
-                        <p data-aos="fade-up">
-                            اطلب عاملتك الان وسيقوم فريق خدمة العملاء لدينا بالتواصل معك
-                            بأسرع وقت ...
-                        </p>
-                    </div>
-                    <form action="" class="row needs-validation" novalidate>
-                        <div class="col-md-12 p-2 " data-aos="fade-up">
-                            <label class="form-label">
-                                <i class="fas fa-user me-2"></i> الاسم كامل*
-                            </label>
-                            <input type="text" class="form-control" required/>
-                            <div class="invalid-feedback">هذا الحقل ضروري</div>
-                            <div class="valid-feedback">جيد</div>
-                        </div>
-                        <div class="col-md-6 p-2" data-aos="fade-up">
-                            <label class="form-label"
-                            ><i class="fas fa-phone-alt me-2"></i> رقم الهاتف *
-                            </label>
-                            <input type="number" class="form-control" required/>
-                            <div class="invalid-feedback">هذا الحقل ضروري</div>
-                        </div>
-                        <div class="col-md-6 p-2">
-                            <label class="form-label">
-                                <i class="fa-solid fa-comment-lines me-2"></i> الموضوع
-                            </label>
-                            <input type="text" class="form-control"/>
-                        </div>
-                        <div class="col-md-12 p-2">
-                            <label class="form-label">
-                                <i class="fas fa-feather-alt me-2"></i> اكتب رسالتك*
-                            </label>
-                            <textarea class="form-control" rows="5" required></textarea>
-                            <div class="invalid-feedback">هذا الحقل ضروري</div>
-                        </div>
-                        <div class="col-md-12 text-center p-2">
-                            <button type="submit" class="defaultBtn">
-                                ارسال <i class="fas fa-paper-plane ms-2"></i>
-                                <span></span>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                <div class="col-md-6 p-2 wow fadeInUp">
-                    <section class="googleMap">
-                        <iframe
-                            src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d57946.84623396069!2d46.75688!3d24.806481!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0xc74fdd6f15256594!2z2YXZg9iq2Kgg2LHZiNin2YHYryDZhtis2K8g2YTZhNil2LPYqtmC2K_Yp9mF!5e0!3m2!1sar!2ssa!4v1650724949947!5m2!1sar!2ssa"
-                            frameborder="0"
-                            style="border: 0"
-                            allowfullscreen=""
-                            aria-hidden="false"
-                            tabindex="0"
-                        ></iframe>
-                    </section>
-                </div>
+   <section class="contactForm">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-6 p-2 mb-5 mb-md-0 wow fadeInUp">
+          <div class="headTitle text-start">
+            <h2> {{__('ingaz.contact')}}</h2>
+            <p>
+              {{__('ingaz.request your mid')}}
+            </p>
+          </div>
+          <form action="" id="contact-form" class="row needs-validation" novalidate>
+            @csrf
+
+            <input type="hidden" name="latitude" id="latitude">
+            <input type="hidden" name="longitude" id="longitude">
+            <div class="col-md-12 p-2">
+              <label class="form-label">
+                <i class="fas fa-user me-2"></i> {{__('ingaz.full name')}}*
+              </label>
+              <input type="text" id="name" name="name" class="form-control" required />
+              <div class="invalid-feedback"> {{__('ingaz.this field is required')}}</div>
+              <div class="valid-feedback">{{__('ingaz.good')}}</div>
             </div>
+            <div class="col-md-6 p-2">
+              <label class="form-label"><i class="fas fa-phone-alt me-2"></i> {{__('ingaz.phone')}}*
+              </label>
+              <input type="tel" id="phone" name="phone" id="phoneNum" class="form-control" required />
+              <div class="invalid-feedback"> {{__('ingaz.this field is required')}} </div>
+            </div>
+            <div class="col-md-6 p-2">
+              <label class="form-label">
+                <i class="fa-solid fa-comment-lines me-2"></i> {{__('ingaz.subject')}}
+              </label>
+              <input type="text" id="subject" name="subject" class="form-control" />
+            </div>
+            <div class="col-md-12 p-2">
+              <label class="form-label">
+                <i class="fas fa-feather-alt me-2"></i>{{__('ingaz.Write your message')}}*
+              </label>
+              <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
+              <div class="invalid-feedback"> {{__('ingaz.this field is required')}} </div>
+            </div>
+                {!! NoCaptcha::renderJs() !!}
+    {!! NoCaptcha::display() !!}
+
+    @error('g-recaptcha-response')
+        <span class="text-danger">{{ $message }}</span>
+    @enderror
+
+            <div class="col-md-12 text-center p-2">
+              <button type="submit" class="defaultBtn">
+                {{__('ingaz.send')}} <i class="fas fa-paper-plane ms-2"></i>
+                <span></span>
+              </button>
+            </div>
+          </form>
         </div>
-    </section>
+        <div class="col-md-6 p-2 wow fadeInUp">
+          <section class="googleMap">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d57946.84623396069!2d46.75688!3d24.806481!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0xc74fdd6f15256594!2z2YXZg9iq2Kgg2LHZiNin2YHYryDZhtis2K8g2YTZhNil2LPYqtmC2K_Yp9mF!5e0!3m2!1sar!2ssa!4v1650724949947!5m2!1sar!2ssa"
+              frameborder="0"
+              style="border: 0"
+              allowfullscreen=""
+              aria-hidden="false"
+              tabindex="0"></iframe>
+          </section>
+        </div>
+      </div>
+    </div>
+  </section>
 @endsection
 @section('js')
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
+<script>
+  let map, marker;
+
+  function initMap() {
+    const defaultLocation = {
+      lat: 30.0444,
+      lng: 31.2357
+    }; // القاهرة كمثال
+
+    map = new google.maps.Map(document.getElementById("map"), {
+      zoom: 10,
+      center: defaultLocation,
+    });
+
+    marker = new google.maps.Marker({
+      position: defaultLocation,
+      map: map,
+      draggable: true
+    });
+
+    // عند تحريك العلامة (Marker)
+    google.maps.event.addListener(marker, 'dragend', function(event) {
+      document.getElementById("latitude").value = event.latLng.lat();
+      document.getElementById("longitude").value = event.latLng.lng();
+    });
+  }
+
+  // تحميل الخريطة عند فتح الصفحة
+  window.onload = initMap;
+</script>
+
+<script>
+  $(document).ready(function() {
+    $('#contact-form').on('submit', function(e) {
+      e.preventDefault();
+
+      $.ajax({
+        url: "{{ route('site.contact-us.store') }}",
+        method: 'POST',
+        data: {
+          _token: '{{ csrf_token() }}',
+          name: $('#name').val(),
+          phone: $('#phone').val(),
+          subject: $('#subject').val(),
+          message: $('#message').val(),
+          latitude: $('#latitude').val(),
+          longitude: $('#longitude').val(),
+'g-recaptcha-response': grecaptcha.getResponse()
+
+        },
+        success: function(response) {
+
+          $('#contact-form')[0].reset();
+          Swal.fire({
+            icon: 'success',
+            title: '{{ __("ingaz.success") }}',
+            text: '{{ __("ingaz.success") }}',
+            confirmButtonText: '{{ __("ingaz.ok") }}'
+          });
+        },
+        error: function(xhr) {
+          console.error("خطأ في الطلب:", xhr);
+        }
+      });
+
+
+
+    });
+  });
+</script>
 @endsection

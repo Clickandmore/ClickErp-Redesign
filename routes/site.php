@@ -63,15 +63,17 @@ Route::group(
         Route::resource('support', SupportController::class);
         Route::resource('contact-us', ContactUsController::class);
 
+        Route::resource('contact-us', ContactUsController::class)->names('contact-us');
+        
         Route::resource('profile', ProfileController::class);
         Route::resource('last-orders', OrderController::class);
         Route::resource('chats', ChatController::class);
         Route::resource('notifications', NotificationController::class);
         Route::resource('settings', SettingController::class);
         Route::resource('logout', LogoutController::class);
-
+        
     });
-
+ 
 
 });
 
