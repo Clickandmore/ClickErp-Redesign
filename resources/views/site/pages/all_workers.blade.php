@@ -9,48 +9,28 @@
         </button>
         <ul>
             <li>
-                <a href="index.html"> الرئيسية </a>
+                <a href="{{ route('site.home.index') }}"> {{ __('ingaz.home') }} </a>
             </li>
             <li>
-                <a href="#!" class="active"> طلب استقدام </a>
+                <a href="#!" class="active"> {{ __('ingaz.recruitment_request') }} </a>
             </li>
         </ul>
         <figure>
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                preserveAspectRatio="none"
-                x="0px"
-                y="0px"
-                viewBox="0 0 300 100"
-                style="margin-bottom: -35px; enable-background: new 0 0 300 100"
-                class="injected-svg js-svg-injector"
-                data-parent="#SVGwave1BottomSMShape"
-            >
+            <svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none" x="0px" y="0px" viewBox="0 0 300 100"
+                style="margin-bottom: -35px; enable-background: new 0 0 300 100" class="injected-svg js-svg-injector"
+                data-parent="#SVGwave1BottomSMShape">
                 <g>
-                    <path
-                        class="wave-bottom-1-sm-0"
-                        fill="#fdfdfd"
-                        opacity=".8"
-                        d="M10.9,63.9c0,0,42.9-34.5,87.5-14.2c77.3,35.1,113.3-2,146.6-4.7C293.7,41,315,61.2,315,61.2v54.4H10.9V63.9z"
-                    ></path>
-                    <path
-                        class="wave-bottom-1-sm-0"
-                        fill="#fdfdfd"
-                        opacity=".6"
-                        d="M-55.7,64.6c0,0,42.9-34.5,87.5-14.2c77.3,35.1,113.3-2,146.6-4.7c48.7-4.1,69.9,16.2,69.9,16.2v54.4H-55.7     V64.6z"
-                    ></path>
-                    <path
-                        class="wave-bottom-1-sm-0"
-                        fill="#fdfdfd"
-                        opacity=".4"
-                        fill-opacity="0"
-                        d="M23.4,118.3c0,0,48.3-68.9,109.1-68.9c65.9,0,98,67.9,98,67.9v3.7H22.4L23.4,118.3z"
-                    ></path>
-                    <path
-                        class="wave-bottom-1-sm-0"
-                        fill="#fdfdfd"
-                        d="M-54.7,83c0,0,56-45.7,120.3-27.8c81.8,22.7,111.4,6.2,146.6-4.7c53.1-16.4,104,36.9,104,36.9l1.3,36.7l-372-3     L-54.7,83z"
-                    ></path>
+                    <path class="wave-bottom-1-sm-0" fill="#fdfdfd" opacity=".8"
+                        d="M10.9,63.9c0,0,42.9-34.5,87.5-14.2c77.3,35.1,113.3-2,146.6-4.7C293.7,41,315,61.2,315,61.2v54.4H10.9V63.9z">
+                    </path>
+                    <path class="wave-bottom-1-sm-0" fill="#fdfdfd" opacity=".6"
+                        d="M-55.7,64.6c0,0,42.9-34.5,87.5-14.2c77.3,35.1,113.3-2,146.6-4.7c48.7-4.1,69.9,16.2,69.9,16.2v54.4H-55.7     V64.6z">
+                    </path>
+                    <path class="wave-bottom-1-sm-0" fill="#fdfdfd" opacity=".4" fill-opacity="0"
+                        d="M23.4,118.3c0,0,48.3-68.9,109.1-68.9c65.9,0,98,67.9,98,67.9v3.7H22.4L23.4,118.3z"></path>
+                    <path class="wave-bottom-1-sm-0" fill="#fdfdfd"
+                        d="M-54.7,83c0,0,56-45.7,120.3-27.8c81.8,22.7,111.4,6.2,146.6-4.7c53.1-16.4,104,36.9,104,36.9l1.3,36.7l-372-3     L-54.7,83z">
+                    </path>
                 </g>
             </svg>
         </figure>
@@ -61,20 +41,20 @@
                 <div class="col-md-4 col-lg-4 p-1">
                     <!-- filter -->
                     <div class="filter">
-                        <h4 class="sideTitle mb-4">بحث متقدم</h4>
+                        <h4 class="sideTitle mb-4">{{ __('ingaz.advanced_search') }}</h4>
 
                         <div class="toggleBtns mb-4">
-                            <button type="button" class="btn toggle-btn active" data-target="all">
-                                الكل
+                            <button type="button" class="btn toggle-btn {{ $type == 'all' ? 'active' : '' }}" data-target="all">
+                                {{ __('ingaz.all') }}
                             </button>
-                            <button type="button" class="btn toggle-btn" data-target="estqdam">
-                                استقدام
+                            <button type="button" class="btn toggle-btn {{ $type == 'estqdam' ? 'active' : '' }}" data-target="estqdam">
+                                {{ __('ingaz.recruitment') }}
                             </button>
-                            <button type="button" class="btn toggle-btn" data-target="naql">
-                                نقل خدمات
+                            <button type="button" class="btn toggle-btn {{ $type == 'egar' ? 'active' : '' }}" data-target="egar">
+                                {{ __('ingaz.Labor_rental') }}
                             </button>
-                            <button type="button" class="btn toggle-btn" data-target="egar">
-                                إيجار عمالة
+                            <button type="button" class="btn toggle-btn {{ $type == 'transfer' ? 'active' : '' }}" data-target="transfer">
+                                {{ __('ingaz.Labor_transfer') }}
                             </button>
                         </div>
 
@@ -114,9 +94,7 @@
                                     <option value="">الفليبين</option>
                                 </select>
                             </div>
-                            <div
-                                class="pt-4 d-flex align-items-center justify-content-center flex-wrap"
-                            >
+                            <div class="pt-4 d-flex align-items-center justify-content-center flex-wrap">
                                 <button type="button" class="btn clear m-1">
                                     مسح
                                     <span></span>
@@ -131,311 +109,12 @@
                     <!-- end filter -->
                 </div>
                 <div class="col-md-8 col-lg-8 p-0">
-                    <div class="workers-list">
-                        <div class="row">
-                            <!-- كارد مشترك (ايجار + نقل خدمات) -->
-                            <div
-                                class="col-12 col-md-6 p-2 mb-5"
-                                data-type="egar naql"
-                            >
-                                <a href="cv.html" class="worker-box-link">
-                                    <div class="worker-box">
-                                        <div class="worker-media">
-                                            <img src="assets/images/Driver.jpg" alt="worker"/>
-                                        </div>
-                                        <div class="worker-content">
-                                            <div class="worker-header">
-                                                <div class="worker-age"><span>30</span> سنة</div>
-                                                <div class="worker-id">M-SUM1 / 003</div>
-                                            </div>
-                                            <h4>خالد توفيق مجدي</h4>
-                                            <div class="workerInfo">
-                                                <p>الجنسية : الفلبين</p>
-                                                <p>الديانة : غير مسلم</p>
-                                                <p>المهنة : سائق خاص</p>
-                                                <p>الخبرة : سنة</p>
-                                                <p>التكلفة شاملة الضريبة : 6500 ريال</p>
-                                                <p>مدة الاستقدام / النقل : 20 يوم</p>
-                                            </div>
-                                            <p class="guarantee">
-                                                تنويه : يتم سداد التكاليف عن طريق منصة مساند
-                                            </p>
-                                            <div class="actions">
-                                                <a
-                                                    data-fancybox="cv1"
-                                                    href="assets/images/cv1.webp"
-                                                    class="icon-btn"
-                                                >
-                                                    <i class="fa-regular fa-file-pdf"></i>
-                                                </a>
-                                                <a
-                                                    data-fancybox="video1"
-                                                    href="assets/images/video.mp4"
-                                                    class="icon-btn"
-                                                >
-                                                    <i class="fa-solid fa-video"></i>
-                                                </a>
-                                                <button class="btn">ايجار عمالة</button>
-                                                <button class="btn">نقل خدمات</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-
-                            <!-- كارد خاص بالاستقدام -->
-                            <div class="col-12 col-md-6 p-2 mb-5" data-type="estqdam">
-                                <a href="cv.html" class="worker-box-link">
-                                    <div class="worker-box">
-                                        <div class="worker-media">
-                                            <img src="assets/images/house.png" alt="worker"/>
-                                        </div>
-                                        <div class="worker-content">
-                                            <div class="worker-header">
-                                                <div class="worker-age"><span>25</span> سنة</div>
-                                                <div class="worker-id">K-SUM1 / 002</div>
-                                            </div>
-                                            <h4>ماريا توفيق مجدى</h4>
-                                            <div class="workerInfo">
-                                                <p>الجنسية : الفلبين</p>
-                                                <p>الديانة : غير مسلم</p>
-                                                <p>المهنة : عاملة منزلية</p>
-                                                <p>الخبرة : لم يسبق العمل</p>
-                                                <p>التكلفة شاملة الضريبة : 5700 ريال</p>
-                                                <p>مدة الاستقدام : خلال 45 يوم</p>
-                                            </div>
-                                            <p class="guarantee">
-                                                تنويه : يتم السداد عبر منصة مساند
-                                            </p>
-
-                                            <div class="actions">
-                                                <a
-                                                    data-fancybox="cv2"
-                                                    href="assets/images/cv1.webp"
-                                                    class="icon-btn"
-                                                >
-                                                    <i class="fa-regular fa-file-pdf"></i>
-                                                </a>
-                                                <a
-                                                    data-fancybox="video2"
-                                                    href="assets/images/video.mp4"
-                                                    class="icon-btn"
-                                                >
-                                                    <i class="fa-solid fa-video"></i>
-                                                </a>
-                                                <button class="btn action-btn">استقدام</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-                            <!-- كارد خاص بالاستقدام -->
-                            <div class="col-12 col-md-6 p-2 mb-5" data-type="estqdam">
-                                <a href="cv.html" class="worker-box-link">
-                                    <div class="worker-box">
-                                        <div class="worker-media">
-                                            <img src="assets/images/house.png" alt="worker"/>
-                                        </div>
-                                        <div class="worker-content">
-                                            <div class="worker-header">
-                                                <div class="worker-age"><span>25</span> سنة</div>
-                                                <div class="worker-id">K-SUM1 / 002</div>
-                                            </div>
-                                            <h4>ماريا توفيق مجدى</h4>
-                                            <div class="workerInfo">
-                                                <p>الجنسية : الفلبين</p>
-                                                <p>الديانة : غير مسلم</p>
-                                                <p>المهنة : عاملة منزلية</p>
-                                                <p>الخبرة : لم يسبق العمل</p>
-                                                <p>التكلفة شاملة الضريبة : 5700 ريال</p>
-                                                <p>مدة الاستقدام : خلال 45 يوم</p>
-                                            </div>
-                                            <p class="guarantee">
-                                                تنويه : يتم السداد عبر منصة مساند
-                                            </p>
-
-                                            <div class="actions">
-                                                <a
-                                                    data-fancybox="cv2"
-                                                    href="assets/images/cv1.webp"
-                                                    class="icon-btn"
-                                                >
-                                                    <i class="fa-regular fa-file-pdf"></i>
-                                                </a>
-                                                <a
-                                                    data-fancybox="video2"
-                                                    href="assets/images/video.mp4"
-                                                    class="icon-btn"
-                                                >
-                                                    <i class="fa-solid fa-video"></i>
-                                                </a>
-                                                <button class="btn action-btn">استقدام</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-                            <!-- كارد خاص بالنقل -->
-                            <div class="col-12 col-md-6 p-2 mb-5" data-type="naql">
-                                <a href="cv.html" class="worker-box-link">
-                                    <div class="worker-box">
-                                        <div class="worker-media">
-                                            <img src="assets/images/Driver.jpg" alt="worker"/>
-                                        </div>
-                                        <div class="worker-content">
-                                            <div class="worker-header">
-                                                <div class="worker-age"><span>30</span> سنة</div>
-                                                <div class="worker-id">N-SUM1 / 001</div>
-                                            </div>
-                                            <h4>خالد توفيق مجدى</h4>
-                                            <div class="workerInfo">
-                                                <p>الجنسية : الفلبين</p>
-                                                <p>الديانة : غير مسلم</p>
-                                                <p>المهنة : سائق خاص</p>
-                                                <p>الخبرة : لم يسبق العمل</p>
-                                                <p>التكلفة شاملة الضريبة : 5700 ريال</p>
-                                                <p>مدة النقل : خلال 15 يوم</p>
-                                            </div>
-                                            <p class="guarantee">
-                                                تنويه : يتم سداد التكاليف عن طريق منصة مساند
-                                            </p>
-                                            <div class="actions">
-                                                <a
-                                                    data-fancybox="cv2"
-                                                    href="assets/images/cv1.webp"
-                                                    class="icon-btn"
-                                                >
-                                                    <i class="fa-regular fa-file-pdf"></i>
-                                                </a>
-                                                <a
-                                                    data-fancybox="video2"
-                                                    href="assets/images/video.mp4"
-                                                    class="icon-btn"
-                                                >
-                                                    <i class="fa-solid fa-video"></i>
-                                                </a>
-                                                <button class="btn action-btn">نقل خدمات</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-
-                            <!-- كارد خاص بالإيجار -->
-                            <div class="col-12 col-md-6 p-2 mb-5" data-type="egar">
-                                <a href="cv.html" class="worker-box-link">
-                                    <div class="worker-box">
-                                        <div class="worker-media">
-                                            <img src="assets/images/house.png" alt="worker"/>
-                                        </div>
-                                        <div class="worker-content">
-                                            <div class="worker-header">
-                                                <div class="worker-age"><span>28</span> سنة</div>
-                                                <div class="worker-id">E-SUM1 / 001</div>
-                                            </div>
-                                            <h4>ماريا أحمد</h4>
-                                            <div class="workerInfo">
-                                                <p>الجنسية : أوغندا</p>
-                                                <p>الديانة : مسلم</p>
-                                                <p>المهنة : عاملة منزلية</p>
-                                                <p>الخبرة : سنتين</p>
-                                                <p>الإيجار الشهري : 2500 ريال</p>
-                                                <p>مدة العقد : 6 أشهر</p>
-                                            </div>
-                                            <p class="guarantee">
-                                                تنويه : يتم توثيق العقد عبر منصة مساند
-                                            </p>
-                                            <div class="actions">
-                                                <a
-                                                    data-fancybox="cv2"
-                                                    href="assets/images/cv1.webp"
-                                                    class="icon-btn"
-                                                >
-                                                    <i class="fa-regular fa-file-pdf"></i>
-                                                </a>
-                                                <a
-                                                    data-fancybox="video2"
-                                                    href="assets/images/video.mp4"
-                                                    class="icon-btn"
-                                                >
-                                                    <i class="fa-solid fa-video"></i>
-                                                </a>
-                                                <button class="btn action-btn">ايجار عمالة</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-                            <div class="col-12 col-md-6 p-2 mb-5" data-type="egar naql">
-                                <a href="cv.html" class="worker-box-link">
-                                    <div class="worker-box">
-                                        <div class="worker-media">
-                                            <img src="assets/images/Driver.jpg" alt="worker"/>
-                                        </div>
-                                        <div class="worker-content">
-                                            <div class="worker-header">
-                                                <div class="worker-age"><span>30</span> سنة</div>
-                                                <div class="worker-id">N-SUM1 / 001</div>
-                                            </div>
-                                            <h4>خالد توفيق مجدى</h4>
-                                            <div class="workerInfo">
-                                                <p>الجنسية : الفلبين</p>
-                                                <p>الديانة : غير مسلم</p>
-                                                <p>المهنة : سائق خاص</p>
-                                                <p>الخبرة : لم يسبق العمل</p>
-                                                <p>التكلفة شاملة الضريبة : 5700 ريال</p>
-                                                <p>مدة النقل : خلال 15 يوم</p>
-                                            </div>
-                                            <p class="guarantee">
-                                                تنويه : يتم سداد التكاليف عن طريق منصة مساند
-                                            </p>
-                                            <div class="actions">
-                                                <a
-                                                    data-fancybox="cv2"
-                                                    href="assets/images/cv1.webp"
-                                                    class="icon-btn"
-                                                >
-                                                    <i class="fa-regular fa-file-pdf"></i>
-                                                </a>
-                                                <a
-                                                    data-fancybox="video2"
-                                                    href="assets/images/video.mp4"
-                                                    class="icon-btn"
-                                                >
-                                                    <i class="fa-solid fa-video"></i>
-                                                </a>
-                                                <button class="btn action-btn">نقل خدمات</button>
-                                                <button class="btn action-btn">ايجار عمالة</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-                        </div>
+                    <div class="workers-list" id="workers-list">
+                        @include('site.pages.maids_list', ['maids' => $maids])
                     </div>
-                    <div class="pagination-outer">
+                    <div class="pagination-outer" id="pagination">
                         <div class="pagination-style1">
-                            <ul class="clearfix">
-                                <li class="prev">
-                                    <a href="javascript:;"
-                                    ><span> <i class="fa fa-angle-right"></i> </span
-                                        ></a>
-                                </li>
-                                <li><a href="javascript:;">1</a></li>
-                                <li class="active"><a href="javascript:;">2</a></li>
-                                <li><a href="javascript:;">3</a></li>
-                                <li>
-                                    <a class="javascript:;" href="javascript:;"
-                                    ><i class="fa fa-ellipsis-h"></i
-                                        ></a>
-                                </li>
-                                <li><a href="javascript:;">5</a></li>
-                                <li class="next">
-                                    <a href="javascript:;"
-                                    ><span> <i class="fa fa-angle-left"></i> </span
-                                        ></a>
-                                </li>
-                            </ul>
+                            {{ $maids->links('vendor.pagination.custom_2') }}
                         </div>
                     </div>
                     <!-- Modal -->
@@ -450,25 +129,16 @@
                                         <div class="row">
                                             <div class="col-lg-5 p-2">
                                                 <div class="mainImg">
-                                                    <a
-                                                        data-fancybox="user1-CV"
-                                                        href="assets/images/Driver.jpg"
-                                                    >
-                                                        <img src="assets/images/Driver.jpg" alt=""/>
+                                                    <a data-fancybox="user1-CV" href="assets/images/Driver.jpg">
+                                                        <img src="assets/images/Driver.jpg" alt="" />
                                                     </a>
                                                 </div>
                                                 <div class="moreImgs">
-                                                    <a
-                                                        data-fancybox="user1-CV"
-                                                        href="assets/images/cv1.webp"
-                                                    >
-                                                        <img src="assets/images/cv1.webp" alt=""/>
+                                                    <a data-fancybox="user1-CV" href="assets/images/cv1.webp">
+                                                        <img src="assets/images/cv1.webp" alt="" />
                                                     </a>
-                                                    <a
-                                                        data-fancybox="user1-CV"
-                                                        href="assets/images/cv2.webp"
-                                                    >
-                                                        <img src="assets/images/cv2.webp" alt=""/>
+                                                    <a data-fancybox="user1-CV" href="assets/images/cv2.webp">
+                                                        <img src="assets/images/cv2.webp" alt="" />
                                                     </a>
                                                 </div>
                                             </div>
@@ -526,15 +196,9 @@
             </div>
             <!-- custom Order -->
             <div class="alert fade show customOrder wow fadeInUp" role="alert">
-                <button
-                    type="button"
-                    class="btn-close p-2"
-                    data-bs-dismiss="alert"
-                    aria-label="Close"
-                ></button>
+                <button type="button" class="btn-close p-2" data-bs-dismiss="alert" aria-label="Close"></button>
                 <h6>يمكننا توفير العمالة المناسبة طبقا لمواصفاتك الخاصه</h6>
-                <a class="customBtn" href="recruitment-request.html"
-                ><span></span> تقديم طلب خاص
+                <a class="customBtn" href="recruitment-request.html"><span></span> تقديم طلب خاص
                 </a>
             </div>
             <!-- end custom Order -->
@@ -542,4 +206,56 @@
     </section>
 @endsection
 @section('js')
+
+<script>
+    const toggleBtns = document.querySelectorAll(".toggle-btn");
+    const cards = document.querySelectorAll(".workers-list .col-12");
+    const pagination = document.getElementById("pagination");
+
+    const type = "{{ $type }}";
+
+    // Function to handle filtering
+    function filterCards(target) {
+        let hasVisible = false;
+
+        cards.forEach((card) => {
+            const typeAttr = card.dataset.type || ""; // fallback if missing
+            const types = typeAttr.split(" ").filter(Boolean); // split safely
+
+            if (target === "all" || types.includes(target)) {
+            card.classList.remove("d-none");
+            hasVisible = true;
+            } else {
+            card.classList.add("d-none");
+            }
+        });
+
+        // Show/hide pagination depending on if we have visible items
+        if (hasVisible) {
+            pagination.classList.remove("d-none");
+        } else {
+            pagination.classList.add("d-none");
+        }
+    }
+
+    // Initial state on page load
+    let initialBtn = document.querySelector(`.toggle-btn[data-target="${type}"]`);
+    if (!initialBtn) {
+      initialBtn = document.querySelector(`.toggle-btn[data-target="all"]`);
+    }
+
+    toggleBtns.forEach((b) => b.classList.remove("active"));
+    initialBtn.classList.add("active");
+    filterCards(initialBtn.dataset.target);
+
+    // Handle click events
+    toggleBtns.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        toggleBtns.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        filterCards(btn.dataset.target);
+      });
+    });
+</script>
+
 @endsection
