@@ -492,4 +492,9 @@ class MaidAction extends MainAction
         $maid->save();
         return $maid;
     }
+
+    public function paginate($request,$limit = 10)
+    {
+        return $this->model->paginate($limit);
+    }
 }
