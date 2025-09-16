@@ -28,6 +28,8 @@ class JobTypeRequest extends MainRequest
             'image' => [$this->isMethod('post') ? 'required' : ''],
             'title:en' => 'required',
             'title:ar' => 'required',
+            'description:en' => 'required',
+            'description:ar' => 'required',
         ];
     }
 }

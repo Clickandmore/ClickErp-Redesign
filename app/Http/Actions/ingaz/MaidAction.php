@@ -495,6 +495,36 @@ class MaidAction extends MainAction
 
     public function paginate($request,$limit = 10)
     {
-        return $this->model->paginate($limit);
+        $type = match($request->type){
+            'estqdam' => 1,
+            'egar' => 2,
+            'transfer' => 3,
+            default => null,
+        };
+
+        return $this->model
+        ->when(isset($type), function ($query) use ($type) {
+            $query->whereHas('jobTypes', function ($q) use ($type) {
+                $q->where('job_type_id', $type);
+            });
+        })
+        ->when(isset($request->nationality_id), function($query) use ($request) {
+            $query->where('nationality_id', $request->nationality_id);
+        })
+        ->when(isset($request->age), function($query) use ($request) {
+            if($request->age == '20_30') {
+                $query->whereBetween('age', [20, 30]);
+            } elseif($request->age == '31_40') {
+                $query->whereBetween('age', [31, 40]);
+            } elseif($request->age == '41_50') {
+                $query->whereBetween('age', [41, 50]);
+            }
+        })
+        ->when(isset($request->job), function($query) use ($request) {
+            $query->whereHas('jobTitles', function ($q) use ($request) {
+                $q->where('job_title_id', $request->job);
+            });
+        })
+        ->paginate($limit);
     }
 }

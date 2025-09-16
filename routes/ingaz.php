@@ -48,6 +48,8 @@ use App\Http\Controllers\ingaz\ComplaintController;
 use App\Http\Controllers\ingaz\StepController;
 use App\Http\Controllers\ingaz\ReturnRequestController;
 use App\Http\Controllers\ingaz\ComplaintTypeController;
+use App\Http\Controllers\ingaz\FastNewController;
+use App\Http\Controllers\ingaz\FeatureController;
 use App\Http\Controllers\ingaz\RentalContractTermsController;
 use App\Http\Controllers\ingaz\RequirementsController;
 use App\Models\Client;
@@ -71,13 +73,16 @@ Route::group(
     function () {
         Route::group(["prefix" => "admin", "middleware" => "auth:admin"], function () {
 
-
             Route::resource('partenrs', ClientController::class);
             Route::resource('why-us', WhyUsController::class);
             Route::resource('arrival-workers', ArrivalWorkerController::class);
             Route::resource('testimonials', TestimonialController::class);
             Route::resource('requiremens', RequirementsController::class);
 
+  Route::resource('partenrs', ClientController::class);
+    Route::resource('requiremens', RequirementsController::class);
+    Route::resource('fast-news', FastNewController::class);
+        Route::resource('features', FeatureController::class);
 
             Route::get('getMaidByNationality/{nationalityId}', [RecruitmentContractController::class, 'getMaidByNationality'])->name('getMaidByNationality');
             Route::get('clients/{id}/details', [RecruitmentContractController::class, 'getClientDetails'])->name('clients.details');

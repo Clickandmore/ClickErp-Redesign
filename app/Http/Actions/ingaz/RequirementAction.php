@@ -14,12 +14,5 @@ class RequirementAction extends MainAction
         $this->files = ['image'];
         $this->fileFolder = 'images/requirments/';
     }
-        public function store($data)
-    {
-        if ($data['image']) {
-            $image = $data['image'];
-            $data['image'] = uploadFile($image, $this->fileFolder);
-        }
-        return parent::store($data);
-    }
+   
 }

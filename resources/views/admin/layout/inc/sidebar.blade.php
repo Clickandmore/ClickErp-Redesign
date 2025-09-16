@@ -82,7 +82,7 @@
                     </a>
                 </li>
 
-                <li>
+                     <li>
                     <a class="m-link {{ (Route::currentRouteName() == 'partenrs.index') ? 'active' : '' }}"
                        href="{{route('partenrs.index')}}">
                         <i class="fa fa-user"></i>
@@ -90,7 +90,7 @@
                     </a>
                 </li>
 
-                <li>
+                      <li>
                     <a class="m-link {{ (Route::currentRouteName() == 'requiremens.index') ? 'active' : '' }}"
                        href="{{route('requiremens.index')}}">
                         <i class="fa fa-user"></i>
@@ -539,78 +539,74 @@
                             <span class="ms-2">{{ helperTrans('ingaz.sponsorship_transfer') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['SponsorshipTransfer.create', 'SponsorshipTransfer.index', 'SponsorshipTransfer.webRequests', 'ShelterContract.availableForTransfer', 'SponsorshipTransfer.trial', 'SponsorshipTransfer.failed', 'SponsorshipTransfer.transferred', 'transfer-contract-terms.index', 'transfer-contract-terms.create', 'transfer-contract-terms.edit'])) ? 'show' : '' }}"
+                        <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['SponsorshipTransfer.create', 'SponsorshipTransfer.index', 'SponsorshipTransfer.webRequests', 'ShelterContract.availableForTransfer', 'SponsorshipTransfer.trial', 'SponsorshipTransfer.failed', 'SponsorshipTransfer.transferred', 'transfer-contract-terms.index', 'transfer-contract-terms.create', 'transfer-contract-terms.edit'])) ? 'show' : '' }}" id="sponsorshipTransfer">
                             id="sponsorshipTransfer">
-                            <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['SponsorshipTransfer.create', 'SponsorshipTransfer.index', 'SponsorshipTransfer.webRequests', 'ShelterContract.availableForTransfer', 'SponsorshipTransfer.trial', 'SponsorshipTransfer.failed', 'SponsorshipTransfer.transferred'])) ? 'show' : '' }}"
-                                id="sponsorshipTransfer">
-                                <li>
-                                    <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.index') ? 'active' : '' }}"
-                                       href="{{ route('SponsorshipTransfer.index') }}">
-                                        <i class="fa fa-list"></i>
-                                        <span
-                                            class="ms-2">{{ helperTrans('ingaz.sponsorship_transfer_requests') }}</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.webRequests') ? 'active' : '' }}"
-                                       href="{{ route('SponsorshipTransfer.webRequests') }}">
-                                        <i class="fa fa-globe"></i>
-                                        <span class="ms-2">طلبات الموقع الخارجي</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.create') ? 'active' : '' }}"
-                                       href="{{ route('SponsorshipTransfer.create') }}">
-                                        <i class="fa fa-plus"></i>
-                                        <span class="ms-2">{{ helperTrans('ingaz.add_transfer_request') }}</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="m-link {{ (Route::currentRouteName() == 'ShelterContract.availableForTransfer') ? 'active' : '' }}"
-                                       href="{{ route('ShelterContract.availableForTransfer') }}">
-                                        <i class="fa fa-check-circle"></i>
-                                        <span class="ms-2">{{ helperTrans('ingaz.available_for_transfer') }}</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.trial') ? 'active' : '' }}"
-                                       href="{{ route('SponsorshipTransfer.trial') }}">
-                                        <i class="fa fa-clock-o"></i>
-                                        <span class="ms-2">{{ helperTrans('ingaz.trial_period') }}</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.failed') ? 'active' : '' }}"
-                                       href="{{ route('SponsorshipTransfer.failed') }}">
-                                        <i class="fa fa-times-circle"></i>
-                                        <span class="ms-2">{{ helperTrans('ingaz.trial_failed') }}</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.transferred') ? 'active' : '' }}"
-                                       href="{{ route('SponsorshipTransfer.transferred') }}">
-                                        <i class="fa fa-check"></i>
-                                        <span class="ms-2">{{ helperTrans('ingaz.transferred') }}</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="m-link {{ (in_array(Route::currentRouteName(), ['transfer-contract-terms.index', 'transfer-contract-terms.create', 'transfer-contract-terms.edit'])) ? 'active' : '' }}"
-                                       href="{{ route('transfer-contract-terms.index') }}">
-                                        <i class="fa fa-file-text"></i>
-                                        <span class="ms-2">بنود عقد نقل الكفالة</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="m-link {{ (in_array(Route::currentRouteName(), ['rent-contract-terms.index', 'rent-contract-terms.create', 'rent-contract-terms.edit'])) ? 'active' : '' }}"
-                                       href="{{ route('rent-contract-terms.index') }}">
-                                        <i class="fa fa-file-contract"></i>
-                                        <span class="ms-2">بنود عقد الإيجار</span>
-                                    </a>
-                                </li>
-                            </ul>
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.index') ? 'active' : '' }}"
+                                   href="{{ route('SponsorshipTransfer.index') }}">
+                                    <i class="fa fa-list"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.sponsorship_transfer_requests') }}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.webRequests') ? 'active' : '' }}"
+                                   href="{{ route('SponsorshipTransfer.webRequests') }}">
+                                    <i class="fa fa-globe"></i>
+                                    <span class="ms-2">طلبات الموقع الخارجي</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.create') ? 'active' : '' }}"
+                                   href="{{ route('SponsorshipTransfer.create') }}">
+                                    <i class="fa fa-plus"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.add_transfer_request') }}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'ShelterContract.availableForTransfer') ? 'active' : '' }}"
+                                   href="{{ route('ShelterContract.availableForTransfer') }}">
+                                    <i class="fa fa-check-circle"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.available_for_transfer') }}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.trial') ? 'active' : '' }}"
+                                   href="{{ route('SponsorshipTransfer.trial') }}">
+                                    <i class="fa fa-clock-o"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.trial_period') }}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.failed') ? 'active' : '' }}"
+                                   href="{{ route('SponsorshipTransfer.failed') }}">
+                                    <i class="fa fa-times-circle"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.trial_failed') }}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.transferred') ? 'active' : '' }}"
+                                   href="{{ route('SponsorshipTransfer.transferred') }}">
+                                    <i class="fa fa-check"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.transferred') }}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (in_array(Route::currentRouteName(), ['transfer-contract-terms.index', 'transfer-contract-terms.create', 'transfer-contract-terms.edit'])) ? 'active' : '' }}"
+                                    href="{{ route('transfer-contract-terms.index') }}">
+                                    <i class="fa fa-file-text"></i>
+                                    <span class="ms-2">بنود عقد نقل الكفالة</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ (in_array(Route::currentRouteName(), ['rent-contract-terms.index', 'rent-contract-terms.create', 'rent-contract-terms.edit'])) ? 'active' : '' }}"
+                                    href="{{ route('rent-contract-terms.index') }}">
+                                    <i class="fa fa-file-contract"></i>
+                                    <span class="ms-2">بنود عقد الإيجار</span>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 @endif
-
                 <!-- Settings Section -->
                 {{-- <li class="divider py-2 lh-sm"><span class="small">الإعدادات</span></li> --}}
 
@@ -675,20 +671,18 @@
                             </li>
                         @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::USERS_VIEW))
-                            <li>
-                                <a class="m-link {{ (Route::currentRouteName() == 'countries.index') ? 'active' : '' }}"
-                                   href="{{ route('countries.index') }}">
-                                    <i class="fa fa-globe"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.countries') }}</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="m-link {{ (Route::currentRouteName() == 'cities.index') ? 'active' : '' }}"
-                                   href="{{ route('cities.index') }}">
-                                    <i class="fa fa-city"></i>
-                                    <span class="ms-2">المدن</span>
-                                </a>
-                            </li>
+                        <li>
+                            <a class="m-link {{ (Route::currentRouteName() == 'countries.index') ? 'active' : '' }}" href="{{ route('countries.index') }}">
+                                <i class="fa fa-globe"></i>
+                                <span class="ms-2">{{ helperTrans('ingaz.countries') }}</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="m-link {{ (Route::currentRouteName() == 'cities.index') ? 'active' : '' }}" href="{{ route('cities.index') }}">
+                                <i class="fa fa-city"></i>
+                                <span class="ms-2">المدن</span>
+                            </a>
+                        </li>
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'countries.index') ? 'active' : '' }}"
                                    href="{{ route('countries.index') }}">
@@ -819,33 +813,6 @@
                                 </a>
                             </li>
                         @endif
-                        {{--                @if (@AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW))--}}
-                        <li>
-                            <a class="m-link {{ (Route::currentRouteName() == 'why-us.index') ? 'active' : '' }}"
-                               href="{{route('why-us.index')}}">
-                                <i class="fa fa-envelope"></i>
-                                <span class="ms-2"> {{ helperTrans('ingaz.why_us') }}</span>
-                            </a>
-                        </li>
-                        {{--                @endif--}}
-                        {{--                @if (@AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW))--}}
-                        <li>
-                            <a class="m-link {{ (Route::currentRouteName() == 'testimonials.index') ? 'active' : '' }}"
-                               href="{{route('testimonials.index')}}">
-                                <i class="fa fa-envelope"></i>
-                                <span class="ms-2"> {{ helperTrans('ingaz.testimonials') }}</span>
-                            </a>
-                        </li>
-                        {{--                @endif--}}
-                        {{--                @if (@AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW))--}}
-                        <li>
-                            <a class="m-link {{ (Route::currentRouteName() == 'arrival-workers.index') ? 'active' : '' }}"
-                               href="{{route('arrival-workers.index')}}">
-                                <i class="fa fa-envelope"></i>
-                                <span class="ms-2"> {{ helperTrans('ingaz.arrival_workers') }}</span>
-                            </a>
-                        </li>
-                        {{--                @endif--}}
                     </ul>
                 </li>
 
@@ -868,16 +835,15 @@
                         </a>
                     </li>
                 @endif
-                {{--                @if (@AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW))--}}
-                <li>
-                    <a class="m-link {{ (Route::currentRouteName() == 'offices.index') ? 'active' : '' }}"
-                       href="{{route('offices.index')}}">
-                        <i class="fa fa-envelope"></i>
-                        <span class="ms-2"> {{ helperTrans('ingaz.offices') }}</span>
-                    </a>
-                </li>
-                {{--                @endif--}}
-
+{{--                @if (@AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW))--}}
+                    <li>
+                        <a class="m-link {{ (Route::currentRouteName() == 'offices.index') ? 'active' : '' }}"
+                           href="{{route('offices.index')}}"  >
+                            <i class="fa fa-envelope"></i>
+                            <span class="ms-2"> {{ helperTrans('ingaz.offices') }}</span>
+                        </a>
+                    </li>
+{{--                @endif--}}
             </ul>
         </div>
 

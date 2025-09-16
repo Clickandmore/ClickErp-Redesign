@@ -9,7 +9,7 @@
                     </li>
                 @else
                     <li class="prev">
-                        <a href="{{ $paginator->previousPageUrl() }}">
+                        <a href="{{ $paginator->previousPageUrl() }}&type={{ request('type', 'all') }}">
                             <span><i class="fa fa-angle-right"></i></span>
                         </a>
                     </li>
@@ -28,7 +28,7 @@
                             @if ($page == $paginator->currentPage())
                                 <li class="active"><a href="javascript:;">{{ $page }}</a></li>
                             @else
-                                <li><a href="{{ $url }}">{{ $page }}</a></li>
+                                <li><a href="{{ $url }}&type={{ request('type', 'all') }}">{{ $page }}</a></li>
                             @endif
                         @endforeach
                     @endif
@@ -37,7 +37,7 @@
                 {{-- Next Page Link --}}
                 @if ($paginator->hasMorePages())
                     <li class="next">
-                        <a href="{{ $paginator->nextPageUrl() }}">
+                        <a href="{{ $paginator->nextPageUrl() }}&type={{ request('type', 'all') }}">
                             <span><i class="fa fa-angle-left"></i></span>
                         </a>
                     </li>

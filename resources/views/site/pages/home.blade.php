@@ -7,19 +7,19 @@
         <div class="swiper">
             <div class="swiper-wrapper">
                 @forelse($sliders as $slider)
-                    <div class="swiper-slide" style="background-image: url({{showFile($slider->image)}})">
+                    <div class="swiper-slide" style="background-image: url({{ showFile($slider->image) }})">
                         <div class="info">
                             <h4 class="hint">
-                                {{$slider->title}}
+                                {{ $slider->title }}
                             </h4>
                             <h1 class="sliderTitle">
-                                {{$slider->description}}
+                                {{ $slider->description }}
                             </h1>
                         </div>
                     </div>
                 @empty
                     <!-- swiper-slide -->
-                    <div class="swiper-slide" style="background-image: url({{asset('site')}}/assets/images/s1.webp)">
+                    <div class="swiper-slide" style="background-image: url({{ asset('site') }}/assets/images/s1.webp)">
 
                         <div class="info">
                             <h4 class="hint">
@@ -31,7 +31,7 @@
                         </div>
                     </div>
                     <!-- swiper-slide -->
-                    <div class="swiper-slide" style="background-image: url({{asset('site')}}/assets/images/s2.webp)">
+                    <div class="swiper-slide" style="background-image: url({{ asset('site') }}/assets/images/s2.webp)">
                         <div class="info">
                             <h4 class="hint"> سهولة الاستخدام</h4>
                             <h1 class="sliderTitle">
@@ -74,7 +74,8 @@
         <a href="all-workers.html" class="service">
             <div class="icon">
                 <svg viewBox="0 0 64 64">
-                    <g transform="matrix(1.0799999999999996,0,0,1.0799999999999996,-2.5600001525878824,-2.5600003051757767)">
+                    <g
+                        transform="matrix(1.0799999999999996,0,0,1.0799999999999996,-2.5600001525878824,-2.5600003051757767)">
                         <path
                             d="M10.995 58a3.009 3.009 0 0 1-3-3V9a3.009 3.009 0 0 1 3-3h19a2.015 2.015 0 0 1 2 2v5a5.002 5.002 0 0 0 5 5h5a2.015 2.015 0 0 1 2 2v12.04c.33-.03.67-.04 1.01-.04.33 0 .66.01.99.04V20a3.951 3.951 0 0 0-1.04-2.68c-.04-.05-12.13-12.15-12.13-12.15A4.043 4.043 0 0 0 29.995 4h-19a5.002 5.002 0 0 0-5 5v46a5.002 5.002 0 0 0 5 5h26.54a14.377 14.377 0 0 1-2.71-2z">
                         </path>
@@ -94,9 +95,9 @@
             <div class="icon">
                 <svg viewBox="0 0 64 64">
                     <g>
-                        <path d="M32 4a28 28 0 1 0 28 28A28 28 0 0 0 32 4zm0 52A24 24 0 1 1 56 32 24 24 0 0 1 32 56z"/>
-                        <path d="M32 18a8 8 0 1 0 8 8 8 8 0 0 0-8-8zm0 12a4 4 0 1 1 4-4 4 4 0 0 1-4 4z"/>
-                        <path d="M32 34c-6.63 0-12 4.03-12 9v3h24v-3c0-4.97-5.37-9-12-9z"/>
+                        <path d="M32 4a28 28 0 1 0 28 28A28 28 0 0 0 32 4zm0 52A24 24 0 1 1 56 32 24 24 0 0 1 32 56z" />
+                        <path d="M32 18a8 8 0 1 0 8 8 8 8 0 0 0-8-8zm0 12a4 4 0 1 1 4-4 4 4 0 0 1-4 4z" />
+                        <path d="M32 34c-6.63 0-12 4.03-12 9v3h24v-3c0-4.97-5.37-9-12-9z" />
                     </g>
                 </svg>
             </div>
@@ -115,19 +116,34 @@
         <div class="container">
             <!-- Title & Intro -->
             <div class="section-header text-center mb-5" data-aos="fade-up">
-                <h2 class="section-title">من نحن</h2>
+                <h2 class="section-title">
+                    @if (isset($about) && isset($about->title))
+                        {{ $about->title }}
+                    @else
+                        {{ __('ingaz.about_us') }}
+                </h2>
+                @endif
                 <p class="section-subtitle">
-                    بلاتينيوم الشرقية للاستقدام مرخصة من وزارة العمل والموارد البشرية
-                    لخدمات التوسط في استقدام العمالة الوافدة ومقرها المنطقة الشرقية في
-                    المملكة العربية السعودية، وحرصاً منا على تقديم خدمات متميزة تم
-                    اطلاق منصة رقمية متكاملة لتبسيط عملية الاستقدام وجعلها أكثر كفاءة
-                    وسهولة لعملائنا بما يتوافق مع رؤية المملكة.
+                    @if (isset($about) && isset($about->description))
+                        {!! $about->description !!}
+                    @else
+                        بلاتينيوم الشرقية للاستقدام مرخصة من وزارة العمل والموارد البشرية
+                        لخدمات التوسط في استقدام العمالة الوافدة ومقرها المنطقة الشرقية في
+                        المملكة العربية السعودية، وحرصاً منا على تقديم خدمات متميزة تم
+                        اطلاق منصة رقمية متكاملة لتبسيط عملية الاستقدام وجعلها أكثر كفاءة
+                        وسهولة لعملائنا بما يتوافق مع رؤية المملكة.
+                    @endif
                 </p>
                 <ul class="about-highlights d-flex flex-wrap justify-content-center mt-4" data-aos="fade-up"
                     data-aos-delay="200">
-                    <li><i class="fa-solid fa-headset"></i> خدمة عملاء على مدار الساعة</li>
-                    <li><i class="fa-solid fa-id-card"></i> مرخص من وزارة الموارد البشرية والتنمية الاجتماعية</li>
-                    <li><i class="fa-solid fa-shield-check"></i> معتمدين من منصة مساند للعمالة المنزلية</li>
+                    @forelse($features as $feature)
+                        <li><i class="{{ $feature->image }}"></i> {{ $feature->title }}</li>
+                    @empty
+                        <li><i class="fa-solid fa-headset"></i> خدمة عملاء على مدار الساعة</li>
+
+                        <li><i class="fa-solid fa-id-card"></i> مرخص من وزارة الموارد البشرية والتنمية الاجتماعية</li>
+                        <li><i class="fa-solid fa-shield-check"></i> معتمدين من منصة مساند للعمالة المنزلية</li>
+                    @endforelse
                 </ul>
             </div>
 
@@ -137,12 +153,16 @@
                     <div class="about-card">
                         <span class="about-number">01</span>
                         <i class="fa-solid fa-eye"></i>
-                        <h4>رؤيتنا</h4>
+                        <h4>{{ __('ingaz.vision') }}</h4>
                         <p>
-                            أن نكون الخيار الأول للاستقدام في المملكة العربية السعودية، وذلك
-                            بالتفرد بتقديم أجود الخدمات وانتقاء أجود الكفاءات، والحرص على
-                            راحة العملاء وحفظ حقوقهم، ونحقق ذلك بعد اكتساب ثقة العملاء
-                            وتوصيتهم بنا لمن حولهم.
+                            @if (isset($about) && isset($about->vision))
+                                {!! $about->vision !!}
+                            @else
+                                أن نكون الخيار الأول للاستقدام في المملكة العربية السعودية، وذلك
+                                بالتفرد بتقديم أجود الخدمات وانتقاء أجود الكفاءات، والحرص على
+                                راحة العملاء وحفظ حقوقهم، ونحقق ذلك بعد اكتساب ثقة العملاء
+                                وتوصيتهم بنا لمن حولهم.
+                            @endif
                         </p>
                     </div>
                 </div>
@@ -151,13 +171,17 @@
                     <div class="about-card">
                         <span class="about-number">02</span>
                         <i class="fa-solid fa-envelope-open-text"></i>
-                        <h4>رسالتنا</h4>
+                        <h4>{{ __('ingaz.mission') }}</h4>
                         <p>
-                            <strong>((انسانية))</strong> نفتخر بعملنا كونه يسهم بتوفير موارد
-                            ودخل جيّد لأسرة وفرد بحاجة لهذه الموارد لدعم أسرته وبناء مستقبله،
-                            وبالمقابل توفير سبل الراحة للأسرة السعودية والمقيمة في وطننا
-                            المعطاء. <br/>
-                            ((( احتياجاتكم اولوياتنا ))).
+                            @if (isset($about) && isset($about->mission))
+                                {!! $about->mission !!}
+                            @else
+                                <strong>((انسانية))</strong> نفتخر بعملنا كونه يسهم بتوفير موارد
+                                ودخل جيّد لأسرة وفرد بحاجة لهذه الموارد لدعم أسرته وبناء مستقبله،
+                                وبالمقابل توفير سبل الراحة للأسرة السعودية والمقيمة في وطننا
+                                المعطاء. <br />
+                                ((( احتياجاتكم اولوياتنا ))).
+                            @endif
                         </p>
                     </div>
                 </div>
@@ -166,12 +190,16 @@
                     <div class="about-card">
                         <span class="about-number">03</span>
                         <i class="fa-solid fa-handshake"></i>
-                        <h4>قيمنا</h4>
+                        <h4>{{ __('ingaz.values') }}</h4>
                         <p>
-                            قيمنا تركز على رضى العميل، حيث نولي الأولوية للجودة والكمال في كل
-                            خدماتنا. نحن روح الفريق لتحقيق النجاح، نحرص على السرعة والانجاز
-                            لتلبية احتياجات عملائنا، ونعتبر النزاهة والشفافية أساساً في كل
-                            تعاملاتنا.
+                            @if (isset($about) && isset($about->value))
+                                {!! $about->value !!}
+                            @else
+                                قيمنا تركز على رضى العميل، حيث نولي الأولوية للجودة والكمال في كل
+                                خدماتنا. نحن روح الفريق لتحقيق النجاح، نحرص على السرعة والانجاز
+                                لتلبية احتياجات عملائنا، ونعتبر النزاهة والشفافية أساساً في كل
+                                تعاملاتنا.
+                            @endif
                         </p>
                     </div>
                 </div>
@@ -183,75 +211,75 @@
     <section class="services-sec" id="services">
         <div class="container">
             <div class="headTitle" data-aos="fade-up">
-                <h2>{{__('ingaz.our_services')}}</h2>
-                <p>{{__('ingaz.our_services_desc')}}</p>
+                <h2>{{ __('ingaz.our_services') }}</h2>
+                <p>{{ __('ingaz.our_services_desc') }}</p>
             </div>
             <div class="row">
                 @forelse($services as $service)
-                       <div class="col p-2" data-aos="zoom-in" data-aos-delay="100">
-<a href="#" class="service" style="background-image: url({{ asset($service->image) }})">
-                        <i class="fa-solid fa-passport"></i>
-                        <h3 class="serviceTitle"> {{$service->title}}</h3>
-                        <h6 class="serviceP">
-    {{ Str::limit($service->description, 100) }}
-                         </h6>
-                    </a>
-                </div>
-@empty
-                <div class="col p-2" data-aos="zoom-in" data-aos-delay="100">
-                    <a href="visa.html" class="service" style="background-image: url(assets/images/passport-bg.webp)">
-                        <i class="fa-solid fa-passport"></i>
-                        <h3 class="serviceTitle">إصدار التأشيرة</h3>
-                        <h6 class="serviceP">
-                            طلب اصدار تاشيرة العمالة المنزلية الخاصة بك في برنامج مساند
-                        </h6>
-                    </a>
-                </div>
+                    <div class="col p-2" data-aos="zoom-in" data-aos-delay="100">
+                        <a href="#" class="service" style="background-image: url({{ asset($service->image) }})">
+                            <i class="fa-solid fa-passport"></i>
+                            <h3 class="serviceTitle"> {{ $service->title }}</h3>
+                            <h6 class="serviceP">
+                                {{ Str::limit($service->description, 100) }}
+                            </h6>
+                        </a>
+                    </div>
+                @empty
+                    <div class="col p-2" data-aos="zoom-in" data-aos-delay="100">
+                        <a href="visa.html" class="service" style="background-image: url(assets/images/passport-bg.webp)">
+                            <i class="fa-solid fa-passport"></i>
+                            <h3 class="serviceTitle">إصدار التأشيرة</h3>
+                            <h6 class="serviceP">
+                                طلب اصدار تاشيرة العمالة المنزلية الخاصة بك في برنامج مساند
+                            </h6>
+                        </a>
+                    </div>
 
-                <div class="col p-2" data-aos="zoom-in" data-aos-delay="200">
-                    <a href="select-worker.html" class="service"
-                       style="background-image: url(assets/images/files.webp)">
-                        <i class="fa-solid fa-users-gear"></i>
-                        <h3 class="serviceTitle">اختيار العمالة</h3>
-                        <h6 class="serviceP">
-                            اختيار السيره الذاتيه للعماله المنزليه عبر البحث في برنامج مساند
-                        </h6>
-                    </a>
-                </div>
+                    <div class="col p-2" data-aos="zoom-in" data-aos-delay="200">
+                        <a href="select-worker.html" class="service"
+                            style="background-image: url(assets/images/files.webp)">
+                            <i class="fa-solid fa-users-gear"></i>
+                            <h3 class="serviceTitle">اختيار العمالة</h3>
+                            <h6 class="serviceP">
+                                اختيار السيره الذاتيه للعماله المنزليه عبر البحث في برنامج مساند
+                            </h6>
+                        </a>
+                    </div>
 
-                <div class="col p-2" data-aos="zoom-in" data-aos-delay="300">
-                    <a href="arrive-worker.html" class="service"
-                       style="background-image: url(assets/images/bg-plane.webp)">
-                        <i class="fa-solid fa-plane-arrival"></i>
-                        <h3 class="serviceTitle">وصول العمالة</h3>
-                        <h6 class="serviceP">
-                            وصول العمالة المنزلية من المطار المحلي الى المكتب
-                        </h6>
-                    </a>
-                </div>
+                    <div class="col p-2" data-aos="zoom-in" data-aos-delay="300">
+                        <a href="arrive-worker.html" class="service"
+                            style="background-image: url(assets/images/bg-plane.webp)">
+                            <i class="fa-solid fa-plane-arrival"></i>
+                            <h3 class="serviceTitle">وصول العمالة</h3>
+                            <h6 class="serviceP">
+                                وصول العمالة المنزلية من المطار المحلي الى المكتب
+                            </h6>
+                        </a>
+                    </div>
 
-                <div class="col p-2" data-aos="zoom-in" data-aos-delay="400">
-                    <a href="renew-contract.html" class="service"
-                       style="background-image: url(assets/images/hands.webp)">
-                        <i class="fa-solid fa-file-contract"></i>
-                        <h3 class="serviceTitle">تجديد عقد عاملة</h3>
-                        <h6 class="serviceP">
-                            خدمة تجديد عقد العاملة المنزلية بشكل إلكتروني عبر منصة مساند
-                        </h6>
-                    </a>
-                </div>
+                    <div class="col p-2" data-aos="zoom-in" data-aos-delay="400">
+                        <a href="renew-contract.html" class="service"
+                            style="background-image: url(assets/images/hands.webp)">
+                            <i class="fa-solid fa-file-contract"></i>
+                            <h3 class="serviceTitle">تجديد عقد عاملة</h3>
+                            <h6 class="serviceP">
+                                خدمة تجديد عقد العاملة المنزلية بشكل إلكتروني عبر منصة مساند
+                            </h6>
+                        </a>
+                    </div>
 
-                <div class="col p-2" data-aos="zoom-in" data-aos-delay="500">
-                    <a href="dailyLaborDemand.html" class="service"
-                       style="background-image: url(assets/images/f3.webp)">
-                        <i class="fa-solid fa-users-gear"></i>
-                        <h3 class="serviceTitle">طلب العمالة المهنية</h3>
-                        <h6 class="serviceP">
-                            نحن قادرون على جلب أفضل أنواع العمالة المهنية من مختلف التخصصات لتلبية
-                            احتياجاتك بأعلى جودة وكفاءة
-                        </h6>
-                    </a>
-                </div>
+                    <div class="col p-2" data-aos="zoom-in" data-aos-delay="500">
+                        <a href="dailyLaborDemand.html" class="service"
+                            style="background-image: url(assets/images/f3.webp)">
+                            <i class="fa-solid fa-users-gear"></i>
+                            <h3 class="serviceTitle">طلب العمالة المهنية</h3>
+                            <h6 class="serviceP">
+                                نحن قادرون على جلب أفضل أنواع العمالة المهنية من مختلف التخصصات لتلبية
+                                احتياجاتك بأعلى جودة وكفاءة
+                            </h6>
+                        </a>
+                    </div>
                 @endforelse
             </div>
         </div>
@@ -267,10 +295,10 @@
             @forelse($statics as $static)
                 <div class="stat-card" data-aos="zoom-in" data-aos-delay="100">
                     <div class="icon-wrapper">
-                        <i class="fa-solid fa-{{$static->image}}"></i>
+                        <i class="fa-solid fa-{{ $static->image }}"></i>
                     </div>
-                    <span class="counter" data-target="{{$static->counter_num}}">0</span>
-                    <h6>{{$static->title}}</h6>
+                    <span class="counter" data-target="{{ $static->counter_num }}">0</span>
+                    <h6>{{ $static->title }}</h6>
                 </div>
             @empty
                 <div class="stat-card" data-aos="zoom-in" data-aos-delay="100">
@@ -313,94 +341,112 @@
         <div class="container">
             <!-- Section Title -->
             <div class="headTitle text-start" data-aos="fade-up" data-aos-delay="100">
-                <h2> دول الاستقدام </h2>
-                <p> يمكنك اختيار الدولة التي تتم عملية الاستقدام منها </p>
+                <h2> {{ __('ingaz.Recruitment countries') }} </h2>
+                <p> {{ __('ingaz.countries_desc') }}</p>
             </div>
             <div class="allCountries">
                 <div class="row justify-content-center">
-                    <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="100">
-                        <div class="country">
-                            <img src="assets/images/countries/1.png" alt="">
-                            <h2> اوغندا </h2>
-                            <p>مدة الاستقدام في خلال 60 يوم </p>
-                            <a href="all-workers.html" class="animatedLink">
-                                اطلب الآن
-                                <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                            </a>
+                    @forelse($nationalities as $nationality)
+                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="100">
+                            <div class="country">
+                                <img src="{{ showfile($nationality->image) }}" alt="">
+                                <h2>{{ $nationality->title }}
+                                </h2>
+                                <p>
+                                    {{ $nationality->sub_title }}
+                                </p>
+                                <a href="{{ route('site.all-workers.index') }}?nationality_id={{ $nationality->id }}"
+                                    class="animatedLink">
+                                    {{ __('ingaz.request now') }}
+                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                </a>
+                            </div>
                         </div>
-                    </div>
+                    @empty
+                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="100">
+                            <div class="country">
+                                <img src="assets/images/countries/1.png" alt="">
+                                <h2> اوغندا </h2>
+                                <p>مدة الاستقدام في خلال 60 يوم </p>
+                                <a href="all-workers.html" class="animatedLink">
+                                    اطلب الآن
+                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                </a>
+                            </div>
+                        </div>
 
-                    <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="200">
-                        <div class="country">
-                            <img src="assets/images/countries/2.png" alt="">
-                            <h2> كينيا </h2>
-                            <p>مدة الاستقدام في خلال 60 يوم </p>
-                            <a href="all-workers.html" class="animatedLink">
-                                اطلب الآن
-                                <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                            </a>
+                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="200">
+                            <div class="country">
+                                <img src="assets/images/countries/2.png" alt="">
+                                <h2> كينيا </h2>
+                                <p>مدة الاستقدام في خلال 60 يوم </p>
+                                <a href="all-workers.html" class="animatedLink">
+                                    اطلب الآن
+                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                </a>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="300">
-                        <div class="country">
-                            <img src="assets/images/countries/3.jpeg" alt="">
-                            <h2> بنغلادش </h2>
-                            <p>مدة الاستقدام في خلال 60 يوم </p>
-                            <a href="all-workers.html" class="animatedLink">
-                                اطلب الآن
-                                <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                            </a>
+                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="300">
+                            <div class="country">
+                                <img src="assets/images/countries/3.jpeg" alt="">
+                                <h2> بنغلادش </h2>
+                                <p>مدة الاستقدام في خلال 60 يوم </p>
+                                <a href="all-workers.html" class="animatedLink">
+                                    اطلب الآن
+                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                </a>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="400">
-                        <div class="country">
-                            <img src="assets/images/countries/4.jpeg" alt="">
-                            <h2> الفلبين </h2>
-                            <p>مدة الاستقدام في خلال 60 يوم </p>
-                            <a href="all-workers.html" class="animatedLink">
-                                اطلب الآن
-                                <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                            </a>
+                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="400">
+                            <div class="country">
+                                <img src="assets/images/countries/4.jpeg" alt="">
+                                <h2> الفلبين </h2>
+                                <p>مدة الاستقدام في خلال 60 يوم </p>
+                                <a href="all-workers.html" class="animatedLink">
+                                    اطلب الآن
+                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                </a>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="500">
-                        <div class="country">
-                            <img src="assets/images/countries/5.png" alt="">
-                            <h2> الهند </h2>
-                            <p>مدة الاستقدام في خلال 60 يوم </p>
-                            <a href="all-workers.html" class="animatedLink">
-                                اطلب الآن
-                                <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                            </a>
+                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="500">
+                            <div class="country">
+                                <img src="assets/images/countries/5.png" alt="">
+                                <h2> الهند </h2>
+                                <p>مدة الاستقدام في خلال 60 يوم </p>
+                                <a href="all-workers.html" class="animatedLink">
+                                    اطلب الآن
+                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                </a>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="600">
-                        <div class="country">
-                            <img src="assets/images/countries/6.png" alt="">
-                            <h2> موريتانيا </h2>
-                            <p>مدة الاستقدام في خلال 60 يوم </p>
-                            <a href="all-workers.html" class="animatedLink">
-                                اطلب الآن
-                                <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                            </a>
+                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="600">
+                            <div class="country">
+                                <img src="assets/images/countries/6.png" alt="">
+                                <h2> موريتانيا </h2>
+                                <p>مدة الاستقدام في خلال 60 يوم </p>
+                                <a href="all-workers.html" class="animatedLink">
+                                    اطلب الآن
+                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                </a>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="700">
-                        <div class="country">
-                            <img src="assets/images/countries/7.png" alt="">
-                            <h2> جيبوتي </h2>
-                            <p>مدة الاستقدام في خلال 60 يوم </p>
-                            <a href="all-workers.html" class="animatedLink">
-                                اطلب الآن
-                                <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                            </a>
+                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="700">
+                            <div class="country">
+                                <img src="assets/images/countries/7.png" alt="">
+                                <h2> جيبوتي </h2>
+                                <p>مدة الاستقدام في خلال 60 يوم </p>
+                                <a href="all-workers.html" class="animatedLink">
+                                    اطلب الآن
+                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                </a>
+                            </div>
                         </div>
-                    </div>
+                    @endforelse
                 </div>
             </div>
         </div>
@@ -422,16 +468,19 @@
                 @forelse($steps as $key=>$step)
                     <div class="step" data-aos="fade-up" data-aos-delay="100">
                         <div class="icon">
-                            <i class="fa-thin fa-{{$step->icon}}"></i>
+                            <i class="fa-thin fa-{{ $step->icon }}"></i>
                         </div>
                         <p>
-                            {{$step->title}}
+                            {{ $step->title }}
                         </p>
-                        @if($key == 0)
+                        @if ($key == 0)
                             <div class="images">
-                                <img src="{{asset('site')}}/assets/images/mc.webp" data-aos="zoom-in" data-aos-delay="200">
-                                <img src="{{asset('site')}}/assets/images/visa.webp" data-aos="zoom-in" data-aos-delay="300">
-                                <img src="{{asset('site')}}/assets/images/mada.webp" data-aos="zoom-in" data-aos-delay="400">
+                                <img src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in"
+                                    data-aos-delay="200">
+                                <img src="{{ asset('site') }}/assets/images/visa.webp" data-aos="zoom-in"
+                                    data-aos-delay="300">
+                                <img src="{{ asset('site') }}/assets/images/mada.webp" data-aos="zoom-in"
+                                    data-aos-delay="400">
                             </div>
                         @endif
                     </div>
@@ -445,11 +494,12 @@
                             في البنك او عن طريق القنوات التالية
                         </p>
                         <div class="images">
-                            <img src="{{asset('site')}}/assets/images/mc.webp" data-aos="zoom-in" data-aos-delay="200">
-                            <img src="{{asset('site')}}/assets/images/visa.webp" data-aos="zoom-in"
-                                 data-aos-delay="300">
-                            <img src="{{asset('site')}}/assets/images/mada.webp" data-aos="zoom-in"
-                                 data-aos-delay="400">
+                            <img src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in"
+                                data-aos-delay="200">
+                            <img src="{{ asset('site') }}/assets/images/visa.webp" data-aos="zoom-in"
+                                data-aos-delay="300">
+                            <img src="{{ asset('site') }}/assets/images/mada.webp" data-aos="zoom-in"
+                                data-aos-delay="400">
                         </div>
                     </div>
                     <div class="step" data-aos="fade-up" data-aos-delay="200">
@@ -503,58 +553,59 @@
     <section class="requirements">
         <div class="container">
             <div class="headTitle">
-                <h2 data-aos="fade-up">{{__('ingaz.Recruitment_requirements')}} </h2>
+                <h2 data-aos="fade-up">{{ __('ingaz.Recruitment_requirements') }} </h2>
                 <p data-aos="fade-up">
-{{__('ingaz.requirements_you_need')}}                </p>
+                    {{ __('ingaz.requirements_you_need') }}
+                </p>
             </div>
             <div class="row">
                 <div class="col-md-6 p-2">
                     <div class="requirement">
                         <div class="head" data-aos="fade-up">
-                            <h4>{{__('ingaz.Documents_domestic')}}</h4>
+                            <h4>{{ __('ingaz.Documents_domestic') }}</h4>
                         </div>
                         @forelse($Domestic as $domestic)
-                              <ul>
-                            <li data-aos="fade-up">
-                                <div class="icon">
-                                    <i class="{{$domestic->image}}"></i>
-                                </div>
-                                <p> {{$domestic->title}}</p>
-                            </li>
-                        </ul>
+                            <ul>
+                                <li data-aos="fade-up">
+                                    <div class="icon">
+                                        <i class="{{ $domestic->image }}"></i>
+                                    </div>
+                                    <p> {{ $domestic->title }}</p>
+                                </li>
+                            </ul>
                         @empty
-                        <ul>
-                            <li data-aos="fade-up">
-                                <div class="icon">
-                                    <i class="fa-regular fa-address-card"></i>
-                                </div>
-                                <p> صورة الهوية الوطنية او الاقامة للمقيمين </p>
-                            </li>
-                            <li data-aos="fade-up">
-                                <div class="icon">
-                                    <i class="fa-regular fa-headset"></i>
-                                </div>
-                                <p> خدمة عملاء متميزة </p>
-                            </li>
-                            <li data-aos="fade-up">
-                                <div class="icon">
-                                    <i class="fa-regular fa-building-columns"></i>
-                                </div>
-                                <p> تعريف بالراتب من جهة العمل أو كشف حساب البنك </p>
-                            </li>
-                            <li data-aos="fade-up">
-                                <div class="icon">
-                                    <i class="fa-regular fa-passport"></i>
-                                </div>
-                                <p> التأشيرة الأصل </p>
-                            </li>
-                            <li data-aos="fade-up">
-                                <div class="icon">
-                                    <i class="fa-regular fa-calendar-lines-pen"></i>
-                                </div>
-                                <p> توقيع عقد إستقدام </p>
-                            </li>
-                        </ul>
+                            <ul>
+                                <li data-aos="fade-up">
+                                    <div class="icon">
+                                        <i class="fa-regular fa-address-card"></i>
+                                    </div>
+                                    <p> صورة الهوية الوطنية او الاقامة للمقيمين </p>
+                                </li>
+                                <li data-aos="fade-up">
+                                    <div class="icon">
+                                        <i class="fa-regular fa-headset"></i>
+                                    </div>
+                                    <p> خدمة عملاء متميزة </p>
+                                </li>
+                                <li data-aos="fade-up">
+                                    <div class="icon">
+                                        <i class="fa-regular fa-building-columns"></i>
+                                    </div>
+                                    <p> تعريف بالراتب من جهة العمل أو كشف حساب البنك </p>
+                                </li>
+                                <li data-aos="fade-up">
+                                    <div class="icon">
+                                        <i class="fa-regular fa-passport"></i>
+                                    </div>
+                                    <p> التأشيرة الأصل </p>
+                                </li>
+                                <li data-aos="fade-up">
+                                    <div class="icon">
+                                        <i class="fa-regular fa-calendar-lines-pen"></i>
+                                    </div>
+                                    <p> توقيع عقد إستقدام </p>
+                                </li>
+                            </ul>
                         @endforelse
                     </div>
                 </div>
@@ -562,54 +613,54 @@
                 <div class="col-md-6 p-2">
                     <div class="requirement">
                         <div class="head" data-aos="fade-up">
-                            <h4>{{__('ingaz.Documents_visa')}} </h4>
+                            <h4>{{ __('ingaz.Documents_visa') }} </h4>
                             <p>
-{{__('ingaz.Please_visit_the_Domestic_Workers_Program_Support_website')}}         
-                       <a href="#!"> من هنا </a>
+                                {{ __('ingaz.Please_visit_the_Domestic_Workers_Program_Support_website') }}
+                                <a href="#!"> من هنا </a>
                             </p>
                         </div>
                         @forelse($Visa as $visa)
-                              <ul>
-                            <li data-aos="fade-up">
-                                <div class="icon">
-                                    <i class="{{$visa->image}}"></i>
-                                </div>
-                                <p> {{$visa->title}} </p>
-                            </li>
-                        </ul>
+                            <ul>
+                                <li data-aos="fade-up">
+                                    <div class="icon">
+                                        <i class="{{ $visa->image }}"></i>
+                                    </div>
+                                    <p> {{ $visa->title }} </p>
+                                </li>
+                            </ul>
                         @empty
-                        <ul>
-                            <li data-aos="fade-up">
-                                <div class="icon">
-                                    <i class="fa-regular fa-address-card"></i>
-                                </div>
-                                <p> صورة الهوية الوطنية او الاقامة للمقيمين </p>
-                            </li>
-                            <li data-aos="fade-up">
-                                <div class="icon">
-                                    <i class="fa-regular fa-headset"></i>
-                                </div>
-                                <p> خدمة عملاء متميزة </p>
-                            </li>
-                            <li data-aos="fade-up">
-                                <div class="icon">
-                                    <i class="fa-regular fa-building-columns"></i>
-                                </div>
-                                <p> تعريف بالراتب من جهة العمل أو كشف حساب البنك </p>
-                            </li>
-                            <li data-aos="fade-up">
-                                <div class="icon">
-                                    <i class="fa-regular fa-passport"></i>
-                                </div>
-                                <p> التأشيرة الأصل </p>
-                            </li>
-                            <li data-aos="fade-up">
-                                <div class="icon">
-                                    <i class="fa-regular fa-calendar-lines-pen"></i>
-                                </div>
-                                <p> توقيع عقد إستقدام </p>
-                            </li>
-                        </ul>
+                            <ul>
+                                <li data-aos="fade-up">
+                                    <div class="icon">
+                                        <i class="fa-regular fa-address-card"></i>
+                                    </div>
+                                    <p> صورة الهوية الوطنية او الاقامة للمقيمين </p>
+                                </li>
+                                <li data-aos="fade-up">
+                                    <div class="icon">
+                                        <i class="fa-regular fa-headset"></i>
+                                    </div>
+                                    <p> خدمة عملاء متميزة </p>
+                                </li>
+                                <li data-aos="fade-up">
+                                    <div class="icon">
+                                        <i class="fa-regular fa-building-columns"></i>
+                                    </div>
+                                    <p> تعريف بالراتب من جهة العمل أو كشف حساب البنك </p>
+                                </li>
+                                <li data-aos="fade-up">
+                                    <div class="icon">
+                                        <i class="fa-regular fa-passport"></i>
+                                    </div>
+                                    <p> التأشيرة الأصل </p>
+                                </li>
+                                <li data-aos="fade-up">
+                                    <div class="icon">
+                                        <i class="fa-regular fa-calendar-lines-pen"></i>
+                                    </div>
+                                    <p> توقيع عقد إستقدام </p>
+                                </li>
+                            </ul>
                         @endforelse
                     </div>
                 </div>
@@ -623,32 +674,34 @@
             <div class="swiper referencesSlider">
                 <div class="swiper-wrapper">
                     @forelse($clients as $client)
-                     <div class="swiper-slide" data-aos="zoom-in">
-                        <div class="referenceLogo">
-                            <img src="{{showfile($client->image)}}" alt="">
+                        <div class="swiper-slide" data-aos="zoom-in">
+                            <div class="referenceLogo">
+                                <img src="{{ showfile($client->image) }}" alt="">
+                            </div>
                         </div>
-                    </div>
                     @empty
-                    <div class="swiper-slide" data-aos="zoom-in">
-                        <div class="referenceLogo">
-                            <img src="{{asset('site')}}/assets/images/Ministry-of-Foreign-Affairs-01.svg" alt="">
+                        <div class="swiper-slide" data-aos="zoom-in">
+                            <div class="referenceLogo">
+                                <img src="{{ asset('site') }}/assets/images/Ministry-of-Foreign-Affairs-01.svg"
+                                    alt="">
+                            </div>
                         </div>
-                    </div>
-                    <div class="swiper-slide" data-aos="zoom-in">
-                        <div class="referenceLogo">
-                            <img src="{{asset('site')}}/assets/images/Ministry-of-Interior-01.svg" alt="">
+                        <div class="swiper-slide" data-aos="zoom-in">
+                            <div class="referenceLogo">
+                                <img src="{{ asset('site') }}/assets/images/Ministry-of-Interior-01.svg" alt="">
+                            </div>
                         </div>
-                    </div>
-                    <div class="swiper-slide" data-aos="zoom-in">
-                        <div class="referenceLogo">
-                            <img src="{{asset('site')}}/assets/images/Ministry-of-Labor-and-Social-Development.svg" alt="">
+                        <div class="swiper-slide" data-aos="zoom-in">
+                            <div class="referenceLogo">
+                                <img src="{{ asset('site') }}/assets/images/Ministry-of-Labor-and-Social-Development.svg"
+                                    alt="">
+                            </div>
                         </div>
-                    </div>
-                    <div class="swiper-slide" data-aos="zoom-in">
-                        <div class="referenceLogo">
-                            <img src="{{asset('site')}}/assets/images/musand.svg" alt="">
+                        <div class="swiper-slide" data-aos="zoom-in">
+                            <div class="referenceLogo">
+                                <img src="{{ asset('site') }}/assets/images/musand.svg" alt="">
+                            </div>
                         </div>
-                    </div>
                     @endforelse
                 </div>
                 <div class="swiper-pagination"></div>
@@ -657,148 +710,146 @@
     </section>
 
     <!-- ================ contact Form ================= -->
-   <section class="contactForm">
-    <div class="container">
-      <div class="row">
-        <div class="col-md-6 p-2 mb-5 mb-md-0 wow fadeInUp">
-          <div class="headTitle text-start">
-            <h2> {{__('ingaz.contact')}}</h2>
-            <p>
-              {{__('ingaz.request your mid')}}
-            </p>
-          </div>
-          <form action="" id="contact-form" class="row needs-validation" novalidate>
-            @csrf
+    <section class="contactForm">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 p-2 mb-5 mb-md-0 wow fadeInUp">
+                    <div class="headTitle text-start">
+                        <h2> {{ __('ingaz.contact') }}</h2>
+                        <p>
+                            {{ __('ingaz.request your mid') }}
+                        </p>
+                    </div>
+                    <form action="" id="contact-form" class="row needs-validation" novalidate>
+                        @csrf
 
-            <input type="hidden" name="latitude" id="latitude">
-            <input type="hidden" name="longitude" id="longitude">
-            <div class="col-md-12 p-2">
-              <label class="form-label">
-                <i class="fas fa-user me-2"></i> {{__('ingaz.full name')}}*
-              </label>
-              <input type="text" id="name" name="name" class="form-control" required />
-              <div class="invalid-feedback"> {{__('ingaz.this field is required')}}</div>
-              <div class="valid-feedback">{{__('ingaz.good')}}</div>
-            </div>
-            <div class="col-md-6 p-2">
-              <label class="form-label"><i class="fas fa-phone-alt me-2"></i> {{__('ingaz.phone')}}*
-              </label>
-              <input type="tel" id="phone" name="phone" id="phoneNum" class="form-control" required />
-              <div class="invalid-feedback"> {{__('ingaz.this field is required')}} </div>
-            </div>
-            <div class="col-md-6 p-2">
-              <label class="form-label">
-                <i class="fa-solid fa-comment-lines me-2"></i> {{__('ingaz.subject')}}
-              </label>
-              <input type="text" id="subject" name="subject" class="form-control" />
-            </div>
-            <div class="col-md-12 p-2">
-              <label class="form-label">
-                <i class="fas fa-feather-alt me-2"></i>{{__('ingaz.Write your message')}}*
-              </label>
-              <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
-              <div class="invalid-feedback"> {{__('ingaz.this field is required')}} </div>
-            </div>
-                {!! NoCaptcha::renderJs() !!}
-    {!! NoCaptcha::display() !!}
+                        <input type="hidden" name="latitude" id="latitude">
+                        <input type="hidden" name="longitude" id="longitude">
+                        <div class="col-md-12 p-2">
+                            <label class="form-label">
+                                <i class="fas fa-user me-2"></i> {{ __('ingaz.full name') }}*
+                            </label>
+                            <input type="text" id="name" name="name" class="form-control" required />
+                            <div class="invalid-feedback"> {{ __('ingaz.this field is required') }}</div>
+                            <div class="valid-feedback">{{ __('ingaz.good') }}</div>
+                        </div>
+                        <div class="col-md-6 p-2">
+                            <label class="form-label"><i class="fas fa-phone-alt me-2"></i> {{ __('ingaz.phone') }}*
+                            </label>
+                            <input type="tel" id="phone" name="phone" id="phoneNum" class="form-control"
+                                required />
+                            <div class="invalid-feedback"> {{ __('ingaz.this field is required') }} </div>
+                        </div>
+                        <div class="col-md-6 p-2">
+                            <label class="form-label">
+                                <i class="fa-solid fa-comment-lines me-2"></i> {{ __('ingaz.subject') }}
+                            </label>
+                            <input type="text" id="subject" name="subject" class="form-control" />
+                        </div>
+                        <div class="col-md-12 p-2">
+                            <label class="form-label">
+                                <i class="fas fa-feather-alt me-2"></i>{{ __('ingaz.Write your message') }}*
+                            </label>
+                            <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
+                            <div class="invalid-feedback"> {{ __('ingaz.this field is required') }} </div>
+                        </div>
+                        {!! NoCaptcha::renderJs() !!}
+                        {!! NoCaptcha::display() !!}
 
-    @error('g-recaptcha-response')
-        <span class="text-danger">{{ $message }}</span>
-    @enderror
+                        @error('g-recaptcha-response')
+                            <span class="text-danger">{{ $message }}</span>
+                        @enderror
 
-            <div class="col-md-12 text-center p-2">
-              <button type="submit" class="defaultBtn">
-                {{__('ingaz.send')}} <i class="fas fa-paper-plane ms-2"></i>
-                <span></span>
-              </button>
+                        <div class="col-md-12 text-center p-2">
+                            <button type="submit" class="defaultBtn">
+                                {{ __('ingaz.send') }} <i class="fas fa-paper-plane ms-2"></i>
+                                <span></span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-6 p-2 wow fadeInUp">
+                    <section class="googleMap">
+                        <iframe
+                            src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d57946.84623396069!2d46.75688!3d24.806481!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0xc74fdd6f15256594!2z2YXZg9iq2Kgg2LHZiNin2YHYryDZhtis2K8g2YTZhNil2LPYqtmC2K_Yp9mF!5e0!3m2!1sar!2ssa!4v1650724949947!5m2!1sar!2ssa"
+                            frameborder="0" style="border: 0" allowfullscreen="" aria-hidden="false"
+                            tabindex="0"></iframe>
+                    </section>
+                </div>
             </div>
-          </form>
         </div>
-        <div class="col-md-6 p-2 wow fadeInUp">
-          <section class="googleMap">
-            <iframe
-              src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d57946.84623396069!2d46.75688!3d24.806481!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0xc74fdd6f15256594!2z2YXZg9iq2Kgg2LHZiNin2YHYryDZhtis2K8g2YTZhNil2LPYqtmC2K_Yp9mF!5e0!3m2!1sar!2ssa!4v1650724949947!5m2!1sar!2ssa"
-              frameborder="0"
-              style="border: 0"
-              allowfullscreen=""
-              aria-hidden="false"
-              tabindex="0"></iframe>
-          </section>
-        </div>
-      </div>
-    </div>
-  </section>
+    </section>
 @endsection
 @section('js')
-<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
-<script>
-  let map, marker;
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
+    <script>
+        let map, marker;
 
-  function initMap() {
-    const defaultLocation = {
-      lat: 30.0444,
-      lng: 31.2357
-    }; // القاهرة كمثال
+        function initMap() {
+            const defaultLocation = {
+                lat: 30.0444,
+                lng: 31.2357
+            }; // القاهرة كمثال
 
-    map = new google.maps.Map(document.getElementById("map"), {
-      zoom: 10,
-      center: defaultLocation,
-    });
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 10,
+                center: defaultLocation,
+            });
 
-    marker = new google.maps.Marker({
-      position: defaultLocation,
-      map: map,
-      draggable: true
-    });
+            marker = new google.maps.Marker({
+                position: defaultLocation,
+                map: map,
+                draggable: true
+            });
 
-    // عند تحريك العلامة (Marker)
-    google.maps.event.addListener(marker, 'dragend', function(event) {
-      document.getElementById("latitude").value = event.latLng.lat();
-      document.getElementById("longitude").value = event.latLng.lng();
-    });
-  }
-
-  // تحميل الخريطة عند فتح الصفحة
-  window.onload = initMap;
-</script>
-
-<script>
-  $(document).ready(function() {
-    $('#contact-form').on('submit', function(e) {
-      e.preventDefault();
-
-      $.ajax({
-        url: "{{ route('site.contact-us.store') }}",
-        method: 'POST',
-        data: {
-          _token: '{{ csrf_token() }}',
-          name: $('#name').val(),
-          phone: $('#phone').val(),
-          subject: $('#subject').val(),
-          message: $('#message').val(),
-          latitude: $('#latitude').val(),
-          longitude: $('#longitude').val(),
-'g-recaptcha-response': grecaptcha.getResponse()
-
-        },
-        success: function(response) {
-
-          $('#contact-form')[0].reset();
-          Swal.fire({
-            icon: 'success',
-            title: '{{ __("ingaz.success") }}',
-            text: '{{ __("ingaz.success") }}',
-            confirmButtonText: '{{ __("ingaz.ok") }}'
-          });
-        },
-        error: function(xhr) {
-          console.error("خطأ في الطلب:", xhr);
+            // عند تحريك العلامة (Marker)
+            google.maps.event.addListener(marker, 'dragend', function(event) {
+                document.getElementById("latitude").value = event.latLng.lat();
+                document.getElementById("longitude").value = event.latLng.lng();
+            });
         }
-      });
+
+        // تحميل الخريطة عند فتح الصفحة
+        window.onload = initMap;
+    </script>
+
+    <script>
+        $(document).ready(function() {
+            $('#contact-form').on('submit', function(e) {
+                e.preventDefault();
+
+                $.ajax({
+                    url: "{{ route('site.contact-us.store') }}",
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        name: $('#name').val(),
+                        phone: $('#phone').val(),
+                        subject: $('#subject').val(),
+                        message: $('#message').val(),
+                        latitude: $('#latitude').val(),
+                        longitude: $('#longitude').val(),
+                        'g-recaptcha-response': grecaptcha.getResponse()
+
+                    },
+                    success: function(response) {
+
+                        $('#contact-form')[0].reset();
+                        Swal.fire({
+                            icon: 'success',
+                            title: '{{ __('ingaz.success') }}',
+                            text: '{{ __('ingaz.success') }}',
+                            confirmButtonText: '{{ __('ingaz.ok') }}'
+                        });
+                    },
+                    error: function(xhr) {
+                        console.error("خطأ في الطلب:", xhr);
+                    }
+                });
 
 
 
-    });
-  });
-</script>
+            });
+        });
+    </script>
 @endsection
