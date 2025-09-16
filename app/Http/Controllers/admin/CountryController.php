@@ -57,13 +57,21 @@ class CountryController extends Controller
             'currency' => 'nullable|string|size:3',
             'currency_symbol' => 'nullable|string|max:10',
             'is_active' => 'boolean',
-            'sort_order' => 'integer'
+            'sort_order' => 'integer',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048'
         ]);
 
         if ($validator->fails()) {
             return redirect()->back()
                 ->withErrors($validator)
                 ->withInput();
+        }
+
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $imageName = time() . '.' . $image->getClientOriginalExtension();
+            $image->move(public_path('images/countries'), $imageName);
+            $request->merge(['image' => $imageName]);
         }
 
         Country::create($request->all());
@@ -87,7 +95,10 @@ class CountryController extends Controller
             'currency' => 'nullable|string|size:3',
             'currency_symbol' => 'nullable|string|max:10',
             'is_active' => 'boolean',
-            'sort_order' => 'integer'
+            'sort_order' => 'integer',
+            'description_ar' => 'nullable|string',
+            'description_en' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048'
         ]);
 
         if ($validator->fails()) {
@@ -95,7 +106,12 @@ class CountryController extends Controller
                 ->withErrors($validator)
                 ->withInput();
         }
-
+if($request->hasFile('image')) {
+    $image = $request->file('image');
+    $imageName = time() . '.' . $image->getClientOriginalExtension();
+    $image->move(public_path('images/countries'), $imageName);
+    $request->merge(['image' => $imageName]);
+}
         $country->update($request->all());
 
         return redirect()->route('countries.index')

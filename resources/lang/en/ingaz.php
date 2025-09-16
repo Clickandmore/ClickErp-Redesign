@@ -914,6 +914,11 @@
   'fastnews' => 'Fast News',
   'fastNews' => 'Fast News',
   'last_news' => 'Last News',
-
+ 'Recruitment countries'=>'Recruitment countries',
+  'countries_desc'=>'You can choose the country from which the recruitment process is carried out.',
+  'request now'=>'Request now',
+  'mission'=>'Mission',
+  'vision'=>'Vision',
+  'values'=>'Values',
 
 );

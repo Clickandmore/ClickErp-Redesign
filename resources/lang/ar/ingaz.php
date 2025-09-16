@@ -979,5 +979,8 @@
   'mission' => 'رسالتنا',
   'about' => 'من نحن',
   'features' => 'مميزات',
+    'countries_desc'=>'يمكنك اختيار الدولة التي تتم عملية الاستقدام منها ',
+'Recruitment countries'=>'دول الاستقدام',
   'features   ' => 'Features   ',
+    'request now'=>'اطلب الان',
 );

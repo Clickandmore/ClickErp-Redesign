@@ -341,11 +341,28 @@
     <div class="container">
         <!-- Section Title -->
         <div class="headTitle text-start" data-aos="fade-up" data-aos-delay="100">
-            <h2> دول الاستقدام </h2>
-            <p> يمكنك اختيار الدولة التي تتم عملية الاستقدام منها </p>
+            <h2>   {{__('ingaz.Recruitment countries')}} </h2>
+            <p> {{__('ingaz.countries_desc')}}</p>
         </div>
         <div class="allCountries">
             <div class="row justify-content-center">
+                @forelse($countries as $country)
+                     <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="100">
+                    <div class="country">
+                        <img src="{{showfile($country->image)}}" alt="">
+                    <h2>
+    {{ app()->getLocale() == 'ar' ? $country->name_ar : $country->name_en }}
+</h2>
+<p>
+    {{ app()->getLocale() == 'ar' ? $country->description_ar : $country->description_en }}
+</p>
+                        <a href="{{route('site.all-workers.index')}}" class="animatedLink">
+                            {{__('ingaz.request now')}}
+                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                        </a>
+                    </div>
+                </div>
+                @empty
                 <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="100">
                     <div class="country">
                         <img src="assets/images/countries/1.png" alt="">
@@ -429,6 +446,7 @@
                         </a>
                     </div>
                 </div>
+                @endforelse
             </div>
         </div>
     </div>
