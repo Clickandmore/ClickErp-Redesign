@@ -8,38 +8,38 @@
         <!-- col -->
         <div class="imageCol">
             <div class="image">
-                <img src="assets/images/house.png" alt=""/>
+                <img src="{{showFile($maid->image)}}" alt=""/>
             </div>
             <div class="mainInfo">
                 <!-- sub -->
                 <div class="sub">
-                    <h5 class="title">الجنسيه</h5>
-                    <p class="dis">الفلبين</p>
+                    <h5 class="title">{{__("ingaz.nationality")}}</h5>
+                    <p class="dis">{{$maid->nationality->title ?? ''}}</p>
                 </div>
                 <!-- sub -->
                 <div class="sub">
-                    <h5 class="title">المهنه :</h5>
-                    <p class="dis">عامله منزليه</p>
+                    <h5 class="title">{{__("ingaz.job_title")}}</h5>
+                    <p class="dis">{{$maid->jobTitles->first()->title ?? ''}}</p>
                 </div>
                 <!-- sub -->
                 <div class="sub">
-                    <h5 class="title">الديانه :</h5>
-                    <p class="dis">غير الاسلام</p>
+                    <h5 class="title">{{__("ingaz.religion")}} : </h5>
+                    <p class="dis">{{$maid->religion->title ?? ''}}</p>
                 </div>
                 <!-- sub -->
                 <div class="sub">
-                    <h5 class="title">العمر :</h5>
-                    <p class="dis">30</p>
+                    <h5 class="title">{{__("ingaz.age")}} :</h5>
+                    <p class="dis">{{$maid->age ?? ''}}</p>
                 </div>
                 <!-- sub -->
                 <div class="sub">
-                    <h5 class="title">الخبره :</h5>
-                    <p class="dis">لم يسبق العمل</p>
+                    <h5 class="title">{{__("ingaz.experience")}} :</h5>
+                    <p class="dis">{{ $maid->experience_years != null && $maid->experience_years > 0 ? $maid->experience_years : '' }} {{__("ingaz.year")}}</p>
                 </div>
                 <!-- sub -->
                 <div class="sub">
-                    <h5 class="title">الراتب الشهري :</h5>
-                    <p class="dis">1200</p>
+                    <h5 class="title">{{__("ingaz.month_salary")}} :</h5>
+                    <p class="dis">{{ $maid->salary ?? '' }} {{__("ingaz.SAR")}}</p>
                 </div>
                 <!-- languages -->
                 <div class="languages">
@@ -74,19 +74,19 @@
             <div class="head">
                 <div class="name">
                     <div class="data">
-                        <p class="innerTitle">اسم العامله :</p>
-                        <h3 class="innerData">فاطمة أحمد</h3>
+                        <p class="innerTitle">{{__("ingaz.name")}} :</p>
+                        <h3 class="innerData">{{ $maid->name ?? '' }}</h3>
                     </div>
                     <div class="data">
-                        <p class="innerTitle">رقم الجواز :</p>
-                        <h6 class="innerData">25248579557855</h6>
+                        <p class="innerTitle">{{__('ingaz.passport_number')}} :</p>
+                        <h6 class="innerData">{{$maid->passport_num ?? ''}}</h6>
                     </div>
                     <div class="data">
-                        <p class="innerTitle">رقم السيره الذاتيه :</p>
+                        <p class="innerTitle">{{__('ingaz.cv_number')}} :</p>
                         <div class="passportNumbers">
-                            <span> 5646 </span>
+                            <span> {{ $maid->st_code ?? '' }} </span>
                             <span>/</span>
-                            <span> 45854 </span>
+                            <span> {{ $maid->int_code ?? '' }} </span>
                         </div>
                     </div>
                 </div>

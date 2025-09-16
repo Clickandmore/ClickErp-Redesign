@@ -32,5 +32,13 @@ class AllWorkerController extends Controller
         return view('site.pages.all_workers', $data);
     }
 
+    public function show($id, Request $request, MaidAction $maidAction)
+    {
+        $maid = $maidAction->find($id);
+        if(!$maid){
+            return redirect()->route('site.all-workers.index');
+        }
+        return view('site.pages.cv_details', ['maid' => $maid]);
+    }
 
 }
