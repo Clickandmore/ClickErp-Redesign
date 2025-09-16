@@ -32,7 +32,7 @@ class RequirementsController extends Controller
                 ->addIndexColumn()
              ->editColumn('image', function ($row) {
     if ($row->image) {
-        return '<img src="' . asset('storage/' . $row->image) . '" width="80" height="80" style="object-fit:cover;border-radius:8px;">';
+    return '<i class="' . $row->image . '"></i>';
     }
     return '<span class="text-muted">No Image</span>';
 })->editColumn('title', function ($row) {

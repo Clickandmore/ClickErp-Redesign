@@ -25,10 +25,16 @@ class AboutUsRequest extends MainRequest
     public function rules()
     {
         return [
-            'title:en' => 'required',
-            'description:en' => 'required',
-            'title:ar' => 'required',
-            'description:ar' => 'required',
+            'title:en' => 'sometimes',
+            'description:en' => 'sometimes',
+            'title:ar' => 'sometimes',
+            'description:ar' => 'sometimes',
+            'mission:en' => 'sometimes',
+            'vision:en' => 'sometimes',
+            'mission:ar' => 'sometimes',
+            'vision:ar' => 'sometimes',
+            'value:en' => 'sometimes',
+            'value:ar' => 'sometimes',
         ];
     }
 }

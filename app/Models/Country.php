@@ -9,12 +9,15 @@ class Country extends Model
     protected $fillable = [
         'name_ar',
         'name_en',
+        'description_ar',
+        'description_en',
         'code',
         'phone_code',
         'currency',
         'currency_symbol',
         'is_active',
-        'sort_order'
+        'sort_order',
+        'image'
     ];
 
     protected $casts = [

@@ -508,8 +508,8 @@ class MaidAction extends MainAction
                 $q->where('job_type_id', $type);
             });
         })
-        ->when(isset($request->nationality), function($query) use ($request) {
-            $query->where('nationality_id', $request->nationality);
+        ->when(isset($request->nationality_id), function($query) use ($request) {
+            $query->where('nationality_id', $request->nationality_id);
         })
         ->when(isset($request->age), function($query) use ($request) {
             if($request->age == '20_30') {

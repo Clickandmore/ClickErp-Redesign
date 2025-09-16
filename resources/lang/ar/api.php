@@ -17,4 +17,6 @@
   'return_request' => 'Return request',
   'parteners' => 'Parteners',
   'Recruitment requirements' => 'Recruitment requirements',
+  'Fast news' => 'Fast news',
+  'Features' => 'Features',
 );

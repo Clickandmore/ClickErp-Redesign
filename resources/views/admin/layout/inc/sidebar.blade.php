@@ -82,21 +82,7 @@
                     </a>
                 </li>
 
-                     <li>
-                    <a class="m-link {{ (Route::currentRouteName() == 'partenrs.index') ? 'active' : '' }}"
-                       href="{{route('partenrs.index')}}">
-                        <i class="fa fa-user"></i>
-                        <span class="ms-2"> {{ helperTrans('ingaz.partenrs') }}</span>
-                    </a>
-                </li>
-
-                      <li>
-                    <a class="m-link {{ (Route::currentRouteName() == 'requiremens.index') ? 'active' : '' }}"
-                       href="{{route('requiremens.index')}}">
-                        <i class="fa fa-user"></i>
-                        <span class="ms-2"> {{ helperTrans('ingaz.requiremens') }}</span>
-                    </a>
-                </li>
+              
 
 
                 <!-- CV Management Section -->
@@ -815,6 +801,35 @@
                                 </a>
                             </li>
                         @endif
+                               <li>
+                    <a class="m-link {{ (Route::currentRouteName() == 'partenrs.index') ? 'active' : '' }}"
+                       href="{{route('partenrs.index')}}">
+                        <i class="fa fa-user"></i>
+                        <span class="ms-2"> {{ helperTrans('ingaz.partenrs') }}</span>
+                    </a>
+                </li>
+
+                      <li>
+                    <a class="m-link {{ (Route::currentRouteName() == 'requiremens.index') ? 'active' : '' }}"
+                       href="{{route('requiremens.index')}}">
+                        <i class="fa fa-user"></i>
+                        <span class="ms-2"> {{ helperTrans('ingaz.requiremens') }}</span>
+                    </a>
+                </li>
+                        <li>
+                    <a class="m-link {{ (Route::currentRouteName() == 'fast-news.index') ? 'active' : '' }}"
+                       href="{{route('fast-news.index')}}">
+                        <i class="fa fa-user"></i>
+                        <span class="ms-2"> {{ helperTrans('ingaz.fastnews') }}</span>
+                    </a>
+                </li>
+                             <li>
+                    <a class="m-link {{ (Route::currentRouteName() == 'features.index') ? 'active' : '' }}"
+                       href="{{route('features.index')}}">
+                        <i class="fa fa-user"></i>
+                        <span class="ms-2"> {{ helperTrans('ingaz.features') }}</span>
+                    </a>
+                </li>
                     </ul>
                 </li>
 

@@ -103,7 +103,7 @@
                                         placeholder=" {{ __('ingaz.Enter the visa number') }}  ">
                                     <span
                                         class="hint">{{ __('ingaz.If the visa has not been issued yet, you can find out by:') }}
-                                        <a href="visa.html">{{ __('ingaz.Visa issuance') }} </a> </span>
+                                        <a href="{{route('site.visa.index')}}">{{ __('ingaz.Visa issuance') }} </a> </span>
                                 </div>
                                 <div class="col-sm-6 pb-3 p-2">
                                     <label for="" class="form-label"> {{ __('ingaz.nationality is required') }}
@@ -173,14 +173,13 @@
                                     <div class="pt-1">
                                         <div class="form-check px-4">
                                             <input class="form-check-input" type="radio" name="worker_status"
-                                                id="worker_status1" value="new_come">
+                                                id="worker_status1" value="new_come" checked>
                                             <label class="form-check-label" for="worker_status1">
                                                 {{ __('ingaz.new_come') }}
                                             </label>
                                         </div>
                                         <div class="form-check px-4">
-                                            <input class="form-check-input" type="radio" name="worker_status" id="worker_status2" value="have_experince"
-                                                checked>
+                                            <input class="form-check-input" type="radio" name="worker_status" id="worker_status2" value="have_experince">
                                             <label class="form-check-label" for="worker_status2">
                                                 {{ __('ingaz.have_experince') }}
                                             </label>

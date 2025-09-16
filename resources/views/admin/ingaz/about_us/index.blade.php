@@ -1,63 +1,113 @@
 @extends('admin.layout.indexs.index')
-@section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
-@endsection
+
 @section('page-title')
-    {{helperTrans("ingaz.about_us")}}
+{{helperTrans("ingaz.about_us")}}
 @endsection
+
 @section('content')
-@if (@AdminGuardHasPerm(\App\PermKeys::ABOUT_US_VIEW))
 
-    @if (@AdminGuardHasPerm(\App\PermKeys::ABOUT_US_CONTROL))
-        {!! addButton(route("about-us.create") ,helperTrans("ingaz.about_us")) !!}
+@php
+    $route ="";
+    $method = "POST";
+    if(isset($about)){
+        $route = route('about-us.update', $about->id);
+        $method = "PUT";
+     }
+    else
+    {
+        $route = route('about-us.store');
+ 
+    }
+@endphp
+
+<form class="row" action="{{ $route}}" method="post" enctype="multipart/form-data">
+ @csrf
+    @if(isset($about))
+        @method('PUT')
     @endif
+    @foreach (config('translatable.locales') as $locale)
+    <div class="col-6">
+        <label for="TextInput" class="form-label">
+            {{helperTrans("ingaz.title")}}
+            ({{helperTrans('ingaz.'.$locale)}})
+        </label>
+        <input type="text" name="title:{{ $locale }}" class="form-control" data-validation="required">
+    </div>
+@endforeach
+    @foreach (config('translatable.locales') as $locale)
+    <div class="col-6">
+        <label for="TextInput" class="form-label">
+            {{helperTrans("ingaz.about")}}
+            ({{helperTrans('ingaz.'.$locale)}})
+        </label>
+        <textarea name="description:{{ $locale }}" class="form-control mytextarea" rows="10" data-validation="required">
+         </textarea>
+    </div>
 
-    <p>{{helperTrans('ingaz.shown in the site home page and they are 4 rows')}}</p>
-    <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
-        <thead>
-        <tr>
-            <th>#</th>
-            <th>{{helperTrans("ingaz.title")}}</th>
-{{--            <th>{{helperTrans("ingaz.description")}}</th>--}}
-            <th>{{helperTrans("ingaz.actions")}}</th>
-        </tr>
-        </thead>
-        <tbody>
+    @endforeach
 
-        </tbody>
-    </table>
+    @foreach (config('translatable.locales') as $locale)
+    <div class="col-6">
+        <label for="TextInput" class="form-label">
+            {{helperTrans("ingaz.mission")}}
+            ({{helperTrans('ingaz.'.$locale)}})
+        </label>
+        <textarea type="text" name="mission:{{ $locale }}" class="form-control mytextarea" data-validation="required"></textarea>
+    </div>
 
-@else
-    @include('components.no_permissions')
-@endif
+    @endforeach
+
+    @foreach (config('translatable.locales') as $locale)
+    <div class="col-6">
+        <label for="TextInput" class="form-label">
+            {{helperTrans("ingaz.vision")}}
+            ({{helperTrans('ingaz.'.$locale)}})
+        </label>
+        <textarea type="text" name="vision:{{ $locale }}" class="form-control mytextarea" data-validation="required"></textarea>
+    </div>
+
+    @endforeach
+    @foreach (config('translatable.locales') as $locale)
+    <div class="col-6">
+        <label for="TextInput" class="form-label">
+            {{helperTrans("ingaz.value")}}
+            ({{helperTrans('ingaz.'.$locale)}})
+        </label>
+        <textarea type="text" name="value:{{ $locale }}" class="form-control mytextarea" data-validation="required"></textarea>
+    </div>
+
+    @endforeach
+
+    <div class="mb-3 row">
+        <div class="col-sm-12 text-center">
+            <button type="submit" class="btn btn-primary">{{ __('admin.save') }}</button>
+        </div>
+    </div>
+</form>
+
 
 @endsection
+
 @section('js')
+@include('components.ckeditor')
 
-    <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
-    <script src="{{asset('admin')}}/assets/js/tinymce.min.js"></script>
-
-    <script>
-        $(document).ready(function () {
-            let columns = [
-                {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
-                {"data": "title", orderable: true, searchable: true},
-                // {"data": "description", orderable: false, searchable: false},
-                {"data": "actions", orderable: false, searchable: false}
-            ];
-            showDataTable("{{route("about-us.index")}}", columns);
-        });
-    </script>
-
-
-    <script>
-        $(document).ready(function () {
+ <script src="{{asset('admin')}}/assets/js/tinymce.min.js"></script>
+<script>
+    $(document).ready(function () {
             tinymce.init({
                 selector: '.mytextarea',
                 plugins: 'ai tinycomments mentions anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount checklist mediaembed casechange export formatpainter pageembed permanentpen footnotes advtemplate advtable advcode editimage tableofcontents mergetags powerpaste tinymcespellchecker autocorrect a11ychecker typography inlinecss textcolor colorpicker',
                 toolbar: 'undo redo | formatselect | fontselect fontsizeselect | forecolor backcolor | bold italic underline strikethrough | align lineheight | tinycomments | checklist numlist bullist indent outdent | emoticons charmap | removeformat',
             });
         });
-    </script>
+</script>
+{{-- <script src="{{asset(" admin")}}/assets/js/bundle/summernote.bundle.js"></script>
+<script>
+    $(document).ready(function () {
+            $('.summernote').summernote();
+        });
+</script> --}}
 
 @endsection
+
+@include('components.sweetalert')

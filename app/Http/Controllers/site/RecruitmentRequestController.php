@@ -11,7 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\site\RenewContractRequest;
 use App\Http\Requests\site\RecruitmentRequestRequest;
 use App\Models\Country;
-use App\Models\ingaz\RecruitmentRequest;
+use App\Models\ingaz\RecruitmentRequestMaid;
 use Illuminate\Http\Request;
 
 class RecruitmentRequestController extends Controller
@@ -28,15 +28,13 @@ class RecruitmentRequestController extends Controller
         return view('site.pages.recruitment_request', get_defined_vars());
     }
 
-
     public function store(RecruitmentRequestRequest $request)
     {
         $dataInserted = $request->validated();
-        $dataInserted['user_id'] = auth()->user()->id;
-        RecruitmentRequest::create($dataInserted);
+        $dataInserted['client_id'] = auth()->user()->id;
+        RecruitmentRequestMaid::create($dataInserted);
         return jsonSuccess(null, __("ingaz.Recruitment_Request_Sent_Successfully"));
     }
-
 
 
 }

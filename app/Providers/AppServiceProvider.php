@@ -8,6 +8,7 @@ use App\Models\NewSettings;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Setting;
 use App\Models\ingaz\DevelopSetting;
+use App\Models\ingaz\FastNew;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
@@ -74,6 +75,12 @@ class AppServiceProvider extends ServiceProvider
         View::composer('*', function ($view) {
             $developSettings = DevelopSetting::first(); // Assuming you have a row of settings with ID 1
             $view->with('developSettings', $developSettings);
+        });
+
+
+           View::composer('*', function ($view) {
+            $fastnews = FastNew::with('translations')->get();
+            $view->with('fastnews', $fastnews);
         });
 
         // count contracts by status

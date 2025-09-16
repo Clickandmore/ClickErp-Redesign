@@ -85,10 +85,10 @@
                             </div>
                             <!-- Nationality -->
                             <div class="py-3 col col-md-12" style="min-width: 120px">
-                                <label for="nationality">
+                                <label for="nationality_id">
                                     <i class="fa-duotone fa-flag me-1"></i> {{__('ingaz.nationality')}}
                                 </label>
-                                <select id="nationality" class="select2">
+                                <select id="nationality_id" class="select2">
                                     <option value="" selected>{{__('ingaz.all')}}</option>
                                     @foreach ($nationalities as $nationality)
                                         <option value="{{ $nationality->id }}">{{ $nationality->title }}</option>
@@ -212,9 +212,9 @@
             let type = $(this).data("target");
             let age = $("#age").val();
             let job = $("#job").val();
-            let nationality = $("#nationality").val();
+            let nationality_id = $("#nationality_id").val();
 
-            fetchWorkers({ type: type, age: age, job: job, nationality: nationality });
+            fetchWorkers({ type: type, age: age, job: job, nationality_id: nationality_id });
         });
 
         // 🔹 Form submit
@@ -224,7 +224,7 @@
             let filters = {
                 age: $("#age").val(),
                 job: $("#job").val(),
-                nationality: $("#nationality").val(),
+                nationality_id: $("#nationality_id").val(),
                 type: $(".toggle-btn.active").data("target"),
             };
 
