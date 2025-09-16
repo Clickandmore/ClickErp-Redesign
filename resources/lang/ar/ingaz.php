@@ -1025,4 +1025,5 @@
   'month_salary' => 'الراتب الشهري',
   'cv_number' => 'رقم السيره الذاتيه',
   'fastnews' => 'Fastnews',
+  'personal_infromation' => 'البيانات الشخصية',
 );

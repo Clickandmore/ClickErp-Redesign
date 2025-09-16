@@ -29,7 +29,7 @@
                 <!-- sub -->
                 <div class="sub">
                     <h5 class="title">{{__("ingaz.age")}} :</h5>
-                    <p class="dis">{{$maid->age ?? ''}}</p>
+                    <p class="dis">{{$maid->age ?? ''}} {{__("ingaz.year")}}</p>
                 </div>
                 <!-- sub -->
                 <div class="sub">
@@ -111,12 +111,12 @@
           </span>
             </div>
             <div class="category">
-                <h5 class="title"><span> البيانات الشخصية </span></h5>
+                <h5 class="title"><span> {{__('ingaz.personal_infromation')}} </span></h5>
                 <div class="infoRow">
                     <!-- data -->
                     <div class="data">
-                        <p class="innerTitle">الحاله الاجتماعيه</p>
-                        <h6 class="innerData">متزوجه</h6>
+                        <p class="innerTitle">{{__('ingaz.marital status')}}</p>
+                        <h6 class="innerData">{{$maid->marital_status}}</h6>
                     </div>
                     <!-- data -->
                     <div class="data">
