@@ -911,5 +911,27 @@
     'this_field_is_required' => 'This field is required.',
     'customer_data' => 'Customer Data',
     'the_customer_contract_renewal_request_has_been_successfully_submitted' => 'The employment contract renewal request has been successfully submitted.',
+    'why_us' => 'Why Us',
+    'testimonials' => 'Testimonials',
+    'why_choose_our_services' => 'Why choose our services?',
+    'review_the_application' => 'Review the application',
+    'receiving_workers' => 'Receiving workers',
+    'our_customers_opinions' => 'Our customers opinions',
+    'arrival_workers' => 'Arrival of workers',
+    'sub_title' => 'Sub Title',
+    'recruitment_journey' => 'Recruitment journey',
+    'employment_rules_and_regulations' => 'Employment rules and regulations',
+    'personal_data' => 'Personal data',
+    'full_name' => 'Full Name',
+    'confirm_password' => 'Confirm Password',
+    'phone_settings' => 'Phone Settings',
+
+    'text_1' => 'Fill out the application form accurately with all required information to expedite the review process.',
+    'text_2' => 'Your request will be reviewed by our specialized team within 24 working hours.',
+    'text_3' => 'We will contact you to confirm the details and inform you of the date of receiving the workers.',
+    'text_4' => 'Receive your professional work on time with full quality guarantee.',
+    'body' => 'Body',
+
+    'settings_updated_successfully' => 'Settings updated successfully',
 
 );

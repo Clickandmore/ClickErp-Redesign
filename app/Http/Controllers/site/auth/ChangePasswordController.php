@@ -24,7 +24,14 @@ class ChangePasswordController extends Controller
         $user = $userAction->getWhereFirst(['phone' => $data['phone']]);
         $user->update(['password' => Hash::make($data['password'])]);
         return jsonSuccess(['redirect_url' => route('site.login.index')], __("ingaz.change_password_successfully"));
+    }
 
+    public function update(ChangePasswordRequest $request, $id, UserAction $userAction)
+    {
+        $data = $request->validated();
+        $user = $userAction->find($id);
+        $user->update(['password' => Hash::make($data['password'])]);
+        return jsonSuccess(null, __("ingaz.change_password_successfully"));
     }
 
 }

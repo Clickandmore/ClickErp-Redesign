@@ -9,13 +9,13 @@
         </button>
         <ul>
             <li>
-                <a href="index.html"> الرئيسية </a>
+                <a href="{{route('site.home.index')}}"> {{__("ingaz.home")}} </a>
             </li>
             <li>
-                <a href="index.html#services">رحلة الاستقدام </a>
+                <a href="{{route('site.home.index')}}#services">{{__("ingaz.recruitment_journey")}}  </a>
             </li>
             <li>
-                <a href="#!" class="active"> وصول العمالة </a>
+                <a href="#!" class="active">{{__("ingaz.employment_rules_and_regulations")}} </a>
             </li>
         </ul>
         <figure>
@@ -61,73 +61,100 @@
     <!-- ================ /arrive Worker ================= -->
     <div class="arriveWorker">
         <div class="container">
-            <!-- arrive Worker Info -->
-            <div class="arriveWorkerInfo">
-                <div class="image wow fadeInUp">
-                    <img src="assets/images/arrive.webp">
+            <!-- Worker Rights Info -->
+            @forelse($arrivalWorkers as $key=>$item)
+                <div class="arriveWorkerInfo @if($key%2 == 0) mt-5 @endif">
+                    <div class="image wow fadeInUp">
+                        <img src="{{showFile($item->image)}}" alt="{{$item->title}}">
+                    </div>
+                    <div class="info wow fadeInUp">
+                        <h3>{{$item->title}}</h3>
+                        <p>{{$item->sub_title}}</p>
+                        {!! $item->body !!}
+                    </div>
                 </div>
-                <div class="info wow fadeInUp">
-                    <h3> وصول العمالة </h3>
-                    <p>
-                        فريق العمل يضمن دائما وباستمرار تقديم خدمات سريعة ومتميزة في استقدام العمالة المنزلية المدربة
-                        داخل
-                        المملكة العربية السعودية مع متابعة مستمرة للعامل أو العاملة من خلال إشعار العميل بوقت وصول
-                        العمالة الوافدة
-                        بسرعة ودقة عالية، والتنسيق لاستقبال السائق الخاص أو الخادمة المنزلية واستلام كامل وثائق استقدام
-                        العمالة
-                        المنزلية
-                    </p>
-                    <h5>عائلتك اسعد ,حياتك افضل </h5>
+            @empty
+                <div class="arriveWorkerInfo">
+                    <div class="image wow fadeInUp">
+                        <img src="{{asset('site')}}/assets/images/info1.png" alt="حقوق وواجبات العمالة">
+                    </div>
+                    <div class="info wow fadeInUp">
+                        <h3>حقوق وواجبات العمالة المنزلية</h3>
+                        <p>
+                            يلتزم مكتبنا بضمان حقوق العمالة المنزلية وفقًا لقانون العمل السعودي وقواعد حقوق الإنسان، حيث
+                            تشمل هذه الحقوق:
+                        <ul>
+                            <li>العمل في بيئة آمنة وصحية مع احترام كرامتهم وخصوصيتهم.</li>
+                            <li>الحصول على أجر مناسب ومحدد وفق العقد الموقع بين العامل وصاحب العمل.</li>
+                            <li>الراحة الأسبوعية والإجازات الرسمية المقررة حسب القانون.</li>
+                            <li>توفير السكن الملائم والغذاء الصحي عند الحاجة.</li>
+                            <li>حق العامل في إنهاء العقد وفق الشروط القانونية واللجوء إلى الجهات المختصة عند وجود أي
+                                انتهاك
+                                للحقوق.
+                            </li>
+                        </ul>
+                        <h5>احترام حقوق العمالة واجب، واتباع القوانين يحفظ كرامة الجميع</h5>
+                    </div>
                 </div>
-            </div>
-            <!-- arrive Worker Info -->
-            <div class="arriveWorkerInfo">
-                <div class="image wow fadeInUp">
-                    <img src="assets/images/f1.webp">
-                </div>
-                <div class="info wow fadeInUp">
-                    <h3> خدمة العملاء </h3>
-                    <p>
-                        دائما ما نتبنى أحدث الأساليب والتقنيات للتعامل مع العملاء وضمان جودة عالية في الخدمات المقدمة في
-                        مكتب
-                        ترف للاستقدام كما أننا نوفر جميع الأدوات لدراسة السوق لتطوير وتوفير خدمات ذات جودة عالية
-                        لاستقدام
-                        العمالة المنزلية وللتواصل مع العملاء قبل وبعد وصول العمالة المنزلية , نلتزم بشكل تام لخدمة مختلف
-                        الاحتياجات بمصداقية عالية وشفافية مطلقة حيث أننا نطمح لتجاوز توقعات عملائنا وبناء علاقة طويلة
-                        المدى مع
-                        كافة العملاء لمعرفة كافة احتياجاتهم ومتطلباتهم.
 
-
-                    </p>
+                <!-- Labor Regulation Info -->
+                <div class="arriveWorkerInfo mt-5">
+                    <div class="image wow fadeInUp">
+                        <img src="{{asset('site')}}/assets/images/f1.webp" alt="قواعد تنظيم العمالة">
+                    </div>
+                    <div class="info wow fadeInUp">
+                        <h3>قواعد تنظيم العمالة المنزلية</h3>
+                        <p>
+                            نلتزم بتطبيق قواعد تنظيم العمالة المنزلية لضمان حقوق جميع الأطراف، وتشمل:
+                        <ul>
+                            <li>تسجيل العاملين في أنظمة وزارة الموارد البشرية والتنمية الاجتماعية بشكل قانوني.</li>
+                            <li>التأكد من توقيع عقود عمل واضحة تحدد الواجبات والحقوق والرواتب.</li>
+                            <li>تقديم التدريب والإرشادات اللازمة للعمالة لتأدية مهامهم بكفاءة.</li>
+                            <li>التواصل المستمر مع صاحب العمل لضمان بيئة عمل آمنة ومنظمة.</li>
+                            <li>حل النزاعات بطريقة عادلة وشفافة مع احترام جميع القوانين والأنظمة المحلية والدولية.</li>
+                        </ul>
+                        </p>
+                        <h5>تنظيم العمالة يحفظ الحقوق ويضمن بيئة عمل آمنة للجميع</h5>
+                    </div>
                 </div>
-            </div>
+            @endforelse
         </div>
+
     </div>
     <!-- ================ references ================= -->
     <section class="references">
         <div class="container">
-            <div class="swiper referencesSlider ">
+            <div class="swiper referencesSlider">
                 <div class="swiper-wrapper">
-                    <div class="swiper-slide">
-                        <div class="referenceLogo ">
-                            <img src="assets/images/Ministry-of-Foreign-Affairs-01.svg" alt="">
+                    @forelse($clients as $client)
+                        <div class="swiper-slide" data-aos="zoom-in">
+                            <div class="referenceLogo">
+                                <img src="{{showfile($client->image)}}" alt="">
+                            </div>
                         </div>
-                    </div>
-                    <div class="swiper-slide">
-                        <div class="referenceLogo ">
-                            <img src="assets/images/Ministry-of-Interior-01.svg" alt="">
+                    @empty
+                        <div class="swiper-slide" data-aos="zoom-in">
+                            <div class="referenceLogo">
+                                <img src="{{asset('site')}}/assets/images/Ministry-of-Foreign-Affairs-01.svg" alt="">
+                            </div>
                         </div>
-                    </div>
-                    <div class="swiper-slide">
-                        <div class="referenceLogo ">
-                            <img src="assets/images/Ministry-of-Labor-and-Social-Development.svg" alt="">
+                        <div class="swiper-slide" data-aos="zoom-in">
+                            <div class="referenceLogo">
+                                <img src="{{asset('site')}}/assets/images/Ministry-of-Interior-01.svg" alt="">
+                            </div>
                         </div>
-                    </div>
-                    <div class="swiper-slide">
-                        <div class="referenceLogo ">
-                            <img src="assets/images/musand.svg" alt="">
+                        <div class="swiper-slide" data-aos="zoom-in">
+                            <div class="referenceLogo">
+                                <img src="{{asset('site')}}/assets/images/Ministry-of-Labor-and-Social-Development.svg"
+                                     alt="">
+                            </div>
                         </div>
-                    </div>
+                        <div class="swiper-slide" data-aos="zoom-in">
+                            <div class="referenceLogo">
+                                <img src="{{asset('site')}}/assets/images/musand.svg" alt="">
+                            </div>
+                        </div>
+                    @endforelse
                 </div>
                 <div class="swiper-pagination"></div>
             </div>

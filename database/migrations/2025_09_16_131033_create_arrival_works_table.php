@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class AddColumnsToCountries extends Migration
+class CreateArrivalWorksTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,8 +13,10 @@ class AddColumnsToCountries extends Migration
      */
     public function up()
     {
-        Schema::table('countries', function (Blueprint $table) {
-            //
+        Schema::create('arrival_works', function (Blueprint $table) {
+            $table->id();
+            $table->string('image');
+            $table->timestamps();
         });
     }
 
@@ -25,8 +27,6 @@ class AddColumnsToCountries extends Migration
      */
     public function down()
     {
-        Schema::table('countries', function (Blueprint $table) {
-            //
-        });
+        Schema::dropIfExists('arrival_works');
     }
 }

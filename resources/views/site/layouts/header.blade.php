@@ -84,7 +84,7 @@
                     <li>
                         <a class="dropdown-item"
                            href="{{route('site.arrival-worker.index')}}">
-                            {{__("ingaz.arrival_worker")}}
+                            {{__("ingaz.employment_rules_and_regulations")}}
                         </a>
                     </li>
                 </ul>

@@ -10,6 +10,6 @@ use Astrotomic\Translatable\Translatable;
 class Testimonial extends Model implements TranslatableContract
 {
     use Translatable;
-    public $translatedAttributes = ['title', 'job', 'message'];
+    public $translatedAttributes = ['name', 'job', 'message'];
     protected $fillable = ['image'];
 }
