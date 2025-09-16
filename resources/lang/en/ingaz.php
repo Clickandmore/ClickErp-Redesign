@@ -962,4 +962,5 @@
   'month_salary'=>'Month Salary',
   'passport_number' => 'passport number',
     'cv_number' => 'CV Number',
+    'personal_infromation' => 'Personal Information',
 );
