@@ -194,7 +194,7 @@
             <div class="alert fade show customOrder wow fadeInUp" role="alert">
                 <button type="button" class="btn-close p-2" data-bs-dismiss="alert" aria-label="Close"></button>
                 <h6>{{__('ingaz.We can provide suitable labor according to your specifications.')}}</h6>
-                <a class="customBtn" href="recruitment-request.html"><span></span> {{__('ingaz.Submit a special request')}}
+                <a class="customBtn" href="{{route('site.recruitment-request.index')}}"><span></span> {{__('ingaz.Submit a special request')}}
                 </a>
             </div>
             <!-- end custom Order -->

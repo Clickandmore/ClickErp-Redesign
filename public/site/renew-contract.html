@@ -50,7 +50,7 @@
     <link rel="stylesheet" href="assets/css/animate.min.css"/>
     <link rel="stylesheet" href="assets/css/bootstrap.rtl.min.css"/>
     <link rel="stylesheet" href="assets/css/main.css"/>
-    <link rel="stylesheet" href="assets/css/style.css?v=-6"/>
+    <link rel="stylesheet" href="assets/css/style.css?v=-8"/>
 
     <title>بلاتينيوم الشرقية للاستقدام</title>
 </head>
@@ -232,6 +232,20 @@
         </div>
         <!-- </div> -->
     </nav>
+    <div class="news-ticker">
+        <marquee id="news-marquee">
+            <i class="fa-solid fa-bell mx-2"></i>
+            آخر الأخبار: إطلاق باقات جديدة لاستقدام العمالة المنزلية
+            <span>|</span> وصول دفعات جديدة من العمالة الماهرة من الفلبين والهند
+            <span>|</span> عروض خاصة للعملاء الجدد بمناسبة افتتاح الفرع الجديد
+            <span>|</span> توفير كوادر طبية وتمريضية مؤهلة بعقود ميسّرة
+            <span>|</span> استقدام سائقين مهنيين بخبرة عالية لجميع أنحاء المملكة
+            <span>|</span> بدء برنامج متابعة وضمان ما بعد الاستقدام
+            <span>|</span> توفير عاملات منزليات مدرّبات وفق أعلى المعايير
+            <span>|</span> توقيع اتفاقيات جديدة مع مكاتب استقدام خارجية معتمدة
+            <span>|</span> دعم خاص للعائلات في شهر رمضان بخدمات استقدام سريعة
+        </marquee>
+    </div>
 </header>
 
 <main>
@@ -304,15 +318,40 @@
             </div>
 
             <div class="row">
-                <!-- جزء بيانات العميل -->
                 <div class="col-md-4 p-3">
                     <div class="mb-1">
                         <h2>تجديد العقود</h2>
                     </div>
+                    <div class="alert info mt-4">
+                        <h6>معلومات تهمك:</h6>
+                        <p>
+                            رسوم تجديد العقد 950 ريال سعودي شامل الضريبة في حال تم
+                            استقدامها أو نقل خدماتها من الشركة، يتم تحويلها على حساب
+                            الشركة في البنك الأهلي.
+                        </p>
+                        <p>
+                            رسوم تجديد العقد 1500 ريال سعودي شامل الضريبة في حال تم
+                            استقدامها أو نقل خدماتها من مكتب آخر، يتم تحويلها على حساب
+                            الشركة في البنك الأهلي.
+                        </p>
+                        <p>
+                            <strong>صاحب الشركة:</strong> بلاتينيوم الشرقية للاستقدام
+                        </p>
+                        <p><strong>رقم الحساب:</strong> 09249888000204</p>
+                        <p>
+                            <strong>رقم الآيبان:</strong> SA08 1000 0009 2498 8800 0204
+                        </p>
+                    </div>
+                </div>
 
-                    <form action="" class="needs-validation" novalidate>
+                <!-- جزء بيانات العاملة -->
+                <div class="col-md-8 p-3">
+                    <form action="" class="row needs-validation" novalidate>
+                        <div class="col-md-12">
+                            <h5 class="mt-4">بيانات العميل</h5>
+                        </div>
                         <!-- اسم العميل -->
-                        <div class="mb-3">
+                        <div class="col-md-6 mb-3">
                             <label class="form-label">اسم العميل *</label>
                             <input
                                 type="text"
@@ -324,54 +363,26 @@
                         </div>
 
                         <!-- الهاتف -->
-                        <div class="mb-3">
+                        <div class="col-md-6 mb-3">
                             <label class="form-label">الهاتف *</label>
                             <input type="tel" class="form-control" required/>
                             <div class="invalid-feedback">هذا الحقل ضروري</div>
                         </div>
 
                         <!-- العنوان -->
-                        <div class="mb-3">
+                        <div class="col-md-6 mb-3">
                             <label class="form-label">العنوان *</label>
                             <input type="text" class="form-control" required/>
                         </div>
 
                         <!-- المدينة -->
-                        <div class="mb-3">
+                        <div class="col-md-6 mb-3">
                             <label class="form-label">City *</label>
                             <input type="text" class="form-control" required/>
                         </div>
-
-                        <!-- معلومات تهمك -->
-                        <div class="alert info mt-4">
-                            <h6>معلومات تهمك:</h6>
-                            <p>
-                                رسوم تجديد العقد 950 ريال سعودي شامل الضريبة في حال تم
-                                استقدامها أو نقل خدماتها من الشركة، يتم تحويلها على حساب
-                                الشركة في البنك الأهلي.
-                            </p>
-                            <p>
-                                رسوم تجديد العقد 1500 ريال سعودي شامل الضريبة في حال تم
-                                استقدامها أو نقل خدماتها من مكتب آخر، يتم تحويلها على حساب
-                                الشركة في البنك الأهلي.
-                            </p>
-                            <p>
-                                <strong>صاحب الشركة:</strong> بلاتينيوم الشرقية للاستقدام
-                            </p>
-                            <p><strong>رقم الحساب:</strong> 09249888000204</p>
-                            <p>
-                                <strong>رقم الآيبان:</strong> SA08 1000 0009 2498 8800 0204
-                            </p>
+                        <div class="col-md-12">
+                            <h5 class="mt-4">بيانات العاملة</h5>
                         </div>
-                    </form>
-                </div>
-
-                <!-- جزء بيانات العاملة -->
-                <div class="col-md-8 p-3">
-                    <div class="mb-1">
-                        <h4>بيانات العاملة</h4>
-                    </div>
-                    <form action="" class="row needs-validation" novalidate>
                         <!-- بيانات أساسية -->
                         <div class="col-md-6 mb-3">
                             <label class="form-label">اسم العاملة</label>
@@ -516,7 +527,8 @@
             </div>
         </div>
     </section>
-</main>                                                             <!-- themeColor -->
+</main>
+<!-- themeColor -->
 <div class="themeColor">
     <input type="color" id="colorInput" class="color-input">
 </div>
@@ -585,7 +597,7 @@
 
 <script src="assets/js/swiper-bundle.min.js"></script>
 <script src="assets/js/main.js"></script>
-<script src="assets/js/app.js?v=-4"></script>
+<script src="assets/js/app.js?v=-5"></script>
 <script>
     $(document).ready(function () {
         $('.supportBtn').click(function () {

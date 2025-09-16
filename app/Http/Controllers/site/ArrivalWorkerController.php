@@ -8,7 +8,7 @@ class ArrivalWorkerController extends Controller
 {
     public function index()
     {
-        return view('site.pages.musand');
+        return view('site.pages.arrival_workers', get_defined_vars());
     }
 
 
