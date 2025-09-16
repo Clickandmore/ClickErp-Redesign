@@ -19,4 +19,13 @@ enum LanguagesTypesEnum: string
             self::Mother => __('ingaz.mother'),
         };
     }
+
+    public static function statusLang()
+    {
+        return [
+            self::Arabic,
+            self::English,
+            self::Amharic,
+        ];
+    }
 }

@@ -42,8 +42,8 @@
         <div class="col-lg-2 col-md-6 mb-4">
             <h6 class="footer-title">{{__("ingaz.our_services")}}</h6>
             <ul class="footer-links">
-                <li><a href="{{route('site.all-workers.index')}}">{{__("ingaz.recruitment_request")}}</a></li>
-                <li><a href="{{route('site.all-workers.index')}}">{{__("ingaz.request_for_transfer_of_services")}}</a>
+                <li><a href="{{route('site.all-workers.index')}}?type=estqdam">{{__("ingaz.recruitment_request")}}</a></li>
+                <li><a href="{{route('site.all-workers.index')}}?type=egar">{{__("ingaz.labor_rental_request")}}</a>
                 </li>
                 <li><a href="{{route('site.daily-lebor-demand.index')}}">{{__("ingaz.request_professional_labor")}}</a>
                 </li>
