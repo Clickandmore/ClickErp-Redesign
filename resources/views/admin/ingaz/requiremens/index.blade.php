@@ -37,7 +37,7 @@
         $(document).ready(function () {
             let columns = [
                 {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
-                {"data": "icon", orderable: true, searchable: true},
+                {"data": "image", orderable: true, searchable: true},
                  {"data": "title", orderable: true, searchable: true},
 
                  {"data": "actions", orderable: false, searchable: false}
