@@ -907,6 +907,9 @@
     'worker_information_string' => 'Worker information must be a valid string.',
 
     'image_of_bank_transfer_required' => 'Image of bank transfer is required.',
-    'image_of_bank_transfer_string' => 'Image of bank transfer must be a valid string.'
+    'image_of_bank_transfer_string' => 'Image of bank transfer must be a valid string.',
+    'this_field_is_required' => 'This field is required.',
+    'customer_data' => 'Customer Data',
+    'the_customer_contract_renewal_request_has_been_successfully_submitted' => 'The employment contract renewal request has been successfully submitted.',
 
 );

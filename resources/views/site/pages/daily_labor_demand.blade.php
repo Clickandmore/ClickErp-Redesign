@@ -1,5 +1,6 @@
 @extends('site.layouts.index')
 @section('title')
+    {{__("ingaz.request_for_professional_labor")}}
 @endsection
 @section('content')
     <!-- Main Banner  -->
@@ -12,7 +13,7 @@
                 <a href="{{route('site.home.index')}}"> {{__("ingaz.home")}} </a>
             </li>
             <li>
-                <a href="{{route('site.home.index')}}#services">{{__("ingaz.services")}} </a>
+                <a href="{{route('site.home.index')}}#services">{{__("ingaz.services")}}  </a>
             </li>
             <li>
                 <a href="#!" class="active">{{__("ingaz.request_for_professional_labor")}} </a>
@@ -27,7 +28,8 @@
                 viewBox="0 0 300 100"
                 style="margin-bottom: -35px; enable-background: new 0 0 300 100"
                 class="injected-svg js-svg-injector"
-                data-parent="#SVGwave1BottomSMShape">
+                data-parent="#SVGwave1BottomSMShape"
+            >
                 <g>
                     <path
                         class="wave-bottom-1-sm-0"
@@ -57,90 +59,196 @@
             </svg>
         </figure>
     </section>
-    <section class="dailyForm">
+
+    <section class="why-choose-us">
         <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-10 fadeInUp">
-                    <div class="headTitle text-center">
-                        <h2>{{__("ingaz.request_for_professional_labor")}}</h2>
-                        <p>
-                            {{__("ingaz.request_for_professional_labor_text")}}
-                        </p>
+            <div class="headTitle text-center" data-aos="fade-up" data-aos-delay="100">
+                <h4>لماذا تختار خدماتنا؟</h4>
+            </div>
+            <div class="cards-wrapper">
+                <!-- Card 1 -->
+                <div class="feature-card" data-aos="fade-up">
+                    <div class="feature-text">
+                        <h3>عمالة مؤهلة</h3>
+                        <p>نوفر عمالة مهنية مؤهلة ومدربة بأعلى المعايير لضمان جودة الأداء والكفاءة في العمل.</p>
                     </div>
-                    <!-- الفورم -->
-                    <form id="form-daily-lebor-demand" method="post" action="{{route('site.daily-lebor-demand.store')}}"
-                          class="row needs-validation" novalidate>
-                        @csrf
-                        <!-- اسم المنشأة -->
-                        <div class="col-md-12 p-2">
-                            <label class="form-label">
-                                <i class="fas fa-building me-2"></i>{{__("ingaz.facility_name")}} *
-                            </label>
-                            <input type="text" class="form-control" name="facility_name" required/>
-                            <div class="invalid-feedback">هذا الحقل ضروري</div>
-                        </div>
+                    <div class="feature-icon"><i class="fas fa-user-check"></i></div>
+                </div>
 
-                        <!-- رقم التواصل -->
-                        <div class="col-md-6 p-2">
-                            <label class="form-label">
-                                <i class="fas fa-phone me-2"></i>{{__("ingaz.contact_number")}} *
-                            </label>
-                            <input type="tel" class="form-control" name="phone"/>
-                            <div class="invalid-feedback">هذا الحقل ضروري</div>
-                        </div>
+                <!-- Card 2 -->
+                <div class="feature-card" data-aos="fade-up">
+                    <div class="feature-text">
+                        <h3>توفير الوقت</h3>
+                        <p>إجراءات سريعة ومبسطة لتوفير الوقت والجهد في عملية استقدام العمالة المهنية.</p>
+                    </div>
+                    <div class="feature-icon"><i class="fas fa-clock"></i></div>
+                </div>
 
-                        <!-- عدد العمال المطلوبين -->
-                        <div class="col-md-6 p-2">
-                            <label class="form-label">
-                                <i class="fas fa-users me-2"></i> {{__("ingaz.number_of_workers_required")}} *
-                            </label>
-                            <input type="number" min="1" name="number_of_workers_required" class="form-control"/>
-                            <div class="invalid-feedback">هذا الحقل ضروري</div>
-                        </div>
-
-                        <!-- نوع العمالة المطلوبة -->
-                        <div class="col-md-6 p-2">
-                            <label class="form-label">
-                                <i class="fas fa-briefcase me-2"></i> {{__("ingaz.type_of_labor_required")}} *
-                            </label>
-                            <select class="form-control" name="job_title_id" required>
-                                <option value="" disabled selected>{{__("ingaz.type_of_labor_required")}}</option>
-                                @foreach($jobTitles as  $jobTitle)
-                                    <option value="{{$jobTitle->id}}">{{$jobTitle->title}}</option>
-                                @endforeach
-                            </select>
-                            <div class="invalid-feedback">هذا الحقل ضروري</div>
-                        </div>
-
-                        <!-- رقم التأشيرة -->
-                        <div class="col-md-6 p-2">
-                            <label class="form-label">
-                                <i class="fas fa-passport me-2"></i> {{__("ingaz.visa_number")}} *
-                            </label>
-                            <input type="text" class="form-control" name="visa_number"/>
-                            <div class="invalid-feedback">هذا الحقل ضروري</div>
-                        </div>
-
-                        <!-- متطلبات أخرى -->
-                        <div class="col-md-12 p-2">
-                            <label class="form-label">
-                                <i class="fas fa-feather-alt me-2"></i> {{__("ingaz.other_requirement")}}
-                            </label>
-                            <textarea class="form-control" name="other_requirement" rows="4"></textarea>
-                        </div>
-
-                        <!-- زر الإرسال -->
-                        <div class="col-md-12 text-center p-2">
-                            <button type="submit" class="defaultBtn">
-                                {{__("ingaz.send_request")}} <i class="fas fa-paper-plane ms-2"></i>
-                                <span></span>
-                            </button>
-                        </div>
-                    </form>
+                <!-- Card 3 -->
+                <div class="feature-card" data-aos="fade-up">
+                    <div class="feature-text">
+                        <h3>دعم متواصل</h3>
+                        <p>نقدم الدعم والاستشارات المتواصلة قبل وبعد عملية الاستقدام لضمان رضاكم الكامل.</p>
+                    </div>
+                    <div class="feature-icon"><i class="fas fa-headset"></i></div>
                 </div>
             </div>
         </div>
     </section>
+    <!-- Form  Section -->
+    <section class="form-steps-section" id="requestForm">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-6 col-12">
+                    <div class="steps-container">
+                        <h2 class="section-title" data-aos="fade-up">{{__("ingaz.request_for_professional_labor")}}</h2>
+                        <div class="step-card mt-5" data-aos="fade-up">
+                            <div class="step-icon"><i class="fas fa-clipboard-list"></i></div>
+                            <div class="step-content">
+                                <h3>تعبئة النموذج</h3>
+                                <p>قم بتعبئة نموذج الطلب بجميع البيانات المطلوبة بدقة لتسريع عملية المراجعة.</p>
+                            </div>
+                        </div>
+
+                        <div class="step-card" data-aos="fade-up">
+                            <div class="step-icon"><i class="fas fa-user-check"></i></div>
+                            <div class="step-content">
+                                <h3>مراجعة الطلب</h3>
+                                <p>سيتم مراجعة طلبك من قبل فريقنا المختص خلال 24 ساعة عمل.</p>
+                            </div>
+                        </div>
+
+                        <div class="step-card" data-aos="fade-up">
+                            <div class="step-icon"><i class="fas fa-phone-alt"></i></div>
+                            <div class="step-content">
+                                <h3>التواصل معك</h3>
+                                <p>سنتواصل معك لتأكيد التفاصيل وإعلامك بموعد استلام العمالة.</p>
+                            </div>
+                        </div>
+
+                        <div class="step-card" data-aos="fade-up">
+                            <div class="step-icon"><i class="fas fa-handshake"></i></div>
+                            <div class="step-content">
+                                <h3>استلام العمالة</h3>
+                                <p>استلم عمالتك المهنية في الوقت المتفق عليه مع الضمان الكامل للجودة.</p>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="col-lg-6 col-12">
+                    <div class="form-container">
+                        <form id="form-daily-lebor-demand" method="post"
+                              action="{{route('site.daily-lebor-demand.store')}}" class="row dailyForm"
+                              data-aos="fade-up">
+                            @csrf
+                            <div class="col-12 p-2">
+                                <label class="form-label">
+                                    <i class="fas fa-building me-2"></i>{{__("ingaz.facility_name")}} *
+                                </label>
+                                <input type="text" class="form-control" name="facility_name"/>
+                                <div class="invalid-feedback">{{__("ingaz.this_field_is_required")}}</div>
+                            </div>
+
+                            <div class="col-md-6 p-2">
+                                <label class="form-label">
+                                    <i class="fas fa-phone me-2"></i>{{__("ingaz.contact_number")}} *
+                                </label>
+                                <input type="tel" class="form-control" name="phone"/>
+                                <div class="invalid-feedback">{{__("ingaz.this_field_is_required")}}</div>
+                            </div>
+
+                            <div class="col-md-6 p-2">
+                                <label class="form-label">
+                                    <i class="fas fa-users me-2"></i> {{__("ingaz.number_of_workers_required")}} *
+                                </label>
+                                <input type="number" min="1" name="number_of_workers_required" class="form-control"/>
+                                <div class="invalid-feedback">{{__("ingaz.this_field_is_required")}}</div>
+                            </div>
+
+                            <div class="col-md-6 p-2">
+                                <label class="form-label">
+                                    <i class="fas fa-briefcase me-2"></i> {{__("ingaz.type_of_labor_required")}} *
+                                </label>
+                                <select class="form-control" name="job_title_id">
+                                    <option value="" disabled selected>{{__("ingaz.type_of_labor_required")}}</option>
+                                    @foreach($jobTitles as  $jobTitle)
+                                        <option value="{{$jobTitle->id}}">{{$jobTitle->title}}</option>
+                                    @endforeach
+                                </select>
+                                <div class="invalid-feedback">{{__("ingaz.this_field_is_required")}}</div>
+                            </div>
+                            <div class="col-md-6 p-2">
+                                <label class="form-label">
+                                    <i class="fas fa-passport me-2"></i> {{__("ingaz.visa_number")}} *
+                                </label>
+                                <input type="text" class="form-control" name="visa_number"/>
+                                <div class="invalid-feedback">{{__("ingaz.this_field_is_required")}}</div>
+                            </div>
+                            <div class="col-12 p-2">
+                                <label class="form-label">
+                                    <i class="fas fa-feather-alt me-2"></i> {{__("ingaz.other_requirement")}}
+                                </label>
+                                <textarea class="form-control" name="other_requirement" rows="4"></textarea>
+                            </div>
+                            <div class="col-12 text-center p-2 mt-3">
+                                <button type="submit" class="defaultBtn">
+                                    {{__("ingaz.send_request")}} <i class="fas fa-paper-plane ms-2"></i>
+                                    <span></span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Testimonials Section -->
+    <section class="testimonials-section">
+        <div class="container">
+            <div class="headTitle text-center" data-aos="fade-up" data-aos-delay="100">
+                <h4>آراء عملائنا</h4>
+            </div>
+            <div class="row">
+                <div class="col-md-6 col-12">
+                    <div class="testimonial-card" data-aos="fade-up">
+                        <div class="testimonial-text">
+                            <p>تعاملت مع الشركة لاستقدام عمالة فنية لمشروعي وكانت تجربة رائعة، العمالة كانت مؤهلة
+                                والخدمة سريعة ومميزة.</p>
+                        </div>
+                        <div class="client-info">
+                            <div class="client-image">
+                                <img src="assets/images/avater2.webp" alt="عميل">
+                            </div>
+                            <div>
+                                <h5 class="mb-0">أحمد السعدي</h5>
+                                <p class="text-muted mb-0">مدير مشروع</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 col-12">
+                    <div class="testimonial-card" data-aos="fade-up">
+                        <div class="testimonial-text">
+                            <p>قدمت طلب استقدام طبيب وممرضين وكانت الخدمة ممتازة، الإجراءات سريعة والموظفين محترفين
+                                ومتعاونين.</p>
+                        </div>
+                        <div class="client-info">
+                            <div class="client-image">
+                                <img src="assets/images/avatar.webp" alt="عميل">
+                            </div>
+                            <div>
+                                <h5 class="mb-0">فاطمة العبدالله</h5>
+                                <p class="text-muted mb-0">مالكة مركز طبي</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
 @endsection
 @section('js')
     <script>
