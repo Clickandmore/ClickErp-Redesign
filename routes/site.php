@@ -18,6 +18,7 @@ use App\Http\Controllers\site\profile\NotificationController;
 use App\Http\Controllers\site\profile\OrderController;
 use App\Http\Controllers\site\profile\ProfileController;
 use App\Http\Controllers\site\profile\SettingController;
+use App\Http\Controllers\site\RecruitmentRequestController;
 use App\Http\Controllers\site\RenewContractController;
 use App\Http\Controllers\site\SelectWorkerController;
 use App\Http\Controllers\site\SupportController;
@@ -69,6 +70,7 @@ Route::group(
             Route::resource('chats', ChatController::class);
             Route::resource('notifications', NotificationController::class);
             Route::resource('settings', SettingController::class);
+            Route::resource('recruitment-request', RecruitmentRequestController::class);
             Route::resource('logout', LogoutController::class);
         });
     });
