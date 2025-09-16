@@ -832,6 +832,7 @@
     'recruitment_policies'  => 'سياسات الاستقدام',
     'request_for_transfer_of_services'  => 'طلب نقل خدمات',
     'labor_rental_request'  => 'طلب ايجار عمالة',
+    'Labor_transfer_request' => 'طلب استلام فوري',
     'request_professional_labor'  => 'طلب عمالة مهنية',
     'renewing_employment_contract'  => 'تجديد عقد عمالة',
     'support'  => 'مركز المساعدة',
@@ -865,5 +866,12 @@
     'Labor_transfer' => 'إستلام فورى',
     'advanced_search' => 'بحث متقدم',
     'no_workers_found' => 'لا يوجد عمالة',
+    'from_20_to_30_years' => 'من 20 الى 30سنة',
+    'from_31_to_40_years' => 'من 31 الى 40سنة',
+    'from_41_to_50_years' => 'من 41 الى 50سنة',
+    'occupation' => 'المهنة',
+    'apply' => 'تطبيق',
+    'We can provide suitable labor according to your specifications.' => 'يمكننا توفير العمالة المناسبة طبقا لمواصفاتك الخاصه',
+    'Submit a special request' => 'تقديم طلب خاص',
 
 );

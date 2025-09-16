@@ -747,6 +747,12 @@
     'Labor_transfer' => 'Labor transfer',
     'advanced_search' => 'Advanced search',
     'no_workers_found' => 'No workers found',
-
-
+    'from_20_to_30_years' => 'from 20 to 30 year',
+    'from_31_to_40_years' => 'from 31 to 40 year',
+    'from_41_to_50_years' => 'from 41 to 50 year',
+    'occupation' => 'Occupation',
+    'apply' => 'Apply',
+    'Labor_transfer_request' => 'Labor Transfer Request',
+    'We can provide suitable labor according to your specifications.' => 'We can provide suitable labor according to your specifications.',
+    'Submit a special request' => 'Submit a special request',
 );
