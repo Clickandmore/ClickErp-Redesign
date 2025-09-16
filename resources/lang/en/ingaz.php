@@ -959,4 +959,7 @@
   'notes_is_required' => 'Notes is required',
   'Recruitment_Request_Sent_Successfully'=>'Recruitment Request Sent Successfully',
   'choose' => 'Choose',
+  'month_salary'=>'Month Salary',
+  'passport_number' => 'passport number',
+    'cv_number' => 'CV Number',
 );
