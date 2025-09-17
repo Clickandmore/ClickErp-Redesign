@@ -4,6 +4,7 @@
     @include('site.includes.meta')
     @include('site.includes.css')
     <title>  @yield('title') بلاتينيوم الشرقية للاستقدام | </title>
+
 </head>
 <body>
 <div class="preloader">

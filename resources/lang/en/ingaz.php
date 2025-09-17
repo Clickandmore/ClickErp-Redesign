@@ -1002,7 +1002,7 @@
     'passport_number' => 'passport number',
     'cv_number' => 'CV Number',
     'personal_infromation' => 'Personal Information',
-
+ 
 
       'new_user_tab' => 'New User on Musaned Website',
     'existing_user_tab' => 'I Already Have an Account on Musaned',
@@ -1221,4 +1221,35 @@
     'religion' => 'Religion',
     'language' => 'Language',
     'worker_status' => 'Worker Status',
-  );
+      'childrens_count' => 'Childrens Count',
+    'education' => 'Education',
+    'low' => 'Low',
+    'medium' => 'Medium',
+    'high' => 'High',
+    'Years of experience make a difference' => 'Years of experience make a difference',
+    'contact us' => 'Contact us',
+    'download_cv' => 'Download CV',
+    'book_cv' => 'Book CV',
+    'choose_customer_service' => 'Choose Customer Service',
+    'customer_service_desc' => 'Please select a customer service representative to continue completing the contract and recruitment process.',
+    'customer_is_required' => 'customer is required',
+  'customer_is_not_exists' => 'customer is not exists',
+  'maid_id_is_required' => 'maid id is required',
+  'maid_id_is_not_exists' => 'maid id is not exists',
+  'please_contact' => 'please contact',
+    'The one you have chosen within 24 hours to avoid canceling your CV reservation.' => 'The one you have chosen within 24 hours to avoid canceling your CV reservation.',
+    'through_whatsapp' => 'through whatsapp',
+    'through_phone' => 'through phone',
+    'Submit a new recruitment application' => 'Submit a new recruitment application',
+  'Booking successful' => 'Booking successful',
+  'order_status' => 'Recruitment status',
+  'One of the customer service representatives has been selected.' => 'One of the customer service representatives has been selected.',
+  'The order is not yet assigned to a customer service representative.' => 'The order is not yet assigned to a customer service representative.',
+  'customers_service' => 'Customers Service',
+  'details' => 'Details',
+  'Recruitment requests' => 'Recruitment requests',
+
+
+
+);
+ 
