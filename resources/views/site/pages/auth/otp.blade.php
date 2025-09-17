@@ -8,7 +8,9 @@
             <img src="{{asset('site')}}/assets/images/s1.webp" alt=""/>
         </div>
         <div class="cardForm" data-aos="fade-up">
-            <form id="otp-form" action="{{ route('site.otp.store') }}" method="post">
+            <form id="otp-form"
+                  action="{{ $type == 'register' ? route('site.otp-register.store') : route('site.otp.store') }}"
+                  method="post">
                 @csrf
                 <div class="loginLogo">
                     <button class="back" type="button" onclick="window.history.back()">رجوع</button>

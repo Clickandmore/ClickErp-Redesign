@@ -16,6 +16,6 @@ class SiteAuthMiddleware
         }
         toastr()->addError(helperTrans('ingaz.please_login_first'));
 
-        return redirect()->route("site.home.index");
+        return redirect()->route("site.login.index");
     }
 }

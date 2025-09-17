@@ -14,7 +14,8 @@ class OtpController extends Controller
     public function index(Request $request)
     {
         $phone = Crypt::decryptString($request->phone);
-        return view('site.pages.auth.otp', compact('phone'));
+        $type = 'forget-password';
+        return view('site.pages.auth.otp', compact('phone','type'));
     }
 
     public function store(OtpRequest $request, PhoneVerificationAction $phoneVerificationAction, UserAction $userAction)
