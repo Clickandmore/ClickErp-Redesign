@@ -47,10 +47,10 @@
 <!-- services -->
 <section class="hero-services" data-aos="fade-up">
     <div class="expertise">
-        خبرةاكثر من
-        <span> 20 <small> سنه </small> </span>
+        {{__('ingaz.experience more than')}}
+        <span> {{$settings->years}} <small> {{__('ingaz.years')}} </small> </span>
     </div>
-    <a href="all-workers.html" class="service">
+    <a href="#" class="service">
         <div class="icon">
             <svg viewBox="0 0 43.491 43.491">
                 <g>
@@ -71,7 +71,7 @@
             <p class="description">ايدي عاملة مميزة ومدربة بحرفية</p>
         </div>
     </a>
-    <a href="all-workers.html" class="service">
+    <a href="#" class="service">
         <div class="icon">
             <svg viewBox="0 0 64 64">
                 <g transform="matrix(1.0799999999999996,0,0,1.0799999999999996,-2.5600001525878824,-2.5600003051757767)">
@@ -90,7 +90,7 @@
             <p class="description">تجربة نقل خدمات اسهل و افضل</p>
         </div>
     </a>
-    <a href="all-workers.html" class="service">
+    <a href="#" class="service">
         <div class="icon">
             <svg viewBox="0 0 64 64">
                 <g>
@@ -107,8 +107,10 @@
     </a>
 
     <div class="warning">
-        تنويه : يتم سداد تكاليف الاستقدام عن طريق منصة مساند
-    </div>
+        {{__('ingaz.warning')}} : 
+            {{ app()->getLocale() == 'ar' ? $settings->note_ar : $settings->note_en }}
+
+     </div>
 </section>
 <!-- about sec  -->
 <section class="about-section" id="about">
@@ -288,8 +290,8 @@
 <!-- statistics sec  -->
 <section class="statistics" id="statistics">
     <div class="section-header" data-aos="fade-up" data-aos-duration="1000">
-        <h1 class="title">الإحصائيات</h1>
-        <h6 class="hint">إليك بعض إحصائيات العملاء الذين تشرفنا بالعمل معهم</h6>
+        <h1 class="title">{{__('Statistics')}}</h1>
+        <h6 class="hint">{{__('Statistics hint')}}</h6>
     </div>
     <div class="stats-container">
         @forelse($statics as $static)
@@ -368,7 +370,7 @@
                         <img src="assets/images/countries/1.png" alt="">
                         <h2> اوغندا </h2>
                         <p>مدة الاستقدام في خلال 60 يوم </p>
-                        <a href="all-workers.html" class="animatedLink">
+                        <a href="#" class="animatedLink">
                             اطلب الآن
                             <i class="fa-regular fa-left-long ms-2"><span></span></i>
                         </a>
@@ -380,7 +382,7 @@
                         <img src="assets/images/countries/2.png" alt="">
                         <h2> كينيا </h2>
                         <p>مدة الاستقدام في خلال 60 يوم </p>
-                        <a href="all-workers.html" class="animatedLink">
+                        <a href="#" class="animatedLink">
                             اطلب الآن
                             <i class="fa-regular fa-left-long ms-2"><span></span></i>
                         </a>
@@ -392,7 +394,7 @@
                         <img src="assets/images/countries/3.jpeg" alt="">
                         <h2> بنغلادش </h2>
                         <p>مدة الاستقدام في خلال 60 يوم </p>
-                        <a href="all-workers.html" class="animatedLink">
+                        <a href="#" class="animatedLink">
                             اطلب الآن
                             <i class="fa-regular fa-left-long ms-2"><span></span></i>
                         </a>
@@ -404,7 +406,7 @@
                         <img src="assets/images/countries/4.jpeg" alt="">
                         <h2> الفلبين </h2>
                         <p>مدة الاستقدام في خلال 60 يوم </p>
-                        <a href="all-workers.html" class="animatedLink">
+                        <a href="#" class="animatedLink">
                             اطلب الآن
                             <i class="fa-regular fa-left-long ms-2"><span></span></i>
                         </a>
@@ -416,7 +418,7 @@
                         <img src="assets/images/countries/5.png" alt="">
                         <h2> الهند </h2>
                         <p>مدة الاستقدام في خلال 60 يوم </p>
-                        <a href="all-workers.html" class="animatedLink">
+                        <a href="#" class="animatedLink">
                             اطلب الآن
                             <i class="fa-regular fa-left-long ms-2"><span></span></i>
                         </a>
@@ -428,7 +430,7 @@
                         <img src="assets/images/countries/6.png" alt="">
                         <h2> موريتانيا </h2>
                         <p>مدة الاستقدام في خلال 60 يوم </p>
-                        <a href="all-workers.html" class="animatedLink">
+                        <a href="#" class="animatedLink">
                             اطلب الآن
                             <i class="fa-regular fa-left-long ms-2"><span></span></i>
                         </a>
@@ -440,7 +442,7 @@
                         <img src="assets/images/countries/7.png" alt="">
                         <h2> جيبوتي </h2>
                         <p>مدة الاستقدام في خلال 60 يوم </p>
-                        <a href="all-workers.html" class="animatedLink">
+                        <a href="#" class="animatedLink">
                             اطلب الآن
                             <i class="fa-regular fa-left-long ms-2"><span></span></i>
                         </a>
@@ -457,10 +459,10 @@
     <div class="container">
         <!-- Section Title -->
         <div class="SectionTitle">
-            <h2 class="title" data-aos="fade-up">خطوات الاستقدام</h2>
+            <h2 class="title" data-aos="fade-up">{{__('ingaz.Recruitment steps')}}</h2>
             <h6 class="hint" data-aos="fade-up" data-aos-delay="100">
-                تعرف علي الخطوات التي نعمل بها ...
-            </h6>
+ {{__('ingaz.Recruitment steps hint')}}
+        </h6>
         </div>
 
         <!-- steps -->
@@ -612,7 +614,7 @@
                         <h4>{{__('ingaz.Documents_visa')}} </h4>
                         <p>
                             {{__('ingaz.Please_visit_the_Domestic_Workers_Program_Support_website')}}
-                            <a href="#!"> من هنا </a>
+                            <a href="{{route('site.musaned.index')}}"> من هنا </a>
                         </p>
                     </div>
                     @forelse($Visa as $visa)

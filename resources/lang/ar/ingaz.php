@@ -983,4 +983,11 @@
 'Recruitment countries'=>'دول الاستقدام',
   'features   ' => 'Features   ',
     'request now'=>'اطلب الان',
+    'country_image'=>'صورة الدولة',
+    'experience more than'=>'خبره اكثر من',
+    'Statistics hint'=>'إليك بعض إحصائيات العملاء الذين تشرفنا بالعمل معهم',
+        'request your mid' => 'اطلب خادمتك الآن وسيقوم فريق خدمة العملاء لدينا بالتواصل معك في أقرب وقت ممكن...',
+        'Recruitment steps'=>'خطوات الاستقدام',
+        'Recruitment steps hint'=>'تعرف علي الخطوات التي نعمل بها ...',
+
 );

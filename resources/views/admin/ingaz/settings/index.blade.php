@@ -175,8 +175,64 @@
                 value="{{ $settings->map_link ?? '' }}">
         </fieldset>
     </div>
+<input type="hidden" name="show_customer_service_during_booking" value="0">
 
     <hr>
+    <div class="row">
+        <div class="col-6">
+        <label for="TextInput" class="form-label"> سنين الخبره </label>
+        <fieldset class="form-icon-group right-icon position-relative">
+            <div class="form-icon position-absolute">
+                <i class="fa fa-link"></i>
+            </div>
+            <input type="number" name="years" class="form-control"
+                value="{{ $settings->years ?? '' }}">
+        </fieldset>
+    </div>
+
+<div class="col-3">
+    <label class="form-label d-block"> تفعيل خدمة العملاء</label>
+    <div class="form-check">
+        <input 
+            type="checkbox" 
+            name="show_customer_service_during_booking" 
+            id="show_customer_service_during_booking" 
+            class="form-check-input"
+            value="1" 
+            {{ !empty($settings->show_customer_service_during_booking) ? 'checked' : '' }}>
+            
+        <label class="form-check-label" for="show_customer_service_during_booking">
+            {{ !empty($settings->show_customer_service_during_booking) ? 'مفعل' : 'غير مفعل' }}
+        </label>
+    </div>
+</div>
+
+    </div>
+    <div class="row">
+
+     <div class="col-6">
+        <label for="TextInput" class="form-label">   التنويهات بالعربيه </label>
+        <fieldset class="form-icon-group right-icon position-relative">
+            <div class="form-icon position-absolute">
+                <i class="fa fa-link"></i>
+            </div>
+            <input type="text" name="note_ar" class="form-control"
+                value="{{ $settings->note_ar ?? '' }}">
+        </fieldset>
+    </div>
+
+          <div class="col-6">
+        <label for="TextInput" class="form-label">   التنويهات بالانجليزي </label>
+        <fieldset class="form-icon-group right-icon position-relative">
+            <div class="form-icon position-absolute">
+                <i class="fa fa-link"></i>
+            </div>
+            <input type="text" name="note_en" class="form-control"
+                value="{{ $settings->note_en ?? '' }}">
+        </fieldset>
+    </div>
+    </div>
+
     <div class="col-4">
         <div class="col-12">
             <div class="card">

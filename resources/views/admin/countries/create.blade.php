@@ -32,26 +32,6 @@
                             @enderror
                         </div>
                     </div>
-                             <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="description_ar">{{__('countries.description_ar')}} <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control @error('description_ar') is-invalid @enderror"
-                                   id="description_ar" name="description_ar" value="{{ old('description_ar') }}" required>
-                            @error('description_ar')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="description_en">{{__('countries.description_en')}} <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control @error('description_en') is-invalid @enderror"
-                                   id="description_en" name="description_en" value="{{ old('description_en') }}" required>
-                            @error('description_en')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="code">{{__('countries.code')}} <span class="text-danger">*</span></label>
@@ -111,13 +91,6 @@
                             </div>
                         </div>
                     </div>
-                         <div class="mb-3 row">
-                    <label class="col-sm-3 col-form-label">{{ __('ingaz.image') }}</label>
-                    <div class="col-sm-5">
-                        <input type="file" name="image" class="form-control" accept="image/*">
-                       
-                    </div>
-                </div>
                 </div>
                 <div class="form-group mt-4">
                     <button type="submit" class="btn btn-primary">{{__('buttons.save')}}</button>

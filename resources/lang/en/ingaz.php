@@ -920,5 +920,11 @@
   'mission'=>'Mission',
   'vision'=>'Vision',
   'values'=>'Values',
+  'country_image'=>'Country Image',
+     'experience more than'=>'experience more than',
+    'Statistics hint'=>'Here are some statistics from the clients we have had the pleasure of working with.',
+            'Recruitment steps'=>'Recruitment steps',
+                    'Recruitment steps hint'=>'Learn about the steps we take...',
+
 
 );
