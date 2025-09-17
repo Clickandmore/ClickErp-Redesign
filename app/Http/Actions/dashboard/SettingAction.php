@@ -44,7 +44,7 @@ class SettingAction extends MainAction
 
     public function updateSetting($id, $data)
     {
-        $setting = $this->find($id);
+         $setting = $this->find($id);
 
         // Handle file uploads
         if (isset($data['logo_header']) && $data['logo_header'] instanceof \Illuminate\Http\UploadedFile) {
@@ -67,6 +67,11 @@ class SettingAction extends MainAction
             $image = $data['about_image'];
             $data['about_image'] = uploadFile($image, $this->fileFolder,1);
         }
+//new keys
+$setting['note_en'] = $data['note_en'];
+$setting['note_ar'] = $data['note_ar'];
+$setting['years'] = $data['years'];
+$setting['show_customer_service_during_booking'] = $data['show_customer_service_during_booking'];
 
         // Separate translation data from main data
         $translationData = [];
