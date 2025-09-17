@@ -50,6 +50,9 @@ use App\Http\Controllers\ingaz\ReturnRequestController;
 use App\Http\Controllers\ingaz\ComplaintTypeController;
 use App\Http\Controllers\ingaz\FastNewController;
 use App\Http\Controllers\ingaz\FeatureController;
+use App\Http\Controllers\ingaz\ProfessionalApplicationController;
+use App\Http\Controllers\ingaz\RecruitmentRequestController;
+use App\Http\Controllers\ingaz\RenewContractController;
 use App\Http\Controllers\ingaz\RentalContractTermsController;
 use App\Http\Controllers\ingaz\RequirementsController;
 use App\Models\Client;
@@ -79,10 +82,13 @@ Route::group(
             Route::resource('testimonials', TestimonialController::class);
             Route::resource('requiremens', RequirementsController::class);
 
-  Route::resource('partenrs', ClientController::class);
-    Route::resource('requiremens', RequirementsController::class);
-    Route::resource('fast-news', FastNewController::class);
-        Route::resource('features', FeatureController::class);
+            Route::resource('partenrs', ClientController::class);
+            Route::resource('requiremens', RequirementsController::class);
+            Route::resource('fast-news', FastNewController::class);
+            Route::resource('features', FeatureController::class);
+            Route::resource('renew-contracts', RenewContractController::class);
+            Route::resource('professional_application', ProfessionalApplicationController::class);
+            Route::resource('recruitment_requests', RecruitmentRequestController::class);
 
             Route::get('getMaidByNationality/{nationalityId}', [RecruitmentContractController::class, 'getMaidByNationality'])->name('getMaidByNationality');
             Route::get('clients/{id}/details', [RecruitmentContractController::class, 'getClientDetails'])->name('clients.details');
@@ -176,17 +182,17 @@ Route::group(
             Route::post('rental-orders/{id}/approve', [RentalOrderController::class, 'approveOrder'])->name('rental-orders.approve');
             Route::post('rental-orders/{id}/reject', [RentalOrderController::class, 'rejectOrder'])->name('rental-orders.reject');
 
-// Transfer Service Contracts routes
+            // Transfer Service Contracts routes
             Route::resource('TransferServiceContract', TransferServiceContractController::class);
             Route::get('print/transfer-service-contract/{transferServiceContract}', [TransferServiceContractController::class, 'print'])->name('print.transfer-service-contract');
             Route::get('print/sponsorship-transfer-contract/{sponsorshipTransfer}', [SponsorshipTransferController::class, 'printContract'])->name('print.sponsorship-transfer-contract');
             Route::post('sponsorship-transfer/{id}/save-signature', [SponsorshipTransferController::class, 'saveSignature'])->name('sponsorship-transfer.save-signature');
             Route::post('sponsorship-transfer/{id}/save-company-signature', [SponsorshipTransferController::class, 'saveCompanySignature'])->name('sponsorship-transfer.save-company-signature');
 
-// Transfer Contract Terms routes
+            // Transfer Contract Terms routes
             Route::resource('transfer-contract-terms', TransferContractTermsController::class);
 
-// SponsorshipTransfer action routes
+            // SponsorshipTransfer action routes
             Route::post('SponsorshipTransfer/{id}/send-contract', [SponsorshipTransferController::class, 'sendContract'])->name('SponsorshipTransfer.send-contract');
             Route::post('SponsorshipTransfer/{id}/sign-contract', [SponsorshipTransferController::class, 'signContract'])->name('SponsorshipTransfer.sign-contract');
             Route::post('SponsorshipTransfer/{id}/deliver-maid', [SponsorshipTransferController::class, 'deliverMaid'])->name('SponsorshipTransfer.deliver-maid');
@@ -365,7 +371,6 @@ Route::group(
                 Route::get('/statistics', [\App\Http\Controllers\Admin\ContractReturnRequestController::class, 'statistics'])->name('statistics');
             });
         });
-
     }
 );
 
@@ -404,10 +409,7 @@ Route::group(
 
             //** ACTIVITY LOG **//
             Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity.log');
-
-
         });
-
     }
 );
 

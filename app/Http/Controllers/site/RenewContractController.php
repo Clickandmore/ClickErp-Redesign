@@ -19,7 +19,11 @@ class RenewContractController extends Controller
 
     public function store(RenewContractRequest $request, RenewContractAction $renewContractAction)
     {
+        
+        
         $data = $request->validated();
+        unset($data['g-recaptcha-response']);
+        
         $renewContractAction->storeRenewContract($data);
         return jsonSuccess(null, __("ingaz.the_customer_contract_renewal_request_has_been_successfully_submitted"));
     }

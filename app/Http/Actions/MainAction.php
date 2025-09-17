@@ -53,7 +53,7 @@ class MainAction
 
     public function delete($id)
     {
-        return $this->model->destroy($id);
+         return $this->model->destroy($id);
     }
 
     public function store($data)

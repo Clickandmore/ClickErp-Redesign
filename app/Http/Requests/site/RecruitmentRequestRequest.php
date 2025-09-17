@@ -28,6 +28,7 @@ class RecruitmentRequestRequest extends MainRequest
             'language' => ['required' , 'string'],
             'worker_status' => ['required'],
             'notes' => ['nullable','string'],
+        'g-recaptcha-response' => 'required'
         ];
     }
 

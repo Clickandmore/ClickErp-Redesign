@@ -25,6 +25,8 @@ class DailyLabotDemandRequest extends MainRequest
             'job_title_id' => ['required', 'exists:job_titles,id'],
             'visa_number' => ['required', 'string'],
             'other_requirement' => ['required', 'string'],
+            'g-recaptcha-response' => 'required',
+
         ];
     }
 
@@ -57,6 +59,4 @@ class DailyLabotDemandRequest extends MainRequest
             'other_requirement.string'   => __('ingaz.other_requirement_string'),
         ];
     }
-
-
 }

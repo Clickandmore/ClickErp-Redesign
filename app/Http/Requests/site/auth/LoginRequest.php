@@ -21,6 +21,8 @@ class LoginRequest extends MainRequest
         return [
             'phone'    => 'bail|required|exists:users,phone',
             'password' => 'required|string',
+                    'g-recaptcha-response' => 'nullable|captcha',
+
         ];
     }
 

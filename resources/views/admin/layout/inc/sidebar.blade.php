@@ -803,7 +803,35 @@
                                 </a>
                             </li>
                         @endif
+  {{-- @if (@AdminGuardHasPerm(\App\PermKeys::professional_application_VIEW)) --}}
+                    <li>
+                        <a class="m-link {{ (Route::currentRouteName() == 'professional_application.index') ? 'active' : '' }}"
+                           href="{{route('professional_application.index')}}">
+                            <i class="fa fa-envelope"></i>
+                            <span class="ms-2"> {{ helperTrans('ingaz.professional_application') }}</span>
+                        </a>
+                    </li>
+                {{-- @endif --}}
 
+                  {{-- @if (@AdminGuardHasPerm(\App\PermKeys::recruitment_requests_VIEW)) --}}
+                    <li>
+                        <a class="m-link {{ (Route::currentRouteName() == 'recruitment_requests.index') ? 'active' : '' }}"
+                           href="{{route('recruitment_requests.index')}}">
+                            <i class="fa fa-envelope"></i>
+                            <span class="ms-2"> {{ helperTrans('ingaz.recruitment_requests') }}</span>
+                        </a>
+                    </li>
+                {{-- @endif --}}
+
+                  {{-- @if (@AdminGuardHasPerm(\App\PermKeys::renew-contracts_VIEW)) --}}
+                    <li>
+                        <a class="m-link {{ (Route::currentRouteName() == 'renew-contracts.index') ? 'active' : '' }}"
+                           href="{{route('renew-contracts.index')}}">
+                            <i class="fa fa-envelope"></i>
+                            <span class="ms-2"> {{ helperTrans('ingaz.renew-contracts') }}</span>
+                        </a>
+                    </li>
+                {{-- @endif --}}
                         @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'questions.index') ? 'active' : '' }}"
@@ -835,6 +863,9 @@
                         </a>
                     </li>
                 @endif
+
+
+
 {{--                @if (@AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW))--}}
                     <li>
                         <a class="m-link {{ (Route::currentRouteName() == 'offices.index') ? 'active' : '' }}"

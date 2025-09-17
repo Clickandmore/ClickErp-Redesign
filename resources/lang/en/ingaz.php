@@ -1002,4 +1002,223 @@
     'passport_number' => 'passport number',
     'cv_number' => 'CV Number',
     'personal_infromation' => 'Personal Information',
-);
+
+
+      'new_user_tab' => 'New User on Musaned Website',
+    'existing_user_tab' => 'I Already Have an Account on Musaned',
+
+    'visa_steps_title' => 'To apply for a recruitment visa, please follow the steps below',
+    'visit_musaned' => 'Visit the Musaned website at the following link',
+
+    'step_create_account' => 'Create a New Account',
+    'step_verification_note' => 'Your ID number will be verified through (Absher) services. Make sure you are already registered. For more info, visit the Absher platform.',
+
+    'step_basic_info_form' => 'Fill in the Basic Information Form',
+    'basic_info_fields' => [
+        'id_number' => 'National ID for citizens or Iqama for residents',
+        'first_last_name' => 'First Name and Last Name',
+        'birth_date' => 'Date of Birth (Hijri)',
+        'mobile_number' => 'Mobile Number',
+        'city' => 'City',
+    ],
+
+    'activation_code_note' => 'After submitting your basic information, you will receive an SMS with the Musaned activation code. Enter the code to complete account registration.',
+
+    'step_password_info' => 'Confirm Password: Re-enter your chosen password',
+    'step_password_mobile_email' => [
+        'password_confirmation' => 'Confirm Password: Re-enter your chosen password',
+        'mobile_number_registered' => 'Mobile number registered in Absher',
+        'email_address' => 'Email address: To activate Musaned account',
+    ],
+    'password_hint' => 'Password: Choose a password that includes letters, numbers, and symbols',
+
+    'requirements_title' => 'Before starting the visa issuance, ensure the following requirements are ready:',
+    'requirements_list' => [
+        'social_insurance' => 'Are you registered with GOSI (Social Insurance)?',
+        'employment_status' => 'Employment Status: According to financial ability proof',
+        'financial_proof' => 'Type of financial proof: Salary certificate (private or public sector), or bank statement based on allowed visa count',
+    ],
+
+    'payment_step_title' => 'How to Pay Visa Fees via SADAD',
+    'payment_steps' => [
+        'login_to_bank' => 'Log in to your bank website, app, or ATM',
+        'choose_payments' => 'Choose "Payments"',
+        'gov_payments' => 'Choose "Government Payments - SADAD"',
+        'service_type' => 'Service Type: Recruitment',
+        'request_type' => 'Request Type: Labor Visa',
+        'operation_type' => 'Operation Type: Payment',
+        'enter_id' => 'Enter Employer\'s ID Number',
+        'select_visa_count' => 'Select Number of Visas',
+        'pay_fees' => 'Pay Visa Fees',
+    ],
+    'payment_note' => 'The invoice will be issued via SADAD. Pay within one day to submit the request.',
+
+    'visa_request_title' => 'Visa Issuance Request',
+    'visa_info_step' => 'Fill Visa Information',
+    'visa_info_fields' => [
+        'job_title' => 'Job Title: Choose the domestic worker\'s occupation',
+        'nationality' => 'Nationality: Choose the nationality of the domestic worker',
+        'arrival_country' => 'Arrival Country: Choose the country of origin',
+    ],
+    'financial_proof_step' => 'Proof of Financial Ability',
+    'financial_proof_fields' => [
+        'salary_statement' => 'Salary Certificate: Enter monthly salary from private or public sector',
+        'bank_statement' => 'Bank Certificate: Enter the average monthly balance',
+    ],
+    'upload_documents' => 'Upload Documents and Attachments',
+    'documents_list' => [
+        'financial_proof_doc' => 'Proof of Financial Ability',
+        'id_or_family_card' => 'Family Card or National ID Copy',
+    ],
+    'agreement_note' => 'Agree to the terms, privacy policy, and declaration',
+
+    'application_status_note' => 'Once submitted, you will be notified about the application status within one working day',    
+
+'Visa issuance' => 'Visa issuance',
+'Recruitment journey' => 'Recruitment journey',
+
+
+
+
+ // Musaned Intro Section
+    'musaned_intro_title' => 'Recruitment experience made easier and better',
+    'musaned_intro_description' => 'Musaned is one of the initiatives of the Ministry of Human Resources and Social Development. It is an integrated e-platform for the recruitment of domestic workers. It aims to facilitate the recruitment process and protect the rights of all parties by informing both employers and workers of their rights and duties.',
+
+    // Musaned Features Section
+    'musaned_services_title' => 'Musaned Services',
+    'musaned_services_subtitle' => 'What we offer...',
+
+    'feature_e_contract' => 'E-Contracting',
+    'feature_manage_offices' => 'Office Management',
+    'feature_rental_services' => 'Rental Services',
+    'feature_common_description' => 'Easily contract with over 1,400 recruitment offices across the Kingdom',
+
+    // Musaned Recruitment Section
+    'recruitment_journey_heading' => 'Start the journey',
+    'recruitment_journey_title' => 'of recruitment with Musaned',
+    'recruitment_journey_description' => 'Musaned allows employers to send recruitment preferences (age, religion, work experience) to a chosen recruitment agency. In response, agencies provide up to five resumes to choose from. Once selected, employers can proceed to pay and sign an e-contract with the agency. This contract differs from the one signed between the employer and the domestic worker, usually done in the country of origin before arrival.',
+
+    'recruitment_specifications_title' => 'Recruitment by Specification',
+    'recruitment_job_title' => 'Recruitment by Job Title',
+    'recruitment_nationality_title' => 'Recruitment by Nationality',
+
+    'recruitment_steps_heading' => 'Steps',
+    'recruitment_steps_title' => 'of Recruitment with Musaned',
+
+    'step_select_type_title' => 'Select Recruitment Type',
+    'step_select_type_description' => 'Choose based on preference, either by specific worker specs or a pre-selected worker by name',
+
+    'step_select_provider_title' => 'Select Service Provider',
+    'step_select_provider_description' => 'Choose from over 1,400 providers across the Kingdom. Filter by rating, acceptance rate, or city',
+
+    'step_receive_offers_title' => 'Receive Recruitment Offers',
+    'step_receive_offers_description' => 'Get offers including expected salary and ranked CVs to choose from',
+
+    'step_payment_title' => 'Pay Recruitment Fees',
+    'step_payment_description' => 'Securely pay via Musaned after creating the contract using Visa, MasterCard, or Mada card',
+
+    'step_track_title' => 'Track Recruitment Request',
+    'step_track_description' => 'Track your recruitment process easily via your Musaned account – from request to worker arrival',
+
+    // Musaned Fees Section
+    'fees_heading' => 'Fees',
+    'fees_title' => 'of Recruitment with Musaned',
+    'fees_description' => 'Pay your domestic labor visa fees via government banking services or secure online payment channels like Mada, Visa, or MasterCard',
+
+    // Musaned App Section
+    'app_title' => 'Musaned Mobile App for Android and iOS',
+    'app_description' => 'The Musaned app, supported by the Ministry of Labor, allows you to apply for recruitment visas, track their status, and use worker verification features – all in one place.',
+
+ 'name' => 'Name',
+    'phone' => 'Phone Number',
+    'address' => 'Address',
+    'city' => 'City',
+    'customer_national_address' => 'Customer National Address',
+    'user' => 'User',
+
+    'worker_name' => 'Worker Name',
+    'worker_phone' => 'Worker Phone',
+    'worker_address' => 'Worker Address',
+    'nationality' => 'Nationality',
+    'worker_marital_status' => 'Worker Marital Status',
+    'worker_brought_from' => 'Worker Brought From',
+    'worker_residence' => 'Worker Residence',
+    'worker_old_salary' => 'Old Salary',
+    'worker_new_salary' => 'New Salary',
+    'passport_number' => 'Passport Number',
+
+    'name_of_relative' => 'Relative\'s Name',
+    'address_of_relative' => 'Relative\'s Address',
+    'phone_of_relative' => 'Relative\'s Phone',
+
+    'attachments' => 'Attachments',
+    'view' => 'View',
+    'download' => 'Download',
+'renew_contract' => 'Renew Contract',
+'renew-contracts' => 'Renew Contracts',
+    
+        'sponsor_card' => 'Sponsor Card',
+        'first_page_of_the_worker_passport' => 'First Page of Worker\'s Passport',
+        'travel_tickets' => 'Travel Tickets',
+        'visa_printed_in_the_worker_passport' => 'Visa Printed in Passport',
+        'exit_and_re_entry_visa' => 'Exit and Re-Entry Visa',
+        'worker_information' => 'Worker Information',
+        'image_of_bank_transfer' => 'Bank Transfer Image',
+ 
+ 'worker_information' => 'Worker Information',
+    'professional_application' => 'Professional Job Application',
+
+    // User Data
+    'user_name' => 'User Name',
+    'user_phone' => 'Phone Number',
+    'user_email' => 'Email Address',
+    'user_info' => 'User Information',
+
+    // Application Data
+    'facility_name' => 'Facility Name',
+    'application_phone' => 'Phone Number',
+    'number_of_workers_required' => 'Number of Workers Required',
+    'job_title' => 'Job Title',
+    'visa_number' => 'Visa Number',
+    'other_requirement' => 'Other Requirements',
+    'status' => 'Status',
+    'status_approved' => 'Approved',
+    'status_pending' => 'Pending',
+
+    // Buttons / UI
+    'back_to_list' => 'Back to List',
+    'view_title' => 'Professional Application Details',
+
+    'view_title_contract' => 'Contract Details',
+    'client_info' => 'Client Information',
+    'maid_info' => 'Maid Information',
+    'relative_info' => 'Maid Relative Information',
+    'not_avalible' => 'Not Avalible',
+     'recruitment_request_maid' => 'Recruitment Request for Maid',
+    'view_title' => 'View Request',
+    'back_to_list' => 'Back to List',
+    'client_info' => 'Client Information',
+    'client_name' => 'Client Name',
+    'client_phone' => 'Client Phone',
+    'client_email' => 'Client Email',
+    'maid_info' => 'Maid Information',
+    'maid_name' => 'Maid Name',
+    'maid_nationality' => 'Maid Nationality',
+    'maid_status' => 'Maid Status',
+    'recruitment_request_details' => 'Recruitment Request Details',
+    'job_title' => 'Job Title',
+    'nationality' => 'Nationality',
+    'experience_years' => 'Years of Experience',
+    'salary' => 'Salary',
+    'notes' => 'Notes',
+    'status' => 'Status',
+    'status_approved' => 'Approved',
+    'status_pending' => 'Pending',
+    'request_type' => 'Request Type',
+    'visa_number' => 'Visa Number',
+    'social_status' => 'Social Status',
+    'age' => 'Age',
+    'religion' => 'Religion',
+    'language' => 'Language',
+    'worker_status' => 'Worker Status',
+  );
