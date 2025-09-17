@@ -40,7 +40,7 @@
                                     {{ __('ingaz.cv_alert') }}
                                 </p>
                                 <div class="actions">
-                                    <a data-fancybox="cv1" href="{{ showFile($maid->cv_file) }}" class="icon-btn">
+                                    <a data-fancybox="cv1" href="{{ showFile($maid->cv_preview) }}" class="icon-btn">
                                         <i class="fa-regular fa-file-pdf"></i>
                                     </a>
                                     <a data-fancybox="video1" href="{{ showFile($maid->video_preview) }}" class="icon-btn">
@@ -84,7 +84,7 @@
                                     {{ __('ingaz.cv_alert') }}
                                 </p>
                                 <div class="actions">
-                                    <a data-fancybox="cv2" href="{{ showFile($maid->cv_file) }}" class="icon-btn">
+                                    <a data-fancybox="cv2" href="{{ showFile($maid->cv_preview) }}" class="icon-btn">
                                         <i class="fa-regular fa-file-pdf"></i>
                                     </a>
                                     <a data-fancybox="video2" href="{{ showFile($maid->video_preview) }}" class="icon-btn">
@@ -130,7 +130,7 @@
                                     {{ __('ingaz.cv_alert') }}
                                 </p>
                                 <div class="actions">
-                                    <a data-fancybox="cv2" href="{{ showFile($maid->cv_file) }}" class="icon-btn">
+                                    <a data-fancybox="cv2" href="{{ showFile($maid->cv_preview) }}" class="icon-btn">
                                         <i class="fa-regular fa-file-pdf"></i>
                                     </a>
                                     <a data-fancybox="video2" href="{{ showFile($maid->video_preview) }}" class="icon-btn">

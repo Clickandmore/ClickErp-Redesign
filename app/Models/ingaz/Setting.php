@@ -27,7 +27,7 @@ class Setting extends Model
         'terms_conditions',
         'work_times',
         'about_us_app',
-        'return_conditions'
+        'return_conditions',
     ];
     protected $translationForeignKey = 'setting_id';
     public $translationModel = SettingsTranslation::class;
