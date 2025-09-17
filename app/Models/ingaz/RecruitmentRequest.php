@@ -2,6 +2,7 @@
 
 namespace App\Models\ingaz;
 
+use App\Models\auth\Admin;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -15,12 +16,18 @@ class RecruitmentRequest extends Model
         'order_code',
         'job_type_id',
         'payment_method',
-        'status'
+        'status',
+        'customer_id'
     ];
 
     public function client(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class, 'customer_id');
     }
 
     public function maid(): BelongsTo

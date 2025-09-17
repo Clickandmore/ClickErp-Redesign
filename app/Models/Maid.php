@@ -37,6 +37,8 @@ class Maid extends Model
         'int_code',
         'duration',
         'video_preview',
+        'childrens_count',
+        'education',
     ];
 
     protected $casts = [

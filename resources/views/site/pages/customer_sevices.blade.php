@@ -8,38 +8,28 @@
             <div class="row justify-content-center">
                 <div class="col-lg-8 p-2">
                     <div class="headTitle">
-                        <h1> اختر احد مندوبي خدمة العملاء </h1>
+                        <h1> {{__("ingaz.choose_customer_service")}} </h1>
                         <p>
-                            يرجى اختيار احد ممثلي خدمة العملاء لمواصلة إتمام التعاقد واكمال الإستقدام
+                           {{__("ingaz.customer_service_desc")}}
                         </p>
                     </div>
-                    <form action="selected-customer-service.html">
+                    <form action="{{route('site.customer-service.update', $order->id)}}" method="post">
+                        @csrf
+                        @method('put')
                         <div class="choose">
-                            <div class="customerOption " data-aos=" fade-up">
-                                <input type="radio" class="btn-check" name="customer" id="option1">
-                                <label class="btn btn-outline" for="option1">
-                                    <img src="assets/images/avater2.webp" alt="">
-                                    <span> أ.شوقي </span>
-                                </label>
-                            </div>
-                            <div class="customerOption " data-aos=" fade-up">
-                                <input type="radio" class="btn-check" name="customer" id="option2">
-                                <label class="btn btn-outline" for="option2">
-                                    <img src="assets/images/avater2.webp" alt="">
-                                    <span> أ.مدحت </span>
-                                </label>
-                            </div>
-                            <div class="customerOption " data-aos=" fade-up">
-                                <input type="radio" class="btn-check" name="customer" id="option3">
-                                <label class="btn btn-outline" for="option3">
-                                    <img src="assets/images/avater2.webp" alt="">
-                                    <span> أ.سعاد </span>
-                                </label>
-                            </div>
+                            @foreach ($customer_services as $key => $customer_service)
+                                <div class="customerOption " data-aos=" fade-up">
+                                    <input type="radio" class="btn-check" value="{{$customer_service->id}}" name="customer" id="option_{{$customer_service->id}}">
+                                    <label class="btn btn-outline" for="option_{{$customer_service->id}}">
+                                        <img src="{{asset('site')}}/assets/images/avater2.webp" alt="">
+                                        <span> {{ $customer_service->name }}</span>
+                                    </label>
+                                </div>
+                            @endforeach
                         </div>
                         <div class=" pt-4 p-2 text-center">
                             <button type="submit" class="btn px-5 m-auto">
-                                تأكيد
+                                {{__('ingaz.confirm')}}
                             </button>
                         </div>
                     </form>

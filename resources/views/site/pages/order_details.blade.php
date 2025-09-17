@@ -19,10 +19,10 @@
                         </button>
                         <ul>
                             <li>
-                                <a href="profile.html"> طلبات الاستقدام </a>
+                                <a href="{{route('site.profile.index')}}"> {{__('ingaz.Recruitment requests')}} </a>
                             </li>
                             <li>
-                                <a href="#!" class="active"> تفاصيل الطلب </a>
+                                <a class="active"> {{__('ingaz.order_details')}} </a>
                             </li>
                         </ul>
                     </div>
@@ -58,63 +58,71 @@
                                     <div class="swiper-wrapper">
                                         <!-- cv image -->
                                         <div class="swiper-slide ">
-                                            <a data-fancybox="user1-CV" href="assets/images/cv1.webp">
-                                                <img src="assets/images/cv1.webp" alt="">
+                                            <a data-fancybox="user1-CV" href="{{$order->maid->cv_preview}}">
+                                                <img src="{{$order->maid->cv_preview}}" alt="">
                                             </a>
                                         </div>
-                                        <!-- cv image -->
+                                        {{-- <!-- cv image -->
                                         <div class="swiper-slide ">
                                             <a data-fancybox="user1-CV" href="assets/images/cv2.webp">
                                                 <img src="assets/images/cv2.webp" alt="">
                                             </a>
-                                        </div>
+                                        </div> --}}
                                     </div>
                                 </div>
                             </div>
                             <div class="col-sm-6 p-2">
                                 <ul class="info">
                                     <li>
-                                        <h6> الجنسية : </h6>
-                                        <p>كينيا </p>
+                                        <h6> {{__('ingaz.nationality')}} : </h6>
+                                        <p>{{$order->maid->nationality->title}} </p>
                                     </li>
                                     <li>
-                                        <h6> المهنة : </h6>
-                                        <p> -- </p>
+                                        <h6> {{__('ingaz.occupation')}} : </h6>
+                                        <p> {{ $order->maid->jobTitles->first()->title }}</p>
                                     </li>
                                     <li>
-                                        <h6> حالة الاستقدام : </h6>
-                                        <p> تم اختيار احد مسؤلى خدمة العملاء </p>
+                                        <h6> {{__('ingaz.order_status')}} : </h6>
+                                        <p>
+                                            @if ($order->customer_id != null)
+                                                {{__('ingaz.One of the customer service representatives has been selected.')}}
+                                            @else
+                                                {{__('ingaz.The order is not yet assigned to a customer service representative.')}}
+                                            @endif
+                                        </p>
                                     </li>
                                 </ul>
                             </div>
                         </div>
                     </div>
-                    <!-- customerInfo -->
-                    <div class="selectedCustomerInfo">
-                        <div class="row">
-                            <div class="col-md-6 p-1">
-                                <div class="info">
-                                    <img src="assets/images/avater2.webp" alt="">
-                                    <div class="text">
-                                        <h5> أ.منار </h5>
-                                        <p>خدمة العملاء</p>
+                    @if ($order->customer_id != null)
+                        <!-- customerInfo -->
+                        <div class="selectedCustomerInfo">
+                            <div class="row">
+                                <div class="col-md-6 p-1">
+                                    <div class="info">
+                                        <img src="{{asset('site/assets/images/avater2.webp')}}" alt="">
+                                        <div class="text">
+                                            <h6> {{$order->customer->name}}</h6>
+                                            <p>{{__('ingaz.customers_service')}}</p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="col-6 col-md-3 p-1">
-                                <a class="contact" href="#!" target="_blank">
-                                    <i class="me-2 fa-brands fa-whatsapp-square"></i>
-                                    <p>تواصل عبر الواتس اب</p>
-                                </a>
-                            </div>
-                            <div class="col-6 col-md-3 p-1">
-                                <a class="contact" href="#!" target="_blank">
-                                    <i class="me-2 fa-solid fa-square-phone"></i>
-                                    <p>تواصل عبر الهاتف </p>
-                                </a>
+                                <div class="col-6 col-md-3 p-1">
+                                    <a class="contact" href="https://wa.me/{{$order->customer->phone}}" target="_blank">
+                                        <i class="me-2 fa-brands fa-whatsapp-square"></i>
+                                        <p>{{__('ingaz.through_whatsapp')}}</p>
+                                    </a>
+                                </div>
+                                <div class="col-6 col-md-3 p-1">
+                                    <a class="contact" href="tel:{{$order->customer->phone}}" target="_blank">
+                                        <i class="me-2 fa-solid fa-square-phone"></i>
+                                        <p>{{__('ingaz.through_phone')}}</p>
+                                    </a>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    @endif
                     <div class="selectedCustomer">
                         <h6>سوف توصل العمالة فى خلال <span> 120 </span> يوم كحد اقصى </h6>
                         <div id="timer">
