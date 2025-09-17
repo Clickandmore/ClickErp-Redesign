@@ -35,12 +35,12 @@
                     </li>
                     <li>
                         <a class="dropdown-item"
-                           href="{{route('site.all-workers.index') }}?type=egar">{{__("ingaz.request_for_transfer_of_services")}}
+                           href="{{route('site.all-workers.index') }}?type=egar">{{__("ingaz.labor_rental_request")}}
                         </a>
                     </li>
                     <li>
                         <a class="dropdown-item"
-                           href="{{route('site.all-workers.index') }}?type=transfer">{{__("ingaz.labor_rental_request")}}
+                           href="{{route('site.all-workers.index') }}?type=transfer">{{__("ingaz.Labor_transfer_request")}}
                         </a>
                     </li>
 
@@ -84,7 +84,7 @@
                     <li>
                         <a class="dropdown-item"
                            href="{{route('site.arrival-worker.index')}}">
-                            {{__("ingaz.arrival_worker")}}
+                            {{__("ingaz.employment_rules_and_regulations")}}
                         </a>
                     </li>
                 </ul>

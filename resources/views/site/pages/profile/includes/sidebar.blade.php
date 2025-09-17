@@ -8,10 +8,10 @@
            href="{{route('site.last-orders.index')}}"> <i class="fa-solid fa-user-headset me-2"></i>
             {{__("ingaz.order_history")}}
         </a>
-        <a class="{{ Route::currentRouteName() === 'site.chats.index' ? 'active' : '' }}"
-           href="{{route('site.chats.index')}}"> <i class="fa-solid fa-comments me-2"></i>
-            {{__("ingaz.chat_history")}}
-        </a>
+{{--        <a class="{{ Route::currentRouteName() === 'site.chats.index' ? 'active' : '' }}"--}}
+{{--           href="{{route('site.chats.index')}}"> <i class="fa-solid fa-comments me-2"></i>--}}
+{{--            {{__("ingaz.chat_history")}}--}}
+{{--        </a>--}}
         <a class="{{ Route::currentRouteName() === 'site.notifications.index' ? 'active' : '' }}"
            href="{{route('site.notifications.index')}}"> <i class="fas fa-bell me-2"></i>
             {{__("ingaz.notifications")}}

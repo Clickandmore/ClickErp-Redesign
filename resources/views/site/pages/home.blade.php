@@ -107,10 +107,10 @@
     </a>
 
     <div class="warning">
-        {{__('ingaz.warning')}} : 
-            {{ app()->getLocale() == 'ar' ? $settings->note_ar : $settings->note_en }}
+        {{__('ingaz.warning')}} :
+        {{ app()->getLocale() == 'ar' ? $settings->note_ar : $settings->note_en }}
 
-     </div>
+    </div>
 </section>
 <!-- about sec  -->
 <section class="about-section" id="about">
@@ -340,119 +340,119 @@
 
 <!-- ============= countries =============  -->
 <section class="countries" data-aos="fade-up">
-    <div class="container">
-        <!-- Section Title -->
-        <div class="headTitle text-start" data-aos="fade-up" data-aos-delay="100">
-            <h2>   {{__('ingaz.Recruitment countries')}} </h2>
-            <p> {{__('ingaz.countries_desc')}}</p>
-        </div>
-        <div class="allCountries">
-            <div class="row justify-content-center">
-                @forelse($countries as $country)
-                     <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="100">
-                    <div class="country">
-                        <img src="{{showfile($country->image)}}" alt="">
-                    <h2>
-    {{ app()->getLocale() == 'ar' ? $country->name_ar : $country->name_en }}
-</h2>
-<p>
-    {{ app()->getLocale() == 'ar' ? $country->description_ar : $country->description_en }}
-</p>
-                        <a href="{{route('site.all-workers.index')}}" class="animatedLink">
-                            {{__('ingaz.request now')}}
-                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                        </a>
-                    </div>
-                </div>
-                @empty
-                <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="100">
-                    <div class="country">
-                        <img src="assets/images/countries/1.png" alt="">
-                        <h2> اوغندا </h2>
-                        <p>مدة الاستقدام في خلال 60 يوم </p>
-                        <a href="#" class="animatedLink">
-                            اطلب الآن
-                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                        </a>
-                    </div>
-                </div>
+        <div class="container">
+            <!-- Section Title -->
+            <div class="headTitle text-start" data-aos="fade-up" data-aos-delay="100">
+                <h2> {{ __('ingaz.Recruitment countries') }} </h2>
+                <p> {{ __('ingaz.countries_desc') }}</p>
+            </div>
+            <div class="allCountries">
+                <div class="row justify-content-center">
+                    @forelse($nationalities as $nationality)
+                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="100">
+                            <div class="country">
+                                <img src="{{ showfile($nationality->logo) }}" alt="">
+                                <h2>{{ $nationality->title }}
+                                </h2>
+                                <p>
+                                    {{ $nationality->sub_title }}
+                                </p>
+                                <a href="{{ route('site.all-workers.index') }}?nationality_id={{ $nationality->id }}"
+                                    class="animatedLink">
+                                    {{ __('ingaz.request now') }}
+                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                </a>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="100">
+                            <div class="country">
+                                <img src="assets/images/countries/1.png" alt="">
+                                <h2> اوغندا </h2>
+                                <p>مدة الاستقدام في خلال 60 يوم </p>
+                                <a href="all-workers.html" class="animatedLink">
+                                    اطلب الآن
+                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                </a>
+                            </div>
+                        </div>
 
-                <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="200">
-                    <div class="country">
-                        <img src="assets/images/countries/2.png" alt="">
-                        <h2> كينيا </h2>
-                        <p>مدة الاستقدام في خلال 60 يوم </p>
-                        <a href="#" class="animatedLink">
-                            اطلب الآن
-                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                        </a>
-                    </div>
-                </div>
+                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="200">
+                            <div class="country">
+                                <img src="assets/images/countries/2.png" alt="">
+                                <h2> كينيا </h2>
+                                <p>مدة الاستقدام في خلال 60 يوم </p>
+                                <a href="all-workers.html" class="animatedLink">
+                                    اطلب الآن
+                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                </a>
+                            </div>
+                        </div>
 
-                <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="300">
-                    <div class="country">
-                        <img src="assets/images/countries/3.jpeg" alt="">
-                        <h2> بنغلادش </h2>
-                        <p>مدة الاستقدام في خلال 60 يوم </p>
-                        <a href="#" class="animatedLink">
-                            اطلب الآن
-                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                        </a>
-                    </div>
-                </div>
+                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="300">
+                            <div class="country">
+                                <img src="assets/images/countries/3.jpeg" alt="">
+                                <h2> بنغلادش </h2>
+                                <p>مدة الاستقدام في خلال 60 يوم </p>
+                                <a href="all-workers.html" class="animatedLink">
+                                    اطلب الآن
+                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                </a>
+                            </div>
+                        </div>
 
-                <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="400">
-                    <div class="country">
-                        <img src="assets/images/countries/4.jpeg" alt="">
-                        <h2> الفلبين </h2>
-                        <p>مدة الاستقدام في خلال 60 يوم </p>
-                        <a href="#" class="animatedLink">
-                            اطلب الآن
-                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                        </a>
-                    </div>
-                </div>
+                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="400">
+                            <div class="country">
+                                <img src="assets/images/countries/4.jpeg" alt="">
+                                <h2> الفلبين </h2>
+                                <p>مدة الاستقدام في خلال 60 يوم </p>
+                                <a href="all-workers.html" class="animatedLink">
+                                    اطلب الآن
+                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                </a>
+                            </div>
+                        </div>
 
-                <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="500">
-                    <div class="country">
-                        <img src="assets/images/countries/5.png" alt="">
-                        <h2> الهند </h2>
-                        <p>مدة الاستقدام في خلال 60 يوم </p>
-                        <a href="#" class="animatedLink">
-                            اطلب الآن
-                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                        </a>
-                    </div>
-                </div>
+                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="500">
+                            <div class="country">
+                                <img src="assets/images/countries/5.png" alt="">
+                                <h2> الهند </h2>
+                                <p>مدة الاستقدام في خلال 60 يوم </p>
+                                <a href="all-workers.html" class="animatedLink">
+                                    اطلب الآن
+                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                </a>
+                            </div>
+                        </div>
 
-                <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="600">
-                    <div class="country">
-                        <img src="assets/images/countries/6.png" alt="">
-                        <h2> موريتانيا </h2>
-                        <p>مدة الاستقدام في خلال 60 يوم </p>
-                        <a href="#" class="animatedLink">
-                            اطلب الآن
-                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                        </a>
-                    </div>
-                </div>
+                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="600">
+                            <div class="country">
+                                <img src="assets/images/countries/6.png" alt="">
+                                <h2> موريتانيا </h2>
+                                <p>مدة الاستقدام في خلال 60 يوم </p>
+                                <a href="all-workers.html" class="animatedLink">
+                                    اطلب الآن
+                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                </a>
+                            </div>
+                        </div>
 
-                <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="700">
-                    <div class="country">
-                        <img src="assets/images/countries/7.png" alt="">
-                        <h2> جيبوتي </h2>
-                        <p>مدة الاستقدام في خلال 60 يوم </p>
-                        <a href="#" class="animatedLink">
-                            اطلب الآن
-                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                        </a>
-                    </div>
+                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="700">
+                            <div class="country">
+                                <img src="assets/images/countries/7.png" alt="">
+                                <h2> جيبوتي </h2>
+                                <p>مدة الاستقدام في خلال 60 يوم </p>
+                                <a href="all-workers.html" class="animatedLink">
+                                    اطلب الآن
+                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                </a>
+                            </div>
+                        </div>
+                    @endforelse
                 </div>
-                @endforelse
             </div>
         </div>
-    </div>
-</section>
+    </section>
 
 <!-- steps sec  -->
 <section class="steps" id="steps">
@@ -461,8 +461,8 @@
         <div class="SectionTitle">
             <h2 class="title" data-aos="fade-up">{{__('ingaz.Recruitment steps')}}</h2>
             <h6 class="hint" data-aos="fade-up" data-aos-delay="100">
- {{__('ingaz.Recruitment steps hint')}}
-        </h6>
+                {{__('ingaz.Recruitment steps hint')}}
+            </h6>
         </div>
 
         <!-- steps -->

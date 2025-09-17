@@ -12,7 +12,7 @@
                 <a href="{{ route('site.home.index') }}"> {{ __('ingaz.home') }} </a>
             </li>
             <li>
-                <a href="#!" class="active"> {{ __('ingaz.recruitment_request') }} </a>
+                <a href="#!" class="active"> {{ $blade_title }} </a>
             </li>
         </ul>
         <figure>
@@ -58,50 +58,51 @@
                             </button>
                         </div>
 
-                        <form action="" class="row">
+                        <form action="" class="row" id="maids_filter">
                             <!-- age -->
                             <div class="py-3 col col-md-12" style="min-width: 120px">
                                 <label for="age">
-                                    <i class="fa-duotone fa-hourglass me-1"></i> العمر
+                                    <i class="fa-duotone fa-hourglass me-1"></i> {{__('ingaz.age')}}
                                 </label>
                                 <select id="age" class="select2">
-                                    <option value="" selected>الكل</option>
-                                    <option value="">من 20 الى 30سنة</option>
-                                    <option value="">من 31 الى 40سنة</option>
-                                    <option value="">من 41 الى 50سنة</option>
+                                    <option value="" selected>{{__('ingaz.all')}}</option>
+                                    <option value="20_30">{{__('ingaz.from_20_to_30_years')}}</option>
+                                    <option value="31_40">{{__('ingaz.from_31_to_40_years')}}</option>
+                                    <option value="41_50">{{__('ingaz.from_41_to_50_years')}}</option>
                                 </select>
                             </div>
                             <!-- Occupation -->
                             <div class="py-3 col col-md-12" style="min-width: 120px">
                                 <label for="job">
-                                    <i class="fa-duotone fa-briefcase me-1"></i> المهنه
+                                    <i class="fa-duotone fa-briefcase me-1"></i> {{__('ingaz.occupation')}}
                                 </label>
                                 <select id="job" class="select2">
-                                    <option value="" selected>الكل</option>
-                                    <option value="">سائق خاص</option>
-                                    <option value="">عمالة منزلية</option>
+                                    <option value="" selected>{{__('ingaz.all')}}</option>
+                                    @foreach ($jobTitles as $jobTitle)
+                                        <option value="{{ $jobTitle->id }}">{{ $jobTitle->title }}</option>
+                                    @endforeach
                                 </select>
                             </div>
                             <!-- Nationality -->
                             <div class="py-3 col col-md-12" style="min-width: 120px">
-                                <label for="nationality">
-                                    <i class="fa-duotone fa-flag me-1"></i> الجنسية
+                                <label for="nationality_id">
+                                    <i class="fa-duotone fa-flag me-1"></i> {{__('ingaz.nationality')}}
                                 </label>
-                                <select id="nationality" class="select2">
-                                    <option value="" selected>الكل</option>
-                                    <option value="">كينيا</option>
-                                    <option value="">بنجلادش</option>
-                                    <option value="">الفليبين</option>
+                                <select id="nationality_id" class="select2">
+                                    <option value="" selected>{{__('ingaz.all')}}</option>
+                                    @foreach ($nationalities as $nationality)
+                                        <option value="{{ $nationality->id }}">{{ $nationality->title }}</option>
+                                    @endforeach
                                 </select>
                             </div>
                             <div class="pt-4 d-flex align-items-center justify-content-center flex-wrap">
                                 <button type="button" class="btn clear m-1">
-                                    مسح
+                                    {{__('ingaz.clear')}}
                                     <span></span>
                                 </button>
                                 <button type="submit" class="btn confirm">
                                     <span></span>
-                                    تطبيق
+                                    {{__('ingaz.apply')}}
                                 </button>
                             </div>
                         </form>
@@ -109,13 +110,8 @@
                     <!-- end filter -->
                 </div>
                 <div class="col-md-8 col-lg-8 p-0">
-                    <div class="workers-list" id="workers-list">
+                    <div id="maids_list">
                         @include('site.pages.maids_list', ['maids' => $maids])
-                    </div>
-                    <div class="pagination-outer" id="pagination">
-                        <div class="pagination-style1">
-                            {{ $maids->links('vendor.pagination.custom_2') }}
-                        </div>
                     </div>
                     <!-- Modal -->
                     <div class="modal fade cvModal" tabindex="-1">
@@ -197,8 +193,8 @@
             <!-- custom Order -->
             <div class="alert fade show customOrder wow fadeInUp" role="alert">
                 <button type="button" class="btn-close p-2" data-bs-dismiss="alert" aria-label="Close"></button>
-                <h6>يمكننا توفير العمالة المناسبة طبقا لمواصفاتك الخاصه</h6>
-                <a class="customBtn" href="recruitment-request.html"><span></span> تقديم طلب خاص
+                <h6>{{__('ingaz.We can provide suitable labor according to your specifications.')}}</h6>
+                <a class="customBtn" href="{{route('site.recruitment-request.index')}}"><span></span> {{__('ingaz.Submit a special request')}}
                 </a>
             </div>
             <!-- end custom Order -->
@@ -206,55 +202,60 @@
     </section>
 @endsection
 @section('js')
-
 <script>
-    const toggleBtns = document.querySelectorAll(".toggle-btn");
-    const cards = document.querySelectorAll(".workers-list .col-12");
-    const pagination = document.getElementById("pagination");
+    $(document).ready(function () {
+        // 🔹 Toggle buttons
+        $(".toggle-btn").on("click", function () {
+            $(".toggle-btn").removeClass("active");
+            $(this).addClass("active");
 
-    const type = "{{ $type }}";
+            let type = $(this).data("target");
+            let age = $("#age").val();
+            let job = $("#job").val();
+            let nationality_id = $("#nationality_id").val();
 
-    // Function to handle filtering
-    function filterCards(target) {
-        let hasVisible = false;
-
-        cards.forEach((card) => {
-            const typeAttr = card.dataset.type || ""; // fallback if missing
-            const types = typeAttr.split(" ").filter(Boolean); // split safely
-
-            if (target === "all" || types.includes(target)) {
-            card.classList.remove("d-none");
-            hasVisible = true;
-            } else {
-            card.classList.add("d-none");
-            }
+            fetchWorkers({ type: type, age: age, job: job, nationality_id: nationality_id });
         });
 
-        // Show/hide pagination depending on if we have visible items
-        if (hasVisible) {
-            pagination.classList.remove("d-none");
-        } else {
-            pagination.classList.add("d-none");
+        // 🔹 Form submit
+        $("#maids_filter").on("submit", function (e) {
+            e.preventDefault();
+
+            let filters = {
+                age: $("#age").val(),
+                job: $("#job").val(),
+                nationality_id: $("#nationality_id").val(),
+                type: $(".toggle-btn.active").data("target"),
+            };
+
+            fetchWorkers(filters);
+        });
+
+        // 🔹 Clear button
+        $("#maids_filter .clear").on("click", function () {
+            $("#maids_filter")[0].reset();
+            $(".select2").val(null).trigger("change"); // reset select2
+            let type = $(".toggle-btn.active").data("target");
+            fetchWorkers({ type: type }); // reload all
+        });
+
+        // 🔹 Reusable function
+        function fetchWorkers(params) {
+            $.ajax({
+                url: "{{ route('site.all-workers.index') }}",
+                type: "GET",
+                data: params,
+                beforeSend: function () {
+                    $("#maids_list").html("<p>Loading...</p>");
+                },
+                success: function (response) {
+                    $("#maids_list").html(response);
+                },
+                error: function () {
+                    $("#maids_list").html("<p class='text-danger'>Something went wrong.</p>");
+                },
+            });
         }
-    }
-
-    // Initial state on page load
-    let initialBtn = document.querySelector(`.toggle-btn[data-target="${type}"]`);
-    if (!initialBtn) {
-      initialBtn = document.querySelector(`.toggle-btn[data-target="all"]`);
-    }
-
-    toggleBtns.forEach((b) => b.classList.remove("active"));
-    initialBtn.classList.add("active");
-    filterCards(initialBtn.dataset.target);
-
-    // Handle click events
-    toggleBtns.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        toggleBtns.forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        filterCards(btn.dataset.target);
-      });
     });
 </script>
 

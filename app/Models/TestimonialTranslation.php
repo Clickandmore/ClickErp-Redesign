@@ -9,6 +9,6 @@ class TestimonialTranslation extends Model
 {
     use HasFactory;
 
-    public $timestamps = false;
-    protected $fillable = ['title', 'job', 'message'];
+    protected $guarded = [];
+
 }
