@@ -82,7 +82,21 @@
                     </a>
                 </li>
 
-              
+                     <li>
+                    <a class="m-link {{ (Route::currentRouteName() == 'partenrs.index') ? 'active' : '' }}"
+                       href="{{route('partenrs.index')}}">
+                        <i class="fa fa-user"></i>
+                        <span class="ms-2"> {{ helperTrans('ingaz.partenrs') }}</span>
+                    </a>
+                </li>
+
+                      <li>
+                    <a class="m-link {{ (Route::currentRouteName() == 'requiremens.index') ? 'active' : '' }}"
+                       href="{{route('requiremens.index')}}">
+                        <i class="fa fa-user"></i>
+                        <span class="ms-2"> {{ helperTrans('ingaz.requiremens') }}</span>
+                    </a>
+                </li>
 
 
                 <!-- CV Management Section -->
@@ -526,7 +540,6 @@
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
                         <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['SponsorshipTransfer.create', 'SponsorshipTransfer.index', 'SponsorshipTransfer.webRequests', 'ShelterContract.availableForTransfer', 'SponsorshipTransfer.trial', 'SponsorshipTransfer.failed', 'SponsorshipTransfer.transferred', 'transfer-contract-terms.index', 'transfer-contract-terms.create', 'transfer-contract-terms.edit'])) ? 'show' : '' }}" id="sponsorshipTransfer">
-                        <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['SponsorshipTransfer.create', 'SponsorshipTransfer.index', 'SponsorshipTransfer.webRequests', 'ShelterContract.availableForTransfer', 'SponsorshipTransfer.trial', 'SponsorshipTransfer.failed', 'SponsorshipTransfer.transferred'])) ? 'show' : '' }}"
                             id="sponsorshipTransfer">
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.index') ? 'active' : '' }}"
@@ -594,7 +607,6 @@
                         </ul>
                     </li>
                 @endif
-
                 <!-- Settings Section -->
                 {{-- <li class="divider py-2 lh-sm"><span class="small">الإعدادات</span></li> --}}
 
@@ -801,35 +813,6 @@
                                 </a>
                             </li>
                         @endif
-                               <li>
-                    <a class="m-link {{ (Route::currentRouteName() == 'partenrs.index') ? 'active' : '' }}"
-                       href="{{route('partenrs.index')}}">
-                        <i class="fa fa-user"></i>
-                        <span class="ms-2"> {{ helperTrans('ingaz.partenrs') }}</span>
-                    </a>
-                </li>
-
-                      <li>
-                    <a class="m-link {{ (Route::currentRouteName() == 'requiremens.index') ? 'active' : '' }}"
-                       href="{{route('requiremens.index')}}">
-                        <i class="fa fa-user"></i>
-                        <span class="ms-2"> {{ helperTrans('ingaz.requiremens') }}</span>
-                    </a>
-                </li>
-                        <li>
-                    <a class="m-link {{ (Route::currentRouteName() == 'fast-news.index') ? 'active' : '' }}"
-                       href="{{route('fast-news.index')}}">
-                        <i class="fa fa-user"></i>
-                        <span class="ms-2"> {{ helperTrans('ingaz.fastnews') }}</span>
-                    </a>
-                </li>
-                             <li>
-                    <a class="m-link {{ (Route::currentRouteName() == 'features.index') ? 'active' : '' }}"
-                       href="{{route('features.index')}}">
-                        <i class="fa fa-user"></i>
-                        <span class="ms-2"> {{ helperTrans('ingaz.features') }}</span>
-                    </a>
-                </li>
                     </ul>
                 </li>
 

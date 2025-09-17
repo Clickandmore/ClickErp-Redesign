@@ -31,3 +31,4 @@
     name="twitter:description"
     content="نوفّر خدمات استقدام العمالة المنزلية والمهنية بأعلى معايير الجودة والموثوقية."/>
 <meta name="twitter:image" content="assets/images/fav.svg" />
+<meta name="csrf-token" content="{{ csrf_token() }}">

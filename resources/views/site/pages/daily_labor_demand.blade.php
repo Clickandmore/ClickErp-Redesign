@@ -63,35 +63,46 @@
     <section class="why-choose-us">
         <div class="container">
             <div class="headTitle text-center" data-aos="fade-up" data-aos-delay="100">
-                <h4>لماذا تختار خدماتنا؟</h4>
+                <h4>{{__("ingaz.why_choose_our_services")}}</h4>
             </div>
             <div class="cards-wrapper">
-                <!-- Card 1 -->
-                <div class="feature-card" data-aos="fade-up">
-                    <div class="feature-text">
-                        <h3>عمالة مؤهلة</h3>
-                        <p>نوفر عمالة مهنية مؤهلة ومدربة بأعلى المعايير لضمان جودة الأداء والكفاءة في العمل.</p>
+                @forelse($whyUs as $items)
+                    <div class="feature-card" data-aos="fade-up">
+                        <div class="feature-text">
+                            <h3>{{$items->title}}</h3>
+                            <p>{{$items->descripton}}</p>
+                        </div>
+                        <div class="feature-icon"><i class="{{$items->icon}}"></i></div>
                     </div>
-                    <div class="feature-icon"><i class="fas fa-user-check"></i></div>
-                </div>
 
-                <!-- Card 2 -->
-                <div class="feature-card" data-aos="fade-up">
-                    <div class="feature-text">
-                        <h3>توفير الوقت</h3>
-                        <p>إجراءات سريعة ومبسطة لتوفير الوقت والجهد في عملية استقدام العمالة المهنية.</p>
+                @empty
+                    <!-- Card 1 -->
+                    <div class="feature-card" data-aos="fade-up">
+                        <div class="feature-text">
+                            <h3>عمالة مؤهلة</h3>
+                            <p>نوفر عمالة مهنية مؤهلة ومدربة بأعلى المعايير لضمان جودة الأداء والكفاءة في العمل.</p>
+                        </div>
+                        <div class="feature-icon"><i class="fas fa-user-check"></i></div>
                     </div>
-                    <div class="feature-icon"><i class="fas fa-clock"></i></div>
-                </div>
 
-                <!-- Card 3 -->
-                <div class="feature-card" data-aos="fade-up">
-                    <div class="feature-text">
-                        <h3>دعم متواصل</h3>
-                        <p>نقدم الدعم والاستشارات المتواصلة قبل وبعد عملية الاستقدام لضمان رضاكم الكامل.</p>
+                    <!-- Card 2 -->
+                    <div class="feature-card" data-aos="fade-up">
+                        <div class="feature-text">
+                            <h3>توفير الوقت</h3>
+                            <p>إجراءات سريعة ومبسطة لتوفير الوقت والجهد في عملية استقدام العمالة المهنية.</p>
+                        </div>
+                        <div class="feature-icon"><i class="fas fa-clock"></i></div>
                     </div>
-                    <div class="feature-icon"><i class="fas fa-headset"></i></div>
-                </div>
+
+                    <!-- Card 3 -->
+                    <div class="feature-card" data-aos="fade-up">
+                        <div class="feature-text">
+                            <h3>دعم متواصل</h3>
+                            <p>نقدم الدعم والاستشارات المتواصلة قبل وبعد عملية الاستقدام لضمان رضاكم الكامل.</p>
+                        </div>
+                        <div class="feature-icon"><i class="fas fa-headset"></i></div>
+                    </div>
+                @endforelse
             </div>
         </div>
     </section>
@@ -105,32 +116,32 @@
                         <div class="step-card mt-5" data-aos="fade-up">
                             <div class="step-icon"><i class="fas fa-clipboard-list"></i></div>
                             <div class="step-content">
-                                <h3>تعبئة النموذج</h3>
-                                <p>قم بتعبئة نموذج الطلب بجميع البيانات المطلوبة بدقة لتسريع عملية المراجعة.</p>
+                                <h3>{{__("ingaz.fill_out_the_form")}}</h3>
+                                <p>{{__("ingaz.text_1")}}.</p>
                             </div>
                         </div>
 
                         <div class="step-card" data-aos="fade-up">
                             <div class="step-icon"><i class="fas fa-user-check"></i></div>
                             <div class="step-content">
-                                <h3>مراجعة الطلب</h3>
-                                <p>سيتم مراجعة طلبك من قبل فريقنا المختص خلال 24 ساعة عمل.</p>
+                                <h3>{{__("ingaz.review_the_application")}}</h3>
+                                <p>{{__("ingaz.text_2")}}</p>
                             </div>
                         </div>
 
                         <div class="step-card" data-aos="fade-up">
                             <div class="step-icon"><i class="fas fa-phone-alt"></i></div>
                             <div class="step-content">
-                                <h3>التواصل معك</h3>
-                                <p>سنتواصل معك لتأكيد التفاصيل وإعلامك بموعد استلام العمالة.</p>
+                                <h3>{{__("ingaz.contact_you")}}</h3>
+                                <p>{{__("ingaz.text_3")}}</p>
                             </div>
                         </div>
 
                         <div class="step-card" data-aos="fade-up">
                             <div class="step-icon"><i class="fas fa-handshake"></i></div>
                             <div class="step-content">
-                                <h3>استلام العمالة</h3>
-                                <p>استلم عمالتك المهنية في الوقت المتفق عليه مع الضمان الكامل للجودة.</p>
+                                <h3>{{__("ingaz.receiving_workers")}}</h3>
+                                <p>{{__("ingaz.text_4")}}</p>
                             </div>
                         </div>
 
@@ -207,44 +218,64 @@
     <section class="testimonials-section">
         <div class="container">
             <div class="headTitle text-center" data-aos="fade-up" data-aos-delay="100">
-                <h4>آراء عملائنا</h4>
+                <h4>{{__("ingaz.our_customers_opinions")}}</h4>
             </div>
             <div class="row">
-                <div class="col-md-6 col-12">
-                    <div class="testimonial-card" data-aos="fade-up">
-                        <div class="testimonial-text">
-                            <p>تعاملت مع الشركة لاستقدام عمالة فنية لمشروعي وكانت تجربة رائعة، العمالة كانت مؤهلة
-                                والخدمة سريعة ومميزة.</p>
-                        </div>
-                        <div class="client-info">
-                            <div class="client-image">
-                                <img src="assets/images/avater2.webp" alt="عميل">
+                @forelse($testimonials as $testimonial)
+                    <div class="col-md-6 col-12">
+                        <div class="testimonial-card" data-aos="fade-up">
+                            <div class="testimonial-text">
+                                <p>{{$testimonial->message}}</p>
                             </div>
-                            <div>
-                                <h5 class="mb-0">أحمد السعدي</h5>
-                                <p class="text-muted mb-0">مدير مشروع</p>
+                            <div class="client-info">
+                                <div class="client-image">
+                                    <img src="{{showFile($testimonial->image)}}" alt="عميل">
+                                </div>
+                                <div>
+                                    <h5 class="mb-0">{{$testimonial->name}}</h5>
+                                    <p class="text-muted mb-0">{{$testimonial->job}}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="col-md-6 col-12">
-                    <div class="testimonial-card" data-aos="fade-up">
-                        <div class="testimonial-text">
-                            <p>قدمت طلب استقدام طبيب وممرضين وكانت الخدمة ممتازة، الإجراءات سريعة والموظفين محترفين
-                                ومتعاونين.</p>
-                        </div>
-                        <div class="client-info">
-                            <div class="client-image">
-                                <img src="assets/images/avatar.webp" alt="عميل">
+                @empty
+                    <div class="col-md-6 col-12">
+                        <div class="testimonial-card" data-aos="fade-up">
+                            <div class="testimonial-text">
+                                <p>تعاملت مع الشركة لاستقدام عمالة فنية لمشروعي وكانت تجربة رائعة، العمالة كانت مؤهلة
+                                    والخدمة سريعة ومميزة.</p>
                             </div>
-                            <div>
-                                <h5 class="mb-0">فاطمة العبدالله</h5>
-                                <p class="text-muted mb-0">مالكة مركز طبي</p>
+                            <div class="client-info">
+                                <div class="client-image">
+                                    <img src="{{asset('site')}}/assets/images/avater2.webp" alt="عميل">
+                                </div>
+                                <div>
+                                    <h5 class="mb-0">أحمد السعدي</h5>
+                                    <p class="text-muted mb-0">مدير مشروع</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+
+                    <div class="col-md-6 col-12">
+                        <div class="testimonial-card" data-aos="fade-up">
+                            <div class="testimonial-text">
+                                <p>قدمت طلب استقدام طبيب وممرضين وكانت الخدمة ممتازة، الإجراءات سريعة والموظفين محترفين
+                                    ومتعاونين.</p>
+                            </div>
+                            <div class="client-info">
+                                <div class="client-image">
+                                    <img src="{{asset('site')}}/assets/images/avatar.webp" alt="عميل">
+                                </div>
+                                <div>
+                                    <h5 class="mb-0">فاطمة العبدالله</h5>
+                                    <p class="text-muted mb-0">مالكة مركز طبي</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforelse
             </div>
         </div>
     </section>

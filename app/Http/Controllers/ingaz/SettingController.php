@@ -12,12 +12,49 @@ use Illuminate\Http\Request;
 class SettingController extends Controller
 {
     public $folderPath = "admin.ingaz.settings";
-    public $postData = ['logo_header', 'logo_footer', 'favicon', 'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin',
-        'youtube', 'whatsapp', 'email', 'phone', 'other_phone', 'map_link',
-        'location:ar', 'location:en', 'copyright:ar', 'copyright:en', 'terms_conditions:ar', 'terms_conditions:en', 'about_us_app:ar', 'about_us_app:en',
-        'website_name:ar', 'website_name:en', 'privacy:ar', 'privacy:en',
-        "about_image", "about_us_sub_title:ar", "about_us_sub_title:en", "footer_text:ar", "footer_text:en",
-        "rights_maids:ar", "rights_maids:en", "rights_users:ar", "rights_users:en", "return_conditions:ar", "return_conditions:en"];
+    public $postData = [
+        'logo_header',
+        'logo_footer',
+        'favicon',
+        'twitter',
+        'facebook',
+        'instagram',
+        'snapchat',
+        'linkedin',
+        'youtube',
+        'whatsapp',
+        'email',
+        'phone',
+        'other_phone',
+        'map_link',
+        'location:ar',
+        'location:en',
+        'copyright:ar',
+        'copyright:en',
+        'terms_conditions:ar',
+        'terms_conditions:en',
+        'about_us_app:ar',
+        'about_us_app:en',
+        'website_name:ar',
+        'website_name:en',
+        'privacy:ar',
+        'privacy:en',
+        "about_image",
+        "about_us_sub_title:ar",
+        "about_us_sub_title:en",
+        "footer_text:ar",
+        "footer_text:en",
+        "rights_maids:ar",
+        "rights_maids:en",
+        "rights_users:ar",
+        "rights_users:en",
+        "return_conditions:ar",
+        "return_conditions:en",
+        'years',
+        'show_customer_service_during_booking',
+        'note_ar',
+        'note_en',
+    ];
     public $mainRoute = "settings";
 
     function __construct()
@@ -98,11 +135,11 @@ class SettingController extends Controller
 
     public function update(SettingRequest $request, objAction $action)
     {
-        $dataInsert = $request->only($this->postData);
-
+        $dataInsert = $request->all();
         // Get the first setting record or create one if it doesn't exist
         $setting = Setting::first();
-        if (!$setting) {
+         if (!$setting) {
+ 
             $setting = Setting::create();
         }
 

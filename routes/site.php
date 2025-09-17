@@ -8,6 +8,7 @@ use App\Http\Controllers\site\auth\ForgetPasswordController;
 use App\Http\Controllers\site\auth\LoginController;
 use App\Http\Controllers\site\auth\LogoutController;
 use App\Http\Controllers\site\auth\OtpController;
+use App\Http\Controllers\site\auth\OtpRegisterController;
 use App\Http\Controllers\site\auth\RegisterController;
 use App\Http\Controllers\site\ContactUsController;
 use App\Http\Controllers\site\CustomerServiceController;
@@ -56,6 +57,7 @@ Route::group(
         Route::resource('forget-password', ForgetPasswordController::class);
         Route::resource('change-password', ChangePasswordController::class);
         Route::resource('otp', OtpController::class);
+        Route::resource('otp-register', OtpRegisterController::class);
         Route::resource('all-workers', AllWorkerController::class);
         Route::resource('musaned', MusanedController::class);
         Route::resource('arrival-worker', ArrivalWorkerController::class);

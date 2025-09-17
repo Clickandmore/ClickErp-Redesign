@@ -16,11 +16,19 @@ class RegisterRequest extends MainRequest
         return true;
     }
 
+    public function prepareForValidation()
+    {
+        $this->merge([
+            'phone_code' => '+966',
+        ]);
+    }
+
     public function rules()
     {
         return [
             'name' => ['required', 'string'],
             'phone' => ['required', 'string', 'unique:users,phone'],
+            'phone_code' => ['required', 'string'],
             'email' => ['required', 'string', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ];
@@ -32,26 +40,25 @@ class RegisterRequest extends MainRequest
         return [
             // الاسم
             'name.required' => __('ingaz.name_required'),
-            'name.string'   => __('ingaz.name_string'),
+            'name.string' => __('ingaz.name_string'),
 
             // الهاتف
             'phone.required' => __('ingaz.phone_required'),
-            'phone.string'   => __('ingaz.phone_string'),
-            'phone.unique'   => __('ingaz.phone_unique'),
+            'phone.string' => __('ingaz.phone_string'),
+            'phone.unique' => __('ingaz.phone_unique'),
 
             // الايميل
             'email.required' => __('ingaz.email_required'),
-            'email.string'   => __('ingaz.email_string'),
-            'email.unique'   => __('ingaz.email_unique'),
+            'email.string' => __('ingaz.email_string'),
+            'email.unique' => __('ingaz.email_unique'),
 
             // كلمة المرور
-            'password.required'  => __('ingaz.password_required'),
-            'password.string'    => __('ingaz.password_string'),
-            'password.min'       => __('ingaz.password_min'),
+            'password.required' => __('ingaz.password_required'),
+            'password.string' => __('ingaz.password_string'),
+            'password.min' => __('ingaz.password_min'),
             'password.confirmed' => __('ingaz.password_confirmed'),
         ];
     }
-
 
 
 }
