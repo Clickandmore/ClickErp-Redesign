@@ -78,16 +78,28 @@ try {
             echo json_encode(debugFileProcessing(), JSON_UNESCAPED_UNICODE);
             exit();
             break;
-            
+
         case 'check_countries_table':
             ob_clean();
             echo json_encode(checkCountriesTable(), JSON_UNESCAPED_UNICODE);
             exit();
             break;
-            
+
         case 'prepare_countries_table':
             ob_clean();
             echo json_encode(prepareCountriesTable(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'prepare_related_tables':
+            ob_clean();
+            echo json_encode(prepareRelatedTables(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_cv_comprehensive':
+            ob_clean();
+            echo json_encode(migrateCVComprehensive(), JSON_UNESCAPED_UNICODE);
             exit();
             break;
 
@@ -2510,7 +2522,7 @@ function processCustomersFromFile($pdo, $handle, $headers, $fileName) {
 function processCountriesFromFile($pdo, $handle, $headers, $fileName) {
     $processed = 0;
     $skipped = 0;
-    
+
     // الحصول على أعمدة جدول countries الحالية
     try {
         $tableColumns = $pdo->query("DESCRIBE countries")->fetchAll(PDO::FETCH_COLUMN);
@@ -2518,7 +2530,7 @@ function processCountriesFromFile($pdo, $handle, $headers, $fileName) {
         // الجدول غير موجود، سيتم إنشاؤه
         $tableColumns = [];
     }
-    
+
     while (($row = fgetcsv($handle, 0, ',')) !== false) {
         if (count($row) !== count($headers)) {
             $skipped++;
@@ -2526,7 +2538,7 @@ function processCountriesFromFile($pdo, $handle, $headers, $fileName) {
         }
 
         $data = array_combine($headers, array_map('trim', $row));
-        
+
         // التحقق من البيانات الأساسية
         if (empty($data['id']) || (!isset($data['name']) && !isset($data['name_ar']) && !isset($data['name_en']))) {
             $skipped++;
@@ -2536,36 +2548,36 @@ function processCountriesFromFile($pdo, $handle, $headers, $fileName) {
         try {
             // تحضير البيانات للإدراج مع تحويل أسماء الأعمدة
             $insertData = [];
-            
+
             // خريطة تحويل الأعمدة من القديم للجديد
             $columnMapping = [
                 'id' => 'id',
-                'code' => 'code', 
+                'code' => 'code',
                 'name' => 'name_ar',  // تحويل name إلى name_ar
                 'status' => 'is_active',  // تحويل status إلى is_active
                 'created_at' => 'created_at',
                 'updated_at' => 'updated_at'
             ];
-            
+
             // تطبيق التحويلات
             foreach ($columnMapping as $oldCol => $newCol) {
                 if (isset($data[$oldCol]) && in_array($newCol, $tableColumns)) {
                     $value = $data[$oldCol];
-                    
+
                     // تنظيف القيم NULL
                     if ($value === 'NULL' || $value === null || $value === '') {
                         $value = null;
                     }
-                    
+
                     $insertData[$newCol] = $value;
                 }
             }
-            
+
             // إضافة name_en (نسخة من name_ar إذا لم تكن موجودة)
             if (isset($insertData['name_ar']) && in_array('name_en', $tableColumns) && !isset($insertData['name_en'])) {
                 $insertData['name_en'] = $insertData['name_ar'];
             }
-            
+
             // إضافة القيم الافتراضية للأعمدة الجديدة
             if (in_array('phone_code', $tableColumns) && !isset($insertData['phone_code'])) {
                 $insertData['phone_code'] = '+966'; // افتراضي للسعودية
@@ -2579,7 +2591,7 @@ function processCountriesFromFile($pdo, $handle, $headers, $fileName) {
             if (in_array('sort_order', $tableColumns) && !isset($insertData['sort_order'])) {
                 $insertData['sort_order'] = $insertData['id'] ?? 0;
             }
-            
+
             // القيم الافتراضية للتواريخ
             if (!isset($insertData['created_at']) || empty($insertData['created_at'])) {
                 $insertData['created_at'] = date('Y-m-d H:i:s');
@@ -2587,15 +2599,15 @@ function processCountriesFromFile($pdo, $handle, $headers, $fileName) {
             if (!isset($insertData['updated_at']) || empty($insertData['updated_at'])) {
                 $insertData['updated_at'] = date('Y-m-d H:i:s');
             }
-            
+
             // بناء استعلام INSERT مع UPSERT
             $columns = array_keys($insertData);
             $placeholders = array_fill(0, count($columns), '?');
-            
-            $sql = "INSERT INTO countries (`" . implode('`, `', $columns) . "`) 
+
+            $sql = "INSERT INTO countries (`" . implode('`, `', $columns) . "`)
                     VALUES (" . implode(', ', $placeholders) . ")
                     ON DUPLICATE KEY UPDATE ";
-            
+
             // إضافة UPDATE للحقول
             $updateParts = [];
             foreach ($columns as $col) {
@@ -2604,16 +2616,16 @@ function processCountriesFromFile($pdo, $handle, $headers, $fileName) {
                 }
             }
             $sql .= implode(', ', $updateParts);
-            
+
             $stmt = $pdo->prepare($sql);
             $stmt->execute(array_values($insertData));
             $processed++;
-            
+
         } catch (Exception $e) {
             error_log("خطأ في معالجة country ID {$data['id']}: " . $e->getMessage());
         }
     }
-    
+
     return $processed;
 }
 
@@ -2623,14 +2635,14 @@ function processCountriesFromFile($pdo, $handle, $headers, $fileName) {
 function checkCountriesTable() {
     try {
         $db = get_db_connection();
-        
+
         // التحقق من وجود الجدول
         $tableExists = $db->query("SHOW TABLES LIKE 'countries'")->rowCount() > 0;
-        
+
         if ($tableExists) {
             $recordCount = $db->query("SELECT COUNT(*) FROM countries")->fetchColumn();
             $columns = $db->query("DESCRIBE countries")->fetchAll(PDO::FETCH_COLUMN);
-            
+
             return [
                 'success' => true,
                 'table_exists' => true,
@@ -2647,7 +2659,7 @@ function checkCountriesTable() {
                 'message' => 'جدول countries غير موجود - سيتم إنشاؤه تلقائياً'
             ];
         }
-        
+
     } catch (Exception $e) {
         return [
             'success' => false,
@@ -2662,10 +2674,10 @@ function checkCountriesTable() {
 function prepareCountriesTable() {
     try {
         $db = get_db_connection();
-        
+
         // التحقق من وجود الجدول
         $tableExists = $db->query("SHOW TABLES LIKE 'countries'")->rowCount() > 0;
-        
+
         if (!$tableExists) {
             // إنشاء جدول countries بناءً على البنية المعيارية
             $createSql = "CREATE TABLE `countries` (
@@ -2682,9 +2694,9 @@ function prepareCountriesTable() {
                 PRIMARY KEY (`id`),
                 UNIQUE KEY `countries_code_unique` (`code`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-            
+
             $db->exec($createSql);
-            
+
             return [
                 'success' => true,
                 'created' => true,
@@ -2697,12 +2709,306 @@ function prepareCountriesTable() {
                 'message' => 'جدول countries موجود مسبقاً'
             ];
         }
-        
+
     } catch (Exception $e) {
         return [
             'success' => false,
             'message' => 'خطأ في تحضير جدول countries: ' . $e->getMessage()
         ];
+    }
+}
+
+/**
+ * تحضير الجداول المرتبطة لـ CV/Maids
+ */
+function prepareRelatedTables() {
+    try {
+        $db = get_db_connection();
+        $results = [];
+
+        // إنشاء جدول nationalities إذا لم يكن موجوداً
+        $tableExists = $db->query("SHOW TABLES LIKE 'nationalities'")->rowCount() > 0;
+        if (!$tableExists) {
+            $createSql = "CREATE TABLE `nationalities` (
+                `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+                `logo` varchar(500) DEFAULT NULL,
+                `phone_code` varchar(255) DEFAULT '',
+                `created_at` timestamp NULL DEFAULT NULL,
+                `updated_at` timestamp NULL DEFAULT NULL,
+                PRIMARY KEY (`id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+            $db->exec($createSql);
+            $results['nationalities'] = 'تم إنشاؤه';
+        } else {
+            $results['nationalities'] = 'موجود مسبقاً';
+        }
+
+        // إنشاء جدول religions إذا لم يكن موجوداً
+        $tableExists = $db->query("SHOW TABLES LIKE 'religions'")->rowCount() > 0;
+        if (!$tableExists) {
+            $createSql = "CREATE TABLE `religions` (
+                `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+                `created_at` timestamp NULL DEFAULT NULL,
+                `updated_at` timestamp NULL DEFAULT NULL,
+                PRIMARY KEY (`id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+
+            $db->exec($createSql);
+            $results['religions'] = 'تم إنشاؤه';
+        } else {
+            $results['religions'] = 'موجود مسبقاً';
+        }
+
+        // التحقق من جدول maids وإضافة cv_status إذا لم يكن موجوداً
+        $maidsExists = $db->query("SHOW TABLES LIKE 'maids'")->rowCount() > 0;
+        if ($maidsExists) {
+            $cvStatusExists = $db->query("SHOW COLUMNS FROM maids LIKE 'cv_status'")->rowCount() > 0;
+            if (!$cvStatusExists) {
+                $db->exec("ALTER TABLE maids ADD COLUMN cv_status TINYINT DEFAULT 0 COMMENT '0=غير محجوز 1=محجوز 2=باك آوت 3=معلق 4=تم الترحيل 5=هروب'");
+                $results['maids_cv_status'] = 'تم إضافة عمود cv_status';
+            } else {
+                $results['maids_cv_status'] = 'عمود cv_status موجود';
+            }
+        } else {
+            $results['maids'] = 'الجدول غير موجود - قد نحتاج لإنشائه';
+        }
+
+        return [
+            'success' => true,
+            'results' => $results,
+            'message' => 'تم تحضير الجداول المرتبطة: ' . implode(', ', array_keys($results))
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في تحضير الجداول المرتبطة: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * نقل شامل لجداول CV/Maids
+ */
+function migrateCVComprehensive() {
+    try {
+        $oldCvTable = $_POST['old_cv_table'] ?? 'maids';
+        $cvStatusMapping = $_POST['cv_status_mapping'] ?? 'preserve';
+        $idMappingStrategy = $_POST['id_mapping_strategy'] ?? 'preserve';
+
+        // الاتصال بالقواعد
+        $oldDbHost = $_POST['old_db_host'] ?? '127.0.0.1';
+        $oldDbPort = $_POST['old_db_port'] ?? '8889';
+        $oldDbName = $_POST['old_db_name'] ?? 'platinum';
+        $oldDbUser = $_POST['old_db_user'] ?? 'root';
+        $oldDbPass = $_POST['old_db_pass'] ?? 'root';
+
+        $oldDb = new PDO("mysql:host=$oldDbHost;port=$oldDbPort;dbname=$oldDbName;charset=utf8mb4",
+                         $oldDbUser, $oldDbPass);
+        $newDb = get_db_connection();
+
+        $results = [];
+
+        // الخطوة 1: نقل nationalities
+        $results['nationalities'] = migrateTableDirect($oldDb, $newDb, 'nationalities');
+
+        // الخطوة 2: نقل religions
+        $results['religions'] = migrateTableDirect($oldDb, $newDb, 'religions');
+
+        // الخطوة 3: نقل maids/cv مع معالجة خاصة
+        if ($oldDb->query("SHOW TABLES LIKE '$oldCvTable'")->rowCount() > 0) {
+            $results['maids'] = migrateMaidsTable($oldDb, $newDb, $oldCvTable, $cvStatusMapping, $idMappingStrategy);
+        } else {
+            $results['maids'] = ['processed' => 0, 'message' => "الجدول $oldCvTable غير موجود في القاعدة القديمة"];
+        }
+
+        // الخطوة 4: نقل الترجمات
+        $results['translations'] = migrateTranslations($oldDb, $newDb);
+
+        return [
+            'success' => true,
+            'results' => $results,
+            'message' => 'تم النقل الشامل لجداول CV بنجاح'
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في النقل الشامل: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * نقل جدول مباشر بين القواعد
+ */
+function migrateTableDirect($oldDb, $newDb, $tableName) {
+    try {
+        // التحقق من وجود الجدول في القديم
+        if ($oldDb->query("SHOW TABLES LIKE '$tableName'")->rowCount() === 0) {
+            return ['processed' => 0, 'message' => "الجدول $tableName غير موجود"];
+        }
+
+        // جلب البيانات
+        $data = $oldDb->query("SELECT * FROM $tableName")->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($data)) {
+            return ['processed' => 0, 'message' => "الجدول $tableName فارغ"];
+        }
+
+        $processed = 0;
+
+        foreach ($data as $row) {
+            try {
+                // تحضير البيانات
+                $columns = array_keys($row);
+                $placeholders = array_fill(0, count($columns), '?');
+
+                $sql = "INSERT INTO $tableName (`" . implode('`, `', $columns) . "`)
+                        VALUES (" . implode(', ', $placeholders) . ")
+                        ON DUPLICATE KEY UPDATE ";
+
+                // إضافة UPDATE للحقول
+                $updateParts = [];
+                foreach ($columns as $col) {
+                    if (!in_array($col, ['id', 'created_at'])) {
+                        $updateParts[] = "`$col` = VALUES(`$col`)";
+                    }
+                }
+                $sql .= implode(', ', $updateParts);
+
+                $stmt = $newDb->prepare($sql);
+                $stmt->execute(array_values($row));
+                $processed++;
+
+            } catch (Exception $e) {
+                error_log("خطأ في نقل $tableName سجل {$row['id']}: " . $e->getMessage());
+            }
+        }
+
+        return ['processed' => $processed, 'message' => "تم نقل $processed سجل"];
+
+    } catch (Exception $e) {
+        return ['processed' => 0, 'message' => 'خطأ: ' . $e->getMessage()];
+    }
+}
+
+/**
+ * نقل جدول maids مع معالجة خاصة لـ cv_status
+ */
+function migrateMaidsTable($oldDb, $newDb, $oldTableName, $cvStatusMapping, $idMappingStrategy) {
+    try {
+        // جلب البيانات من الجدول القديم
+        $data = $oldDb->query("SELECT * FROM $oldTableName")->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($data)) {
+            return ['processed' => 0, 'message' => "الجدول $oldTableName فارغ"];
+        }
+
+        $processed = 0;
+        $cvStatusConversions = 0;
+
+        foreach ($data as $row) {
+            try {
+                // معالجة cv_status بعناية
+                if (isset($row['cv_status'])) {
+                    $originalStatus = $row['cv_status'];
+
+                    if ($cvStatusMapping === 'convert_to_available') {
+                        // تحويل cv_status إلى available (boolean)
+                        // 0 (غير محجوز) = available (1)
+                        // باقي الحالات = not available (0)
+                        $row['available'] = ($originalStatus == 0) ? 1 : 0;
+                        $cvStatusConversions++;
+                    } elseif ($cvStatusMapping === 'map_to_status') {
+                        // تحويل cv_status إلى status
+                        // 0,1 = active (1), 2,3,4,5 = inactive (0)
+                        $row['status'] = in_array($originalStatus, [0, 1]) ? 1 : 0;
+                        $cvStatusConversions++;
+                    }
+                    // إذا كان 'preserve' نحتفظ بالقيمة كما هي
+                }
+
+                // معالجة الـ IDs المرتبطة
+                if (isset($row['national_id']) && !isset($row['nationality_id'])) {
+                    $row['nationality_id'] = $row['national_id'];
+                    unset($row['national_id']);
+                }
+
+                // تنظيف البيانات
+                foreach ($row as $key => $value) {
+                    if ($value === 'NULL' || $value === null || $value === '') {
+                        $row[$key] = null;
+                    }
+                }
+
+                // إدراج في الجدول الجديد
+                $columns = array_keys($row);
+                $placeholders = array_fill(0, count($columns), '?');
+
+                $sql = "INSERT INTO maids (`" . implode('`, `', $columns) . "`)
+                        VALUES (" . implode(', ', $placeholders) . ")
+                        ON DUPLICATE KEY UPDATE ";
+
+                $updateParts = [];
+                foreach ($columns as $col) {
+                    if (!in_array($col, ['id', 'created_at'])) {
+                        $updateParts[] = "`$col` = VALUES(`$col`)";
+                    }
+                }
+                $sql .= implode(', ', $updateParts);
+
+                $stmt = $newDb->prepare($sql);
+                $stmt->execute(array_values($row));
+                $processed++;
+
+            } catch (Exception $e) {
+                error_log("خطأ في نقل maid {$row['id']}: " . $e->getMessage());
+            }
+        }
+
+        return [
+            'processed' => $processed,
+            'cv_status_conversions' => $cvStatusConversions,
+            'mapping_used' => $cvStatusMapping,
+            'message' => "تم نقل $processed سجل مع $cvStatusConversions تحويل لحالة CV"
+        ];
+
+    } catch (Exception $e) {
+        return ['processed' => 0, 'message' => 'خطأ: ' . $e->getMessage()];
+    }
+}
+
+/**
+ * نقل جداول الترجمات
+ */
+function migrateTranslations($oldDb, $newDb) {
+    try {
+        $results = [];
+        $translationTables = [
+            'nationalities_translations',
+            'religions_translations',
+            'maid_translations'
+        ];
+
+        foreach ($translationTables as $table) {
+            if ($oldDb->query("SHOW TABLES LIKE '$table'")->rowCount() > 0) {
+                $result = migrateTableDirect($oldDb, $newDb, $table);
+                $results[$table] = $result;
+            } else {
+                $results[$table] = ['processed' => 0, 'message' => 'غير موجود'];
+            }
+        }
+
+        return [
+            'processed' => array_sum(array_column($results, 'processed')),
+            'details' => $results,
+            'message' => 'تم نقل جداول الترجمات'
+        ];
+
+    } catch (Exception $e) {
+        return ['processed' => 0, 'message' => 'خطأ: ' . $e->getMessage()];
     }
 }
 

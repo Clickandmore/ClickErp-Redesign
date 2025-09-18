@@ -66,7 +66,7 @@
         <div class="main-content">
             <!-- تأكيد التحديث -->
             <div class="alert alert-success text-center mb-4">
-                <h4><i class="fas fa-check-circle me-2"></i>تأكيد: هذا النظام محدث!</h4>
+                <h4><i class="fas fa-check-circle me-2"></i>النظام محدث ومستقر</h4>
                 <p>تم إنشاء هذه الصفحة لتجنب مشاكل الكاش في المتصفح</p>
             </div>
 
@@ -200,7 +200,12 @@
                                     <option value="users">users</option>
                                     <option value="customers">customers</option>
                                     <option value="countries">countries</option>
-                                    <option value="maids">maids</option>
+                                    <option value="cvs">cvs (السير الذاتية)</option>
+                                    <option value="maids">maids (العاملات)</option>
+                                    <option value="languages">languages (اللغات)</option>
+                                    <option value="professions">professions (المهن)</option>
+                                    <option value="religions">religions (الديانات)</option>
+                                    <option value="nationalities">nationalities (الجنسيات)</option>
                                     <option value="orders">orders</option>
                                 </select>
                             </div>
@@ -260,6 +265,104 @@
                     </div>
 
                     <div id="countries_results" class="mt-3" style="display: none;"></div>
+                </div>
+            </div>
+
+            <!-- نقل جداول CV/Maids والجداول المرتبطة -->
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-id-card me-2"></i>نقل CV/Maids والجداول المرتبطة
+                        <span class="badge bg-danger float-end">متقدم</span>
+                        <a href="cv_migration_guide.html" target="_blank" class="btn btn-sm btn-outline-light float-end me-2">
+                            <i class="fas fa-book me-1"></i>الدليل
+                        </a>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6>تحليل الجداول المرتبطة</h6>
+                        <p>قبل النقل نحتاج لفحص:</p>
+                        <ul class="mb-2">
+                            <li>جدول cvs/maids وحالات cv_status</li>
+                            <li>nationalities و religions (الجداول المرجعية)</li>
+                            <li>التحويلات والترجمات</li>
+                            <li>العلاقات بين الجداول (national_id → nationality_id)</li>
+                        </ul>
+
+                        <div class="mt-2 p-2 bg-warning bg-opacity-25 rounded">
+                            <strong>cv_status المهم:</strong>
+                            <span class="badge bg-secondary me-1">0=غير محجوز</span>
+                            <span class="badge bg-primary me-1">1=محجوز</span>
+                            <span class="badge bg-info me-1">2=باك آوت</span>
+                            <span class="badge bg-warning me-1">3=معلق</span>
+                            <span class="badge bg-success me-1">4=تم الترحيل</span>
+                            <span class="badge bg-danger me-1">5=هروب</span>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-3">
+                            <button class="btn btn-dark btn-custom w-100" onclick="findCVTables()">
+                                <i class="fas fa-search me-2"></i>اكتشاف جداول CV
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-info btn-custom w-100" onclick="analyzeMaidsStructure()">
+                                <i class="fas fa-table me-2"></i>تحليل الهيكل
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-warning btn-custom w-100" onclick="prepareRelatedTables()">
+                                <i class="fas fa-cogs me-2"></i>تحضير الجداول
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-success btn-custom w-100" onclick="migrateAllCVTables()">
+                                <i class="fas fa-rocket me-2"></i>نقل شامل
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- خيارات متقدمة -->
+                    <details class="mb-3">
+                        <summary class="btn btn-outline-secondary btn-sm">خيارات متقدمة</summary>
+                        <div class="mt-2">
+                            <div class="row g-2">
+                                <div class="col-md-3">
+                                    <label class="form-label small">اسم جدول CV في القديم:</label>
+                                    <input type="text" id="old_cv_table" class="form-control form-control-sm" value="cvs" placeholder="cvs, maids, employees">
+                                    <small class="text-info">استخدم "اكتشاف جداول CV" أولاً</small>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small">معالجة cv_status:</label>
+                                    <select id="cv_status_mapping" class="form-select form-select-sm">
+                                        <option value="preserve">الحفاظ على القيم كما هي</option>
+                                        <option value="convert_to_available">تحويل إلى available (boolean)</option>
+                                        <option value="map_to_status">تحويل إلى status</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small">معالجة الـ IDs:</label>
+                                    <select id="id_mapping_strategy" class="form-select form-select-sm">
+                                        <option value="preserve">الحفاظ على الـ IDs</option>
+                                        <option value="auto_increment">إعادة ترقيم تلقائي</option>
+                                        <option value="custom_mapping">تحويل مخصص</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small">معالجة الأعمدة المفقودة:</label>
+                                    <select id="missing_columns_strategy" class="form-select form-select-sm">
+                                        <option value="skip">تجاهل</option>
+                                        <option value="add_auto">إضافة تلقائي</option>
+                                        <option value="ask_user">السؤال قبل الإضافة</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+
+                    <div id="maids_analysis_results" class="mt-3" style="display: none;"></div>
                 </div>
             </div>
 
@@ -340,9 +443,9 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    statusDiv.innerHTML = `<div class="alert alert-success">✅ الاتصال ناجح! القاعدة: ${params.db_name} | الجداول: ${data.table_count} | المستخدمين: ${data.user_count}</div>`;
+                    statusDiv.innerHTML = `<div class="alert alert-success">الاتصال ناجح! القاعدة: ${params.db_name} | الجداول: ${data.table_count} | المستخدمين: ${data.user_count}</div>`;
                 } else {
-                    statusDiv.innerHTML = `<div class="alert alert-danger">❌ فشل الاتصال: ${data.message}</div>`;
+                    statusDiv.innerHTML = `<div class="alert alert-danger">فشل الاتصال: ${data.message}</div>`;
                 }
             } catch (error) {
                 statusDiv.innerHTML = `<div class="alert alert-danger">❌ خطأ: ${error.message}</div>`;
@@ -368,7 +471,7 @@
                 });
 
                 const data = await response.json();
-                alert(data.success ? '✅ ' + data.message : '❌ ' + data.message);
+                alert(data.success ? 'تم بنجاح: ' + data.message : 'خطأ: ' + data.message);
             } catch (error) {
                 alert('❌ خطأ: ' + error.message);
             }
@@ -759,6 +862,278 @@
             btn.innerHTML = '<i class="fas fa-tools me-2"></i>تحضير جدول Countries';
         }
 
+        // وظائف CV/Maids
+        async function findCVTables() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري البحث...';
+
+            try {
+                const response = await fetch('find_cv_tables.php');
+                const data = await response.json();
+
+                const resultsDiv = document.getElementById('maids_analysis_results');
+                resultsDiv.style.display = 'block';
+
+                if (data.success) {
+                    let potentialTablesHTML = '';
+                    if (data.potential_cv_tables && data.potential_cv_tables.length > 0) {
+                        potentialTablesHTML = data.potential_cv_tables.map(table => `
+                            <tr onclick="selectCVTable('${table.table}')" style="cursor:pointer;" class="table-hover">
+                                <td><strong>${table.table}</strong></td>
+                                <td>${table.count}</td>
+                                <td>${table.likelihood}</td>
+                                <td>${table.cv_related_columns.join(', ') || 'لا توجد'}</td>
+                            </tr>
+                        `).join('');
+                    } else {
+                        potentialTablesHTML = '<tr><td colspan="4" class="text-center text-muted">لم يتم العثور على جداول CV محتملة</td></tr>';
+                    }
+
+                    let relatedTablesHTML = '';
+                    if (data.related_tables && data.related_tables.length > 0) {
+                        relatedTablesHTML = data.related_tables.map(table => `
+                            <tr>
+                                <td><strong>${table.table}</strong></td>
+                                <td>${table.count}</td>
+                                <td>${table.type}</td>
+                                <td>${table.columns.length}</td>
+                            </tr>
+                        `).join('');
+                    }
+
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <h6>البحث مكتمل - ${data.total_tables} جدول في القاعدة</h6>
+
+                            <h6 class="mt-3">الجداول المحتملة لـ CV:</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead>
+                                        <tr><th>الجدول</th><th>السجلات</th><th>الاحتمالية</th><th>الأعمدة المرتبطة</th></tr>
+                                    </thead>
+                                    <tbody>${potentialTablesHTML}</tbody>
+                                </table>
+                            </div>
+
+                            ${data.top_candidate ? `
+                                <div class="alert alert-info mt-3">
+                                    <h6>التوصية:</h6>
+                                    <p>${data.recommendation}</p>
+                                    <button class="btn btn-sm btn-primary" onclick="selectCVTable('${data.top_candidate.table}')">
+                                        اختيار ${data.top_candidate.table}
+                                    </button>
+                                </div>
+                            ` : ''}
+
+                            ${relatedTablesHTML ? `
+                                <h6 class="mt-3">الجداول المرتبطة:</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead><tr><th>الجدول</th><th>السجلات</th><th>النوع</th><th>الأعمدة</th></tr></thead>
+                                        <tbody>${relatedTablesHTML}</tbody>
+                                    </table>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `<div class="alert alert-danger">خطأ: ${data.message}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('maids_analysis_results').innerHTML = `<div class="alert alert-danger">خطأ: ${error.message}</div>`;
+                document.getElementById('maids_analysis_results').style.display = 'block';
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-search me-2"></i>اكتشاف جداول CV';
+        }
+
+        function selectCVTable(tableName) {
+            document.getElementById('old_cv_table').value = tableName;
+            alert(`تم تحديد جدول CV: ${tableName}\n\nيمكنك الآن المتابعة مع "تحليل الهيكل" أو "نقل شامل"`);
+        }
+
+        async function analyzeMaidsStructure() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري التحليل...';
+
+            try {
+                const response = await fetch('analyze_maids_structure.php');
+                const data = await response.json();
+
+                const resultsDiv = document.getElementById('maids_analysis_results');
+                resultsDiv.style.display = 'block';
+
+                if (data.success) {
+                    let tablesHTML = '';
+                    Object.entries(data.tables_analysis).forEach(([table, analysis]) => {
+                        const oldStatus = analysis.old_exists ? `موجود (${analysis.old_count} سجل)` : 'غير موجود';
+                        const newStatus = analysis.new_exists ? `موجود (${analysis.new_count} سجل)` : 'غير موجود';
+
+                        tablesHTML += `
+                            <tr>
+                                <td><strong>${table}</strong></td>
+                                <td>${oldStatus}</td>
+                                <td>${newStatus}</td>
+                                <td>${analysis.old_columns?.length || 0}</td>
+                                <td>${analysis.new_columns?.length || 0}</td>
+                            </tr>
+                        `;
+                    });
+
+                    let cvStatusHTML = '';
+                    if (data.cv_status_breakdown && Array.isArray(data.cv_status_breakdown)) {
+                        cvStatusHTML = data.cv_status_breakdown.map(status =>
+                            `<tr><td>${status.cv_status}</td><td>${status.status_name}</td><td>${status.count}</td></tr>`
+                        ).join('');
+                    }
+
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <h6>تحليل مكتمل - ${data.timestamp}</h6>
+
+                            <h6 class="mt-3">الجداول:</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr><th>الجدول</th><th>القديم</th><th>الجديد</th><th>أعمدة قديمة</th><th>أعمدة جديدة</th></tr>
+                                    </thead>
+                                    <tbody>${tablesHTML}</tbody>
+                                </table>
+                            </div>
+
+                            ${cvStatusHTML ? `
+                                <h6 class="mt-3">حالات CV:</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead><tr><th>الرقم</th><th>الحالة</th><th>العدد</th></tr></thead>
+                                        <tbody>${cvStatusHTML}</tbody>
+                                    </table>
+                                </div>
+                            ` : '<p class="text-warning">لم يتم العثور على بيانات cv_status</p>'}
+
+                            <div class="mt-3">
+                                <h6>استراتيجية النقل المقترحة:</h6>
+                                <ol>
+                                    ${data.migration_strategy ? Object.values(data.migration_strategy).map(step => `<li>${step}</li>`).join('') : ''}
+                                </ol>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `<div class="alert alert-danger">خطأ: ${data.message}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('maids_analysis_results').innerHTML = `<div class="alert alert-danger">خطأ: ${error.message}</div>`;
+                document.getElementById('maids_analysis_results').style.display = 'block';
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-search me-2"></i>تحليل هيكل CV/Maids';
+        }
+
+        async function prepareRelatedTables() {
+            if (!confirm('تحضير الجداول المرتبطة\n\nسيتم:\n- فحص nationalities, religions\n- إنشاء الجداول المفقودة\n- تحضير العلاقات\n\nالمتابعة؟')) return;
+
+            const btn = event.target;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري التحضير...';
+
+            try {
+                const params = getDbParams();
+                params.action = 'prepare_related_tables';
+
+                const response = await fetch('file_processor.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams(params)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('تم تحضير الجداول المرتبطة بنجاح!\n\n' + data.message);
+                    // إعادة تشغيل التحليل
+                    setTimeout(() => analyzeMaidsStructure(), 1000);
+                } else {
+                    alert('خطأ في تحضير الجداول: ' + data.message);
+                }
+            } catch (error) {
+                alert('خطأ: ' + error.message);
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-cogs me-2"></i>تحضير الجداول المرتبطة';
+        }
+
+        async function migrateAllCVTables() {
+            if (!confirm('نقل CV شامل\n\nسيتم نقل جميع الجداول المرتبطة:\n- nationalities + translations\n- religions + translations  \n- maids/cv مع معالجة cv_status\n\nهذا يحتاج دقة عالية!\n\nالمتابعة؟')) return;
+
+            const btn = event.target;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>نقل شامل...';
+
+            const resultsDiv = document.getElementById('maids_analysis_results');
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '<div class="alert alert-info">بدء النقل الشامل لجداول CV...</div>';
+
+            try {
+                const cvTable = document.getElementById('old_cv_table').value;
+                const cvStatusMapping = document.getElementById('cv_status_mapping').value;
+                const idMappingStrategy = document.getElementById('id_mapping_strategy').value;
+
+                const params = {
+                    action: 'migrate_cv_comprehensive',
+                    old_cv_table: cvTable,
+                    cv_status_mapping: cvStatusMapping,
+                    id_mapping_strategy: idMappingStrategy,
+                    old_db_host: document.getElementById('old_db_host').value,
+                    old_db_port: document.getElementById('old_db_port').value,
+                    old_db_name: document.getElementById('old_db_name').value,
+                    old_db_user: document.getElementById('old_db_user').value,
+                    old_db_pass: document.getElementById('old_db_pass').value,
+                    ...getDbParams()
+                };
+
+                const response = await fetch('file_processor.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams(params)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <h5>النقل الشامل لـ CV مكتمل!</h5>
+                            <div class="mt-3">
+                                ${data.results ? Object.entries(data.results).map(([table, result]) => `
+                                    <p><strong>${table}:</strong> ${result.processed || 0} سجل</p>
+                                `).join('') : ''}
+                            </div>
+                            <p class="mt-3"><strong>النتيجة:</strong> ${data.message}</p>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h6>خطأ في النقل الشامل</h6>
+                            <p>${data.message}</p>
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="alert alert-danger">خطأ: ${error.message}</div>`;
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-rocket me-2"></i>نقل CV شامل';
+        }
+
         // عملية شاملة: Users + Customers
         async function exportAndUploadBoth() {
             if (!confirm('العملية الشاملة\n\nسيتم:\n- تصدير 2300+ Users من القاعدة القديمة\n- معالجة ورفع جميع Users\n- تصدير جدول Customers\n- دمج Customers في Users\n\nالمتابعة؟')) {
@@ -792,7 +1167,7 @@
                 resultsDiv.innerHTML = `
                     <div class="alert alert-success">
                         <h5>العملية الشاملة مكتملة بنجاح!</h5>
-                        
+
                         <div class="row mt-3">
                             <div class="col-md-6">
                                 <h6>Users:</h6>
@@ -805,7 +1180,7 @@
                                 <p>دمج: ${customersResult.processData?.processed || 0} في Users</p>
                             </div>
                         </div>
-                        
+
                         <p class="mt-3"><strong>النتيجة:</strong> تم نقل ودمج جميع البيانات بنجاح!</p>
                     </div>
                 `;
