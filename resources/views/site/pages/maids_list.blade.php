@@ -142,12 +142,6 @@
                         </div>
                     </a>
                 </div>
-            @else
-                <div class="col-12 col-md-6 p-2 mb-5">
-                    <div class="worker-box">
-                        <h4>{{__('ingaz.no_workers_found')}}</h4>
-                    </div>
-                </div>
             @endif
         @endforeach
     </div>
