@@ -46,7 +46,7 @@
                                     <a data-fancybox="video1" href="{{ showFile($maid->video_preview) }}" class="icon-btn">
                                         <i class="fa-solid fa-video"></i>
                                     </a>
-                                    <button class="btn">{{ __('ingaz.Labor_rental') }}</button>
+                                    <button class="btn">{{ __('ingaz.recruitment') }}</button>
                                 </div>
                             </div>
                         </div>

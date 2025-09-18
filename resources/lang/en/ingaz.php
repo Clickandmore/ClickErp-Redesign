@@ -1031,6 +1031,11 @@
   'Recruitment requests' => 'Recruitment requests',
     'booking_code' => 'Booking code',
     'new' => 'New',
-
+    'enter_full_name' => 'Enter full name',
+    'phone_number' => 'Phone number',
+    'enter_password' => 'Enter password',
+    'confirm_password' => 'Confirm password',
+    'register' => 'Register',
+    'have_account' => 'Have account?',
 
 );
