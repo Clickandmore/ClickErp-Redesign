@@ -1029,7 +1029,7 @@
   'customers_service' => 'Customers Service',
   'details' => 'Details',
   'Recruitment requests' => 'Recruitment requests',
-
+    'booking_code' => 'Booking code',
 
 
 );
