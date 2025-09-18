@@ -1030,6 +1030,7 @@
   'details' => 'Details',
   'Recruitment requests' => 'Recruitment requests',
     'booking_code' => 'Booking code',
+    'new' => 'New',
 
 
 );

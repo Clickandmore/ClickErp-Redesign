@@ -49,9 +49,9 @@
                                             <p>{{$order->order_code ?? ''}}</p>
                                         </li>
                                     </ul>
-                                    <h5 class="orderStatus cancel">
-                                        {{-- {{App\Enums\ingaz\OrderEnum::from($order->status)->lang()}} --}}
-                                        لقد انتهت صلاحية الحجز وتم الغاءة
+                                    <h5 class="orderStatus text-{{App\Enums\ingaz\ContractStatusEnum::from($order->status)->color()}}">
+                                        {{App\Enums\ingaz\ContractStatusEnum::from($order->status)->lang()}}
+                                        {{-- لقد انتهت صلاحية الحجز وتم الغاءة --}}
                                     </h5>
                                 </div>
                             </div>
