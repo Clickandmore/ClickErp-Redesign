@@ -1085,4 +1085,5 @@
   'details' => 'التفاصيل',
   'Recruitment requests' => 'طلبات الاستقدام',
   'booking_code' => 'كود الحجز',
+  'new' => 'جديد',
  );
