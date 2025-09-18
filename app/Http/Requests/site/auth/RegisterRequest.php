@@ -29,8 +29,8 @@ class RegisterRequest extends MainRequest
             'name' => ['required', 'string'],
             'phone' => ['required', 'string', 'unique:users,phone'],
             'phone_code' => ['required', 'string'],
-            'email' => ['required', 'string', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            // 'email' => ['required', 'string', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
         ];
     }
 
@@ -55,7 +55,7 @@ class RegisterRequest extends MainRequest
             // كلمة المرور
             'password.required' => __('ingaz.password_required'),
             'password.string' => __('ingaz.password_string'),
-            'password.min' => __('ingaz.password_min'),
+            'password.min' => __('ingaz.password_min', ['min' => 6]),
             'password.confirmed' => __('ingaz.password_confirmed'),
         ];
     }

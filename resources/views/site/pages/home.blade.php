@@ -351,7 +351,7 @@
                     @forelse($nationalities as $nationality)
                         <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="100">
                             <div class="country">
-                                <img src="{{ showfile($nationality->logo) }}" alt="">
+                                <img src="{{ showfile($nationality->logo) }}" alt="" width="100px">
                                 <h2>{{ $nationality->title }}
                                 </h2>
                                 <p>

@@ -22,10 +22,10 @@
                                 ></path>
                             </svg>
                         </div>
-                        اسم المستخدم
+                        {{__('ingaz.full_name')}}
                     </label>
                     <input type="text" class="form-control" name="name" id="userName"
-                           placeholder=" ادخل اسم المستخدم "/>
+                           placeholder=" {{__('ingaz.enter_full_name')}} "/>
                 </div>
                 <div class="formGroup">
                     <label for="phoneNum">
@@ -36,14 +36,14 @@
                                 ></path>
                             </svg>
                         </div>
-                        رقم الجوال
+                        {{__('ingaz.phone_number')}}
                     </label>
                     <div class="inputDiv ltr">
                         <span> +966 </span>
                         <input type="tel" class="form-control" name="phone" id="phoneNum" placeholder="05 000 0000"/>
                     </div>
                 </div>
-                <div class="formGroup">
+                {{-- <div class="formGroup">
                     <label for="email">
                         <div class="icon">
                             <svg viewBox="0 0 24 24">
@@ -52,11 +52,11 @@
                                 ></path>
                             </svg>
                         </div>
-                        البريد الالكتروني
+                        {{__('ingaz.email')}}
                     </label>
                     <input type="email" class="form-control" name="email" id="email"
-                           placeholder="ادخل البريد الالكتروني"/>
-                </div>
+                           placeholder="{{__('ingaz.enter_email')}}"/>
+                </div> --}}
                 <div class="formGroup">
                     <label for="password">
                         <div class="icon">
@@ -69,10 +69,10 @@
                                 ></path>
                             </svg>
                         </div>
-                        كلمة المرور
+                         {{__('ingaz.password')}}
                     </label>
                     <input type="password" class="form-control" name="password" id="password"
-                           placeholder="ادخل كلمة المرور "/>
+                           placeholder="{{__('ingaz.enter_password')}}"/>
                 </div>
                 <div class="formGroup">
                     <label for="confirmPassword">
@@ -86,15 +86,15 @@
                                 ></path>
                             </svg>
                         </div>
-                        تأكيد كلمة المرور
+                        {{__('ingaz.confirm_password')}}
                     </label>
                     <input type="password" class="form-control" id="confirmPassword" name="password_confirmation"
-                           placeholder="ادخل كلمة المرور "/>
+                           placeholder="{{__('ingaz.enter_password')}}"/>
                 </div>
-                <button type="submit" class="defaultBtn mt-2">انشاء</button>
+                <button type="submit" class="defaultBtn mt-2">{{__('ingaz.create')}}</button>
                 <p class="text-center w-100 mt-3">
-                    لديك حساب بالفعل ؟
-                    <a href="{{route('site.login.index')}}"> تسجيل الدخول </a>
+                    {{__('ingaz.have_account')}}
+                    <a href="{{route('site.login.index')}}"> {{__('ingaz.login')}} </a>
                 </p>
             </form>
         </div>

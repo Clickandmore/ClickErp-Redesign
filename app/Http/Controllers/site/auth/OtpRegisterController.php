@@ -4,6 +4,7 @@ namespace App\Http\Controllers\site\auth;
 
 use App\Http\Actions\ingaz\PhoneVerificationAction;
 use App\Http\Actions\ingaz\UserAction;
+use App\Http\Actions\site\auth\LoginAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\site\auth\OtpRequest;
 use Illuminate\Http\Request;
@@ -18,14 +19,17 @@ class OtpRegisterController extends Controller
         return view('site.pages.auth.otp', compact('phone','type'));
     }
 
-    public function store(OtpRequest $request, PhoneVerificationAction $phoneVerificationAction, UserAction $userAction)
+    public function store(OtpRequest $request, PhoneVerificationAction $phoneVerificationAction, UserAction $userAction, LoginAction $loginAction)
     {
         $data = $request->validated();
         $response = $phoneVerificationAction->confirmCode($request);
         if (!$response) {
             return jsonSuccess(null, __("ingaz.code_is_wrong"), 422);
         }
-        return jsonSuccess(['redirect_url' => route('site.login.index')], __("ingaz.code_confirm_successfully"));
+        $user = $phoneVerificationAction->getUser($request);
+        auth('web')->login($user);
+        return jsonSuccess(['redirect_url' => route('site.profile.index')], __("ingaz.login_successfully"));
+        // return jsonSuccess(['redirect_url' => route('site.login.index')], __("ingaz.code_confirm_successfully"));
 
     }
 
