@@ -1084,4 +1084,5 @@
   'customers_service' => 'خدمة العملاء',
   'details' => 'التفاصيل',
   'Recruitment requests' => 'طلبات الاستقدام',
+  'booking_code' => 'كود الحجز',
  );
