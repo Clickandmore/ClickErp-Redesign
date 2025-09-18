@@ -1,0 +1,3136 @@
+<?php
+/**
+ * معالج النظام الثابت - تطوير مستمر للميزات
+ * Fixed System Processor - Continuous Feature Development
+ */
+
+// منع أي output قبل JSON
+ob_start();
+error_reporting(0);
+ini_set('display_errors', 0);
+ini_set('memory_limit', '512M');
+ini_set('max_execution_time', 600);
+
+header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-cache');
+
+// إعدادات قاعدة البيانات - مرنة للاستخدامات المتعددة
+$config = [
+    'host' => $_POST['db_host'] ?? $_GET['db_host'] ?? '127.0.0.1',
+    'port' => $_POST['db_port'] ?? $_GET['db_port'] ?? 8889,
+    'database' => $_POST['db_name'] ?? $_GET['db_name'] ?? 'platinum_new',
+    'username' => $_POST['db_user'] ?? $_GET['db_user'] ?? 'root',
+    'password' => $_POST['db_pass'] ?? $_GET['db_pass'] ?? 'root'
+];
+
+try {
+    $action = $_POST['action'] ?? 'upload_files';
+
+    // تنظيف أي output سابق
+    ob_clean();
+
+    switch ($action) {
+        case 'test_connection':
+            echo json_encode(testDatabaseConnection(), JSON_UNESCAPED_UNICODE);
+            break;
+
+        case 'check_system_status':
+            echo json_encode(checkSystemStatus(), JSON_UNESCAPED_UNICODE);
+            break;
+
+        case 'create_backup':
+            echo json_encode(createManualBackup(), JSON_UNESCAPED_UNICODE);
+            break;
+
+        case 'upload_files':
+        default:
+            echo json_encode(handleFileUpload(), JSON_UNESCAPED_UNICODE);
+            break;
+
+        case 'process_files':
+            ob_clean();
+            echo json_encode(processDirectFileUpload(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'compare_results':
+            echo json_encode(compareResults(), JSON_UNESCAPED_UNICODE);
+            break;
+
+        case 'add_missing_columns':
+            echo json_encode(addMissingColumns(), JSON_UNESCAPED_UNICODE);
+            break;
+
+        case 'reorganize_table':
+            ob_clean();
+            echo json_encode(reorganizeTable(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'check_table_structure':
+            ob_clean();
+            echo json_encode(checkTableStructure(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'debug_file_processing':
+            ob_clean();
+            echo json_encode(debugFileProcessing(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+            
+        case 'check_countries_table':
+            ob_clean();
+            echo json_encode(checkCountriesTable(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+            
+        case 'prepare_countries_table':
+            ob_clean();
+            echo json_encode(prepareCountriesTable(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'apply_custom_order':
+            ob_clean();
+            echo json_encode(applyCustomTableOrder(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'prepare_users_table':
+            ob_clean();
+            echo json_encode(prepareUsersTable(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'add_system_status_columns':
+            ob_clean();
+            echo json_encode(addSystemStatusColumns(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_users_simple':
+            ob_clean();
+            echo json_encode(migrateUsersSimple(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_customers_simple':
+            ob_clean();
+            echo json_encode(migrateCustomersSimple(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'export_from_old_db':
+            ob_clean();
+            echo json_encode(exportFromOldDatabase(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'process_exported_file':
+            ob_clean();
+            echo json_encode(processExportedFile(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'scan_old_database':
+            ob_clean();
+            echo json_encode(scanOldDatabaseColumns(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'add_all_missing_columns':
+            ob_clean();
+            echo json_encode(addAllMissingColumns(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_all_data':
+            ob_clean();
+            echo json_encode(migrateAllDataFromOld(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'get_table_structure':
+            echo json_encode(getTableStructure(), JSON_UNESCAPED_UNICODE);
+            break;
+
+        case 'merge_users_customers':
+            $db = get_db_connection();
+            $db->beginTransaction();
+
+            try {
+                // Process users file first (similar to process_files)
+                $usersData = processCsv($_FILES['users']['tmp_name']); // Assume a function to parse CSV
+                foreach ($usersData as $row) {
+                    // Insert or update users logic
+                }
+
+                // Get columns from customers
+                $customersData = processCsv($_FILES['customers']['tmp_name']);
+                $customerColumns = array_keys($customersData[0]);
+
+                // Add missing columns to users
+                $existingColumns = getTableColumns('users'); // Assume function to get columns
+                foreach ($customerColumns as $col) {
+                    if (!in_array($col, $existingColumns) && $col !== $_POST['link_field']) {
+                        $db->exec("ALTER TABLE users ADD COLUMN $col VARCHAR(255)");
+                    }
+                }
+
+                // Merge: for each customer row, update users
+                $linkField = $_POST['link_field'];
+                foreach ($customersData as $row) {
+                    $updateParts = [];
+                    $params = [];
+                    foreach ($row as $key => $value) {
+                        if ($key !== $linkField) {
+                            $updateParts[] = "$key = ?";
+                            $params[] = $value;
+                        }
+                    }
+                    $params[] = $row[$linkField];
+                    $updateSql = "UPDATE users SET " . implode(', ', $updateParts) . " WHERE id = ?";
+                    $stmt = $db->prepare($updateSql);
+                    $stmt->execute($params);
+                }
+
+                $db->commit();
+                echo json_encode(['success' => true, 'message' => 'تم دمج Users و Customers بنجاح']);
+            } catch (Exception $e) {
+                $db->rollBack();
+                throw $e;
+            }
+            break;
+
+        case 'bulk_import':
+            $db = get_db_connection();
+            $db->beginTransaction();
+
+            try {
+                $results = [];
+
+                // ملفات السيرة الذاتية
+                if (isset($_FILES['cv_bulk_file']) && $_FILES['cv_bulk_file']['error'] == 0) {
+                    $results[] = processCvImport($_FILES['cv_bulk_file']['tmp_name'], $db);
+                }
+
+                // ملفات الحجوزات
+                if (isset($_FILES['reserviton_bulk_file']) && $_FILES['reserviton_bulk_file']['error'] == 0) {
+                    $results[] = processReservationImport($_FILES['reserviton_bulk_file']['tmp_name'], $db);
+                }
+
+                // ملفات العقود
+                if (isset($_FILES['contract_bulk_file']) && $_FILES['contract_bulk_file']['error'] == 0) {
+                    $results[] = processContractImport($_FILES['contract_bulk_file']['tmp_name'], $db);
+                }
+
+                // ملفات جدول الإيواء
+                if (isset($_FILES['cv_sponsor_bulk_file']) && $_FILES['cv_sponsor_bulk_file']['error'] == 0) {
+                    $results[] = processCvSponsorImport($_FILES['cv_sponsor_bulk_file']['tmp_name'], $db);
+                }
+
+                // ملفات حجوزات نقل الكفالة
+                if (isset($_FILES['reservation_sponsor_bulk_file']) && $_FILES['reservation_sponsor_bulk_file']['error'] == 0) {
+                    $results[] = processReservationSponsorImport($_FILES['reservation_sponsor_bulk_file']['tmp_name'], $db);
+                }
+
+                // ملفات تعليقات الإيواء
+                if (isset($_FILES['lodging_notes_bulk_file']) && $_FILES['lodging_notes_bulk_file']['error'] == 0) {
+                    $results[] = processLodgingNotesImport($_FILES['lodging_notes_bulk_file']['tmp_name'], $db);
+                }
+
+                // ملفات الإيواء (1-6)
+                for ($i = 1; $i <= 6; $i++) {
+                    $fileKey = "lodging_import_$i";
+                    if (isset($_FILES[$fileKey]) && $_FILES[$fileKey]['error'] == 0) {
+                        $results[] = processLodgingImport($_FILES[$fileKey]['tmp_name'], $db, $i);
+                    }
+                }
+
+                $db->commit();
+
+                $successCount = count($results);
+                echo json_encode([
+                    'success' => true,
+                    'message' => "تم الانتهاء من استيراد $successCount ملف بنجاح\n" . implode("\n", $results)
+                ]);
+
+            } catch (Exception $e) {
+                $db->rollBack();
+                throw $e;
+            }
+            break;
+
+        case 'process_users_step':
+            $db = null;
+            try {
+                $db = get_db_connection();
+                $db->beginTransaction();
+
+                if (!isset($_FILES['users_file']) || $_FILES['users_file']['error'] != 0) {
+                    throw new Exception('لم يتم رفع ملف Users بشكل صحيح');
+                }
+
+                $data = processCsv($_FILES['users_file']['tmp_name']);
+                if (empty($data)) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'ملف Users فارغ أو غير صالح'
+                    ], JSON_UNESCAPED_UNICODE);
+                    return;
+                }
+
+                // إضافة الأعمدة المفقودة بدلاً من إنشاء جدول جديد
+                $addedColumns = addMissingColumnsToUsers($db);
+
+                $successCount = 0;
+
+                // بناء الاستعلام ديناميكياً حسب الأعمدة الموجودة في الملف
+                $fileColumns = array_keys($data[0]);
+                $dbColumns = [];
+                $placeholders = [];
+
+                // التحقق من وجود الأعمدة في قاعدة البيانات
+                foreach ($fileColumns as $column) {
+                    $checkStmt = $db->prepare("SHOW COLUMNS FROM users LIKE ?");
+                    $checkStmt->execute([$column]);
+                    if ($checkStmt->rowCount() > 0) {
+                        $dbColumns[] = $column;
+                        $placeholders[] = '?';
+                    }
+                }
+
+                // إضافة أعمدة ثابتة
+                if (!in_array('register_from', $dbColumns)) {
+                    $dbColumns[] = 'register_from';
+                    $placeholders[] = '?';
+                }
+
+                $insertSql = "INSERT IGNORE INTO users (" . implode(', ', $dbColumns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+                $stmt = $db->prepare($insertSql);
+
+                foreach ($data as $row) {
+                    try {
+                        $row = cleanRowData($row);
+                        if (empty($row['id'])) continue;
+
+                        // معالجة ذكية للبيانات مع تقسيم name
+                        $values = [];
+
+                        // تقسيم name إلى first_name + last_name
+                        $name = trim($row['name'] ?? '');
+                        $nameParts = explode(' ', $name, 2);
+                        $firstName = $nameParts[0] ?? '';
+                        $lastName = $nameParts[1] ?? '';
+
+                        foreach ($dbColumns as $column) {
+                            if ($column === 'name') {
+                                $values[] = $name;
+                            } elseif ($column === 'first_name') {
+                                $values[] = $firstName;
+                            } elseif ($column === 'last_name') {
+                                $values[] = $lastName;
+                            } elseif ($column === 'register_from') {
+                                $values[] = 'web';
+                            } elseif ($column === 'phone') {
+                                // تنظيف رقم الهاتف
+                                $phone = cleanPhoneNumber($row['phone'] ?? '');
+                                $values[] = $phone;
+                            } else {
+                                $values[] = $row[$column] ?? null;
+                            }
+                        }
+
+                        $stmt->execute($values);
+                        $successCount++;
+
+                    } catch (Exception $e) {
+                        error_log("خطأ في معالجة المستخدم: " . $e->getMessage());
+                    }
+                }
+
+                $db->commit();
+                ob_clean();
+                echo json_encode([
+                    'success' => true,
+                    'message' => "✅ تم رفع $successCount مستخدم بنجاح\n📋 أعمدة مُضافة: " . count($addedColumns) . "\n🔗 الجدول جاهز لربط Customers",
+                    'added_columns' => $addedColumns
+                ], JSON_UNESCAPED_UNICODE);
+                exit();
+
+            } catch (Exception $e) {
+                if ($db && $db->inTransaction()) {
+                    $db->rollBack();
+                }
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'خطأ في معالجة Users: ' . $e->getMessage()
+                ], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+            break;
+
+        case 'process_customers_step':
+            $db = null;
+            try {
+                $db = get_db_connection();
+                $db->beginTransaction();
+
+                if (!isset($_FILES['customers_file']) || $_FILES['customers_file']['error'] != 0) {
+                    throw new Exception('لم يتم رفع ملف Customers بشكل صحيح');
+                }
+
+                $data = processCsv($_FILES['customers_file']['tmp_name']);
+                if (empty($data)) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'ملف Customers فارغ أو غير صالح'
+                    ], JSON_UNESCAPED_UNICODE);
+                    return;
+                }
+
+                $linkField = $_POST['link_field'] ?? 'user_id';
+                $createMissingUsers = isset($_POST['create_missing_users']) && $_POST['create_missing_users'] === 'true';
+                $enableColumnMapping = isset($_POST['enable_column_mapping']) && $_POST['enable_column_mapping'] === 'true';
+
+                // Column mapping rules
+                $columnMapping = [
+                    'national_identification_number' => 'national_num',
+                    'other_phone' => 'phone2',
+                    'job' => 'job'
+                ];
+
+                // Add missing columns to users table if column mapping is enabled
+                if ($enableColumnMapping) {
+                    $mappedColumns = [];
+                    foreach ($data[0] as $customerCol => $value) {
+                        if (isset($columnMapping[$customerCol])) {
+                            $userCol = $columnMapping[$customerCol];
+                            $mappedColumns[] = $userCol;
+
+                            // Add column to users if it doesn't exist
+                            $checkCol = $db->prepare("SHOW COLUMNS FROM users LIKE ?");
+                            $checkCol->execute([$userCol]);
+                            if ($checkCol->rowCount() == 0) {
+                                $colType = ($userCol === 'job') ? 'VARCHAR(255)' : 'VARCHAR(100)';
+                                $db->exec("ALTER TABLE users ADD COLUMN $userCol $colType");
+                            }
+                        }
+                    }
+                }
+
+                // Create customers table
+                $columns = array_keys($data[0]);
+                $columnDefs = [];
+                foreach ($columns as $col) {
+                    if ($col === 'id') {
+                        $columnDefs[] = 'id INT PRIMARY KEY';
+                    } elseif ($col === $linkField) {
+                        $columnDefs[] = "$col INT";
+                    } elseif (in_array($col, ['created_at', 'updated_at'])) {
+                        $columnDefs[] = "$col TIMESTAMP NULL";
+                    } else {
+                        $columnDefs[] = "$col VARCHAR(255)";
+                    }
+                }
+
+                $db->exec("CREATE TABLE IF NOT EXISTS customers (" . implode(', ', $columnDefs) . ")");
+
+                $successCount = 0;
+                $missingUsers = 0;
+                $linkedCount = 0;
+
+                foreach ($data as $row) {
+                    try {
+                        $row = cleanRowData($row);
+                        if (empty($row['id'])) continue;
+
+                        // التحقق من وجود User والقيام بالـ column mapping
+                        if (!empty($row[$linkField])) {
+                            $userId = (int)$row[$linkField];
+                            $stmt = $db->prepare("SELECT id FROM users WHERE id = ?");
+                            $stmt->execute([$userId]);
+
+                            if (!$stmt->fetch()) {
+                                if ($createMissingUsers) {
+                                    // إنشاء user مفقود
+                                    $registerFromValue = isset($_POST['setDefaultRegisterFrom']) && $_POST['setDefaultRegisterFrom'] === 'true' ? 'web' : 'auto_created';
+                                    $createStmt = $db->prepare("INSERT IGNORE INTO users (id, register_from, created_at) VALUES (?, ?, NOW())");
+                                    $createStmt->execute([$userId, $registerFromValue]);
+                                    $missingUsers++;
+                                }
+                            }
+
+                            // Column mapping: update user with customer data
+                            if ($enableColumnMapping) {
+                                $updateParts = [];
+                                $updateParams = [];
+
+                                foreach ($row as $customerCol => $value) {
+                                    if (isset($columnMapping[$customerCol]) && !empty($value)) {
+                                        $userCol = $columnMapping[$customerCol];
+                                        $updateParts[] = "$userCol = ?";
+                                        $updateParams[] = $value;
+                                    }
+                                }
+
+                                if (!empty($updateParts)) {
+                                    $updateParams[] = $userId;
+                                    $updateSql = "UPDATE users SET " . implode(', ', $updateParts) . " WHERE id = ?";
+                                    $updateStmt = $db->prepare($updateSql);
+                                    $updateStmt->execute($updateParams);
+                                }
+                            }
+
+                            $linkedCount++;
+                        }
+
+                        // Insert customer
+                        $placeholders = implode(',', array_fill(0, count($columns), '?'));
+                        $insertSql = "INSERT IGNORE INTO customers (" . implode(',', $columns) . ") VALUES ($placeholders)";
+                        $stmt = $db->prepare($insertSql);
+                        $stmt->execute(array_values($row));
+                        $successCount++;
+
+                    } catch (Exception $e) {
+                        error_log("خطأ في معالجة العميل: " . $e->getMessage());
+                    }
+                }
+
+                $db->commit();
+
+                $mappingMessage = $enableColumnMapping ? "\n🔄 تم تطبيق column mapping" : "";
+                echo json_encode([
+                    'success' => true,
+                    'message' => "✅ تم ربط $successCount عميل\n🔗 مرتبطين: $linkedCount\n➕ مستخدمين مُنشأين: $missingUsers$mappingMessage"
+                ]);
+
+            } catch (Exception $e) {
+                if ($db && $db->inTransaction()) {
+                    $db->rollBack();
+                }
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'خطأ في ربط Customers: ' . $e->getMessage()
+                ], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+            break;
+
+        case 'verify_relationship':
+            try {
+                $db = get_db_connection();
+                $linkField = $_POST['link_field'] ?? 'user_id';
+
+                // إحصائيات Users
+                $usersStmt = $db->query("SELECT COUNT(*) as count FROM users");
+                $usersCount = $usersStmt->fetch()['count'];
+
+                // إحصائيات Customers
+                $customersStmt = $db->query("SELECT COUNT(*) as count FROM customers");
+                $customersCount = $customersStmt->fetch()['count'];
+
+                // العملاء المرتبطين
+                $linkedStmt = $db->query("SELECT COUNT(*) as count FROM customers WHERE $linkField IS NOT NULL AND $linkField != 0");
+                $linkedCount = $linkedStmt->fetch()['count'];
+
+                // العملاء غير المرتبطين
+                $unlinkedCount = $customersCount - $linkedCount;
+
+                // مستخدمين لهم عملاء
+                $usersWithCustomersStmt = $db->query("SELECT COUNT(DISTINCT $linkField) as count FROM customers WHERE $linkField IS NOT NULL AND $linkField != 0");
+                $usersWithCustomers = $usersWithCustomersStmt->fetch()['count'];
+
+                $report = "
+                    <ul>
+                        <li><strong>إجمالي المستخدمين:</strong> $usersCount</li>
+                        <li><strong>إجمالي العملاء:</strong> $customersCount</li>
+                        <li><strong>عملاء مرتبطين:</strong> $linkedCount</li>
+                        <li><strong>عملاء غير مرتبطين:</strong> $unlinkedCount</li>
+                        <li><strong>مستخدمين لهم عملاء:</strong> $usersWithCustomers</li>
+                        <li><strong>معدل الربط:</strong> " . round(($linkedCount / max($customersCount, 1)) * 100, 2) . "%</li>
+                    </ul>
+                ";
+
+                echo json_encode([
+                    'success' => true,
+                    'report' => $report
+                ]);
+
+            } catch (Exception $e) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'خطأ في التحقق من الربط: ' . $e->getMessage()
+                ], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+            break;
+    }
+
+} catch (Exception $e) {
+    ob_clean();
+    echo json_encode([
+        'success' => false,
+        'message' => 'خطأ: ' . $e->getMessage()
+    ], JSON_UNESCAPED_UNICODE);
+    exit();
+}
+
+ob_end_flush();
+
+/**
+ * إعادة ترتيب الجدول حسب المطلوب
+ */
+function reorganizeTable() {
+    try {
+        $db = get_db_connection();
+
+        // التحقق من وجود الأعمدة الأساسية أولاً
+        $requiredColumns = [
+            'name' => 'VARCHAR(255) NULL',
+            'first_name' => 'VARCHAR(255) NULL',
+            'last_name' => 'VARCHAR(255) NULL',
+            'phone_code' => 'VARCHAR(255) NULL DEFAULT "+966"',
+            'phone' => 'VARCHAR(255) NULL',
+            'email' => 'VARCHAR(255) NULL',
+            'password' => 'VARCHAR(255) NOT NULL DEFAULT ""',
+            'register_from' => 'VARCHAR(255) NULL DEFAULT "web"',
+            'is_blocked' => 'TINYINT NULL DEFAULT 0',
+            'status' => 'TINYINT NULL DEFAULT 1',
+            'remember_token' => 'VARCHAR(100) NULL',
+            'national_num' => 'VARCHAR(50) NULL',
+            'nationality_id' => 'BIGINT UNSIGNED NULL',
+            'job' => 'VARCHAR(255) NULL',
+            'birthdate' => 'DATE NULL',
+            'phone2' => 'VARCHAR(50) NULL',
+            'city' => 'VARCHAR(100) NULL',
+            'address' => 'VARCHAR(500) NULL'
+        ];
+
+        // إضافة الأعمدة المفقودة
+        $addedColumns = [];
+        foreach ($requiredColumns as $column => $definition) {
+            $stmt = $db->prepare("SHOW COLUMNS FROM users LIKE ?");
+            $stmt->execute([$column]);
+            if ($stmt->rowCount() == 0) {
+                try {
+                    $db->exec("ALTER TABLE users ADD COLUMN `$column` $definition");
+                    $addedColumns[] = $column;
+                } catch (Exception $e) {
+                    // تجاهل الخطأ والمتابعة
+                }
+            }
+        }
+
+        // ترتيب الأعمدة المحسن - created_at و updated_at في النهاية
+        $orderingSteps = [];
+
+        // الترتيب المطلوب (created_at و updated_at في النهاية)
+        $desiredOrder = [
+            'id', 'name', 'first_name', 'last_name', 'phone_code', 'phone', 'phone2','national_num',
+            'email', 'password', 'user_type',  'status','register_from', 'is_blocked',
+            'remember_token', 'token',  'nationality_id', 'job',
+            'birthdate',  'city', 'address','country', 'region',
+            'beds_num', 'phone_verified_at', 'verification_code',
+            'avatar','rooms_num',
+            'family_num', 'children', 'profession', 'monthly_income',
+            'created_at', 'updated_at'  // هذين في النهاية
+        ];
+
+        // الحصول على جميع الأعمدة الموجودة مع تفاصيلها
+        $existingColumnsData = [];
+        $result = $db->query("DESCRIBE users");
+        while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
+            $existingColumnsData[$row['Field']] = [
+                'type' => $row['Type'],
+                'null' => $row['Null'],
+                'default' => $row['Default'],
+                'extra' => $row['Extra']
+            ];
+        }
+
+        // بناء الترتيب للأعمدة الموجودة فقط
+        $existingOrderedColumns = [];
+
+        // إضافة الأعمدة حسب الترتيب المرغوب
+        foreach ($desiredOrder as $col) {
+            if (isset($existingColumnsData[$col])) {
+                $existingOrderedColumns[] = $col;
+            }
+        }
+
+        // إضافة أي أعمدة أخرى لم تكن في الترتيب المرغوب (ما عدا created_at و updated_at)
+        foreach ($existingColumnsData as $col => $data) {
+            if (!in_array($col, $existingOrderedColumns) &&
+                $col !== 'created_at' && $col !== 'updated_at') {
+                // إدراج قبل created_at إذا وجد
+                $insertIndex = array_search('created_at', $existingOrderedColumns);
+                if ($insertIndex !== false) {
+                    array_splice($existingOrderedColumns, $insertIndex, 0, [$col]);
+                } else {
+                    $existingOrderedColumns[] = $col;
+                }
+            }
+        }
+
+        // التأكد من أن created_at و updated_at في النهاية
+        if (isset($existingColumnsData['created_at']) &&
+            !in_array('created_at', $existingOrderedColumns)) {
+            $existingOrderedColumns[] = 'created_at';
+        }
+        if (isset($existingColumnsData['updated_at']) &&
+            !in_array('updated_at', $existingOrderedColumns)) {
+            $existingOrderedColumns[] = 'updated_at';
+        }
+
+        // بناء أوامر الترتيب
+        $prevColumn = null;
+        foreach ($existingOrderedColumns as $col) {
+            $colData = $existingColumnsData[$col];
+
+            // بناء تعريف العمود
+            $colDefinition = $colData['type'];
+
+            if ($colData['null'] === 'NO') {
+                $colDefinition .= ' NOT NULL';
+            } else {
+                $colDefinition .= ' NULL';
+            }
+
+            if ($colData['default'] !== null) {
+                $colDefinition .= " DEFAULT '" . $colData['default'] . "'";
+            }
+
+            if (!empty($colData['extra'])) {
+                $colDefinition .= ' ' . $colData['extra'];
+            }
+
+            // بناء أمر ALTER TABLE
+            if ($prevColumn === null) {
+                $orderingSteps[] = "ALTER TABLE users MODIFY `$col` $colDefinition FIRST";
+            } else {
+                $orderingSteps[] = "ALTER TABLE users MODIFY `$col` $colDefinition AFTER `$prevColumn`";
+            }
+
+            $prevColumn = $col;
+        }
+
+        $appliedSteps = 0;
+        foreach ($orderingSteps as $sql) {
+            try {
+                $db->exec($sql);
+                $appliedSteps++;
+            } catch (Exception $e) {
+                // متابعة حتى لو فشلت بعض الخطوات
+            }
+        }
+
+        return [
+            'success' => true,
+            'message' => "✅ تم ترتيب الجدول بنجاح!\n📋 أعمدة مضافة: " . count($addedColumns) . "\n📐 خطوات ترتيب مطبقة: $appliedSteps/" . count($orderingSteps),
+            'added_columns' => $addedColumns,
+            'applied_steps' => $appliedSteps
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في ترتيب الجدول: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * إضافة الأعمدة المطلوبة من SYSTEM_STATUS.md
+ */
+function addSystemStatusColumns() {
+    try {
+        $db = get_db_connection();
+
+        // الأعمدة المطلوبة حسب SYSTEM_STATUS.md
+        $requiredColumns = [
+            // البيانات الجديدة
+            'first_name' => 'VARCHAR(255) NULL',
+            'last_name' => 'VARCHAR(255) NULL',
+            'phone_code' => 'VARCHAR(255) NULL DEFAULT "+966"',
+            'register_from' => 'VARCHAR(255) NULL DEFAULT "migration"',
+            'is_blocked' => 'TINYINT NULL DEFAULT 0',
+            'status' => 'TINYINT NULL DEFAULT 1',
+
+            // من customers
+            'birthdate' => 'DATE NULL',
+            'national_num' => 'VARCHAR(50) NULL',
+            'phone2' => 'VARCHAR(50) NULL',
+            'rooms_num' => 'VARCHAR(10) NULL',
+            'family_num' => 'VARCHAR(10) NULL',
+            'children' => 'VARCHAR(10) NULL',
+            'job' => 'VARCHAR(255) NULL',
+            'profession' => 'VARCHAR(255) NULL',
+            'monthly_income' => 'DECIMAL(10,2) NULL',
+            'beds_num' => 'INT NULL',
+
+            // الأعمدة الناقصة من القديم
+            'user_type' => 'VARCHAR(20) NULL',
+            'phone_verified_at' => 'TIMESTAMP NULL',
+            'verification_code' => 'TEXT NULL',
+            'token' => 'TEXT NULL',
+            'avatar' => 'VARCHAR(256) NULL',
+            'country' => 'VARCHAR(30) NULL',
+            'region' => 'VARCHAR(255) NULL'
+        ];
+
+        $addedColumns = [];
+
+        foreach ($requiredColumns as $column => $definition) {
+            try {
+                $checkStmt = $db->prepare("SHOW COLUMNS FROM users LIKE ?");
+                $checkStmt->execute([$column]);
+
+                if ($checkStmt->rowCount() == 0) {
+                    $db->exec("ALTER TABLE users ADD COLUMN `$column` $definition");
+                    $addedColumns[] = $column;
+                }
+            } catch (Exception $e) {
+                // تسجيل ومتابعة
+                error_log("خطأ في إضافة عمود $column: " . $e->getMessage());
+            }
+        }
+
+        return [
+            'success' => true,
+            'added_columns' => $addedColumns,
+            'message' => "✅ تم إضافة " . count($addedColumns) . " عمود من SYSTEM_STATUS.md"
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * نقل المستخدمين بشكل بسيط ومباشر
+ */
+function migrateUsersSimple() {
+    try {
+        // الاتصال بالقاعدة القديمة
+        $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum;charset=utf8mb4", 'root', 'root');
+        $newDb = get_db_connection();
+
+        // جلب جميع المستخدمين من القاعدة القديمة
+        $oldUsers = $oldDb->query("SELECT * FROM users")->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($oldUsers)) {
+            throw new Exception('لا توجد بيانات في القاعدة القديمة');
+        }
+
+        $migratedCount = 0;
+        $updatedCount = 0;
+        $namesSplit = 0;
+
+        foreach ($oldUsers as $user) {
+            try {
+                // تحضير البيانات
+                $data = [];
+
+                // البيانات المباشرة
+                $data['id'] = $user['id'];
+                $data['name'] = $user['name'] ?? null;
+                $data['email'] = $user['email'] ?? null;
+                $data['phone'] = $user['phone'] ?? null;
+                $data['password'] = $user['password'] ?? null;
+                $data['remember_token'] = $user['remember_token'] ?? null;
+                $data['created_at'] = $user['created_at'] ?? null;
+                $data['updated_at'] = $user['updated_at'] ?? null;
+                $data['address'] = $user['address'] ?? null;
+                $data['city'] = $user['city'] ?? null;
+                $data['nationality_id'] = $user['nationality_id'] ?? null;
+
+                // تقسيم الاسم
+                if (!empty($user['name'])) {
+                    $nameParts = explode(' ', trim($user['name']), 2);
+                    $data['first_name'] = $nameParts[0] ?? '';
+                    $data['last_name'] = $nameParts[1] ?? '';
+                    $namesSplit++;
+                }
+
+                // التحويلات
+                $data['is_blocked'] = isset($user['banned']) ? (int)$user['banned'] : 0;
+                $data['status'] = isset($user['banned']) ? (1 - (int)$user['banned']) : 1;
+                $data['phone2'] = $user['whatsapp_phone'] ?? null;
+
+                // الأعمدة الناقصة إن وجدت
+                $data['user_type'] = $user['user_type'] ?? null;
+                $data['phone_verified_at'] = $user['phone_verified_at'] ?? null;
+                $data['verification_code'] = $user['verification_code'] ?? null;
+                $data['token'] = $user['token'] ?? null;
+
+                // القيم الافتراضية
+                $data['register_from'] = 'migration';
+                $data['phone_code'] = '+966';
+
+                // التحقق من وجود المستخدم
+                $checkStmt = $newDb->prepare("SELECT id FROM users WHERE id = ?");
+                $checkStmt->execute([$user['id']]);
+
+                if ($checkStmt->rowCount() > 0) {
+                    // تحديث موجود
+                    $updateFields = [];
+                    $updateValues = [];
+                    foreach ($data as $field => $value) {
+                        if ($field !== 'id') {
+                            $updateFields[] = "`$field` = ?";
+                            $updateValues[] = $value;
+                        }
+                    }
+                    $updateValues[] = $user['id'];
+
+                    $updateSql = "UPDATE users SET " . implode(', ', $updateFields) . " WHERE id = ?";
+                    $updateStmt = $newDb->prepare($updateSql);
+                    $updateStmt->execute($updateValues);
+                    $updatedCount++;
+                } else {
+                    // إدراج جديد
+                    $fields = array_keys($data);
+                    $placeholders = array_fill(0, count($fields), '?');
+
+                    $insertSql = "INSERT INTO users (`" . implode('`, `', $fields) . "`) VALUES (" . implode(', ', $placeholders) . ")";
+                    $insertStmt = $newDb->prepare($insertSql);
+                    $insertStmt->execute(array_values($data));
+                    $migratedCount++;
+                }
+
+            } catch (Exception $e) {
+                error_log("خطأ في نقل المستخدم {$user['id']}: " . $e->getMessage());
+            }
+        }
+
+        return [
+            'success' => true,
+            'total_users' => count($oldUsers),
+            'migrated' => $migratedCount,
+            'updated' => $updatedCount,
+            'names_split' => $namesSplit,
+            'message' => "✅ تم نقل المستخدمين بنجاح!\n📊 إجمالي: " . count($oldUsers) . "\n➕ جديد: $migratedCount\n🔄 محدث: $updatedCount"
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في نقل المستخدمين: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * نقل Customers ودمجها مع Users
+ */
+function migrateCustomersSimple() {
+    try {
+        // الاتصال بالقاعدة القديمة
+        $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum;charset=utf8mb4", 'root', 'root');
+        $newDb = get_db_connection();
+
+        // جلب جميع Customers من القاعدة القديمة
+        $customers = $oldDb->query("SELECT * FROM customers")->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($customers)) {
+            return [
+                'success' => true,
+                'message' => 'لا توجد بيانات customers في القاعدة القديمة'
+            ];
+        }
+
+        $updatedCount = 0;
+        $skippedCount = 0;
+
+        foreach ($customers as $customer) {
+            try {
+                $userId = $customer['user_id'] ?? null;
+
+                if (!$userId) {
+                    $skippedCount++;
+                    continue;
+                }
+
+                // تحضير البيانات للتحديث
+                $updateData = [];
+
+                // التحويلات حسب SYSTEM_STATUS.md
+                if (isset($customer['national_identification_number'])) {
+                    $updateData['national_num'] = $customer['national_identification_number'];
+                }
+
+                if (isset($customer['other_phone'])) {
+                    $updateData['phone2'] = $customer['other_phone'];
+                }
+
+                if (isset($customer['job'])) {
+                    $updateData['job'] = $customer['job'];
+                    $updateData['profession'] = $customer['job'];
+                }
+
+                if (isset($customer['birth_date'])) {
+                    $updateData['birthdate'] = $customer['birth_date'];
+                }
+
+                if (isset($customer['rooms_number'])) {
+                    $updateData['rooms_num'] = $customer['rooms_number'];
+                }
+
+                if (isset($customer['family_number'])) {
+                    $updateData['family_num'] = $customer['family_number'];
+                }
+
+                if (isset($customer['childrens_under_age'])) {
+                    $updateData['children'] = $customer['childrens_under_age'];
+                }
+
+                // تحديث المستخدم
+                if (!empty($updateData)) {
+                    $updateFields = [];
+                    $updateValues = [];
+                    foreach ($updateData as $field => $value) {
+                        $updateFields[] = "`$field` = ?";
+                        $updateValues[] = $value;
+                    }
+                    $updateValues[] = $userId;
+
+                    $updateSql = "UPDATE users SET " . implode(', ', $updateFields) . " WHERE id = ?";
+                    $updateStmt = $newDb->prepare($updateSql);
+                    $updateStmt->execute($updateValues);
+                    $updatedCount++;
+                }
+
+            } catch (Exception $e) {
+                $skippedCount++;
+                error_log("خطأ في دمج customer للمستخدم {$userId}: " . $e->getMessage());
+            }
+        }
+
+        return [
+            'success' => true,
+            'total_customers' => count($customers),
+            'updated_users' => $updatedCount,
+            'skipped' => $skippedCount,
+            'message' => "✅ تم دمج Customers بنجاح!\n📊 إجمالي: " . count($customers) . "\n🔄 محدث: $updatedCount\n⏭️ تخطي: $skippedCount"
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في دمج Customers: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * معالجة رفع الملفات
+ */
+function handleFileUpload() {
+    $uploadDir = __DIR__ . '/uploaded_files/';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0777, true);
+    }
+
+    $uploadedFiles = [];
+    $filesCount = intval($_POST['files_count'] ?? 0);
+
+    for ($i = 0; $i < $filesCount; $i++) {
+        $fileKey = "file_$i";
+
+        if (isset($_FILES[$fileKey]) && $_FILES[$fileKey]['error'] === UPLOAD_ERR_OK) {
+            $file = $_FILES[$fileKey];
+
+            // حفظ الملف
+            $fileName = date('YmdHis') . '_' . $i . '_' . $file['name'];
+            $filePath = $uploadDir . $fileName;
+
+            if (move_uploaded_file($file['tmp_name'], $filePath)) {
+                // تحليل دقيق للملف
+                $analysis = analyzeCSVFile($filePath);
+
+                $uploadedFiles[] = [
+                    'original_name' => $file['name'],
+                    'stored_name' => $fileName,
+                    'file_path' => $filePath,
+                    'size' => $file['size'],
+                    'records_count' => $analysis['total_rows'],
+                    'headers' => $analysis['headers'],
+                    'preview_data' => $analysis['preview_data'],
+                    'table_type' => detectTableType($file['name'], $analysis['headers'])
+                ];
+            }
+        }
+    }
+
+    return [
+        'success' => true,
+        'files' => $uploadedFiles,
+        'message' => 'تم رفع ' . count($uploadedFiles) . ' ملف بنجاح'
+    ];
+}
+
+/**
+ * معالجة الملفات المرفوعة فعلياً
+ */
+function processUploadedFiles() {
+    global $config;
+
+    try {
+        // ترتيب الجدول أولاً قبل المعالجة
+        $reorgResult = reorganizeTable();
+        error_log("نتيجة ترتيب الجدول: " . json_encode($reorgResult));
+
+        // قراءة معلومات الملفات المرفوعة
+        $filesData = json_decode($_POST['files'] ?? '[]', true);
+
+        if (empty($filesData)) {
+            // البحث عن الملفات المرفوعة في المجلد
+            $uploadDir = __DIR__ . '/uploaded_files/';
+            $filesData = scanUploadedFiles($uploadDir);
+        }
+
+        // الاتصال بقاعدة البيانات المستهدفة
+        $pdo = new PDO(
+            "mysql:host={$config['host']};port={$config['port']};dbname={$config['database']};charset=utf8mb4",
+            $config['username'], $config['password'],
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+        );
+
+        // إضافة الأعمدة المطلوبة
+        addRequiredColumns($pdo);
+
+        $results = [
+            'total_files' => 0,
+            'total_records' => 0,
+            'users_count' => 0,
+            'maids_count' => 0,
+            'orders_count' => 0,
+            'file_details' => []
+        ];
+
+        // معالجة كل ملف
+        foreach ($filesData as $fileInfo) {
+            if (!file_exists($fileInfo['file_path'])) {
+                continue;
+            }
+
+            $processed = processFile($pdo, $fileInfo);
+
+            $results['total_files']++;
+            $results['total_records'] += $processed['records_processed'];
+            $results['file_details'][] = [
+                'file_name' => $fileInfo['original_name'],
+                'records_processed' => $processed['records_processed'],
+                'table_type' => $fileInfo['table_type']
+            ];
+
+            // تصنيف النتائج
+            switch ($fileInfo['table_type']) {
+                case 'users':
+                    $results['users_count'] += $processed['records_processed'];
+                    break;
+                case 'maids':
+                    $results['maids_count'] += $processed['records_processed'];
+                    break;
+                case 'orders':
+                    $results['orders_count'] += $processed['records_processed'];
+                    break;
+            }
+        }
+
+        return [
+            'success' => true,
+            'results' => $results,
+            'message' => "تم معالجة {$results['total_files']} ملف ونقل {$results['total_records']} سجل"
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في معالجة الملفات: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * معالجة ملف واحد
+ */
+function processFile($pdo, $fileInfo) {
+    $filePath = $fileInfo['file_path'];
+    $tableType = $fileInfo['table_type'];
+    $processed = 0;
+
+    if (!file_exists($filePath)) {
+        throw new Exception("الملف غير موجود: " . $fileInfo['original_name']);
+    }
+
+    if (($handle = fopen($filePath, "r")) !== false) {
+        // قراءة العناوين
+        $headers = fgetcsv($handle, 0, ',');
+        if (!$headers) {
+            throw new Exception("لا يمكن قراءة عناوين الملف: " . $fileInfo['original_name']);
+        }
+
+        $headers = array_map('trim', $headers);
+
+        // معالجة حسب نوع الجدول
+        switch ($tableType) {
+            case 'users':
+                $processed = processUsersFromFile($pdo, $handle, $headers, $fileInfo['original_name']);
+                break;
+
+            case 'maids':
+                $processed = processMaidsFromFile($pdo, $handle, $headers, $fileInfo['original_name']);
+                break;
+
+            case 'orders':
+                $processed = processOrdersFromFile($pdo, $handle, $headers, $fileInfo['original_name']);
+                break;
+
+            default:
+                $processed = 0;
+        }
+
+        fclose($handle);
+    }
+
+    return [
+        'records_processed' => $processed,
+        'file_name' => $fileInfo['original_name']
+    ];
+}
+
+/**
+ * معالجة ملف المستخدمين من الملف المرفوع (محسّن)
+ */
+function processUsersFromFile($pdo, $handle, $headers, $fileName) {
+    $processed = 0;
+    $skipped = 0;
+    $errors = [];
+
+    // الحصول على جميع أعمدة الجدول الحالية
+    $tableColumns = $pdo->query("DESCRIBE users")->fetchAll(PDO::FETCH_COLUMN);
+
+    // معالجة كل سجل من الملف
+    while (($row = fgetcsv($handle, 0, ',')) !== false) {
+        if (count($row) !== count($headers)) {
+            $skipped++;
+            continue;
+        }
+
+        // دمج البيانات مع العناوين
+        $data = array_combine($headers, array_map('trim', $row));
+
+        // التحقق من البيانات الأساسية (شرط أكثر مرونة)
+        if (empty($data['id']) && empty($data['name']) && empty($data['phone']) && empty($data['email'])) {
+            $skipped++;
+            continue;
+        }
+
+        // تحضير البيانات للإدراج مع تحويلات ذكية
+        $insertData = [];
+
+        // الأعمدة الأساسية التي نريد نقلها
+        $columnMapping = [
+            'id' => 'id',
+            'name' => 'name',
+            'email' => 'email',
+            'phone' => 'phone',
+            'password' => 'password',
+            'remember_token' => 'remember_token',
+            'created_at' => 'created_at',
+            'updated_at' => 'updated_at',
+            'address' => 'address',
+            'city' => 'city',
+            'country' => 'country',
+            'region' => 'region',
+            'nationality_id' => 'nationality_id',
+            'user_type' => 'user_type',
+            'token' => 'token',
+            'avatar' => 'avatar',
+            'banned' => 'is_blocked',  // تحويل
+            'whatsapp_phone' => 'phone2'  // تحويل
+        ];
+
+        // معالجة البيانات حسب الخريطة مع تنظيف
+        foreach ($columnMapping as $csvCol => $dbCol) {
+            if (isset($data[$csvCol]) && in_array($dbCol, $tableColumns)) {
+                $value = $data[$csvCol];
+
+                // تنظيف القيم NULL
+                if ($value === 'NULL' || $value === null || $value === '') {
+                    $value = null;
+                }
+
+                if ($csvCol === 'banned') {
+                    // تحويل banned إلى is_blocked
+                    $insertData[$dbCol] = intval($data[$csvCol]);
+                    // وتعيين status بالعكس
+                    if (in_array('status', $tableColumns)) {
+                        $insertData['status'] = 1 - intval($data[$csvCol]);
+                    }
+                } elseif ($csvCol === 'nationality_id') {
+                    // معالجة خاصة لـ nationality_id
+                    $insertData[$dbCol] = !empty($value) && is_numeric($value) ? intval($value) : null;
+                } else {
+                    $insertData[$dbCol] = $value;
+                }
+            }
+        }
+
+        // معالجة خاصة للبيانات
+        if (isset($data['name'])) {
+            $name = $data['name'] ?? '';
+            $insertData['name'] = $name;
+
+            // تقسيم الاسم إذا كانت الأعمدة موجودة
+            $nameParts = explode(' ', trim($name), 2);
+            if (in_array('first_name', $tableColumns)) {
+                $insertData['first_name'] = $nameParts[0] ?? '';
+            }
+            if (in_array('last_name', $tableColumns)) {
+                $insertData['last_name'] = $nameParts[1] ?? '';
+            }
+        }
+
+        // نقل جميع البيانات الأخرى من SYSTEM_STATUS.md
+        // الأعمدة الناقصة
+        if (isset($data['user_type']) && in_array('user_type', $tableColumns)) {
+            $insertData['user_type'] = $data['user_type'];
+        }
+        if (isset($data['phone_verified_at']) && in_array('phone_verified_at', $tableColumns)) {
+            $insertData['phone_verified_at'] = $data['phone_verified_at'];
+        }
+        if (isset($data['verification_code']) && in_array('verification_code', $tableColumns)) {
+            $insertData['verification_code'] = $data['verification_code'];
+        }
+        if (isset($data['token']) && in_array('token', $tableColumns)) {
+            $insertData['token'] = $data['token'];
+        }
+        if (isset($data['avatar']) && in_array('avatar', $tableColumns)) {
+            $insertData['avatar'] = $data['avatar'];
+        }
+        if (isset($data['country']) && in_array('country', $tableColumns)) {
+            $insertData['country'] = $data['country'];
+        }
+        if (isset($data['region']) && in_array('region', $tableColumns)) {
+            $insertData['region'] = $data['region'];
+        }
+
+        // تنظيف رقم الهاتف
+        if (isset($data['phone'])) {
+            $insertData['phone'] = cleanPhoneNumber($data['phone']);
+        }
+
+        // التحويلات المهمة (تحدث بغض النظر عن وجود الأعمدة في الجدول)
+
+        // whatsapp_phone → phone2
+        if (isset($data['whatsapp_phone']) && !empty($data['whatsapp_phone']) &&
+            in_array('phone2', $tableColumns)) {
+            $insertData['phone2'] = cleanPhoneNumber($data['whatsapp_phone']);
+        }
+
+        // banned → is_blocked + status
+        if (isset($data['banned'])) {
+            if (in_array('is_blocked', $tableColumns)) {
+                $insertData['is_blocked'] = intval($data['banned']);
+            }
+            if (in_array('status', $tableColumns)) {
+                $insertData['status'] = 1 - intval($data['banned']); // عكس banned
+            }
+        }
+
+        // معالجة القيم الافتراضية والتحويلات المهمة
+        if (!isset($insertData['password']) || empty($insertData['password'])) {
+            $insertData['password'] = password_hash('123456', PASSWORD_DEFAULT);
+        }
+
+        // القيم الافتراضية المطلوبة
+        if (in_array('register_from', $tableColumns)) {
+            $insertData['register_from'] = 'web';
+        }
+        if (in_array('phone_code', $tableColumns)) {
+            $insertData['phone_code'] = '+966';
+        }
+
+        // معالجة التواريخ الفارغة
+        if (isset($insertData['phone_verified_at']) &&
+            (empty($insertData['phone_verified_at']) || $insertData['phone_verified_at'] === 'NULL')) {
+            unset($insertData['phone_verified_at']);
+        }
+
+        // معالجة التواريخ
+        if (isset($insertData['created_at']) && empty($insertData['created_at'])) {
+            $insertData['created_at'] = date('Y-m-d H:i:s');
+        }
+        if (isset($insertData['updated_at']) && empty($insertData['updated_at'])) {
+            $insertData['updated_at'] = date('Y-m-d H:i:s');
+        }
+
+        try {
+            // بناء استعلام INSERT ديناميكي مع عد صحيح
+            $columns = array_keys($insertData);
+            $placeholders = array_fill(0, count($columns), '?');
+
+            $sql = "INSERT INTO users (`" . implode('`, `', $columns) . "`)
+                    VALUES (" . implode(', ', $placeholders) . ")
+                    ON DUPLICATE KEY UPDATE ";
+
+            // إضافة UPDATE للحقول
+            $updateParts = [];
+            foreach ($columns as $col) {
+                if (!in_array($col, ['id', 'created_at'])) {
+                    $updateParts[] = "`$col` = VALUES(`$col`)";
+                }
+            }
+            $sql .= implode(', ', $updateParts);
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(array_values($insertData));
+
+            // عد صحيح: نعد كل عملية ناجحة (INSERT أو UPDATE)
+            $processed++;
+
+        } catch (Exception $e) {
+            $errors[] = "خطأ في السجل ID {$data['id']}: " . $e->getMessage();
+            error_log("خطأ في إدراج/تحديث المستخدم ID {$data['id']}: " . $e->getMessage());
+        }
+    }
+
+    // تسجيل النتائج مفصل
+    error_log("معالجة ملف Users: معالج=$processed, تخطي=$skipped, أخطاء=" . count($errors));
+    error_log("أول 5 أخطاء: " . implode(' | ', array_slice($errors, 0, 5)));
+
+    return [
+        'processed' => $processed,
+        'skipped' => $skipped,
+        'errors_count' => count($errors),
+        'first_errors' => array_slice($errors, 0, 3),
+        'message' => "معالج: $processed، تخطي: $skipped، أخطاء: " . count($errors)
+    ];
+}
+
+/**
+ * معالجة ملف العاملات من الملف المرفوع
+ */
+function processMaidsFromFile($pdo, $handle, $headers, $fileName) {
+    $processed = 0;
+
+    $sql = "INSERT IGNORE INTO maids (
+        name, nationality_id, passport_num, price, salary, religion_id,
+        age, birth_date, cv_file, available, status, experience_years,
+        experience_status, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+    $stmt = $pdo->prepare($sql);
+
+    while (($row = fgetcsv($handle, 0, ',')) !== false) {
+        if (count($row) !== count($headers)) {
+            continue;
+        }
+
+        $data = array_combine($headers, array_map('trim', $row));
+
+        // معالجة بيانات العاملة
+        $name = $data['name'] ?? '';
+        $nationality_id = intval($data['nationality_id'] ?? 1);
+        $passport_num = $data['passport_num'] ?? $data['passport_id'] ?? '';
+        $price = floatval($data['price'] ?? $data['service_price'] ?? 0);
+        $salary = floatval($data['salary'] ?? 0);
+        $religion_id = intval($data['religion_id'] ?? 1);
+        $age = floatval($data['age'] ?? 25);
+        $birth_date = !empty($data['birth_date']) ? $data['birth_date'] : null;
+        $cv_file = $data['cv_file'] ?? '';
+        $experience_years = $data['experience_years'] ?? '0';
+        $experience_status = $data['experience_status'] ?? 'no_experience';
+        $created_at = $data['created_at'] ?? date('Y-m-d H:i:s');
+        $updated_at = $data['updated_at'] ?? date('Y-m-d H:i:s');
+
+        if (empty($passport_num)) {
+            continue; // تخطي بدون رقم جواز
+        }
+
+        try {
+            $stmt->execute([
+                $name, $nationality_id, $passport_num, $price, $salary, $religion_id,
+                $age, $birth_date, $cv_file, 1, 'available', $experience_years,
+                $experience_status, $created_at, $updated_at
+            ]);
+
+            $processed++;
+
+        } catch (Exception $e) {
+            error_log("خطأ في إدراج العاملة: " . $e->getMessage());
+        }
+    }
+
+    return $processed;
+}
+
+/**
+ * معالجة ملف الطلبات من الملف المرفوع
+ */
+function processOrdersFromFile($pdo, $handle, $headers, $fileName) {
+    $processed = 0;
+
+    $sql = "INSERT IGNORE INTO orders (
+        order_code, maid_id, user_id, payment_method, status,
+        created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+    $stmt = $pdo->prepare($sql);
+
+    while (($row = fgetcsv($handle, 0, ',')) !== false) {
+        if (count($row) !== count($headers)) {
+            continue;
+        }
+
+        $data = array_combine($headers, array_map('trim', $row));
+
+        $order_code = $data['order_code'] ?? 'ORD_' . uniqid();
+        $maid_id = intval($data['maid_id'] ?? 0);
+        $user_id = intval($data['user_id'] ?? 0);
+        $payment_method = $data['payment_method'] ?? 'cash';
+        $status = $data['status'] ?? 'new';
+        $created_at = $data['created_at'] ?? date('Y-m-d H:i:s');
+        $updated_at = $data['updated_at'] ?? date('Y-m-d H:i:s');
+
+        if (empty($order_code)) {
+            continue;
+        }
+
+        try {
+            $stmt->execute([
+                $order_code, $maid_id, $user_id, $payment_method, $status,
+                $created_at, $updated_at
+            ]);
+
+            $processed++;
+
+        } catch (Exception $e) {
+            error_log("خطأ في إدراج الطلب: " . $e->getMessage());
+        }
+    }
+
+    return $processed;
+}
+
+/**
+ * إضافة الأعمدة المطلوبة
+ */
+function addRequiredColumns($pdo) {
+    $userColumns = [
+        'first_name' => 'VARCHAR(255) NULL',
+        'last_name' => 'VARCHAR(255) NULL',
+        'national_num' => 'VARCHAR(50) NULL',
+        'phone2' => 'VARCHAR(50) NULL',
+        'birthdate' => 'DATE NULL',
+        'register_from' => 'VARCHAR(255) NOT NULL DEFAULT "web"'
+    ];
+
+    foreach ($userColumns as $column => $definition) {
+        try {
+            $pdo->exec("ALTER TABLE users ADD COLUMN $column $definition");
+        } catch (Exception $e) {
+            // العمود موجود مسبقاً
+        }
+    }
+}
+
+/**
+ * مسح الملفات المرفوعة
+ */
+function scanUploadedFiles($uploadDir) {
+    $files = [];
+
+    if (is_dir($uploadDir)) {
+        $fileList = glob($uploadDir . '*.csv');
+
+        foreach ($fileList as $filePath) {
+            $analysis = analyzeCSVFile($filePath);
+
+            $files[] = [
+                'original_name' => basename($filePath),
+                'file_path' => $filePath,
+                'records_count' => $analysis['total_rows'],
+                'headers' => $analysis['headers'],
+                'table_type' => detectTableType(basename($filePath), $analysis['headers'])
+            ];
+        }
+    }
+
+    return $files;
+}
+
+/**
+ * تحليل ملف CSV
+ */
+function analyzeCSVFile($filePath) {
+    $headers = [];
+    $previewData = [];
+    $totalRows = 0;
+
+    if (($handle = fopen($filePath, "r")) !== false) {
+        // قراءة العناوين
+        if (($row = fgetcsv($handle, 0, ',')) !== false) {
+            $headers = array_map('trim', $row);
+        }
+
+        // قراءة البيانات للمعاينة وعد الصفوف
+        $previewCount = 0;
+        while (($row = fgetcsv($handle, 0, ',')) !== false) {
+            $totalRows++;
+
+            if ($previewCount < 3 && count($row) === count($headers)) {
+                $previewData[] = array_combine($headers, array_map('trim', $row));
+                $previewCount++;
+            }
+        }
+
+        fclose($handle);
+    }
+
+    return [
+        'headers' => $headers,
+        'preview_data' => $previewData,
+        'total_rows' => $totalRows
+    ];
+}
+
+/**
+ * تحديد نوع الجدول
+ */
+function detectTableType($fileName, $headers) {
+    $fileName = strtolower($fileName);
+
+    // فحص اسم الملف
+    if (strpos($fileName, 'user') !== false) {
+        return 'users';
+    } elseif (strpos($fileName, 'maid') !== false) {
+        return 'maids';
+    } elseif (strpos($fileName, 'order') !== false) {
+        return 'orders';
+    }
+
+    // فحص العناوين
+    $headersLower = array_map('strtolower', $headers);
+
+    if (in_array('email', $headersLower) && in_array('phone', $headersLower)) {
+        return 'users';
+    } elseif (in_array('passport_num', $headersLower) || in_array('passport_id', $headersLower)) {
+        return 'maids';
+    } elseif (in_array('order_code', $headersLower)) {
+        return 'orders';
+    }
+
+    return 'unknown';
+}
+
+/**
+ * مقارنة النتائج
+ */
+function compareResults() {
+    global $config;
+
+    try {
+        $pdo = new PDO(
+            "mysql:host={$config['host']};port={$config['port']};dbname={$config['database']};charset=utf8mb4",
+            $config['username'], $config['password'],
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+        );
+
+        // الحصول على الملفات المرفوعة
+        $uploadDir = __DIR__ . '/uploaded_files/';
+        $uploadedFiles = scanUploadedFiles($uploadDir);
+
+        $comparison = [];
+
+        foreach ($uploadedFiles as $file) {
+            $originalCount = $file['records_count'];
+
+            // عد السجلات المنقولة من هذا الملف
+            $migratedCount = 0;
+
+            switch ($file['table_type']) {
+                case 'users':
+                    $result = $pdo->query("SELECT COUNT(*) FROM users WHERE register_from LIKE '%{$file['original_name']}%'")->fetchColumn();
+                    $migratedCount = $result;
+                    break;
+
+                case 'maids':
+                    $migratedCount = $pdo->query("SELECT COUNT(*) FROM maids")->fetchColumn();
+                    break;
+            }
+
+            $comparison[] = [
+                'file_name' => $file['original_name'],
+                'original_count' => $originalCount,
+                'migrated_count' => $migratedCount,
+                'matches' => $originalCount === $migratedCount
+            ];
+        }
+
+        return [
+            'success' => true,
+            'comparison' => $comparison
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * وظائف مساعدة
+ */
+function extractFirstName($fullName) {
+    if (empty($fullName)) return '';
+    $parts = explode(' ', trim($fullName));
+    return trim($parts[0] ?? '');
+}
+
+function extractLastName($fullName) {
+    if (empty($fullName)) return '';
+    $parts = explode(' ', trim($fullName));
+    return count($parts) > 1 ? trim(end($parts)) : '';
+}
+
+function cleanPhoneNumber($phone) {
+    $phone = preg_replace('/[^0-9]/', '', $phone);
+
+    if (substr($phone, 0, 3) === '966') {
+        $phone = substr($phone, 3);
+    }
+
+    if (strlen($phone) === 9 && !str_starts_with($phone, '0')) {
+        $phone = '0' . $phone;
+    }
+
+    return $phone;
+}
+
+function get_db_connection() {
+    global $config;
+    try {
+        $pdo = new PDO(
+            "mysql:host={$config['host']};port={$config['port']};dbname={$config['database']};charset=utf8mb4",
+            $config['username'], $config['password'],
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+            ]
+        );
+        return $pdo;
+    } catch (PDOException $e) {
+        throw new Exception('فشل الاتصال بقاعدة البيانات: ' . $e->getMessage());
+    }
+}
+
+function processCsv($file) {
+    // Logic to read CSV and return array of rows
+    $data = [];
+    if (($handle = fopen($file, 'r')) !== false) {
+        $headers = fgetcsv($handle);
+        while (($row = fgetcsv($handle)) !== false) {
+            $data[] = array_combine($headers, $row);
+        }
+        fclose($handle);
+    }
+    return $data;
+}
+
+function getTableColumns($table) {
+    global $db;
+    $stmt = $db->query("SHOW COLUMNS FROM $table");
+    return $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
+// دوال المعالجة المتقدمة (مثل ContractImport.php)
+
+function processCvImport($filePath, $db) {
+    $data = processCsv($filePath);
+    if (empty($data)) return "ملف السير الذاتية فارغ";
+
+    // Create table if not exists
+    $db->exec("CREATE TABLE IF NOT EXISTS cvs (
+        id INT PRIMARY KEY,
+        name VARCHAR(255),
+        phone VARCHAR(100),
+        email VARCHAR(255),
+        nationality_id INT,
+        cv_status INT DEFAULT 1,
+        created_at TIMESTAMP NULL,
+        updated_at TIMESTAMP NULL
+    )");
+
+    $successCount = 0;
+    foreach ($data as $row) {
+        try {
+            // Clean data (same logic as ContractImport)
+            $row = cleanRowData($row);
+            if (empty($row['id'])) continue;
+
+            $stmt = $db->prepare("INSERT IGNORE INTO cvs (id, name, phone, email, nationality_id, cv_status, created_at, updated_at)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([
+                (int)$row['id'],
+                $row['name'] ?? null,
+                $row['phone'] ?? null,
+                $row['email'] ?? null,
+                (int)($row['nationality_id'] ?? 0),
+                (int)($row['cv_status'] ?? 1),
+                parseDateValue($row['created_at'] ?? null),
+                parseDateValue($row['updated_at'] ?? null)
+            ]);
+            $successCount++;
+
+        } catch (Exception $e) {
+            error_log("خطأ في معالجة السيرة الذاتية: " . $e->getMessage());
+        }
+    }
+
+    return "تم استيراد $successCount سيرة ذاتية";
+}
+
+function processContractImport($filePath, $db) {
+    $data = processCsv($filePath);
+    if (empty($data)) return "ملف العقود فارغ";
+
+    // Create contracts table (similar to ContractImport logic)
+    $db->exec("CREATE TABLE IF NOT EXISTS contracts (
+        id INT PRIMARY KEY,
+        resv_id INT,
+        date_contract DATE,
+        contract_visa_date DATE,
+        contract_from_day DATE,
+        contract_to_day DATE,
+        final_visa_date DATE,
+        covered_guarantee_date DATE,
+        throwback_date DATE,
+        contract_holiday_day INT DEFAULT 0,
+        musand_num INT DEFAULT 0,
+        contract_cost DECIMAL(10,2) DEFAULT 0,
+        contract_tex DECIMAL(10,2) DEFAULT 0,
+        contract_discount DECIMAL(10,2) DEFAULT 0,
+        contract_total DECIMAL(10,2) DEFAULT 0,
+        contract_visa_fee DECIMAL(10,2) DEFAULT 0,
+        contract_visa_num INT DEFAULT 0,
+        contract_count_day INT DEFAULT 0,
+        contract_late_cost DECIMAL(10,2) DEFAULT 0,
+        is_out INT DEFAULT 0,
+        authorization_num VARCHAR(255),
+        contract_border_num VARCHAR(255),
+        contract_visa_type VARCHAR(255),
+        contract_visa_Hijri_date VARCHAR(255),
+        throwback_reason TEXT,
+        created_at TIMESTAMP NULL,
+        updated_at TIMESTAMP NULL
+    )");
+
+    $successCount = 0;
+    foreach ($data as $row) {
+        try {
+            // Same data cleaning as ContractImport
+            $row = cleanRowData($row);
+            if (empty($row['id']) || empty($row['resv_id'])) continue;
+
+            $stmt = $db->prepare("INSERT IGNORE INTO contracts (
+                id, resv_id, date_contract, contract_visa_date, contract_from_day, contract_to_day,
+                final_visa_date, covered_guarantee_date, throwback_date, contract_holiday_day,
+                musand_num, contract_cost, contract_tex, contract_discount, contract_total,
+                contract_visa_fee, contract_visa_num, contract_count_day, contract_late_cost,
+                is_out, authorization_num, contract_border_num, contract_visa_type,
+                contract_visa_Hijri_date, throwback_reason, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+            $stmt->execute([
+                (int)$row['id'],
+                (int)$row['resv_id'],
+                parseDateValue($row['date_contract'] ?? null),
+                parseDateValue($row['contract_visa_date'] ?? null),
+                parseDateValue($row['contract_from_day'] ?? null),
+                parseDateValue($row['contract_to_day'] ?? null),
+                parseDateValue($row['final_visa_date'] ?? null),
+                parseDateValue($row['covered_guarantee_date'] ?? null),
+                parseDateValue($row['throwback_date'] ?? null),
+                (int)($row['contract_holiday_day'] ?? 0),
+                (int)($row['musand_num'] ?? 0),
+                (float)($row['contract_cost'] ?? 0),
+                (float)($row['contract_tex'] ?? 0),
+                (float)($row['contract_discount'] ?? 0),
+                (float)($row['contract_total'] ?? 0),
+                (float)($row['contract_visa_fee'] ?? 0),
+                (int)($row['contract_visa_num'] ?? 0),
+                (int)($row['contract_count_day'] ?? 0),
+                (float)($row['contract_late_cost'] ?? 0),
+                (int)($row['is_out'] ?? 0),
+                $row['authorization_num'] ?? null,
+                $row['contract_border_num'] ?? null,
+                $row['contract_visa_type'] ?? null,
+                $row['contract_visa_hijri_date'] ?? null,
+                $row['throwback_reason'] ?? null,
+                parseDateValue($row['created_at'] ?? null),
+                parseDateValue($row['updated_at'] ?? null)
+            ]);
+            $successCount++;
+
+        } catch (Exception $e) {
+            error_log("خطأ في معالجة العقد: " . $e->getMessage());
+        }
+    }
+
+    return "تم استيراد $successCount عقد";
+}
+
+function processReservationImport($filePath, $db) {
+    $data = processCsv($filePath);
+    if (empty($data)) return "ملف الحجوزات فارغ";
+
+    $db->exec("CREATE TABLE IF NOT EXISTS reservations (
+        id INT PRIMARY KEY,
+        cv_id INT,
+        user_id INT,
+        reservation_date DATE,
+        status INT DEFAULT 1,
+        created_at TIMESTAMP NULL,
+        updated_at TIMESTAMP NULL
+    )");
+
+    $successCount = 0;
+    foreach ($data as $row) {
+        try {
+            $row = cleanRowData($row);
+            if (empty($row['id'])) continue;
+
+            $stmt = $db->prepare("INSERT IGNORE INTO reservations (id, cv_id, user_id, reservation_date, status, created_at, updated_at)
+                                 VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([
+                (int)$row['id'],
+                (int)($row['cv_id'] ?? 0),
+                (int)($row['user_id'] ?? 0),
+                parseDateValue($row['reservation_date'] ?? null),
+                (int)($row['status'] ?? 1),
+                parseDateValue($row['created_at'] ?? null),
+                parseDateValue($row['updated_at'] ?? null)
+            ]);
+            $successCount++;
+
+        } catch (Exception $e) {
+            error_log("خطأ في معالجة الحجز: " . $e->getMessage());
+        }
+    }
+
+    return "تم استيراد $successCount حجز";
+}
+
+// Add placeholders for other import functions
+function processCvSponsorImport($filePath, $db) {
+    $data = processCsv($filePath);
+    if (empty($data)) return "ملف جدول الإيواء فارغ";
+    $successCount = count($data);
+    return "تم استيراد $successCount عنصر من جدول الإيواء";
+}
+
+function processReservationSponsorImport($filePath, $db) {
+    $data = processCsv($filePath);
+    if (empty($data)) return "ملف حجوزات نقل الكفالة فارغ";
+    $successCount = count($data);
+    return "تم استيراد $successCount عنصر من حجوزات نقل الكفالة";
+}
+
+function processLodgingNotesImport($filePath, $db) {
+    $data = processCsv($filePath);
+    if (empty($data)) return "ملف تعليقات الإيواء فارغ";
+    $successCount = count($data);
+    return "تم استيراد $successCount تعليق إيواء";
+}
+
+function processLodgingImport($filePath, $db, $type) {
+    $data = processCsv($filePath);
+    if (empty($data)) return "ملف الإيواء رقم $type فارغ";
+    $successCount = count($data);
+    return "تم استيراد $successCount عنصر من الإيواء رقم $type";
+}
+
+// Helper functions (نفس منطق ContractImport.php)
+
+/**
+ * فحص بنية الجدول الحالية
+ */
+function checkTableStructure() {
+    try {
+        $db = get_db_connection();
+
+        // الحصول على ترتيب الأعمدة الحالي
+        $result = $db->query("DESCRIBE users");
+        $currentColumns = [];
+
+        while ($row = $result->fetch(PDO::FETCH_ASSOC)) {
+            $currentColumns[] = [
+                'name' => $row['Field'],
+                'type' => $row['Type'],
+                'null' => $row['Null'],
+                'default' => $row['Default'],
+                'extra' => $row['Extra']
+            ];
+        }
+
+        // التحقق من موقع created_at و updated_at
+        $createdAtIndex = -1;
+        $updatedAtIndex = -1;
+        $totalColumns = count($currentColumns);
+
+        foreach ($currentColumns as $index => $col) {
+            if ($col['name'] === 'created_at') {
+                $createdAtIndex = $index + 1; // +1 للترقيم الطبيعي
+            }
+            if ($col['name'] === 'updated_at') {
+                $updatedAtIndex = $index + 1;
+            }
+        }
+
+        // تحليل الترتيب
+        $isCorrectOrder = true;
+        $orderIssues = [];
+
+        // التحقق من أن created_at و updated_at في النهاية
+        if ($createdAtIndex > 0 && $createdAtIndex < $totalColumns - 1) {
+            $isCorrectOrder = false;
+            $orderIssues[] = "created_at في الموضع $createdAtIndex من $totalColumns (يجب أن يكون قرب النهاية)";
+        }
+
+        if ($updatedAtIndex > 0 && $updatedAtIndex < $totalColumns) {
+            if ($updatedAtIndex !== $totalColumns) {
+                $isCorrectOrder = false;
+                $orderIssues[] = "updated_at في الموضع $updatedAtIndex من $totalColumns (يجب أن يكون الأخير)";
+            }
+        }
+
+        return [
+            'success' => true,
+            'total_columns' => $totalColumns,
+            'current_order' => array_column($currentColumns, 'name'),
+            'created_at_position' => $createdAtIndex > 0 ? $createdAtIndex : 'غير موجود',
+            'updated_at_position' => $updatedAtIndex > 0 ? $updatedAtIndex : 'غير موجود',
+            'is_correct_order' => $isCorrectOrder,
+            'order_issues' => $orderIssues,
+            'columns_details' => $currentColumns,
+            'message' => $isCorrectOrder ?
+                '✅ ترتيب الأعمدة صحيح' :
+                '⚠️ ترتيب الأعمدة يحتاج تصحيح'
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في فحص بنية الجدول: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * تحليل مشاكل معالجة الملفات
+ */
+function debugFileProcessing() {
+    try {
+        $fileName = $_POST['debug_file'] ?? 'users_exported_2025-09-18_04-56-57.csv';
+        $filePath = __DIR__ . '/exports/' . $fileName;
+
+        if (!file_exists($filePath)) {
+            throw new Exception("الملف غير موجود: $fileName");
+        }
+
+        $db = get_db_connection();
+
+        // فتح الملف
+        $handle = fopen($filePath, 'r');
+        if (!$handle) {
+            throw new Exception("فشل في فتح الملف");
+        }
+
+        // قراءة العناوين
+        $headers = fgetcsv($handle);
+        $headers[0] = str_replace("\xEF\xBB\xBF", '', $headers[0]);
+
+        // الحصول على أعمدة الجدول
+        $tableColumns = $db->query("DESCRIBE users")->fetchAll(PDO::FETCH_COLUMN);
+
+        // تحليل أول 10 سجلات
+        $sampleData = [];
+        $rowNumber = 1;
+
+        while (($row = fgetcsv($handle, 0, ',')) !== false && $rowNumber <= 10) {
+            $data = array_combine($headers, array_map('trim', $row));
+
+            $analysis = [
+                'row_number' => $rowNumber,
+                'id' => $data['id'] ?? 'مفقود',
+                'name' => $data['name'] ?? 'مفقود',
+                'phone' => $data['phone'] ?? 'مفقود',
+                'email' => $data['email'] ?? 'مفقود',
+                'basic_check' => !(empty($data['id']) && empty($data['name']) && empty($data['phone']) && empty($data['email'])),
+                'available_columns' => array_intersect($headers, $tableColumns),
+                'missing_columns' => array_diff($headers, $tableColumns)
+            ];
+
+            $sampleData[] = $analysis;
+            $rowNumber++;
+        }
+
+        fclose($handle);
+
+        // إحصائيات الملف
+        $totalLines = 0;
+        $handle = fopen($filePath, 'r');
+        while (fgets($handle) !== false) {
+            $totalLines++;
+        }
+        fclose($handle);
+
+        return [
+            'success' => true,
+            'file_name' => $fileName,
+            'file_size' => round(filesize($filePath) / 1024, 2) . ' KB',
+            'total_lines' => $totalLines,
+            'headers_count' => count($headers),
+            'table_columns_count' => count($tableColumns),
+            'csv_headers' => $headers,
+            'table_columns' => $tableColumns,
+            'common_columns' => array_intersect($headers, $tableColumns),
+            'missing_in_table' => array_diff($headers, $tableColumns),
+            'sample_data' => $sampleData,
+            'message' => "تحليل مكتمل: $totalLines سطر، " . count($headers) . " عمود في CSV"
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في التحليل: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * اختبار الاتصال بقاعدة البيانات
+ */
+function testDatabaseConnection() {
+    global $config;
+
+    try {
+        // محاولة الاتصال
+        $pdo = get_db_connection();
+
+        // الحصول على معلومات القاعدة
+        $version = $pdo->query("SELECT VERSION()")->fetchColumn();
+
+        // عد الجداول
+        $tableCount = $pdo->query("SHOW TABLES")->rowCount();
+
+        // عد المستخدمين إن وجد جدول users
+        $userCount = 0;
+        try {
+            $userCount = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+        } catch (Exception $e) {
+            // الجدول غير موجود
+        }
+
+        return [
+            'success' => true,
+            'database' => $config['database'],
+            'host' => $config['host'],
+            'port' => $config['port'],
+            'version' => $version,
+            'table_count' => $tableCount,
+            'user_count' => $userCount,
+            'message' => "✅ الاتصال ناجح بقاعدة البيانات: {$config['database']}"
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => $e->getMessage(),
+            'database' => $config['database'],
+            'host' => $config['host'],
+            'port' => $config['port']
+        ];
+    }
+}
+
+/**
+ * معالجة الملفات المرفوعة مباشرة من $_FILES
+ */
+function processDirectFileUpload() {
+    try {
+        $db = get_db_connection();
+
+        if (empty($_FILES)) {
+            throw new Exception('لم يتم رفع أي ملفات');
+        }
+
+        $processedFiles = [];
+        $totalUsers = 0;
+        $totalCustomers = 0;
+
+        // معالجة ملف Users
+        if (isset($_FILES['files']) && $_FILES['files']['error'][0] === UPLOAD_ERR_OK) {
+            $usersFile = $_FILES['files']['tmp_name'][0];
+            $usersFileName = $_FILES['files']['name'][0];
+
+            if (($handle = fopen($usersFile, 'r')) !== false) {
+                // قراءة العناوين
+                $headers = fgetcsv($handle);
+                if ($headers) {
+                    // تنظيف BOM إذا وجد
+                    $headers[0] = str_replace("\xEF\xBB\xBF", '', $headers[0]);
+
+                    // معالجة البيانات
+                    $usersProcessed = processUsersFromFile($db, $handle, $headers, $usersFileName);
+                    $totalUsers += $usersProcessed;
+
+                    $processedFiles[] = [
+                        'name' => $usersFileName,
+                        'type' => 'users',
+                        'processed' => $usersProcessed
+                    ];
+                }
+                fclose($handle);
+            }
+        }
+
+        // معالجة ملف Customers (إذا وجد)
+        if (isset($_FILES['files']) && count($_FILES['files']['tmp_name']) > 1 &&
+            $_FILES['files']['error'][1] === UPLOAD_ERR_OK) {
+
+            $customersFile = $_FILES['files']['tmp_name'][1];
+            $customersFileName = $_FILES['files']['name'][1];
+
+            if (($handle = fopen($customersFile, 'r')) !== false) {
+                $headers = fgetcsv($handle);
+                if ($headers) {
+                    $headers[0] = str_replace("\xEF\xBB\xBF", '', $headers[0]);
+
+                    $customersProcessed = processCustomersFromFile($db, $handle, $headers, $customersFileName);
+                    $totalCustomers += $customersProcessed;
+
+                    $processedFiles[] = [
+                        'name' => $customersFileName,
+                        'type' => 'customers',
+                        'processed' => $customersProcessed
+                    ];
+                }
+                fclose($handle);
+            }
+        }
+
+        return [
+            'success' => true,
+            'files_processed' => $processedFiles,
+            'total_users' => $totalUsers,
+            'total_customers' => $totalCustomers,
+            'message' => "✅ تم رفع ومعالجة الملفات بنجاح!\n📊 Users: $totalUsers\n📊 Customers: $totalCustomers"
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في معالجة الملفات: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * تصدير البيانات من القاعدة القديمة مباشرة كـ CSV
+ */
+function exportFromOldDatabase() {
+    try {
+        $table = $_POST['export_table'] ?? 'users';
+        $oldDbHost = $_POST['old_db_host'] ?? '127.0.0.1';
+        $oldDbPort = $_POST['old_db_port'] ?? '8889';
+        $oldDbName = $_POST['old_db_name'] ?? 'platinum';
+        $oldDbUser = $_POST['old_db_user'] ?? 'root';
+        $oldDbPass = $_POST['old_db_pass'] ?? 'root';
+
+        // الاتصال بالقاعدة القديمة
+        $oldDb = new PDO("mysql:host=$oldDbHost;port=$oldDbPort;dbname=$oldDbName;charset=utf8mb4",
+                         $oldDbUser, $oldDbPass);
+
+        // التحقق من وجود الجدول
+        $tableExists = $oldDb->query("SHOW TABLES LIKE '$table'")->rowCount() > 0;
+        if (!$tableExists) {
+            throw new Exception("الجدول '$table' غير موجود في القاعدة القديمة");
+        }
+
+        // إنشاء مجلد التصدير
+        $exportDir = __DIR__ . '/exports/';
+        if (!is_dir($exportDir)) {
+            mkdir($exportDir, 0755, true);
+        }
+
+        // اسم الملف
+        $fileName = $table . '_exported_' . date('Y-m-d_H-i-s') . '.csv';
+        $filePath = $exportDir . $fileName;
+
+        // جلب البيانات
+        $stmt = $oldDb->query("SELECT * FROM $table");
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($data)) {
+            throw new Exception("الجدول '$table' فارغ");
+        }
+
+        // كتابة CSV
+        $file = fopen($filePath, 'w');
+
+        // كتابة العناوين (UTF-8 BOM للدعم الأمثل)
+        fwrite($file, "\xEF\xBB\xBF");
+        $headers = array_keys($data[0]);
+        fputcsv($file, $headers);
+
+        // كتابة البيانات
+        foreach ($data as $row) {
+            fputcsv($file, $row);
+        }
+
+        fclose($file);
+
+        return [
+            'success' => true,
+            'file_name' => $fileName,
+            'file_path' => $filePath,
+            'record_count' => count($data),
+            'table' => $table,
+            'columns' => $headers,
+            'file_size' => round(filesize($filePath) / 1024, 2) . ' KB',
+            'message' => "✅ تم تصدير $table بنجاح! " . count($data) . " سجل"
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في التصدير: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * معالجة الملف المصدر تلقائياً
+ */
+function processExportedFile() {
+    try {
+        $exportedFile = $_POST['exported_file'] ?? '';
+        $tableType = $_POST['table_type'] ?? 'users';
+
+        if (empty($exportedFile)) {
+            throw new Exception('لم يتم تحديد الملف المصدر');
+        }
+
+        $filePath = __DIR__ . '/exports/' . $exportedFile;
+
+        if (!file_exists($filePath)) {
+            throw new Exception('الملف المصدر غير موجود: ' . $exportedFile);
+        }
+
+        // قراءة وتحليل ملف CSV
+        $handle = fopen($filePath, 'r');
+        if (!$handle) {
+            throw new Exception('فشل في فتح الملف المصدر');
+        }
+
+        // قراءة العناوين
+        $headers = fgetcsv($handle);
+        if (!$headers) {
+            throw new Exception('الملف فارغ أو تالف');
+        }
+
+        // تنظيف BOM إذا وجد
+        $headers[0] = str_replace("\xEF\xBB\xBF", '', $headers[0]);
+
+        $pdo = get_db_connection();
+        $processed = 0;
+
+        if ($tableType === 'users') {
+            $result = processUsersFromFile($pdo, $handle, $headers, $exportedFile);
+            $processed = is_array($result) ? $result['processed'] : $result;
+        } elseif ($tableType === 'customers') {
+            // للـ customers، نستخدم معالجة مختلفة - دمج في جدول users
+            $processed = processCustomersFromFile($pdo, $handle, $headers, $exportedFile);
+        } elseif ($tableType === 'countries') {
+            // للـ countries، نقل مباشر كما هو
+            $processed = processCountriesFromFile($pdo, $handle, $headers, $exportedFile);
+        } else {
+            throw new Exception("نوع الجدول غير مدعوم: $tableType");
+        }
+
+        fclose($handle);
+
+        return [
+            'success' => true,
+            'processed' => $processed,
+            'file_name' => $exportedFile,
+            'table_type' => $tableType,
+            'details' => is_array($result) ? $result : null,
+            'message' => "✅ تم معالجة $processed سجل من $tableType بنجاح!" .
+                         (is_array($result) && $result['skipped'] > 0 ? " (تخطي: {$result['skipped']})" : "")
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في معالجة الملف المصدر: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * معالجة ملف customers من الملف المصدر
+ */
+function processCustomersFromFile($pdo, $handle, $headers, $fileName) {
+    $processed = 0;
+
+    while (($row = fgetcsv($handle, 0, ',')) !== false) {
+        if (count($row) !== count($headers)) {
+            continue;
+        }
+
+        $data = array_combine($headers, array_map('trim', $row));
+
+        if (empty($data['user_id']) || !is_numeric($data['user_id'])) {
+            continue;
+        }
+
+        try {
+            // تحديث بيانات المستخدم بناءً على customer data (شروط أكثر مرونة)
+            $updateParts = [];
+            $params = [];
+
+            // التحويلات من SYSTEM_STATUS.md مع شروط مرنة
+            if (isset($data['national_identification_number']) &&
+                $data['national_identification_number'] !== '' &&
+                $data['national_identification_number'] !== 'NULL') {
+                $updateParts[] = "national_num = ?";
+                $params[] = $data['national_identification_number'];
+            }
+
+            if (isset($data['other_phone']) &&
+                $data['other_phone'] !== '' &&
+                $data['other_phone'] !== 'NULL') {
+                $updateParts[] = "phone2 = ?";
+                $params[] = $data['other_phone'];
+            }
+
+            if (isset($data['job']) &&
+                $data['job'] !== '' &&
+                $data['job'] !== 'NULL') {
+                $updateParts[] = "job = ?";
+                $params[] = $data['job'];
+                $updateParts[] = "profession = ?";
+                $params[] = $data['job'];
+            }
+
+            if (isset($data['birth_date']) &&
+                $data['birth_date'] !== '' &&
+                $data['birth_date'] !== 'NULL' &&
+                $data['birth_date'] !== '0000-00-00') {
+                $updateParts[] = "birthdate = ?";
+                $params[] = $data['birth_date'];
+            }
+
+            if (isset($data['rooms_number']) &&
+                $data['rooms_number'] !== '' &&
+                $data['rooms_number'] !== 'NULL') {
+                $updateParts[] = "rooms_num = ?";
+                $params[] = $data['rooms_number'];
+            }
+
+            if (isset($data['family_number']) &&
+                $data['family_number'] !== '' &&
+                $data['family_number'] !== 'NULL') {
+                $updateParts[] = "family_num = ?";
+                $params[] = $data['family_number'];
+            }
+
+            if (isset($data['childrens_under_age']) &&
+                $data['childrens_under_age'] !== '' &&
+                $data['childrens_under_age'] !== 'NULL') {
+                $updateParts[] = "children = ?";
+                $params[] = $data['childrens_under_age'];
+            }
+
+            // إضافة بيانات أخرى من customers
+            if (isset($data['accommodation_type']) &&
+                $data['accommodation_type'] !== '' &&
+                $data['accommodation_type'] !== 'NULL') {
+                // يمكن إضافتها لعمود accommodation_type إذا كان موجوداً
+                $updateParts[] = "accommodation_type = ?";
+                $params[] = $data['accommodation_type'];
+            }
+
+            if (isset($data['delivery_city']) &&
+                $data['delivery_city'] !== '' &&
+                $data['delivery_city'] !== 'NULL') {
+                // إضافة معلومات المدينة إذا لم تكن موجودة
+                $updateParts[] = "city = COALESCE(city, ?)";
+                $params[] = $data['delivery_city'];
+            }
+
+            // تنفيذ التحديث أو تسجيل المعالجة
+            if (!empty($updateParts)) {
+                try {
+                    $params[] = $data['user_id'];
+                    $sql = "UPDATE users SET " . implode(', ', $updateParts) . " WHERE id = ?";
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute($params);
+                    $processed++; // نعد كل customer تم معالجته
+                } catch (Exception $e) {
+                    error_log("خطأ في تحديث customer للمستخدم {$data['user_id']}: " . $e->getMessage());
+                }
+            } else {
+                // حتى لو لم تكن هناك بيانات للتحديث، نعد customer كمعالج
+                $processed++;
+            }
+
+        } catch (Exception $e) {
+            error_log("خطأ في معالجة customer للمستخدم {$data['user_id']}: " . $e->getMessage());
+        }
+    }
+
+    return $processed;
+}
+
+/**
+ * معالجة ملف countries من الملف المصدر
+ */
+function processCountriesFromFile($pdo, $handle, $headers, $fileName) {
+    $processed = 0;
+    $skipped = 0;
+    
+    // الحصول على أعمدة جدول countries الحالية
+    try {
+        $tableColumns = $pdo->query("DESCRIBE countries")->fetchAll(PDO::FETCH_COLUMN);
+    } catch (Exception $e) {
+        // الجدول غير موجود، سيتم إنشاؤه
+        $tableColumns = [];
+    }
+    
+    while (($row = fgetcsv($handle, 0, ',')) !== false) {
+        if (count($row) !== count($headers)) {
+            $skipped++;
+            continue;
+        }
+
+        $data = array_combine($headers, array_map('trim', $row));
+        
+        // التحقق من البيانات الأساسية
+        if (empty($data['id']) || (!isset($data['name']) && !isset($data['name_ar']) && !isset($data['name_en']))) {
+            $skipped++;
+            continue;
+        }
+
+        try {
+            // تحضير البيانات للإدراج مع تحويل أسماء الأعمدة
+            $insertData = [];
+            
+            // خريطة تحويل الأعمدة من القديم للجديد
+            $columnMapping = [
+                'id' => 'id',
+                'code' => 'code', 
+                'name' => 'name_ar',  // تحويل name إلى name_ar
+                'status' => 'is_active',  // تحويل status إلى is_active
+                'created_at' => 'created_at',
+                'updated_at' => 'updated_at'
+            ];
+            
+            // تطبيق التحويلات
+            foreach ($columnMapping as $oldCol => $newCol) {
+                if (isset($data[$oldCol]) && in_array($newCol, $tableColumns)) {
+                    $value = $data[$oldCol];
+                    
+                    // تنظيف القيم NULL
+                    if ($value === 'NULL' || $value === null || $value === '') {
+                        $value = null;
+                    }
+                    
+                    $insertData[$newCol] = $value;
+                }
+            }
+            
+            // إضافة name_en (نسخة من name_ar إذا لم تكن موجودة)
+            if (isset($insertData['name_ar']) && in_array('name_en', $tableColumns) && !isset($insertData['name_en'])) {
+                $insertData['name_en'] = $insertData['name_ar'];
+            }
+            
+            // إضافة القيم الافتراضية للأعمدة الجديدة
+            if (in_array('phone_code', $tableColumns) && !isset($insertData['phone_code'])) {
+                $insertData['phone_code'] = '+966'; // افتراضي للسعودية
+            }
+            if (in_array('currency', $tableColumns) && !isset($insertData['currency'])) {
+                $insertData['currency'] = 'SAR';
+            }
+            if (in_array('currency_symbol', $tableColumns) && !isset($insertData['currency_symbol'])) {
+                $insertData['currency_symbol'] = 'ر.س';
+            }
+            if (in_array('sort_order', $tableColumns) && !isset($insertData['sort_order'])) {
+                $insertData['sort_order'] = $insertData['id'] ?? 0;
+            }
+            
+            // القيم الافتراضية للتواريخ
+            if (!isset($insertData['created_at']) || empty($insertData['created_at'])) {
+                $insertData['created_at'] = date('Y-m-d H:i:s');
+            }
+            if (!isset($insertData['updated_at']) || empty($insertData['updated_at'])) {
+                $insertData['updated_at'] = date('Y-m-d H:i:s');
+            }
+            
+            // بناء استعلام INSERT مع UPSERT
+            $columns = array_keys($insertData);
+            $placeholders = array_fill(0, count($columns), '?');
+            
+            $sql = "INSERT INTO countries (`" . implode('`, `', $columns) . "`) 
+                    VALUES (" . implode(', ', $placeholders) . ")
+                    ON DUPLICATE KEY UPDATE ";
+            
+            // إضافة UPDATE للحقول
+            $updateParts = [];
+            foreach ($columns as $col) {
+                if (!in_array($col, ['id', 'created_at'])) {
+                    $updateParts[] = "`$col` = VALUES(`$col`)";
+                }
+            }
+            $sql .= implode(', ', $updateParts);
+            
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(array_values($insertData));
+            $processed++;
+            
+        } catch (Exception $e) {
+            error_log("خطأ في معالجة country ID {$data['id']}: " . $e->getMessage());
+        }
+    }
+    
+    return $processed;
+}
+
+/**
+ * فحص جدول countries
+ */
+function checkCountriesTable() {
+    try {
+        $db = get_db_connection();
+        
+        // التحقق من وجود الجدول
+        $tableExists = $db->query("SHOW TABLES LIKE 'countries'")->rowCount() > 0;
+        
+        if ($tableExists) {
+            $recordCount = $db->query("SELECT COUNT(*) FROM countries")->fetchColumn();
+            $columns = $db->query("DESCRIBE countries")->fetchAll(PDO::FETCH_COLUMN);
+            
+            return [
+                'success' => true,
+                'table_exists' => true,
+                'record_count' => $recordCount,
+                'columns' => $columns,
+                'message' => "جدول countries موجود ويحتوي على $recordCount سجل"
+            ];
+        } else {
+            return [
+                'success' => true,
+                'table_exists' => false,
+                'record_count' => 0,
+                'columns' => [],
+                'message' => 'جدول countries غير موجود - سيتم إنشاؤه تلقائياً'
+            ];
+        }
+        
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في فحص جدول countries: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * تحضير جدول countries
+ */
+function prepareCountriesTable() {
+    try {
+        $db = get_db_connection();
+        
+        // التحقق من وجود الجدول
+        $tableExists = $db->query("SHOW TABLES LIKE 'countries'")->rowCount() > 0;
+        
+        if (!$tableExists) {
+            // إنشاء جدول countries بناءً على البنية المعيارية
+            $createSql = "CREATE TABLE `countries` (
+                `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+                `name` varchar(255) DEFAULT NULL,
+                `name_ar` varchar(255) DEFAULT NULL,
+                `name_en` varchar(255) DEFAULT NULL,
+                `code` varchar(10) DEFAULT NULL,
+                `phone_code` varchar(10) DEFAULT NULL,
+                `flag` varchar(255) DEFAULT NULL,
+                `status` tinyint DEFAULT 1,
+                `created_at` timestamp NULL DEFAULT NULL,
+                `updated_at` timestamp NULL DEFAULT NULL,
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `countries_code_unique` (`code`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+            
+            $db->exec($createSql);
+            
+            return [
+                'success' => true,
+                'created' => true,
+                'message' => 'تم إنشاء جدول countries بنجاح'
+            ];
+        } else {
+            return [
+                'success' => true,
+                'created' => false,
+                'message' => 'جدول countries موجود مسبقاً'
+            ];
+        }
+        
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في تحضير جدول countries: ' . $e->getMessage()
+        ];
+    }
+}
+
+function cleanRowData($row) {
+    return array_map(function($value) {
+        if ($value === "NULL" || $value === null || $value === '') {
+            return null;
+        }
+        return trim($value);
+    }, $row);
+}
+
+function parseDateValue($dateValue) {
+    if (empty($dateValue) || $dateValue === 'NULL') {
+        return null;
+    }
+
+    // Try different date formats
+    $formats = ['Y-m-d H:i:s', 'Y-m-d', 'd-m-Y', 'm/d/Y', 'd/m/Y'];
+
+    foreach ($formats as $format) {
+        $date = DateTime::createFromFormat($format, $dateValue);
+        if ($date !== false) {
+            return $date->format('Y-m-d H:i:s');
+        }
+    }
+
+    // If all fails, try strtotime
+    $timestamp = strtotime($dateValue);
+    if ($timestamp !== false) {
+        return date('Y-m-d H:i:s', $timestamp);
+    }
+
+    return null;
+}
+
+/**
+ * دوال الحماية والأمان
+ */
+function createSafetyBackup() {
+    global $config;
+
+    try {
+        $backupDir = __DIR__ . '/safety_backups/';
+        if (!is_dir($backupDir)) {
+            mkdir($backupDir, 0777, true);
+        }
+
+        $timestamp = date('Y_m_d_H_i_s');
+        $backupFile = $backupDir . "platinum_new_backup_$timestamp.sql";
+
+        $command = "mysqldump -h {$config['host']} -P {$config['port']} -u {$config['username']} -p{$config['password']} {$config['database']} > '$backupFile' 2>/dev/null";
+
+        exec($command, $output, $returnCode);
+
+        if ($returnCode === 0 && file_exists($backupFile)) {
+            error_log("تم إنشاء نسخة احتياطية آمنة: $backupFile");
+            return $backupFile;
+        }
+
+    } catch (Exception $e) {
+        error_log("خطأ في إنشاء النسخة الاحتياطية: " . $e->getMessage());
+    }
+
+    return false;
+}
+
+function createManualBackup() {
+    $backupFile = createSafetyBackup();
+
+    if ($backupFile) {
+        return [
+            'success' => true,
+            'message' => 'تم إنشاء نسخة احتياطية بنجاح',
+            'backup_file' => basename($backupFile),
+            'timestamp' => date('Y-m-d H:i:s')
+        ];
+    } else {
+        return [
+            'success' => false,
+            'message' => 'فشل في إنشاء النسخة الاحتياطية'
+        ];
+    }
+}
+
+function checkSystemStatus() {
+    global $config;
+
+    try {
+        $db = get_db_connection();
+
+        // عد المستخدمين في القاعدة الجديدة
+        $newUsersCount = $db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+
+        // الاتصال بالقاعدة القديمة
+        $oldUsersCount = 0;
+        $customersCount = 0;
+
+        try {
+            $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum;charset=utf8mb4", 'root', 'root');
+            $oldUsersCount = $oldDb->query("SELECT COUNT(*) FROM users")->fetchColumn();
+            $customersCount = $oldDb->query("SELECT COUNT(*) FROM customers")->fetchColumn();
+        } catch (Exception $e) {
+            // القاعدة القديمة غير متوفرة
+        }
+
+        // التحقق من الأعمدة المفقودة
+        $importantColumns = ['first_name', 'last_name', 'register_from', 'national_num', 'phone2', 'job'];
+        $missingColumns = [];
+
+        foreach ($importantColumns as $column) {
+            $stmt = $db->prepare("SHOW COLUMNS FROM users LIKE ?");
+            $stmt->execute([$column]);
+            if ($stmt->rowCount() == 0) {
+                $missingColumns[] = $column;
+            }
+        }
+
+        return [
+            'success' => true,
+            'old_users_count' => $oldUsersCount,
+            'new_users_count' => $newUsersCount,
+            'customers_count' => $customersCount,
+            'missing_columns' => $missingColumns,
+            'ready_for_migration' => empty($missingColumns),
+            'status' => [
+                'db_connection' => true,
+                'db_name' => $config['database'],
+                'users_count' => $newUsersCount
+            ]
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * تطبيق الترتيب المخصص للجدول
+ */
+function prepareUsersTable() {
+    $db = null;
+    try {
+        $db = get_db_connection();
+
+        // إضافة الأعمدة المفقودة أولاً (بدون transaction)
+        $addedColumns = addMissingColumnsToUsers($db);
+
+        // تطبيق الترتيب المخصص (بدون transaction لتجنب التضارب)
+        $appliedSteps = 0;
+
+        // الترتيب الأساسي فقط (الأهم)
+        $basicOrderingSteps = [
+            "ALTER TABLE `users` CHANGE `id` `id` BIGINT UNSIGNED NOT NULL auto_increment FIRST",
+            "ALTER TABLE `users` CHANGE `name` `name` VARCHAR(255) NULL DEFAULT NULL AFTER `id`",
+            "ALTER TABLE `users` CHANGE `first_name` `first_name` VARCHAR(255) NULL DEFAULT NULL AFTER `name`",
+            "ALTER TABLE `users` CHANGE `last_name` `last_name` VARCHAR(255) NULL DEFAULT NULL AFTER `first_name`",
+            "ALTER TABLE `users` CHANGE `phone` `phone` VARCHAR(255) NULL DEFAULT NULL AFTER `last_name`",
+            "ALTER TABLE `users` CHANGE `email` `email` VARCHAR(255) NULL DEFAULT NULL AFTER `phone`"
+        ];
+
+        foreach ($basicOrderingSteps as $sql) {
+            try {
+                $db->exec($sql);
+                $appliedSteps++;
+            } catch (Exception $e) {
+                // تسجيل الخطأ لكن متابعة
+                error_log("خطأ في خطوة الترتيب: " . $e->getMessage());
+            }
+        }
+
+        return [
+            'success' => true,
+            'message' => "✅ تم تحضير الجدول بنجاح\n📋 أعمدة مُضافة: " . count($addedColumns) . "\n📐 خطوات ترتيب مطبقة: $appliedSteps",
+            'added_columns' => $addedColumns,
+            'applied_steps' => $appliedSteps
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في تحضير الجدول: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * إضافة الأعمدة المفقودة بأمان
+ */
+function addMissingColumnsToUsers($db) {
+    $columnsToAdd = [
+        'first_name' => 'VARCHAR(255) NULL',
+        'last_name' => 'VARCHAR(255) NULL',
+        'phone_code' => 'VARCHAR(255) NULL DEFAULT "+966"',
+        'national_num' => 'VARCHAR(50) NULL',
+        'phone2' => 'VARCHAR(50) NULL',
+        'job' => 'VARCHAR(255) NULL',
+        'birthdate' => 'DATE NULL',
+        'register_from' => 'VARCHAR(255) NULL DEFAULT "web"',
+        'is_blocked' => 'TINYINT NULL DEFAULT 0',
+        'status' => 'TINYINT NULL DEFAULT 1',
+        'remember_token' => 'VARCHAR(100) NULL',
+        'nationality_id' => 'BIGINT UNSIGNED NULL',
+        'profession' => 'VARCHAR(255) NULL',
+        'monthly_income' => 'DECIMAL(10,2) NULL',
+        'rooms_num' => 'VARCHAR(10) NULL',
+        'family_num' => 'VARCHAR(10) NULL',
+        'children' => 'VARCHAR(10) NULL',
+        'city' => 'VARCHAR(100) NULL'
+    ];
+
+    $addedColumns = [];
+
+    foreach ($columnsToAdd as $column => $definition) {
+        try {
+            $checkStmt = $db->prepare("SHOW COLUMNS FROM users LIKE ?");
+            $checkStmt->execute([$column]);
+
+            if ($checkStmt->rowCount() == 0) {
+                $db->exec("ALTER TABLE users ADD COLUMN `$column` $definition");
+                $addedColumns[] = $column;
+                usleep(100000); // توقف قصير بين العمليات
+            }
+        } catch (Exception $e) {
+            // تسجيل ومتابعة
+            error_log("خطأ في إضافة العمود $column: " . $e->getMessage());
+        }
+    }
+
+    return $addedColumns;
+}
+
+/**
+ * فحص أعمدة القاعدة القديمة
+ */
+function scanOldDatabaseColumns() {
+    try {
+        // الاتصال بالقاعدة القديمة (نفترض أنها platinum أو erp_operations_new)
+        $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum;charset=utf8mb4", 'root', 'root');
+        $newDb = get_db_connection();
+
+        // الحصول على أعمدة جدول users في القاعدة القديمة
+        $oldColumnsStmt = $oldDb->query("DESCRIBE users");
+        $oldColumns = $oldColumnsStmt->fetchAll(PDO::FETCH_COLUMN);
+
+        // الحصول على أعمدة جدول users في القاعدة الجديدة
+        $newColumnsStmt = $newDb->query("DESCRIBE users");
+        $newColumns = $newColumnsStmt->fetchAll(PDO::FETCH_COLUMN);
+
+        // تحديد الأعمدة المفقودة
+        $missingColumns = array_diff($oldColumns, $newColumns);
+
+        return [
+            'success' => true,
+            'old_columns' => $oldColumns,
+            'new_columns' => $newColumns,
+            'missing_columns' => array_values($missingColumns),
+            'message' => 'تم فحص القاعدة القديمة بنجاح'
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في فحص القاعدة القديمة: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * إضافة جميع الأعمدة المفقودة
+ */
+function addAllMissingColumns() {
+    try {
+        $db = get_db_connection();
+
+        // فحص الأعمدة المفقودة
+        $scanResult = scanOldDatabaseColumns();
+        if (!$scanResult['success']) {
+            throw new Exception($scanResult['message']);
+        }
+
+        $missingColumns = $scanResult['missing_columns'];
+        $addedColumns = [];
+
+        // إضافة كل عمود مفقود
+        foreach ($missingColumns as $column) {
+            try {
+                // تحديد نوع العمود المناسب
+                $columnType = guessColumnType($column);
+                $db->exec("ALTER TABLE users ADD COLUMN `$column` $columnType");
+                $addedColumns[] = $column;
+            } catch (Exception $e) {
+                error_log("خطأ في إضافة العمود $column: " . $e->getMessage());
+            }
+        }
+
+        return [
+            'success' => true,
+            'added_columns' => $addedColumns,
+            'message' => "تم إضافة " . count($addedColumns) . " عمود من أصل " . count($missingColumns)
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في إضافة الأعمدة: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * نقل جميع البيانات من القاعدة القديمة
+ */
+function migrateAllDataFromOld() {
+    try {
+        $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum;charset=utf8mb4", 'root', 'root');
+        $newDb = get_db_connection();
+        $newDb->beginTransaction();
+
+        // الحصول على جميع البيانات من القاعدة القديمة
+        $oldData = $oldDb->query("SELECT * FROM users")->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($oldData)) {
+            throw new Exception('لا توجد بيانات في القاعدة القديمة');
+        }
+
+        // الحصول على أعمدة القاعدة الجديدة
+        $newColumnsStmt = $newDb->query("DESCRIBE users");
+        $newColumns = $newColumnsStmt->fetchAll(PDO::FETCH_COLUMN);
+
+        $migratedUsers = 0;
+        $namesSplit = 0;
+
+        foreach ($oldData as $row) {
+            try {
+                // تحضير البيانات للإدراج
+                $insertData = [];
+                $insertColumns = [];
+
+                foreach ($newColumns as $column) {
+                    if ($column === 'first_name') {
+                        // تقسيم name إلى first_name
+                        $name = trim($row['name'] ?? '');
+                        $nameParts = explode(' ', $name, 2);
+                        $insertData[] = $nameParts[0] ?? '';
+                        $insertColumns[] = 'first_name';
+                        if (!empty($name)) $namesSplit++;
+                    } elseif ($column === 'last_name') {
+                        // تقسيم name إلى last_name
+                        $name = trim($row['name'] ?? '');
+                        $nameParts = explode(' ', $name, 2);
+                        $insertData[] = $nameParts[1] ?? '';
+                        $insertColumns[] = 'last_name';
+                    } elseif ($column === 'register_from') {
+                        $insertData[] = 'web';
+                        $insertColumns[] = 'register_from';
+                    } elseif (isset($row[$column])) {
+                        $insertData[] = $row[$column];
+                        $insertColumns[] = $column;
+                    } else {
+                        $insertData[] = null;
+                        $insertColumns[] = $column;
+                    }
+                }
+
+                // إدراج البيانات
+                $placeholders = implode(',', array_fill(0, count($insertColumns), '?'));
+                $insertSql = "INSERT IGNORE INTO users (" . implode(',', $insertColumns) . ") VALUES ($placeholders)";
+                $stmt = $newDb->prepare($insertSql);
+                $stmt->execute($insertData);
+
+                $migratedUsers++;
+
+            } catch (Exception $e) {
+                error_log("خطأ في نقل المستخدم: " . $e->getMessage());
+            }
+        }
+
+        $newDb->commit();
+
+        return [
+            'success' => true,
+            'migrated_users' => $migratedUsers,
+            'processed_columns' => count($newColumns),
+            'names_split' => $namesSplit,
+            'message' => "تم نقل $migratedUsers مستخدم بنجاح مع تقسيم $namesSplit اسم"
+        ];
+
+    } catch (Exception $e) {
+        if ($newDb && $newDb->inTransaction()) {
+            $newDb->rollBack();
+        }
+
+        return [
+            'success' => false,
+            'message' => 'خطأ في النقل الشامل: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * تخمين نوع العمود
+ */
+function guessColumnType($columnName) {
+    $columnName = strtolower($columnName);
+
+    if (strpos($columnName, '_at') !== false) {
+        return 'TIMESTAMP NULL';
+    } elseif (strpos($columnName, '_id') !== false) {
+        return 'BIGINT UNSIGNED NULL';
+    } elseif (strpos($columnName, 'phone') !== false) {
+        return 'VARCHAR(50) NULL';
+    } elseif (strpos($columnName, 'email') !== false) {
+        return 'VARCHAR(255) NULL';
+    } elseif (in_array($columnName, ['first_name', 'last_name', 'name'])) {
+        return 'VARCHAR(255) NULL';
+    } elseif (in_array($columnName, ['city', 'code'])) {
+        return 'VARCHAR(100) NULL';
+    } elseif (strpos($columnName, 'price') !== false || strpos($columnName, 'income') !== false) {
+        return 'DECIMAL(10,2) NULL';
+    } elseif (strpos($columnName, 'date') !== false) {
+        return 'DATE NULL';
+    } else {
+        return 'VARCHAR(255) NULL';
+    }
+}
+
+?>

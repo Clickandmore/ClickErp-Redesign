@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام النقل الموحد - مدمج في المشروع</title>
+    <title>نظام النقل الموحد </title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -36,12 +36,7 @@
                 <!-- Hero -->
                 <div class="hero text-center">
                     <h1><i class="fas fa-sync-alt me-3"></i>نظام النقل الموحد</h1>
-                    <p class="lead">مدمج في المشروع الأساسي - يعمل على نفس السيرفر</p>
-                    <div class="mt-3">
-                        <span class="badge bg-light text-dark fs-6">🌐 Port 8000</span>
-                        <span class="badge bg-light text-dark fs-6">🔗 مدمج في Laravel</span>
-                        <span class="badge bg-light text-dark fs-6">📤 رفع يدوي</span>
-                    </div>
+                   
                 </div>
 
                 <!-- حالة قواعد البيانات -->
