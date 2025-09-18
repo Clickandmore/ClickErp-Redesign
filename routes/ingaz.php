@@ -48,6 +48,7 @@ use App\Http\Controllers\ingaz\ComplaintController;
 use App\Http\Controllers\ingaz\StepController;
 use App\Http\Controllers\ingaz\ReturnRequestController;
 use App\Http\Controllers\ingaz\ComplaintTypeController;
+use App\Http\Controllers\ingaz\CvConvertController;
 use App\Http\Controllers\ingaz\FastNewController;
 use App\Http\Controllers\ingaz\FeatureController;
 use App\Http\Controllers\ingaz\ProfessionalApplicationController;
@@ -81,6 +82,7 @@ Route::group(
             Route::resource('arrival-workers', ArrivalWorkerController::class);
             Route::resource('testimonials', TestimonialController::class);
             Route::resource('requiremens', RequirementsController::class);
+            Route::resource('cv-convert', CvConvertController::class);
 
             Route::resource('partenrs', ClientController::class);
             Route::resource('requiremens', RequirementsController::class);

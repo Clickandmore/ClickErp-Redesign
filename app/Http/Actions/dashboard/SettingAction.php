@@ -23,7 +23,24 @@ class SettingAction extends MainAction
 
     public function storeSetting($data,$request)
     {
-        if ($request->hasFile('logo_header')) {
+        if ($request->hasFile('qr_image')) {
+            $image = $data['qr_image'];
+            $data['qr_image'] = uploadFile($image, $this->fileFolder,1);
+        }
+
+  if ($request->hasFile('experience_image')) {
+            $image = $data['experience_image'];
+            $data['experience_image'] = uploadFile($image, $this->fileFolder,1);
+        }
+
+          if ($request->hasFile('second_qr_image')) {
+            $image = $data['second_qr_image'];
+            $data['second_qr_image'] = uploadFile($image, $this->fileFolder,1);
+        }
+
+
+
+         if ($request->hasFile('')) {
             $image = $data['logo_header'];
             $data['logo_header'] = uploadFile($image, $this->fileFolder,1);
         }
@@ -45,6 +62,27 @@ class SettingAction extends MainAction
     public function updateSetting($id, $data)
     {
          $setting = $this->find($id);
+
+     if (isset($data['qr_image']) && $data['qr_image'] instanceof \Illuminate\Http\UploadedFile) {
+            deleteFile($setting->qr_image);
+            $image = $data['qr_image'];
+            $data['qr_image'] = uploadFile($image, $this->fileFolder,1);
+        }
+
+             if (isset($data['experience_image']) && $data['experience_image'] instanceof \Illuminate\Http\UploadedFile) {
+            deleteFile($setting->experience_image);
+            $image = $data['experience_image'];
+            $data['experience_image'] = uploadFile($image, $this->fileFolder,1);
+        }
+
+             if (isset($data['second_qr_image']) && $data['second_qr_image'] instanceof \Illuminate\Http\UploadedFile) {
+            deleteFile($setting->second_qr_image);
+            $image = $data['second_qr_image'];
+            $data['second_qr_image'] = uploadFile($image, $this->fileFolder,1);
+        }
+
+
+
 
         // Handle file uploads
         if (isset($data['logo_header']) && $data['logo_header'] instanceof \Illuminate\Http\UploadedFile) {
