@@ -16,6 +16,7 @@ class ContactUsController extends Controller
      public function store(ContactRequest  $request , ContactController $service)
     {
          $data = $request->validated();
+         unset($data['g-recaptcha-response']);
         Contact::create($data);
         return jsonSuccess();
     }

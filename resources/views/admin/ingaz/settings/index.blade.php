@@ -279,6 +279,36 @@
     </div>
 
     <hr>
+    <div class="col-3">
+             <div class="card">
+                <div class="card-body">
+                    <h6>صورة qr الاولي</h6>
+                    <input type="file" data-default-file="{{ showFile($settings->qr_image) ?? '' }}"
+                        name="qr_image" class="dropify">
+                </div>
+            </div>
+     </div>
+
+        <div class="col-3">
+             <div class="card">
+                <div class="card-body">
+                    <h6>صورة qr الثانيه  </h6>
+                    <input type="file" data-default-file="{{ showFile($settings->second_qr_image) ?? '' }}"
+                        name="second_qr_image" class="dropify">
+                </div>
+            </div>
+     </div>
+        <div class="col-3">
+             <div class="card">
+                <div class="card-body">
+                    <h6>صورة   الخبره</h6>
+                    <input type="file" data-default-file="{{ showFile($settings->experience_image) ?? '' }}"
+                        name="experience_image" class="dropify">
+                </div>
+         </div>
+    </div>
+
+    <hr>
     @foreach (config('translatable.locales') as $locale)
     <div class="col-6">
         <label for="TextInput" class="form-label">نص حقوق النشر {{ getFieldLanguage($locale) }}</label>

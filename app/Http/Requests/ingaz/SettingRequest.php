@@ -25,6 +25,9 @@ class SettingRequest extends MainRequest
     public function rules()
     {
          return [
+            'second_qr_image' => 'nullable',
+            'experience_image' => 'nullable',
+            'qr_image' => 'nullable',
             'logo_header' => 'nullable',
             'logo_footer' => 'nullable',
             'about_image' => 'nullable',

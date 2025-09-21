@@ -9,10 +9,10 @@
         </button>
         <ul>
             <li>
-                <a href="index.html"> الرئيسية </a>
+                <a href="/"> {{__('inga.home')}} </a>
             </li>
             <li>
-                <a href="#!" class="active"> تواصل معنا </a>
+                <a href="#!" class="active">  {{__('inga.contact_us')}}  </a>
             </li>
         </ul>
         <figure>

@@ -46,6 +46,12 @@
                            placeholder="ادخل كلمة المرور "/>
                 </div>
                 <a href="{{route('site.forget-password.index')}}"> هل نسيت كلمة المرور؟ </a>
+                                        {!! NoCaptcha::renderJs() !!}
+    {!! NoCaptcha::display() !!}
+
+    @error('g-recaptcha-response')
+        <span class="text-danger">{{ $message }}</span>
+    @enderror
                 <button type="submit" class="defaultBtn mt-2">دخول</button>
                 <p class="text-center">
                     ليس لديك حساب؟ <a href="{{route('site.register.index')}}"> إنشاء حساب </a>

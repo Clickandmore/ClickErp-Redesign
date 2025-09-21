@@ -23,6 +23,21 @@ class SettingAction extends MainAction
 
     public function storeSetting($data,$request)
     {
+
+
+  if ($request->hasFile('second_qr_image')) {
+            $image = $data['second_qr_image'];
+            $data['second_qr_image'] = uploadFile($image, $this->fileFolder);
+        }  if ($request->hasFile('experience_image')) {
+            $image = $data['experience_image'];
+            $data['experience_image'] = uploadFile($image, $this->fileFolder);
+        }  if ($request->hasFile('qr_image')) {
+            $image = $data['qr_image'];
+            $data['qr_image'] = uploadFile($image, $this->fileFolder);
+        }   
+
+
+
         if ($request->hasFile('logo_header')) {
             $image = $data['logo_header'];
             $data['logo_header'] = uploadFile($image, $this->fileFolder);
