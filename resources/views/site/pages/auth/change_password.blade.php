@@ -1,5 +1,6 @@
 @extends('site.layouts.index')
 @section('title')
+    {{__('ingaz.change_password')}}
 
 @endsection
 @section('content')
@@ -11,16 +12,16 @@
             <form id="change-password-form" method="post" action="{{route('site.change-password.store')}}">
                 @csrf
                 <div class="loginLogo">
-                    <button class="back" type="button" onclick="window.history.back()">
-                        رجوع
-                    </button>
+{{--                    <button class="back" type="button" onclick="window.history.back()">--}}
+{{--                        رجوع--}}
+{{--                    </button>--}}
                     <img src="{{asset('site')}}/assets/images/logo.svg" alt="img" class="img-fluid"/>
                 </div>
                 <h3 class="text-center fw-bold text-uppercase">
-                    تغيير كلمة المرور
+                    {{__('ingaz.change_password')}}
                 </h3>
                 <p class="text-center mb-3">
-                    يجب انت تكون كلمة المرور قوية ويسهل تذكرها
+                    {{__('ingaz.Your password should be strong and easy to remember')}}
                 </p>
                 <div class="formGroup">
                     <label for="password">
@@ -31,10 +32,9 @@
                                 <path d="M12 14a1 1 0 0 0-1 1v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-1-1Z"></path>
                             </svg>
                         </div>
-                        كلمة المرور
+                        {{__('ingaz.password')}}
                     </label>
-                    <input type="password" class="form-control" name="password" id="password"
-                           placeholder="ادخل كلمة المرور"/>
+                    <input type="password" class="form-control" name="password" id="password"/>
                 </div>
                 <div class="formGroup">
                     <label for="password_confirmation">
@@ -45,13 +45,18 @@
                                 <path d="M12 14a1 1 0 0 0-1 1v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-1-1Z"></path>
                             </svg>
                         </div>
-                        تأكيد كلمة المرور
+                        {{__('ingaz.confirm_password')}}
                     </label>
-                    <input type="password" class="form-control" id="password_confirmation" name="password_confirmation"
-                           placeholder="أعد إدخال كلمة المرور"/>
+                    <input type="password" class="form-control" id="password_confirmation" name="password_confirmation"/>
                 </div>
+                {!! NoCaptcha::renderJs(app()->getLocale()) !!}
+                {!! NoCaptcha::display() !!}
+
+                @error('g-recaptcha-response')
+                <span class="text-danger">{{ $message }}</span>
+                @enderror
                 <input type="hidden" name="phone" value="{{$phone}}">
-                <button type="submit" class="defaultBtn mt-2">ارسال</button>
+                <button type="submit" class="defaultBtn mt-2"> {{__('ingaz.send')}}</button>
             </form>
         </div>
     </section>

@@ -66,7 +66,7 @@ Route::group(
         Route::resource('daily-lebor-demand', DailyLabotDemandController::class);
         Route::resource('renew-contract', RenewContractController::class);
         Route::resource('support', SupportController::class);
-        Route::resource('contact-us', ContactUsController::class)->names('contact-us');
+        Route::resource('contact-us', ContactUsController::class);
 
         Route::middleware('site_auth')->group(function () {
             Route::resource('profile', ProfileController::class);

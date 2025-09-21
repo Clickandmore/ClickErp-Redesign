@@ -1,6 +1,6 @@
 @extends('site.layouts.index')
 @section('title')
-
+    {{__("ingaz.settings")}}
 @endsection
 @section('content')
     <section class="profile">
@@ -48,7 +48,13 @@
                                        value="{{Auth::guard('web')->user()->phone}}" placeholder="05***********">
                             </div>
                             <div class="col-12 pt-4 p-2 text-center">
-                                <button class="defaultBtn " type="submit">
+                                {!! NoCaptcha::renderJs(app()->getLocale()) !!}
+                                {!! NoCaptcha::display() !!}
+
+                                @error('g-recaptcha-response')
+                                <span class="text-danger">{{ $message }}</span>
+                                @enderror
+                                <button class="defaultBtn mt-3" type="submit">
                                     {{__("ingaz.confirm")}}
                                     <span></span>
                                 </button>
@@ -79,6 +85,12 @@
                                        id="repetPassword" placeholder="*****">
                             </div>
                             <input type="hidden" name="phone" value="{{Auth::guard('web')->user()->phone}}">
+                            {!! NoCaptcha::renderJs(app()->getLocale()) !!}
+                            {!! NoCaptcha::display() !!}
+
+                            @error('g-recaptcha-response')
+                            <span class="text-danger">{{ $message }}</span>
+                            @enderror
                             <div class="col-12 pt-4 p-2 text-center">
                                 <button class="defaultBtn " type="submit">
                                     {{__("ingaz.confirm")}}

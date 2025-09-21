@@ -1,6 +1,6 @@
 @extends('site.layouts.index')
 @section('title')
-
+    {{__("ingaz.login")}}
 @endsection
 @section('content')
     <section class="accountForm">
@@ -22,7 +22,7 @@
                                 ></path>
                             </svg>
                         </div>
-                        رقم الجوال
+                        {{__("ingaz.phone")}}
                     </label>
                     <div class="inputDiv ltr">
                         <span> +966 </span>
@@ -40,21 +40,20 @@
                                 ></path>
                             </svg>
                         </div>
-                        كلمة المرور
+                        {{__("ingaz.password")}}
                     </label>
-                    <input type="password" class="form-control" id="password" name="password"
-                           placeholder="ادخل كلمة المرور "/>
+                    <input type="password" class="form-control" id="password" name="password"/>
                 </div>
-                <a href="{{route('site.forget-password.index')}}"> هل نسيت كلمة المرور؟ </a>
-                                        {!! NoCaptcha::renderJs() !!}
-    {!! NoCaptcha::display() !!}
+                <a href="{{route('site.forget-password.index')}}">  {{__("ingaz.password_forget")}}  </a>
+                {!! NoCaptcha::renderJs(app()->getLocale()) !!}
+                {!! NoCaptcha::display() !!}
 
-    @error('g-recaptcha-response')
-        <span class="text-danger">{{ $message }}</span>
-    @enderror
-                <button type="submit" class="defaultBtn mt-2">دخول</button>
+                @error('g-recaptcha-response')
+                <span class="text-danger">{{ $message }}</span>
+                @enderror
+                <button type="submit" class="defaultBtn mt-2">{{__("ingaz.login")}}</button>
                 <p class="text-center">
-                    ليس لديك حساب؟ <a href="{{route('site.register.index')}}"> إنشاء حساب </a>
+                    {{__("ingaz.dont_have_account")}}   <a href="{{route('site.register.index')}}"> {{__("ingaz.create_account")}}</a>
                 </p>
             </form>
         </div>

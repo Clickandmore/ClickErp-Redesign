@@ -1002,7 +1002,7 @@
     'passport_number' => 'passport number',
     'cv_number' => 'CV Number',
     'personal_infromation' => 'Personal Information',
- 
+
 
       'new_user_tab' => 'New User on Musaned Website',
     'existing_user_tab' => 'I Already Have an Account on Musaned',
@@ -1072,7 +1072,7 @@
     ],
     'agreement_note' => 'Agree to the terms, privacy policy, and declaration',
 
-    'application_status_note' => 'Once submitted, you will be notified about the application status within one working day',    
+    'application_status_note' => 'Once submitted, you will be notified about the application status within one working day',
 
 'Visa issuance' => 'Visa issuance',
 'Recruitment journey' => 'Recruitment journey',
@@ -1156,7 +1156,7 @@
     'download' => 'Download',
 'renew_contract' => 'Renew Contract',
 'renew-contracts' => 'Renew Contracts',
-    
+
         'sponsor_card' => 'Sponsor Card',
         'first_page_of_the_worker_passport' => 'First Page of Worker\'s Passport',
         'travel_tickets' => 'Travel Tickets',
@@ -1164,7 +1164,7 @@
         'exit_and_re_entry_visa' => 'Exit and Re-Entry Visa',
         'worker_information' => 'Worker Information',
         'image_of_bank_transfer' => 'Bank Transfer Image',
- 
+
  'worker_information' => 'Worker Information',
     'professional_application' => 'Professional Job Application',
 
@@ -1256,6 +1256,37 @@
     'confirm_password' => 'Confirm password',
     'register' => 'Register',
     'have_account' => 'Have account?',
+    'name_required' => 'Name is required.',
+    'name_string' => 'Name must be a string.',
+    'Platinum Al Sharqiyah Recruitment Agency' => 'Platinum Al Sharqiyah Recruitment Agency',
+    'cv_details' => 'Cv Details',
+    'password_forget' => 'Forgot your password?',
+    'create_account' => 'Create Account',
+    'dont_have_account' => 'Dont have an account? ',
+    'otp' => 'OTP',
+    'password_forgett' => 'Password Forget',
+    'change_password' => 'Change password',
+    'Please enter the verification code that was sent to you' => 'Please enter the verification code that was sent to you.',
+    'Please enter your mobile phone number to reset your password' => 'Please enter your mobile phone number to reset your password',
+    'Your password should be strong and easy to remember' => 'Your password should be strong and easy to remember',
+
+    'name_max' => 'Name may not be greater than 255 characters.',
+    'profile' => 'Profile',
+    'no_notifications_found' => 'No Notifications Found',
+
+    'phone_string' => 'Phone must be a string.',
+    'phone_max' => 'Phone may not be greater than 50 characters.',
+
+    'subject_string' => 'Subject must be a string.',
+    'subject_max' => 'Subject may not be greater than 255 characters.',
+    'subject_required' => 'Subject is required.',
+
+    'message_required' => 'Message is required.',
+    'message_string' => 'Message must be a string.',
+
+    'captcha_required' => 'Verification that you are not Robert is required.',
+    'select_workers' => 'Select Workers',
+    'At_Platinum_we_offer_the_option_to_choose_your_workforce_according_to' => 'At Platinum, we offer the option to choose your workforce according to...',
+    'select_worker_text' => 'Selecting and finding suitable, professional, and reliable domestic workers for homes is not a simple process, despite the ease of the recruitment procedure. Therefore, based on our extensive experience in domestic staffing, we work with utmost care and conduct thorough research to complete all the necessary procedures to recruit the best and most suitable domestic workers for our clients.  This allows our clients to focus on their own affairs, while we handle the recruitment process. Clients can choose their preferred candidate from the available resumes of domestic workers of various nationalities, based on their specific job requirements, by simply filling out the recruitment application form or contacting us through our recruitment agency website.',
 
 );
- 

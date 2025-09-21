@@ -1,5 +1,6 @@
 @extends('site.layouts.index')
 @section('title')
+    {{__("ingaz.cv_details")}}
 @endsection
 @section('content')
     <!-- cv page -->

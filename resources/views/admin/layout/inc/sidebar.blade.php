@@ -803,6 +803,15 @@
                                 </a>
                             </li>
                         @endif
+{{--                            @if (@AdminGuardHasPerm(\App\PermKeys::STATISTICS_VIEW))--}}
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'select-workers.index') ? 'active' : '' }}"
+                                   href="{{route('select-workers.index')}}">
+                                    <i class="fa fa-bar-chart"></i>
+                                    <span class="ms-2"> {{ helperTrans('ingaz.select_workers') }}</span>
+                                </a>
+                            </li>
+{{--                        @endif--}}
   {{-- @if (@AdminGuardHasPerm(\App\PermKeys::professional_application_VIEW)) --}}
                     <li>
                         <a class="m-link {{ (Route::currentRouteName() == 'professional_application.index') ? 'active' : '' }}"

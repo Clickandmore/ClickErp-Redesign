@@ -254,13 +254,13 @@
 
                     <!-- زر الإرسال -->
                     <div class="col-md-12 text-center mt-4">
-                        {!! NoCaptcha::renderJs() !!}
+                        {!! NoCaptcha::renderJs(app()->getLocale()) !!}
                         {!! NoCaptcha::display() !!}
 
                         @error('g-recaptcha-response')
                         <span class="text-danger">{{ $message }}</span>
                         @enderror
-                        <button type="submit" class="defaultBtn">
+                        <button type="submit" class="defaultBtn mt-4">
                             {{__("ingaz.send")}} <i class="fas fa-paper-plane ms-2"></i>
                         </button>
                     </div>

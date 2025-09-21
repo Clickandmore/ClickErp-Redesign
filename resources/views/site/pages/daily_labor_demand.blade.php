@@ -198,13 +198,13 @@
                             <textarea class="form-control" name="other_requirement" rows="4"></textarea>
                         </div>
                         <div class="col-12 text-center p-2 mt-3">
-                            {!! NoCaptcha::renderJs() !!}
+                            {!! NoCaptcha::renderJs(app()->getLocale()) !!}
                             {!! NoCaptcha::display() !!}
 
                             @error('g-recaptcha-response')
                             <span class="text-danger">{{ $message }}</span>
                             @enderror
-                            <button type="submit" class="defaultBtn">
+                            <button type="submit" class="defaultBtn mt-4">
                                 {{__("ingaz.send_request")}} <i class="fas fa-paper-plane ms-2"></i>
                                 <span></span>
                             </button>
