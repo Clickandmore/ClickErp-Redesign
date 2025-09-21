@@ -20,4 +20,44 @@ enum ContractStatusEnum: string
     // الحالات القديمة للتوافق مع البيانات الموجودة
     case UnderWarranty = 'under_warranty'; // تحت الضمان (متروك للتوافق)
     case Closed = 'closed'; // عقد مغلق (متروك للتوافق)
+
+    public function lang()
+    {
+        return match ($this) {
+            self::New => __('ingaz.new'),
+            self::Msaned => __('ingaz.msaned'),
+            self::Tafwed => __('ingaz.tafwed'),
+            self::Taffez => __('ingaz.taffez'),
+            self::Tazker => __('ingaz.tazker'),
+            self::Arrival => __('ingaz.arrival'),
+            self::Completed => __('ingaz.completed'),
+            self::Back => __('ingaz.back'),
+            self::Sari => __('ingaz.sari'),
+            self::Shelter => __('ingaz.shelter'),
+            self::PendingMaidSelection => __('ingaz.pending_maid_selection'),
+            self::Trial => __('ingaz.trial'),
+            self::UnderWarranty => __('ingaz.under_warranty'),
+            self::Closed => __('ingaz.closed'),
+        };
+    }
+
+    public function color()
+    {
+        return match ($this) {
+            self::New => 'primary',
+            self::Msaned => 'primary',
+            self::Tafwed => 'primary',
+            self::Taffez => 'primary',
+            self::Tazker => 'primary',
+            self::Arrival => 'primary',
+            self::Completed => 'success',
+            self::Back => 'danger',
+            self::Sari => 'warning',
+            self::Shelter => 'info',
+            self::PendingMaidSelection => 'dark',
+            self::Trial => 'success',
+            self::UnderWarranty => 'info',
+            self::Closed => 'danger',
+        };
+    }
 }

@@ -26,28 +26,28 @@
                             </li>
                         </ul>
                     </div>
-                    <!-- ================ /routeNav ================= -->
                     <!-- status -->
                     <div class="status">
+                        @php
+                            $steps = [
+                                \App\Enums\ingaz\ContractStatusEnum::New,
+                                \App\Enums\ingaz\ContractStatusEnum::Msaned,
+                                \App\Enums\ingaz\ContractStatusEnum::Tafwed,
+                                \App\Enums\ingaz\ContractStatusEnum::Taffez,
+                                \App\Enums\ingaz\ContractStatusEnum::Tazker,
+                                \App\Enums\ingaz\ContractStatusEnum::UnderWarranty,
+                            ];
+
+                            $currentStatus = \App\Enums\ingaz\ContractStatusEnum::from($order->status);
+
+                            $currentIndex = array_search($currentStatus, $steps);
+                        @endphp
                         <ol>
-                            <li class="completed">
-                                <p>اختيار العمالة </p>
-                            </li>
-                            <li class="completed">
-                                <p>حجز السيره الذاتية </p>
-                            </li>
-                            <li class="completed">
-                                <p>اختار احد ممثلى خدمة العملاء </p>
-                            </li>
-                            <li>
-                                <p>ابرام التعاقد </p>
-                            </li>
-                            <li>
-                                <p> اصدار تاشيرة </p>
-                            </li>
-                            <li>
-                                <p>وصول العمالة </p>
-                            </li>
+                            @foreach($steps as $status)
+                                <li class="{{ $loop->index <= $currentIndex ? 'completed' : '' }}">
+                                    <p>{{ $status->lang() }}</p>
+                                </li>
+                            @endforeach
                         </ol>
                     </div>
                     <!-- order -->

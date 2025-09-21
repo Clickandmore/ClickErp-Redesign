@@ -1214,5 +1214,13 @@
   'customers_service' => 'خدمة العملاء',
   'details' => 'التفاصيل',
   'Recruitment requests' => 'طلبات الاستقدام',
+  'booking_code' => 'كود الحجز',
+  'new' => 'جديد',
+  'enter_full_name' => 'ادخل الاسم بالكامل',
+  'phone_number' => 'رقم الجوال',
+  'enter_password' => 'ادخل كلمة المرور',
+  'confirm_password' => 'تاكيد كلمة المرور',
+  'register' => 'تسجيل',
+  'have_account' => 'لديك حساب بالفعل ؟',
  );
  

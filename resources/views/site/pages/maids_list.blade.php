@@ -46,7 +46,7 @@
                                     <a data-fancybox="video1" href="{{ showFile($maid->video_preview) }}" class="icon-btn">
                                         <i class="fa-solid fa-video"></i>
                                     </a>
-                                    <button class="btn">{{ __('ingaz.Labor_rental') }}</button>
+                                    <button class="btn">{{ __('ingaz.recruitment') }}</button>
                                 </div>
                             </div>
                         </div>
@@ -141,12 +141,6 @@
                             </div>
                         </div>
                     </a>
-                </div>
-            @else
-                <div class="col-12 col-md-6 p-2 mb-5">
-                    <div class="worker-box">
-                        <h4>{{__('ingaz.no_workers_found')}}</h4>
-                    </div>
                 </div>
             @endif
         @endforeach
