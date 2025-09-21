@@ -15,9 +15,8 @@ public function rules() {
          'phone' => 'nullable|string|max:50',
         'subject' => 'nullable|string|max:255',
         'message' => 'required|string',
-        'latitude' => 'nullable|numeric',
-'longitude' => 'nullable|numeric',
-        'g-recaptcha-response' => 'required|captcha'
+ 
+        'g-recaptcha-response' => 'required'
 
      ];
 }

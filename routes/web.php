@@ -263,29 +263,32 @@ Route::get('edit-profile', [AuthController::class, 'editProfile'])->name('edit-p
     }
 );
 
-Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () {
-    // Orders routes will be handled by routes/ingaz.php
+    Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () {
+        // Orders routes will be handled by routes/ingaz.php
 
-    Route::group(['prefix' => 'ingaz'], function () {
-        Route::get('/clients/export/pdf', [UserController::class, 'exportPdf'])->name('clients.export.pdf');
-        Route::get('/clients/export/excel', [UserController::class, 'exportExcel'])->name('clients.export.excel');
-        Route::get('/get-offices-by-nationality', [App\Http\Controllers\ingaz\MaidController::class, 'getOfficesByNationality'])->name('getOfficesByNationality');
+        Route::group(['prefix' => 'ingaz'], function () {
+            Route::get('/clients/export/pdf', [UserController::class, 'exportPdf'])->name('clients.export.pdf');
+            Route::get('/clients/export/excel', [UserController::class, 'exportExcel'])->name('clients.export.excel');
+            Route::get('/get-offices-by-nationality', [App\Http\Controllers\ingaz\MaidController::class, 'getOfficesByNationality'])->name('getOfficesByNationality');
 
-        // تحديث مسارات الإعدادات
-        Route::get('settings', [App\Http\Controllers\ingaz\SettingController::class, 'index'])->name('admin.ingaz.settings.index');
-        Route::put('settings', [App\Http\Controllers\ingaz\SettingController::class, 'update'])->name('admin.ingaz.settings.update');
- // مسارات الدول
- Route::get('countries', [App\Http\Controllers\admin\CountryController::class, 'index'])->name('countries.index');
- Route::get('countries/{country}', [App\Http\Controllers\admin\CountryController::class, 'show'])->name('countries.show');
- Route::get('countries/create', [App\Http\Controllers\admin\CountryController::class, 'create'])->name('countries.create');
- Route::post('countries', [App\Http\Controllers\admin\CountryController::class, 'store'])->name('countries.store');
- Route::get('countries/{country}/edit', [App\Http\Controllers\admin\CountryController::class, 'edit'])->name('countries.edit');
- Route::put('countries/{country}', [App\Http\Controllers\admin\CountryController::class, 'update'])->name('countries.update');
- Route::delete('countries/{country}', [App\Http\Controllers\admin\CountryController::class, 'destroy'])->name('countries.destroy');
- Route::patch('countries/{country}/toggle-status', [App\Http\Controllers\admin\CountryController::class, 'toggleStatus'])->name('countries.toggle-status');
- Route::post('countries/update-order', [App\Http\Controllers\admin\CountryController::class, 'updateOrder'])->name('countries.update-order');
+            // تحديث مسارات الإعدادات
+            Route::get('settings', [App\Http\Controllers\ingaz\SettingController::class, 'index'])->name('admin.ingaz.settings.index');
+            Route::put('settings', [App\Http\Controllers\ingaz\SettingController::class, 'update'])->name('admin.ingaz.settings.update');
+    // مسارات الدول
+    Route::get('countries', [App\Http\Controllers\admin\CountryController::class, 'index'])->name('countries.index');
+    Route::get('countries/create', [App\Http\Controllers\admin\CountryController::class, 'create'])->name('countries.create');
+    Route::get('countries/{country}', [App\Http\Controllers\admin\CountryController::class, 'show'])->name('countries.show');
+ 
 
- // مسارات المدن
+
+    Route::post('countries', [App\Http\Controllers\admin\CountryController::class, 'store'])->name('countries.store');
+    Route::get('countries/{country}/edit', [App\Http\Controllers\admin\CountryController::class, 'edit'])->name('countries.edit');
+    Route::put('countries/{country}', [App\Http\Controllers\admin\CountryController::class, 'update'])->name('countries.update');
+    Route::delete('countries/{country}', [App\Http\Controllers\admin\CountryController::class, 'destroy'])->name('countries.destroy');
+    Route::patch('countries/{country}/toggle-status', [App\Http\Controllers\admin\CountryController::class, 'toggleStatus'])->name('countries.toggle-status');
+    Route::post('countries/update-order', [App\Http\Controllers\admin\CountryController::class, 'updateOrder'])->name('countries.update-order');
+
+    // مسارات المدن
  Route::get('cities', [App\Http\Controllers\admin\CountryController::class, 'citiesIndex'])->name('cities.index');
  Route::get('cities/create', [App\Http\Controllers\admin\CountryController::class, 'createCity'])->name('cities.create');
  Route::post('cities', [App\Http\Controllers\admin\CountryController::class, 'storeCity'])->name('cities.store');

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Country;
 use App\Models\City;
+use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -42,8 +43,8 @@ class CountryController extends Controller
         return view('admin.countries.index', compact('countries'));
     }
 
-    public function create()
-    {
+    public function create(Request $request )
+ {
         return view('admin.countries.create');
     }
 
@@ -110,7 +111,12 @@ class CountryController extends Controller
 
     public function destroy(Country $country)
     {
-        $country->delete();
+         $country->delete();
+  return response()->json([
+            'success' => true,
+            'message' => 'تم حذف الدولة بنجاح'
+        ],200);       
+        
         return redirect()->route('countries.index')
             ->with('success', 'تم حذف الدولة بنجاح');
     }

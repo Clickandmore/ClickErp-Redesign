@@ -357,8 +357,10 @@ class MaidController extends Controller
         $data = $request->all();
         // Set default status in Arabic
         $data['status'] = 'available';
-        $row = $action->storeMaid($data, $request);
-        return response()->json(['code' => 200, 'message' => 'تم إضافة العاملة بنجاح']);
+        $data = $action->storeMaid($data, $request);
+      return jsonSuccess($data, null, 203);
+
+        // return response()->json(['code' => 200, 'message' => 'تم إضافة العاملة بنجاح']);
     }
 
     // Helper method to get status in current language
@@ -502,12 +504,13 @@ class MaidController extends Controller
         $data = $request->only($this->postData);
         $data = $action->updateMaid($id, $data, $request);
 
+        
+        // Handle direct form submission
+        return jsonSuccess($data, null, 203);
         if ($request->ajax()) {
             return jsonSuccess($data);
         }
-
-        // Handle direct form submission
-        return redirect()->route('maids.index')->with('success', 'تم تحديث العاملة بنجاح');
+        // return redirect()->route('maids.index')->with('success', 'تم تحديث العاملة بنجاح');
     }
 
     public function update_cv(Request $request, objAction $action, $id)
