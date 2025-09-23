@@ -4,7 +4,7 @@
             {{helperTrans("ingaz.counter icon")}}
         </label>
         @include('admin.ingaz.statistics.icons')
- 
+
                 @foreach (config('translatable.locales') as $locale)
             <div class="col-6">
                 <label for="TextInput" class="form-label">
@@ -13,10 +13,9 @@
                 </label>
                 <input type="text" name="title:{{ $locale }}" class="form-control" data-validation="required">
             </div>
-        
+
 @endforeach
- 
- 
+
 
         <div class="col-12 modal-footer">
             <button class="btn btn-primary" type="submit">{{__("buttons.save")}}</button>
@@ -24,5 +23,5 @@
         </div>
     </form>
 
- 
+
 
