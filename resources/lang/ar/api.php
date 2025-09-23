@@ -15,4 +15,11 @@
   'sliders' => 'Sliders',
   'slider' => 'Slider',
   'return_request' => 'Return request',
+  'parteners' => 'Parteners',
+  'Recruitment requirements' => 'Recruitment requirements',
+  'why_us' => 'Why us',
+  'testimonials' => 'Testimonials',
+  'arrival_workers' => 'Arrival workers',
+  'Fast news' => 'Fast news',
+  'Features' => 'Features',
 );

@@ -22,18 +22,25 @@ class JopTypesSeeder extends Seeder
                 'image' => 'images/image.png',
                 'title:ar' => ' استقدام',
                 'title:en' => 'Recruitment request',
+                'description:ar' => ' ايدي عاملة مميزة ومدربة بحرفية',
+                'description:en' => 'A skilled and trained worker',
             ],
             [
                 'id' => 2,
                 'image' => 'images/image.png',
                 'title:ar' => 'ايجار عمالة',
                 'title:en' => 'Labor hire',
+                'description:ar' => 'تجربة نقل خدمات اسهل وأفضل ',
+                'description:en' => 'Experience of easy and best services',
             ],
             [
                 'id' => 3,
                 'image' => 'images/image.png',
                 'title:ar' => 'إستلام فورى',
                 'title:en' => 'Labor transfer',
+                'description:ar' =>'خدمات تأجير عمالة مدربة وموثقة',
+                'description:en' => 'Labor hire services',
+
             ]
         ];
 

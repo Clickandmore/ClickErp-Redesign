@@ -6,7 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Setting extends Model
 {
-    protected $fillable = ['key', 'value', 'group'];
+    protected $fillable = ['key', 'value', 'group' ,'years' , 'show_customer_service_during_booking' , 'note_ar' , 'note_en'
+    ,'experience_image','qr_image','second_qr_image'];
 
     public static function getValue($key, $default = null)
     {

@@ -65,6 +65,13 @@ class PhoneVerificationAction extends MainAction
         return jsonSuccess();
     }
 
+    public function getUser($request)
+    {
+        return User::where('phone', $request->phone)
+            ->where('phone_code', $request->phone_code)
+            ->first();
+    }
+
     public function updatePassword($request)
     {
         $user = User::find(Auth::user()->id);

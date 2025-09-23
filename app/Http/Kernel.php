@@ -4,6 +4,7 @@ namespace App\Http;
 
 use App\Http\Middleware\Admin;
 use App\Http\Middleware\RevalidateBackHistory;
+use App\Http\Middleware\SiteAuthMiddleware;
 use App\Http\Middleware\Web;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
@@ -67,15 +68,16 @@ class Kernel extends HttpKernel
         'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-        'admin' =>Admin::class ,
-        'auth_web' => Web::class ,
-        'localize'                => \Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRoutes::class,
-        'localizationRedirect'    => \Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRedirectFilter::class,
-        'localeSessionRedirect'   => \Mcamara\LaravelLocalization\Middleware\LocaleSessionRedirect::class,
-        'localeCookieRedirect'    => \Mcamara\LaravelLocalization\Middleware\LocaleCookieRedirect::class,
-        'localeViewPath'          => \Mcamara\LaravelLocalization\Middleware\LaravelLocalizationViewPath::class,
-        'webLocale'          =>\App\Http\Middleware\WebLocalizationMiddleware::class ,
-        'adminLocale'          =>\App\Http\Middleware\AdminLocalizationMiddleware::class ,
+        'admin' => Admin::class,
+        'auth_web' => Web::class,
+        'site_auth' => SiteAuthMiddleware::class,
+        'localize' => \Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRoutes::class,
+        'localizationRedirect' => \Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRedirectFilter::class,
+        'localeSessionRedirect' => \Mcamara\LaravelLocalization\Middleware\LocaleSessionRedirect::class,
+        'localeCookieRedirect' => \Mcamara\LaravelLocalization\Middleware\LocaleCookieRedirect::class,
+        'localeViewPath' => \Mcamara\LaravelLocalization\Middleware\LaravelLocalizationViewPath::class,
+        'webLocale' => \App\Http\Middleware\WebLocalizationMiddleware::class,
+        'adminLocale' => \App\Http\Middleware\AdminLocalizationMiddleware::class,
         'lang' => \App\Http\Middleware\lang::class,
         'RevalidateBackHistory' => RevalidateBackHistory::class,
         'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,

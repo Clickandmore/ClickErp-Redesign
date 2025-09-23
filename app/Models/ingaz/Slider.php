@@ -14,7 +14,7 @@ class Slider extends Model
 
     protected $guarded = [];
 
-    public $translatedAttributes = ['title'];
+    public $translatedAttributes = ['title','description'];
     protected $translationForeignKey = 'slider_id';
     public $translationModel = SlidersTranslation::class;
     protected $with = ['translations'];

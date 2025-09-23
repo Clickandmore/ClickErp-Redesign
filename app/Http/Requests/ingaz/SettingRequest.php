@@ -24,7 +24,10 @@ class SettingRequest extends MainRequest
      */
     public function rules()
     {
-        return [
+         return [
+            'second_qr_image' => 'nullable',
+            'experience_image' => 'nullable',
+            'qr_image' => 'nullable',
             'logo_header' => 'nullable',
             'logo_footer' => 'nullable',
             'about_image' => 'nullable',
@@ -56,6 +59,10 @@ class SettingRequest extends MainRequest
             'about_us_sub_title:en' => 'nullable|string',
             'footer_text:ar' => 'nullable|string',
             'footer_text:en' => 'nullable|string',
+            'years' => 'nullable|numeric',
+            'show_customer_service_during_booking' => 'nullable|boolean',
+            'note_ar' => 'nullable|string',
+            'note_en' => 'nullable|string',
         ];
     }
 }
