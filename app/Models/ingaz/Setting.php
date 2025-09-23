@@ -40,7 +40,9 @@ class Setting extends Model
 //        $this->translatedAttributes = array_diff($this->fillable, ['setting_id','locale','created_at','updated_at']);
 //    }
 
-    protected $fillable = ['logo_header', 'logo_footer', 'favicon', 'about_image', 'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin', 'youtube', 'whatsapp', 'email', 'phone', 'other_phone', 'map_link'];
+    protected $fillable = ['logo_header', 'logo_footer', 'favicon', 'about_image', 'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin', 'youtube', 'whatsapp', 'email', 'phone', 'other_phone', 'map_link'
+,'qr_image', 'experience_image', 'second_qr_image'
+];
 
     public static function getValue($key, $default = null)
     {

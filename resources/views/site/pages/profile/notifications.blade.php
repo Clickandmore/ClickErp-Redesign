@@ -1,5 +1,6 @@
 @extends('site.layouts.index')
 @section('title')
+    {{__("ingaz.notifications")}}
 
 @endsection
 @section('content')
@@ -16,46 +17,28 @@
 
                     <div class="notifications">
                         <ul>
-                            <li class="notification">
-                                <h6 class="notificationTitle"> عنوان الاشعار </h6>
-                                <p> هو ببساطة نص شكلي (بمعنى أن الغاية هي الشكل وليس المحتوى) ويُستخدم في صناعات المطابع
-                                    ودور النشر.
-                                    كان لوريم إيبسوم ولايزال المعيار للنص الشكلي منذ القرن الخامس عشر عندما قامت مطبعة
-                                    مجهولة برص مجموعة
-                                    من الأحرف بشكل عشوائي أخذتها من نص، </p>
-                                <div class=" date">
-                                    <div class=" me-2"><i class="fas fa-calendar-alt me-2"></i> 20 / 10 / 2022 </span>
+                            @forelse($notifications as $notification)
+                                <li class="notification">
+                                    <h6 class="notificationTitle">
+                                        {{ $notification->getTranslation('title', app()->getLocale()) }}
+                                    </h6>
+                                    <p>
+                                        {{ $notification->getTranslation('description', app()->getLocale()) }}
+                                    </p>
+                                    <div class="date d-flex align-items-center">
+                                        <div class="me-2">
+                                            <i class="fas fa-calendar-alt me-2"></i>
+                                            {{ $notification->created_at->format('d / m / Y') }}
+                                        </div>
+                                        <div>
+                                            <i class="far fa-clock me-2"></i>
+                                            {{ $notification->created_at->format('h:i a') }}
+                                        </div>
                                     </div>
-                                    <div><i class="far fa-clock me-2"></i> 10:45 pm </span> </div>
-                                </div>
-                            </li>
-                            <li class="notification">
-                                <h6 class="notificationTitle"> عنوان الاشعار </h6>
-                                <p> هو ببساطة نص شكلي (بمعنى أن الغاية هي الشكل وليس المحتوى) ويُستخدم في صناعات المطابع
-                                    ودور النشر.
-                                    كان لوريم إيبسوم ولايزال المعيار للنص الشكلي منذ القرن الخامس عشر عندما قامت مطبعة
-                                    مجهولة برص مجموعة
-                                    من الأحرف بشكل عشوائي أخذتها من نص، </p>
-                                <div class=" date">
-                                    <div class=" me-2"><i class="fas fa-calendar-alt me-2"></i> 20 / 10 / 2022 </span>
-                                    </div>
-                                    <div><i class="far fa-clock me-2"></i> 10:45 pm </span> </div>
-                                </div>
-                            </li>
-                            <li class="notification">
-                                <h6 class="notificationTitle"> عنوان الاشعار </h6>
-                                <p> هو ببساطة نص شكلي (بمعنى أن الغاية هي الشكل وليس المحتوى) ويُستخدم في صناعات المطابع
-                                    ودور النشر.
-                                    كان لوريم إيبسوم ولايزال المعيار للنص الشكلي منذ القرن الخامس عشر عندما قامت مطبعة
-                                    مجهولة برص مجموعة
-                                    من الأحرف بشكل عشوائي أخذتها من نص، </p>
-                                <div class=" date">
-                                    <div class=" me-2"><i class="fas fa-calendar-alt me-2"></i> 20 / 10 / 2022 </span>
-                                    </div>
-                                    <div><i class="far fa-clock me-2"></i> 10:45 pm </span> </div>
-                                </div>
-                            </li>
-
+                                </li>
+                            @empty
+                                <li class="text-center text-muted">{{__("ingaz.no_notifications_found")}}</li>
+                            @endforelse
                         </ul>
                     </div>
 

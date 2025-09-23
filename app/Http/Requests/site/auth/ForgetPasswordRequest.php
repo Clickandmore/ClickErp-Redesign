@@ -28,6 +28,8 @@ class ForgetPasswordRequest extends MainRequest
         return [
             'phone' => 'bail|required|exists:users,phone',
             'phone_code' => 'string',
+            'g-recaptcha-response' => 'required',
+
         ];
     }
 
@@ -38,6 +40,8 @@ class ForgetPasswordRequest extends MainRequest
             // الهاتف
             'phone.required' => __('ingaz.phone_required'),
             'phone.exists' => __('ingaz.phone_exists'),
+            'g-recaptcha-response.required' => __('ingaz.captcha_required'),
+
         ];
     }
 

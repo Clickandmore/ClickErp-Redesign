@@ -1,6 +1,6 @@
 @extends('site.layouts.index')
 @section('title')
-
+    {{__('ingaz.profile')}}
 @endsection
 @section('content')
     <section class="profile">

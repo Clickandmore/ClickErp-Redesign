@@ -26,6 +26,8 @@ class SettingsRequest extends MainRequest
                 'nullable',
                 Rule::unique('users', 'phone')->ignore(auth()->id()),
             ],
+            'g-recaptcha-response' => 'required',
+
         ];
     }
 
@@ -34,6 +36,8 @@ class SettingsRequest extends MainRequest
     {
         return [
             'phone.unique' => __('ingaz.phone_unique'),
+            'g-recaptcha-response.required' => __('ingaz.captcha_required'),
+
         ];
     }
 

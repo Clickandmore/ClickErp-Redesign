@@ -14,6 +14,9 @@ class SettingController extends Controller
     public $folderPath = "admin.ingaz.settings";
     public $postData = [
         'logo_header',
+        'experience_image',
+        'qr_image',
+        'second_qr_image',
         'logo_footer',
         'favicon',
         'twitter',
@@ -136,6 +139,7 @@ class SettingController extends Controller
     public function update(SettingRequest $request, objAction $action)
     {
         $dataInsert = $request->all();
+        // dd($dataInsert);
         // Get the first setting record or create one if it doesn't exist
         $setting = Setting::first();
          if (!$setting) {

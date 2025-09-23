@@ -22,6 +22,7 @@ class SettingController extends Controller
         if (isset($data['password'])) {
             $data['password'] = Hash::make($data['password']);
         }
+        unset($data['g-recaptcha-response']);
         $userAction->update($id, $data);
         return jsonSuccess(null , __("ingaz.settings_updated_successfully"));
 

@@ -3,8 +3,9 @@
 <head>
     @include('site.includes.meta')
     @include('site.includes.css')
-    <title>  @yield('title') بلاتينيوم الشرقية للاستقدام | </title>
+   
     @yield('style')
+    <title>  @yield('title')  |  {{__("ingaz.Platinum Al Sharqiyah Recruitment Agency")}}</title>
 
 </head>
 <body>

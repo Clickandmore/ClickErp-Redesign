@@ -1,6 +1,6 @@
 @extends('site.layouts.index')
 @section('title')
-
+    {{__('ingaz.otp')}}
 @endsection
 @section('content')
     <section class="accountForm">
@@ -13,14 +13,14 @@
                   method="post">
                 @csrf
                 <div class="loginLogo">
-                    <button class="back" type="button" onclick="window.history.back()">رجوع</button>
+{{--                    <button class="back" type="button" onclick="window.history.back()">رجوع</button>--}}
                     <img src="{{ asset('site') }}/assets/images/logo.svg" alt="img" class="img-fluid"/>
                 </div>
 
-                <h3 class="text-center fw-bold text-uppercase">نسيت كلمة المرور</h3>
+                <h3 class="text-center fw-bold text-uppercase"> {{__('ingaz.password_forgett')}}</h3>
 
                 <label class="formLabel">
-                    من فضلك ادخل رمز التحقق المرسل الى:
+                    {{__('ingaz.Please enter the verification code that was sent to you')}}   :
                     <span> {{ $phone }} 966+</span>
                 </label>
                 <div class="otp">
@@ -32,7 +32,8 @@
                     <input class="otp-value" type="hidden" name="code"/>
                     <input type="hidden" name="phone" value="{{ $phone }}"/>
                 </div>
-                <button type="submit" class="defaultBtn mt-2">ارسال</button>
+
+                <button type="submit" class="defaultBtn mt-2">{{__('ingaz.send')}}</button>
             </form>
         </div>
     </section>

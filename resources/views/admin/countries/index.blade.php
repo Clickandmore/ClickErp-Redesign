@@ -263,7 +263,7 @@ function deleteCountry(countryId) {
                 _token: '{{ csrf_token() }}'
             },
             success: function(response) {
-                location.reload();
+                 location.reload();
             },
             error: function() {
                 showAlert('error', 'حدث خطأ في حذف الدولة');

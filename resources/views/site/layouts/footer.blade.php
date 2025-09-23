@@ -55,7 +55,7 @@
 
         <!-- تواصل معنا -->
         <div class="col-lg-3 col-md-6 mb-4">
-            <h6 class="footer-title">تواصل معنا</h6>
+            <h6 class="footer-title">{{__("ingaz.contact_us")}}</h6>
             <ul class="footer-contact">
                 @if(isset($settings))
                     <li><i class="fa-solid fa-map-marker-alt"></i> {{$settings->location}}</li>

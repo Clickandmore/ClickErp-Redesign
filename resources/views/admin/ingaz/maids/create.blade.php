@@ -659,6 +659,13 @@
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                     },
                     success: function(response) {
+      if (response.code == 203) {
+                            var cvConvertShowRoute = "{{ route('cv-convert.show', ':id') }}";
+
+                    successToster('{{__("auth.done successfully")}}', response.message);
+                    var redirectUrl = cvConvertShowRoute.replace(':id', response.data.id);
+                    location.href = redirectUrl;
+                } 
                         if (response.code === 200) {
                             Swal.fire({
                                 icon: 'success',
@@ -669,6 +676,7 @@
                                 if (result.isConfirmed) {
                                     window.location.href = '{{ route("maids.index") }}';
                                 }
+          
                             });
                         } else {
                             Swal.fire({

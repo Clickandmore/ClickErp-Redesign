@@ -25,6 +25,7 @@ class RegisterController extends Controller
     {
         $data = $request->validated();
         $data['password'] = Hash::make($data['password']);
+        unset($data['g-recaptcha-response']);
         $userAction->store($data);
         $dataVerificationCode['phone'] = $data['phone'];
         $dataVerificationCode['phone_code'] = $data['phone_code'];

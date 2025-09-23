@@ -31,6 +31,8 @@ class RegisterRequest extends MainRequest
             'phone_code' => ['required', 'string'],
             // 'email' => ['required', 'string', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
+            'g-recaptcha-response' => 'required',
+
         ];
     }
 
@@ -46,6 +48,8 @@ class RegisterRequest extends MainRequest
             'phone.required' => __('ingaz.phone_required'),
             'phone.string' => __('ingaz.phone_string'),
             'phone.unique' => __('ingaz.phone_unique'),
+
+            'g-recaptcha-response.required' => __('ingaz.captcha_required'),
 
             // الايميل
             'email.required' => __('ingaz.email_required'),

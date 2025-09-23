@@ -21,6 +21,8 @@ class ChangePasswordRequest extends MainRequest
         return [
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'phone' => ['required', 'string', 'exists:users,phone'],
+            'g-recaptcha-response' => 'required',
+
         ];
     }
 
@@ -32,6 +34,8 @@ class ChangePasswordRequest extends MainRequest
             'password.string' => __('ingaz.password_string'),
             'password.min' => __('ingaz.password_min'),
             'password.confirmed' => __('ingaz.password_confirmed'),
+            'g-recaptcha-response.required' => __('ingaz.captcha_required'),
+
         ];
     }
 

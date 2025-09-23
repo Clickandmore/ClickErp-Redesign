@@ -31,6 +31,8 @@ class RecruitmentRequestController extends Controller
     public function store(RecruitmentRequestRequest $request)
     {
         $dataInserted = $request->validated();
+        // dd($dataInserted);
+        unset($dataInserted['g-recaptcha-response']);
         $dataInserted['client_id'] = auth()->user()->id;
         RecruitmentRequestMaid::create($dataInserted);
         return jsonSuccess(null, __("ingaz.Recruitment_Request_Sent_Successfully"));

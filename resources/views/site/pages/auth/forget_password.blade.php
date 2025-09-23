@@ -1,6 +1,6 @@
 @extends('site.layouts.index')
 @section('title')
-
+    {{__('ingaz.password_forgett')}}
 @endsection
 @section('content')
     <section class="accountForm">
@@ -11,14 +11,14 @@
             <form id="forget-password-form" action="{{route('site.forget-password.store')}}" method="post">
                 @csrf
                 <div class="loginLogo">
-                    <button class="back" type="button" onclick="window.history.back()">
-                        رجوع
-                    </button>
+{{--                    <button class="back" type="button" onclick="window.history.back()">--}}
+{{--                        رجوع--}}
+{{--                    </button>--}}
                     <img src="{{asset('site')}}/assets/images/logo.svg" alt="img" class="img-fluid"/>
                 </div>
-                <h3 class="text-center fw-bold text-uppercase">نسيت كلمة المرور</h3>
+                <h3 class="text-center fw-bold text-uppercase">{{__('ingaz.password_forgett')}}</h3>
                 <p class="text-center mb-3">
-                    الرجاء ادخال رقم الجوال الخاص بك لاستعادة كلمة المرور
+                    {{__('ingaz.Please enter your mobile phone number to reset your password')}}
                 </p>
                 <div class="formGroup">
                     <label for="phoneNum">
@@ -29,14 +29,20 @@
                                 ></path>
                             </svg>
                         </div>
-                        رقم الجوال
+                        {{__('ingaz.phone')}}
                     </label>
                     <div class="inputDiv ltr">
                         <span> +966 </span>
                         <input type="tel" class="form-control" id="phoneNum" name="phone" placeholder="05 000 0000"/>
                     </div>
                 </div>
-                <button type="submit" class="defaultBtn mt-2">ارسال</button>
+                {!! NoCaptcha::renderJs(app()->getLocale()) !!}
+                {!! NoCaptcha::display() !!}
+
+                @error('g-recaptcha-response')
+                <span class="text-danger">{{ $message }}</span>
+                @enderror
+                <button type="submit" class="defaultBtn mt-2"> {{__('ingaz.send')}}</button>
             </form>
         </div>
     </section>

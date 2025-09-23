@@ -16,6 +16,7 @@ class LoginController extends Controller
     public function store(LoginRequest $request, LoginAction $loginAction)
     {
         $data = $request->validated();
+        unset($data['g-recaptcha-response']);
         $result = $loginAction->login($data);
         if ($result['success']) {
             return jsonSuccess(['result' => $result['redirect_url']], __("ingaz.login_successfully"));

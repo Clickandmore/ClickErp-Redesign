@@ -1,5 +1,6 @@
 @extends('site.layouts.index')
 @section('title')
+    {{__("ingaz.register")}}
 
 @endsection
 @section('content')
@@ -91,6 +92,12 @@
                     <input type="password" class="form-control" id="confirmPassword" name="password_confirmation"
                            placeholder="{{__('ingaz.enter_password')}}"/>
                 </div>
+                {!! NoCaptcha::renderJs(app()->getLocale()) !!}
+                {!! NoCaptcha::display() !!}
+
+                @error('g-recaptcha-response')
+                <span class="text-danger">{{ $message }}</span>
+                @enderror
                 <button type="submit" class="defaultBtn mt-2">{{__('ingaz.create')}}</button>
                 <p class="text-center w-100 mt-3">
                     {{__('ingaz.have_account')}}
