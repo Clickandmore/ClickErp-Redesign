@@ -4,13 +4,13 @@
 <main>
     <section class="page_header">
         <h1>تعديل الملف الشخصي</h1>
-        <h6><a href="{{route('web.home')}}">الرئيسية</a> / <a href="{{route('web.profile')}}">لوحة التحكم</a> / تعديل الملف الشخصي</h6>
+        <h6><a href="{{route('site.home.index')}}">الرئيسية</a> / <a href="{{route('site.profile.index')}}">لوحة التحكم</a> / تعديل الملف الشخصي</h6>
     </section>
 
     <section class="setting_setion">
         <div class="container">
             <div class="row">
-                @include('web.layout.inc.profile_aside')
+                @include('site.pages.profile.includes.profile_aside')
 
                 <div class="col-lg-8 col-12">
                     <div class="edit_profile_card">
@@ -48,7 +48,7 @@
                                 </div>
 
                                 <div class="form_actions">
-                                    <a href="{{route('web.profile')}}" class="btn btn_secondary">
+                                    <a href="{{route('site.profile.index')}}" class="btn btn_secondary">
                                         <i class="fa-light fa-arrow-left me-2"></i>
                                         العودة للوحة التحكم
                                     </a>
@@ -92,11 +92,11 @@ $(document).ready(function() {
                             timer: 2000,
                             showConfirmButton: false
                         }).then(() => {
-                            window.location.href = '{{ route("web.profile") }}';
+                            window.location.href = '{{ route("site.profile.index") }}';
                         });
                     } else {
                         alert(response.message);
-                        window.location.href = '{{ route("web.profile") }}';
+                        window.location.href = '{{ route("site.profile.index") }}';
                     }
                 } else {
                     alert(response.message || 'حدث خطأ أثناء تحديث الملف الشخصي');

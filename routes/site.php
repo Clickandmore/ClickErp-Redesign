@@ -16,10 +16,14 @@ use App\Http\Controllers\site\DailyLabotDemandController;
 use App\Http\Controllers\site\HomeController;
 use App\Http\Controllers\site\MusanedController;
 use App\Http\Controllers\site\profile\ChatController;
+use App\Http\Controllers\site\profile\ComplaintController;
+use App\Http\Controllers\site\profile\ContractReturnRequestController;
+use App\Http\Controllers\site\profile\ContractsController;
 use App\Http\Controllers\site\profile\NotificationController;
 use App\Http\Controllers\site\profile\OrderController;
 use App\Http\Controllers\site\profile\ProfileController;
 use App\Http\Controllers\site\profile\SettingController;
+use App\Http\Controllers\site\profile\SponsorshipTransferController;
 use App\Http\Controllers\site\RecruitmentOrderController;
 use App\Http\Controllers\site\RecruitmentRequestController;
 use App\Http\Controllers\site\RenewContractController;
@@ -78,6 +82,11 @@ Route::group(
             Route::resource('recruitment-orders', RecruitmentOrderController::class);
             Route::resource('customer-service', CustomerServiceController::class);
             Route::resource('logout', LogoutController::class);
+            Route::post('/contracts/cancel', [ContractsController::class, 'cancel'])->name('contracts.cancel');
+            Route::resource('contracts', ContractsController::class);
+            Route::resource('sponsorship-transfers', SponsorshipTransferController::class);
+            Route::get('return-requests', [ContractReturnRequestController::class, 'index'])->name('contract-return-requests.index');
+            Route::resource('complaints', ComplaintController::class);
         });
     });
 

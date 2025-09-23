@@ -4,6 +4,7 @@
     @include('site.includes.meta')
     @include('site.includes.css')
     <title>  @yield('title') بلاتينيوم الشرقية للاستقدام | </title>
+    @yield('style')
 
 </head>
 <body>
@@ -24,5 +25,6 @@
     @include('site.layouts.footer')
 </footer>
 @include('site.includes.js')
+@yield('scripts')
 </body>
 </html>
