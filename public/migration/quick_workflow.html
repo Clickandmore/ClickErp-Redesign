@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>🎯 خطة العمل السريعة</title>
+    <style>
+        body {
+            font-family: -apple-system, system-ui, Arial;
+            direction: rtl;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        .step {
+            background: rgba(255,255,255,0.1);
+            margin: 15px 0;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid #00ff88;
+            transition: all 0.3s;
+        }
+        .step:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+        .step-number {
+            background: #00ff88;
+            color: #333;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .step h3 {
+            display: inline-block;
+            margin: 0;
+            color: #00ff88;
+        }
+        .link-btn {
+            display: inline-block;
+            background: #00ff88;
+            color: #333;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 5px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .link-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 3px 10px rgba(0,255,136,0.3);
+        }
+        .warning {
+            background: rgba(255,193,7,0.2);
+            border-left-color: #ffc107;
+            border: 1px solid #ffc107;
+        }
+        .success {
+            background: rgba(40,167,69,0.2);
+            border-left-color: #28a745;
+            border: 1px solid #28a745;
+        }
+        .info {
+            background: rgba(23,162,184,0.2);
+            border-left-color: #17a2b8;
+            border: 1px solid #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 خطة العمل السريعة والآمنة</h1>
+
+        <div class="step success">
+            <span class="step-number">✅</span>
+            <h3>مكتمل: إعداد النظام المرن</h3>
+            <p>تم تحديث النظام ليعمل على المنفذ 8005 مع إعدادات قواعد بيانات مرنة وميزة التصدير التلقائي.</p>
+        </div>
+
+        <div class="step info">
+            <span class="step-number">1</span>
+            <h3>ترتيب جدول Users</h3>
+            <p>الخطوة الأولى: ترتيب جدول users بالتسلسل الصحيح للأعمدة</p>
+            <a href="http://127.0.0.1:8005/migration/file_only_migration.php" class="link-btn" target="_blank">
+                🔗 افتح النظام على المنفذ 8005
+            </a>
+            <p><strong>اضغط:</strong> زر "2. ترتيب أعمدة الجدول" أو "3. تحضير شامل"</p>
+        </div>
+
+        <div class="step">
+            <span class="step-number">2</span>
+            <h3>تصدير + رفع Users (تلقائي)</h3>
+            <p><strong>الطريقة المثلى:</strong> استخدم زر "تصدير + رفع Users مباشرة"</p>
+            <ul>
+                <li>✅ يصدر من القاعدة القديمة تلقائياً</li>
+                <li>✅ يرفع ويعالج البيانات مباشرة</li>
+                <li>✅ يطبق تقسيم الأسماء والتحويلات</li>
+                <li>✅ لا حاجة لخطوات يدوية</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <span class="step-number">3</span>
+            <h3>تصدير + رفع Customers (تلقائي)</h3>
+            <p><strong>الطريقة المثلى:</strong> استخدم زر "تصدير + رفع Customers مباشرة"</p>
+            <ul>
+                <li>✅ يصدر جدول customers من القاعدة القديمة</li>
+                <li>✅ يدمج البيانات في جدول users الجديد</li>
+                <li>✅ يطبق التحويلات (national_identification_number → national_num)</li>
+            </ul>
+        </div>
+
+        <div class="step success">
+            <span class="step-number">4</span>
+            <h3>التحقق من النتائج</h3>
+            <p>استخدم زر "اختبار الاتصال" للتأكد من:</p>
+            <ul>
+                <li>✅ عدد المستخدمين المنقولين</li>
+                <li>✅ سلامة البيانات</li>
+                <li>✅ صحة التحويلات</li>
+            </ul>
+        </div>
+
+        <div class="step warning">
+            <h3>🔧 المميزات الجديدة:</h3>
+            <ul>
+                <li><strong>إعدادات مرنة:</strong> يمكن تغيير قاعدة البيانات والمنفذ</li>
+                <li><strong>تصدير تلقائي:</strong> لا حاجة لتصدير يدوي للـ CSV</li>
+                <li><strong>معالجة ذكية:</strong> تطبيق التحويلات تلقائياً</li>
+                <li><strong>أمان عالي:</strong> التحقق من البيانات قبل النقل</li>
+            </ul>
+        </div>
+
+        <div class="step info">
+            <h3>📋 الروابط السريعة:</h3>
+            <a href="http://127.0.0.1:8000/migration/file_only_migration.php" class="link-btn" target="_blank">
+                النظام على 8000
+            </a>
+            <a href="http://127.0.0.1:8003/migration/file_only_migration.php" class="link-btn" target="_blank">
+                النظام على 8003
+            </a>
+            <a href="http://127.0.0.1:8005/migration/file_only_migration.php" class="link-btn" target="_blank">
+                النظام على 8005
+            </a>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; opacity: 0.8;">
+            <p>🚀 <strong>النصيحة:</strong> استخدم الأزرار الذكية "تصدير + رفع مباشرة" لتوفير الوقت والجهد</p>
+            <p>⚡ <strong>السرعة:</strong> العملية كاملة تستغرق أقل من دقيقتين</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -90,6 +90,23 @@ Route::get('apis-generate', function () {
 // update contracts when status is tazker and travel_histories
 
 
+// Laravel Migration System Routes
+Route::get('/migration', [App\Http\Controllers\MigrationController::class, 'index'])->name('migration.index');
+Route::post('/migration/status', [App\Http\Controllers\MigrationController::class, 'checkStatus'])->name('migration.status');
+Route::post('/migration/scan-columns', [App\Http\Controllers\MigrationController::class, 'scanColumns'])->name('migration.scan');
+Route::post('/migration/add-columns', [App\Http\Controllers\MigrationController::class, 'addMissingColumns'])->name('migration.add_columns');
+Route::post('/migration/apply-order', [App\Http\Controllers\MigrationController::class, 'applyCustomOrder'])->name('migration.order');
+Route::post('/migration/migrate-all', [App\Http\Controllers\MigrationController::class, 'migrateAllUsers'])->name('migration.migrate_all');
+Route::post('/migration/upload-customers', [App\Http\Controllers\MigrationController::class, 'uploadCustomers'])->name('migration.customers');
+
+// Legacy redirect for old public script
+Route::get('/migration/legacy', function () {
+    return redirect('/migration/file_only_migration.php');
+})->name('migration.legacy');
+
+Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () {
+    Route::group(['prefix' => 'ingaz'], function () {
+=======
 Route::group(
     [
         'as' => 'web.',
@@ -150,6 +167,7 @@ Route::get('edit-profile', [AuthController::class, 'editProfile'])->name('edit-p
         );
         Route::resource('contact-us', ContactUs::class);
         Route::get('/about-us', [\App\Http\Controllers\Web\AboutUsController::class, 'index'])->name('about-us');
+ 
         Route::get('/clients/export/pdf', [UserController::class, 'exportPdf'])->name('clients.export.pdf');
         Route::get('/clients/export/excel', [UserController::class, 'exportExcel'])->name('clients.export.excel');
         Route::resource('skills', \App\Http\Controllers\ingaz\SkillController::class);

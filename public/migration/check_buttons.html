@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>فحص الأزرار</title>
+    <style>
+        body {
+            font-family: -apple-system, system-ui, Arial;
+            direction: rtl;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-info { background: #17a2b8; color: white; }
+        .btn-warning { background: #ffc107; color: #333; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 20px 0;
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 فحص الأزرار - الصفحة تعمل!</h1>
+
+        <div class="status">
+            ✅ الأزرار موجودة في الملف الأصلي:<br>
+            <code>/migration/file_only_migration.php</code>
+        </div>
+
+        <h2>الأزرار المتاحة:</h2>
+
+        <button class="btn btn-info">
+            1. إضافة الأعمدة المطلوبة من SYSTEM_STATUS.md
+        </button>
+
+        <button class="btn btn-warning">
+            2. ترتيب أعمدة الجدول
+        </button>
+
+        <button class="btn btn-success">
+            3. تحضير شامل (إضافة + ترتيب)
+        </button>
+
+        <button class="btn btn-danger">
+            4. ملء البيانات المفقودة من القاعدة القديمة
+        </button>
+
+        <hr style="margin: 30px 0;">
+
+        <h3>📌 لحل المشكلة:</h3>
+        <ol>
+            <li>امسح كاش المتصفح: <strong>Cmd+Shift+R</strong></li>
+            <li>أو افتح في نافذة خاصة/incognito</li>
+            <li>أو أضف <code>?v=<?php echo time(); ?></code> للرابط</li>
+        </ol>
+
+        <p style="margin-top: 20px;">
+            <a href="file_only_migration.php?v=<?php echo time(); ?>"
+               style="display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;">
+                🔄 افتح الصفحة الأصلية بدون كاش
+            </a>
+        </p>
+    </div>
+</body>
+</html>
