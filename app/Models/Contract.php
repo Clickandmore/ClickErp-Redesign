@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Models\ingaz\Maid;
-use App\Models\ingaz\User;
+use App\Models\ContractReturnRequest;use App\Models\ingaz\User;
 use App\Models\ContractInfo;
 use App\Enums\ingaz\ContractStatusEnum;
 use Illuminate\Database\Eloquent\Model;
@@ -53,6 +53,16 @@ class Contract extends Model
         return $this->belongsTo(\App\Models\ingaz\Nationality::class, 'required_maid_nationality_id');
     }
 
+    public function requiredMaidReligion()
+    {
+        return $this->belongsTo(\App\Models\ingaz\Religion::class, 'required_maid_religion_id');
+    }
+
+    public function requiredMaidJobTitle()
+    {
+        return $this->belongsTo(\App\Models\ingaz\JobTitle::class, 'required_maid_job_title_id');
+    }
+
     public function info()
     {
         return $this->hasOne(\App\Models\ContractInfo::class, 'contract_id');
@@ -65,18 +75,14 @@ class Contract extends Model
 
     public function contract_status_logs()
     {
-        return $this->hasMany(ContractStatusLog::class, 'contract_id');
+        return $this->hasMany(ContractStatusLog::class, "contract_id");
     }
 
     public function deportationProcedure()
     {
-        return $this->hasOne(\App\Models\DeportationProcedure::class, 'contract_id');
+        return $this->hasOne(\App\Models\DeportationProcedure::class, "contract_id");
     }
 
-    public function returnRequests()
-    {
-        return $this->hasMany(ContractReturnRequest::class);
-    }
 
     public function hasPendingReturnRequest()
     {
@@ -178,6 +184,14 @@ class Contract extends Model
 
         $remaining = \Carbon\Carbon::now()->diffInDays($this->warranty_end_date, false);
         return max(0, $remaining);
+    }
+
+    /**
+     * العلاقات مع طلبات الاسترجاع
+     */
+    public function returnRequests()
+    {
+        return $this->hasMany(ContractReturnRequest::class);
     }
 
 }

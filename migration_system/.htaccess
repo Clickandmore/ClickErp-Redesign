@@ -1,0 +1,23 @@
+# إعدادات PHP لرفع الملفات
+php_value upload_max_filesize 50M
+php_value post_max_size 50M
+php_value memory_limit 256M
+php_value max_execution_time 300
+php_value max_input_time 300
+
+# حماية الملفات الحساسة
+<FilesMatch "\.(sql|log)$">
+    Require all denied
+</FilesMatch>
+
+# حماية مجلدات النظام
+<Directory "config">
+    Require all denied
+</Directory>
+
+<Directory "logs">
+    Require all denied
+</Directory>
+
+# تمكين إعادة الكتابة
+RewriteEngine On

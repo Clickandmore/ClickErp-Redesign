@@ -12,24 +12,9 @@ use Yajra\DataTables\Facades\DataTables;
 
 class SliderController extends Controller
 {
-
-       public $folderPath = "admin.ingaz.sliders";
-       public $postData = ["title:ar","title:en","image"];
-       public $datatable = [
-            ["data"=> 'DT_RowIndex', 'name'=> 'DT_RowIndex', 'orderable'=> false, 'searchable'=> false],
-            ["data"=> "image", 'orderable'=> false, 'searchable'=> false],
-            ["data"=> "title", 'orderable'=> false],
-            ["data"=> "actions", 'orderable'=> false, 'searchable'=> false]
-       ];
-       public $mainRoute = "sliders";
-
-    function __construct()
-    {
-        // $this->middleware('permission:بانر العرض-قراءة,admin', ['only' => ['index']]);
-        // $this->middleware('permission:بانر العرض-انشاء,admin', ['only' => ['create', 'store']]);
-        // $this->middleware('permission:بانر العرض-تعديل,admin', ['only' => ['edit', 'update']]);
-        // $this->middleware('permission:بانر العرض-حذف,admin', ['only' => ['destroy']]);
-    }
+    public $folderPath = "admin.ingaz.sliders";
+    public $postData = ["title:ar", "title:en", "description:ar", "description:en", "image"];
+    public $mainRoute = "sliders";
 
     public function index(Request $request, objAction $Action)
     {
@@ -59,7 +44,6 @@ class SliderController extends Controller
                     return $editButton . " " . $deleteButton;
                 })->escapeColumns([])->make(true);
         }
-        $data['columns'] = $this->datatable;
         $data["createRoute"] = route($this->mainRoute . ".create");
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = helperTrans('api.sliders');
@@ -79,7 +63,7 @@ class SliderController extends Controller
     }
 
 
-    public function store(SliderRequest $request,objAction $action)
+    public function store(SliderRequest $request, objAction $action)
     {
 
         $data = $request->only($this->postData);

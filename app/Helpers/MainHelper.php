@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Intervention\Image\ImageManagerStatic as Image;
 
+use function PHPSTORM_META\map;
+
 /**
  * Show the form for creating a new resource.
  *
@@ -301,7 +303,18 @@ if (!function_exists('deleteFile')) {
 if (!function_exists('showFile')) {
     function showFile($fileFullPath)
     {
-        return asset('/storage/' . $fileFullPath);
+        if (!$fileFullPath || $fileFullPath === 'null' || $fileFullPath === '') {
+            return null;
+        }
+
+        // التحقق من وجود الملف
+        $fullPath = public_path('storage/' . $fileFullPath);
+        if (file_exists($fullPath)) {
+            return asset('/storage/' . $fileFullPath);
+        }
+
+        // إذا لم يكن الملف موجود، ارجع null
+        return null;
     }
 }
 
@@ -380,6 +393,16 @@ if (!function_exists('getMigrations')) {
         return $migrations;
     }
 }
+
+if (!function_exists('carbonParse')) {
+    function carbonParse($date)
+    {
+        return Illuminate\Support\Carbon::parse($date);
+    }
+}
+
+
+
 
 if (!function_exists('getImgTag')) {
     function getImgTag($fileFullPath, $width = "150px", $height = "120px")
@@ -485,11 +508,6 @@ if (!function_exists('helperTrans')) {
 
         if (empty($file) || empty($key)) {
             return $str;
-        }
-
-        // If trying to access web language file, return the key directly
-        if ($file === 'web') {
-            return ucfirst(str_replace('_', ' ', $key));
         }
 
         $local = get_api_lang();

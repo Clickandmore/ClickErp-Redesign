@@ -73,6 +73,15 @@
                 </select>
             </div>
 
+            <div class="col-4 mt-4">
+                <label for="TextInput" class="form-label">متاحة للاستلام الفوري</label>
+                <select name="is_available_for_instant" class="form-select form-control select2" data-validation="required" id="is_available_for_instant">
+                    <option value="0" @if($contract->info && $contract->info->is_available_for_instant == false) selected @endif>غير متاحة</option>
+                    <option value="1" @if($contract->info && $contract->info->is_available_for_instant == true) selected @endif>متاحة</option>
+                </select>
+                <small class="form-text text-muted">متاح فقط للعاملات التي ترغب بالعمل</small>
+            </div>
+
             <div class="col-12 mt-4">
                 <label for="TextInput" class="form-label">{{helperTrans("ingaz.back_reasons")}}</label>
                 <textarea name="back_reasons" rows="4" class="form-control" data-validation="required">{{ $contract->info->back_reasons ?? '' }}</textarea>
@@ -129,6 +138,29 @@
         if ($('#arrival_date').val()) {
             calculateDurationFromArrivalDate();
         }
+
+        // تعطيل/تمكين حقل الاستلام الفوري حسب رغبة العمل
+        toggleInstantReceiptField();
+    });
+
+    // تعطيل/تمكين حقل الاستلام الفوري حسب رغبة العمل
+    function toggleInstantReceiptField() {
+        const wantsToWork = $('select[name="wants_to_work"]').val();
+        const instantReceiptField = $('#is_available_for_instant');
+
+        if (wantsToWork === 'yes') {
+            instantReceiptField.prop('disabled', false);
+            instantReceiptField.closest('.col-4').find('.form-text').removeClass('text-muted').addClass('text-success').text('متاح للعاملات التي ترغب بالعمل');
+        } else {
+            instantReceiptField.prop('disabled', true);
+            instantReceiptField.val('0');
+            instantReceiptField.closest('.col-4').find('.form-text').removeClass('text-success').addClass('text-muted').text('متاح فقط للعاملات التي ترغب بالعمل');
+        }
+    }
+
+    // تغيير حالة حقل الاستلام الفوري عند تغيير رغبة العمل
+    $('select[name="wants_to_work"]').on('change', function() {
+        toggleInstantReceiptField();
     });
 </script>
 

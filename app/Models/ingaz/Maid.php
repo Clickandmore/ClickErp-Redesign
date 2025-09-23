@@ -47,6 +47,7 @@ class Maid extends Model
         'weight',
         'birth_date',
         'experience_years',
+        'experience_status',
         'skills',
         'cv_file',
         'image',

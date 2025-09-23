@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ingaz\makeTransferRequest;
 use App\Models\Contract;
 use App\Models\ingaz\User;
+use App\Models\ingaz\Order;
 use App\Models\SponsorshipTransfer;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
@@ -150,6 +151,21 @@ class SponsorshipTransferController extends Controller
                         case 'pending':
                             $badgeClass = 'bg-warning';
                             break;
+                        case 'waiting_contract_send':
+                            $badgeClass = 'bg-info';
+                            break;
+                        case 'contract_sent':
+                            $badgeClass = 'bg-primary';
+                            break;
+                        case 'contract_signed':
+                            $badgeClass = 'bg-success';
+                            break;
+                        case 'maid_delivered':
+                            $badgeClass = 'bg-success';
+                            break;
+                        case 'trial_started':
+                            $badgeClass = 'bg-primary';
+                            break;
                         case 'approved':
                             $badgeClass = 'bg-info';
                             break;
@@ -188,17 +204,38 @@ class SponsorshipTransferController extends Controller
                                     <i class="fas fa-eye"></i> عرض التفاصيل
                                 </a></li>';
 
-                    // تحرير الطلب (فقط إذا كان في الانتظار)
-                    if ($transfer->status == 'pending') {
-                        $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.edit', $transfer->id) . '">
-                                        <i class="fas fa-edit"></i> تحرير
+                    // طباعة العقد (انتظار إرسال العقد)
+                    if ($transfer->status == 'waiting_contract_send') {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('print.sponsorship-transfer-contract', $transfer->id) . '" target="_blank">
+                                        <i class="fas fa-print"></i> طباعة العقد
                                     </a></li>';
                     }
 
-                    // الموافقة (فقط إذا كان في الانتظار)
-                    if ($transfer->status == 'pending') {
-                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="approve" data-id="' . $transfer->id . '" data-text="الموافقة على الطلب وبدء فترة التجربة">
-                                        <i class="fas fa-check"></i> موافقة وبدء التجربة
+                    // تأكيد إرسال العقد للعميل (انتظار إرسال العقد)
+                    if ($transfer->status == 'waiting_contract_send') {
+                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="send-contract" data-id="' . $transfer->id . '" data-text="تأكيد إرسال العقد للعميل">
+                                        <i class="fas fa-paper-plane"></i> تأكيد إرسال العقد
+                                    </a></li>';
+                    }
+
+                    // تسجيل توقيع العقد (تم إرسال العقد)
+                    if ($transfer->status == 'contract_sent') {
+                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="sign-contract" data-id="' . $transfer->id . '" data-text="تسجيل توقيع العقد">
+                                        <i class="fas fa-signature"></i> تسجيل توقيع العقد
+                                    </a></li>';
+                    }
+
+                    // تسليم العاملة (تم توقيع العقد)
+                    if ($transfer->status == 'contract_signed') {
+                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="deliver-maid" data-id="' . $transfer->id . '" data-text="تسجيل تسليم العاملة">
+                                        <i class="fas fa-handshake"></i> تسجيل تسليم العاملة
+                                    </a></li>';
+                    }
+
+                    // بدء التجربة (تم تسليم العاملة)
+                    if ($transfer->status == 'maid_delivered') {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.trial-details', $transfer->id) . '">
+                                        <i class="fas fa-play"></i> عرض تفاصيل التجربة
                                     </a></li>';
                     }
 
@@ -258,21 +295,160 @@ class SponsorshipTransferController extends Controller
         ));
     }
 
+    /**
+     * عرض طلبات نقل الكفالة من الموقع الخارجي
+     */
+    public function webRequests(Request $request)
+    {
+        if ($request->ajax()) {
+            $query = Order::with(['user', 'maid.nationality', 'details.admin'])
+                ->where('job_type_id', 3) // طلبات نقل الكفالة
+                ->orderBy('created_at', 'desc');
+
+            return DataTables::of($query)
+                ->addIndexColumn()
+                ->addColumn('order_info', function ($row) {
+                    return '<div class="order-info">
+                                <strong>طلب رقم: ' . $row->order_code . '</strong><br>
+                                <small class="text-muted">تاريخ الطلب: ' . $row->created_at->format('Y-m-d H:i') . '</small>
+                            </div>';
+                })
+                ->addColumn('client_info', function ($row) {
+                    return '<div class="client-info">
+                                <strong>' . ($row->user ? $row->user->name : 'غير محدد') . '</strong><br>
+                                <small class="text-muted">' . ($row->user ? $row->user->phone : 'غير محدد') . '</small>
+                            </div>';
+                })
+                ->addColumn('maid_info', function ($row) {
+                    if (!$row->maid) {
+                        return '<span class="text-muted">غير محدد</span>';
+                    }
+                    return '<div class="maid-info">
+                                <strong>' . $row->maid->name . '</strong><br>
+                                <small class="text-muted">الجنسية: ' . ($row->maid->nationality ? $row->maid->nationality->sub_title : 'غير محدد') . '</small><br>
+                                <small class="text-muted">رقم الجواز: ' . ($row->maid->passport_num ?? 'غير محدد') . '</small>
+                            </div>';
+                })
+                ->addColumn('admin_info', function ($row) {
+                    if (!$row->details || !$row->details->admin) {
+                        return '<span class="text-muted">غير محدد</span>';
+                    }
+                    return '<div class="admin-info">
+                                <strong>' . $row->details->admin->name . '</strong><br>
+                                <small class="text-muted">ممثل خدمة العملاء</small>
+                            </div>';
+                })
+                ->addColumn('status', function ($row) {
+                    $statusBadges = [
+                        'new' => 'badge-warning',
+                        'paid' => 'badge-info',
+                        'completed' => 'badge-success',
+                        'started' => 'badge-primary',
+                        'done' => 'badge-success',
+                        'refused' => 'badge-danger',
+                        'canceled' => 'badge-secondary'
+                    ];
+
+                    $badgeClass = $statusBadges[$row->status] ?? 'badge-secondary';
+                    return '<span class="badge ' . $badgeClass . '">' . $row->status . '</span>';
+                })
+                ->addColumn('actions', function ($row) {
+                    $actions = '<div class="dropdown actions-dropdown">
+                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button"  aria-expanded="false" title="الإجراءات المتاحة">
+                                        <i class="fas fa-cogs me-1"></i> الإجراءات
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
+
+                    // عرض تفاصيل الطلب
+                    $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.webRequest.show', $row->id) . '">
+                                    <i class="fas fa-eye"></i> عرض التفاصيل
+                                </a></li>';
+
+                    // إنشاء طلب نقل كفالة
+                    if ($row->status == 'new' || $row->status == 'paid') {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.create', ['order_id' => $row->id]) . '">
+                                        <i class="fas fa-exchange-alt"></i> إنشاء طلب نقل كفالة
+                                    </a></li>';
+                    }
+
+                    // إلغاء الطلب وإرجاع العاملة متاحة
+                    if ($row->status == 'new' || $row->status == 'paid') {
+                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="cancel-order" data-id="' . $row->id . '" data-text="إلغاء الطلب وإرجاع العاملة متاحة مرة أخرى">
+                                        <i class="fas fa-times"></i> إلغاء الطلب
+                                    </a></li>';
+                    }
+
+                    // تحديث حالة الطلب
+                    if ($row->status == 'new') {
+                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="update-status" data-id="' . $row->id . '" data-status="started" data-text="تحديث حالة الطلب إلى معالج">
+                                        <i="fas fa-play"></i> بدء المعالجة
+                                        </a></li>';
+                    }
+
+                    $actions .= '</ul></div>';
+
+                    return $actions;
+                })
+                ->rawColumns(['order_info', 'client_info', 'maid_info', 'admin_info', 'status', 'actions'])
+                ->make(true);
+        }
+
+        return view($this->folderPath . '.web-requests');
+    }
+
+    /**
+     * عرض تفاصيل طلب نقل الكفالة من الموقع الخارجي
+     */
+    public function showWebRequest($id)
+    {
+        $order = Order::with(['user', 'maid.nationality', 'details.admin'])
+            ->where('job_type_id', 3)
+            ->findOrFail($id);
+
+                return view($this->folderPath . '.show-web-request', compact('order'));
+    }
 
     public function create()
     {
+        // التحقق من وجود order_id في الطلب
+        $orderId = request('order_id');
+        $selectedOrder = null;
+        $selectedContractId = request('contract_id');
+
+        // إذا تم تمرير order_id، نجلب تفاصيل الطلب
+        if ($orderId) {
+            $selectedOrder = Order::with(['maid', 'user'])->find($orderId);
+
+            // إذا كان الطلب موجوداً وله عاملة، نبحث عن العقد المناسب
+            if ($selectedOrder && $selectedOrder->maid) {
+                // البحث عن العقد الذي يحتوي على هذه العاملة في الإيواء
+                $matchingContract = Contract::with(['maid', 'user', 'info'])
+                    ->where('maid_id', $selectedOrder->maid_id)
+                    ->where('status', \App\Enums\ingaz\ContractStatusEnum::Shelter->value)
+                    ->whereHas('info', function($query) {
+                        $query->where('wants_to_work', 'yes');
+                    })
+                    ->first();
+
+                if ($matchingContract) {
+                    $selectedContractId = $matchingContract->id;
+                } else {
+                    // إضافة رسالة تحذيرية إذا لم يتم العثور على العقد المناسب
+                    session()->flash('warning', 'لم يتم العثور على عقد مناسب للعاملة المطلوبة في الإيواء أو العاملة غير راغبة في العمل. يرجى التحقق من حالة العاملة.');
+                }
+            }
+        }
+
         // جلب العقود المتاحة للنقل (العقود داخل الإيواء مع work_willingness = 'yes')
         $contracts = Contract::with(['maid', 'user', 'info'])
+            ->where('status', \App\Enums\ingaz\ContractStatusEnum::Shelter->value)
             ->whereHas('info', function($query) {
                 $query->where('wants_to_work', 'yes');
             })
             ->latest()
             ->get();
 
-        // إذا تم تمرير contract_id في URL، نحدد العقد المختار
-        $selectedContractId = request('contract_id');
-
-        return view($this->folderPath . '.create', compact('contracts', 'selectedContractId'));
+        return view($this->folderPath . '.create', compact('contracts', 'selectedContractId', 'selectedOrder'));
     }
 
 
@@ -345,7 +521,7 @@ class SponsorshipTransferController extends Controller
                 'paid_amount' => $request->paid_amount,
                 'remaining_amount' => $request->contract_value - $request->paid_amount,
                 'notes' => $request->notes,
-                'status' => 'pending', // pending, approved, rejected, completed
+                'status' => 'waiting_contract_send', // الحالة الجديدة: انتظار إرسال العقد
             ];
 
             // إنشاء طلب نقل كفالة جديد
@@ -695,6 +871,49 @@ class SponsorshipTransferController extends Controller
     }
 
     /**
+     * إلغاء طلب نقل الكفالة وإرجاع العاملة متاحة
+     */
+    public function cancelOrder(Request $request, $id)
+    {
+        try {
+            $order = Order::findOrFail($id);
+
+            if (!in_array($order->status, ['new', 'paid'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن إلغاء الطلب في هذه الحالة'
+                ], 400);
+            }
+
+            // إرجاع العاملة متاحة مرة أخرى
+            if ($order->maid) {
+                $order->maid->update([
+                    'status' => 'available',
+                    'available' => 1,
+                    'available_at' => now()->addDays(30)->toDateString()
+                ]);
+            }
+
+            // تحديث حالة الطلب إلى مرفوض
+            $order->update([
+                'status' => 'refused',
+                'notes' => 'تم إلغاء الطلب من قبل الإدارة'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إلغاء الطلب وإرجاع العاملة متاحة مرة أخرى'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ في إلغاء الطلب'
+            ], 500);
+        }
+    }
+
+    /**
      * Show trial period transfers
      */
     public function trial()
@@ -731,5 +950,381 @@ class SponsorshipTransferController extends Controller
             ->paginate(25);
 
         return view($this->folderPath . '.failed', compact('transfers'));
+    }
+
+    /**
+     * إرسال العقد للعميل
+     */
+    public function sendContract(Request $request, $id)
+    {
+        try {
+            $transfer = SponsorshipTransfer::findOrFail($id);
+
+            // التحقق من الحالة
+            if (!$transfer->canSendContract()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن إرسال العقد في الحالة الحالية'
+                ], 400);
+            }
+
+            \DB::beginTransaction();
+
+            // تحديث حالة طلب النقل
+            $transfer->update([
+                'status' => 'contract_sent',
+                'contract_sent_at' => now(),
+                'contract_sent_by' => auth('admin')->id()
+            ]);
+
+            \DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تأكيد إرسال العقد للعميل بنجاح'
+            ]);
+
+        } catch (\Exception $e) {
+            \DB::rollback();
+            \Log::error('Error in sendContract: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ في إرسال العقد'
+            ], 500);
+        }
+    }
+
+    /**
+     * تسجيل توقيع العقد (تلقائي)
+     */
+    public function signContract(Request $request, $id)
+    {
+        try {
+            $transfer = SponsorshipTransfer::findOrFail($id);
+
+            // التحقق من الحالة
+            if (!$transfer->canSignContract()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن تسجيل توقيع العقد في الحالة الحالية'
+                ], 400);
+            }
+
+            \DB::beginTransaction();
+
+            // تحديث حالة طلب النقل
+            $transfer->update([
+                'status' => 'contract_signed',
+                'contract_signed_at' => now(),
+                'contract_signed_by' => auth('admin')->id()
+            ]);
+
+
+            \DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تسجيل توقيع العقد بنجاح'
+            ]);
+
+        } catch (\Exception $e) {
+            \DB::rollback();
+            \Log::error('Error in signContract: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ في تسجيل توقيع العقد'
+            ], 500);
+        }
+    }
+
+    /**
+     * تسجيل تسليم العاملة (تلقائي)
+     */
+    public function deliverMaid(Request $request, $id)
+    {
+        try {
+            $transfer = SponsorshipTransfer::findOrFail($id);
+
+            // التحقق من الحالة
+            if (!$transfer->canDeliverMaid()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن تسجيل تسليم العاملة في الحالة الحالية'
+                ], 400);
+            }
+
+            \DB::beginTransaction();
+
+            // تحديث حالة طلب النقل
+            $transfer->update([
+                'status' => 'maid_delivered',
+                'maid_delivered_at' => now(),
+                'maid_delivered_by' => auth('admin')->id()
+            ]);
+
+
+            \DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تسجيل تسليم العاملة بنجاح'
+            ]);
+
+        } catch (\Exception $e) {
+            \DB::rollback();
+            \Log::error('Error in deliverMaid: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ في تسجيل تسليم العاملة'
+            ], 500);
+        }
+    }
+
+    /**
+     * بدء فترة التجربة
+     */
+    public function startTrial(Request $request, $id)
+    {
+        try {
+            $transfer = SponsorshipTransfer::with(['transferServiceContract', 'contract'])->findOrFail($id);
+
+            // إضافة logging للتشخيص
+            \Log::info('Start Trial - Transfer ID: ' . $id . ', Current Status: ' . $transfer->status);
+
+            // التحقق من الحالة
+            if (!$transfer->canStartTrial()) {
+                \Log::warning('Cannot start trial - Current status: ' . $transfer->status . ', Required: maid_delivered');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن بدء فترة التجربة في الحالة الحالية. الحالة الحالية: ' . $transfer->getStatusTextAttribute() . '. يجب أن تكون الحالة: تم تسليم العاملة'
+                ], 400);
+            }
+
+            \DB::beginTransaction();
+
+            // تحديث حالة طلب النقل
+            $transfer->update([
+                'status' => 'trial_started',
+                'trial_started_at' => now()
+            ]);
+
+            // تحديث حالة العقد الأصلي إلى "في التجربة"
+            if ($transfer->contract) {
+                $transfer->contract->update([
+                    'status' => \App\Enums\ingaz\ContractStatusEnum::Trial->value
+                ]);
+            }
+
+            \DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم بدء فترة التجربة بنجاح'
+            ]);
+
+        } catch (\Exception $e) {
+            \DB::rollback();
+            \Log::error('Error in startTrial: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ في بدء فترة التجربة'
+            ], 500);
+        }
+    }
+
+    /**
+     * طباعة عقد نقل الكفالة
+     */
+    public function printContract($id)
+    {
+        $transfer = SponsorshipTransfer::with([
+            'contract.maid.nationality',
+            'oldSponsor',
+            'newSponsor'
+        ])->findOrFail($id);
+
+        // جلب بنود العقد
+        $contractTerms = \App\Models\TransferContractTerm::active()
+            ->ordered()
+            ->get()
+            ->groupBy('page_number');
+
+        // إعدادات العقد (يمكن تخزينها في جدول منفصل لاحقاً)
+        $contractSettings = [
+            'company_name' => 'شركة إنجاز للاستقدام',
+            'license_number' => '1234567890',
+            'address' => 'الرياض، المملكة العربية السعودية',
+            'phone' => '+966 11 123 4567',
+            'email' => 'info@ingaz.com'
+        ];
+
+        return view('admin.print.sponsorship-transfer-contract-enhanced', compact('transfer', 'contractTerms', 'contractSettings'));
+    }
+
+    /**
+     * عرض تفاصيل فترة التجربة للتأكيد
+     */
+    public function trialDetails($id)
+    {
+        $transfer = SponsorshipTransfer::with([
+            'contract.maid.nationality',
+            'oldSponsor',
+            'newSponsor'
+        ])->findOrFail($id);
+
+        // التحقق من الحالة
+        if ($transfer->status !== 'maid_delivered') {
+            return redirect()->route('SponsorshipTransfer.index')
+                ->with('error', 'لا يمكن عرض تفاصيل التجربة في الحالة الحالية');
+        }
+
+        return view('admin.ingaz.SponsorshipTransfer.trial-details', compact('transfer'));
+    }
+
+    /**
+     * حفظ التوقيع على عقد نقل الكفالة
+     */
+    public function saveSignature(Request $request, $id)
+    {
+        try {
+            // التحقق من وجود طلب النقل
+            $transfer = SponsorshipTransfer::findOrFail($id);
+
+            // التحقق من الحالة - يجب أن يكون العقد مُرسل
+            if ($transfer->status !== 'contract_sent') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن التوقيع على العقد في الحالة الحالية'
+                ], 400);
+            }
+
+            // التحقق من البيانات المرسلة
+            $request->validate([
+                'signature' => 'required|string'
+            ]);
+
+            // تحويل base64 إلى ملف
+            $signatureData = $request->signature;
+
+            // إزالة header من base64
+            $signatureData = str_replace('data:image/png;base64,', '', $signatureData);
+            $signatureData = str_replace(' ', '+', $signatureData);
+
+            // فك تشفير base64
+            $signatureImage = base64_decode($signatureData);
+
+            if (!$signatureImage) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'بيانات التوقيع غير صحيحة'
+                ], 400);
+            }
+
+            \DB::beginTransaction();
+
+            // إنشاء اسم فريد للملف
+            $fileName = 'transfer_signature_' . $id . '_' . time() . '.png';
+
+            // حفظ الملف في storage
+            $filePath = 'signatures/' . $fileName;
+            \Storage::disk('public')->put($filePath, $signatureImage);
+
+            // تحديث طلب النقل بالتوقيع والحالة الجديدة
+            $transfer->update([
+                'signature' => $fileName,
+                'status' => 'contract_signed',
+                'contract_signed_at' => now(),
+                'contract_signed_by' => auth('admin')->id()
+            ]);
+
+            \DB::commit();
+
+            // إعادة تحميل النقل للتأكد من التحديث
+            $transfer->refresh();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم حفظ التوقيع بنجاح وتحديث حالة العقد',
+                'signature_path' => $filePath,
+                'signature_file' => $fileName,
+                'new_status' => $transfer->status
+            ]);
+
+        } catch (\Exception $e) {
+            \DB::rollback();
+            \Log::error('خطأ في حفظ التوقيع: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء حفظ التوقيع: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * حفظ توقيع الشركة على عقد نقل الكفالة
+     */
+    public function saveCompanySignature(Request $request, $id)
+    {
+        try {
+            // التحقق من وجود طلب النقل
+            $transfer = SponsorshipTransfer::findOrFail($id);
+
+            // التحقق من البيانات المرسلة
+            $request->validate([
+                'signature' => 'required|string'
+            ]);
+
+            // تحويل base64 إلى ملف
+            $signatureData = $request->signature;
+
+            // إزالة header من base64
+            $signatureData = str_replace('data:image/png;base64,', '', $signatureData);
+            $signatureData = str_replace(' ', '+', $signatureData);
+
+            // فك تشفير base64
+            $signatureImage = base64_decode($signatureData);
+
+            if (!$signatureImage) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'بيانات التوقيع غير صحيحة'
+                ], 400);
+            }
+
+            // إنشاء اسم فريد للملف
+            $fileName = 'company_signature_transfer_' . $id . '_' . time() . '.png';
+
+            // حفظ الملف في storage
+            $filePath = 'signatures/' . $fileName;
+            \Storage::disk('public')->put($filePath, $signatureImage);
+
+            // تحديث طلب النقل بتوقيع الشركة
+            $transfer->update([
+                'company_signature' => $fileName
+            ]);
+
+            // إعادة تحميل النقل للتأكد من التحديث
+            $transfer->refresh();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم حفظ توقيع الشركة بنجاح',
+                'signature_path' => $filePath,
+                'signature_file' => $fileName
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('خطأ في حفظ توقيع الشركة: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء حفظ توقيع الشركة: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
 
-class RecruitmentOffice extends Controller
+class RecruitmentOfficeController extends Controller
 {
     public $folderPath = "admin.ingaz.recruitment-offices";
     public $postData = ['title:ar', 'title:en', 'nationality_id'];

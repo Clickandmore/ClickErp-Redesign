@@ -386,6 +386,10 @@
                         <span class="info-value">{{ $contract->maid->experience_years ?? 'غير محدد' }}</span>
                     </div>
                     <div class="info-row">
+                        <span class="info-label">حالة الخبرة:</span>
+                        <span class="info-value">{{ $contract->maid->experience_status ?? 'غير محدد' }}</span>
+                    </div>
+                    <div class="info-row">
                         <span class="info-label">العمر:</span>
                         <span class="info-value">{{ $contract->maid->age ?? 'غير محدد' }}</span>
                     </div>

@@ -10,7 +10,7 @@ class JobType extends Model
 {
     use Translatable,HasFactory;
     protected $guarded = [];
-    public $translatedAttributes = ['title'];
+    public $translatedAttributes = ['title','description'];
     protected $translationForeignKey = 'job_type_id';
     public $translationModel = JobTypesTranslation::class;
     protected $with = ['translations'];

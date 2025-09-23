@@ -8,8 +8,30 @@
                     <i class="fas fa-exchange-alt text-primary me-2"></i>
                     {{helperTrans("ingaz.add_sponsorship_transfer_request")}}
                 </h3>
+                @if(isset($selectedOrder) && $selectedOrder)
+                    <div class="alert alert-info mt-3">
+                        <h6><i class="fas fa-info-circle me-2"></i>طلب من الموقع</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>رقم الطلب:</strong> {{ $selectedOrder->order_code }}<br>
+                                <strong>العميل:</strong> {{ $selectedOrder->user ? $selectedOrder->user->name : 'غير محدد' }}<br>
+                                <strong>الهاتف:</strong> {{ $selectedOrder->user ? $selectedOrder->user->phone : 'غير محدد' }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>العاملة المطلوبة:</strong> {{ $selectedOrder->maid ? $selectedOrder->maid->name : 'غير محدد' }}<br>
+                                <strong>الجنسية:</strong> {{ $selectedOrder->maid && $selectedOrder->maid->nationality ? $selectedOrder->maid->nationality->sub_title : 'غير محدد' }}<br>
+                                <strong>تاريخ الطلب:</strong> {{ $selectedOrder->created_at->format('Y-m-d H:i') }}
+                            </div>
+                        </div>
+                    </div>
+                @endif
             </div>
             <div class="card-body pt-3">
+                @if(session('warning'))
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>{{ session('warning') }}
+                    </div>
+                @endif
                 <form id="sponsorshipTransferForm" class="row g-4">
                     @csrf
                     <!-- اختيار العقد -->

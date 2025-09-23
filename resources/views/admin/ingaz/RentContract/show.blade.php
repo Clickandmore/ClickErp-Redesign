@@ -186,7 +186,7 @@
             رقم العقد: {{ $contract->contract_number ?? $contract->id }}
         </div>
         <div class="contract-status">
-            الحالة: {{ $this->getStatusText($contract->status) }}
+            الحالة: {{ $contract->status}}
         </div>
     </div>
 
@@ -249,7 +249,7 @@
                 </div>
                 <div class="info-row">
                     <span class="info-label">تاريخ الميلاد:</span>
-                    <span class="info-value">{{ $contract->user->birthdate ? $contract->user->birthdate->format('Y-m-d') : 'غير محدد' }}</span>
+                    <span class="info-value">{{ $contract->user->birthdate ? $contract->user->birthdate : 'غير محدد' }}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">الجنسية:</span>
@@ -320,6 +320,10 @@
                 <div class="info-row">
                     <span class="info-label">سنوات الخبرة:</span>
                     <span class="info-value">{{ $contract->maid->experience_years }} سنة</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">حالة الخبرة:</span>
+                    <span class="info-value">{{ $contract->maid->experience_status }}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">الراتب المطلوب:</span>
@@ -417,7 +421,7 @@
                         </div>
                         <div class="info-row">
                             <span class="info-label">حالة الضمان:</span>
-                            <span class="info-value">{{ $this->getWarrantyStatusText($contract->warranty_status) }}</span>
+                            <span class="info-value">{{ $contract->warranty_status }}</span>
                         </div>
                     </div>
                 </div>

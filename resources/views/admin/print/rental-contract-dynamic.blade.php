@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>عقد تأجير عاملة منزلية</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
 
@@ -223,6 +224,117 @@
                 display: none;
             }
         }
+
+        /* Signature Styles */
+        .signature-container {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+
+        .signature-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .signature-canvas-container {
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        #signatureCanvas {
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            background: white;
+            cursor: crosshair;
+        }
+
+        .signature-controls {
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .signature-btn {
+            margin: 0 5px;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .signature-btn-primary {
+            background: #28a745;
+            color: white;
+        }
+
+        .signature-btn-primary:hover {
+            background: #218838;
+        }
+
+        .signature-btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .signature-btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .signature-btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .signature-btn-danger:hover {
+            background: #c82333;
+        }
+
+        .signature-display {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .signature-display img {
+            max-width: 200px;
+            max-height: 100px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .signature-status {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .signature-status.signed {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .signature-status.not-signed {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media print {
+            .signature-controls {
+                display: none !important;
+            }
+            .signature-container {
+                border: none;
+                background: none;
+            }
+        }
     </style>
 </head>
 <body>
@@ -395,6 +507,53 @@
                 <p>لا توجد بنود للصفحة الثالثة</p>
             @endif
 
+            <!-- قسم التوقيع التفاعلي -->
+            <div class="signature-container no-print">
+                <div class="signature-title">توقيع الطرف الثاني ({{ $contract->user->name ?? 'العميل' }})</div>
+
+                <!-- حالة التوقيع -->
+                <div class="signature-status {{ $contract->signature ? 'signed' : 'not-signed' }}">
+                    @if($contract->signature)
+                        ✅ تم التوقيع على العقد
+                    @else
+                        ❌ لم يتم التوقيع بعد
+                    @endif
+                </div>
+
+                <!-- عرض التوقيع المحفوظ -->
+                @if($contract->signature)
+                    <div class="signature-display">
+                        <img src="{{ asset('storage/signatures/' . $contract->signature) }}" alt="التوقيع المحفوظ">
+                    </div>
+                @elseif(isset($allowSignature) && $allowSignature)
+                    <!-- Canvas للتوقيع - يظهر فقط بعد إرسال العقد -->
+                    <div class="signature-canvas-container">
+                        <canvas id="signatureCanvas" width="400" height="150"></canvas>
+                    </div>
+
+                    <!-- أزرار التحكم -->
+                    <div class="signature-controls">
+                        <button type="button" class="signature-btn signature-btn-primary" onclick="saveSignature()">
+                            حفظ التوقيع
+                        </button>
+                        <button type="button" class="signature-btn signature-btn-secondary" onclick="clearSignature()">
+                            مسح التوقيع
+                        </button>
+                        <button type="button" class="signature-btn signature-btn-danger" onclick="downloadSignature()">
+                            تحميل التوقيع
+                        </button>
+                    </div>
+                @else
+                    <!-- رسالة عدم إمكانية التوقيع -->
+                    <div class="signature-not-available">
+                        <p style="color: #666; text-align: center; padding: 20px;">
+                            <i class="fas fa-info-circle"></i>
+                            التوقيع متاح بعد إرسال العقد للعميل
+                        </p>
+                    </div>
+                @endif
+            </div>
+
             <!-- قسم التوقيعات -->
             <div class="signature-section">
                 <div class="signature-box">
@@ -407,11 +566,176 @@
                 <div class="signature-box">
                     <h4>الطرف الثاني</h4>
                     <div class="signature-line">الاسم: {{ $contract->user->name ?? '' }}</div>
-                    <div class="signature-line">التوقيع: ........................</div>
+                    <div class="signature-line">
+                        التوقيع:
+                        @if($contract->signature)
+                            <img src="{{ asset('storage/signatures/' . $contract->signature) }}" style="max-width: 150px; max-height: 60px; vertical-align: middle;">
+                        @else
+                            ........................
+                        @endif
+                    </div>
                     <div class="signature-line">التاريخ: {{ \Carbon\Carbon::now()->format('Y/m/d') }}</div>
                 </div>
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // متغيرات التوقيع
+        let canvas = document.getElementById('signatureCanvas');
+        let ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        // إعداد Canvas
+        function setupCanvas() {
+            if (!canvas) return;
+
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // إضافة نص توجيهي
+            ctx.fillStyle = '#999';
+            ctx.font = '16px Cairo';
+            ctx.textAlign = 'center';
+            ctx.fillText('اضغط هنا للتوقيع', canvas.width / 2, canvas.height / 2);
+        }
+
+        // بدء الرسم
+        function startDrawing(e) {
+            isDrawing = true;
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        }
+
+        // الرسم
+        function draw(e) {
+            if (!isDrawing) return;
+
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.stroke();
+
+            [lastX, lastY] = [e.offsetX, e.offsetY];
+        }
+
+        // إيقاف الرسم
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        // مسح التوقيع
+        function clearSignature() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            setupCanvas();
+        }
+
+        // حفظ التوقيع
+        function saveSignature() {
+            // التحقق من وجود توقيع
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const hasSignature = imageData.data.some(channel => channel !== 0);
+
+            if (!hasSignature) {
+                Swal.fire({
+                    title: 'تنبيه!',
+                    text: 'يرجى التوقيع أولاً قبل الحفظ',
+                    icon: 'warning',
+                    confirmButtonText: 'حسناً'
+                });
+                return;
+            }
+
+            // تحويل Canvas إلى صورة
+            const signatureImage = canvas.toDataURL('image/png');
+
+            console.log('Saving signature for contract ID:', {{ $contract->id }});
+
+            // إرسال التوقيع للخادم
+            fetch('{{ route("RentContract.saveSignature", $contract->id) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    signature: signatureImage
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Server response:', data);
+                if (data.success) {
+                    Swal.fire({
+                        title: 'تم الحفظ بنجاح!',
+                        text: 'تم حفظ التوقيع على العقد',
+                        icon: 'success',
+                        confirmButtonText: 'حسناً'
+                    }).then(() => {
+                        // تحديث الصفحة مع إضافة timestamp لتجنب cache
+                        window.location.href = window.location.href + '?t=' + Date.now();
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'خطأ!',
+                        text: data.message || 'حدث خطأ أثناء حفظ التوقيع',
+                        icon: 'error',
+                        confirmButtonText: 'حسناً'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'خطأ!',
+                    text: 'حدث خطأ أثناء حفظ التوقيع',
+                    icon: 'error',
+                    confirmButtonText: 'حسناً'
+                });
+            });
+        }
+
+        // تحميل التوقيع
+        function downloadSignature() {
+            const link = document.createElement('a');
+            link.download = 'توقيع_العقد_{{ $contract->id }}.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        // إعداد الأحداث
+        if (canvas) {
+            setupCanvas();
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+
+            // دعم اللمس للأجهزة المحمولة
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                const y = touch.clientY - rect.top;
+                startDrawing({ offsetX: x, offsetY: y });
+            });
+
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                const y = touch.clientY - rect.top;
+                draw({ offsetX: x, offsetY: y });
+            });
+
+            canvas.addEventListener('touchend', stopDrawing);
+        }
+    </script>
 </body>
 </html>

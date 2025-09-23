@@ -13,6 +13,7 @@ use App\Http\Traits\SendSMSTrait;
 use App\Models\ingaz\OrderDetail;
 use App\Models\ingaz\Notification;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Enums\ingaz\NotificationActionEnum;
 
 class OrderAction extends MainAction
@@ -28,12 +29,27 @@ class OrderAction extends MainAction
     {
         $acceptedStatuses = [];
         if ($status == 'current') {
-            $acceptedStatuses = [OrderEnum::New , OrderEnum::Completed];
+            $acceptedStatuses = [
+                OrderEnum::New->value,
+                OrderEnum::Completed->value,
+                OrderEnum::UnderProcess->value,
+                OrderEnum::Contracted->value,
+                OrderEnum::ContractedWithoutContract->value
+            ];
         } elseif ($status == 'previous') {
-            $acceptedStatuses = [OrderEnum::Refused, OrderEnum::Done];
+            $acceptedStatuses = [OrderEnum::Refused->value, OrderEnum::Done->value];
         }
-        $data = $this->model->where('User_id', getGuardedUser()->id)
+
+        $userId = Auth::user() ? Auth::user()->id : (getGuardedUser() ? getGuardedUser()->id : null);
+
+        if (!$userId) {
+            return collect([]);
+        }
+
+        $data = $this->model->where('user_id', $userId)
             ->whereIn('status', $acceptedStatuses)
+            ->with(['user', 'maid', 'jobType', 'details.admin'])
+            ->orderBy('created_at', 'desc')
             ->get();
         return $data;
     }
@@ -56,9 +72,17 @@ class OrderAction extends MainAction
         $order = $this->model->find($order->id);
 
         try{
-            if($order && $order->job_type_id == 1 && $order->admin->phone){
+            if($order && $order->admin->phone){
                 $orderId = $order->order_code;
-                $msg = "يوجد طلب إستقدام جديد رقم $orderId";
+
+                if($order->job_type_id == 1){
+                    $msg = "يوجد طلب إستقدام جديد رقم $orderId";
+                } elseif($order->job_type_id == 2){
+                    $msg = "يوجد طلب إيجار عمالة جديد رقم $orderId";
+                } elseif($order->job_type_id == 3){
+                    $msg = "يوجد طلب نقل كفالة جديد رقم $orderId";
+                }
+
                 $result = $this->sendSMS($order->admin->phone, $msg);
             }
         }catch(\Exception $ex){
@@ -71,10 +95,17 @@ class OrderAction extends MainAction
     public function StoreOrderDetails($request, $order)
     {
 //        foreach ($request->details_list as $key => $details_list) {
+
+        // معالجة address_id للقيم الخاصة
+        $addressId = $request->details_list['address_id'] ?? null;
+        if ($addressId === 'skip' || $addressId === 'manual' || $addressId === '') {
+            $addressId = null; // تعيين null للقيم الخاصة
+        }
+
         $dataProduct = [
             'admin_id' => $request->details_list['admin_id'] ?? null,
             'package_id' => $request->details_list['package_id'] ?? null,
-            'address_id' => $request->details_list['address_id'] ?? null,
+            'address_id' => $addressId,
             'deliver_maid' => $request->details_list['deliver_maid'] ?? '0',
             'order_id' => $order->id,
         ];
@@ -123,19 +154,33 @@ class OrderAction extends MainAction
             }
 
             //** NEW ADDED D18M7Y24 => IS */
-            // make a contract after order start
+            // توجيه كل نوع طلب إلى الصفحة المناسبة
             if ($order->job_type_id == 1) {
-
+                // إنشاء عقد استقدام
                 $checkContract = Contract::where('order_id', $order->id)->exists();
                 if(!$checkContract){
-                    // Scenario 1: User selects an existing order to create a contract
                     $contractData['order_id'] = $order->id;
                     $contractData['user_id'] = $order->user_id;
                     $contractData['maid_id'] = $order->maid_id;
                     $contractData['status'] = 'sari';
-                    // Create contract
                     $contract = Contract::create($contractData);
                 }
+            } elseif ($order->job_type_id == 2) {
+                // توجيه إلى صفحة إنشاء عقد إيجار
+                // لا يتم إنشاء عقد هنا - العميل يذهب إلى RentContract/create
+                \Log::info('Rental order completed - redirect to RentContract/create', [
+                    'order_id' => $order->id,
+                    'maid_id' => $order->maid_id,
+                    'user_id' => $order->user_id
+                ]);
+            } elseif ($order->job_type_id == 3) {
+                // توجيه إلى صفحة إنشاء طلب نقل كفالة
+                // لا يتم إنشاء عقد هنا - العميل يذهب إلى SponsorshipTransfer/create
+                \Log::info('Instant receipt order completed - redirect to SponsorshipTransfer/create', [
+                    'order_id' => $order->id,
+                    'maid_id' => $order->maid_id,
+                    'user_id' => $order->user_id
+                ]);
             }
             //** END */
         }
@@ -167,4 +212,49 @@ class OrderAction extends MainAction
         return $this->find($id)->update(['status' => $data['status']]);
     }
 
+    /**
+     * حذف الطلب مع إرجاع العاملة متاحة
+     */
+    public function delete($id)
+    {
+        try {
+            DB::beginTransaction();
+
+            // البحث عن الطلب
+            $order = $this->model->findOrFail($id);
+
+            // حفظ معلومات العاملة قبل الحذف
+            $maidId = $order->maid_id;
+            $maid = Maid::find($maidId);
+
+            // حذف الطلب
+            $deleted = parent::delete($id);
+
+            if ($deleted && $maid) {
+                // إرجاع العاملة متاحة مرة أخرى
+                $maid->update([
+                    'status' => 'available',
+                    'available' => 1,
+                    'available_at' => now()->addDays(30)->toDateString()
+                ]);
+
+                \Log::info('Order deleted and maid restored to available', [
+                    'order_id' => $id,
+                    'maid_id' => $maidId,
+                    'maid_status' => 'available'
+                ]);
+            }
+
+            DB::commit();
+            return true;
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            \Log::error('Error deleting order and restoring maid', [
+                'order_id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
 }

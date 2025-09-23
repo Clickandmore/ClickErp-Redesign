@@ -8,6 +8,7 @@ use App\Models\NewSettings;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Setting;
 use App\Models\ingaz\DevelopSetting;
+use App\Models\ingaz\FastNew;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
@@ -34,7 +35,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot()
     {
         Schema::defaultStringLength(255);
-        //Register custom migration paths
+//        Register custom migration paths
         $migrationsPath = database_path('migrations');
         $directories = glob($migrationsPath . '/*', GLOB_ONLYDIR);
         $paths = array_merge([$migrationsPath], $directories);
@@ -76,16 +77,20 @@ class AppServiceProvider extends ServiceProvider
             $view->with('developSettings', $developSettings);
         });
 
+
+           View::composer('*', function ($view) {
+            $fastnews = FastNew::with('translations')->get();
+            $view->with('fastnews', $fastnews);
+        });
+
         // count contracts by status
         $contractsCount['new'] = Contract::where('status', 'new')->count();
         $contractsCount['msaned'] = Contract::where('status', 'msaned')->count();
         $contractsCount['tafwed'] = Contract::where('status', 'tafwed')->count();
         $contractsCount['taffez'] = Contract::where('status', 'taffez')->count();
         $contractsCount['tazker'] = Contract::where('status', 'tazker')->count();
-        // العقود تحت الضمان = العقود المكتملة مع warranty_status = active
-        $contractsCount['under_warranty'] = Contract::where('status', 'completed')
-            ->where('warranty_status', 'active')
-            ->count();
+        // العقود تحت الضمان = العقود المكتملة
+        $contractsCount['under_warranty'] = Contract::where('status', 'completed')->count();
         $contractsCount['back'] = Contract::where('status', 'back')->count();
         $contractsCount['arrival'] = Contract::where('status', 'arrival')->count();
         $contractsCount['closed'] = Contract::where('status', 'closed')->count();

@@ -1,0 +1,4 @@
+order_code,user_id,maid_id,status,payment_method,created_at
+"ORD_20250913_001","1","1","new","cash","2025-09-13 10:30:00"
+"ORD_20250913_002","2","2","processing","card","2025-09-13 11:15:00"
+"ORD_20250913_003","3","3","completed","bank_transfer","2025-09-13 09:45:00"

@@ -12,7 +12,7 @@ class AboutUs extends Model
 
     protected $guarded = [];
 
-    public $translatedAttributes = ['title','description'];
+    public $translatedAttributes = ['title','description' , 'mission','vision','value'];
     protected $translationForeignKey = 'about_us_id';
     public $translationModel = AboutUsTranslation::class;
     protected $with = ['translations'];

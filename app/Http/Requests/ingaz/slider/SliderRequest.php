@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\ingaz\slider;
+namespace App\Http\Requests\worldedge\slider;
 
 use App\Http\Requests\MainRequest;
 use Illuminate\Foundation\Http\FormRequest;

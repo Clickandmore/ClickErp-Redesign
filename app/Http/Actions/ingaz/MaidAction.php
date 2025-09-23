@@ -240,10 +240,11 @@ class MaidAction extends MainAction
                         'receipt_source' => 'company', // Use translatable key
                     ]);
 
-                    // Update maid status to in accommodation
+                    // Update maid status to in accommodation but available for work
                     $maid->update([
                         'status' => 'in_accommodation',
-                        'available' => 0,
+                        'available' => 1, // متاحة للعمل
+                        'available_at' => now()->toDateString(),
                     ]);
 
                     DB::commit();
@@ -284,7 +285,9 @@ class MaidAction extends MainAction
             $query->whereBetween('age', [$request->age_from, $request->age_to]);
         }
 
-        return $query->orderBy('is_pinned', 'desc')
+        if ($request->experience_status) {
+            $query->where('experience_status', $request->experience_status);
+        }        return $query->orderBy('is_pinned', 'desc')
                     ->orderBy('created_at', 'desc');
     }
 
@@ -488,5 +491,40 @@ class MaidAction extends MainAction
         $maid->is_pinned = !$maid->is_pinned;
         $maid->save();
         return $maid;
+    }
+
+    public function paginate($request,$limit = 10)
+    {
+        $type = match($request->type){
+            'estqdam' => 1,
+            'egar' => 2,
+            'transfer' => 3,
+            default => null,
+        };
+
+        return $this->model
+        ->when(isset($type), function ($query) use ($type) {
+            $query->whereHas('jobTypes', function ($q) use ($type) {
+                $q->where('job_type_id', $type);
+            });
+        })
+        ->when(isset($request->nationality_id), function($query) use ($request) {
+            $query->where('nationality_id', $request->nationality_id);
+        })
+        ->when(isset($request->age), function($query) use ($request) {
+            if($request->age == '20_30') {
+                $query->whereBetween('age', [20, 30]);
+            } elseif($request->age == '31_40') {
+                $query->whereBetween('age', [31, 40]);
+            } elseif($request->age == '41_50') {
+                $query->whereBetween('age', [41, 50]);
+            }
+        })
+        ->when(isset($request->job), function($query) use ($request) {
+            $query->whereHas('jobTitles', function ($q) use ($request) {
+                $q->where('job_title_id', $request->job);
+            });
+        })
+        ->paginate($limit);
     }
 }

@@ -35,11 +35,12 @@
                         <div class="col-6">
                             <p class="mb-2"><strong class="text-primary">رقم الجواز:</strong><br>{{ $maid->passport_num }}</p>
                             <p class="mb-2"><strong class="text-primary">الجنسية:</strong><br>{{ $maid->nationality->sub_title ?? 'غير محدد' }}</p>
-                            <p class="mb-2"><strong class="text-primary">الديانة:</strong><br>{{ $maid->religion->title ?? 'غير محدد' }}</p>
+                            <p class="mb-2"><strong class="text-primary">الديانة:</strong><br>{{ $maid->religion->english_title ?? 'غير محدد' }}</p>
                         </div>
                         <div class="col-6">
                             <p class="mb-2"><strong class="text-primary">المهنة:</strong><br>{{ $maid->jobTitles->first()->title ?? 'غير محدد' }}</p>
                             <p class="mb-2"><strong class="text-primary">الراتب:</strong><br>{{ $maid->salary ? $maid->salary . ' ريال' : 'غير محدد' }}</p>
+                            <p class="mb-2"><strong class="text-primary">حالة الخبرة:</strong><br>{{ $maid->experience_status ?? 'غير محدد' }}</p>
                             <p class="mb-2"><strong class="text-primary">الخبرة:</strong><br>{{ $maid->experience_years ? $maid->experience_years . ' سنوات' : 'غير محدد' }}</p>
                         </div>
                     </div>

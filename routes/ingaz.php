@@ -1,4 +1,10 @@
 <?php
+
+use App\Http\Controllers\ingaz\ArrivalWorkerController;
+use App\Http\Controllers\ingaz\SelectWorkerController;
+use App\Http\Controllers\ingaz\TestimonialController;
+use App\Http\Controllers\ingaz\WhyUsController;
+use App\Http\Controllers\office\OfficeController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\admin\ActivityLogController;
 use App\Http\Controllers\Permissions\RolesController;
@@ -13,8 +19,11 @@ use App\Http\Controllers\admin\AdminShelterWorkersContractCTLR;
 use App\Http\Controllers\admin\AdminFullOrderContractController;
 use App\Http\Controllers\ingaz\OrderController;
 use App\Http\Controllers\ingaz\RentalOrderController;
+use App\Http\Controllers\ingaz\TransferServiceContractController;
+use App\Http\Controllers\ingaz\TransferContractTermsController;
 use App\Http\Controllers\ingaz\ShelterContractController;
 use App\Http\Controllers\ingaz\RecruitmentContractController;
+use App\Http\Controllers\ingaz\RecruitmentOfficeController;
 use App\Http\Controllers\ingaz\SponsorshipTransferController;
 use App\Http\Controllers\ingaz\RentContractController;
 use App\Http\Controllers\ingaz\NotificationController;
@@ -32,6 +41,7 @@ use App\Http\Controllers\ingaz\QuestionController;
 use App\Http\Controllers\ingaz\ContactController;
 use App\Http\Controllers\ingaz\ServiceController;
 use App\Http\Controllers\ingaz\AboutUsController;
+use App\Http\Controllers\ingaz\ClientController;
 use App\Http\Controllers\ingaz\SkillController;
 use App\Http\Controllers\ingaz\MaidTestController;
 use App\Http\Controllers\ingaz\PackageController;
@@ -39,8 +49,15 @@ use App\Http\Controllers\ingaz\ComplaintController;
 use App\Http\Controllers\ingaz\StepController;
 use App\Http\Controllers\ingaz\ReturnRequestController;
 use App\Http\Controllers\ingaz\ComplaintTypeController;
+use App\Http\Controllers\ingaz\CvConvertController;
+use App\Http\Controllers\ingaz\FastNewController;
+use App\Http\Controllers\ingaz\FeatureController;
+use App\Http\Controllers\ingaz\ProfessionalApplicationController;
+use App\Http\Controllers\ingaz\RecruitmentRequestController;
+use App\Http\Controllers\ingaz\RenewContractController;
 use App\Http\Controllers\ingaz\RentalContractTermsController;
-
+use App\Http\Controllers\ingaz\RequirementsController;
+use App\Models\Client;
 
 /*
 |--------------------------------------------------------------------------
@@ -60,6 +77,22 @@ Route::group(
     ],
     function () {
         Route::group(["prefix" => "admin", "middleware" => "auth:admin"], function () {
+
+            Route::resource('partenrs', ClientController::class);
+            Route::resource('why-us', WhyUsController::class);
+            Route::resource('arrival-workers', ArrivalWorkerController::class);
+            Route::resource('testimonials', TestimonialController::class);
+            Route::resource('select-workers', SelectWorkerController::class);
+            Route::resource('requiremens', RequirementsController::class);
+            Route::resource('cv-convert', CvConvertController::class);
+
+            Route::resource('partenrs', ClientController::class);
+            Route::resource('requiremens', RequirementsController::class);
+            Route::resource('fast-news', FastNewController::class);
+            Route::resource('features', FeatureController::class);
+            Route::resource('renew-contracts', RenewContractController::class);
+            Route::resource('professional_application', ProfessionalApplicationController::class);
+            Route::resource('recruitment_requests', RecruitmentRequestController::class);
 
             Route::get('getMaidByNationality/{nationalityId}', [RecruitmentContractController::class, 'getMaidByNationality'])->name('getMaidByNationality');
             Route::get('clients/{id}/details', [RecruitmentContractController::class, 'getClientDetails'])->name('clients.details');
@@ -152,6 +185,22 @@ Route::group(
             Route::resource('rental-orders', RentalOrderController::class);
             Route::post('rental-orders/{id}/approve', [RentalOrderController::class, 'approveOrder'])->name('rental-orders.approve');
             Route::post('rental-orders/{id}/reject', [RentalOrderController::class, 'rejectOrder'])->name('rental-orders.reject');
+
+            // Transfer Service Contracts routes
+            Route::resource('TransferServiceContract', TransferServiceContractController::class);
+            Route::get('print/transfer-service-contract/{transferServiceContract}', [TransferServiceContractController::class, 'print'])->name('print.transfer-service-contract');
+            Route::get('print/sponsorship-transfer-contract/{sponsorshipTransfer}', [SponsorshipTransferController::class, 'printContract'])->name('print.sponsorship-transfer-contract');
+            Route::post('sponsorship-transfer/{id}/save-signature', [SponsorshipTransferController::class, 'saveSignature'])->name('sponsorship-transfer.save-signature');
+            Route::post('sponsorship-transfer/{id}/save-company-signature', [SponsorshipTransferController::class, 'saveCompanySignature'])->name('sponsorship-transfer.save-company-signature');
+
+            // Transfer Contract Terms routes
+            Route::resource('transfer-contract-terms', TransferContractTermsController::class);
+
+            // SponsorshipTransfer action routes
+            Route::post('SponsorshipTransfer/{id}/send-contract', [SponsorshipTransferController::class, 'sendContract'])->name('SponsorshipTransfer.send-contract');
+            Route::post('SponsorshipTransfer/{id}/sign-contract', [SponsorshipTransferController::class, 'signContract'])->name('SponsorshipTransfer.sign-contract');
+            Route::post('SponsorshipTransfer/{id}/deliver-maid', [SponsorshipTransferController::class, 'deliverMaid'])->name('SponsorshipTransfer.deliver-maid');
+            Route::post('SponsorshipTransfer/{id}/start-trial', [SponsorshipTransferController::class, 'startTrial'])->name('SponsorshipTransfer.start-trial');
             Route::get('orders/current', [OrderController::class, 'index'])->name('orders.current');
             Route::get('orders/ended', [OrderController::class, 'index'])->name('orders.ended');
             Route::get('orders/completed', [OrderController::class, 'index'])->name('orders.completed');
@@ -182,7 +231,13 @@ Route::group(
             Route::get('RentContract/{id}/details', [RentContractController::class, 'getContractDetails'])->name('RentContract.details');
             Route::post('RentContract/{id}/close-and-make-available', [RentContractController::class, 'closeAndMakeAvailable'])->name('RentContract.closeAndMakeAvailable');
             Route::post('RentContract/{id}/transfer-sponsorship', [RentContractController::class, 'transferSponsorship'])->name('RentContract.transferSponsorship');
-            Route::get('print/rental-contract/{id}', [AdminContractController::class, 'printRentalContract'])->name('print.rental.contract');
+
+            // Routes جديدة لـ workflow عقود الإيجار
+            Route::post('RentContract/{id}/send-contract', [RentContractController::class, 'sendContract'])->name('RentContract.sendContract');
+            Route::post('RentContract/{id}/sign-contract', [RentContractController::class, 'signContract'])->name('RentContract.signContract');
+            Route::post('RentContract/{id}/deliver-maid', [RentContractController::class, 'deliverMaid'])->name('RentContract.deliverMaid');
+            Route::post('RentContract/{id}/activate-contract', [RentContractController::class, 'activateContract'])->name('RentContract.activateContract');
+            Route::post('RentContract/{id}/save-signature', [RentContractController::class, 'saveSignature'])->name('RentContract.saveSignature');
 
             // إدارة بنود عقد التأجير
             Route::get('rent-contract-terms', [RentalContractTermsController::class, 'index'])->name('rent-contract-terms.index');
@@ -206,6 +261,7 @@ Route::group(
             Route::get('SponsorshipTransfer/status/trial', [SponsorshipTransferController::class, 'trial'])->name('SponsorshipTransfer.trial');
             Route::get('SponsorshipTransfer/status/transferred', [SponsorshipTransferController::class, 'transferred'])->name('SponsorshipTransfer.transferred');
             Route::get('SponsorshipTransfer/status/failed', [SponsorshipTransferController::class, 'failed'])->name('SponsorshipTransfer.failed');
+            Route::get('SponsorshipTransfer/{id}/trial-details', [SponsorshipTransferController::class, 'trialDetails'])->name('SponsorshipTransfer.trial-details');
 
             Route::resource('SponsorshipTransfer', SponsorshipTransferController::class);
             Route::get('Contract/searchClients', [SponsorshipTransferController::class, 'searchClients'])->name('Contract.searchClients');
@@ -216,11 +272,12 @@ Route::group(
             Route::post('SponsorshipTransfer/{id}/cancel-transfer', [SponsorshipTransferController::class, 'cancelTransfer'])->name('SponsorshipTransfer.cancelTransfer');
             Route::resource('notifications', NotificationController::class);
             Route::resource('statistics', StatisticController::class);
+
             Route::resource('steps', StepController::class);
             Route::resource('return_requests', ReturnRequestController::class);
             Route::get('return_requests/export/pdf', [ReturnRequestController::class, 'exportPdf'])->name('return_requests.export.pdf');
             Route::get('return_requests/export/excel', [ReturnRequestController::class, 'exportExcel'])->name('return_requests.export.excel');
-            Route::resource('recruitment-offices', RecruitmentOffice::class);
+            Route::resource('recruitment-offices', RecruitmentOfficeController::class);
             Route::resource('shelter-places', ShelterPlaces::class);
             // Route::resource('roles', RoleController::class);
 
@@ -238,8 +295,8 @@ Route::group(
             // Deportation routes
             Route::post('ShelterContract/{id}/deportation/start', [ShelterContractController::class, 'startDeportation'])->name('ShelterContract.deportation.start');
             Route::get('ShelterContract/{id}/deportation/procedures', [ShelterContractController::class, 'showDeportationProcedures'])->name('ShelterContract.deportation.procedures');
-Route::post('ShelterContract/deportation/{id}/update', [ShelterContractController::class, 'updateDeportationProcedures'])->name('ShelterContract.deportation.update');
-Route::get('ShelterContract/deportation/{id}/activity-log', [ShelterContractController::class, 'getActivityLog'])->name('ShelterContract.deportation.activity-log');
+            Route::post('ShelterContract/deportation/{id}/update', [ShelterContractController::class, 'updateDeportationProcedures'])->name('ShelterContract.deportation.update');
+            Route::get('ShelterContract/deportation/{id}/activity-log', [ShelterContractController::class, 'getActivityLog'])->name('ShelterContract.deportation.activity-log');
             Route::get('ShelterContract/deported', [ShelterContractController::class, 'deported'])->name('ShelterContract.deported');
 
             // Work desire route
@@ -259,7 +316,7 @@ Route::get('ShelterContract/deportation/{id}/activity-log', [ShelterContractCont
                 Route::prefix('real')->name('real.')->group(function () {
                     Route::get('/', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'index'])->name('index');
                     Route::get('/test-connection', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'testConnection'])->name('test.connection');
-   Route::get('/diagnose', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'diagnoseConnection'])->name('diagnose');
+                    Route::get('/diagnose', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'diagnoseConnection'])->name('diagnose');
                     Route::get('/packages/data', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'getPackages'])->name('packages.data');
                     Route::get('/packages/{packageId}', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'getPackage'])->name('packages.show');
                     Route::post('/contracts', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'storeContract'])->name('contracts.store');
@@ -268,7 +325,7 @@ Route::get('ShelterContract/deportation/{id}/activity-log', [ShelterContractCont
                     Route::get('/contracts/{contractId}/download/{type?}', [\App\Http\Controllers\Admin\IstiqdasmRealController::class, 'downloadContract'])->name('contracts.download');
                 });
 
-                                // Packages (Mock/Test)
+                // Packages (Mock/Test)
                 Route::get('/packages', [\App\Http\Controllers\admin\IstiqdasmController::class, 'packages'])->name('packages');
                 Route::get('/packages/data', [\App\Http\Controllers\admin\IstiqdasmController::class, 'getPackages'])->name('packages.data');
                 Route::get('/packages/{packageId}', [\App\Http\Controllers\admin\IstiqdasmController::class, 'getPackage'])->name('packages.show');
@@ -317,9 +374,7 @@ Route::get('ShelterContract/deportation/{id}/activity-log', [ShelterContractCont
                 Route::post('/{returnRequest}/process', [\App\Http\Controllers\Admin\ContractReturnRequestController::class, 'process'])->name('process');
                 Route::get('/statistics', [\App\Http\Controllers\Admin\ContractReturnRequestController::class, 'statistics'])->name('statistics');
             });
-
         });
-
     }
 );
 
@@ -358,13 +413,11 @@ Route::group(
 
             //** ACTIVITY LOG **//
             Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity.log');
-
         });
-
     }
 );
 
-    // DeportationTravel routes
+// DeportationTravel routes
 Route::prefix('DeportationTravel')->name('DeportationTravel.')->group(function () {
     Route::get('/', [DeportationTravelController::class, 'index'])->name('index');
     Route::get('/create', [DeportationTravelController::class, 'create'])->name('create');

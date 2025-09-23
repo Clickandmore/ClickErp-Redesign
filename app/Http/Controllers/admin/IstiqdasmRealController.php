@@ -49,10 +49,25 @@ class IstiqdasmRealController extends Controller
                     ]
                 ]);
             } else {
+                // إضافة معلومات تشخيص إضافية
+                $diagnosis = [
+                    'server_ip' => $_SERVER['SERVER_ADDR'] ?? 'غير متوفر',
+                    'client_ip' => $_SERVER['REMOTE_ADDR'] ?? 'غير متوفر',
+                    'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'غير متوفر',
+                    'timestamp' => now()->toISOString(),
+                ];
+
                 return response()->json([
                     'success' => false,
                     'message' => 'فشل الاتصال بمنصة الاستقدام: ' . ($result['error'] ?? 'خطأ غير معروف'),
-                    'error_details' => $result
+                    'error_details' => $result,
+                    'diagnosis' => $diagnosis,
+                    'next_steps' => [
+                        'تواصل مع الدعم الفني للمنصة الحكومية',
+                        'قدم Support ID: ' . ($result['support_id'] ?? 'غير متوفر'),
+                        'تحقق من إعدادات IP الخادم',
+                        'تأكد من صحة بيانات الاعتماد'
+                    ]
                 ], 500);
             }
         } catch (\Exception $e) {
@@ -355,4 +370,41 @@ class IstiqdasmRealController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * تشخيص مشاكل الاتصال
+     */
+    public function diagnoseConnection()
+    {
+        try {
+            $diagnosis = [
+                'timestamp' => now()->toISOString(),
+                'environment' => config('istiqdam.current_env'),
+                'base_url' => config('istiqdam.environments.' . config('istiqdam.current_env') . '.base_url'),
+                'client_id' => config('istiqdam.environments.' . config('istiqdam.current_env') . '.client_id'),
+                'api_key_length' => strlen(config('istiqdam.environments.' . config('istiqdam.current_env') . '.api_key')),
+                'server_info' => [
+                    'server_ip' => $_SERVER['SERVER_ADDR'] ?? 'غير متوفر',
+                    'client_ip' => $_SERVER['REMOTE_ADDR'] ?? 'غير متوفر',
+                    'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'غير متوفر',
+                ]
+            ];
+
+            // اختبار الاتصال
+            $connectionTest = $this->istiqdasmService->testConnection();
+            $diagnosis['connection_test'] = $connectionTest;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تشخيص الاتصال',
+                'diagnosis' => $diagnosis
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'فشل في التشخيص: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 }

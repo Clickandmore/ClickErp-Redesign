@@ -198,6 +198,44 @@
                         </div>
                     @endif
 
+                    @if(session('info'))
+                        <div class="alert alert-info alert-dismissible fade show" role="alert">
+                            <i class="fas fa-info-circle me-2"></i>
+                            {{ session('info') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    @endif
+
+                    <!-- Contract Information -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-file-contract me-2"></i>
+                                معلومات العقد
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <strong>رقم العقد:</strong> {{ $contract->id }}
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>العميل:</strong> {{ $contract->user->name ?? 'غير محدد' }}
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>رقم الهاتف:</strong> {{ $contract->user->phone ?? 'غير محدد' }}
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>الجنسية المفضلة:</strong>
+                                    @if($contract->required_maid_nationality_id && $contract->requiredMaidNationality)
+                                        <span class="badge bg-info">{{ $contract->requiredMaidNationality->sub_title }}</span>
+                                    @else
+                                        <span class="text-muted">غير محدد</span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- Filters Section -->
                     <div class="card mb-4">
@@ -266,6 +304,12 @@
                                             <i class="fas fa-refresh me-1"></i>
                                             إعادة تعيين
                                         </a>
+                                        @if($contract->required_maid_nationality_id)
+                                            <a href="{{ route('RecruitmentContract.selectMaid', $contract->id) }}?show_all_nationalities=1" class="btn btn-outline-info">
+                                                <i class="fas fa-globe me-1"></i>
+                                                عرض جميع الجنسيات
+                                            </a>
+                                        @endif
                                     </div>
                                 </div>
                             </form>
@@ -298,9 +342,9 @@
                                         <div class="text-muted">
                                             عرض {{ $availableMaids->firstItem() ?? 0 }} إلى {{ $availableMaids->lastItem() ?? 0 }} من {{ $availableMaids->total() }} عاملة
                                         </div>
-                                        <div>
+                                        {{-- <div>
                                             {{ $availableMaids->appends(request()->query())->links('pagination::bootstrap-4') }}
-                                        </div>
+                                        </div> --}}
                                     </div>
                                 </nav>
                             </div>
