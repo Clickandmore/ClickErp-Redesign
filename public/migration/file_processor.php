@@ -2376,6 +2376,12 @@ function processExportedFile() {
         } elseif ($tableType === 'countries') {
             // للـ countries، نقل مباشر كما هو
             $processed = processCountriesFromFile($pdo, $handle, $headers, $exportedFile);
+        } elseif ($tableType === 'nationalities') {
+            // للـ nationalities، نقل مباشر
+            $processed = processNationalitiesFromFile($pdo, $handle, $headers, $exportedFile);
+        } elseif ($tableType === 'religions') {
+            // للـ religions، نقل مباشر
+            $processed = processReligionsFromFile($pdo, $handle, $headers, $exportedFile);
         } else {
             throw new Exception("نوع الجدول غير مدعوم: $tableType");
         }
@@ -2623,6 +2629,134 @@ function processCountriesFromFile($pdo, $handle, $headers, $fileName) {
 
         } catch (Exception $e) {
             error_log("خطأ في معالجة country ID {$data['id']}: " . $e->getMessage());
+        }
+    }
+
+    return $processed;
+}
+
+/**
+ * معالجة ملف nationalities
+ */
+function processNationalitiesFromFile($pdo, $handle, $headers, $fileName) {
+    $processed = 0;
+
+    while (($row = fgetcsv($handle, 0, ',')) !== false) {
+        if (count($row) !== count($headers)) {
+            continue;
+        }
+
+        $data = array_combine($headers, array_map('trim', $row));
+
+        if (empty($data['id'])) {
+            continue;
+        }
+
+        try {
+            // تحضير البيانات مع تنظيف NULL
+            $cleanData = [];
+            foreach ($data as $key => $value) {
+                if ($value === 'NULL' || $value === null || $value === '') {
+                    $cleanData[$key] = null;
+                } else {
+                    $cleanData[$key] = $value;
+                }
+            }
+
+            // إضافة القيم الافتراضية
+            if (!isset($cleanData['created_at']) || $cleanData['created_at'] === null) {
+                $cleanData['created_at'] = date('Y-m-d H:i:s');
+            }
+            if (!isset($cleanData['updated_at']) || $cleanData['updated_at'] === null) {
+                $cleanData['updated_at'] = date('Y-m-d H:i:s');
+            }
+
+            // إدراج
+            $columns = array_keys($cleanData);
+            $placeholders = array_fill(0, count($columns), '?');
+
+            $sql = "INSERT INTO nationalities (`" . implode('`, `', $columns) . "`)
+                    VALUES (" . implode(', ', $placeholders) . ")
+                    ON DUPLICATE KEY UPDATE ";
+
+            $updateParts = [];
+            foreach ($columns as $col) {
+                if (!in_array($col, ['id', 'created_at'])) {
+                    $updateParts[] = "`$col` = VALUES(`$col`)";
+                }
+            }
+            $sql .= implode(', ', $updateParts);
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(array_values($cleanData));
+            $processed++;
+
+        } catch (Exception $e) {
+            error_log("خطأ في معالجة nationality {$data['id']}: " . $e->getMessage());
+        }
+    }
+
+    return $processed;
+}
+
+/**
+ * معالجة ملف religions
+ */
+function processReligionsFromFile($pdo, $handle, $headers, $fileName) {
+    $processed = 0;
+
+    while (($row = fgetcsv($handle, 0, ',')) !== false) {
+        if (count($row) !== count($headers)) {
+            continue;
+        }
+
+        $data = array_combine($headers, array_map('trim', $row));
+
+        if (empty($data['id'])) {
+            continue;
+        }
+
+        try {
+            // تحضير البيانات مع تنظيف NULL
+            $cleanData = [];
+            foreach ($data as $key => $value) {
+                if ($value === 'NULL' || $value === null || $value === '') {
+                    $cleanData[$key] = null;
+                } else {
+                    $cleanData[$key] = $value;
+                }
+            }
+
+            // إضافة القيم الافتراضية
+            if (!isset($cleanData['created_at']) || $cleanData['created_at'] === null) {
+                $cleanData['created_at'] = date('Y-m-d H:i:s');
+            }
+            if (!isset($cleanData['updated_at']) || $cleanData['updated_at'] === null) {
+                $cleanData['updated_at'] = date('Y-m-d H:i:s');
+            }
+
+            // إدراج
+            $columns = array_keys($cleanData);
+            $placeholders = array_fill(0, count($columns), '?');
+
+            $sql = "INSERT INTO religions (`" . implode('`, `', $columns) . "`)
+                    VALUES (" . implode(', ', $placeholders) . ")
+                    ON DUPLICATE KEY UPDATE ";
+
+            $updateParts = [];
+            foreach ($columns as $col) {
+                if (!in_array($col, ['id', 'created_at'])) {
+                    $updateParts[] = "`$col` = VALUES(`$col`)";
+                }
+            }
+            $sql .= implode(', ', $updateParts);
+
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(array_values($cleanData));
+            $processed++;
+
+        } catch (Exception $e) {
+            error_log("خطأ في معالجة religion {$data['id']}: " . $e->getMessage());
         }
     }
 
