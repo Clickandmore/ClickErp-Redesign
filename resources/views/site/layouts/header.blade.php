@@ -54,9 +54,7 @@
                            href="{{route('site.renew-contract.index')}}">{{__("ingaz.renewing_employment_contract")}}
                         </a>
                     </li>
-                    <li>
-                        <a class="dropdown-item" href="{{route('site.support.index')}}">{{__("ingaz.support")}}</a>
-                    </li>
+
                 </ul>
             </li>
             <!--سياسات الاستقدام -->
@@ -101,9 +99,19 @@
                     <span></span>
                 </a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{{route('site.contact-us.index')}}">  {{__("ingaz.contact_us")}}</a>
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#"
+                   data-bs-toggle="dropdown">{{__("ingaz.contact_us")}}</a>
+                <ul class="dropdown-menu">
+                    <li class="nav-item">
+                        <a class="dropdown-item" href="{{route('site.contact-us.index')}}">  {{__("ingaz.contact_us")}}</a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{{route('site.support.index')}}">{{__("ingaz.support")}}</a>
+                    </li>
+                </ul>
             </li>
+
             @if(\Illuminate\Support\Facades\Auth::guard('web')->check())
                 <!-- Account -->
                 <li class="nav-item dropdown userMenu">
@@ -159,7 +167,7 @@
             </li>
 
 
-        @if(!\Illuminate\Support\Facades\Auth::guard('web')->check())
+            @if(!\Illuminate\Support\Facades\Auth::guard('web')->check())
                 <!-- Login Btn -->
                 <li class="nav-item d-lg-block">
                     <a class="login-btn" href="{{route('site.login.index')}}">{{__("ingaz.login")}}<span></span></a>
@@ -177,15 +185,15 @@
             <span>|</span>
             {{ $fastnew->title }}
         @empty
-                : إطلاق باقات جديدة لاستقدام العمالة المنزلية
-        <span>|</span> وصول دفعات جديدة من العمالة الماهرة من الفلبين والهند
-        <span>|</span> عروض خاصة للعملاء الجدد بمناسبة افتتاح الفرع الجديد
-        <span>|</span> توفير كوادر طبية وتمريضية مؤهلة بعقود ميسّرة
-        <span>|</span> استقدام سائقين مهنيين بخبرة عالية لجميع أنحاء المملكة
-        <span>|</span> بدء برنامج متابعة وضمان ما بعد الاستقدام
-        <span>|</span> توفير عاملات منزليات مدرّبات وفق أعلى المعايير
-        <span>|</span> توقيع اتفاقيات جديدة مع مكاتب استقدام خارجية معتمدة
-        <span>|</span> دعم خاص للعائلات في شهر رمضان بخدمات استقدام سريعة
+            : إطلاق باقات جديدة لاستقدام العمالة المنزلية
+            <span>|</span> وصول دفعات جديدة من العمالة الماهرة من الفلبين والهند
+            <span>|</span> عروض خاصة للعملاء الجدد بمناسبة افتتاح الفرع الجديد
+            <span>|</span> توفير كوادر طبية وتمريضية مؤهلة بعقود ميسّرة
+            <span>|</span> استقدام سائقين مهنيين بخبرة عالية لجميع أنحاء المملكة
+            <span>|</span> بدء برنامج متابعة وضمان ما بعد الاستقدام
+            <span>|</span> توفير عاملات منزليات مدرّبات وفق أعلى المعايير
+            <span>|</span> توقيع اتفاقيات جديدة مع مكاتب استقدام خارجية معتمدة
+            <span>|</span> دعم خاص للعائلات في شهر رمضان بخدمات استقدام سريعة
         @endforelse
 
     </marquee>

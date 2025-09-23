@@ -2,15 +2,15 @@
     <div class="row">
         @foreach ($maids as $maid)
             @php
-            $jobType = $maid->jobTypes->first();
+                $jobType = $maid->jobTypes->first();
             @endphp
-            <!-- كارد مشترك (ايجار + نقل خدمات) -->
+                <!-- كارد مشترك (ايجار + نقل خدمات) -->
             @if ($jobType && $jobType->id == 1)
                 <div class="col-12 col-md-6 p-2 mb-5" data-type="estqdam">
                     <a href="{{ route('site.all-workers.show', $maid->id) }}" class="worker-box-link">
                         <div class="worker-box">
                             <div class="worker-media">
-                                <img src="{{ showFile($maid->image) }}" alt="worker" />
+                                <img src="{{ showFile($maid->image) }}" alt="worker"/>
                             </div>
                             <div class="worker-content">
                                 <div class="worker-header">
@@ -43,10 +43,15 @@
                                     <a data-fancybox="cv1" href="{{ showFile($maid->cv_preview) }}" class="icon-btn">
                                         <i class="fa-regular fa-file-pdf"></i>
                                     </a>
-                                    <a data-fancybox="video1" href="{{ showFile($maid->video_preview) }}" class="icon-btn">
-                                        <i class="fa-solid fa-video"></i>
+                                    @if(!empty($maid->video_preview) && $maid->video_preview !== '#')
+                                        <a data-fancybox="video1" href="{{ showFile($maid->video_preview) }}"
+                                           class="icon-btn">
+                                            <i class="fa-solid fa-video"></i>
+                                        </a>
+                                    @endif
+                                    <a href="{{ route('site.all-workers.show', $maid->id) }}" class="btn action-btn">
+                                        {{ __('ingaz.recruitment_request') }}
                                     </a>
-                                    <button class="btn">{{ __('ingaz.recruitment') }}</button>
                                 </div>
                             </div>
                         </div>
@@ -58,7 +63,7 @@
                     <a href="{{ route('site.all-workers.show', $maid->id) }}" class="worker-box-link">
                         <div class="worker-box">
                             <div class="worker-media">
-                                <img src="{{ showFile($maid->image) }}" alt="worker" />
+                                <img src="{{ showFile($maid->image) }}" alt="worker"/>
                             </div>
                             <div class="worker-content">
                                 <div class="worker-header">
@@ -75,7 +80,8 @@
                                     <p>{{ __('ingaz.experience') }} :
                                         {{ $maid->experience_years != null && $maid->experience_years > 0 ? $maid->experience_years : '' }}
                                     </p>
-                                    <p>{{ __('ingaz.monthly_rental') }} : {{ $maid->salary ?? '' }} {{ __('ingaz.SAR') }}
+                                    <p>{{ __('ingaz.monthly_rental') }}
+                                        : {{ $maid->salary ?? '' }} {{ __('ingaz.SAR') }}
                                     </p>
                                     <p>{{ __('ingaz.contract_duration') }} : {{ $maid->duration ?? '' }}
                                         {{ __('ingaz.month') }}</p>
@@ -87,10 +93,15 @@
                                     <a data-fancybox="cv2" href="{{ showFile($maid->cv_preview) }}" class="icon-btn">
                                         <i class="fa-regular fa-file-pdf"></i>
                                     </a>
-                                    <a data-fancybox="video2" href="{{ showFile($maid->video_preview) }}" class="icon-btn">
-                                        <i class="fa-solid fa-video"></i>
+                                    @if(!empty($maid->video_preview) && $maid->video_preview !== '#')
+                                        <a data-fancybox="video1" href="{{ showFile($maid->video_preview) }}"
+                                           class="icon-btn">
+                                            <i class="fa-solid fa-video"></i>
+                                        </a>
+                                    @endif
+                                    <a href="{{ route('site.all-workers.show', $maid->id) }}" class="btn action-btn">
+                                        {{ __('ingaz.labor_rental_request') }}
                                     </a>
-                                    <button class="btn action-btn">{{ __('ingaz.Labor_rental') }}</button>
                                 </div>
                             </div>
                         </div>
@@ -102,7 +113,7 @@
                     <a href="{{ route('site.all-workers.show', $maid->id) }}" class="worker-box-link">
                         <div class="worker-box">
                             <div class="worker-media">
-                                <img src="{{ showFile($maid->image) }}" alt="worker" />
+                                <img src="{{ showFile($maid->image) }}" alt="worker"/>
                             </div>
                             <div class="worker-content">
                                 <div class="worker-header">
@@ -133,10 +144,15 @@
                                     <a data-fancybox="cv2" href="{{ showFile($maid->cv_preview) }}" class="icon-btn">
                                         <i class="fa-regular fa-file-pdf"></i>
                                     </a>
-                                    <a data-fancybox="video2" href="{{ showFile($maid->video_preview) }}" class="icon-btn">
-                                        <i class="fa-solid fa-video"></i>
+                                    @if(!empty($maid->video_preview) && $maid->video_preview !== '#')
+                                        <a data-fancybox="video1" href="{{ showFile($maid->video_preview) }}"
+                                           class="icon-btn">
+                                            <i class="fa-solid fa-video"></i>
+                                        </a>
+                                    @endif
+                                    <a href="{{ route('site.all-workers.show', $maid->id) }}" class="btn action-btn">
+                                        {{ __('ingaz.Labor_transfer') }}
                                     </a>
-                                    <button class="btn action-btn">{{ __('ingaz.Labor_transfer') }}</button>
                                 </div>
                             </div>
                         </div>
