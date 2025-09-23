@@ -300,7 +300,6 @@
         </div>
     </content>
     <div class="cv-actions-fixed">
-        @dd(showFile($maid->cv_preview))
         <a href="{{showFile($maid->cv_preview)}}" download class="btn" id="donwload-cv">{{__('ingaz.download_cv')}}</a>
         <form action="{{route('site.customer-service.store')}}" method="POST" style="margin-top: 0 !important ">
             @csrf
