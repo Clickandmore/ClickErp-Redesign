@@ -141,7 +141,7 @@
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#my_dashboard2" href="#">
                         <i class="fa fa-shopping-cart"></i>
-                        <span class="ms-2"> طلبات الاستقدام </span>
+                        <span class="ms-2"> طلبات  </span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
                     <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['orders.current', 'orders.ended'])) ? 'show' : '' }}"
@@ -178,6 +178,35 @@
                                 </a>
                             </li>
                         @endif
+                            {{-- @if (@AdminGuardHasPerm(\App\PermKeys::professional_application_VIEW)) --}}
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'professional_application.index') ? 'active' : '' }}"
+                                   href="{{route('professional_application.index')}}">
+                                    <i class="fa fa-envelope"></i>
+                                    <span class="ms-2"> {{ helperTrans('ingaz.professional_application') }}</span>
+                                </a>
+                            </li>
+                            {{-- @endif --}}
+
+                            {{-- @if (@AdminGuardHasPerm(\App\PermKeys::recruitment_requests_VIEW)) --}}
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'recruitment_requests.index') ? 'active' : '' }}"
+                                   href="{{route('recruitment_requests.index')}}">
+                                    <i class="fa fa-envelope"></i>
+                                    <span class="ms-2"> {{ helperTrans('ingaz.recruitment_requests') }}</span>
+                                </a>
+                            </li>
+                            {{-- @endif --}}
+
+                            {{-- @if (@AdminGuardHasPerm(\App\PermKeys::renew-contracts_VIEW)) --}}
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'renew-contracts.index') ? 'active' : '' }}"
+                                   href="{{route('renew-contracts.index')}}">
+                                    <i class="fa fa-envelope"></i>
+                                    <span class="ms-2"> {{ helperTrans('ingaz.renew-contracts') }}</span>
+                                </a>
+                            </li>
+                            {{-- @endif --}}
                     </ul>
                 </li>
 
@@ -812,35 +841,16 @@
                                 </a>
                             </li>
 {{--                        @endif--}}
-  {{-- @if (@AdminGuardHasPerm(\App\PermKeys::professional_application_VIEW)) --}}
-                    <li>
-                        <a class="m-link {{ (Route::currentRouteName() == 'professional_application.index') ? 'active' : '' }}"
-                           href="{{route('professional_application.index')}}">
-                            <i class="fa fa-envelope"></i>
-                            <span class="ms-2"> {{ helperTrans('ingaz.professional_application') }}</span>
-                        </a>
-                    </li>
-                {{-- @endif --}}
+                            {{--                            @if (@AdminGuardHasPerm(\App\PermKeys::STATISTICS_VIEW))--}}
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'select-workers-settings.index') ? 'active' : '' }}"
+                                   href="{{route('select-workers-settings.index')}}">
+                                    <i class="fa fa-bar-chart"></i>
+                                    <span class="ms-2"> {{ helperTrans('ingaz.select_workers_settings') }}</span>
+                                </a>
+                            </li>
+                            {{--                        @endif--}}
 
-                  {{-- @if (@AdminGuardHasPerm(\App\PermKeys::recruitment_requests_VIEW)) --}}
-                    <li>
-                        <a class="m-link {{ (Route::currentRouteName() == 'recruitment_requests.index') ? 'active' : '' }}"
-                           href="{{route('recruitment_requests.index')}}">
-                            <i class="fa fa-envelope"></i>
-                            <span class="ms-2"> {{ helperTrans('ingaz.recruitment_requests') }}</span>
-                        </a>
-                    </li>
-                {{-- @endif --}}
-
-                  {{-- @if (@AdminGuardHasPerm(\App\PermKeys::renew-contracts_VIEW)) --}}
-                    <li>
-                        <a class="m-link {{ (Route::currentRouteName() == 'renew-contracts.index') ? 'active' : '' }}"
-                           href="{{route('renew-contracts.index')}}">
-                            <i class="fa fa-envelope"></i>
-                            <span class="ms-2"> {{ helperTrans('ingaz.renew-contracts') }}</span>
-                        </a>
-                    </li>
-                {{-- @endif --}}
                         @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'questions.index') ? 'active' : '' }}"

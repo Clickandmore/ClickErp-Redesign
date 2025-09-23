@@ -11,255 +11,312 @@
 @endsection
 
 @section('content')
-@if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
-    <div class="card">
-        <div class="card-body">
-            <form class="row g-3 from-submit-global-maid" method="post" action="{{route("maids.store")}}" enctype="multipart/form-data" id="maidForm">
-                @csrf
-                <!-- الملفات -->
-                <div class="col-6">
-                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.cv_file")}} </label>
-                    <input type="file" data-default-file="" name="cv_file" class="dropify">
-                </div>
-                <div class="col-6">
-                    <label for="TextInput" class="form-label">صورة العامله   </label>
-                    <input type="file" data-default-file="" name="image" class="dropify" required>
-                </div>
+    @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
+        <div class="card">
+            <div class="card-body">
+                <form class="row g-3 from-submit-global-maid" method="post" action="{{route("maids.store")}}"
+                      enctype="multipart/form-data" id="maidForm">
+                    @csrf
+                    <!-- الملفات -->
+                    <div class="col-6">
+                        <label for="TextInput" class="form-label">{{helperTrans("ingaz.cv_file")}} </label>
+                        <input type="file" data-default-file="" name="cv_file" class="dropify">
+                    </div>
+                    <div class="col-6">
+                        <label for="TextInput" class="form-label">صورة العامله </label>
+                        <input type="file" data-default-file="" name="image" class="dropify" required>
+                    </div>
 
-                <!-- أنواع الوظائف -->
-                <div class="col-4">
-                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.job_types_2")}} </label>
-                    <select name="type_id" id="type_id" class="form-control" required>
-                        <option value="">اختر نوع السيرة</option>
-                        @foreach($types as $type)
-                            <option value="{{$type->id}}" {{$type->title == 'استقدام' ? 'selected' : ''}}>{{$type->title}}</option>
-                        @endforeach
-                    </select>
-                </div>
+                    <!-- أنواع الوظائف -->
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">{{helperTrans("ingaz.job_types_2")}} </label>
+                        <select name="type_id" id="type_id" class="form-control" required>
+                            <option value="">اختر نوع السيرة</option>
+                            @foreach($types as $type)
+                                <option
+                                    value="{{$type->id}}" {{$type->title == 'استقدام' ? 'selected' : ''}}>{{$type->title}}</option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                <!-- خيار تسكين للإيواء -->
-                <div class="col-4" id="shelter_option" style="display: none;">
-                    <label for="create_shelter_contract" class="form-label">تسكين للإيواء</label>
-                    <select name="create_shelter_contract" id="create_shelter_contract" class="form-control">
-                        <option value="0">لا - عاملة عادية</option>
-                        <option value="1">نعم - تسكين للإيواء</option>
-                    </select>
-                    <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم شركة أسس الانجاز</small>
-                </div>
+                    <!-- خيار تسكين للإيواء -->
+                    <div class="col-4" id="shelter_option" style="display: none;">
+                        <label for="create_shelter_contract" class="form-label">تسكين للإيواء</label>
+                        <select name="create_shelter_contract" id="create_shelter_contract" class="form-control">
+                            <option value="0">لا - عاملة عادية</option>
+                            <option value="1">نعم - تسكين للإيواء</option>
+                        </select>
+                        <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم شركة أسس الانجاز</small>
+                    </div>
 
-                <!-- الجنسية -->
-                <div class="col-4">
-                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.nationality")}} </label>
-                    <select name="nationality_id" id="Pnationality_id" class="form-control" required>
-                        <option value="">اختر </option>
-                        @foreach($nationalities as $nationality)
-                        <option value="{{$nationality->id}}"
-                            data-price="{{$nationality->price}}"
-                            data-salary="{{$nationality->monthly_salary}}"
-                            data-service_transfer_cost="{{$nationality->service_transfer_cost}}"
-                            data-rental_cost="{{$nationality->rental_cost}}">
-                            {{$nationality->sub_title}}
-                        </option>
-                        @endforeach
-                    </select>
-                </div>
+                    <!-- الجنسية -->
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">{{helperTrans("ingaz.nationality")}} </label>
+                        <select name="nationality_id" id="Pnationality_id" class="form-control" required>
+                            <option value="">اختر</option>
+                            @foreach($nationalities as $nationality)
+                                <option value="{{$nationality->id}}"
+                                        data-price="{{$nationality->price}}"
+                                        data-salary="{{$nationality->monthly_salary}}"
+                                        data-service_transfer_cost="{{$nationality->service_transfer_cost}}"
+                                        data-rental_cost="{{$nationality->rental_cost}}">
+                                    {{$nationality->sub_title}}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                <!-- مكتب الاستقدام -->
-                <div class="col-4 office-field">
-                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.recruitment office")}} </label>
-                    <select name="office_id" class="form-control">
-                        <option value="">اختر مكتب الاستقدام</option>
-                        {!! showSelectElement($offices , 'title') !!}
-                    </select>
-                </div>
+                    <!-- مكتب الاستقدام -->
+                    <div class="col-4 office-field">
+                        <label for="TextInput" class="form-label">{{helperTrans("ingaz.recruitment office")}} </label>
+                        <select name="office_id" class="form-control">
+                            <option value="">اختر مكتب الاستقدام</option>
+                            {!! showSelectElement($offices , 'title') !!}
+                        </select>
+                    </div>
 
-                <!-- الوظائف -->
-                <div class="col-4">
-                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.job_2")}} </label>
-                    <select name="job_id[]" data-placeholder="{{helperTrans('ingaz.choose')}}"
-                            class="form-control js-example-basic-multiple" multiple required>
-                        @foreach($jobs as $job)
-                            <option value="{{$job->id}}">{{$job->title}}</option>
-                        @endforeach
-                    </select>
-                </div>
+                    <!-- الوظائف -->
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">{{helperTrans("ingaz.job_2")}} </label>
+                        <select name="job_id[]" data-placeholder="{{helperTrans('ingaz.choose')}}"
+                                class="form-control js-example-basic-multiple" multiple required>
+                            @foreach($jobs as $job)
+                                <option value="{{$job->id}}">{{$job->title}}</option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                <!-- اسم العاملة -->
-                <div class="col-4">
-                    <label for="TextInput" class="form-label">
-                        {{helperTrans("ingaz.maid_name")}} ({{helperTrans('ingaz.en')}})
-                    </label>
-                    <input type="text" name="name:en" class="form-control" required>
-                </div>
+                    <!-- اسم العاملة -->
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.maid_name")}} ({{helperTrans('ingaz.en')}})
+                        </label>
+                        <input type="text" name="name:en" class="form-control" required>
+                    </div>
 
-                <!-- السعر والراتب -->
-                <div class="col-4">
-                    <label for="TextInput" class="form-label price-label">
-                        {{helperTrans("ingaz.price")}}
-                    </label>
-                    <input type="number" name="price" id="price" class="form-control">
-                </div>
-                <div class="col-4">
-                    <label for="TextInput" class="form-label">
-                        {{helperTrans("ingaz.salary")}}
-                    </label>
-                    <input type="number" name="salary" class="form-control">
-                </div>
+                    <!-- السعر والراتب -->
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label price-label">
+                            {{helperTrans("ingaz.price")}}
+                        </label>
+                        <input type="number" name="price" id="price" class="form-control">
+                    </div>
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.salary")}}
+                        </label>
+                        <input type="number" name="salary" class="form-control">
+                    </div>
 
-                <!-- البيانات الشخصية -->
-                <div class="col-4">
-                    <label for="TextInput" class="form-label">
-                        تاريخ الميلاد
-                    </label>
-                    <input type="date" name="birth_date" id="birth_date" class="form-control" required>
-                </div>
+                    <!-- البيانات الشخصية -->
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            تاريخ الميلاد
+                        </label>
+                        <input type="date" name="birth_date" id="birth_date" class="form-control" required>
+                    </div>
 
-                <div class="col-4">
-                    <label for="TextInput" class="form-label">
-                        {{helperTrans("ingaz.age")}}
-                    </label>
-                    <input type="number" min="18" max="90" name="age" id="age" class="form-control" readonly>
-                </div>
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.age")}}
+                        </label>
+                        <input type="number" min="18" max="90" name="age" id="age" class="form-control" readonly>
+                    </div>
 
-                <div class="col-4">
-                    <label for="TextInput" class="form-label">
-                        {{helperTrans("ingaz.height")}}
-                    </label>
-                    <input type="text" name="height" class="form-control" value="160" placeholder="الطول بالسنتيمتر">
-                </div>
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.height")}}
+                        </label>
+                        <input type="text" name="height" class="form-control" value="160"
+                               placeholder="الطول بالسنتيمتر">
+                    </div>
 
-                <div class="col-4">
-                    <label for="TextInput" class="form-label">
-                        {{helperTrans("ingaz.weight")}}
-                    </label>
-                    <input type="text" name="weight" class="form-control" value="60" placeholder="الوزن بالكيلوجرام">
-                </div>
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.weight")}}
+                        </label>
+                        <input type="text" name="weight" class="form-control" value="60"
+                               placeholder="الوزن بالكيلوجرام">
+                    </div>
 
-                <div class="col-4">
-                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.religion")}}</label>
-                    <select name="religion_id" class="form-control">
-                        @foreach($religions as $religion)
-                            <option value="{{$religion->id}}" {{$religion->id == 4 ? 'selected' : ''}}>{{$religion->title}}</option>
-                        @endforeach
-                    </select>
-                </div>
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">{{helperTrans("ingaz.religion")}}</label>
+                        <select name="religion_id" class="form-control">
+                            @foreach($religions as $religion)
+                                <option
+                                    value="{{$religion->id}}" {{$religion->id == 4 ? 'selected' : ''}}>{{$religion->title}}</option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                <div class="col-4">
-                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.marital status")}} </label>
-                    <select name="marital_status:ar" class="form-control" required>
-                        <option value="عازبة">عازبة</option>
-                        <option value="أعزب">أعزب</option>
-                        <option value="متزوجة">متزوجة</option>
-                        <option value="متزوج">متزوج</option>
-                    </select>
-                </div>
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">{{helperTrans("ingaz.marital status")}} </label>
+                        <select name="marital_status:ar" class="form-control" required>
+                            <option value="عازبة">عازبة</option>
+                            <option value="أعزب">أعزب</option>
+                            <option value="متزوجة">متزوجة</option>
+                            <option value="متزوج">متزوج</option>
+                        </select>
+                    </div>
 
-                <!-- رقم الجواز ورقم الهوية وتاريخ انتهاء الهوية -->
-                <div class="col-4">
-                    <label for="TextInput" class="form-label">
-                        {{helperTrans("ingaz.passport_num")}}
-                    </label>
-                    <input type="text" name="passport_num" id="passport_num" class="form-control" required>
-                    <div id="passport_num_feedback" class="invalid-feedback"></div>
-                </div>
+                    <!-- رقم الجواز ورقم الهوية وتاريخ انتهاء الهوية -->
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.passport_num")}}
+                        </label>
+                        <input type="text" name="passport_num" id="passport_num" class="form-control" required>
+                        <div id="passport_num_feedback" class="invalid-feedback"></div>
+                    </div>
 
-                <div class="col-4">
-                    <label for="TextInput" class="form-label">
-                        {{helperTrans("ingaz.id_number")}}
-                    </label>
-                    <input type="text" name="id_number" id="id_number" class="form-control" maxlength="10" pattern="\d{10}" required>
-                    <small class="text-muted">يجب أن يتكون رقم الهوية من 10 أرقام</small>
-                </div>
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.id_number")}}
+                        </label>
+                        <input type="text" name="id_number" id="id_number" class="form-control" maxlength="10"
+                               pattern="\d{10}" required>
+                        <small class="text-muted">يجب أن يتكون رقم الهوية من 10 أرقام</small>
+                    </div>
 
-                <div class="col-4">
-                    <label for="TextInput" class="form-label">
-                        {{helperTrans("ingaz.id_expiry_date")}}
-                    </label>
-                    <input type="date" name="id_expiry_date" class="form-control" required>
-                </div>
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.id_expiry_date")}}
+                        </label>
+                        <input type="date" name="id_expiry_date" class="form-control" required>
+                    </div>
 
-                <!-- المهارات -->
-                <div class="col-4">
-                    <label for="skills" class="form-label">{{helperTrans("ingaz.skills")}} <small class="text-muted">(اختياري)</small></label>
-                    <select name="skills[]" class="form-control js-example-basic-multiple" multiple>
-                        @foreach($skills as $skill)
-                            <option value="{{$skill->id}}">{{$skill->title}}</option>
-                        @endforeach
-                    </select>
-                </div>
+                    <!-- المهارات -->
+                    <div class="col-4">
+                        <label for="skills" class="form-label">{{helperTrans("ingaz.skills")}} <small
+                                class="text-muted">(اختياري)</small></label>
+                        <select name="skills[]" class="form-control js-example-basic-multiple" multiple>
+                            @foreach($skills as $skill)
+                                <option value="{{$skill->id}}">{{$skill->title}}</option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                <div class="col-4">
-                    <label for="experience_status" class="form-label">
-                        حالة الخبرة <small class="text-muted">(مطلوب)</small>
-                    </label>
-                    <select name="experience_status" id="experience_status" class="form-control" required>
-                        <option value="">اختر حالة الخبرة</option>
-                        <option value="has_experience">سبق لها العمل</option>
-                        <option value="no_experience">لم يسبق لها العمل</option>
-                    </select>
-                </div>
+                    <div class="col-4">
+                        <label for="experience_status" class="form-label">
+                            حالة الخبرة <small class="text-muted">(مطلوب)</small>
+                        </label>
+                        <select name="experience_status" id="experience_status" class="form-control" required>
+                            <option value="">اختر حالة الخبرة</option>
+                            <option value="has_experience">سبق لها العمل</option>
+                            <option value="no_experience">لم يسبق لها العمل</option>
+                        </select>
+                    </div>
 
-                <div class="col-4" id="experience_years_container">
-                    <label for="TextInput" class="form-label">
-                        {{helperTrans("ingaz.experience_years")}} <small class="text-muted"></small>
-                    </label>
-                    <select name="experience_years" id="experience_years" class="form-control">
-                        <option value="">اختر سنوات الخبرة</option>
-                        @for($i = 1; $i <= 10; $i++)
-                            <option value="{{$i}}">{{$i}} {{$i == 1 ? 'سنة' : 'سنوات'}}</option>
-                        @endfor
-                    </select>
-                </div>
+                    <div class="col-4" id="experience_years_container">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.experience_years")}} <small class="text-muted"></small>
+                        </label>
+                        <select name="experience_years" id="experience_years" class="form-control">
+                            <option value="">اختر سنوات الخبرة</option>
+                            @for($i = 1; $i <= 10; $i++)
+                                <option value="{{$i}}">{{$i}} {{$i == 1 ? 'سنة' : 'سنوات'}}</option>
+                            @endfor
+                        </select>
+                    </div>
 
-                <!-- اللغات والحالة الاجتماعية -->
-                <div class="col-12">
-                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.languages")}} <small class="text-muted">(اختياري)</small></label>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="languages[arabic]" id="arabic" value="نعم">
-                                <label class="form-check-label" for="arabic">
-                                    اللغة العربية
-                                </label>
+                    <!-- اللغات والحالة الاجتماعية -->
+                    <div class="col-12">
+                        <label for="TextInput" class="form-label">{{helperTrans("ingaz.languages")}} <small
+                                class="text-muted">(اختياري)</small></label>
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="languages[arabic]" id="arabic"
+                                           value="نعم">
+                                    <label class="form-check-label" for="arabic">
+                                        اللغة العربية
+                                    </label>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="languages[english]" id="english" value="نعم">
-                                <label class="form-check-label" for="english">
-                                    اللغة الإنجليزية
-                                </label>
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="languages[english]"
+                                           id="english" value="نعم">
+                                    <label class="form-check-label" for="english">
+                                        اللغة الإنجليزية
+                                    </label>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="languages[amharic]" id="amharic" value="نعم">
-                                <label class="form-check-label" for="amharic">
-                                    اللغة الأمهرية
-                                </label>
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="languages[amharic]"
+                                           id="amharic" value="نعم">
+                                    <label class="form-check-label" for="amharic">
+                                        اللغة الأمهرية
+                                    </label>
+                                </div>
                             </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="languages[mother]" id="mother" value="نعم">
-                                <label class="form-check-label" for="mother">
-                                    اللغة الأم
-                                </label>
+                            <div class="col-md-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="languages[mother]" id="mother"
+                                           value="نعم">
+                                    <label class="form-check-label" for="mother">
+                                        اللغة الأم
+                                    </label>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.expertise")}} </label>
+                    <table class="table table-bordered">
+                        <thead>
+                        <tr>
+                            <th>{{ __("ingaz.country") }} </th>
+                            <th>{{ __("ingaz.number_of_years") }}</th>
+                            <th>{{ __("ingaz.job_title") }}</th>
+                            <th style="width:150px">{{ __("ingaz.actions") }}</th>
+                        </tr>
+                        </thead>
+                        <tbody id="json_array">
+                        <tr class="y-group">
+                            <td>
+                                <select name="expertises[0][country_id]" data-placeholder="" class="form-control select2"
+                                        required>
+                                    <option value="">{{helperTrans('ingaz.choose')}}</option>
+                                    @foreach($countries as $country)
+                                        <option value="{{$country->id}}">{{$country->name_ar}}</option>
+                                    @endforeach
+                                </select>
+                            </td>
+                            <td>
+                                <input type="text" name="expertises[0][number_of_years]" class="form-control" required>
+                            </td>
+                            <td>
+                                <select name="expertises[0][job_title_id]" data-placeholder="" class="form-control select2"
+                                        required>
+                                    <option value="">{{helperTrans('ingaz.choose')}}</option>
+                                    @foreach($jobs as $job)
+                                        <option value="{{$job->id}}">{{$job->title}}</option>
+                                    @endforeach
+                                </select>
+                            </td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-link p-0 me-2 btnAdd" title="إضافة">
+                                    <i class="fa fa-plus-circle text-success fs-5"></i>
+                                </button>
+                                <button type="button" class="btn btn-link p-0 btnRemove" title="حذف">
+                                    <i class="fa fa-trash text-danger fs-5"></i>
+                                </button>
+                            </td>
 
-                <div class="col-12">
-                    <button class="btn btn-primary" type="submit">{{__("buttons.save")}}</button>
-                    <a href="{{ route('maids.index') }}" class="btn btn-outline-secondary">{{__("buttons.cancel")}}</a>
-                </div>
-            </form>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <div class="col-12">
+                        <button class="btn btn-primary" type="submit">{{__("buttons.save")}}</button>
+                        <a href="{{ route('maids.index') }}"
+                           class="btn btn-outline-secondary">{{__("buttons.cancel")}}</a>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
-@else
-    @include('components.no_permissions')
-@endif
+    @else
+        @include('components.no_permissions')
+    @endif
 @endsection
 
 @section('js')
@@ -267,7 +324,64 @@
     <script src="{{asset("admin")}}/assets/js/bundle/select2.bundle.js"></script>
     <script src="{{asset("admin")}}/assets/js/bundle/sweetalert2.bundle.js"></script>
     <script>
+        $(function () {
+
+            // إعادة ترقيم أسماء الحقول بعد أي تغيير
+            function reindexRows() {
+                $('#json_array tr.y-group').each(function (rowIndex) {
+                    $(this).find('input, select, textarea').each(function () {
+                        let name = $(this).attr('name') || '';
+                        name = name.replace(/\[\d+\]/, '[' + rowIndex + ']');
+                        $(this).attr('name', name);
+                    });
+                });
+            }
+
+            // إظهار/إخفاء أزرار الحذف بناءً على عدد الصفوف
+            function updateRemoveButtons() {
+                const rowCount = $('#json_array tr.y-group').length;
+                if (rowCount <= 1) {
+                    $('#json_array .btnRemove').hide(); // اختفاء الزرار لو الصف واحد أو أقل
+                } else {
+                    $('#json_array .btnRemove').show(); // إظهار لو أكثر من صف
+                }
+            }
+
+            // مبدئياً
+            reindexRows();
+            updateRemoveButtons();
+
+            // إضافة صف (ينسخ الصف الحالي ويُفرغ الحقول)
+            $(document).on('click', '.btnAdd', function () {
+                const $currentRow = $(this).closest('tr');
+                const $clone = $currentRow.clone();
+                $clone.find('input, textarea').val('');
+                $clone.find('select').prop('selectedIndex', 0);
+                $currentRow.after($clone);
+                reindexRows();
+                updateRemoveButtons();
+            });
+
+            // حذف صف
+            $(document).on('click', '.btnRemove', function () {
+                const $rows = $('#json_array tr.y-group');
+                if ($rows.length <= 1) {
+                    return; // لن يحدث شيء؛ الزر مخفي فعلاً لكن هنا كحماية
+                }
+                $(this).closest('tr').remove();
+                reindexRows();
+                updateRemoveButtons();
+            });
+
+        });
+    </script>
+    <script>
         $(document).ready(function () {
+            $('#json_array').multifield({
+                section: '.y-group',
+                btnAdd: '#btnAdd-2',
+                btnRemove: '.btnRemove'
+            });
             $('.dropify').dropify();
             $('.js-example-basic-multiple').select2();
 
@@ -371,7 +485,7 @@
             toggleFields();
 
             // Call when type changes
-            $('select[name="type_id"]').change(function() {
+            $('select[name="type_id"]').change(function () {
                 console.log('Type changed');
                 toggleFields();
                 toggleShelterOption();
@@ -395,7 +509,7 @@
             toggleShelterOption();
 
             // التحقق من رقم الهوية
-            $('#id_number').on('input', function() {
+            $('#id_number').on('input', function () {
                 var idNumber = $(this).val();
                 // إزالة أي حروف غير رقمية
                 idNumber = idNumber.replace(/[^0-9]/g, '');
@@ -404,7 +518,7 @@
 
             // التحقق من رقم الجواز - فحص التكرار
             var passportCheckTimeout;
-            $('#passport_num').on('input', function() {
+            $('#passport_num').on('input', function () {
                 var passportNum = $(this).val().trim();
                 var feedback = $('#passport_num_feedback');
 
@@ -421,7 +535,7 @@
                 }
 
                 // Set timeout to avoid too many requests
-                passportCheckTimeout = setTimeout(function() {
+                passportCheckTimeout = setTimeout(function () {
                     $.ajax({
                         url: '{{ route("check.passport.unique") }}',
                         type: 'POST',
@@ -429,7 +543,7 @@
                             passport_num: passportNum,
                             _token: $('meta[name="csrf-token"]').attr('content')
                         },
-                        success: function(response) {
+                        success: function (response) {
                             if (response.exists) {
                                 $('#passport_num').addClass('is-invalid');
                                 feedback.addClass('invalid-feedback').text('رقم الجواز مسجل مسبقاً في النظام، يرجى التحقق من الرقم أو اختيار رقم آخر');
@@ -438,7 +552,7 @@
                                 feedback.addClass('valid-feedback').text('رقم الجواز متاح');
                             }
                         },
-                        error: function() {
+                        error: function () {
                             // On error, don't show validation state
                             $('#passport_num').removeClass('is-valid is-invalid');
                             feedback.removeClass('valid-feedback invalid-feedback').text('');
@@ -448,7 +562,7 @@
             });
 
             // حساب العمر تلقائياً عند تغيير تاريخ الميلاد
-            $('#birth_date').change(function() {
+            $('#birth_date').change(function () {
                 var birthDate = new Date($(this).val());
                 var today = new Date();
                 var age = today.getFullYear() - birthDate.getFullYear();
@@ -462,7 +576,7 @@
             });
 
             // Handle nationality change to filter offices and set price/salary
-            $('#Pnationality_id').change(function() {
+            $('#Pnationality_id').change(function () {
                 var nationalityId = $(this).val();
                 var selectedType = $('select[name="type_id"] option:selected').text().trim();
 
@@ -470,13 +584,13 @@
                     $.ajax({
                         url: "{{ route('getOfficesByNationality') }}",
                         type: 'GET',
-                        data: { nationality_id: nationalityId },
-                        success: function(response) {
+                        data: {nationality_id: nationalityId},
+                        success: function (response) {
                             var officeSelect = $('select[name="office_id"]');
                             officeSelect.empty();
                             officeSelect.append('<option value="">اختر مكتب الاستقدام</option>');
 
-                            response.forEach(function(office) {
+                            response.forEach(function (office) {
                                 officeSelect.append('<option value="' + office.id + '">' + office.title + '</option>');
                             });
 
@@ -506,7 +620,7 @@
                                 $('input[name="salary"]').val(salary);
                             }
                         },
-                        error: function(xhr) {
+                        error: function (xhr) {
                             Swal.fire({
                                 icon: 'error',
                                 title: 'خطأ',
@@ -523,7 +637,7 @@
             });
 
             // التحقق من النموذج قبل الإرسال
-            $('#maidForm').on('submit', function(e) {
+            $('#maidForm').on('submit', function (e) {
                 e.preventDefault();
 
                 var isValid = true;
@@ -658,14 +772,14 @@
                     headers: {
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                     },
-                    success: function(response) {
-      if (response.code == 203) {
+                    success: function (response) {
+                        if (response.code == 203) {
                             var cvConvertShowRoute = "{{ route('cv-convert.show', ':id') }}";
 
-                    successToster('{{__("auth.done successfully")}}', response.message);
-                    var redirectUrl = cvConvertShowRoute.replace(':id', response.data.id);
-                    location.href = redirectUrl;
-                } 
+                            successToster('{{__("auth.done successfully")}}', response.message);
+                            var redirectUrl = cvConvertShowRoute.replace(':id', response.data.id);
+                            location.href = redirectUrl;
+                        }
                         if (response.code === 200) {
                             Swal.fire({
                                 icon: 'success',
@@ -676,7 +790,7 @@
                                 if (result.isConfirmed) {
                                     window.location.href = '{{ route("maids.index") }}';
                                 }
-          
+
                             });
                         } else {
                             Swal.fire({
@@ -687,7 +801,7 @@
                             });
                         }
                     },
-                    error: function(xhr) {
+                    error: function (xhr) {
                         var errorMessage = 'حدث خطأ أثناء إضافة العاملة';
 
                         if (xhr.responseJSON && xhr.responseJSON.errors) {
