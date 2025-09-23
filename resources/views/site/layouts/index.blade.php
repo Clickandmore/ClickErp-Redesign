@@ -3,6 +3,8 @@
 <head>
     @include('site.includes.meta')
     @include('site.includes.css')
+   
+    @yield('style')
     <title>  @yield('title')  |  {{__("ingaz.Platinum Al Sharqiyah Recruitment Agency")}}</title>
 
 </head>
@@ -24,5 +26,6 @@
     @include('site.layouts.footer')
 </footer>
 @include('site.includes.js')
+@yield('scripts')
 </body>
 </html>
