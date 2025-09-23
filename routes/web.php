@@ -106,7 +106,10 @@ Route::get('/migration/legacy', function () {
 
 Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () {
     Route::group(['prefix' => 'ingaz'], function () {
-=======
+        Route::get('/', [HomeController::class, 'index'])->name('home');
+    });
+});
+
 Route::group(
     [
         'as' => 'web.',
@@ -167,7 +170,7 @@ Route::get('edit-profile', [AuthController::class, 'editProfile'])->name('edit-p
         );
         Route::resource('contact-us', ContactUs::class);
         Route::get('/about-us', [\App\Http\Controllers\Web\AboutUsController::class, 'index'])->name('about-us');
- 
+
         Route::get('/clients/export/pdf', [UserController::class, 'exportPdf'])->name('clients.export.pdf');
         Route::get('/clients/export/excel', [UserController::class, 'exportExcel'])->name('clients.export.excel');
         Route::resource('skills', \App\Http\Controllers\ingaz\SkillController::class);
@@ -296,7 +299,7 @@ Route::get('edit-profile', [AuthController::class, 'editProfile'])->name('edit-p
     Route::get('countries', [App\Http\Controllers\admin\CountryController::class, 'index'])->name('countries.index');
     Route::get('countries/create', [App\Http\Controllers\admin\CountryController::class, 'create'])->name('countries.create');
     Route::get('countries/{country}', [App\Http\Controllers\admin\CountryController::class, 'show'])->name('countries.show');
- 
+
 
 
     Route::post('countries', [App\Http\Controllers\admin\CountryController::class, 'store'])->name('countries.store');
