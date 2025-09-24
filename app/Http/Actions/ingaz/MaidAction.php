@@ -108,6 +108,7 @@ class MaidAction extends MainAction
                 $data['languages'] = json_encode([]);
                 \Log::info('Languages was not array or string, set to empty array.');
             }
+
         } else {
             $data['languages'] = json_encode([]);
             \Log::info('Languages not set, set to empty array.');

@@ -2373,6 +2373,7 @@
     'link' => 'رابط',
     'warning_text' => ' يتم سداد تكاليف الاستقدام عن طريق منصة مساند',
     'warning' => 'تنبيه',
+    'Percentage' => 'النسبة المئوية',
 
     'Your password should be strong and easy to remember' => 'يجب انت تكون كلمة المرور قوية ويسهل تذكرها',
   'Please enter the verification code that was sent to you' => 'من فضلك ادخل رمز التحقق المرسل الى',
