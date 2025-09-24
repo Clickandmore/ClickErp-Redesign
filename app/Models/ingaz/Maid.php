@@ -110,7 +110,10 @@ class Maid extends Model
         return $this->belongsToMany(JobTitle::class, 'maid_job_titles', 'maid_id', 'job_title_id');
     }
 
-
+    public function expertises()
+    {
+        return $this->hasMany(\App\Models\MaidExpertise::class, 'maid_id');
+    }
     ####### scopes
     public function scopeShown($query)
     {

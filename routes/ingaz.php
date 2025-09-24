@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ingaz\ArrivalWorkerController;
 use App\Http\Controllers\ingaz\SelectWorkerController;
+use App\Http\Controllers\ingaz\SelectWorkerSettingsController;
 use App\Http\Controllers\ingaz\TestimonialController;
 use App\Http\Controllers\ingaz\WhyUsController;
 use App\Http\Controllers\office\OfficeController;
@@ -83,6 +84,7 @@ Route::group(
             Route::resource('arrival-workers', ArrivalWorkerController::class);
             Route::resource('testimonials', TestimonialController::class);
             Route::resource('select-workers', SelectWorkerController::class);
+            Route::resource('select-workers-settings', SelectWorkerSettingsController::class);
             Route::resource('requiremens', RequirementsController::class);
             Route::resource('cv-convert', CvConvertController::class);
 

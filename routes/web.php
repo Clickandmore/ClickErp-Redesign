@@ -152,6 +152,10 @@ Route::get('/migration/legacy', function () {
 
 Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () {
     Route::group(['prefix' => 'ingaz'], function () {
+        Route::get('/', [HomeController::class, 'index'])->name('home');
+    });
+});
+
 Route::group(
     [
         'as' => 'web.',
