@@ -30,7 +30,7 @@
         <div class="col-6">
             <label for="TextInput" class="form-label">{{__("ingaz.image")}}
             </label>
-            <input type="file" data-default-file="{{ showFile($obj->image) }}" name="image"
+            <input type="file" @if (isset($obj) && $obj->image) data-default-file="{{ showFile($obj->image) }}" @endif  name="image"
                    class="dropify">
         </div>
         <div class="mb-3 row">
