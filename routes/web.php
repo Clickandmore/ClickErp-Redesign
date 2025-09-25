@@ -406,13 +406,10 @@ Route::prefix('admin')->middleware(['auth:admin'])->group(function () {
 Route::get('/feedback/{token}', [\App\Http\Controllers\ComplaintFeedbackController::class, 'show'])->name('complaint.feedback');
 Route::post('/feedback/submit', [\App\Http\Controllers\ComplaintFeedbackController::class, 'submit'])->name('complaint.feedback.submit');
 
-}); // إغلاق Route::group للـ admin
-
 // Stable Simple Migration Routes
 Route::get('/migration-system', function () {
     return redirect('/migration.php');
 })->name('migration.redirect');
 
 Route::get('/simple-migration', function () {
-    return redirect('/migration.php');
-})->name('simple.migration.redirect');
+    return redirect('/migration.php');})->name('simple.migration.redirect');
