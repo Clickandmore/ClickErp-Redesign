@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\site\PackagesController;
+use App\Http\Controllers\site\UserAddressController;
 
 use App\Http\Controllers\site\AllWorkerController;
 use App\Http\Controllers\site\ArrivalWorkerController;
@@ -14,6 +16,7 @@ use App\Http\Controllers\site\ContactUsController;
 use App\Http\Controllers\site\CustomerServiceController;
 use App\Http\Controllers\site\DailyLabotDemandController;
 use App\Http\Controllers\site\HomeController;
+use App\Http\Controllers\site\ImmediateReciptsController;
 use App\Http\Controllers\site\MusanedController;
 use App\Http\Controllers\site\profile\ChatController;
 use App\Http\Controllers\site\profile\ComplaintController;
@@ -30,6 +33,7 @@ use App\Http\Controllers\site\RenewContractController;
 use App\Http\Controllers\site\SelectWorkerController;
 use App\Http\Controllers\site\SupportController;
 use App\Http\Controllers\site\VisaController;
+use App\Models\ingaz\User;
 use Illuminate\Support\Facades\Route;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
@@ -71,6 +75,9 @@ Route::group(
         Route::resource('renew-contract', RenewContractController::class);
         Route::resource('support', SupportController::class);
         Route::resource('contact-us', ContactUsController::class);
+        Route::resource('packages', PackagesController::class);
+        Route::resource('immediate-recipts', ImmediateReciptsController::class);
+        Route::resource('UserAddresss', UserAddressController::class);
 
         Route::middleware('site_auth')->group(function () {
             Route::resource('profile', ProfileController::class);

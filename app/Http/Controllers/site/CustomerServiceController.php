@@ -17,7 +17,7 @@ class CustomerServiceController extends Controller
     {
         $dataInserted = $request->validated();
         $order = RecruitmentRequest::find($id);
-        if(isset($order)){
+        if (isset($order)) {
             $order->update([
                 'customer_id' => $dataInserted['customer']
             ]);
@@ -39,10 +39,6 @@ class CustomerServiceController extends Controller
             'job_type_id' => $jobType->id
         ]);
         $customer_services = $adminAction->getWhere(['admin_type' => AdminTypes::CustomerService->value]);
-        $setting = $settingAction->first();
-        if(isset($setting) && $setting->customer_services){
-            return view('site.pages.customer_sevices', get_defined_vars());
-        }
-        return view('site.pages.selected_customer' );
+        return view('site.pages.customer_sevices', get_defined_vars());
     }
 }

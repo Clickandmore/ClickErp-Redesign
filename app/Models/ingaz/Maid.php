@@ -57,11 +57,15 @@ class Maid extends Model
         'available',
         'available_at',
         'is_show',
-        'is_pinned'
+        'is_pinned',
+        'percentages',
+        'languages'
     ];
 
     protected $casts = [
         'skills' => 'array',
+        'languages' => 'array',
+        'percentages' => 'array',
         'price' => 'decimal:2',
         'salary' => 'decimal:2',
         'age' => 'float',
@@ -110,7 +114,10 @@ class Maid extends Model
         return $this->belongsToMany(JobTitle::class, 'maid_job_titles', 'maid_id', 'job_title_id');
     }
 
-
+    public function expertises()
+    {
+        return $this->hasMany(\App\Models\MaidExpertise::class, 'maid_id');
+    }
     ####### scopes
     public function scopeShown($query)
     {

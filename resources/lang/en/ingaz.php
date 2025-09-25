@@ -779,6 +779,10 @@
     'monthly_rental' => 'Monthly rental',
     'contract_duration' => 'Contract duration',
     'recruitment' => 'Recruitment',
+    'number_of_years' => 'Number of years',
+    'expertise' => 'Expertise',
+    'no_expertise_for_this_maid' => 'There is no experience listed in this maid',
+
     'transportation_services' => 'Transportation services',
     'labor_rental' => 'Labor rental',
     'Labor_transfer' => 'Labor transfer',
@@ -789,6 +793,11 @@
     'from_41_to_50_years' => 'from 41 to 50 year',
     'occupation' => 'Occupation',
     'apply' => 'Apply',
+    'recruitment_request_text' => 'Distinctive and professionally trained workforce',
+    'Labor_transfer_text'     => 'Easier and better service transfer experience',
+    'Labor_rental_text'       => 'Trusted and well-trained labor rental services',
+
+
     'Labor_transfer_request' => 'Labor Transfer Request',
     'We can provide suitable labor according to your specifications.' => 'We can provide suitable labor according to your specifications.',
     'Submit a special request' => 'Submit a special request',
@@ -1338,6 +1347,13 @@
 
     'message_required' => 'Message is required.',
     'message_string' => 'Message must be a string.',
+    'select_workers_settings' => 'Select Workers Settings',
+    'link' => 'Link',
+    'warning_text' => 'The recruitment fees are paid through the Masaned platform.',
+    'warning' => 'Warning',
+    'Labor_transfer' => ' استلام فوري',
+    'Percentage' => 'Percentage',
+
 
     'captcha_required' => 'Verification that you are not Robert is required.',
     'select_workers' => 'Select Workers',
