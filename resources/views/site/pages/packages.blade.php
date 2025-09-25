@@ -47,7 +47,8 @@
                                     <img src="{{ asset('site') }}\assets/images/confirm.png" alt="confirm">
                                 </span>
                                 <span class="bs-stepper-label">
-                                    <span class="bs-stepper-title">{{ helperTrans('web.confirm_rental_request') }}</span>
+                                    <span
+                                        class="bs-stepper-title">{{ helperTrans('web.confirm_rental_request') }}</span>
                                     <span class="bs-stepper-subtitle">
                                         {{ helperTrans('web.confirm_and_pay') }}
                                     </span>
@@ -69,44 +70,43 @@
                                 <div class="row">
                                     <div class="col-12 p-2 d-flex justify-content-end">
                                         <button class="addLoation addButton" data-bs-toggle="modal"
-                                            data-bs-target="#addLocation" model-name-id="addLocation"
-                                            model-route="{{ route('web.addresses.create') }}"
-                                            model-title="{{ helperTrans('web.add_address') }}">{{ helperTrans('web.add_address') }}
+                                                data-bs-target="#addLocation" model-name-id="addLocation"
+                                                model-route="{{ route('web.addresses.create') }}"
+                                                model-title="{{ helperTrans('web.add_address') }}">{{ helperTrans('web.add_address') }}
                                         </button>
                                     </div>
                                     <div class="addresses_div row">
-                                        @foreach ($addresses as $address)
-                                            <div class="col-lg-6 col-12 p-2">
-                                                <label for="l1{{ $address->id }}"
-                                                    onclick="render_data('address',{{ $address->id }})">
-                                                    <div class="location" id="address-{{ $address->id }}">
-                                                        <h6>{{ $address->title }}</h6>
-                                                        <ul>
-                                                            <li>
-                                                                <i class="fa-light fa-user"></i>{{ $address->name }}
-                                                            </li>
-                                                            <li>
-                                                                <i class="fa-light fa-phone"></i>
-                                                                {{ $address->phone }}
-                                                            </li>
-                                                            <li>
-                                                                <i
-                                                                    class="fa-light fa-location-dot"></i>{{ $address->address }}
-                                                            </li>
-                                                        </ul>
-
-                                                    </div>
-                                                    <input type="radio" name="address_id" value="{{ $address->id }}"
-                                                        id="l1{{ $address->id }}">
-                                                </label>
-                                            </div>
-                                        @endforeach
+                                        <div class="row g-3 user_address">
+                                            @foreach ($addresses as $address)
+                                                <div class="col-6">
+                                                    <label for="l1{{ $address->id }}"
+                                                           class="location-card w-100"
+                                                           onclick="render_data('address',{{ $address->id }})">
+                                                        <div class="location" id="address-{{ $address->id }}">
+                                                            <h6>{{ $address->title }}</h6>
+                                                            <ul>
+                                                                <li><i class="fa-light fa-user"></i>{{ $address->name }}
+                                                                </li>
+                                                                <li>
+                                                                    <i class="fa-light fa-phone"></i>{{ $address->phone }}
+                                                                </li>
+                                                                <li>
+                                                                    <i class="fa-light fa-location-dot"></i>{{ $address->address }}
+                                                                </li>
+                                                            </ul>
+                                                        </div>
+                                                        <input type="radio" name="address_id" value="{{ $address->id }}"
+                                                               id="l1{{ $address->id }}">
+                                                    </label>
+                                                </div>
+                                            @endforeach
+                                        </div>
 
                                         <!-- خيار إدخال العنوان يدوياً -->
                                         <div class="col-lg-6 col-12 p-2">
                                             <label for="manual_address" onclick="showManualAddressInput()">
                                                 <div class="location" id="manual-address-option"
-                                                    style="border: 2px dashed #007bff;">
+                                                     style="border: 2px dashed #007bff;">
                                                     <h6><i class="fa-light fa-edit me-2"></i>إدخال العنوان يدوياً</h6>
                                                     <ul>
                                                         <li>
@@ -114,7 +114,8 @@
                                                         </li>
                                                     </ul>
                                                 </div>
-                                                <input type="radio" name="address_id" value="manual" id="manual_address">
+                                                <input type="radio" name="address_id" value="manual"
+                                                       id="manual_address">
                                             </label>
                                         </div>
 
@@ -122,7 +123,7 @@
                                         <div class="col-lg-6 col-12 p-2">
                                             <label for="skip_address" onclick="skipAddress()">
                                                 <div class="location" id="skip-address-option"
-                                                    style="border: 2px dashed #6c757d;">
+                                                     style="border: 2px dashed #6c757d;">
                                                     <h6><i class="fa-light fa-forward me-2"></i>تخطي العنوان</h6>
                                                     <ul>
                                                         <li>
@@ -131,7 +132,7 @@
                                                     </ul>
                                                 </div>
                                                 <input type="radio" name="address_id" value="skip"
-                                                    id="skip_address">
+                                                       id="skip_address">
                                             </label>
                                         </div>
                                     </div>
@@ -144,58 +145,50 @@
                                                     <h6><i class="fa-light fa-edit me-2"></i>إدخال العنوان يدوياً</h6>
                                                 </div>
                                                 <div class="card-body">
-                                                    <div class="row">
-                                                        <div class="col-md-6 mb-3">
-                                                            <label class="form-label">المدينة <span
-                                                                    class="text-danger">*</span></label>
-                                                            <select class="form-control" id="manual_city"
-                                                                name="manual_city">
-                                                                <option value="">اختر المدينة</option>
-                                                                <option value="الرياض">الرياض</option>
-                                                                <option value="جدة">جدة</option>
-                                                                <option value="مكة المكرمة">مكة المكرمة</option>
-                                                                <option value="المدينة المنورة">المدينة المنورة</option>
-                                                                <option value="الدمام">الدمام</option>
-                                                                <option value="الخبر">الخبر</option>
-                                                                <option value="الظهران">الظهران</option>
-                                                                <option value="تبوك">تبوك</option>
-                                                                <option value="أبها">أبها</option>
-                                                                <option value="جازان">جازان</option>
-                                                                <option value="حائل">حائل</option>
-                                                                <option value="بريدة">بريدة</option>
-                                                                <option value="خميس مشيط">خميس مشيط</option>
-                                                                <option value="نجران">نجران</option>
-                                                                <option value="الجوف">الجوف</option>
-                                                                <option value="أخرى">أخرى</option>
-                                                            </select>
+                                                    <form id="form-user-address" method="post"
+                                                          action="{{route('site.user-addresses.store')}}">
+                                                        @csrf
+                                                        <div class="row">
+                                                            <div class="col-md-6 mb-3">
+                                                                <label class="form-label">المدينة <span
+                                                                        class="text-danger">*</span></label>
+                                                                <select class="form-control" id="manual_city"
+                                                                        name="country_id">
+                                                                    <option value="">اختر المدينة</option>
+                                                                    @foreach($countries as $country)
+                                                                        <option
+                                                                            value="{{$country->id}}">{{app()->getLocale()=='ar' ? $country->name_ar : $country->name_en}}</option>
+                                                                    @endforeach
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-md-6 mb-3">
+                                                                <label class="form-label">العنوان التفصيلي <span
+                                                                        class="text-danger">*</span></label>
+                                                                <textarea class="form-control" id="manual_address_text"
+                                                                          name="address" rows="3"
+                                                                          placeholder="أدخل العنوان التفصيلي..."></textarea>
+                                                            </div>
+                                                            <div class="col-md-6 mb-3">
+                                                                <label class="form-label">رقم الجوال</label>
+                                                                <input type="tel" class="form-control" id="manual_phone"
+                                                                       name="phone" placeholder="رقم الجوال للتواصل">
+                                                            </div>
+                                                            <div class="col-md-6 mb-3">
+                                                                <label class="form-label">اسم المستلم</label>
+                                                                <input type="text" class="form-control" id="manual_name"
+                                                                       name="name" placeholder="اسم المستلم">
+                                                            </div>
                                                         </div>
-                                                        <div class="col-md-6 mb-3">
-                                                            <label class="form-label">العنوان التفصيلي <span
-                                                                    class="text-danger">*</span></label>
-                                                            <textarea class="form-control" id="manual_address_text" name="manual_address_text" rows="3"
-                                                                placeholder="أدخل العنوان التفصيلي..."></textarea>
+                                                        <div class="text-end">
+                                                            <button type="button" class="btn btn-secondary"
+                                                                    onclick="hideManualAddressInput()">
+                                                                <i class="fa-light fa-times me-2"></i>إلغاء
+                                                            </button>
+                                                            <button type="submit" class="btn btn-primary" >
+                                                                <i class="fa-light fa-check me-2"></i>تأكيد العنوان
+                                                            </button>
                                                         </div>
-                                                        <div class="col-md-6 mb-3">
-                                                            <label class="form-label">رقم الجوال</label>
-                                                            <input type="tel" class="form-control" id="manual_phone"
-                                                                name="manual_phone" placeholder="رقم الجوال للتواصل">
-                                                        </div>
-                                                        <div class="col-md-6 mb-3">
-                                                            <label class="form-label">اسم المستلم</label>
-                                                            <input type="text" class="form-control" id="manual_name"
-                                                                name="manual_name" placeholder="اسم المستلم">
-                                                        </div>
-                                                    </div>
-                                                    <div class="text-end">
-                                                        <button type="button" class="btn btn-secondary"
-                                                            onclick="hideManualAddressInput()">
-                                                            <i class="fa-light fa-times me-2"></i>إلغاء
-                                                        </button>
-                                                        <button type="button" class="btn btn-primary"
-                                                            onclick="confirmManualAddress()">
-                                                            <i class="fa-light fa-check me-2"></i>تأكيد العنوان
-                                                        </button>
-                                                    </div>
+                                                    </form>
                                                 </div>
                                             </div>
                                         </div>
@@ -215,10 +208,10 @@
                             <!-- package step -->
                             <div id="package" class="content">
                                 <div class="row">
-                                    @foreach ($packages as $package)
+                                    @forelse ($packages as $package)
                                         <div class="col-lg-6 col-12 p-2">
                                             <label for="p1{{ $package->id }}"
-                                                onclick="render_data('package',{{ $package->id }})">
+                                                   onclick="render_data('package',{{ $package->id }})">
                                                 <div class="location" id="package-{{ $package->id }}">
                                                     <h6>{{ helperTrans('web.package') }}
                                                         <span>{{ $package->days_count }}</span>
@@ -248,28 +241,34 @@
 
                                                 </div>
                                                 <input type="radio" name="package_id" value="{{ $package->id }}"
-                                                    id="p1{{ $package->id }}">
+                                                       id="p1{{ $package->id }}">
                                             </label>
                                         </div>
-                                    @endforeach
+                                    @empty
+                                        <div class="col-lg-6 col-12 p-2">
+                                            {{__("ingaz.No_packages_to_show")}}
+                                        </div>
+                                    @endforelse
                                     <div class="col-12 d-flex justify-content-between mt-4 p-2">
                                         {{-- <button class="btn btn-label-secondary btn-prev"> --}}
                                         {{-- <span --}} {{--
                                         class="align-middle d-sm-inline-block d-none">{{helperTrans('web.previous')}}</span>
                                     --}}
                                         {{-- </button> --}}
+                                        @if(isset($package) )
+                                            <div class="d-flex p-2"
+                                                 style="border: 2px solid #92beff7c; border-radius: 2px">
+                                                <input class="" type="checkbox" name="deliver_maid" id="deliver_maid">
+                                                <label class="" for="deliver_maid">
+                                                    <span>{{ __('web.i_want_maid_delivered') }}</span>
+                                                </label>
+                                            </div>
 
-                                        <div class="d-flex p-2" style="border: 2px solid #92beff7c; border-radius: 2px">
-                                            <input class="" type="checkbox" name="deliver_maid" id="deliver_maid">
-                                            <label class="" for="deliver_maid">
-                                                <span>{{ __('web.i_want_maid_delivered') }}</span>
-                                            </label>
-                                        </div>
-
-                                        <button class="btn btn-primary btn-next">
+                                            <button class="btn btn-primary btn-next">
                                             <span
                                                 class="align-middle d-sm-inline-block d-none me-sm-1">{{ helperTrans('web.next') }}</span>
-                                        </button>
+                                            </button>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
@@ -281,13 +280,14 @@
                                             <div class="cv_details">
                                                 <div class="p-5 justify-content-center align-content-center">
                                                     <a href="#"
-                                                        class="maidViewData justify-content-center align-content-center"
-                                                        data-id="{{ @$maid->id }}">
+                                                       class="maidViewData justify-content-center align-content-center"
+                                                       data-id="{{ @$maid->id }}">
                                                         @if ($maid->image != null)
                                                             <img src="{{ showFile($maid->image) }}" alt="cv1"
-                                                                style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">
+                                                                 style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">
                                                         @else
-                                                            <img src="{{ $maid->cv_preview ? showFile($maid->cv_preview) : showFile($maid->cv_file) }}"
+                                                            <img
+                                                                src="{{ $maid->cv_preview ? showFile($maid->cv_preview) : showFile($maid->cv_file) }}"
                                                                 alt="cv1"
                                                                 style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">
                                                         @endif
@@ -322,41 +322,7 @@
                                                     </ul>
                                                 </div>
                                             </div>
-                                            {{-- <div class="cv_details"> --}}
-                                            {{-- <div class="img"> --}}
-                                            {{-- <a href="assets/images/cv1.jpg" data-fancybox="w1"> --}}
-                                            {{-- <img src="assets/images/cv1.jpg" alt="cv1"> --}}
-                                            {{-- </a> --}}
-                                            {{-- </div> --}}
-                                            {{-- <div class="info"> --}}
-                                            {{-- <ul> --}}
-                                            {{-- <li> --}}
-                                            {{-- <span>الجنسية</span> --}}
-                                            {{-- <h3>بنجلاديش</h3> --}}
-                                            {{-- </li> --}}
-                                            {{-- <li> --}}
-                                            {{-- <span>الراتب</span> --}}
-                                            {{-- <h3>1000 ر.س</h3> --}}
-                                            {{-- </li> --}}
-                                            {{-- <li> --}}
-                                            {{-- <span>رقم الجواز</span> --}}
-                                            {{-- <h3>Ep01889</h3> --}}
-                                            {{-- </li> --}}
-                                            {{-- <li> --}}
-                                            {{-- <span>الديانة </span> --}}
-                                            {{-- <h3>مسلمة</h3> --}}
-                                            {{-- </li> --}}
-                                            {{-- <li> --}}
-                                            {{-- <span>تكلفة الاستقدام</span> --}}
-                                            {{-- <h3>2864 ر.س</h3> --}}
-                                            {{-- </li> --}}
-                                            {{-- <li> --}}
-                                            {{-- <span>الوظيفة</span> --}}
-                                            {{-- <h3>عاملة منزلية</h3> --}}
-                                            {{-- </li> --}}
-                                            {{-- </ul> --}}
-                                            {{-- </div> --}}
-                                            {{-- </div> --}}
+
                                         </div>
                                     </div>
                                     <div class="col-lg-6 col-12 p-2">
@@ -371,7 +337,7 @@
                                     </div>
                                     <div class="col-12 p-2 d-flex gap-1">
                                         <input type="checkbox" class="check" required="required" name="accept"
-                                            id="acceptCheckbox">
+                                               id="acceptCheckbox">
                                         <label for="accept" class="accept">{{ helperTrans('web.approve') }}
                                             <a
                                                 href="{{ route('web.privacyPolicy') }}">{{ helperTrans('web.privacyPolicy') }}</a>
@@ -384,8 +350,9 @@
                                         </button>
                                         @auth
                                             <button disabled title="برجاء الموافقة على الشروط والأحكام" type="submit"
-                                                class="btn btn-primary btn-next" id="myButtonsave" data-bs-toggle="modal"
-                                                data-bs-target="#payModal">
+                                                    class="btn btn-primary btn-next" id="myButtonsave"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#payModal">
                                                 <span class="align-middle d-sm-inline-block d-none me-sm-1">
                                                     {{-- {{ helperTrans('web.payment_and_confirm') }} --}}
                                                     {{ helperTrans('web.confirmation') }}
@@ -394,7 +361,7 @@
                                         @endauth
                                         @guest
                                             <a href="#" class="btns save-order-and-login"
-                                                style="
+                                               style="
                                                                                         display: block;
                                                                                         text-align: center;
                                                                                         width: 100%;
@@ -416,19 +383,19 @@
                         </form>
                     </div>
                 </div>
+            </div>
         </section>
-
     </div>
     <div class="modal fade add_location" id="addLocation" tabindex="-1" aria-labelledby="addLocationLabel"
-        aria-hidden="true">
+         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form class="form-wrap from-submit-global" action="{{ route('site.UserAddresss.store') }}"
-                        method="post">
+                    <form class="form-wrap form-add-new-address" action="{{ route('site.user-addresses.store') }}"
+                          method="post">
                         @csrf
                         <div class="row">
                             <div class="col-lg-6 col-12 p-2">
@@ -438,7 +405,7 @@
                                         {{ helperTrans('web.address_name') }}
                                     </label>
                                     <input id="locationName" name="title" type="text"
-                                        placeholder="{{ helperTrans('web.house_example') }}">
+                                           placeholder="{{ helperTrans('web.house_example') }}">
                                 </div>
                             </div>
                             <div class="col-lg-6 col-12 p-2">
@@ -448,7 +415,7 @@
                                         {{ helperTrans('web.recipient_name') }}
                                     </label>
                                     <input id="reciever" name="name" type="text"
-                                        placeholder="{{ helperTrans('web.write_full_name') }}">
+                                           placeholder="{{ helperTrans('web.write_full_name') }}">
                                 </div>
                             </div>
                             <div class="col-lg-6 col-12 p-2">
@@ -468,7 +435,7 @@
                                         {{ helperTrans('web.address') }}
                                     </label>
                                     <input id="address" name="address" type="text"
-                                        placeholder="{{ helperTrans('web.example_city_name') }}">
+                                           placeholder="{{ helperTrans('web.example_city_name') }}">
                                 </div>
                             </div>
                             <div class="col-lg-12 p-2">
@@ -477,7 +444,8 @@
                                         <i class="fa-regular fa-comment-dots"></i>
                                         {{ helperTrans('web.additional_details') }}
                                     </label>
-                                    <textarea name="notes" id="details" placeholder="{{ helperTrans('web.write_additional_details') }}"></textarea>
+                                    <textarea name="notes" id="details"
+                                              placeholder="{{ helperTrans('web.write_additional_details') }}"></textarea>
                                 </div>
                             </div>
                             <div class="col-lg-12 p-2">
@@ -495,12 +463,112 @@
     </div>
 @endsection
 @section('scripts')
-    {{-- <script src="https://code.jquery.com/jquery-3.7.1.min.js"
-        integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script> --}}
+    <script
+        src="https://code.jquery.com/jquery-3.7.1.min.js"
+        integrity="sha256-3gJwYpM9hJpO3VKF6FmCw3taOQGEEQWQl86p3Hc48P0="
+        crossorigin="anonymous"></script>
     <script>
-        // استخدام JavaScript العادي بدلاً من jQuery لتجنب الأخطاء
-        // حل بسيط لحفظ البيانات والعودة لنفس الصفحة
-        document.addEventListener('DOMContentLoaded', function() {
+        $(document).ready(function () {
+            $('.form-add-new-address').on('submit', function (e) {
+                e.preventDefault();
+                let formData = new FormData(this);
+                let url = $(this).attr('action');
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        Toastify({
+                            text: response.message,
+                            duration: 4000,
+                            gravity: "top",
+                            position: "right",
+                            backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
+                            stopOnFocus: true
+                        }).showToast();
+                        $('.form-add-new-address')[0].reset();
+                        $('.user_address').html(response.data.html);
+                        $('#addLocation').modal('hide');
+
+                    },
+                    error: function (xhr) {
+                        if (xhr.status === 422) {
+                            let errors = xhr.responseJSON.errors;
+                            let errorMessages = '';
+                            for (let key in errors) {
+                                errorMessages +=
+                                    `<p style="margin: 0 0 5px; color: red; text-align: center;">${errors[key][0]}</p>`;
+                            }
+                            Swal.fire({
+                                icon: 'error',
+                                title: '{{ __('ingaz.error ') }}',
+                                html: `<div>${errorMessages}</div>`,
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: '{{ __("ingaz.error") }}',
+                                text: '{{ __("ingaz.error_from_server") }}'
+                            });
+
+                        }
+                    }
+
+                });
+            })
+        })
+
+        $(document).on('submit', '#form-user-address', function (e) {
+            e.preventDefault();
+            let formData = new FormData(this);
+            let url = $(this).attr('action');
+            alert('ds')
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (response) {
+                    Toastify({
+                        text: response.message,
+                        duration: 4000,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)"
+                    }).showToast();
+
+                    // فضي الحقول بعد الإرسال
+                    document.getElementById('form-user-address').reset();
+
+                    // إرجع تاني تخفي الديف
+                    $('#manual_address_input').hide();
+                },
+                error: function (xhr) {
+                    if (xhr.status === 422) {
+                        let errorMessages = '';
+                        $.each(xhr.responseJSON.errors, function (key, val) {
+                            errorMessages += `<p style="margin:0 0 5px;color:red;text-align:center;">${val[0]}</p>`;
+                        });
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ في الإدخال',
+                            html: `<div>${errorMessages}</div>`
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ',
+                            text: 'حدث خطأ من الخادم'
+                        });
+                    }
+                }
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
             console.log("Type 2 order page loaded (simple solution)");
 
             // حفظ URL الحالي في localStorage
@@ -513,7 +581,7 @@
             if (saveButton) {
                 console.log('Save button found');
 
-                saveButton.addEventListener('click', function(e) {
+                saveButton.addEventListener('click', function (e) {
                     e.preventDefault();
                     console.log('Save order button clicked');
 
@@ -564,7 +632,7 @@
         console.log('Maid ID input exists:', $('input[name="maid_id"]').length);
 
         // حفظ بيانات الطلب قبل التوجيه إلى تسجيل الدخول
-        $('.save-order-and-login').on('click', function(e) {
+        $('.save-order-and-login').on('click', function (e) {
             e.preventDefault();
             console.log('Save order button clicked (Type 2)');
 
@@ -598,44 +666,6 @@
             window.location.href = '{{ route('web.auth') }}?redirect=order_confirmation';
         });
 
-        // Form submission handling
-        // $('.TypeTwoForm').off('submit').on('submit', function(event) {
-        //     event.preventDefault();
-        //     var formData = $(this).serialize(); // Serialize the form data
-        //     let submitButton = $(event.originalEvent.submitter);
-        //     let buttonText = submitButton.text();
-        //     submitButton.prop('disabled', true); // Disable the button
-
-        //     $.ajax({
-        //         type: 'post',
-        //         url: '{{ route('web.orders.store') }}',
-        //         data: formData,
-        //         beforeSend: function () {
-        //             submitButton.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' + buttonText);
-        //         },
-        //         complete: function () {
-        //             submitButton.html("{{ helperTrans('web.confirmation') }}");
-        //             submitButton.prop('disabled', false); // Re-enable the button
-        //         },
-        //         success: function (response) {
-        //             var data = response.data;
-
-        //             if (response.code == 410) {
-        //                 errorToster('{{ __('auth.an error occurred') }}', response.message);
-        //                 window.location = '/';
-        //                 return;
-        //             }
-
-        //             // Redirect for non-bank transfer payments
-        //             window.location = "{{ route('web.orders.show', ['order' => ':orderId']) }}"
-        //                 .replace(':orderId', data.order.id);
-
-        //         },
-        //         error: function (error) {
-        //             console.error(error);
-        //         }
-        //     });
-        // });
 
         // دالة إظهار حقل إدخال العنوان يدوياً
         function showManualAddressInput() {
@@ -671,39 +701,79 @@
         }
 
         // دالة تأكيد العنوان اليدوي
-        function confirmManualAddress() {
-            var city = $('#manual_city').val();
-            var address = $('#manual_address_text').val();
-            var phone = $('#manual_phone').val();
-            var name = $('#manual_name').val();
-
-            if (!city) {
-                alert('يرجى إدخال المدينة');
-                return;
-            }
-
-            // إنشاء HTML للعنوان اليدوي
-            var manualAddressHtml = `
-            <div class="alert alert-success">
-                <h6><i class="fa-light fa-edit me-2"></i>العنوان اليدوي</h6>
-                <ul class="mb-0">
-                    <li><i class="fa-light fa-user"></i>${name || 'غير محدد'}</li>
-                    <li><i class="fa-light fa-phone"></i>${phone || 'غير محدد'}</li>
-                    <li><i class="fa-light fa-location-dot"></i>${city} - ${address}</li>
-                </ul>
-            </div>
-        `;
-
-            // تعيين العنوان (null لأن العنوان يدوي)
-            $('input[name="details_list[address_id]"]').val('');
-            $('#llocation-l').html(manualAddressHtml);
-
-            // إخفاء الحقل
-            hideManualAddressInput();
-        }
+        // function confirmManualAddress() {
+        //     let city = $('#manual_city').val();
+        //     let address = $('#manual_address_text').val();
+        //     let phone = $('#manual_phone').val();
+        //     let name = $('#manual_name').val();
+        //
+        //     if (!city) {
+        //         Swal.fire({icon: 'warning', text: 'يرجى إدخال المدينة'});
+        //         return;
+        //     }
+        //
+        //     // عرض العنوان
+        //     let manualAddressHtml = `
+        //             <div class="alert alert-success">
+        //                 <h6><i class="fa-light fa-edit me-2"></i>العنوان اليدوي</h6>
+        //                 <ul class="mb-0">
+        //                     <li><i class="fa-light fa-user"></i>${name || 'غير محدد'}</li>
+        //                     <li><i class="fa-light fa-phone"></i>${phone || 'غير محدد'}</li>
+        //                     <li><i class="fa-light fa-location-dot"></i>${city} - ${address}</li>
+        //                 </ul>
+        //             </div>`;
+        //     $('#llocation-l').html(manualAddressHtml);
+        //
+        //     let form = $('#form-user-address');
+        //     let formData = new FormData(form[0]);
+        //     let url = form.attr('action');
+        //     let method = form.attr('method');
+        //     console.log(url)
+        //     console.log(method)
+        //
+        //     $.ajax({
+        //         url: url,
+        //         type: method,
+        //         data: formData,
+        //         processData: false,
+        //         contentType: false,
+        //         success: function (response) {
+        //             Toastify({
+        //                 text: response.message,
+        //                 duration: 4000,
+        //                 gravity: "top",
+        //                 position: "right",
+        //                 backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
+        //                 stopOnFocus: true
+        //             }).showToast();
+        //             form[0].reset();
+        //             hideManualAddressInput();
+        //         },
+        //         error: function (xhr) {
+        //             if (xhr.status === 422) {
+        //                 let errors = xhr.responseJSON.errors;
+        //                 let errorMessages = '';
+        //                 for (let key in errors) {
+        //                     errorMessages += `<p style="margin:0 0 5px;color:red;text-align:center;">${errors[key][0]}</p>`;
+        //                 }
+        //                 Swal.fire({
+        //                     icon: 'error',
+        //                     title: 'خطأ في الإدخال',
+        //                     html: `<div>${errorMessages}</div>`,
+        //                 });
+        //             } else {
+        //                 Swal.fire({
+        //                     icon: 'error',
+        //                     title: 'خطأ',
+        //                     text: 'حدث خطأ من الخادم'
+        //                 });
+        //             }
+        //         }
+        //     });
+        // }
 
         // إضافة مستمع لراديو العناوين
-        $('input[name="address_id"]').change(function() {
+        $('input[name="address_id"]').change(function () {
             var value = $(this).val();
 
             if (value === 'manual') {
@@ -720,52 +790,52 @@
         });
     </script>
     <script>
-        $('#closeMod').click(function() {
+        $('#closeMod').click(function () {
             window.location = '/';
         });
 
 
-        $(document).ready(function() {
+        $(document).ready(function () {
             // استعادة بيانات الطلب المحفوظة
             @if (session('restore_order_data'))
-                var restoreData = @json(session('restore_order_data'));
-                console.log('Restoring order data:', restoreData);
+            var restoreData = @json(session('restore_order_data'));
+            console.log('Restoring order data:', restoreData);
 
-                // استعادة البيانات في النموذج
-                if (restoreData.maid_id) {
-                    $("input[name='maid_id']").val(restoreData.maid_id);
-                }
-                if (restoreData.job_type_id) {
-                    $("input[name='job_type_id']").val(restoreData.job_type_id);
-                }
-                if (restoreData.order_type) {
-                    $("input[name='order_type']").val(restoreData.order_type);
-                }
-                if (restoreData.payment_method) {
-                    $("input[name='payment_method']").val(restoreData.payment_method);
-                }
-                if (restoreData.admin_id) {
-                    $("input[name='details_list[admin_id]'][value='" + restoreData.admin_id + "']").prop('checked',
-                        true);
-                }
-                if (restoreData.address_id) {
-                    $("input[name='details_list[address_id]']").val(restoreData.address_id);
-                }
-                if (restoreData.package_id) {
-                    $("input[name='details_list[package_id]']").val(restoreData.package_id);
-                }
+            // استعادة البيانات في النموذج
+            if (restoreData.maid_id) {
+                $("input[name='maid_id']").val(restoreData.maid_id);
+            }
+            if (restoreData.job_type_id) {
+                $("input[name='job_type_id']").val(restoreData.job_type_id);
+            }
+            if (restoreData.order_type) {
+                $("input[name='order_type']").val(restoreData.order_type);
+            }
+            if (restoreData.payment_method) {
+                $("input[name='payment_method']").val(restoreData.payment_method);
+            }
+            if (restoreData.admin_id) {
+                $("input[name='details_list[admin_id]'][value='" + restoreData.admin_id + "']").prop('checked',
+                    true);
+            }
+            if (restoreData.address_id) {
+                $("input[name='details_list[address_id]']").val(restoreData.address_id);
+            }
+            if (restoreData.package_id) {
+                $("input[name='details_list[package_id]']").val(restoreData.package_id);
+            }
 
-                // إظهار رسالة للمستخدم
-                Swal.fire({
-                    title: 'تم استعادة بيانات الطلب',
-                    text: 'تم استعادة بيانات الطلب المحفوظة مسبقاً',
-                    icon: 'success',
-                    timer: 3000,
-                    showConfirmButton: false
-                });
+            // إظهار رسالة للمستخدم
+            Swal.fire({
+                title: 'تم استعادة بيانات الطلب',
+                text: 'تم استعادة بيانات الطلب المحفوظة مسبقاً',
+                icon: 'success',
+                timer: 3000,
+                showConfirmButton: false
+            });
             @endif
 
-            $('.newPayFormClass').off('submit').on('submit', function(event) {
+            $('.newPayFormClass').off('submit').on('submit', function (event) {
                 event.preventDefault();
                 var formData = $(this).serialize(); // Serialize the form data
                 let submitButton = $(event.originalEvent.submitter);
@@ -805,16 +875,16 @@
                     type: 'post',
                     url: '{{ route('web.orders.store') }}',
                     data: formData,
-                    beforeSend: function() {
+                    beforeSend: function () {
                         submitButton.html(
                             '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' +
                             buttonText);
                     },
-                    complete: function() {
+                    complete: function () {
                         submitButton.html("{{ helperTrans('web.confirmation') }}");
                         submitButton.prop('disabled', false); // Re-enable the button
                     },
-                    success: function(response) {
+                    success: function (response) {
                         console.log('Response:', response);
                         var data = response.data;
 
@@ -837,13 +907,13 @@
                             if (data && data.order && data.order.id) {
                                 window.location =
                                     "{{ route('web.orders.show', ['order' => ':orderId']) }}"
-                                    .replace(':orderId', data.order.id);
+                                        .replace(':orderId', data.order.id);
                             } else {
                                 window.location = "{{ route('web.orders.index') }}";
                             }
                         });
                     },
-                    error: function(xhr, status, error) {
+                    error: function (xhr, status, error) {
                         console.error('Error:', xhr.responseText);
 
                         // إعادة تفعيل الزر
@@ -876,13 +946,20 @@
         var secondPage = null;
         var currentStep = 1;
 
-        $(document).ready(function() {
+        $(document).ready(function () {
+            const isLoggedIn = @json(auth()->check());
             var stepper = new Stepper($('.bs-stepper')[0]);
-            $('.btn-next').on('click', function() {
+            $('.btn-next').on('click', function () {
+                if (!isLoggedIn) {
+                    // احفظ عنوان الصفحة الحالي في localStorage
+                    localStorage.setItem('redirect_after_login', window.location.href);
+                    window.location.href = "{{ route('site.login.index') }}";
+                    return;
+                }
                 if (stepper._currentIndex === 1) {
                     if ((firstPage == null || firstPage === '' || firstPage === undefined) && $(
-                            'input[name="address_id"]:checked').val() !== 'skip' && $(
-                            'input[name="address_id"]:checked').val() !== 'manual') {
+                        'input[name="address_id"]:checked').val() !== 'skip' && $(
+                        'input[name="address_id"]:checked').val() !== 'manual') {
                         infoToster('{{ helperTrans('auth.an error occurred') }}',
                             "{{ helperTrans('web.address_required') }}");
                         return true;
@@ -903,7 +980,7 @@
                 }
 
             });
-            $('.btn-prev').on('click', function() {
+            $('.btn-prev').on('click', function () {
                 currentStep--;
                 stepper.previous();
             });
@@ -958,7 +1035,7 @@
         var myButton = document.getElementById('myButtonsave');
 
         // Attach event listener to the checkbox
-        myCheckbox.addEventListener('change', function() {
+        myCheckbox.addEventListener('change', function () {
             // Enable or disable the button based on the checkbox state
             myButton.disabled = !this.checked;
         });

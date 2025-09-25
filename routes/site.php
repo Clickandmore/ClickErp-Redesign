@@ -77,7 +77,7 @@ Route::group(
         Route::resource('contact-us', ContactUsController::class);
         Route::resource('packages', PackagesController::class);
         Route::resource('immediate-recipts', ImmediateReciptsController::class);
-        Route::resource('UserAddresss', UserAddressController::class);
+        Route::resource('user-addresses', UserAddressController::class);
 
         Route::middleware('site_auth')->group(function () {
             Route::resource('profile', ProfileController::class);

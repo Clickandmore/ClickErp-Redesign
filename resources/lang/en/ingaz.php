@@ -1351,9 +1351,11 @@
     'link' => 'Link',
     'warning_text' => 'The recruitment fees are paid through the Masaned platform.',
     'warning' => 'Warning',
-    'Labor_transfer' => ' استلام فوري',
+    'Labor_transfer' => 'LaborT ransfer',
     'Percentage' => 'Percentage',
+    'No_packages_to_show' => 'There are no packages to display.',
 
+    'user_address_success' => 'The address was added successfully.',
 
     'captcha_required' => 'Verification that you are not Robert is required.',
     'select_workers' => 'Select Workers',

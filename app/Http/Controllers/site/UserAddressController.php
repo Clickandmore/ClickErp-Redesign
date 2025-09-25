@@ -9,20 +9,21 @@ use Illuminate\Http\Request;
 
 class UserAddressController extends Controller
 {
-    public $postData = ["address","title","name","phone","notes"];
+    public $postData = ["address", "title", "name", "phone", "notes"];
     public $folderPath = "site.pages.user-addresses";
 
-    public $mainRoute = "UserAddresss";
+    public $mainRoute = "user-addresses";
 
 
-    public function index(Request $request,UserAddressAction $userAddressAction)
+    public function index(Request $request, UserAddressAction $userAddressAction)
     {
         if ($request->ajax()) {
-            $data['addresses'] = $userAddressAction->getWhere(['user_id'=>getGuardedUser('id')]);
-            $returnHTML = view($this->folderPath . ".index",$data)->render();
+            $data['addresses'] = $userAddressAction->getWhere(['user_id' => getGuardedUser('id')]);
+            $returnHTML = view($this->folderPath . ".index", $data)->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
     }
+
     public function create(Request $request)
     {
         if ($request->ajax()) {
@@ -40,7 +41,9 @@ class UserAddressController extends Controller
     public function store(Request $request, objAction $action)
     {
         $data = $request->only($this->postData);
-        $data['address'] = $action->storeUserAddress($data);
-        return jsonSuccess($data);
+        $action->storeUserAddress($data);
+        $addresses = $action->getWhere(['user_id' => getGuardedUser()->id]);
+        $html = view($this->folderPath . ".render_user_address", compact('addresses'))->render();
+        return jsonSuccess(['html' => $html], __("ingaz.user_address_success") , 200);
     }
 }

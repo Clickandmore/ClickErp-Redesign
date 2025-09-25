@@ -1,4 +1,4 @@
-<form class="form-wrap from-submit-global" action="{{route('site.UserAddresss.store')}}" method="post">
+<form class="form-wrap from-submit-global" action="{{route('site.user-addresses.store')}}" method="post">
     @csrf
     <div class="row">
         <div class="col-lg-6 col-12 p-2">
