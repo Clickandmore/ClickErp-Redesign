@@ -170,10 +170,13 @@
                 <div class="category">
                     <h5 class="title"><span> {{__("ingaz.skills")}} </span></h5>
                     <div class="passportData">
-                        @php
+                        {{-- @php
                             $maidSkillIds = is_array($maid->skills)
                                 ? $maid->skills
                                 : json_decode($maid->skills, true);
+                        @endphp --}}
+                        @php
+                            $maidSkillIds = $maid->skills ? (is_array($maid->skills) ? $maid->skills : json_decode($maid->skills, true)) : [];
                         @endphp
                         <table style="text-align: center">
                             <tr>

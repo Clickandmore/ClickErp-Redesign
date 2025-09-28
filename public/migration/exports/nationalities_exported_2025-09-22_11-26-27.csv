@@ -1,0 +1,11 @@
+﻿id,code,key_comment,name,rank,expected_duration,key_code,salary,sponsor_salary,status,apper_home,period,flag_image,created_at,updated_at
+18,BD,"سرعة وصول مع عمالة مدربة وكفاءات عالية مختارة بعناية",بنجلاديش,0,45,BN,9250,13499,1,1,,uploads/nationality/rDiKwudz07AOzSXfMySIM70wUe8RgBeaSjMK3WkG.jpg,,"2024-10-01 20:42:17"
+113,KE,"سرعة وصول مع عمالة مدربة وكفاءات عالية مختارة بعناية",كينيا,0,45,KE,5995,10399,1,1,,uploads/nationality/CTWjYUhL3s6KOXkgF0h6xqYvtGtYt5075WI7rix4.webp,,"2025-01-21 15:13:18"
+174,PH,"سرعة وصول مع عمالة مدربة وكفاءات عالية مختارة بعناية",الفلبين,1,45,P,15386,17930,1,1,,uploads/nationality/wKNP4uagPqRRthgKDHNB5cJl7DplaKJZMX3NeKXY.jpg,,"2024-10-14 14:46:43"
+100,IN,"سرعة وصول مع عمالة مدربة وكفاءات عالية مختارة بعناية",الهند,0,,IN1,3500,5499,1,1,,uploads/nationality/3Po3f47DB1FhTkOI0npQe3t4CJKkwY7RI80gFmWK.webp,"2022-08-14 13:46:11","2025-07-02 15:15:36"
+297,LK,"سرعة وصول مع عمالة مدربة وكفاءات عالية مختارة بعناية",سيريلانكا,0,45,LK,14000,17200,1,1,,uploads/nationality/lP9s1UKQC7qC0NVlDr70MFQd8hGGs7gJN7THhHPh.jpg,"2022-08-18 21:57:10","2024-10-01 20:43:29"
+150,OG,"سرعة وصول مع عمالة مدربة وكفاءات عالية مختارة بعناية",اوغندا,1,45,OG,5540,9499,1,1,,uploads/nationality/rg5rnUAnzRhNHN8Du5gy3aEVKMkD6p9e8dkmNkXs.jpg,"2022-08-18 21:57:10","2024-12-31 18:59:01"
+299,PK,"سرعة وصول مع عمالة مدربة وكفاءات عالية مختارة بعناية",باكستان,0,45,PK,9950,11950,1,1,,uploads/nationality/amToMMAE4uEIT8z6iyc4iVQcnZLUbRb8mrBV3ggP.jpg,"2023-01-16 14:29:56","2024-11-04 19:40:12"
+300,,"سرعة وصول مع عمالة مدربة وكفاءات عالية مختارة بعناية",اثيوبيا,0,45,ET,4985,8499,1,1,,uploads/nationality/f9jElekw2wNBJ4ZEqrRsFA3xzYG45G3RvyDGZNoF.jpg,"2023-05-11 10:54:53","2025-03-10 23:49:22"
+301,EG,"سرعة وصول مع عمالة مدربة وكفاءات عالية مختارة بعناية",مصر,0,,EG,6666,9266,0,0,,uploads/nationality/UE9raQyTfbTb79lxxXyICmBfx9HGb7KSN1iWSkUt.png,"2023-05-11 10:54:53","2024-03-24 02:13:58"
+302,,Eg,مصر,0,,EG,6000,8600,1,0,30,,"2024-03-24 02:13:01","2024-03-28 02:29:54"

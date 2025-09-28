@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔄 تحديث الصفحة</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            direction: rtl;
+            text-align: center;
+            padding: 50px;
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            margin: 0 auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        .refresh-btn {
+            display: inline-block;
+            background: #00b894;
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 10px;
+            margin: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .refresh-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+        .info-box {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: right;
+        }
+        .timestamp {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-top: 20px;
+        }
+    </style>
+    <script>
+        function forceRefresh() {
+            // إزالة كل الكاش وإعادة تحميل
+            const url = 'http://127.0.0.1:8005/migration/file_only_migration.php?v=' + Date.now();
+            window.location.href = url;
+        }
+
+        function openInIncognito() {
+            alert('افتح رابط جديد في وضع التصفح الخاص (Incognito/Private):\n\nhttp://127.0.0.1:8005/migration/file_only_migration.php');
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 إزالة الكاش</h1>
+
+        <p style="font-size: 1.3em; margin-bottom: 30px;">
+            التحديثات موجودة في الخادم!
+            <br>المشكلة في كاش المتصفح فقط
+        </p>
+
+        <div class="info-box">
+            <h3>✅ ما تم التأكد منه:</h3>
+            <ul style="text-align: right; margin-right: 20px;">
+                <li>✅ الخادم يعمل على المنفذ 8005</li>
+                <li>✅ الملف محدث (تاريخ: 18 سبتمبر 07:11)</li>
+                <li>✅ الأزرار الجديدة موجودة</li>
+                <li>✅ إعدادات قاعدة البيانات المرنة موجودة</li>
+            </ul>
+        </div>
+
+        <h3 style="margin-top: 30px;">🔧 حلول إزالة الكاش:</h3>
+
+        <a href="#" onclick="forceRefresh()" class="refresh-btn">
+            🔄 فتح بدون كاش
+        </a>
+
+        <a href="#" onclick="openInIncognito()" class="refresh-btn">
+            🕵️ فتح في وضع خاص
+        </a>
+
+        <div style="margin: 30px 0;">
+            <p><strong>أو اضغط هذه المفاتيح:</strong></p>
+            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; font-family: monospace;">
+                Mac: <strong>Cmd + Shift + R</strong><br>
+                Windows: <strong>Ctrl + F5</strong><br>
+                أو: <strong>Ctrl + Shift + R</strong>
+            </div>
+        </div>
+
+        <div class="timestamp">
+            ⏰ آخر تحديث للملف: 18 سبتمبر 2025، 07:11 صباحاً
+        </div>
+    </div>
+</body>
+</html>
