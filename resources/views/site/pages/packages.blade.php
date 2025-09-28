@@ -962,11 +962,21 @@
             var stepper = new Stepper($('.bs-stepper')[0]);
             $('.btn-next').on('click', function () {
                 if (!isLoggedIn) {
-                    // احفظ عنوان الصفحة الحالي في localStorage
-                    localStorage.setItem('redirect_after_login', window.location.href);
-                    window.location.href = "{{ route('site.login.index') }}";
+                    const currentUrl = window.location.href;
+                    fetch("{{ route('site.store.intended.url') }}", {
+                        method: "POST",
+                        headers: {
+                            "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ redirect_url: currentUrl })
+                    }).then(() => {
+                        window.location.href = "{{ route('site.login.index') }}";
+                    });
+
                     return;
                 }
+
                 if (stepper._currentIndex === 1) {
                     if ((firstPage == null || firstPage === '' || firstPage === undefined) && $(
                         'input[name="address_id"]:checked').val() !== 'skip' && $(
