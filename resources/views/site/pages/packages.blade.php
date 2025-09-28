@@ -299,7 +299,7 @@
                                                     <ul>
                                                         <li>
                                                             <span>{{ helperTrans('web.nationality') }}</span>
-                                                            <h3>{{ $maid->nationality->title }}</h3>
+                                                            <h3>{{ $maid->nationality->title  ?? '-'}}</h3>
                                                         </li>
                                                         <li>
                                                             <span>{{ helperTrans('web.salary') }}</span>
@@ -311,7 +311,7 @@
                                                         </li>
                                                         <li>
                                                             <span>{{ helperTrans('web.religion') }} </span>
-                                                            <h3>{{ $maid->religion->title }}</h3>
+                                                            <h3>{{ $maid->religion->title  ?? '-'}}</h3>
                                                         </li>
                                                         {{-- <li>
                                                     <span>{{ helperTrans('web.recruitment_price') }}م</span>
