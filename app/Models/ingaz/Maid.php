@@ -57,11 +57,15 @@ class Maid extends Model
         'available',
         'available_at',
         'is_show',
-        'is_pinned'
+        'is_pinned',
+        'percentage',
+        'languages'
     ];
 
     protected $casts = [
         'skills' => 'array',
+        'languages' => 'array',
+        'percentage' => 'array',
         'price' => 'decimal:2',
         'salary' => 'decimal:2',
         'age' => 'float',

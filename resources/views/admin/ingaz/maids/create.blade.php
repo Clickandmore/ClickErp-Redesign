@@ -220,44 +220,45 @@
 
                     <!-- اللغات والحالة الاجتماعية -->
                     <div class="col-12">
-                        <label for="TextInput" class="form-label">{{helperTrans("ingaz.languages")}} <small
-                                class="text-muted">(اختياري)</small></label>
+                        <label for="TextInput" class="form-label">
+                            {{ helperTrans("ingaz.languages") }}
+                            <small class="text-muted">(اختياري)</small>
+                        </label>
                         <div class="row">
                             <div class="col-md-3">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="languages[arabic]" id="arabic"
-                                           value="نعم">
-                                    <label class="form-check-label" for="arabic">
-                                        اللغة العربية
-                                    </label>
+                                    <input class="form-check-input lang-check" type="checkbox"
+                                           name="languages[arabic]" id="arabic" value="arabic">
+                                    <label class="form-check-label" for="arabic">اللغة العربية</label>
                                 </div>
+                                <div class="lang-extra"></div>
                             </div>
+
                             <div class="col-md-3">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="languages[english]"
-                                           id="english" value="نعم">
-                                    <label class="form-check-label" for="english">
-                                        اللغة الإنجليزية
-                                    </label>
+                                    <input class="form-check-input lang-check" type="checkbox"
+                                           name="languages[english]" id="english" value="english">
+                                    <label class="form-check-label" for="english">اللغة الإنجليزية</label>
                                 </div>
+                                <div class="lang-extra"></div>
                             </div>
+
                             <div class="col-md-3">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="languages[amharic]"
-                                           id="amharic" value="نعم">
-                                    <label class="form-check-label" for="amharic">
-                                        اللغة الأمهرية
-                                    </label>
+                                    <input class="form-check-input lang-check" type="checkbox"
+                                           name="languages[amharic]" id="amharic" value="amharic">
+                                    <label class="form-check-label" for="amharic">اللغة الأمهرية</label>
                                 </div>
+                                <div class="lang-extra"></div>
                             </div>
+
                             <div class="col-md-3">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="languages[mother]" id="mother"
-                                           value="نعم">
-                                    <label class="form-check-label" for="mother">
-                                        اللغة الأم
-                                    </label>
+                                    <input class="form-check-input lang-check" type="checkbox"
+                                           name="languages[mother]" id="mother" value="mother">
+                                    <label class="form-check-label" for="mother">اللغة الأم</label>
                                 </div>
+                                <div class="lang-extra"></div>
                             </div>
                         </div>
                     </div>
@@ -323,6 +324,24 @@
     <script src="{{asset("admin")}}/assets/js/bundle/dropify.bundle.js"></script>
     <script src="{{asset("admin")}}/assets/js/bundle/select2.bundle.js"></script>
     <script src="{{asset("admin")}}/assets/js/bundle/sweetalert2.bundle.js"></script>
+    <script>
+        $(function(){
+            $('.lang-check').on('change', function () {
+                const $wrapper = $(this).closest('.form-check').siblings('.lang-extra');
+                const val = $(this).val();
+                if ($(this).is(':checked')) {
+                    $wrapper.html(
+                        `<input type="number" class="form-control mt-2"
+                name="percentage[${val}]"
+                placeholder="{{ __("ingaz.Percentage") }}"
+                min="0" max="100" />`
+                    );
+                } else {
+                    $wrapper.empty();
+                }
+            });
+        });
+    </script>
     <script>
         $(function () {
 

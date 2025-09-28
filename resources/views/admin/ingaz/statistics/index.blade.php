@@ -11,9 +11,9 @@
 @section('content')
 
 
-    @if (@AdminGuardHasPerm(\App\PermKeys::STAT_CONTROL))
+{{--    @if (@AdminGuardHasPerm(\App\PermKeys::STAT_CONTROL))--}}
         {!! addButton(route("statistics.create") ,helperTrans("ingaz.statistics")) !!}
-    @endif
+{{--    @endif--}}
 
     <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
         <thead>

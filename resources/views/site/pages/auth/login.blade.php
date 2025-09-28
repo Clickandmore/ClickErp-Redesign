@@ -93,8 +93,14 @@
                                 stopOnFocus: true
                             }).showToast();
                             setTimeout(function () {
-                                window.location.href = response.data.result;
-                            }, 1000);
+                                let target = response.result;
+                                const redirectUrl = localStorage.getItem('redirect_after_login');
+                                if (redirectUrl) {
+                                    target = redirectUrl;
+                                    localStorage.removeItem('redirect_after_login');
+                                }
+                                window.location.href = target;
+                                }, 1000);
                         }
                     },
                     error: function (xhr) {

@@ -1,4 +1,4 @@
-@if (@AdminGuardHasPerm(\App\PermKeys::STAT_CONTROL))
+{{--@if (@AdminGuardHasPerm(\App\PermKeys::STAT_CONTROL))--}}
 
     <form class="row g-3 from-submit-global" method="post" action="{{route("statistics.update",$obj->id)}}">
         @csrf
@@ -34,6 +34,6 @@
         </div>
     </form>
 
-@else
-    @include('components.no_permissions')
-@endif
+{{--@else--}}
+{{--    @include('components.no_permissions')--}}
+{{--@endif--}}
