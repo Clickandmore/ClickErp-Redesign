@@ -44,7 +44,7 @@ class MaidRequest extends MainRequest
             'type_id' => 'required|exists:job_types,id',
             'office_id' => 'nullable|exists:recruitment_offices,id',
             'languages' => 'nullable|array',
-            'percentages' => 'nullable|array',
+            'percentage' => 'nullable|array',
             'expertises' => 'nullable|array',
         ];
     }

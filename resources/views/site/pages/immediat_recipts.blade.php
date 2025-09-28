@@ -15,12 +15,13 @@
                             <div class="cv_details">
                                 <div class="p-5 justify-content-center align-content-center">
                                     <a href="#" class="maidViewData justify-content-center align-content-center"
-                                        data-id="{{ @$maid->id }}">
+                                       data-id="{{ @$maid->id }}">
                                         @if ($maid->image != null)
                                             <img src="{{ showFile($maid->image) }}" alt="cv1"
-                                                style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">
+                                                 style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">
                                         @else
-                                            <img src="{{ $maid->cv_preview ? showFile($maid->cv_preview) : showFile($maid->cv_file) }}"
+                                            <img
+                                                src="{{ $maid->cv_preview ? showFile($maid->cv_preview) : showFile($maid->cv_file) }}"
                                                 alt="cv1"
                                                 style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">
                                         @endif
@@ -63,15 +64,16 @@
 
                     </div>
                     <div class="col-lg-6 col-12">
-                        <form id="wizard-property-listing-form" class="TypeThreeForm" onSubmit="return false">
+                        <form id="wizard-property-listing-form" class="TypeThreeForm" method="post"
+                              action="{{route('site.immediate-recipts.store')}}">
                             @csrf
                             <input type="hidden" name="maid_id" value="{{ $maid->id }}">
                             <input type="hidden" name="payment_method" value="none">
                             <input type="hidden" name="job_type_id" value="{{ $type->id }}">
                             <input type="hidden" name="order_type" value="{{ $type->id }}">
                             <div class="select_cutomer_services">
-                                <h3>اختيار ممثل خدمة العملاء</h3>
-                                <p>لإكمال طلب نقل الكفالة</p>
+                                <h3>{{__("ingaz.Selecting a customer service representative")}}</h3>
+                                <p>{{__("ingaz.To complete the sponsorship transfer application")}}</p>
                                 <div class="agents">
                                     @foreach ($customer_services as $customer_service)
                                         <label for="{{ $customer_service->name }}">
@@ -83,22 +85,22 @@
                                                             : asset('web/assets/images/woman.svg');
                                                 @endphp
                                                 <img src="{{ $imagePath }}" style="mix-blend-mode: multiply"
-                                                    alt="man">
+                                                     alt="man">
                                                 <h6>أ. {{ $customer_service->name }}</h6>
                                             </div>
                                             <input type="radio" value="{{ $customer_service->id }}"
-                                                name="details_list[admin_id]" id="{{ $customer_service->name }}">
+                                                   name="details_list[admin_id]" id="{{ $customer_service->name }}">
                                         </label>
                                     @endforeach
                                 </div>
                                 @auth
                                     <button type="submit" id="myButtonsave">
-                                        تأكيد طلب نقل الكفالة
+                                        {{__("ingaz.Confirm sponsorship transfer request")}}
                                     </button>
                                 @endauth
                                 @guest
                                     <a href="#" class="btns save-order-and-login"
-                                        style="
+                                       style="
                                                                                             display: block;
                                                                                             text-align: center;
                                                                                             width: 100%;
@@ -122,13 +124,14 @@
             </div>
         </section>
     </div>
-    <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" data-bs-backdrop="static"
-        aria-hidden="true">
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel"
+         data-bs-backdrop="static"
+         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" id="closeMod" class="btn-close" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
+                            aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="confirm_model">
@@ -152,50 +155,100 @@
 @endsection
 @section('scripts')
     <script>
-        $('#closeMod').click(function() {
+        $('#closeMod').click(function () {
             window.location = '/';
         });
-        $(document).ready(function() {
+        $(document).ready(function () {
+            $('#wizard-property-listing-form').on('submit', function (e) {
+                e.preventDefault();
+                let formData = new FormData(this);
+                let url = $(this).attr('action');
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        Toastify({
+                            text: response.message,
+                            duration: 4000,
+                            gravity: "top",
+                            position: "right",
+                            backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
+                            stopOnFocus: true
+                        }).showToast();
+                        setTimeout(function () {
+                            location.href = response.data.redirect;
+                        }, 500);
+
+                    },
+                    error: function (xhr) {
+                        if (xhr.status === 422) {
+                            let errors = xhr.responseJSON.errors;
+                            let errorMessages = '';
+                            for (let key in errors) {
+                                errorMessages +=
+                                    `<p style="margin: 0 0 5px; color: red; text-align: center;">${errors[key][0]}</p>`;
+                            }
+                            Swal.fire({
+                                icon: 'error',
+                                title: '{{ __('ingaz.error ') }}',
+                                html: `<div>${errorMessages}</div>`,
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: '{{ __("ingaz.error") }}',
+                                text: '{{ __("ingaz.error_from_server") }}'
+                            });
+
+                        }
+                    }
+
+                });
+            })
+
             // استعادة بيانات الطلب المحفوظة
             @if (session('restore_order_data'))
-                var restoreData = @json(session('restore_order_data'));
-                console.log('Restoring order data:', restoreData);
+            var restoreData = @json(session('restore_order_data'));
+            console.log('Restoring order data:', restoreData);
 
-                // استعادة البيانات في النموذج
-                if (restoreData.maid_id) {
-                    $("input[name='maid_id']").val(restoreData.maid_id);
-                }
-                if (restoreData.job_type_id) {
-                    $("input[name='job_type_id']").val(restoreData.job_type_id);
-                }
-                if (restoreData.order_type) {
-                    $("input[name='order_type']").val(restoreData.order_type);
-                }
-                if (restoreData.payment_method) {
-                    $("input[name='payment_method']").val(restoreData.payment_method);
-                }
-                if (restoreData.admin_id) {
-                    $("input[name='details_list[admin_id]'][value='" + restoreData.admin_id + "']").prop('checked',
-                        true);
-                }
-                if (restoreData.address_id) {
-                    $("input[name='details_list[address_id]']").val(restoreData.address_id);
-                }
-                if (restoreData.package_id) {
-                    $("input[name='details_list[package_id]']").val(restoreData.package_id);
-                }
+            // استعادة البيانات في النموذج
+            if (restoreData.maid_id) {
+                $("input[name='maid_id']").val(restoreData.maid_id);
+            }
+            if (restoreData.job_type_id) {
+                $("input[name='job_type_id']").val(restoreData.job_type_id);
+            }
+            if (restoreData.order_type) {
+                $("input[name='order_type']").val(restoreData.order_type);
+            }
+            if (restoreData.payment_method) {
+                $("input[name='payment_method']").val(restoreData.payment_method);
+            }
+            if (restoreData.admin_id) {
+                $("input[name='details_list[admin_id]'][value='" + restoreData.admin_id + "']").prop('checked',
+                    true);
+            }
+            if (restoreData.address_id) {
+                $("input[name='details_list[address_id]']").val(restoreData.address_id);
+            }
+            if (restoreData.package_id) {
+                $("input[name='details_list[package_id]']").val(restoreData.package_id);
+            }
 
-                // إظهار رسالة للمستخدم
-                Swal.fire({
-                    title: 'تم استعادة بيانات الطلب',
-                    text: 'تم استعادة بيانات الطلب المحفوظة مسبقاً',
-                    icon: 'success',
-                    timer: 3000,
-                    showConfirmButton: false
-                });
+            // إظهار رسالة للمستخدم
+            Swal.fire({
+                title: 'تم استعادة بيانات الطلب',
+                text: 'تم استعادة بيانات الطلب المحفوظة مسبقاً',
+                icon: 'success',
+                timer: 3000,
+                showConfirmButton: false
+            });
             @endif
 
-            $('.newPayFormClass').off('submit').on('submit', function(event) {
+            $('.newPayFormClass').off('submit').on('submit', function (event) {
                 event.preventDefault();
                 var formData = $(this).serialize(); // Serialize the form data
                 let submitButton = $(event.originalEvent.submitter);
@@ -235,16 +288,16 @@
                     type: 'post',
                     url: '{{ route('web.orders.store') }}',
                     data: formData,
-                    beforeSend: function() {
+                    beforeSend: function () {
                         submitButton.html(
                             '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' +
                             buttonText);
                     },
-                    complete: function() {
+                    complete: function () {
                         submitButton.html("{{ helperTrans('web.confirmation') }}");
                         submitButton.prop('disabled', false); // Re-enable the button
                     },
-                    success: function(response) {
+                    success: function (response) {
                         console.log('Response:', response);
                         var data = response.data;
 
@@ -267,13 +320,13 @@
                             if (data && data.order && data.order.id) {
                                 window.location =
                                     "{{ route('web.orders.show', ['order' => ':orderId']) }}"
-                                    .replace(':orderId', data.order.id);
+                                        .replace(':orderId', data.order.id);
                             } else {
                                 window.location = "{{ route('web.orders.index') }}";
                             }
                         });
                     },
-                    error: function(xhr, status, error) {
+                    error: function (xhr, status, error) {
                         console.error('Error:', xhr.responseText);
 
                         // إعادة تفعيل الزر
@@ -306,13 +359,13 @@
         var secondPage = null;
         var currentStep = 1;
 
-        $(document).ready(function() {
+        $(document).ready(function () {
             var stepper = new Stepper($('.bs-stepper')[0]);
-            $('.btn-next').on('click', function() {
+            $('.btn-next').on('click', function () {
                 if (stepper._currentIndex === 1) {
                     if ((firstPage == null || firstPage === '' || firstPage === undefined) && $(
-                            'input[name="address_id"]:checked').val() !== 'skip' && $(
-                            'input[name="address_id"]:checked').val() !== 'manual') {
+                        'input[name="address_id"]:checked').val() !== 'skip' && $(
+                        'input[name="address_id"]:checked').val() !== 'manual') {
                         infoToster('{{ helperTrans('auth.an error occurred') }}',
                             "{{ helperTrans('web.address_required') }}");
                         return true;
@@ -333,7 +386,7 @@
                 }
 
             });
-            $('.btn-prev').on('click', function() {
+            $('.btn-prev').on('click', function () {
                 currentStep--;
                 stepper.previous();
             });
@@ -388,14 +441,14 @@
         var myButton = document.getElementById('myButtonsave');
 
         // Attach event listener to the checkbox
-        myCheckbox.addEventListener('change', function() {
+        myCheckbox.addEventListener('change', function () {
             // Enable or disable the button based on the checkbox state
             myButton.disabled = !this.checked;
         });
     </script>
     <script>
         // حل بسيط لحفظ البيانات والعودة لنفس الصفحة
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             console.log("Type 3 order page loaded (simple solution)");
 
             // حفظ URL الحالي في localStorage
@@ -408,7 +461,7 @@
             if (saveButton) {
                 console.log('Save button found');
 
-                saveButton.addEventListener('click', function(e) {
+                saveButton.addEventListener('click', function (e) {
                     e.preventDefault();
                     console.log('Save order button clicked');
 
@@ -454,7 +507,7 @@
             // معالجة زر التأكيد للمستخدمين المسجلين
             const submitButton = document.getElementById('myButtonsave');
             if (submitButton) {
-                submitButton.addEventListener('click', function() {
+                submitButton.addEventListener('click', function () {
                     const selectedAgent = document.querySelector('.agents input[type="radio"]:checked');
                     if (selectedAgent) {
                         const adminIdInput = document.querySelector('input[name="details_list[admin_id]"]');
@@ -466,53 +519,53 @@
             }
 
             // معالجة إرسال النموذج
-            const form = document.querySelector('.TypeThreeForm');
-            if (form) {
-                form.addEventListener('submit', function(event) {
-                    event.preventDefault();
+            {{--const form = document.querySelector('.TypeThreeForm');--}}
+            {{--if (form) {--}}
+            {{--    form.addEventListener('submit', function (event) {--}}
+            {{--        event.preventDefault();--}}
 
-                    const formData = new FormData(this);
-                    const submitButton = event.submitter;
-                    const buttonText = submitButton.textContent;
-                    submitButton.disabled = true;
+            {{--        const formData = new FormData(this);--}}
+            {{--        const submitButton = event.submitter;--}}
+            {{--        const buttonText = submitButton.textContent;--}}
+            {{--        submitButton.disabled = true;--}}
 
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('POST', '{{ route('web.orders.store') }}', true);
-                    xhr.setRequestHeader('X-CSRF-TOKEN', document.querySelector('meta[name="csrf-token"]')
-                        ?.getAttribute('content') || '');
-                    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            {{--        const xhr = new XMLHttpRequest();--}}
+            {{--        xhr.open('POST', '{{ route('web.orders.store') }}', true);--}}
+            {{--        xhr.setRequestHeader('X-CSRF-TOKEN', document.querySelector('meta[name="csrf-token"]')--}}
+            {{--            ?.getAttribute('content') || '');--}}
+            {{--        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');--}}
 
-                    xhr.onload = function() {
-                        submitButton.disabled = false;
-                        submitButton.textContent = "{{ helperTrans('web.confirmation') }}";
+            {{--        xhr.onload = function () {--}}
+            {{--            submitButton.disabled = false;--}}
+            {{--            submitButton.textContent = "{{ helperTrans('web.confirmation') }}";--}}
 
-                        if (xhr.status === 200) {
-                            try {
-                                const response = JSON.parse(xhr.responseText);
+            {{--            if (xhr.status === 200) {--}}
+            {{--                try {--}}
+            {{--                    const response = JSON.parse(xhr.responseText);--}}
 
-                                if (response.code == 410) {
-                                    window.location = '/';
-                                    return;
-                                }
+            {{--                    if (response.code == 410) {--}}
+            {{--                        window.location = '/';--}}
+            {{--                        return;--}}
+            {{--                    }--}}
 
-                                alert('تم إرسال طلب نقل الكفالة بنجاح');
-                                window.location.href = '{{ route('site.profile.index') }}';
-                            } catch (e) {
-                                console.error('Error parsing response:', e);
-                            }
-                        }
-                    };
+            {{--                    alert('تم إرسال طلب نقل الكفالة بنجاح');--}}
+            {{--                    window.location.href = '{{ route('site.profile.index') }}';--}}
+            {{--                } catch (e) {--}}
+            {{--                    console.error('Error parsing response:', e);--}}
+            {{--                }--}}
+            {{--            }--}}
+            {{--        };--}}
 
-                    xhr.onerror = function() {
-                        submitButton.disabled = false;
-                        submitButton.textContent = buttonText;
-                        console.error('Request failed');
-                    };
+            {{--        xhr.onerror = function() {--}}
+            {{--            submitButton.disabled = false;--}}
+            {{--            submitButton.textContent = buttonText;--}}
+            {{--            console.error('Request failed');--}}
+            {{--        };--}}
 
-                    const data = new URLSearchParams(formData).toString();
-                    xhr.send(data);
-                });
-            }
+            {{--        const data = new URLSearchParams(formData).toString();--}}
+            {{--        xhr.send(data);--}}
+            {{--    });--}}
+            {{--}--}}
         });
         $('#addLocation').modal('hide');
     </script>

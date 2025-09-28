@@ -264,45 +264,42 @@
                     <div class="col-12">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.languages")}} <small
                                 class="text-muted">(اختياري)</small></label>
+                        @php
+                            $langs = is_array($obj->languages)
+                                ? $obj->languages
+                                : (json_decode($obj->languages, true) ?? []);
+                            $percentages = is_array($obj->percentage)
+                                ? $obj->percentage
+                                : (json_decode($obj->percentage, true) ?? []);
+                        @endphp
+
                         <div class="row">
-                            <div class="col-md-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="languages[arabic]" id="arabic"
-                                           value="نعم" {{ str_contains(optional($obj->translate('ar'))->languages, 'العربية') ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="arabic">
-                                        اللغة العربية
-                                    </label>
+                            @foreach (['arabic'=>'اللغة العربية',
+                                       'english'=>'اللغة الإنجليزية',
+                                       'amharic'=>'اللغة الأمهرية',
+                                       'mother'=>'اللغة الأم'] as $key => $label)
+
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input lang-check"
+                                               type="checkbox"
+                                               name="languages[{{ $key }}]"
+                                               id="{{ $key }}"
+                                               value="{{ $key }}"
+                                            {{ in_array($key, $langs) ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="{{ $key }}">{{ $label }}</label>
+                                    </div>
+
+                                    <div class="lang-extra mt-2" style="{{ in_array($key,$langs) ? '' : 'display:none;' }}">
+                                        <input type="number" min="0" max="100"
+                                               class="form-control"
+                                               placeholder="النسبة %"
+                                               name="percentage[{{ $key }}]"
+                                               value="{{ $percentages[$key] ?? '' }}">
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="languages[english]"
-                                           id="english"
-                                           value="نعم" {{ str_contains(optional($obj->translate('ar'))->languages, 'الإنجليزية') ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="english">
-                                        اللغة الإنجليزية
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="languages[amharic]"
-                                           id="amharic"
-                                           value="نعم" {{ str_contains(optional($obj->translate('ar'))->languages, 'الأمهرية') ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="amharic">
-                                        اللغة الأمهرية
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="languages[mother]" id="mother"
-                                           value="نعم" {{ str_contains(optional($obj->translate('ar'))->languages, 'الأم') ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="mother">
-                                        اللغة الأم
-                                    </label>
-                                </div>
-                            </div>
+
+                            @endforeach
                         </div>
                     </div>
                     <label for="TextInput" class="form-label">{{helperTrans("ingaz.expertise")}} </label>
@@ -892,6 +889,24 @@
 
             // Initialize shelter option on page load
             initializeShelterOption();
+        });
+    </script>
+    <script>
+        $(function(){
+            $('.lang-check').on('change', function () {
+                const $wrapper = $(this).closest('.form-check').siblings('.lang-extra');
+                const val = $(this).val();
+                if ($(this).is(':checked')) {
+                    $wrapper.html(
+                        `<input type="number" class="form-control mt-2"
+                name="percentage[${val}]"
+                placeholder="{{ __("ingaz.Percentage") }}"
+                min="0" max="100" />`
+                    );
+                } else {
+                    $wrapper.empty();
+                }
+            });
         });
     </script>
 @endsection

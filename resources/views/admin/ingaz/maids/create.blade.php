@@ -332,15 +332,13 @@
                 if ($(this).is(':checked')) {
                     $wrapper.html(
                         `<input type="number" class="form-control mt-2"
-                name="percentages[${val}]"
+                name="percentage[${val}]"
                 placeholder="{{ __("ingaz.Percentage") }}"
                 min="0" max="100" />`
                     );
                 } else {
                     $wrapper.empty();
                 }
-
-
             });
         });
     </script>

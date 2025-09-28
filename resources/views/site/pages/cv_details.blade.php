@@ -6,8 +6,29 @@
     <!-- cv page -->
     <content id="widget">
         <div class="cvPage">
-            <div class="shape1"></div>
-            <!-- col -->
+            <div class="logo-bg">
+                <img src="{{asset('site')}}/assets/images/cv-fav.png" alt=""/>
+            </div>
+            <div class="cv-side">
+                <img src="{{asset('site')}}/assets/images/cv-side.png" alt=""/>
+            </div>
+            <dv class="cv-footer">
+                <img src="{{asset('site')}}/assets/images/cvFooter.png" alt=""/>
+            </dv>
+            <div class="header-logo">
+                <div class="transparent-logo">
+                    <img src="{{asset('site')}}/assets/images/cv-fav.png" alt="cv-logo"/>
+                    <img src="{{asset('site')}}/assets/images/cv-fav.png" alt="cv-logo"/>
+                    <img src="{{asset('site')}}/assets/images/cv-fav.png" alt="cv-logo"/>
+                    <img src="{{asset('site')}}/assets/images/cv-fav.png" alt="cv-logo"/>
+                    <img src="{{asset('site')}}/assets/images/cv-fav.png" alt="cv-logo"/>
+                    <img src="{{asset('site')}}/assets/images/cv-fav.png" alt="cv-logo"/>
+                    <img src="{{asset('site')}}/assets/images/cv-fav.png" alt="cv-logo"/>
+                </div>
+                <div class="logo">
+                    <img src="{{asset('site')}}/assets/images/cv-logo.png" alt="cv-logo"/>
+                </div>
+            </div>            <!-- col -->
             <div class="imageCol">
                 <div class="image">
                     <img src="{{ showFile($maid->image) }}" alt=""/>
@@ -225,17 +246,6 @@
                 <div class="category">
                     <h5 class="title"><span> {{ __('ingaz.contact us')}} </span></h5>
                     <div class="passportData">
-                        <div class="info_social">
-                            <img
-                                src="{{isset($settings->qr_image) && $settings->qr_image != '#' ? showFile($settings->qr_image) : asset('site/assets/images/qr1.png')}}"
-                                alt=""/>
-                            <img
-                                src="{{isset($settings->second_qr_image) && $settings->second_qr_image != '#' ? showFile($settings->second_qr_image) : asset('site/assets/images/qr2.png')}}"
-                                alt=""/>
-                            <img style="margin-right: auto;"
-                                 src="{{isset($settings->experience_image) && $settings->experience_image != '#' ? showFile($settings->experience_image) : asset('site/assets/images/experience.svg')}}"
-                                 alt=""/>
-                        </div>
                         <div class="socialMedia">
                             <a href="tel:{{@$settings->phone}}" target="_blank">
                                 <!-- call -->
@@ -292,7 +302,17 @@
                                 {{@$settings->snapchat}}
                             </a>
                         </div>
-
+                        <div class="info_social">
+                            <img
+                                src="{{isset($settings->qr_image) && $settings->qr_image != '#' ? showFile($settings->qr_image) : asset('site/assets/images/qr1.png')}}"
+                                alt=""/>
+                            <img
+                                src="{{isset($settings->second_qr_image) && $settings->second_qr_image != '#' ? showFile($settings->second_qr_image) : asset('site/assets/images/qr2.png')}}"
+                                alt=""/>
+                            <img style="margin-right: auto;"
+                                 src="{{isset($settings->experience_image) && $settings->experience_image != '#' ? showFile($settings->experience_image) : asset('site/assets/images/experience.svg')}}"
+                                 alt=""/>
+                        </div>
                     </div>
                 </div>
             </div>

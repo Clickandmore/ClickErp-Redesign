@@ -634,7 +634,7 @@ header .mainNav .navbar-brand .logo {
      object-fit: contain;
 }
 header .mainNav .language {
-  padding: 20px 12px;
+  padding: 20px 0px;
 }
 @media (max-width: 768px) {
   header .mainNav .language {
@@ -671,6 +671,9 @@ header .mainNav .nav-item a i {
   color: var(--mainColor);
 }
 header .mainNav .nav-item .fa-globe {
+  color: var(--black);
+}
+header .mainNav .nav-item .fa-comment-dots {
   color: var(--black);
 }
 header .mainNav .nav-item .nav-link {
@@ -802,6 +805,8 @@ header .mainNav .login-btn {
   padding: 6px 10px;
   border: 1px solid transparent;
   font-size: 0.8rem;
+  width: -moz-max-content;
+  width: max-content;
 }
 header .mainNav .login-btn span {
   position: absolute;
@@ -889,7 +894,7 @@ main .mainSlider .swiper .swiper-slide::after {
   position: absolute;
   bottom: 0;
   right: 0;
-  opacity: 0.7;
+  opacity: 0.5;
   z-index: -1;
   transition: 0.3s ease-in-out;
   mix-blend-mode: multiply;
@@ -1031,6 +1036,10 @@ main .hero-services .service .icon svg * {
     height: 50px;
   }
 }
+main .hero-services .service .icon i {
+  font-size: 2.5rem;
+  color: var(--mainColor);
+}
 main .hero-services .service .text {
   display: flex;
   flex-direction: column;
@@ -1154,19 +1163,19 @@ main .services-sec {
   background-color: var(--mainColor10);
   padding: 50px 0;
 }
-main .services-sec .service {
+main .services-sec .services-slider .service {
   display: block;
   position: relative;
   padding: 30px 20px;
   border-radius: 15px;
   text-align: center;
   background-size: 100% auto;
-  height: 100%;
+  height: 280px;
   min-width: 250px;
   transition: var(--transition);
   max-width: 100%;
 }
-main .services-sec .service::after {
+main .services-sec .services-slider .service::after {
   content: "";
   position: absolute;
   top: 0px;
@@ -1180,30 +1189,72 @@ main .services-sec .service::after {
   z-index: 1;
   background-image: linear-gradient(-10deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.5));
 }
-main .services-sec .service i {
+main .services-sec .services-slider .service i {
   font-size: 35px;
   color: #e9e7c8;
-  margin-bottom: 30px;
+  margin-bottom: 15px;
   position: relative;
   z-index: 2;
 }
-main .services-sec .service .serviceTitle {
+main .services-sec .services-slider .service .serviceTitle {
   font-weight: bold;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   color: #fff;
   position: relative;
   z-index: 2;
-  padding: 0px 30px;
   white-space: nowrap;
 }
-main .services-sec .service .serviceP {
+main .services-sec .services-slider .service .serviceP {
   color: #eee;
   position: relative;
   z-index: 2;
   line-height: 24px;
+  text-wrap-style: balance;
 }
-main .services-sec .service:hover {
+main .services-sec .services-slider .service:hover {
   background-size: 110% auto;
+}
+main .services-sec .services-slider .custom-swiper-btn {
+  width: 44px;
+  height: 44px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #222;
+  font-size: 22px;
+  transition: background 0.2s, color 0.2s;
+  border: 1px solid #eee;
+}
+main .services-sec .services-slider .custom-swiper-btn:hover {
+  background: var(--mainColor);
+  color: #fff;
+  border-color: var(--mainColor);
+}
+@media (max-width: 768px) {
+  main .services-sec .services-slider .custom-swiper-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+}
+main .services-sec .services-slider .swiper-button-next,
+main .services-sec .services-slider .swiper-rtl .swiper-button-prev {
+  right: 0;
+  left: auto;
+  transform: scale(-1);
+}
+main .services-sec .services-slider .swiper-button-prev,
+main .services-sec .services-slider .swiper-rtl .swiper-button-next {
+  left: 0;
+  right: auto;
+  transform: scale(-1);
+}
+main .services-sec .services-slider .swiper-button-next::after,
+main .services-sec .services-slider .swiper-button-prev::after {
+  font-size: 22px;
 }
 main .countries {
   padding: 80px 0;
@@ -2213,7 +2264,7 @@ main .steps .allSteps .step:nth-child(even)::before {
 }
 main .references {
   padding-top: 40px;
-  background-image: linear-gradient(45deg, rgba(255, 255, 255, 0), rgba(233, 231, 200, 0.4941176471)), url(../images/map.webp);
+  background-image: linear-gradient(45deg, rgba(165, 207, 241, 0.1019607843), rgba(165, 207, 241, 0.1019607843)), url(../images/map.webp);
   background-attachment: fixed;
   background-size: cover;
   background-repeat: no-repeat;
@@ -2352,6 +2403,68 @@ main .contractRenew .googleMap iframe {
   min-height: 300px;
   height: 100%;
   border-radius: 8px;
+}
+main .contactForm .toggle-pill,
+main .contractRenew .toggle-pill {
+  display: inline-flex;
+  border-radius: 999px;
+  background: var(--mainColor10);
+  border: 1px solid var(--mainColor80);
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+main .contactForm .toggle-pill input[type=radio],
+main .contractRenew .toggle-pill input[type=radio] {
+  display: none;
+}
+main .contactForm .toggle-pill .pill-option,
+main .contractRenew .toggle-pill .pill-option {
+  cursor: pointer;
+  padding: 12px 32px;
+  font-weight: 500;
+  font-size: 1rem;
+  background: transparent;
+  color: var(--mainColor);
+  transition: background 0.3s, color 0.3s, box-shadow 0.3s, transform 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+          user-select: none;
+  position: relative;
+}
+main .contactForm .toggle-pill .pill-option:first-of-type,
+main .contractRenew .toggle-pill .pill-option:first-of-type {
+  border-radius: 999px 0 0 999px;
+}
+main .contactForm .toggle-pill .pill-option:last-of-type,
+main .contractRenew .toggle-pill .pill-option:last-of-type {
+  border-radius: 0 999px 999px 0;
+}
+main .contactForm .toggle-pill input[type=radio]:checked + .pill-option,
+main .contractRenew .toggle-pill input[type=radio]:checked + .pill-option {
+  background: var(--mainColor);
+  color: var(--white);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+  transform: scale(1.08);
+  animation: pillMove 0.35s cubic-bezier(0.4, 0.8, 0.2, 1) both;
+}
+@keyframes pillMove {
+  0% {
+    transform: scale(0.96);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+  60% {
+    transform: scale(1.12);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  }
+  100% {
+    transform: scale(1.08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  }
 }
 main .recruitmentVisa {
   padding: 50px 0;
@@ -2530,137 +2643,42 @@ main .available .specifications:hover h5 {
   color: var(--white);
 }
 main .arriveWorker {
-  padding: 70px 0 50px;
+  padding: 0px 0 50px;
   position: relative;
   overflow: hidden;
 }
-main .arriveWorker .arriveWorkerInfo {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-main .arriveWorker .arriveWorkerInfo .image {
-  position: relative;
-  width: 30%;
-}
-main .arriveWorker .arriveWorkerInfo .image img {
-  width: 100%;
-  height: 400px;
-  -o-object-fit: cover;
-     object-fit: cover;
-  border-radius: 4px;
-  border-radius: 70px 4px 70px;
-  position: relative;
-  z-index: 2;
-  border: 1px solid var(--secondColor);
-}
-main .arriveWorker .arriveWorkerInfo .image::before {
-  content: "";
-  width: 150px;
-  height: 150px;
-  position: absolute;
-  right: -50px;
-  top: -50px;
-  background: url(../images/fav.svg);
-  background-repeat: no-repeat;
-  background-size: contain;
-  z-index: 1;
-  transform: rotate(45deg);
-  animation: bounceIn 3s infinite ease-in-out both;
-}
-main .arriveWorker .arriveWorkerInfo .info {
-  position: relative;
-  width: 70%;
-  padding: 20px;
-}
-main .arriveWorker .arriveWorkerInfo .info::before {
-  content: "";
-  position: absolute;
-  left: 0px;
-  top: 0px;
-  width: 100%;
-  height: 100%;
-  z-index: 2;
-  background: var(--mainColor80);
-}
-main .arriveWorker .arriveWorkerInfo .info::after {
-  content: "";
-  position: absolute;
-  left: -10px;
-  top: 10px;
-  width: 100%;
-  height: 100%;
-  border: 1px solid var(--mainColor);
-  z-index: 1;
-}
-main .arriveWorker .arriveWorkerInfo .info h3 {
+main .arriveWorker h3 {
+  color: var(--mainColor);
   font-weight: bold;
-  font-size: 35px !important;
-  margin-bottom: 20px;
+}
+main .arriveWorker .btn-outline {
   color: var(--mainColor);
-  position: relative;
-  z-index: 3;
+  border-color: var(--mainColor);
+  border-radius: 50px;
 }
-main .arriveWorker .arriveWorkerInfo .info p {
-  color: #777;
-  position: relative;
-  z-index: 3;
-  margin-bottom: 20px;
+main .arriveWorker .btn-outline:hover {
+  background-color: var(--mainColor);
+  color: var(--white);
+  border-color: var(--mainColor);
 }
-main .arriveWorker .arriveWorkerInfo .info a {
+main .instructions {
+  padding: 0px 0 50px;
   position: relative;
-  z-index: 3;
+  overflow: hidden;
 }
-main .arriveWorker .arriveWorkerInfo .info h5 {
-  font-size: 20px !important;
+main .instructions h3 {
   color: var(--mainColor);
-  position: relative;
-  z-index: 3;
+  font-weight: bold;
 }
-main .arriveWorker .arriveWorkerInfo:nth-child(odd) {
-  flex-direction: row-reverse;
+main .instructions .btn-outline {
+  color: var(--mainColor);
+  border-color: var(--mainColor);
+  border-radius: 50px;
 }
-main .arriveWorker .arriveWorkerInfo:nth-child(odd) .image::before {
-  right: unset;
-  left: -50px;
-  animation: heartBeat 5s infinite ease-in-out both reverse;
-}
-main .arriveWorker .arriveWorkerInfo:nth-child(odd) .info::after {
-  left: 10px;
-  top: 10px;
-}
-@media (max-width: 768px) {
-  main .arriveWorker .arriveWorkerInfo {
-    flex-direction: column !important;
-  }
-  main .arriveWorker .arriveWorkerInfo .image {
-    width: 100%;
-    margin: 0 !important;
-    margin-bottom: 20px !important;
-  }
-  main .arriveWorker .arriveWorkerInfo .image img {
-    border-radius: 8px !important;
-    height: 200px;
-  }
-  main .arriveWorker .arriveWorkerInfo .image::before {
-    width: 80px;
-    height: 80px;
-  }
-  main .arriveWorker .arriveWorkerInfo .info {
-    margin-bottom: 40px;
-    width: 90%;
-    text-align: center !important;
-  }
-  main .arriveWorker .arriveWorkerInfo .info h3 {
-    font-size: 25px !important;
-    margin-bottom: 10px !important;
-  }
-  main .arriveWorker .arriveWorkerInfo .info h5 {
-    font-size: 15px !important;
-  }
-  main .arriveWorker .arriveWorkerInfo:last-child .info {
-    margin-bottom: 0;
-  }
+main .instructions .btn-outline:hover {
+  background-color: var(--mainColor);
+  color: var(--white);
+  border-color: var(--mainColor);
 }
 main .accountForm {
   padding: 20px;
@@ -2965,7 +2983,6 @@ main .allWorkers .workers-list .worker-box .worker-media {
   background-color: #fff;
   border-radius: 10px;
   box-shadow: 0px 0px 40px rgba(0, 137, 126, 0.1176470588);
-  margin-right: 40px;
   position: absolute;
   top: -50px;
   overflow: hidden;
@@ -3669,6 +3686,54 @@ main .profile .profileTitle {
   background-color: #f8f8f8;
   padding: 10px;
   margin-bottom: 20px;
+}
+main .profile .action-card {
+  background: var(--mainColor10);
+  border: 1px solid #eee;
+  border-radius: 20px;
+  transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+}
+main .profile .action-card i {
+  color: var(--mainColor);
+  display: block;
+  margin-bottom: 10px;
+  font-size: 2.2em;
+}
+main .profile .action-card .fw-bold {
+  font-size: 1.1em;
+  margin-bottom: 6px;
+  color: #222;
+}
+main .profile .action-card small {
+  font-size: 0.92em;
+  color: #666;
+  line-height: 1.6;
+}
+main .profile .action-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border-color: var(--mainColor);
+  transform: translateY(-4px) scale(1.03);
+}
+@media (max-width: 991px) {
+  main .profile .action-card {
+    min-height: 180px;
+    font-size: 0.95em;
+    padding: 1.2rem 0.5rem;
+  }
+}
+@media (max-width: 767px) {
+  main .profile .action-card {
+    min-height: 140px;
+    font-size: 0.9em;
+    padding: 1rem 0.3rem;
+  }
 }
 main .profileContent .newOrder {
   width: 100%;
@@ -4735,6 +4800,54 @@ main .cvPage {
   padding: 0 20px;
   margin: auto;
 }
+main .cvPage .logo-bg {
+  position: absolute;
+  width: 502px;
+  left: 0px;
+  top: 10%;
+}
+main .cvPage .logo-bg img {
+  width: 100%;
+}
+main .cvPage .cv-side {
+  position: absolute;
+  right: 0px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+main .cvPage .cv-footer {
+  position: absolute;
+  bottom: 0;
+  right: 0px;
+}
+main .cvPage .cv-footer img {
+  width: 100%;
+}
+main .cvPage .header-logo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+}
+main .cvPage .header-logo .transparent-logo {
+  width: 50px;
+  display: flex;
+  justify-content: end;
+}
+main .cvPage .header-logo .transparent-logo img {
+  width: 100%;
+}
+main .cvPage .header-logo .logo {
+  width: 400px;
+  padding: 12px 0;
+}
+main .cvPage .header-logo .logo img {
+  width: 100%;
+  height: auto;
+}
 main .cvPage .title,
 main .cvPage .languages .title {
   text-transform: uppercase;
@@ -4750,7 +4863,7 @@ main .cvPage table {
 main .cvPage table td,
 main .cvPage table th {
   padding: 8px 12px;
-  border: 1px solid var(--mainColor80);
+  border: 1px solid var(--mainColor10);
 }
 main .cvPage .sub {
   display: flex;
@@ -4775,6 +4888,7 @@ main .cvPage .sub .dis {
 }
 main .cvPage .imageCol {
   position: relative;
+  top: 230px;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -4785,17 +4899,9 @@ main .cvPage .imageCol {
     min-width: 20%;
   }
 }
-main .cvPage .imageCol::before {
-  content: "";
-  width: 100%;
-  min-height: 120px;
-  background-color: var(--mainColor80);
-  display: flex;
-  border-radius: 0 0 5000px 5000px;
-}
 main .cvPage .imageCol .mainInfo {
   flex: 1;
-  background-color: var(--mainColor80);
+  background-color: var(--mainColor10);
   border-radius: 5000px 5000px 0 0;
   display: flex;
   flex-direction: column;
@@ -4869,7 +4975,7 @@ main .cvPage .passportNumbers {
   display: flex;
   gap: 8px;
   align-items: center;
-  border: 1px solid var(--mainColor80);
+  border: 1px solid var(--mainColor10);
   width: -moz-fit-content;
   width: fit-content;
   padding: 4px 12px;
@@ -4879,7 +4985,7 @@ main .cvPage .passportNumbers span {
 }
 main .cvPage .informationCol {
   flex: 2;
-  padding: 70px 0;
+  padding: 170px 0;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -4888,23 +4994,6 @@ main .cvPage .informationCol {
 @media (max-width: 768px) {
   main .cvPage .informationCol {
     min-width: 70%;
-  }
-}
-main .cvPage .informationCol::before {
-  content: "";
-  width: 40px;
-  height: 50px;
-  display: flex;
-  border-radius: 100px 100px 0 0;
-  position: absolute;
-  bottom: 0;
-  left: 20px;
-  background-color: var(--mainColor);
-}
-@media (max-width: 768px) {
-  main .cvPage .informationCol::before {
-    width: 20px;
-    height: 30px;
   }
 }
 main .cvPage .informationCol .head {
@@ -5000,7 +5089,7 @@ main .cvPage .informationCol .category .infoRow .data {
   gap: 2px;
   padding: 4px 16px;
   flex: 1 calc(30% - 8px);
-  background-color: var(--mainColor80);
+  background-color: var(--mainColor10);
   border-radius: 8px;
 }
 main .cvPage .informationCol .category .infoRow .data .innerTitle {
@@ -5024,7 +5113,7 @@ main .cvPage .informationCol .category .passportData {
 main .cvPage .informationCol .category .passportData .data {
   flex: 1;
   padding: 12px 24px;
-  background-color: var(--mainColor80);
+  background-color: var(--mainColor10);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -5040,18 +5129,7 @@ main .cvPage .informationCol .category table {
 main .cvPage .informationCol .category table td,
 main .cvPage .informationCol .category table th {
   padding: 8px 12px;
-  border: 1px solid var(--mainColor80);
-}
-main .cvPage .shape1 {
-  position: absolute;
-  top: -40px;
-  left: -70px;
-  width: 80%;
-  height: 90px;
-  z-index: -1;
-  background-color: var(--mainColor80);
-  clip-path: ellipse(61% 58% at 46% 19%);
-  transform: rotate(-4deg);
+  border: 1px solid var(--mainColor10);
 }
 main .cvPage #btnSave {
   padding: 10px 30px;
@@ -6203,6 +6281,7 @@ main .cvPage .info_social {
   align-items: center;
   gap: 4px;
   width: 100%;
+  padding: 12px 5px;
 }
 main .cvPage .info_social img {
   height: 110px;
@@ -6248,8 +6327,8 @@ main .cvPage .socialMedia a {
   min-width: -moz-fit-content;
   min-width: fit-content;
   gap: 8px;
-  font-weight: bold;
   flex: 1;
+  color: var(--black);
 }
 main .cv-actions-fixed {
   position: fixed;
@@ -6305,7 +6384,7 @@ main .cv-actions-fixed .btn:hover {
 }
 
 .footer {
-  background: var(--mainColor80);
+  background: var(--mainColor10);
   color: var(--black);
   padding-top: 40px;
 }
@@ -6433,4 +6512,43 @@ main .cv-actions-fixed .btn:hover {
 }
 .support .links a.call {
   background-color: #34b7f1;
+}
+
+.ad-popup {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 9999;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: var(--BigShadow);
+  padding: 18px 24px;
+  min-width: 260px;
+  max-width: 320px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-family: inherit;
+}
+.ad-popup-content {
+  flex: 1;
+}
+.ad-popup-title {
+  margin: 0 0 6px 0;
+  font-size: 1.1em;
+  color: var(--mainColor);
+}
+.ad-popup-desc {
+  margin: 0;
+  font-size: 0.95em;
+  color: var(--black);
+}
+.ad-popup-close {
+  background: none;
+  border: none;
+  font-size: 1.2em;
+  color: var(--gray);
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
 }/*# sourceMappingURL=style.css.map */

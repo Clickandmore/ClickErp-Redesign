@@ -180,10 +180,10 @@
                             @if(isset($about)&& isset($about->mission))
                                 {!!$about->mission!!}
                             @else
-                                <strong>((انسانية))</strong> نفتخر بعملنا كونه يسهم بتوفير موارد
+                                نفتخر بعملنا كونه يسهم بتوفير موارد
                                 ودخل جيّد لأسرة وفرد بحاجة لهذه الموارد لدعم أسرته وبناء مستقبله،
                                 وبالمقابل توفير سبل الراحة للأسرة السعودية والمقيمة في وطننا
-                                المعطاء. <br/>
+                                المعطاء.
                                 ((( احتياجاتكم اولوياتنا ))).
                             @endif
                         </p>
@@ -211,81 +211,242 @@
         </div>
     </section>
 
+    <!-- ============= countries =============  -->
+    <section class="countries" data-aos="fade-up">
+        <div class="container">
+            <!-- Section Title -->
+            <div class="headTitle text-start" data-aos="fade-up" data-aos-delay="100">
+                <h2> {{ __('ingaz.Recruitment countries') }} </h2>
+                <p> {{ __('ingaz.countries_desc') }}</p>
+            </div>
+            <div class="allCountries">
+                <div class="row justify-content-center">
+                    @forelse($nationalities as $nationality)
+                        <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="100">
+                            <div class="country-card">
+                                <div class="flag-container">
+                                    <img src="{{ showfile($nationality->logo) }}" alt="" width="100px">
+                                </div>
+                                <div class="country-content">
+                                    <h3>{{ $nationality->title }}
+                                    </h3>
+                                    <p>
+                                        {{ $nationality->sub_title }}
+                                    </p>
+                                    <a href="{{ route('site.all-workers.index') }}?nationality_id={{ $nationality->id }}"
+                                       class="animatedLink">
+                                        {{ __('ingaz.request now') }}
+                                        <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="100">
+                            <div class="country-card">
+                                <div class="flag-container">
+                                    <img src="{{asset('site')}}/assets/images/countries/1.png" alt="">
+                                </div>
+                                <div class="country-content">
+                                    <h3> اوغندا </h3>
+                                    <p>مدة الاستقدام في خلال 60 يوم </p>
+                                    <a href="#" class="animatedLink">
+                                        اطلب الآن
+                                        <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="100">
+                                <div class="country-card">
+                                    <div class="flag-container">
+                                        <img src="{{asset('site')}}/assets/images/countries/2.png" alt="">
+                                    </div>
+                                    <div class="country-content">
+                                        <h3> كينيا </h3>
+                                        <p>مدة الاستقدام في خلال 60 يوم </p>
+                                        <a href="#" class="animatedLink">
+                                            اطلب الآن
+                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="100">
+                                <div class="country-card">
+                                    <div class="flag-container">
+                                        <img src="{{asset('site')}}/assets/images/countries/3.jpeg" alt="">
+                                    </div>
+                                    <div class="country-content">
+                                        <h3> بنغلادش </h3>
+                                        <p>مدة الاستقدام في خلال 60 يوم </p>
+                                        <a href="#" class="animatedLink">
+                                            اطلب الآن
+                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="100">
+                                <div class="country-card">
+                                    <div class="flag-container">
+                                        <img src="{{asset('site')}}/assets/images/countries/4.jpeg" alt="">
+                                    </div>
+                                    <div class="country-content">
+                                        <h3> الفلبين </h3>
+                                        <p>مدة الاستقدام في خلال 60 يوم </p>
+                                        <a href="#" class="animatedLink">
+                                            اطلب الآن
+                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="100">
+                                <div class="country-card">
+                                    <div class="flag-container">
+                                        <img src="{{asset('site')}}/assets/images/countries/5.png" alt="">
+                                    </div>
+                                    <div class="country-content">
+                                        <h3> الهند </h3>
+                                        <p>مدة الاستقدام في خلال 60 يوم </p>
+                                        <a href="#" class="animatedLink">
+                                            اطلب الآن
+                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="100">
+                                <div class="country-card">
+                                    <div class="flag-container">
+                                        <img src="{{asset('site')}}/assets/images/countries/6.png" alt="">
+                                    </div>
+                                    <div class="country-content">
+                                        <h3> موريتانيا </h3>
+                                        <p>مدة الاستقدام في خلال 60 يوم </p>
+                                        <a href="#" class="animatedLink">
+                                            اطلب الآن
+                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="100">
+                                <div class="country-card">
+                                    <div class="flag-container">
+                                        <img src="{{asset('site')}}/assets/images/countries/7.png" alt="">
+                                    </div>
+                                    <div class="country-content">
+                                        <h3> جيبوتي </h3>
+                                        <p>مدة الاستقدام في خلال 60 يوم </p>
+                                        <a href="#" class="animatedLink">
+                                            اطلب الآن
+                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            @endforelse
+                        </div>
+                </div>
+            </div>
+    </section>
+
     <!-- ================ services ================= -->
     <section class="services-sec" id="services">
-        <div class="container">
+        <div class="">
             <div class="headTitle" data-aos="fade-up">
                 <h2>{{__('ingaz.our_services')}}</h2>
                 <p>{{__('ingaz.our_services_desc')}}</p>
             </div>
-            <div class="row">
-                @forelse($services as $service)
-                    <div class="col p-2" data-aos="zoom-in" data-aos-delay="100">
-                        <a href="#" class="service" style="background-image: url({{ asset($service->image) }})">
-                            <i class="fa-solid fa-passport"></i>
-                            <h3 class="serviceTitle"> {{$service->title}}</h3>
-                            <h6 class="serviceP">
-                                {{ Str::limit($service->description, 100) }}
-                            </h6>
-                        </a>
-                    </div>
-                @empty
-                    <div class="col p-2" data-aos="zoom-in" data-aos-delay="100">
-                        <a href="visa.html" class="service"
-                           style="background-image: url(assets/images/passport-bg.webp)">
-                            <i class="fa-solid fa-passport"></i>
-                            <h3 class="serviceTitle">إصدار التأشيرة</h3>
-                            <h6 class="serviceP">
-                                طلب اصدار تاشيرة العمالة المنزلية الخاصة بك في برنامج مساند
-                            </h6>
-                        </a>
-                    </div>
-
-                    <div class="col p-2" data-aos="zoom-in" data-aos-delay="200">
-                        <a href="select-worker.html" class="service"
-                           style="background-image: url(assets/images/files.webp)">
-                            <i class="fa-solid fa-users-gear"></i>
-                            <h3 class="serviceTitle">اختيار العمالة</h3>
-                            <h6 class="serviceP">
-                                اختيار السيره الذاتيه للعماله المنزليه عبر البحث في برنامج مساند
-                            </h6>
-                        </a>
-                    </div>
-
-                    <div class="col p-2" data-aos="zoom-in" data-aos-delay="300">
-                        <a href="arrive-worker.html" class="service"
-                           style="background-image: url(assets/images/bg-plane.webp)">
-                            <i class="fa-solid fa-plane-arrival"></i>
-                            <h3 class="serviceTitle">وصول العمالة</h3>
-                            <h6 class="serviceP">
-                                وصول العمالة المنزلية من المطار المحلي الى المكتب
-                            </h6>
-                        </a>
-                    </div>
-
-                    <div class="col p-2" data-aos="zoom-in" data-aos-delay="400">
-                        <a href="renew-contract.html" class="service"
-                           style="background-image: url(assets/images/hands.webp)">
-                            <i class="fa-solid fa-file-contract"></i>
-                            <h3 class="serviceTitle">تجديد عقد عاملة</h3>
-                            <h6 class="serviceP">
-                                خدمة تجديد عقد العاملة المنزلية بشكل إلكتروني عبر منصة مساند
-                            </h6>
-                        </a>
-                    </div>
-
-                    <div class="col p-2" data-aos="zoom-in" data-aos-delay="500">
-                        <a href="dailyLaborDemand.html" class="service"
-                           style="background-image: url(assets/images/f3.webp)">
-                            <i class="fa-solid fa-users-gear"></i>
-                            <h3 class="serviceTitle">طلب العمالة المهنية</h3>
-                            <h6 class="serviceP">
-                                نحن قادرون على جلب أفضل أنواع العمالة المهنية من مختلف التخصصات لتلبية
-                                احتياجاتك بأعلى جودة وكفاءة
-                            </h6>
-                        </a>
-                    </div>
-                @endforelse
+            <div class="services-slider swiper" data-aos="fade-up">
+                <div class="swiper-wrapper">
+                    @forelse($services as $service)
+                        <div class="swiper-slide" style="min-width:300px;max-width:100%;">
+                            <div class="col p-2">
+                                <a href="#"
+                                   class="service d-flex flex-column justify-content-center"
+                                   style="background: url('{{showFile($service->image)}}') no-repeat">
+                                    <i class="fa-solid fa-passport"></i>
+                                    <h3 class="serviceTitle">{{$service->title}}</h3>
+                                    <h6 class="serviceP">
+                                        {{ Str::limit($service->description, 100) }}
+                                    </h6>
+                                </a>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="swiper-slide" style="min-width:300px;max-width:100%;">
+                            <div class="col p-2">
+                                <a
+                                    href="#"
+                                    class="service d-flex flex-column justify-content-center"
+                                    style="background: url({{asset('site')}}assets/images/files.webp) no-repeat">
+                                    <i class="fa-solid fa-users-gear"></i>
+                                    <h3 class="serviceTitle">اختيار العمالة</h3>
+                                    <h6 class="serviceP">
+                                        اختيار السيره الذاتيه للعماله المنزليه عبر البحث في برنامج مساند
+                                    </h6>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="swiper-slide" style="min-width:300px;max-width:100%;">
+                            <div class="col p-2">
+                                <a
+                                    href="#"
+                                    class="service d-flex flex-column justify-content-center"
+                                    style="background: url({asset('site')}}/assets/images/bg-plane.webp) no-repeat"
+                                >
+                                    <i class="fa-solid fa-plane-arrival"></i>
+                                    <h3 class="serviceTitle">وصول العمالة</h3>
+                                    <h6 class="serviceP">
+                                        وصول العمالة المنزلية من المطار المحلي الى المكتب
+                                    </h6>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="swiper-slide" style="min-width:300px;max-width:100%;">
+                            <div class="col p-2">
+                                <a
+                                    href="#"
+                                    class="service d-flex flex-column justify-content-center"
+                                    style="background: url({asset('site')}}/assets/images/hands.webp) no-repeat;"
+                                >
+                                    <i class="fa-solid fa-file-contract"></i>
+                                    <h3 class="serviceTitle">تجديد عقد عاملة</h3>
+                                    <h6 class="serviceP">
+                                        خدمة تجديد عقد العاملة المنزلية بشكل إلكتروني عبر منصة مساند
+                                    </h6>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="swiper-slide" style="min-width:300px;max-width:100%;">
+                            <div class="col p-2">
+                                <a
+                                    href="#"
+                                    class="service d-flex flex-column justify-content-center"
+                                    style="background: url({{asset('site')}}/assets/images/f3.webp) no-repeat;"
+                                >
+                                    <i class="fa-solid fa-users-gear"></i>
+                                    <h3 class="serviceTitle">طلب العمالة المهنية</h3>
+                                    <h6 class="serviceP">
+                                        نحن قادرون على جلب أفضل أنواع العمالة المهنية من مختلف التخصصات لتلبية
+                                        احتياجاتك بأعلى جودة وكفاءة
+                                    </h6>
+                                </a>
+                            </div>
+                        </div>
+                    @endforelse
+                </div>
+                <!-- <div class="swiper-pagination"></div> -->
+                <div class="swiper-button-next custom-swiper-btn"></div>
+                <div class="swiper-button-prev custom-swiper-btn"></div>
             </div>
         </div>
     </section>
@@ -293,8 +454,8 @@
     <!-- statistics sec  -->
     <section class="statistics" id="statistics">
         <div class="section-header" data-aos="fade-up" data-aos-duration="1000">
-            <h1 class="title">{{__('Statistics')}}</h1>
-            <h6 class="hint">{{__('Statistics hint')}}</h6>
+            <h1 class="title">{{__('ingaz.Statistics')}}</h1>
+            <h6 class="hint">{{__('ingaz.Statistics_text')}}</h6>
         </div>
         <div class="stats-container">
             @forelse($statics as $static)
@@ -341,121 +502,7 @@
         </div>
     </section>
 
-    <!-- ============= countries =============  -->
-    <section class="countries" data-aos="fade-up">
-        <div class="container">
-            <!-- Section Title -->
-            <div class="headTitle text-start" data-aos="fade-up" data-aos-delay="100">
-                <h2> {{ __('ingaz.Recruitment countries') }} </h2>
-                <p> {{ __('ingaz.countries_desc') }}</p>
-            </div>
-            <div class="allCountries">
-                <div class="row justify-content-center">
-                    @forelse($nationalities as $nationality)
-                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="100">
-                            <div class="country">
-                                <img src="{{ showfile($nationality->logo) }}" alt="" width="100px">
-                                <h2>{{ $nationality->title }}
-                                </h2>
-                                <p>
-                                    {{ $nationality->sub_title }}
-                                </p>
-                                <a href="{{ route('site.all-workers.index') }}?nationality_id={{ $nationality->id }}"
-                                   class="animatedLink">
-                                    {{ __('ingaz.request now') }}
-                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                </a>
-                            </div>
-                        </div>
-                    @empty
-                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="100">
-                            <div class="country">
-                                <img src="assets/images/countries/1.png" alt="">
-                                <h2> اوغندا </h2>
-                                <p>مدة الاستقدام في خلال 60 يوم </p>
-                                <a href="all-workers.html" class="animatedLink">
-                                    اطلب الآن
-                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                </a>
-                            </div>
-                        </div>
 
-                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="200">
-                            <div class="country">
-                                <img src="assets/images/countries/2.png" alt="">
-                                <h2> كينيا </h2>
-                                <p>مدة الاستقدام في خلال 60 يوم </p>
-                                <a href="all-workers.html" class="animatedLink">
-                                    اطلب الآن
-                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                </a>
-                            </div>
-                        </div>
-
-                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="300">
-                            <div class="country">
-                                <img src="assets/images/countries/3.jpeg" alt="">
-                                <h2> بنغلادش </h2>
-                                <p>مدة الاستقدام في خلال 60 يوم </p>
-                                <a href="all-workers.html" class="animatedLink">
-                                    اطلب الآن
-                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                </a>
-                            </div>
-                        </div>
-
-                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="400">
-                            <div class="country">
-                                <img src="assets/images/countries/4.jpeg" alt="">
-                                <h2> الفلبين </h2>
-                                <p>مدة الاستقدام في خلال 60 يوم </p>
-                                <a href="all-workers.html" class="animatedLink">
-                                    اطلب الآن
-                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                </a>
-                            </div>
-                        </div>
-
-                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="500">
-                            <div class="country">
-                                <img src="assets/images/countries/5.png" alt="">
-                                <h2> الهند </h2>
-                                <p>مدة الاستقدام في خلال 60 يوم </p>
-                                <a href="all-workers.html" class="animatedLink">
-                                    اطلب الآن
-                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                </a>
-                            </div>
-                        </div>
-
-                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="600">
-                            <div class="country">
-                                <img src="assets/images/countries/6.png" alt="">
-                                <h2> موريتانيا </h2>
-                                <p>مدة الاستقدام في خلال 60 يوم </p>
-                                <a href="all-workers.html" class="animatedLink">
-                                    اطلب الآن
-                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                </a>
-                            </div>
-                        </div>
-
-                        <div class="col-6 col-md-3 p-1" data-aos="zoom-in" data-aos-delay="700">
-                            <div class="country">
-                                <img src="assets/images/countries/7.png" alt="">
-                                <h2> جيبوتي </h2>
-                                <p>مدة الاستقدام في خلال 60 يوم </p>
-                                <a href="all-workers.html" class="animatedLink">
-                                    اطلب الآن
-                                    <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                </a>
-                            </div>
-                        </div>
-                    @endforelse
-                </div>
-            </div>
-        </div>
-    </section>
 
     <!-- steps sec  -->
     <section class="steps" id="steps">
@@ -713,77 +760,77 @@
     </section>
 
     <!-- ================ contact Form ================= -->
-    <section class="contactForm">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6 p-2 mb-5 mb-md-0 wow fadeInUp">
-                    <div class="headTitle text-start">
-                        <h2> {{__('ingaz.contact')}}</h2>
-                        <p>
-                            {{__('ingaz.request your mid')}}
-                        </p>
-                    </div>
-                    <form action="" id="contact-form" class="row needs-validation" novalidate>
-                        @csrf
+{{--    <section class="contactForm">--}}
+{{--        <div class="container">--}}
+{{--            <div class="row">--}}
+{{--                <div class="col-md-6 p-2 mb-5 mb-md-0 wow fadeInUp">--}}
+{{--                    <div class="headTitle text-start">--}}
+{{--                        <h2> {{__('ingaz.contact')}}</h2>--}}
+{{--                        <p>--}}
+{{--                            {{__('ingaz.request your mid')}}--}}
+{{--                        </p>--}}
+{{--                    </div>--}}
+{{--                    <form action="" id="contact-form" class="row needs-validation" novalidate>--}}
+{{--                        @csrf--}}
 
-                        <input type="hidden" name="latitude" id="latitude">
-                        <input type="hidden" name="longitude" id="longitude">
-                        <div class="col-md-12 p-2">
-                            <label class="form-label">
-                                <i class="fas fa-user me-2"></i> {{__('ingaz.full name')}}*
-                            </label>
-                            <input type="text" id="name" name="name" class="form-control" required/>
-                            <div class="invalid-feedback"> {{__('ingaz.this field is required')}}</div>
-                            <div class="valid-feedback">{{__('ingaz.good')}}</div>
-                        </div>
-                        <div class="col-md-6 p-2">
-                            <label class="form-label"><i class="fas fa-phone-alt me-2"></i> {{__('ingaz.phone')}}*
-                            </label>
-                            <input type="tel" id="phone" name="phone" id="phoneNum" class="form-control" required/>
-                            <div class="invalid-feedback"> {{__('ingaz.this field is required')}} </div>
-                        </div>
-                        <div class="col-md-6 p-2">
-                            <label class="form-label">
-                                <i class="fa-solid fa-comment-lines me-2"></i> {{__('ingaz.subject')}}
-                            </label>
-                            <input type="text" id="subject" name="subject" class="form-control"/>
-                        </div>
-                        <div class="col-md-12 p-2">
-                            <label class="form-label">
-                                <i class="fas fa-feather-alt me-2"></i>{{__('ingaz.Write your message')}}*
-                            </label>
-                            <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
-                            <div class="invalid-feedback"> {{__('ingaz.this field is required')}} </div>
-                        </div>
-                        {!! NoCaptcha::renderJs() !!}
-                        {!! NoCaptcha::display() !!}
+{{--                        <input type="hidden" name="latitude" id="latitude">--}}
+{{--                        <input type="hidden" name="longitude" id="longitude">--}}
+{{--                        <div class="col-md-12 p-2">--}}
+{{--                            <label class="form-label">--}}
+{{--                                <i class="fas fa-user me-2"></i> {{__('ingaz.full name')}}*--}}
+{{--                            </label>--}}
+{{--                            <input type="text" id="name" name="name" class="form-control" required/>--}}
+{{--                            <div class="invalid-feedback"> {{__('ingaz.this field is required')}}</div>--}}
+{{--                            <div class="valid-feedback">{{__('ingaz.good')}}</div>--}}
+{{--                        </div>--}}
+{{--                        <div class="col-md-6 p-2">--}}
+{{--                            <label class="form-label"><i class="fas fa-phone-alt me-2"></i> {{__('ingaz.phone')}}*--}}
+{{--                            </label>--}}
+{{--                            <input type="tel" id="phone" name="phone" id="phoneNum" class="form-control" required/>--}}
+{{--                            <div class="invalid-feedback"> {{__('ingaz.this field is required')}} </div>--}}
+{{--                        </div>--}}
+{{--                        <div class="col-md-6 p-2">--}}
+{{--                            <label class="form-label">--}}
+{{--                                <i class="fa-solid fa-comment-lines me-2"></i> {{__('ingaz.subject')}}--}}
+{{--                            </label>--}}
+{{--                            <input type="text" id="subject" name="subject" class="form-control"/>--}}
+{{--                        </div>--}}
+{{--                        <div class="col-md-12 p-2">--}}
+{{--                            <label class="form-label">--}}
+{{--                                <i class="fas fa-feather-alt me-2"></i>{{__('ingaz.Write your message')}}*--}}
+{{--                            </label>--}}
+{{--                            <textarea class="form-control" id="message" name="message" rows="5" required></textarea>--}}
+{{--                            <div class="invalid-feedback"> {{__('ingaz.this field is required')}} </div>--}}
+{{--                        </div>--}}
+{{--                        {!! NoCaptcha::renderJs() !!}--}}
+{{--                        {!! NoCaptcha::display() !!}--}}
 
-                        @error('g-recaptcha-response')
-                        <span class="text-danger">{{ $message }}</span>
-                        @enderror
+{{--                        @error('g-recaptcha-response')--}}
+{{--                        <span class="text-danger">{{ $message }}</span>--}}
+{{--                        @enderror--}}
 
-                        <div class="col-md-12 text-center p-2">
-                            <button type="submit" class="defaultBtn">
-                                {{__('ingaz.send')}} <i class="fas fa-paper-plane ms-2"></i>
-                                <span></span>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-                <div class="col-md-6 p-2 wow fadeInUp">
-                    <section class="googleMap">
-                        <iframe
-                            src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d57946.84623396069!2d46.75688!3d24.806481!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0xc74fdd6f15256594!2z2YXZg9iq2Kgg2LHZiNin2YHYryDZhtis2K8g2YTZhNil2LPYqtmC2K_Yp9mF!5e0!3m2!1sar!2ssa!4v1650724949947!5m2!1sar!2ssa"
-                            frameborder="0"
-                            style="border: 0"
-                            allowfullscreen=""
-                            aria-hidden="false"
-                            tabindex="0"></iframe>
-                    </section>
-                </div>
-            </div>
-        </div>
-    </section>
+{{--                        <div class="col-md-12 text-center p-2">--}}
+{{--                            <button type="submit" class="defaultBtn">--}}
+{{--                                {{__('ingaz.send')}} <i class="fas fa-paper-plane ms-2"></i>--}}
+{{--                                <span></span>--}}
+{{--                            </button>--}}
+{{--                        </div>--}}
+{{--                    </form>--}}
+{{--                </div>--}}
+{{--                <div class="col-md-6 p-2 wow fadeInUp">--}}
+{{--                    <section class="googleMap">--}}
+{{--                        <iframe--}}
+{{--                            src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d57946.84623396069!2d46.75688!3d24.806481!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0xc74fdd6f15256594!2z2YXZg9iq2Kgg2LHZiNin2YHYryDZhtis2K8g2YTZhNil2LPYqtmC2K_Yp9mF!5e0!3m2!1sar!2ssa!4v1650724949947!5m2!1sar!2ssa"--}}
+{{--                            frameborder="0"--}}
+{{--                            style="border: 0"--}}
+{{--                            allowfullscreen=""--}}
+{{--                            aria-hidden="false"--}}
+{{--                            tabindex="0"></iframe>--}}
+{{--                    </section>--}}
+{{--                </div>--}}
+{{--            </div>--}}
+{{--        </div>--}}
+{{--    </section>--}}
 @endsection
 @section('js')
     <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
@@ -845,16 +892,15 @@
                             title: '{{ __("ingaz.success") }}',
                             text: '{{ __("ingaz.success") }}',
                             confirmButtonText: '{{ __("ingaz.ok") }}'
-                    });
-                },
-                error: function(xhr) {
-                    console.error("خطأ في الطلب:", xhr);
-                }
+                        });
+                    },
+                    error: function (xhr) {
+                        console.error("خطأ في الطلب:", xhr);
+                    }
+                });
+
+
             });
-
-
-
         });
-    });
-</script>
+    </script>
 @endsection

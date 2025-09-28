@@ -8,7 +8,7 @@ use App\Models\ingaz\AboutUs as objModel;
 use App\Http\Requests\ingaz\AboutUsRequest as objRequest;
 use App\Models\ingaz\AboutUs;
 use Illuminate\Http\Request;
- 
+
 
 class AboutUsController extends Controller
 {
@@ -45,7 +45,7 @@ class AboutUsController extends Controller
     {
         $data = $request->only($this->postData);
         $data = $action->store($data);
-        return jsonSuccess($data);
+        return jsonSuccess($data , null , 201);
     }
 
 
@@ -65,10 +65,10 @@ class AboutUsController extends Controller
 
         // Get the first setting record or create one if it doesn't exist
        $setting = AboutUs::findOrFail($id);
- 
+
 
         $action->updateSetting($setting->id, $dataInsert);
-        return jsonSuccess();
+        return jsonSuccess(null , null , 201);
     }
 
     public function destroy($id, objAction $action)

@@ -57,7 +57,9 @@
                         </div>
                     </div>
                     <div class="bs-stepper-content">
-                        <form id="wizard-property-listing-form" class="TypeTwoForm" onSubmit="return false">
+                        <form id="wizard-property-listing-form" method="post"
+                              action="{{route('site.eagar-request.store')}}"
+                              class="TypeTwoForm" onSubmit="return false">
                             @csrf
                             <input type="hidden" name="job_type_id" value="2">
                             <input type="hidden" name="payment_method" value="none">
@@ -107,10 +109,10 @@
                                             <label for="manual_address" onclick="showManualAddressInput()">
                                                 <div class="location" id="manual-address-option"
                                                      style="border: 2px dashed #007bff;">
-                                                    <h6><i class="fa-light fa-edit me-2"></i>إدخال العنوان يدوياً</h6>
+                                                    <h6><i class="fa-light fa-edit me-2"></i>{{__("ingaz.Enter the address manually")}}</h6>
                                                     <ul>
                                                         <li>
-                                                            <i class="fa-light fa-info-circle"></i>أدخل العنوان بنفسك
+                                                            <i class="fa-light fa-info-circle"></i>{{__("ingaz.Enter the address yourself")}}
                                                         </li>
                                                     </ul>
                                                 </div>
@@ -124,10 +126,10 @@
                                             <label for="skip_address" onclick="skipAddress()">
                                                 <div class="location" id="skip-address-option"
                                                      style="border: 2px dashed #6c757d;">
-                                                    <h6><i class="fa-light fa-forward me-2"></i>تخطي العنوان</h6>
+                                                    <h6><i class="fa-light fa-forward me-2"></i>{{__("ingaz.Skip Address")}}</h6>
                                                     <ul>
                                                         <li>
-                                                            <i class="fa-light fa-info-circle"></i>سأحدد العنوان لاحقاً
+                                                            <i class="fa-light fa-info-circle"></i>ً{{__("ingaz.I will decide on the title laters")}}
                                                         </li>
                                                     </ul>
                                                 </div>
@@ -138,61 +140,61 @@
                                     </div>
 
                                     <!-- حقل إدخال العنوان يدوياً (مخفي) -->
-                                    <div id="manual_address_input" class="row mt-3" style="display: none;">
-                                        <div class="col-12">
-                                            <div class="card">
-                                                <div class="card-header">
-                                                    <h6><i class="fa-light fa-edit me-2"></i>إدخال العنوان يدوياً</h6>
-                                                </div>
-                                                <div class="card-body">
-                                                    <form id="form-user-address" method="post"
-                                                          action="{{route('site.user-addresses.store')}}">
-                                                        @csrf
-                                                        <div class="row">
-                                                            <div class="col-md-6 mb-3">
-                                                                <label class="form-label">المدينة <span
-                                                                        class="text-danger">*</span></label>
-                                                                <select class="form-control" id="manual_city"
-                                                                        name="country_id">
-                                                                    <option value="">اختر المدينة</option>
-                                                                    @foreach($countries as $country)
-                                                                        <option
-                                                                            value="{{$country->id}}">{{app()->getLocale()=='ar' ? $country->name_ar : $country->name_en}}</option>
-                                                                    @endforeach
-                                                                </select>
-                                                            </div>
-                                                            <div class="col-md-6 mb-3">
-                                                                <label class="form-label">العنوان التفصيلي <span
-                                                                        class="text-danger">*</span></label>
-                                                                <textarea class="form-control" id="manual_address_text"
-                                                                          name="address" rows="3"
-                                                                          placeholder="أدخل العنوان التفصيلي..."></textarea>
-                                                            </div>
-                                                            <div class="col-md-6 mb-3">
-                                                                <label class="form-label">رقم الجوال</label>
-                                                                <input type="tel" class="form-control" id="manual_phone"
-                                                                       name="phone" placeholder="رقم الجوال للتواصل">
-                                                            </div>
-                                                            <div class="col-md-6 mb-3">
-                                                                <label class="form-label">اسم المستلم</label>
-                                                                <input type="text" class="form-control" id="manual_name"
-                                                                       name="name" placeholder="اسم المستلم">
-                                                            </div>
-                                                        </div>
-                                                        <div class="text-end">
-                                                            <button type="button" class="btn btn-secondary"
-                                                                    onclick="hideManualAddressInput()">
-                                                                <i class="fa-light fa-times me-2"></i>إلغاء
-                                                            </button>
-                                                            <button type="submit" class="btn btn-primary" >
-                                                                <i class="fa-light fa-check me-2"></i>تأكيد العنوان
-                                                            </button>
-                                                        </div>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    {{--                                    <div id="manual_address_input" class="row mt-3" >--}}
+                                    {{--                                        <div class="col-12">--}}
+                                    {{--                                            <div class="card">--}}
+                                    {{--                                                <div class="card-header">--}}
+                                    {{--                                                    <h6><i class="fa-light fa-edit me-2"></i>إدخال العنوان يدوياً</h6>--}}
+                                    {{--                                                </div>--}}
+                                    {{--                                                <div class="card-body">--}}
+                                    {{--                                                    <form id="form-of-user-address" method="post"--}}
+                                    {{--                                                          action="{{route('site.user-addresses.store')}}">--}}
+                                    {{--                                                        @csrf--}}
+                                    {{--                                                        <div class="row">--}}
+                                    {{--                                                            <div class="col-md-6 mb-3">--}}
+                                    {{--                                                                <label class="form-label">المدينة <span--}}
+                                    {{--                                                                        class="text-danger">*</span></label>--}}
+                                    {{--                                                                <select class="form-control" id="manual_city"--}}
+                                    {{--                                                                        name="country_id">--}}
+                                    {{--                                                                    <option value="">اختر المدينة</option>--}}
+                                    {{--                                                                    @foreach($countries as $country)--}}
+                                    {{--                                                                        <option--}}
+                                    {{--                                                                            value="{{$country->id}}">{{app()->getLocale()=='ar' ? $country->name_ar : $country->name_en}}</option>--}}
+                                    {{--                                                                    @endforeach--}}
+                                    {{--                                                                </select>--}}
+                                    {{--                                                            </div>--}}
+                                    {{--                                                            <div class="col-md-6 mb-3">--}}
+                                    {{--                                                                <label class="form-label">العنوان التفصيلي <span--}}
+                                    {{--                                                                        class="text-danger">*</span></label>--}}
+                                    {{--                                                                <textarea class="form-control" id="manual_address_text"--}}
+                                    {{--                                                                          name="address" rows="3"--}}
+                                    {{--                                                                          placeholder="أدخل العنوان التفصيلي..."></textarea>--}}
+                                    {{--                                                            </div>--}}
+                                    {{--                                                            <div class="col-md-6 mb-3">--}}
+                                    {{--                                                                <label class="form-label">رقم الجوال</label>--}}
+                                    {{--                                                                <input type="tel" class="form-control" id="manual_phone"--}}
+                                    {{--                                                                       name="phone" placeholder="رقم الجوال للتواصل">--}}
+                                    {{--                                                            </div>--}}
+                                    {{--                                                            <div class="col-md-6 mb-3">--}}
+                                    {{--                                                                <label class="form-label">اسم المستلم</label>--}}
+                                    {{--                                                                <input type="text" class="form-control" id="manual_name"--}}
+                                    {{--                                                                       name="name" placeholder="اسم المستلم">--}}
+                                    {{--                                                            </div>--}}
+                                    {{--                                                        </div>--}}
+                                    {{--                                                        <div class="text-end">--}}
+                                    {{--                                                            <button type="button" class="btn btn-secondary"--}}
+                                    {{--                                                                    onclick="hideManualAddressInput()">--}}
+                                    {{--                                                                <i class="fa-light fa-times me-2"></i>إلغاء--}}
+                                    {{--                                                            </button>--}}
+                                    {{--                                                            <button type="submit" class="btn btn-primary">--}}
+                                    {{--                                                                <i class="fa-light fa-check me-2"></i>تأكيد العنوان--}}
+                                    {{--                                                            </button>--}}
+                                    {{--                                                        </div>--}}
+                                    {{--                                                    </form>--}}
+                                    {{--                                                </div>--}}
+                                    {{--                                            </div>--}}
+                                    {{--                                        </div>--}}
+                                    {{--                                    </div>--}}
                                     <div class="col-12 d-flex justify-content-end mt-4 p-2">
                                         <button class="btn btn-label-secondary btn-prev">
                                             <span
@@ -221,21 +223,21 @@
                                                         <li class="d-flex align-items-center justify-content-between">
                                                             <p>{{ helperTrans('web.package_price_before_discount') }}
                                                             </p>
-                                                            <span>{{ $package->original_price }} ر.س</span>
+                                                            <span>{{ $package->original_price }} {{ helperTrans('ingaz.r_s') }}</span>
                                                         </li>
                                                         <li class="d-flex align-items-center justify-content-between">
                                                             <p>{{ helperTrans('web.discount_value') }}</p>
                                                             <span>{{ $package->original_price - $package->price_after_discount ?? 0 }}
-                                                                ر.س</span>
+                                                                {{ helperTrans('ingaz.r_s') }}</span>
                                                         </li>
                                                         <li class="d-flex align-items-center justify-content-between">
                                                             <p>{{ helperTrans('web.package_price_after_discount') }}
                                                             </p>
-                                                            <span>{{ $package->price_after_discount }} ر.س</span>
+                                                            <span>{{ $package->price_after_discount }} {{ helperTrans('ingaz.r_s') }}</span>
                                                         </li>
                                                         <li class="d-flex align-items-center justify-content-between">
                                                             <p>{{ helperTrans('web.total_with_tax') }}</p>
-                                                            <span>{{ $package->price_with_tax }} ر.س</span>
+                                                            <span>{{ $package->price_with_tax }} {{ helperTrans('ingaz.r_s') }}</span>
                                                         </li>
                                                     </ul>
 
@@ -301,7 +303,7 @@
                                                         </li>
                                                         <li>
                                                             <span>{{ helperTrans('web.salary') }}</span>
-                                                            <h3>{{ $maid->salary }} ر.س</h3>
+                                                            <h3>{{ $maid->salary }}{{ helperTrans('ingaz.r_s') }}</h3>
                                                         </li>
                                                         <li>
                                                             <span>{{ helperTrans('web.passport_number') }}</span>
@@ -313,7 +315,7 @@
                                                         </li>
                                                         {{-- <li>
                                                     <span>{{ helperTrans('web.recruitment_price') }}م</span>
-                                                    <h3>{{ $maid->price }} ر.س</h3>
+                                                    <h3>{{ $maid->price }} {{ helperTrans('ingaz.r_s') }}</h3>
                                                 </li> --}}
                                                         <li>
                                                             <span>{{ helperTrans('web.occupation') }}</span>
@@ -469,6 +471,11 @@
         crossorigin="anonymous"></script>
     <script>
         $(document).ready(function () {
+
+            console.log("ahmed")
+            console.log($('#form-of-user-address'))
+            console.log("ahmed")
+
             $('.form-add-new-address').on('submit', function (e) {
                 e.preventDefault();
                 let formData = new FormData(this);
@@ -518,55 +525,57 @@
 
                 });
             })
+            $('#wizard-property-listing-form').on('submit', function (e) {
+                e.preventDefault();
+                let formData = new FormData(this);
+                let url = $(this).attr('action');
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        Toastify({
+                            text: response.message,
+                            duration: 4000,
+                            gravity: "top",
+                            position: "right",
+                            backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
+                            stopOnFocus: true
+                        }).showToast();
+                        setTimeout(function () {
+                            location.href = response.data.redirect;
+                        }, 500);
+
+                    },
+                    error: function (xhr) {
+                        if (xhr.status === 422) {
+                            let errors = xhr.responseJSON.errors;
+                            let errorMessages = '';
+                            for (let key in errors) {
+                                errorMessages +=
+                                    `<p style="margin: 0 0 5px; color: red; text-align: center;">${errors[key][0]}</p>`;
+                            }
+                            Swal.fire({
+                                icon: 'error',
+                                title: '{{ __('ingaz.error ') }}',
+                                html: `<div>${errorMessages}</div>`,
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: '{{ __("ingaz.error") }}',
+                                text: '{{ __("ingaz.error_from_server") }}'
+                            });
+
+                        }
+                    }
+
+                });
+            })
         })
 
-        $(document).on('submit', '#form-user-address', function (e) {
-            e.preventDefault();
-            let formData = new FormData(this);
-            let url = $(this).attr('action');
-            alert('ds')
-            $.ajax({
-                url: url,
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function (response) {
-                    Toastify({
-                        text: response.message,
-                        duration: 4000,
-                        gravity: "top",
-                        position: "right",
-                        backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)"
-                    }).showToast();
-
-                    // فضي الحقول بعد الإرسال
-                    document.getElementById('form-user-address').reset();
-
-                    // إرجع تاني تخفي الديف
-                    $('#manual_address_input').hide();
-                },
-                error: function (xhr) {
-                    if (xhr.status === 422) {
-                        let errorMessages = '';
-                        $.each(xhr.responseJSON.errors, function (key, val) {
-                            errorMessages += `<p style="margin:0 0 5px;color:red;text-align:center;">${val[0]}</p>`;
-                        });
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'خطأ في الإدخال',
-                            html: `<div>${errorMessages}</div>`
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'خطأ',
-                            text: 'حدث خطأ من الخادم'
-                        });
-                    }
-                }
-            });
-        });
 
         document.addEventListener('DOMContentLoaded', function () {
             console.log("Type 2 order page loaded (simple solution)");
@@ -669,9 +678,11 @@
 
         // دالة إظهار حقل إدخال العنوان يدوياً
         function showManualAddressInput() {
-            $('#manual_address_input').show();
-            $('#manual-address-option').css('border', '2px solid #007bff');
-            $('#skip-address-option').css('border', '2px dashed #6c757d');
+            // $('#manual_address_input').show();
+            // $('#manual-address-option').css('border', '2px solid #007bff');
+            // $('#skip-address-option').css('border', '2px dashed #6c757d');
+            $('#addLocation').modal('show');
+
         }
 
         // دالة إخفاء حقل إدخال العنوان يدوياً
@@ -724,7 +735,7 @@
         //             </div>`;
         //     $('#llocation-l').html(manualAddressHtml);
         //
-        //     let form = $('#form-user-address');
+        //     let form = $('#form-of-user-address');
         //     let formData = new FormData(form[0]);
         //     let url = form.attr('action');
         //     let method = form.attr('method');
@@ -1040,4 +1051,11 @@
             myButton.disabled = !this.checked;
         });
     </script>
+    <script>
+        $(document).on('change', 'input[name="package_id"]', function () {
+            var selectedId = $(this).val();
+            $('input[name="details_list[package_id]"]').val(selectedId);
+        });
+    </script>
+
 @endsection

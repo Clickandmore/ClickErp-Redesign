@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\site\EagarRequestController;
 use App\Http\Controllers\site\PackagesController;
 use App\Http\Controllers\site\UserAddressController;
 
@@ -88,6 +89,7 @@ Route::group(
             Route::resource('recruitment-request', RecruitmentRequestController::class);
             Route::resource('recruitment-orders', RecruitmentOrderController::class);
             Route::resource('customer-service', CustomerServiceController::class);
+            Route::resource('eagar-request', EagarRequestController::class);
             Route::resource('logout', LogoutController::class);
             Route::post('/contracts/cancel', [ContractsController::class, 'cancel'])->name('contracts.cancel');
             Route::resource('contracts', ContractsController::class);
