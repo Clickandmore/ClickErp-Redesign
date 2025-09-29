@@ -93,30 +93,15 @@
                                         </label>
                                     @endforeach
                                 </div>
-                                @auth
-                                    <button type="submit" id="myButtonsave">
-                                        {{__("ingaz.Confirm sponsorship transfer request")}}
-                                    </button>
-                                @endauth
-                                @guest
-                                    <a href="#" class="btns save-order-and-login"
-                                       style="
-                                                                                            display: block;
-                                                                                            text-align: center;
-                                                                                            width: 100%;
-                                                                                            border: none;
-                                                                                            background: none;
-                                                                                            outline: none;
-                                                                                            background: #1d70b7;
-                                                                                            color: #fff;
-                                                                                            padding: 8px;
-                                                                                            border-radius: 4px;
-                                                                                            transition: all 0.4s ease-in-out;
-                                                                                        ">
-                                        تسجيل الدخول لإكمال الطلب
 
-                                    </a>
-                                @endguest
+                                <button type="submit" id="myButtonsave">
+                                    @auth
+                                        {{__("ingaz.Confirm sponsorship transfer request")}}
+                                    @endauth
+                                    @guest
+                                        تسجيل الدخول لإكمال الطلب
+                                    @endguest
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -184,16 +169,24 @@
 
                     },
                     error: function (xhr) {
+                        if (xhr.status === 401) {
+                            const json = xhr.responseJSON;
+                            setTimeout(function () {
+                                window.location.href = json.redirect;
+                            }, 300);
+
+                            return;
+                        }
                         if (xhr.status === 422) {
+                            // أخطاء الفالديشن
                             let errors = xhr.responseJSON.errors;
                             let errorMessages = '';
                             for (let key in errors) {
-                                errorMessages +=
-                                    `<p style="margin: 0 0 5px; color: red; text-align: center;">${errors[key][0]}</p>`;
+                                errorMessages += `<p style="margin:0 0 5px;color:red;text-align:center;">${errors[key][0]}</p>`;
                             }
                             Swal.fire({
                                 icon: 'error',
-                                title: '{{ __('ingaz.error ') }}',
+                                title: '{{ __("ingaz.error") }}',
                                 html: `<div>${errorMessages}</div>`,
                             });
                         } else {
@@ -202,9 +195,9 @@
                                 title: '{{ __("ingaz.error") }}',
                                 text: '{{ __("ingaz.error_from_server") }}'
                             });
-
                         }
                     }
+
 
                 });
             })

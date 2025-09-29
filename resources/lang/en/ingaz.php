@@ -974,7 +974,16 @@
     'body' => 'Body',
 
     'settings_updated_successfully' => 'Settings updated successfully',
-
+    'maid_id_required'              => 'The maid field is required.',
+    'maid_id_exists'                => 'The selected maid does not exist.',
+    'job_type_id_required'          => 'The job type field is required.',
+    'job_type_id_exists'            => 'The selected job type does not exist.',
+    'order_type_required'           => 'The order type is required.',
+    'payment_method_required'       => 'The payment method is required.',
+    'details_list_required'         => 'The details list is required.',
+    'details_list_array'            => 'The details list must be an array.',
+    'details_list_admin_id_required'=> 'The admin ID is required.',
+    'details_list_admin_id_exists'  => 'The selected admin does not exist.',
     'special_request' => 'Special Request',
     'Request to bring in domestic workers' => 'Request to bring in domestic workers',
     'Employer data' => 'Employer data',

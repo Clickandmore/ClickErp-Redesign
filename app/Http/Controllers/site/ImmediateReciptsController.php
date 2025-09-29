@@ -10,6 +10,7 @@ use App\Http\Actions\ingaz\SettingAction;
 use App\Http\Actions\ingaz\UserAction;
 use App\Http\Actions\ingaz\UserAddressAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\site\ImmediateReciptsRequest;
 use App\Models\ingaz\OrderDetail;
 use App\Models\ingaz\RecruitmentRequest;
 use App\Models\ingaz\User;
@@ -18,6 +19,8 @@ use Illuminate\Http\Request;
 
 class ImmediateReciptsController extends Controller
 {
+
+
     public function show($id, MaidAction $action, PackageAction $packageAction, UserAddressAction $userAddressAction, JobTypeAction $jobTypeAction, AdminAction $admin_action)
     {
         $data['maid'] = $action->find($id);
@@ -28,10 +31,10 @@ class ImmediateReciptsController extends Controller
         return view('site.pages.immediat_recipts', $data);
     }
 
-    public function store(Request $request, MaidAction $maidAction)
+    public function store(ImmediateReciptsRequest $request, MaidAction $maidAction)
     {
-        $data = $request->all();
-        $maid = $maidAction->find($request->maid_id);
+        $data = $request->validated();
+        $maid = $maidAction->find($data['maid_id']);
         $jobType = $maid->jobTypes->first();
         if (!isset($jobType)) {
             return jsonError(null, __("ingaz.job_type_not_found"));
