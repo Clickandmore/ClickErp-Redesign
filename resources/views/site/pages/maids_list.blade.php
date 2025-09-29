@@ -60,7 +60,7 @@
             @elseif ($jobType && $jobType->id == 2)
                 <!-- كارد خاص بالإيجار -->
                 <div class="col-12 col-md-6 p-2 mb-5" data-type="egar">
-                    <a href="{{ route('site.all-workers.show', $maid->id) }}" class="worker-box-link">
+                    <a href="{{ route('site.packages.show', $maid->id ) }}" class="worker-box-link">
                         <div class="worker-box">
                             <div class="worker-media">
                                 <img src="{{ showFile($maid->image) }}" alt="worker"/>
@@ -99,7 +99,7 @@
                                             <i class="fa-solid fa-video"></i>
                                         </a>
                                     @endif
-                                    <a href="{{ route('site.all-workers.show', $maid->id) }}" class="btn action-btn">
+                                    <a href="{{ route('site.packages.show', $maid->id) }}" class="btn action-btn">
                                         {{ __('ingaz.labor_rental_request') }}
                                     </a>
                                 </div>
@@ -110,7 +110,7 @@
             @elseif ($jobType && $jobType->id == 3)
                 <!-- كارد خاص بالنقل -->
                 <div class="col-12 col-md-6 p-2 mb-5" data-type="transfer">
-                    <a href="{{ route('site.all-workers.show', $maid->id) }}" class="worker-box-link">
+                    <a href="{{ route('site.immediate-recipts.show', $maid->id) }}" class="worker-box-link">
                         <div class="worker-box">
                             <div class="worker-media">
                                 <img src="{{ showFile($maid->image) }}" alt="worker"/>
@@ -150,7 +150,7 @@
                                             <i class="fa-solid fa-video"></i>
                                         </a>
                                     @endif
-                                    <a href="{{ route('site.all-workers.show', $maid->id) }}" class="btn action-btn">
+                                    <a href="{{ route('site.immediate-recipts.show', $maid->id) }}" class="btn action-btn">
                                         {{ __('ingaz.Labor_transfer') }}
                                     </a>
                                 </div>

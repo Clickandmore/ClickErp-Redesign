@@ -86,31 +86,30 @@ class MaidAction extends MainAction
         // Robust handling for languages field
         \Log::info('Before languages processing - languages data:', [$data['languages'] ?? 'not set']);
         \Log::info('Languages data type: ' . gettype($data['languages'] ?? 'not set'));
-        if (isset($data['languages'])) {
-            if (is_array($data['languages'])) {
-                // Convert associative array to simple array of values
-                $languagesArray = [];
-                foreach ($data['languages'] as $key => $value) {
-                    if ($value === 'نعم' || $value === 'yes') {
-                        $languagesArray[] = $key;
-                    }
-                }
-                $data['languages'] = json_encode($languagesArray);
-                \Log::info('Languages converted to JSON: ' . $data['languages']);
-            } elseif (is_string($data['languages'])) {
-                // If it's a string, check if it's valid JSON, otherwise wrap as array
-                json_decode($data['languages']);
-                if (json_last_error() !== JSON_ERROR_NONE) {
-                    $data['languages'] = json_encode([$data['languages']]);
-                    \Log::info('Languages string wrapped as array and converted to JSON: ' . $data['languages']);
-                }
+
+        // ✅ لو فيه لغات
+        if (isset($data['languages']) && is_array($data['languages'])) {
+
+            // أولاً فلتر النِّسب بحيث تبقى فقط اللغات اللي متعلم عليها وفيها رقم
+            if (isset($data['percentage']) && is_array($data['percentage'])) {
+                $data['percentage'] = array_filter(
+                    array_intersect_key($data['percentage'], $data['languages']),
+                    fn($v) => $v !== null && $v !== ''
+                );
             } else {
-                $data['languages'] = json_encode([]);
-                \Log::info('Languages was not array or string, set to empty array.');
+                $data['percentage'] = [];
             }
+
+            // خزّن اللغات كـ JSON array (القيم فقط: ["arabic","amharic"])
+            $data['languages'] = json_encode(array_values($data['languages']), JSON_UNESCAPED_UNICODE);
+
+            // خزّن النِّسب كـ JSON object (مثل {"arabic":"98","amharic":"90"})
+            $data['percentage'] = json_encode($data['percentage'], JSON_UNESCAPED_UNICODE);
+
         } else {
-            $data['languages'] = json_encode([]);
-            \Log::info('Languages not set, set to empty array.');
+            // لو مفيش لغات أصلاً
+            $data['languages'] = json_encode([], JSON_UNESCAPED_UNICODE);
+            $data['percentage'] = json_encode([], JSON_UNESCAPED_UNICODE);
         }
 
         // Handle birth_date field
@@ -172,6 +171,7 @@ class MaidAction extends MainAction
             'experience_years' => $data['experience_years'] ?? null,
             'skills' => $data['skills'] ?? null,
             'languages' => $data['languages'] ?? null,
+            'percentage' => $data['percentage'] ?? null,
             'cv_file' => $data['cv_file'] ?? '',
             'image' => $data['image'] ?? null,
             'cv_preview' => $data['cv_preview'] ?? null,
@@ -382,6 +382,42 @@ class MaidAction extends MainAction
         if (isset($data['skills']) && is_array($data['skills'])) {
             $data['skills'] = json_encode($data['skills']);
         }
+
+        // استخرج القيم الحالية
+        $currentLanguages  = is_array($maid->languages) ? $maid->languages : (json_decode($maid->languages, true) ?? []);
+        $currentPercentage = is_array($maid->percentage) ? $maid->percentage : (json_decode($maid->percentage, true) ?? []);
+
+// لو المستخدم أرسل لغات جديدة
+        if ($request->has('languages')) {
+            $langs = $request->input('languages', []);
+            $langs = array_values($langs); // لضمان مصفوفة مرتبة
+
+            // خزّن اللغات في جدول الترجمة
+            $translation = $maid->translateOrNew(app()->getLocale());
+            $translation->languages = json_encode($langs, JSON_UNESCAPED_UNICODE);
+            $translation->save();
+        }
+
+// لو المستخدم أرسل نسب جديدة
+        if ($request->has('percentage')) {
+            $percs = $request->input('percentage', []);
+            // خذ فقط اللغات اللي معمولة check وليها قيمة
+            if (isset($langs)) {
+                $percs = array_filter(
+                    array_intersect_key($percs, $langs),
+                    fn($v) => $v !== null && $v !== ''
+                );
+            } else {
+                $percs = array_filter($percs, fn($v) => $v !== null && $v !== '');
+            }
+
+            // خزّن النسب في الجدول الأصلي
+            $maid->update([
+                'percentage' => json_encode($percs, JSON_UNESCAPED_UNICODE),
+            ]);
+        }
+
+
 
 
         $row = parent::find($id);

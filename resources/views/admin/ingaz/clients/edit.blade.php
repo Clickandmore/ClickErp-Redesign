@@ -4,7 +4,7 @@
 @endsection
 @section('content')
 @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW))
-    <form action="{{ route('clients.update', $client->id) }}" method="POST" class="row">
+    <form action="{{ route('clients.update', $client->id) }}" method="POST" class="row from-submit-global">
         @csrf
         @method('PUT')
 

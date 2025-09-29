@@ -16,11 +16,11 @@
     else
     {
         $route = route('about-us.store');
- 
+
     }
 @endphp
 
-<form class="row" action="{{ $route}}" method="post" enctype="multipart/form-data">
+<form class="row from-submit-global" action="{{ $route}}" method="post" enctype="multipart/form-data">
  @csrf
     @if(isset($about))
         @method('PUT')

@@ -10,17 +10,17 @@ class SiteAuthMiddleware
 
     public function handle($request, Closure $next = null, $guard = null)
     {
+        if (!Auth::guard('web')->check()) {
+            // الرابط اللي جاي منه المستخدم
+            $previousUrl = $request->headers->get('referer') ?? url()->previous();
 
-        if (Auth::guard('web')->check()) {
-            return $next($request);
-        }
-        if ($request->has('redirect_url')) {
-            session(['url.intended' => $request->input('redirect_url')]);
-        } else {
-            session(['url.intended' => $request->fullUrl()]);
-        }
-        toastr()->addError(helperTrans('ingaz.please_login_first'));
+            session(['url.intended' => $previousUrl]);
 
-        return redirect()->route("site.login.index");
+            toastr()->addError(helperTrans('ingaz.please_login_first'));
+            return redirect()->route("site.login.index");
+        }
+
+
+        return $next($request);
     }
 }

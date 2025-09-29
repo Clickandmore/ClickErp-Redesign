@@ -17,13 +17,22 @@ class LoginController extends Controller
     {
         $data = $request->validated();
         unset($data['g-recaptcha-response']);
-        $result = $loginAction->login($data);
-        if ($result['success']) {
-            $target = session()->pull('url.intended', $result['redirect_url'] ?? route('site.home.index'));
-            return jsonSuccess(['result' => $target], __("ingaz.login_successfully"));
-        }
-        return jsonSuccess(['result' => $result['redirect_url']], __("ingaz.incorrect_password"), 422);
 
+        $result = $loginAction->login($data);
+
+        if ($result['success']) {
+            $target = session()->pull('url.intended', route('site.home.index'));
+            return response()->json([
+                'success' => true,
+                'message' => __("ingaz.login_successfully"),
+                'result'  => $target,
+            ]);
+        }
+        return response()->json([
+            'success' => false,
+            'message' => __("ingaz.incorrect_password"),
+        ], 422);
     }
+
 
 }
