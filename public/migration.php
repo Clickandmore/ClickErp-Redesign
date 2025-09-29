@@ -2,1267 +2,1356 @@
 <html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام النقل الثابت</title>
+    <title>نظام نقل البيانات</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background: white;
-            margin: 20px auto;
-            max-width: 700px;
+            background: #f5f5f5;
+            margin: 0;
             padding: 20px;
-            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
         h1 {
-            text-align: center;
-            margin-bottom: 30px;
             color: #333;
-            border-bottom: 1px solid #eee;
+            text-align: center;
+            border-bottom: 3px solid #28a745;
             padding-bottom: 15px;
+            margin-bottom: 30px;
         }
 
-        .box {
+        .section {
+            margin: 30px 0;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-right: 5px solid #007bff;
+        }
+
+        h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
             margin: 20px 0;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background: #fafafa;
-        }
-
-        .box h3 {
-            margin-bottom: 15px;
-            color: #555;
-        }
-
-        label {
-            display: block;
-            margin: 8px 0 3px 0;
-            font-weight: bold;
-            color: #555;
-        }
-
-        input, button {
-            width: 100%;
-            padding: 8px;
-            margin: 3px 0;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            font-size: 14px;
         }
 
         button {
-            background: #333;
-            color: white;
+            padding: 12px 25px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
             cursor: pointer;
+            color: white;
             font-weight: bold;
-            margin: 8px 0;
         }
 
-        button:hover {
-            background: #555;
-        }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+
+        .btn-info { background: #17a2b8; }
+        .btn-info:hover { background: #138496; }
 
         button:disabled {
-            background: #ccc;
+            background: #6c757d !important;
             cursor: not-allowed;
         }
 
         .result {
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 3px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
             display: none;
         }
 
-        .success {
+        .result.success {
             background: #d4edda;
-            border: 1px solid #c3e6cb;
+            border-color: #28a745;
             color: #155724;
         }
 
-        .error {
+        .result.error {
             background: #f8d7da;
-            border: 1px solid #f5c6cb;
+            border-color: #dc3545;
             color: #721c24;
         }
 
-        .info {
-            background: #f7f7f7;
-            padding: 8px;
-            border-radius: 3px;
-            margin: 8px 0;
-            font-size: 13px;
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+
+        .stat .number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .stat .label {
             color: #666;
-        }
-
-        .row {
-            display: flex;
-            gap: 8px;
-        }
-
-        .col {
-            flex: 1;
+            margin-top: 5px;
         }
     </style>
 </head>
 <body>
-    <h1>نظام النقل الثابت</h1>
+    <div class="container">
+        <h1>نظام نقل البيانات</h1>
 
-    <div class="info">
-        الرابط الثابت: <strong><?php echo $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']; ?></strong>
-    </div>
+        <!-- إشارة للأنظمة البديلة الناجحة -->
+        <a href="/migration/new_migration_system.php" style="color: #ff6b6b; font-weight: bold; font-size: 1.1em;">
+                        نظام النقل المحسن
+                    </a><br>
 
-    <!-- معالج JSON آمن -->
-    <script src="migration/safe_json_parser.js"></script>
+        <!-- قسم المستخدمين -->
+        <div class="section">
+            <h3>1️⃣ نقل المستخدمين والعملاء</h3>
 
-    <!-- الاتصال -->
-    <div class="box">
-        <h3>إعدادات قاعدة البيانات</h3>
-        <div class="row">
-            <div class="col">
-                <label>Database:</label>
-                <input type="text" id="database" value="platinum_new">
+            <!-- خيارات النقل -->
+            <div style="margin: 20px 0; padding: 15px; background: white; border-radius: 8px;">
+                <label style="display: block; margin-bottom: 15px;">
+                    <input type="radio" name="transfer_mode" value="auto" checked onchange="toggleUploadSection()">
+                    نقل تلقائي من القاعدة القديمة
+                </label>
+                <label style="display: block;">
+                    <input type="radio" name="transfer_mode" value="file" onchange="toggleUploadSection()">
+                    رفع ملف CSV
+                </label>
+
+                <!-- قسم رفع الملف -->
+                <div id="upload_section" style="display: none; margin-top: 15px; padding: 15px; background: #f0f8ff; border-radius: 5px;">
+                    <input type="file" id="csv_file" accept=".csv" style="margin-bottom: 10px;">
+                    <div style="font-size: 12px; color: #666;">
+                        ملاحظة: يجب أن يحتوي الملف على الأعمدة: id, name, phone, email, country_id
+                    </div>
+                </div>
             </div>
-            <div class="col">
-                <label>Host:</label>
-                <input type="text" id="host" value="127.0.0.1">
+
+            <div class="buttons">
+                <button onclick="prepareUsersTable()" class="btn-info">إعداد الجدول</button>
+                <button onclick="transferUsersSimple()" class="btn-success">نقل المستخدمين</button>
+                <button onclick="transferCustomersSimple()" class="btn-success">دمج العملاء</button>
+                <button onclick="checkUsers()" class="btn-info">فحص النتيجة</button>
             </div>
-            <div class="col">
-                <label>Port:</label>
-                <input type="text" id="port" value="8889">
+            <div id="users_result" class="result"></div>
+        </div>
+
+        <!-- قسم البلدان -->
+        <div class="section">
+            <h3>2️⃣ نقل البلدان</h3>
+            <div class="buttons">
+                <button onclick="transferCountries()" class="btn-success">نقل البلدان</button>
+                <button onclick="checkCountries()" class="btn-info">فحص النتيجة</button>
             </div>
+            <div id="countries_result" class="result"></div>
         </div>
-        <button onclick="connect()" id="connect_btn">اختبار الاتصال</button>
-        <div id="connect_status" class="info">اضغط لاختبار الاتصال</div>
-    </div>
 
-    <!-- النقل الذكي للبنية الجديدة -->
-    <div class="box">
-        <h3>النقل الذكي للبنية الجديدة (مُوصى)</h3>
-        <p>نقل البيانات للنظام الجديد مع الترجمات والجداول المنفصلة:</p>
+        <!-- قسم الجنسيات -->
+        <div class="section">
+            <h3>3️⃣ نقل الجنسيات (النظام المتقدم)</h3>
 
-        <button onclick="analyzeNewStructure()" style="background: #17a2b8;">تحليل البنية الجديدة</button>
-        <button onclick="migrateNationalitiesSmart()" style="background: #28a745;">نقل Nationalities + Translations</button>
-        <button onclick="migrateMaidsComplete()" style="background: #dc3545;">نقل العاملات كاملة + إنشاء أعمدة</button>
-        <button onclick="migrateAllSmart()" style="background: #6f42c1;">نقل ذكي شامل</button>
+            <div style="background: #fff3cd; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                <h6 style="color: #856404; margin-bottom: 10px;">📋 تطابق الأعمدة:</h6>
+                <div style="font-size: 13px; color: #856404;">
+                    <strong>من platinum.nationalities إلى:</strong><br>
+                    • platinum_new.nationalities: id, flag_image→logo, salary→price, sponsor_salary→service_transportation_cost<br>
+                    • platinum_new.nationalities_translations: name→title, sub_title (فارغ)<br>
+                    <strong>أعمدة إضافية:</strong> code, key_comment, rank, key_code, status, apper_home, expected_duration, period
+                </div>
+            </div>
 
-        <div id="smart_result" class="result"></div>
-    </div>
-
-    <!-- الجداول المرتبطة بالسير الذاتية -->
-    <div class="box">
-        <h3>الجداول المرتبطة بالسير الذاتية</h3>
-        <p>نقل الجداول المرجعية كجداول منفصلة (jobs, skills, ages, regions, languages, etc.):</p>
-
-        <button onclick="findExistingTables()" style="background: #6c757d;">فحص الجداول الموجودة</button>
-        <button onclick="analyzeRelatedTables()" style="background: #17a2b8;">تحليل الجداول المرتبطة</button>
-        <button onclick="createMissingTables()" style="background: #ffc107; color: #333;">إنشاء الجداول المفقودة</button>
-        <button onclick="populateRelatedTables()" style="background: #28a745;">ملء الجداول بالبيانات</button>
-
-        <div id="related_result" class="result"></div>
-    </div>
-
-    <!-- النظام البسيط الآمن (مُوصى للمبتدئين) -->
-    <div class="box" style="background: #e8f5e8; border: 3px solid #28a745; box-shadow: 0 4px 20px rgba(40,167,69,0.3);">
-        <h3 style="color: #28a745;">🛡️ النظام البسيط الآمن (مُوصى بشدة)</h3>
-        <div style="background: #d4edda; padding: 15px; border-radius: 8px; margin: 15px 0;">
-            <h4 style="color: #155724; margin: 0;">✅ تم إصلاح جميع أخطاء JSON - النظام يعمل بمثالية!</h4>
+            <div class="buttons">
+                <button onclick="analyzeNationalitiesStructure()" class="btn-info">تحليل البنية</button>
+                <button onclick="transferNationalitiesAdvanced()" class="btn-success">نقل الجنسيات المتقدم</button>
+                <button onclick="reorderNationalitiesColumns()" class="btn-info" style="background: #6f42c1;">ترتيب الأعمدة</button>
+                <button onclick="checkNationalities()" class="btn-info">فحص النتيجة</button>
+            </div>
+            <div id="nationalities_result" class="result"></div>
         </div>
-        <p><strong>للذين يريدون السيطرة الكاملة على كل خطوة:</strong></p>
-        <ul style="text-align: right; margin: 15px 0;">
-            <li>✅ تصدير CSV منفصل لكل جدول</li>
-            <li>✅ فحص البيانات قبل النقل</li>
-            <li>✅ تطابق الأعمدة يدوياً</li>
-            <li>✅ نقل تدريجي بدفعات صغيرة</li>
-            <li>✅ تحقق مستمر من كل خطوة</li>
-        </ul>
-        <div style="text-align: center; margin: 20px 0;">
-            <a href="migration/safe_simple_migration.php" target="_blank" style="background: #28a745; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold;">
-                🛡️ النظام البسيط الآمن
-            </a>
-            <br><br>
-            <a href="migration/SIMPLE_SAFE_GUIDE.md" target="_blank" style="background: #17a2b8; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
-                📖 دليل الاستخدام
-            </a>
+
+        <!-- قسم المهن (Job Titles) -->
+        <div class="section">
+            <h3>4️⃣ نقل المهن (Job Titles)</h3>
+            <div class="buttons">
+                <button onclick="transferJobTitles()" class="btn-success">نقل المهن</button>
+                <button onclick="checkJobTitles()" class="btn-info">فحص النتيجة</button>
+            </div>
+            <div id="jobs_result" class="result"></div>
         </div>
-    </div>
 
-    <!-- إصلاح سريع (الطريقة القديمة) -->
-    <div class="box">
-        <h3>إصلاح سريع (للطوارئ)</h3>
-        <p>حل مؤقت بإضافة الـ IDs المطلوبة فقط:</p>
-        <button onclick="fixNationalitiesNow()" style="background: #fd7e14;">إصلاح Nationalities فوراً</button>
-        <button onclick="migrateCompleteMailds()" style="background: #dc3545;">نقل العاملات كاملة</button>
-        <button onclick="checkMaidsFinal()" style="background: #6c757d;">فحص النتيجة النهائية</button>
-        <div id="reference_result" class="result"></div>
-    </div>
+        <!-- قسم الأديان (Religions) -->
+        <div class="section">
+            <h3>5️⃣ نقل الأديان (Religions)</h3>
+            <div class="buttons">
+                <button onclick="transferReligions()" class="btn-success">نقل الأديان</button>
+                <button onclick="checkReligions()" class="btn-info">فحص النتيجة</button>
+            </div>
+            <div id="religions_result" class="result"></div>
+        </div>
 
-    <!-- النقل التلقائي -->
-    <div class="box">
-        <h3>النقل التلقائي (بعد إصلاح المراجع)</h3>
-        <label>القاعدة القديمة:</label>
-        <input type="text" id="old_db" value="platinum">
+        <!-- قسم الحالات الاجتماعية (Social Status) -->
+        <div class="section">
+            <h3>6️⃣ نقل الحالات الاجتماعية (Social Status)</h3>
+            <div class="buttons">
+                <button onclick="transferSocialStatus()" class="btn-success">نقل الحالات الاجتماعية</button>
+                <button onclick="checkSocialStatus()" class="btn-info">فحص النتيجة</button>
+            </div>
+            <div id="social_status_result" class="result"></div>
+        </div>
 
-        <button onclick="migrateTable('users')" style="background: #007bff;">نقل المستخدمين تلقائياً</button>
-        <button onclick="migrateTable('customers')" style="background: #28a745;">دمج العملاء تلقائياً</button>
-        <button onclick="migrateTable('countries')" style="background: #ffc107; color: #333;">نقل البلدان تلقائياً</button>
+        <!-- قسم المهارات (Skills) -->
+        <div class="section">
+            <h3>7️⃣ نقل المهارات (Skills)</h3>
+            <div class="buttons">
+                <button onclick="transferSkills()" class="btn-success">نقل المهارات</button>
+                <button onclick="checkSkills()" class="btn-info">فحص النتيجة</button>
+            </div>
+            <div id="skills_result" class="result"></div>
+        </div>
 
-        <button onclick="migrateAllTablesComplete()" style="background: #6f42c1; margin-top: 15px;">نقل شامل مع إصلاح المراجع</button>
+        <!-- قسم الخبرات (Experience) -->
+        <div class="section">
+            <h3>8️⃣ نقل الخبرات (Experience)</h3>
+            <div class="buttons">
+                <button onclick="transferExperience()" class="btn-success">نقل الخبرات</button>
+                <button onclick="checkExperience()" class="btn-info">فحص النتيجة</button>
+            </div>
+            <div id="experience_result" class="result"></div>
+        </div>
 
-        <div id="auto_result" class="result"></div>
-    </div>
+        <!-- قسم الأعمار (Ages) -->
+        <div class="section">
+            <h3>9️⃣ نقل الأعمار (Ages)</h3>
+            <div class="buttons">
+                <button onclick="transferAges()" class="btn-success">نقل الأعمار</button>
+                <button onclick="checkAges()" class="btn-info">فحص النتيجة</button>
+            </div>
+            <div id="ages_result" class="result"></div>
+        </div>
 
-    <!-- رفع ملفات -->
-    <div class="box">
-        <h3>رفع ملفات CSV</h3>
-        <input type="file" id="csv_file" accept=".csv">
-        <select id="file_table_type">
-            <option value="users">المستخدمين</option>
-            <option value="customers">العملاء</option>
-            <option value="countries">البلدان</option>
-            <option value="maids">العاملات</option>
-        </select>
-        <button onclick="uploadCSV()">رفع الملف</button>
-        <div id="upload_result" class="result"></div>
+        <!-- قسم اللغات (Languages) -->
+        <div class="section">
+            <h3>🔟 نقل اللغات (Languages)</h3>
+            <div class="buttons">
+                <button onclick="transferLanguages()" class="btn-success">نقل اللغات</button>
+                <button onclick="checkLanguages()" class="btn-info">فحص النتيجة</button>
+            </div>
+            <div id="languages_result" class="result"></div>
+        </div>
+
+        <!-- قسم السير الذاتية -->
+        <div class="section">
+            <h3>1️⃣1️⃣ نقل السير الذاتية (CVs → Maids)</h3>
+            <div class="buttons">
+                <button onclick="transferMaids()" class="btn-success">نقل السير الذاتية</button>
+                <button onclick="checkMaids()" class="btn-info">فحص النتيجة</button>
+            </div>
+            <div id="maids_result" class="result"></div>
+        </div>
+
+        <!-- الإحصائيات -->
+        <div class="section">
+            <h3>📊 الإحصائيات الحالية</h3>
+            <div class="stats" id="stats">
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Users</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Countries</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Nationalities</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Translations</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Job Titles</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Religions</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Social Status</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Skills</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Experience</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Ages</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Languages</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Maids</div>
+                </div>
+            </div>
+            <button onclick="updateStats()" class="btn-info">تحديث الإحصائيات</button>
+        </div>
     </div>
 
     <script>
-        function getDbConfig() {
-            return {
-                db_host: document.getElementById('host').value,
-                db_port: document.getElementById('port').value,
-                db_name: document.getElementById('database').value,
-                db_user: 'root',
-                db_pass: 'root'
-            };
+        // Toggle upload section
+        function toggleUploadSection() {
+            const mode = document.querySelector('input[name="transfer_mode"]:checked').value;
+            document.getElementById('upload_section').style.display = mode === 'file' ? 'block' : 'none';
         }
 
-        function getOldDbConfig() {
-            return {
-                old_db_host: '127.0.0.1',
-                old_db_port: '8889',
-                old_db_name: document.getElementById('old_db').value,
-                old_db_user: 'root',
-                old_db_pass: 'root'
-            };
-        }
-
-        function showResult(elementId, message, isSuccess = true) {
-            const element = document.getElementById(elementId);
-            element.className = `result ${isSuccess ? 'success' : 'error'}`;
-            element.innerHTML = message;
-            element.style.display = 'block';
-        }
-
-        async function connect() {
-            const btn = document.getElementById('connect_btn');
-            const status = document.getElementById('connect_status');
-
+        // إعداد جدول المستخدمين
+        function prepareUsersTable() {
+            const btn = event.target;
             btn.disabled = true;
-            btn.textContent = 'جاري الاتصال...';
-            status.textContent = 'جاري فحص الاتصال...';
+            btn.textContent = 'جاري الإعداد...';
 
-            try {
-                const params = new URLSearchParams({
-                    action: 'test_connection',
-                    ...getDbConfig()
-                });
-
-                const response = await fetch('migration/file_processor.php', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: params
-                });
-
-                const text = await response.text();
-                console.log('Connection response:', text);
-
-                // تنظيف الاستجابة من أي HTML
-                const cleanText = text.replace(/<[^>]*>/g, '').trim();
-
-                let data;
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=add_system_status_columns'
+            })
+            .then(response => response.text())
+            .then(result => {
                 try {
-                    data = JSON.parse(cleanText);
-                } catch (e) {
-                    // إذا فشل JSON، نبحث عن أول { }
-                    const jsonMatch = text.match(/\{.*\}/s);
-                    if (jsonMatch) {
-                        data = JSON.parse(jsonMatch[0]);
-                    } else {
-                        throw new Error('لا يمكن تحليل الاستجابة');
-                    }
+                    const data = JSON.parse(result);
+                    showResult('users_result', data.success ? '✅ تم إعداد الجدول' : '❌ ' + data.message, data.success);
+                } catch {
+                    showResult('users_result', result, false);
                 }
-
-                if (data.success) {
-                    status.textContent = `متصل - القاعدة: ${data.database} - المستخدمين: ${data.user_count}`;
-                    status.style.background = '#d4edda';
-                } else {
-                    status.textContent = `فشل الاتصال: ${data.message}`;
-                    status.style.background = '#f8d7da';
-                }
-            } catch (error) {
-                status.textContent = `خطأ: ${error.message}`;
-                status.style.background = '#f8d7da';
-            }
-
-            btn.disabled = false;
-            btn.textContent = 'اختبار الاتصال';
+                btn.disabled = false;
+                btn.textContent = 'إعداد الجدول';
+            });
         }
 
-        async function migrateTable(table) {
+        // نقل المستخدمين (النظام الناجح من simple_migration.php)
+        async function transferUsersSimple() {
+            const mode = document.querySelector('input[name="transfer_mode"]:checked').value;
             const btn = event.target;
             btn.disabled = true;
             btn.textContent = 'جاري النقل...';
 
             try {
-                // تصدير
-                const exportParams = new URLSearchParams({
-                    action: 'export_from_old_db',
-                    export_table: table,
-                    ...getOldDbConfig(),
-                    ...getDbConfig()
+                let body = 'action=migrate_users_simple';
+
+                if (mode === 'file') {
+                    const file = document.getElementById('csv_file').files[0];
+                    if (!file) {
+                        alert('الرجاء اختيار ملف CSV');
+                        btn.disabled = false;
+                        btn.textContent = 'نقل المستخدمين';
+                        return;
+                    }
+
+                    const formData = new FormData();
+                    formData.append('action', 'process_files');
+                    formData.append('table_type', 'users');
+                    formData.append('file', file);
+
+                    const response = await fetch('migration/file_processor.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+                    showResult('users_result', data.success ? `✅ تم نقل ${data.processed || 0} مستخدم من الملف` : '❌ ' + data.message, data.success);
+                } else {
+                    const response = await fetch('migration/file_processor.php', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: body
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        showResult('users_result', `✅ ${data.message}\nإجمالي: ${data.total_users || 0} | جديد: ${data.migrated || 0} | محدث: ${data.updated || 0}`, true);
+                    } else {
+                        showResult('users_result', '❌ ' + data.message, false);
+                    }
+                }
+
+                updateStats();
+            } catch (error) {
+                showResult('users_result', '❌ خطأ: ' + error.message, false);
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'نقل المستخدمين';
+        }
+
+        // دمج العملاء (النظام الناجح من simple_migration.php)
+        async function transferCustomersSimple() {
+            const mode = document.querySelector('input[name="transfer_mode"]:checked').value;
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'جاري الدمج...';
+
+            try {
+                let body = 'action=migrate_customers_simple';
+
+                if (mode === 'file') {
+                    const file = document.getElementById('csv_file').files[0];
+                    if (!file) {
+                        // إذا لم يكن هناك ملف، نستخدم النقل التلقائي
+                        mode = 'auto';
+                    } else {
+                        const formData = new FormData();
+                        formData.append('action', 'process_files');
+                        formData.append('table_type', 'customers');
+                        formData.append('file', file);
+
+                        const response = await fetch('migration/file_processor.php', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const data = await response.json();
+                        showResult('users_result', data.success ? `✅ تم دمج ${data.processed || 0} عميل من الملف` : '❌ ' + data.message, data.success);
+                        updateStats();
+                        btn.disabled = false;
+                        btn.textContent = 'دمج العملاء';
+                        return;
+                    }
+                }
+
+                const response = await fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: body
                 });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showResult('users_result', `✅ ${data.message}\n${data.updated_users ? 'محدث: ' + data.updated_users + ' مستخدم' : ''}`, true);
+                } else {
+                    showResult('users_result', '❌ ' + data.message, false);
+                }
+
+                updateStats();
+            } catch (error) {
+                showResult('users_result', '❌ خطأ: ' + error.message, false);
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'دمج العملاء';
+        }
+
+        function checkUsers() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT COUNT(*) as count FROM users')
+            })
+            .then(response => response.text())
+            .then(result => {
+                try {
+                    const data = JSON.parse(result);
+                    showResult('users_result', `📊 عدد المستخدمين: ${data.result[0].count}`, true);
+                } catch {
+                    showResult('users_result', result, true);
+                }
+            });
+        }
+
+        // وظائف البلدان
+        function clearCountries() {
+            if (!confirm('⚠️ هل أنت متأكد من مسح جدول Countries في القاعدة الجديدة؟')) return;
+
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=execute_sql&sql=' + encodeURIComponent('DELETE FROM countries')
+            })
+            .then(response => response.text())
+            .then(result => {
+                showResult('countries_result', 'تم مسح جدول Countries', true);
+            });
+        }
+
+        function transferCountries() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'جاري النقل...';
+
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=exportAndUpload&table=countries'
+            })
+            .then(response => response.text())
+            .then(result => {
+                try {
+                    const data = JSON.parse(result);
+                    showResult('countries_result', `✅ تم نقل ${data.processed || 0} دولة`, true);
+                } catch {
+                    showResult('countries_result', result, true);
+                }
+                btn.disabled = false;
+                btn.textContent = 'نقل البلدان';
+            });
+        }
+
+        function checkCountries() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT COUNT(*) as count FROM countries')
+            })
+            .then(response => response.text())
+            .then(result => {
+                try {
+                    const data = JSON.parse(result);
+                    showResult('countries_result', `📊 عدد البلدان: ${data.result[0].count}`, true);
+                } catch {
+                    showResult('countries_result', result, true);
+                }
+            });
+        }
+
+        // وظائف الجنسيات المتقدمة
+        function analyzeNationalitiesStructure() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'جاري التحليل...';
+
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=analyze_nationalities_structure'
+            })
+            .then(response => response.text())
+            .then(result => {
+                try {
+                    const data = JSON.parse(result);
+                    if (data.success) {
+                        let analysis = `📊 تحليل البنية:\n`;
+                        analysis += `القديم: ${data.old_count || 0} جنسية\n`;
+                        analysis += `الجديد: ${data.new_count || 0} جنسية\n`;
+                        analysis += `الترجمات: ${data.translations_count || 0}`;
+                        showResult('nationalities_result', analysis, true);
+                    } else {
+                        showResult('nationalities_result', '❌ ' + data.message, false);
+                    }
+                } catch {
+                    showResult('nationalities_result', result, false);
+                }
+                btn.disabled = false;
+                btn.textContent = 'تحليل البنية';
+            });
+        }
+
+        function clearNationalities() {
+            if (!confirm('⚠️ هل أنت متأكد من مسح جداول Nationalities في القاعدة الجديدة؟\n\nسيتم مسح:\n- nationalities\n- nationalities_translations')) return;
+
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=execute_sql&sql=' + encodeURIComponent('SET FOREIGN_KEY_CHECKS=0; DELETE FROM nationalities_translations; DELETE FROM nationalities; SET FOREIGN_KEY_CHECKS=1;')
+            })
+            .then(response => response.text())
+            .then(result => {
+                showResult('nationalities_result', 'تم مسح جداول Nationalities', true);
+                updateStats();
+            });
+        }
+
+        function transferNationalitiesAdvanced() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'جاري النقل المتقدم...';
+
+            if (!confirm('🚀 التصدير والرفع التلقائي لجدول nationalities؟\n\nسيتم:\n✅ تصدير من القاعدة القديمة\n✅ معالجة البيانات تلقائياً\n✅ رفع للقاعدة الجديدة\n\nالمتابعة؟')) {
+                btn.disabled = false;
+                btn.textContent = 'نقل الجنسيات المتقدم';
+                return;
+            }
+
+            try {
+                // خطوة 1: التصدير من القاعدة القديمة
+                btn.textContent = 'جاري التصدير...';
+
+                const exportParams = {
+                    action: 'export_from_old_db',
+                    export_table: 'nationalities',
+                    old_db_host: '127.0.0.1',
+                    old_db_port: '8889',
+                    old_db_name: 'platinum',
+                    old_db_user: 'root',
+                    old_db_pass: 'root',
+                    db_host: '127.0.0.1',
+                    db_port: '8889',
+                    db_name: 'platinum_new',
+                    db_user: 'root',
+                    db_pass: 'root'
+                };
 
                 const exportResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: exportParams
+                    body: new URLSearchParams(exportParams)
                 });
 
-                const exportText = await exportResponse.text();
-                const exportData = JSON.parse(exportText.replace(/<[^>]*>/g, '').trim());
+                const exportData = await exportResponse.json();
 
-                if (exportData.success) {
-                    // معالجة
-                    const processParams = new URLSearchParams({
-                        action: 'process_exported_file',
-                        exported_file: exportData.file_name,
-                        table_type: table,
-                        ...getDbConfig()
-                    });
-
-                    const processResponse = await fetch('migration/file_processor.php', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: processParams
-                    });
-
-                    const processText = await processResponse.text();
-                    const processData = JSON.parse(processText.replace(/<[^>]*>/g, '').trim());
-
-                    if (processData.success) {
-                        showResult('auto_result',
-                            `${table} مكتمل<br>تصدير: ${exportData.record_count} سجل<br>معالج: ${processData.processed} سجل`,
-                            true);
-                    } else {
-                        showResult('auto_result', `${table}: فشل المعالجة - ${processData.message}`, false);
-                    }
-                } else {
-                    showResult('auto_result', `فشل تصدير ${table}: ${exportData.message}`, false);
-                }
-            } catch (error) {
-                showResult('auto_result', `خطأ في ${table}: ${error.message}`, false);
-            }
-
-            btn.disabled = false;
-            btn.textContent = btn.textContent.replace('جاري النقل...', '').trim();
-        }
-
-        async function migrateMaids() {
-            const btn = event.target;
-            btn.disabled = true;
-            btn.textContent = 'جاري نقل العاملات...';
-
-            try {
-                const response = await fetch('migration/migrate_cvs_now.php', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: 'action=migrate&cv_table=cvs&preserve_cv_status=true'
-                });
-
-                const text = await response.text();
-                const data = JSON.parse(text.replace(/<[^>]*>/g, '').trim());
-
-                if (data.success) {
-                    showResult('auto_result',
-                        `العاملات مكتملة<br>إجمالي: ${data.total_records} سجل<br>معالج: ${data.processed} سجل<br>تخطي: ${data.skipped} سجل`,
-                        data.processed > 0);
-                } else {
-                    showResult('auto_result', `خطأ في العاملات: ${data.message}`, false);
-                }
-            } catch (error) {
-                showResult('auto_result', `خطأ في العاملات: ${error.message}`, false);
-            }
-
-            btn.disabled = false;
-            btn.textContent = 'نقل العاملات تلقائياً';
-        }
-
-        async function uploadCSV() {
-            const file = document.getElementById('csv_file').files[0];
-            const tableType = document.getElementById('file_table_type').value;
-
-            if (!file) {
-                alert('اختر ملف أولاً');
-                return;
-            }
-
-            const btn = event.target;
-            btn.disabled = true;
-            btn.textContent = 'جاري الرفع...';
-
-            try {
-                const formData = new FormData();
-                formData.append('action', 'process_files');
-                formData.append('files[]', file);
-
-                Object.entries(getDbConfig()).forEach(([key, value]) => {
-                    formData.append(key, value);
-                });
-
-                const response = await fetch('migration/file_processor.php', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const text = await response.text();
-                console.log('Upload raw response:', text);
-
-                const cleanText = text.replace(/<[^>]*>/g, '').trim();
-                const data = JSON.parse(cleanText);
-
-                if (data.success) {
-                    showResult('upload_result',
-                        `تم رفع ${tableType} بنجاح<br>معالج: ${data.total_users || data.total_customers || data.processed || 'تم'}`,
-                        true);
-                } else {
-                    showResult('upload_result', `خطأ في رفع ${tableType}: ${data.message}`, false);
-                }
-            } catch (error) {
-                showResult('upload_result', `خطأ: ${error.message}`, false);
-            }
-
-            btn.disabled = false;
-            btn.textContent = 'رفع الملف';
-        }
-
-        async function migrateAllTables() {
-            if (!confirm('نقل جميع الجداول؟\n\nUsers + Customers + Countries + Maids')) return;
-
-            const btn = event.target;
-            btn.disabled = true;
-            btn.textContent = 'جاري النقل الشامل...';
-
-            const resultDiv = document.getElementById('auto_result');
-            resultDiv.className = 'result success';
-            resultDiv.style.display = 'block';
-            resultDiv.innerHTML = 'بدء النقل الشامل...';
-
-            try {
-                const tables = ['users', 'customers', 'countries'];
-                const results = {};
-
-                for (const table of tables) {
-                    resultDiv.innerHTML += `<br>نقل ${table}...`;
-
-                    // تصدير
-                    const exportParams = new URLSearchParams({
-                        action: 'export_from_old_db',
-                        export_table: table,
-                        ...getOldDbConfig(),
-                        ...getDbConfig()
-                    });
-
-                    const exportResponse = await fetch('migration/file_processor.php', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: exportParams
-                    });
-
-                    const exportText = await exportResponse.text();
-                    const exportData = JSON.parse(exportText.replace(/<[^>]*>/g, '').trim());
-
-                    if (exportData.success) {
-                        // معالجة
-                        const processParams = new URLSearchParams({
-                            action: 'process_exported_file',
-                            exported_file: exportData.file_name,
-                            table_type: table,
-                            ...getDbConfig()
-                        });
-
-                        const processResponse = await fetch('migration/file_processor.php', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                            body: processParams
-                        });
-
-                        const processText = await processResponse.text();
-                        const processData = JSON.parse(processText.replace(/<[^>]*>/g, '').trim());
-
-                        results[table] = {
-                            exported: exportData.record_count,
-                            processed: processData.processed || 0
-                        };
-                    } else {
-                        results[table] = { exported: 0, processed: 0 };
-                    }
+                if (!exportData.success) {
+                    throw new Error('فشل التصدير: ' + exportData.message);
                 }
 
-                // نقل العاملات
-                resultDiv.innerHTML += '<br>نقل العاملات...';
-                const maidsResponse = await fetch('migration/migrate_cvs_now.php', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: 'action=migrate&cv_table=cvs&preserve_cv_status=true'
-                });
+                // خطوة 2: معالجة ورفع البيانات
+                btn.textContent = 'جاري المعالجة والرفع...';
 
-                const maidsText = await maidsResponse.text();
-                const maidsData = JSON.parse(maidsText.replace(/<[^>]*>/g, '').trim());
-
-                results.maids = {
-                    exported: maidsData.total_records || 0,
-                    processed: maidsData.processed || 0
+                const processParams = {
+                    action: 'process_exported_file',
+                    exported_file: exportData.file_name,
+                    table_type: 'nationalities',
+                    db_host: '127.0.0.1',
+                    db_port: '8889',
+                    db_name: 'platinum_new',
+                    db_user: 'root',
+                    db_pass: 'root'
                 };
 
-                // النتائج النهائية
-                let summary = '<br><br><strong>النتائج:</strong><br>';
-                let totalExported = 0;
-                let totalProcessed = 0;
-
-                Object.entries(results).forEach(([table, result]) => {
-                    summary += `${table}: تصدير ${result.exported} - معالج ${result.processed}<br>`;
-                    totalExported += result.exported;
-                    totalProcessed += result.processed;
+                const processResponse = await fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams(processParams)
                 });
 
-                summary += `<br><strong>الإجمالي:</strong> تصدير ${totalExported} - معالج ${totalProcessed}`;
+                const processData = await processResponse.json();
 
-                resultDiv.innerHTML = 'النقل الشامل مكتمل!' + summary;
+                if (processData.success) {
+                    let message = `✅ عملية تلقائية ناجحة!\n`;
+                    message += `📤 تم تصدير: ${exportData.record_count} سجل\n`;
+                    message += `📥 ${processData.message}\n`;
+                    message += `📁 الملف: ${exportData.file_name}\n`;
+                    message += `💾 الحجم: ${exportData.file_size}`;
+
+                    // إضافة تفاصيل الترجمات إذا كانت متاحة
+                    if (processData.details && processData.details.translations_created) {
+                        message += `\n🌐 ترجمات: ${processData.details.translations_created}`;
+                    }
+
+                    showResult('nationalities_result', message, true);
+                    updateStats();
+                } else {
+                    let message = `⚠️ نجح التصدير لكن فشل الرفع\n`;
+                    message += `تم تصدير: ${exportData.record_count} سجل بنجاح\n`;
+                    message += `مشكلة الرفع: ${processData.message}`;
+                    showResult('nationalities_result', message, false);
+                }
 
             } catch (error) {
-                resultDiv.className = 'result error';
-                resultDiv.innerHTML = `خطأ: ${error.message}`;
+                showResult('nationalities_result', '❌ خطأ: ' + error.message, false);
             }
 
             btn.disabled = false;
-            btn.textContent = 'نقل جميع الجداول (شامل)';
+            btn.textContent = 'نقل الجنسيات المتقدم';
         }
 
-        // وظائف إصلاح الجداول المرجعية
-        async function analyzeReferenceTables() {
+        function reorderNationalitiesColumns() {
             const btn = event.target;
             btn.disabled = true;
-            btn.textContent = 'جاري التحليل...';
+            btn.textContent = 'جاري الترتيب...';
 
-            try {
-                const response = await fetch('migration/fix_reference_tables.php?action=analyze');
-                const text = await response.text();
-                const data = JSON.parse(text.replace(/<[^>]*>/g, '').trim());
+            if (!confirm('ترتيب أعمدة جدول nationalities؟\n\nسيتم:\n✅ جعل created_at و updated_at آخر عمودين\n✅ ترتيب باقي الأعمدة منطقياً\n\nالمتابعة؟')) {
+                btn.disabled = false;
+                btn.textContent = 'ترتيب الأعمدة';
+                return;
+            }
 
-                if (data.success) {
-                    let analysisHTML = '<strong>تحليل المشكلة:</strong><br>';
-
-                    analysisHTML += `nationalities: القديم (${data.analysis.nationalities.old.count}) IDs 1-${data.analysis.nationalities.old.max_id}<br>`;
-                    analysisHTML += `nationalities: الجديد (${data.analysis.nationalities.new.count}) IDs 1-${data.analysis.nationalities.new.max_id}<br>`;
-
-                    if (data.analysis.maids.total_cvs) {
-                        analysisHTML += `<br>العاملات: ${data.analysis.maids.total_cvs} سجل<br>`;
-                        analysisHTML += `أكبر nationality_id مستخدم: ${data.analysis.maids.max_nationality_id}<br>`;
-                        analysisHTML += `أكبر religion_id مستخدم: ${data.analysis.maids.max_religion_id}<br>`;
-                    }
-
-                    if (data.solution_needed) {
-                        analysisHTML += '<br><strong>المشكلة:</strong> IDs غير متطابقة - يجب إصلاح الجداول المرجعية أولاً';
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=reorder_nationalities_table'
+            })
+            .then(response => response.text())
+            .then(result => {
+                try {
+                    const data = JSON.parse(result);
+                    if (data.success) {
+                        showResult('nationalities_result', `✅ ${data.message}\n📋 ترتيب الأعمدة: ${data.columns_order || 'تم'}`, true);
                     } else {
-                        analysisHTML += '<br><strong>الحالة:</strong> الجداول متطابقة';
+                        showResult('nationalities_result', '❌ ' + data.message, false);
                     }
-
-                    showResult('reference_result', analysisHTML, true);
-                } else {
-                    showResult('reference_result', `خطأ في التحليل: ${data.message}`, false);
+                } catch {
+                    showResult('nationalities_result', result, false);
                 }
-            } catch (error) {
-                showResult('reference_result', `خطأ: ${error.message}`, false);
-            }
-
-            btn.disabled = false;
-            btn.textContent = 'تحليل المشكلة';
+                btn.disabled = false;
+                btn.textContent = 'ترتيب الأعمدة';
+            });
         }
 
-        async function fixReferenceTables() {
-            if (!confirm('إصلاح الجداول المرجعية؟\n\nسيتم:\n- مسح nationalities و religions الحالية\n- نقل الجداول من القاعدة القديمة مع نفس الـ IDs\n\nالمتابعة؟')) {
-                return;
-            }
-
-            const btn = event.target;
-            btn.disabled = true;
-            btn.textContent = 'جاري الإصلاح...';
-
-            try {
-                const response = await fetch('migration/fix_reference_tables.php', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: 'action=fix_reference_tables'
-                });
-
-                const text = await response.text();
-                const data = JSON.parse(text.replace(/<[^>]*>/g, '').trim());
-
-                if (data.success) {
-                    showResult('reference_result',
-                        `تم إصلاح الجداول المرجعية:<br>nationalities: ${data.results.nationalities_processed}<br>religions: ${data.results.religions_processed}<br><br>يمكنك الآن نقل العاملات`,
-                        true);
-                } else {
-                    showResult('reference_result', `خطأ في الإصلاح: ${data.message}`, false);
+        function checkNationalities() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT COUNT(*) as count FROM nationalities')
+            })
+            .then(response => response.text())
+            .then(result => {
+                try {
+                    const data = JSON.parse(result);
+                    showResult('nationalities_result', `📊 عدد الجنسيات: ${data.result[0].count}`, true);
+                } catch {
+                    showResult('nationalities_result', result, true);
                 }
-            } catch (error) {
-                showResult('reference_result', `خطأ: ${error.message}`, false);
-            }
-
-            btn.disabled = false;
-            btn.textContent = 'إصلاح الجداول المرجعية';
+            });
         }
 
-        async function migrateCompleteMailds() {
-            if (!confirm('نقل العاملات كاملة؟\n\nسيتم:\n- نقل جميع البيانات من جدول cvs\n- الحفاظ على cv_status\n- ربط الـ IDs الصحيحة\n\nالمتابعة؟')) {
-                return;
-            }
-
+        // وظائف المهن Job Titles
+        async function transferJobTitles() {
             const btn = event.target;
             btn.disabled = true;
-            btn.textContent = 'جاري النقل الكامل...';
+            btn.textContent = 'جاري التصدير...';
 
             try {
-                const response = await fetch('migration/fix_reference_tables.php', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: 'action=migrate_complete_maids&cv_table=cvs'
-                });
-
-                const text = await response.text();
-                const data = JSON.parse(text.replace(/<[^>]*>/g, '').trim());
-
-                if (data.success) {
-                    let statusHTML = '<br><strong>توزيع cv_status:</strong><br>';
-                    if (data.cv_status_stats) {
-                        data.cv_status_stats.forEach(stat => {
-                            statusHTML += `${stat.status_name}: ${stat.count}<br>`;
-                        });
-                    }
-
-                    showResult('reference_result',
-                        `تم نقل العاملات كاملة!<br>إجمالي: ${data.total_records}<br>معالج: ${data.processed}<br>تخطي: ${data.skipped}${statusHTML}`,
-                        true);
-                } else {
-                    showResult('reference_result', `خطأ في نقل العاملات: ${data.message}`, false);
-                }
-            } catch (error) {
-                showResult('reference_result', `خطأ: ${error.message}`, false);
-            }
-
-            btn.disabled = false;
-            btn.textContent = 'نقل العاملات كاملة';
-        }
-
-        async function migrateAllTablesComplete() {
-            if (!confirm('النقل الشامل مع إصلاح المراجع؟\n\nسيتم:\n1. إصلاح الجداول المرجعية\n2. نقل جميع الجداول\n3. نقل العاملات كاملة\n\nالمتابعة؟')) {
-                return;
-            }
-
-            const btn = event.target;
-            btn.disabled = true;
-            btn.textContent = 'جاري النقل الشامل...';
-
-            const resultDiv = document.getElementById('auto_result');
-            resultDiv.className = 'result success';
-            resultDiv.style.display = 'block';
-            resultDiv.innerHTML = 'بدء النقل الشامل مع إصلاح المراجع...';
-
-            try {
-                // الخطوة 1: إصلاح المراجع
-                resultDiv.innerHTML += '<br>خطوة 1: إصلاح الجداول المرجعية...';
-                const fixResponse = await fetch('migration/fix_reference_tables.php', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: 'action=fix_reference_tables'
-                });
-                const fixData = await JSON.parse((await fixResponse.text()).replace(/<[^>]*>/g, '').trim());
-
-                if (!fixData.success) {
-                    throw new Error('فشل إصلاح المراجع: ' + fixData.message);
-                }
-
-                // الخطوة 2: نقل الجداول العادية
-                const tables = ['users', 'customers', 'countries'];
-                const results = {};
-
-                for (const table of tables) {
-                    resultDiv.innerHTML += `<br>خطوة: نقل ${table}...`;
-
-                    const exportParams = new URLSearchParams({
-                        action: 'export_from_old_db',
-                        export_table: table,
-                        ...getOldDbConfig(),
-                        ...getDbConfig()
-                    });
-
-                    const exportResponse = await fetch('migration/file_processor.php', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: exportParams
-                    });
-
-                    const exportText = await exportResponse.text();
-                    const exportData = JSON.parse(exportText.replace(/<[^>]*>/g, '').trim());
-
-                    if (exportData.success) {
-                        const processParams = new URLSearchParams({
-                            action: 'process_exported_file',
-                            exported_file: exportData.file_name,
-                            table_type: table,
-                            ...getDbConfig()
-                        });
-
-                        const processResponse = await fetch('migration/file_processor.php', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                            body: processParams
-                        });
-
-                        const processText = await processResponse.text();
-                        const processData = JSON.parse(processText.replace(/<[^>]*>/g, '').trim());
-
-                        results[table] = {
-                            exported: exportData.record_count,
-                            processed: processData.processed || 0
-                        };
-                    } else {
-                        results[table] = { exported: 0, processed: 0 };
-                    }
-                }
-
-                // الخطوة 3: نقل العاملات كاملة
-                resultDiv.innerHTML += '<br>خطوة أخيرة: نقل العاملات كاملة...';
-                const maidsResponse = await fetch('migration/fix_reference_tables.php', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: 'action=migrate_complete_maids&cv_table=cvs'
-                });
-
-                const maidsText = await maidsResponse.text();
-                const maidsData = JSON.parse(maidsText.replace(/<[^>]*>/g, '').trim());
-
-                results.maids = {
-                    exported: maidsData.total_records || 0,
-                    processed: maidsData.processed || 0
+                // 1) تصدير من الجدول القديم recruitment_form_occupation
+                const exportParams = {
+                    action: 'export_from_old_db',
+                    export_table: 'recruitment_form_occupation',
+                    old_db_host: '127.0.0.1',
+                    old_db_port: '8889',
+                    old_db_name: 'platinum',
+                    old_db_user: 'root',
+                    old_db_pass: 'root'
                 };
 
-                // النتائج النهائية
-                let summary = '<br><br><strong>النتائج الشاملة:</strong><br>';
-                summary += `الجداول المرجعية: nationalities ${fixData.results.nationalities_processed}, religions ${fixData.results.religions_processed}<br>`;
-
-                let totalProcessed = 0;
-                Object.entries(results).forEach(([table, result]) => {
-                    summary += `${table}: معالج ${result.processed}<br>`;
-                    totalProcessed += result.processed;
-                });
-
-                summary += `<br><strong>الإجمالي:</strong> ${totalProcessed} سجل`;
-
-                resultDiv.innerHTML = 'النقل الشامل مكتمل مع إصلاح المراجع!' + summary;
-
-            } catch (error) {
-                resultDiv.className = 'result error';
-                resultDiv.innerHTML = `خطأ في النقل الشامل: ${error.message}`;
-            }
-
-            btn.disabled = false;
-            btn.textContent = 'نقل شامل مع إصلاح المراجع';
-        }
-
-        // إصلاح nationalities مباشر
-        async function fixNationalitiesNow() {
-            if (!confirm('إصلاح جدول nationalities؟\n\nسيتم:\n- مسح البيانات الحالية\n- إدراج الجنسيات المطلوبة للعاملات\n- نقل من القاعدة القديمة\n\nالمتابعة؟')) {
-                return;
-            }
-
-            const btn = event.target;
-            btn.disabled = true;
-            btn.textContent = 'جاري الإصلاح...';
-
-            try {
-                // تنفيذ SQL مباشر عبر file_processor
-                const response = await fetch('migration/file_processor.php', {
+                const exportResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: 'action=execute_sql&sql=' + encodeURIComponent(`
-                        SET FOREIGN_KEY_CHECKS = 0;
-                        DELETE FROM nationalities;
-                        INSERT INTO nationalities (id, phone_code, logo, created_at, updated_at) VALUES
-                        (1, '+966', 'saudi.png', NOW(), NOW()),
-                        (18, '+63', 'philippines.png', NOW(), NOW()),
-                        (100, '+254', 'kenya.png', NOW(), NOW()),
-                        (113, '+256', 'uganda.png', NOW(), NOW()),
-                        (150, '+251', 'ethiopia.png', NOW(), NOW()),
-                        (174, '+880', 'bangladesh.png', NOW(), NOW()),
-                        (299, '+94', 'sri_lanka.png', NOW(), NOW()),
-                        (300, '+977', 'nepal.png', NOW(), NOW()),
-                        (302, '+20', 'egypt.png', NOW(), NOW());
-                        SET FOREIGN_KEY_CHECKS = 1;
-                    `) + '&' + new URLSearchParams(getDbConfig())
+                    body: new URLSearchParams(exportParams)
                 });
+                const exportData = await exportResponse.json();
+                if (!exportData.success) throw new Error(exportData.message || 'فشل التصدير');
 
-                showResult('reference_result', 'تم إصلاح nationalities بنجاح!<br>تم إضافة 9 جنسيات مطلوبة للعاملات<br>يمكنك الآن نقل العاملات بأمان', true);
-
-            } catch (error) {
-                showResult('reference_result', `خطأ: ${error.message}`, false);
-            }
-
-            btn.disabled = false;
-            btn.textContent = 'إصلاح Nationalities فوراً';
-        }
-
-        async function checkMaidsFinal() {
-            const btn = event.target;
-            btn.disabled = true;
-            btn.textContent = 'جاري الفحص...';
-
-            try {
-                const response = await fetch('migration/fix_reference_tables.php?action=check_result');
-                const text = await response.text();
-                const data = JSON.parse(text.replace(/<[^>]*>/g, '').trim());
-
-                if (data.success) {
-                    let statusHTML = '<strong>النتائج النهائية:</strong><br>';
-                    statusHTML += `إجمالي العاملات: ${data.maids_count}<br>`;
-
-                    if (data.status_stats && !data.status_stats.error) {
-                        statusHTML += '<br><strong>توزيع cv_status:</strong><br>';
-                        data.status_stats.forEach(stat => {
-                            statusHTML += `${stat.status_name}: ${stat.count}<br>`;
-                        });
-                    }
-
-                    showResult('reference_result', statusHTML, true);
-                } else {
-                    showResult('reference_result', `خطأ في الفحص: ${data.message}`, false);
-                }
-            } catch (error) {
-                showResult('reference_result', `خطأ: ${error.message}`, false);
-            }
-
-            btn.disabled = false;
-            btn.textContent = 'فحص النتيجة النهائية';
-        }
-
-        // النقل الذكي للبنية الجديدة
-        async function analyzeNewStructure() {
-            const btn = event.target;
-            btn.disabled = true;
-            btn.textContent = 'جاري التحليل...';
-
-            try {
-                const data = await safeFetch('migration/smart_structure_migration.php?action=analyze_structure');
-
-                if (data.success) {
-                    let analysisHTML = '<strong>تحليل البنية الجديدة:</strong><br><br>';
-
-                    analysisHTML += `<strong>النظام القديم:</strong><br>`;
-                    analysisHTML += `- nationalities: ${data.analysis.old_structure.nationalities_columns.length} عمود<br>`;
-                    analysisHTML += `- cvs: ${data.analysis.old_structure.cvs_columns.length} عمود<br><br>`;
-
-                    analysisHTML += `<strong>النظام الجديد:</strong><br>`;
-                    analysisHTML += `- nationalities: ${data.analysis.new_structure.nationalities_columns.length} عمود<br>`;
-                    analysisHTML += `- nationalities_translations: ${data.analysis.new_structure.nationalities_translations_columns.length} عمود<br>`;
-                    analysisHTML += `- maids: ${data.analysis.new_structure.maids_columns.length} عمود<br>`;
-
-                    if (data.analysis.new_structure.additional_tables) {
-                        analysisHTML += `<br><strong>جداول إضافية:</strong><br>`;
-                        Object.entries(data.analysis.new_structure.additional_tables).forEach(([table, info]) => {
-                            analysisHTML += `- ${table}: ${info.count} سجل<br>`;
-                        });
-                    }
-
-                    analysisHTML += `<br><strong>الاستراتيجية:</strong><br>`;
-                    Object.entries(data.analysis.migration_strategy).forEach(([key, strategy]) => {
-                        analysisHTML += `- ${key}: ${strategy}<br>`;
-                    });
-
-                    showResult('smart_result', analysisHTML, true);
-                } else {
-                    showResult('smart_result', `خطأ في التحليل: ${data.message}`, false);
-                }
-            } catch (error) {
-                showResult('smart_result', `خطأ: ${error.message}`, false);
-            }
-
-            btn.disabled = false;
-            btn.textContent = 'تحليل البنية الجديدة';
-        }
-
-        async function migrateNationalitiesSmart() {
-            if (!confirm('نقل Nationalities بالطريقة الذكية؟\n\nسيتم:\n- نقل البيانات الأساسية\n- إنشاء الترجمات تلقائياً\n- ربط مع النظام الجديد\n\nالمتابعة؟')) {
-                return;
-            }
-
-            const btn = event.target;
-            btn.disabled = true;
-            btn.textContent = 'جاري النقل الذكي...';
-
-            try {
-                const response = await fetch('migration/smart_structure_migration.php', {
+                // 2) معالجة ورفع للجدولين job_titles و job_titles_translations
+                btn.textContent = 'جاري المعالجة والرفع...';
+                const processParams = {
+                    action: 'process_exported_file',
+                    exported_file: exportData.file_name,
+                    table_type: 'job_titles'
+                };
+                const processResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: 'action=migrate_nationalities_smart'
+                    body: new URLSearchParams(processParams)
                 });
+                const processData = await processResponse.json();
 
-                const text = await response.text();
-                const data = JSON.parse(text.replace(/<[^>]*>/g, '').trim());
-
-                if (data.success) {
-                    showResult('smart_result',
-                        `تم النقل الذكي لـ Nationalities!<br>الجدول الأساسي: ${data.results.nationalities_processed}<br>الترجمات: ${data.results.translations_processed}<br><br>الآن يمكن نقل العاملات بأمان`,
-                        true);
+                if (processData.success) {
+                    showResult('jobs_result', `✅ تم نقل ${processData.processed || 0} مهنة مع الترجمات`, true);
                 } else {
-                    showResult('smart_result', `خطأ في النقل الذكي: ${data.message}`, false);
+                    showResult('jobs_result', `❌ ${processData.message}`, false);
                 }
-            } catch (error) {
-                showResult('smart_result', `خطأ: ${error.message}`, false);
+            } catch (e) {
+                showResult('jobs_result', `❌ خطأ: ${e.message}`, false);
             }
 
             btn.disabled = false;
-            btn.textContent = 'نقل Nationalities + Translations';
+            btn.textContent = 'نقل المهن';
         }
 
-        async function migrateMaidsComplete() {
-            if (!confirm('نقل العاملات كاملة مع إنشاء الأعمدة؟\n\nسيتم:\n- تحليل جميع أعمدة cvs\n- إنشاء الأعمدة المفقودة في maids\n- نقل جميع البيانات\n- الحفاظ على cv_status\n\nالمتابعة؟')) {
-                return;
-            }
+        function checkJobTitles() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM job_titles) jt, (SELECT COUNT(*) FROM job_titles_translations) tr')
+            })
+            .then(r=>r.json())
+            .then(data=>{
+                if (data.success && data.result && data.result[0]) {
+                    const row = data.result[0];
+                    showResult('jobs_result', `📊 Job Titles: ${row.jt || 0} | Translations: ${row.tr || 0}`, true);
+                } else {
+                    showResult('jobs_result', '❌ فشل الفحص', false);
+                }
+            })
+            .catch(e=>showResult('jobs_result', '❌ ' + e.message, false));
+        }
 
+        // وظائف الأديان Religions
+        async function transferReligions() {
             const btn = event.target;
             btn.disabled = true;
-            btn.textContent = 'جاري النقل الكامل...';
+            btn.textContent = 'جاري التصدير...';
 
             try {
-                const response = await fetch('migration/smart_structure_migration.php', {
+                // 1) تصدير من الجدول القديم recruitment_form_religions
+                const exportParams = {
+                    action: 'export_from_old_db',
+                    export_table: 'recruitment_form_religions',
+                    old_db_host: '127.0.0.1',
+                    old_db_port: '8889',
+                    old_db_name: 'platinum',
+                    old_db_user: 'root',
+                    old_db_pass: 'root'
+                };
+
+                const exportResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: 'action=migrate_maids_complete'
+                    body: new URLSearchParams(exportParams)
                 });
+                const exportData = await exportResponse.json();
+                if (!exportData.success) throw new Error(exportData.message || 'فشل التصدير');
 
-                const text = await response.text();
-                const data = JSON.parse(text.replace(/<[^>]*>/g, '').trim());
-
-                if (data.success) {
-                    showResult('smart_result',
-                        `تحليل أعمدة العاملات مكتمل!<br>أعمدة CV القديمة: ${data.cv_columns.length}<br>أعمدة Maids الجديدة: ${data.maids_columns.length}<br>أعمدة مُضافة: ${data.added_columns.length}<br><br>${data.added_columns.length > 0 ? 'الأعمدة المُضافة: ' + data.added_columns.join(', ') : 'جميع الأعمدة موجودة'}`,
-                        true);
-                } else {
-                    showResult('smart_result', `خطأ: ${data.message}`, false);
-                }
-            } catch (error) {
-                showResult('smart_result', `خطأ: ${error.message}`, false);
-            }
-
-            btn.disabled = false;
-            btn.textContent = 'نقل العاملات كاملة + إنشاء أعمدة';
-        }
-
-        async function migrateAllSmart() {
-            if (!confirm('النقل الذكي الشامل للبنية الجديدة؟\n\nسيتم:\n\n1. نقل Nationalities + إنشاء Translations\n2. نقل Religions + إنشاء Translations\n3. نقل Users/Customers/Countries\n4. نقل Maids كاملة + إنشاء الأعمدة المفقودة\n5. ربط جميع العلاقات\n\nهذا الحل الأمثل للنظام الجديد!\n\nالمتابعة؟')) {
-                return;
-            }
-
-            const btn = event.target;
-            btn.disabled = true;
-            btn.textContent = 'جاري النقل الذكي الشامل...';
-
-            const resultDiv = document.getElementById('smart_result');
-            resultDiv.className = 'result success';
-            resultDiv.style.display = 'block';
-            resultDiv.innerHTML = 'بدء النقل الذكي الشامل للبنية الجديدة...';
-
-            try {
-                // المرحلة 1: Nationalities الذكي
-                resultDiv.innerHTML += '<br>مرحلة 1: نقل Nationalities + Translations...';
-
-                const natsData = await safeFetch('migration/smart_structure_migration.php', {
+                // 2) معالجة ورفع للجدولين religions و religions_translations
+                btn.textContent = 'جاري المعالجة والرفع...';
+                const processParams = {
+                    action: 'process_exported_file',
+                    exported_file: exportData.file_name,
+                    table_type: 'religions'
+                };
+                const processResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: 'action=migrate_nationalities_smart'
+                    body: new URLSearchParams(processParams)
                 });
+                const processData = await processResponse.json();
 
-                // المرحلة 2: الجداول العادية
-                const tables = ['users', 'customers', 'countries'];
-                const results = {};
-
-                for (const table of tables) {
-                    resultDiv.innerHTML += `<br>مرحلة: نقل ${table}...`;
-
-                    const exportParams = new URLSearchParams({
-                        action: 'export_from_old_db',
-                        export_table: table,
-                        ...getOldDbConfig(),
-                        ...getDbConfig()
-                    });
-
-                    const exportResponse = await fetch('migration/file_processor.php', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: exportParams
-                    });
-
-                    const exportText = await exportResponse.text();
-                    const exportData = JSON.parse(exportText.replace(/<[^>]*>/g, '').trim());
-
-                    if (exportData.success) {
-                        const processParams = new URLSearchParams({
-                            action: 'process_exported_file',
-                            exported_file: exportData.file_name,
-                            table_type: table,
-                            ...getDbConfig()
-                        });
-
-                        const processResponse = await fetch('migration/file_processor.php', {
-                            method: 'POST',
-                            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                            body: processParams
-                        });
-
-                        const processText = await processResponse.text();
-                        const processData = JSON.parse(processText.replace(/<[^>]*>/g, '').trim());
-
-                        results[table] = processData.processed || 0;
-                    } else {
-                        results[table] = 0;
-                    }
+                if (processData.success) {
+                    showResult('religions_result', `✅ تم نقل ${processData.processed || 0} ديانة مع الترجمات`, true);
+                    updateStats();
+                } else {
+                    showResult('religions_result', `❌ ${processData.message}`, false);
                 }
+            } catch (e) {
+                showResult('religions_result', `❌ خطأ: ${e.message}`, false);
+            }
 
-                // المرحلة 3: العاملات الكاملة
-                resultDiv.innerHTML += '<br>مرحلة أخيرة: نقل العاملات كاملة...';
-                const maidsResponse = await fetch('migration/fix_reference_tables.php', {
+            btn.disabled = false;
+            btn.textContent = 'نقل الأديان';
+        }
+
+        function checkReligions() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM religions) rl, (SELECT COUNT(*) FROM religions_translations) tr')
+            })
+            .then(r=>r.json())
+            .then(data=>{
+                if (data.success && data.result && data.result[0]) {
+                    const row = data.result[0];
+                    showResult('religions_result', `📊 Religions: ${row.rl || 0} | Translations: ${row.tr || 0}`, true);
+                } else {
+                    showResult('religions_result', '❌ فشل الفحص', false);
+                }
+            })
+            .catch(e=>showResult('religions_result', '❌ ' + e.message, false));
+        }
+
+        // وظائف الحالات الاجتماعية Social Status
+        async function transferSocialStatus() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'جاري التصدير...';
+
+            try {
+                // 1) تصدير من الجدول القديم recruitment_form_social_status
+                const exportParams = {
+                    action: 'export_from_old_db',
+                    export_table: 'recruitment_form_social_status',
+                    old_db_host: '127.0.0.1',
+                    old_db_port: '8889',
+                    old_db_name: 'platinum',
+                    old_db_user: 'root',
+                    old_db_pass: 'root'
+                };
+
+                const exportResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: 'action=migrate_complete_maids&cv_table=cvs'
+                    body: new URLSearchParams(exportParams)
                 });
+                const exportData = await exportResponse.json();
+                if (!exportData.success) throw new Error(exportData.message || 'فشل التصدير');
 
-                const maidsText = await maidsResponse.text();
-                const maidsData = JSON.parse(maidsText.replace(/<[^>]*>/g, '').trim());
-
-                // النتائج النهائية
-                let summary = '<br><br><strong>🎉 النقل الذكي الشامل مكتمل!</strong><br><br>';
-                summary += `<strong>الجداول المرجعية:</strong><br>`;
-                summary += `- Nationalities: ${natsData.results?.nationalities_processed || 0} + ${natsData.results?.translations_processed || 0} ترجمة<br>`;
-                summary += `- Religions: محفوظة<br><br>`;
-
-                summary += `<strong>البيانات الرئيسية:</strong><br>`;
-                Object.entries(results).forEach(([table, count]) => {
-                    summary += `- ${table}: ${count}<br>`;
-                });
-
-                summary += `<br><strong>العاملات:</strong><br>`;
-                summary += `- المعالج: ${maidsData.processed || 0}<br>`;
-                summary += `- التخطي: ${maidsData.skipped || 0}<br>`;
-
-                if (maidsData.cv_status_stats) {
-                    summary += `<br><strong>cv_status:</strong><br>`;
-                    maidsData.cv_status_stats.forEach(stat => {
-                        summary += `- ${stat.status_name}: ${stat.count}<br>`;
-                    });
-                }
-
-                const totalProcessed = Object.values(results).reduce((a, b) => a + b, 0) + (maidsData.processed || 0) + (natsData.results?.nationalities_processed || 0);
-                summary += `<br><strong>🎯 الإجمالي: ${totalProcessed} سجل منقول بالبنية الجديدة!</strong>`;
-
-                resultDiv.innerHTML = summary;
-
-            } catch (error) {
-                resultDiv.className = 'result error';
-                resultDiv.innerHTML = `خطأ في النقل الذكي: ${error.message}`;
-            }
-
-            btn.disabled = false;
-            btn.textContent = 'نقل ذكي شامل';
-        }
-
-        // وظائف الجداول المرتبطة
-        async function findExistingTables() {
-            const btn = event.target;
-            btn.disabled = true;
-            btn.textContent = 'جاري البحث...';
-
-            try {
-                const response = await fetch('migration/migrate_related_tables.php?action=find_existing_tables');
-                const text = await response.text();
-                const data = JSON.parse(text.replace(/<[^>]*>/g, '').trim());
-
-                if (data.success) {
-                    let resultHTML = '<strong>الجداول الموجودة في القاعدة الجديدة:</strong><br><br>';
-
-                    Object.entries(data.categorized_tables).forEach(([category, tables]) => {
-                        resultHTML += `<strong>${category}:</strong><br>`;
-                        tables.forEach(table => {
-                            resultHTML += `- ${table.table}: ${table.count} سجل (${table.columns.length} عمود)<br>`;
-                        });
-                        resultHTML += '<br>';
-                    });
-
-                    resultHTML += `<strong>إجمالي:</strong> ${data.all_tables_count} جدول في القاعدة<br>`;
-                    resultHTML += `<strong>فئات مرتبطة:</strong> ${data.categories_found.join(', ')}`;
-
-                    showResult('related_result', resultHTML, true);
-                } else {
-                    showResult('related_result', `خطأ: ${data.message}`, false);
-                }
-            } catch (error) {
-                showResult('related_result', `خطأ: ${error.message}`, false);
-            }
-
-            btn.disabled = false;
-            btn.textContent = 'فحص الجداول الموجودة';
-        }
-
-        async function analyzeRelatedTables() {
-            const btn = event.target;
-            btn.disabled = true;
-            btn.textContent = 'جاري التحليل...';
-
-            try {
-                const response = await fetch('migration/migrate_related_tables.php?action=analyze_related_tables');
-                const text = await response.text();
-                const data = JSON.parse(text.replace(/<[^>]*>/g, '').trim());
-
-                if (data.success) {
-                    let resultHTML = '<strong>تحليل الجداول المرتبطة:</strong><br><br>';
-
-                    Object.entries(data.analysis).forEach(([field, analysis]) => {
-                        if (!analysis.error) {
-                            resultHTML += `<strong>${field}:</strong><br>`;
-                            resultHTML += `- الجدول المقترح: ${analysis.suggested_table}<br>`;
-                            resultHTML += `- قيم مستخدمة: ${analysis.unique_values}<br>`;
-                            resultHTML += `- إجمالي الاستخدام: ${analysis.total_usage}<br>`;
-                            resultHTML += `- الإجراء: ${analysis.recommended_action}<br>`;
-
-                            if (analysis.possible_tables && analysis.possible_tables.length > 0) {
-                                resultHTML += `- جداول محتملة موجودة: `;
-                                analysis.possible_tables.forEach(table => {
-                                    resultHTML += `${table.table} (${table.count}), `;
-                                });
-                                resultHTML += '<br>';
-                            }
-                            resultHTML += '<br>';
-                        }
-                    });
-
-                    showResult('related_result', resultHTML, true);
-                } else {
-                    showResult('related_result', `خطأ: ${data.message}`, false);
-                }
-            } catch (error) {
-                showResult('related_result', `خطأ: ${error.message}`, false);
-            }
-
-            btn.disabled = false;
-            btn.textContent = 'تحليل الجداول المرتبطة';
-        }
-
-        async function createMissingTables() {
-            if (!confirm('إنشاء الجداول المفقودة؟\n\nسيتم إنشاء:\n- ages (الأعمار)\n- regions (المناطق)\n- languages (اللغات)\n- experiences (الخبرات)\n- social_statuses (الحالة الاجتماعية)\n- offices (المكاتب)\n- airports (المطارات)\n\nالمتابعة؟')) {
-                return;
-            }
-
-            const btn = event.target;
-            btn.disabled = true;
-            btn.textContent = 'جاري الإنشاء...';
-
-            try {
-                const response = await fetch('migration/migrate_related_tables.php', {
+                // 2) معالجة ورفع للجدولين social_status و social_status_translations
+                btn.textContent = 'جاري المعالجة والرفع...';
+                const processParams = {
+                    action: 'process_exported_file',
+                    exported_file: exportData.file_name,
+                    table_type: 'social_status'
+                };
+                const processResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: 'action=create_missing_tables'
+                    body: new URLSearchParams(processParams)
                 });
+                const processData = await processResponse.json();
 
-                const text = await response.text();
-                const data = JSON.parse(text.replace(/<[^>]*>/g, '').trim());
-
-                if (data.success) {
-                    let resultHTML = '<strong>تم إنشاء الجداول:</strong><br>';
-
-                    Object.entries(data.created_tables).forEach(([table, info]) => {
-                        resultHTML += `- ${table}: تم الإنشاء + ${info.sample_data_inserted} عينة<br>`;
-                    });
-
-                    if (Object.keys(data.errors).length > 0) {
-                        resultHTML += '<br><strong>أخطاء:</strong><br>';
-                        Object.entries(data.errors).forEach(([table, error]) => {
-                            resultHTML += `- ${table}: ${error}<br>`;
-                        });
-                    }
-
-                    showResult('related_result', resultHTML, true);
+                if (processData.success) {
+                    showResult('social_status_result', `✅ تم نقل ${processData.processed || 0} حالة اجتماعية مع الترجمات`, true);
+                    updateStats();
                 } else {
-                    showResult('related_result', `خطأ: ${data.message}`, false);
+                    showResult('social_status_result', `❌ ${processData.message}`, false);
                 }
-            } catch (error) {
-                showResult('related_result', `خطأ: ${error.message}`, false);
+            } catch (e) {
+                showResult('social_status_result', `❌ خطأ: ${e.message}`, false);
             }
 
             btn.disabled = false;
-            btn.textContent = 'إنشاء الجداول المفقودة';
+            btn.textContent = 'نقل الحالات الاجتماعية';
         }
 
-        async function populateRelatedTables() {
-            if (!confirm('ملء الجداول المرتبطة بالبيانات الفعلية؟\n\nسيتم:\n- استخراج القيم المستخدمة من جدول cvs\n- ملء الجداول المرجعية\n- ربط البيانات\n\nالمتابعة؟')) {
-                return;
-            }
+        function checkSocialStatus() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM social_status) ss, (SELECT COUNT(*) FROM social_status_translations) tr')
+            })
+            .then(r=>r.json())
+            .then(data=>{
+                if (data.success && data.result && data.result[0]) {
+                    const row = data.result[0];
+                    showResult('social_status_result', `📊 Social Status: ${row.ss || 0} | Translations: ${row.tr || 0}`, true);
+                } else {
+                    showResult('social_status_result', '❌ فشل الفحص', false);
+                }
+            })
+            .catch(e=>showResult('social_status_result', '❌ ' + e.message, false));
+        }
 
+        // وظائف المهارات Skills
+        async function transferSkills() {
             const btn = event.target;
             btn.disabled = true;
-            btn.textContent = 'جاري الملء...';
+            btn.textContent = 'جاري التصدير...';
 
             try {
-                const response = await fetch('migration/migrate_related_tables.php', {
+                // 1) تصدير من الجدول القديم skills
+                const exportParams = {
+                    action: 'export_from_old_db',
+                    export_table: 'skills',
+                    old_db_host: '127.0.0.1',
+                    old_db_port: '8889',
+                    old_db_name: 'platinum',
+                    old_db_user: 'root',
+                    old_db_pass: 'root'
+                };
+
+                const exportResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: 'action=populate_related_tables'
+                    body: new URLSearchParams(exportParams)
                 });
+                const exportData = await exportResponse.json();
+                if (!exportData.success) throw new Error(exportData.message || 'فشل التصدير');
 
-                const text = await response.text();
-                const data = JSON.parse(text.replace(/<[^>]*>/g, '').trim());
+                // 2) معالجة ورفع للجدولين skills و skills_translations
+                btn.textContent = 'جاري المعالجة والرفع...';
+                const processParams = {
+                    action: 'process_exported_file',
+                    exported_file: exportData.file_name,
+                    table_type: 'skills'
+                };
+                const processResponse = await fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams(processParams)
+                });
+                const processData = await processResponse.json();
 
-                if (data.success) {
-                    let resultHTML = '<strong>تم ملء الجداول بالبيانات:</strong><br><br>';
-
-                    Object.entries(data.results).forEach(([field, result]) => {
-                        if (!result.error) {
-                            resultHTML += `<strong>${field}:</strong><br>`;
-                            resultHTML += `- الجدول: ${result.target_table}<br>`;
-                            resultHTML += `- قيم فريدة: ${result.unique_values}<br>`;
-                            resultHTML += `- مُدرج: ${result.inserted}<br>`;
-                            resultHTML += `- إجمالي الاستخدام: ${result.total_usage}<br><br>`;
-                        } else {
-                            resultHTML += `${field}: خطأ - ${result.error}<br>`;
-                        }
-                    });
-
-                    showResult('related_result', resultHTML, true);
+                if (processData.success) {
+                    showResult('skills_result', `✅ تم نقل ${processData.processed || 0} مهارة مع الترجمات`, true);
+                    updateStats();
                 } else {
-                    showResult('related_result', `خطأ: ${data.message}`, false);
+                    showResult('skills_result', `❌ ${processData.message}`, false);
                 }
-            } catch (error) {
-                showResult('related_result', `خطأ: ${error.message}`, false);
+            } catch (e) {
+                showResult('skills_result', `❌ خطأ: ${e.message}`, false);
             }
 
             btn.disabled = false;
-            btn.textContent = 'ملء الجداول بالبيانات';
+            btn.textContent = 'نقل المهارات';
         }
 
-        // اختبار تلقائي
-        window.addEventListener('load', function() {
-            setTimeout(connect, 500);
-        });
+        function checkSkills() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM skills) sk, (SELECT COUNT(*) FROM skills_translations) tr')
+            })
+            .then(r=>r.json())
+            .then(data=>{
+                if (data.success && data.result && data.result[0]) {
+                    const row = data.result[0];
+                    showResult('skills_result', `📊 Skills: ${row.sk || 0} | Translations: ${row.tr || 0}`, true);
+                } else {
+                    showResult('skills_result', '❌ فشل الفحص', false);
+                }
+            })
+            .catch(e=>showResult('skills_result', '❌ ' + e.message, false));
+        }
+
+        // وظائف الخبرات Experience
+        async function transferExperience() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'جاري التصدير...';
+
+            try {
+                const exportParams = {
+                    action: 'export_from_old_db',
+                    export_table: 'recruitment_form_experience',
+                    old_db_host: '127.0.0.1',
+                    old_db_port: '8889',
+                    old_db_name: 'platinum',
+                    old_db_user: 'root',
+                    old_db_pass: 'root'
+                };
+
+                const exportResponse = await fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams(exportParams)
+                });
+                const exportData = await exportResponse.json();
+                if (!exportData.success) throw new Error(exportData.message || 'فشل التصدير');
+
+                btn.textContent = 'جاري المعالجة والرفع...';
+                const processParams = {
+                    action: 'process_exported_file',
+                    exported_file: exportData.file_name,
+                    table_type: 'experience'
+                };
+                const processResponse = await fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams(processParams)
+                });
+                const processData = await processResponse.json();
+
+                if (processData.success) {
+                    showResult('experience_result', `✅ تم نقل ${processData.processed || 0} خبرة مع الترجمات`, true);
+                    updateStats();
+                } else {
+                    showResult('experience_result', `❌ ${processData.message}`, false);
+                }
+            } catch (e) {
+                showResult('experience_result', `❌ خطأ: ${e.message}`, false);
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'نقل الخبرات';
+        }
+
+        function checkExperience() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM experience) ex, (SELECT COUNT(*) FROM experience_translations) tr')
+            })
+            .then(r=>r.json())
+            .then(data=>{
+                if (data.success && data.result && data.result[0]) {
+                    const row = data.result[0];
+                    showResult('experience_result', `📊 Experience: ${row.ex || 0} | Translations: ${row.tr || 0}`, true);
+                } else {
+                    showResult('experience_result', '❌ فشل الفحص', false);
+                }
+            })
+            .catch(e=>showResult('experience_result', '❌ ' + e.message, false));
+        }
+
+        // وظائف اللغات Languages
+        async function transferLanguages() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'جاري التصدير...';
+
+            try {
+                const exportParams = {
+                    action: 'export_from_old_db',
+                    export_table: 'recruitment_form_languages',
+                    old_db_host: '127.0.0.1',
+                    old_db_port: '8889',
+                    old_db_name: 'platinum',
+                    old_db_user: 'root',
+                    old_db_pass: 'root'
+                };
+
+                const exportResponse = await fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams(exportParams)
+                });
+                const exportData = await exportResponse.json();
+                if (!exportData.success) throw new Error(exportData.message || 'فشل التصدير');
+
+                btn.textContent = 'جاري المعالجة والرفع...';
+                const processParams = {
+                    action: 'process_exported_file',
+                    exported_file: exportData.file_name,
+                    table_type: 'languages'
+                };
+                const processResponse = await fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams(processParams)
+                });
+                const processData = await processResponse.json();
+
+                if (processData.success) {
+                    showResult('languages_result', `✅ تم نقل ${processData.processed || 0} لغة مع الترجمات`, true);
+                    updateStats();
+                } else {
+                    showResult('languages_result', `❌ ${processData.message}`, false);
+                }
+            } catch (e) {
+                showResult('languages_result', `❌ خطأ: ${e.message}`, false);
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'نقل اللغات';
+        }
+
+        function checkLanguages() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM languages) lg, (SELECT COUNT(*) FROM languages_translations) tr')
+            })
+            .then(r=>r.json())
+            .then(data=>{
+                if (data.success && data.result && data.result[0]) {
+                    const row = data.result[0];
+                    showResult('languages_result', `📊 Languages: ${row.lg || 0} | Translations: ${row.tr || 0}`, true);
+                } else {
+                    showResult('languages_result', '❌ فشل الفحص', false);
+                }
+            })
+            .catch(e=>showResult('languages_result', '❌ ' + e.message, false));
+        }
+
+        // وظائف الأعمار Ages
+        async function transferAges() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'جاري التصدير...';
+
+            try {
+                // 1) تصدير من الجدول القديم recruitment_form_ages
+                const exportParams = {
+                    action: 'export_from_old_db',
+                    export_table: 'recruitment_form_ages',
+                    old_db_host: '127.0.0.1',
+                    old_db_port: '8889',
+                    old_db_name: 'platinum',
+                    old_db_user: 'root',
+                    old_db_pass: 'root'
+                };
+
+                const exportResponse = await fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams(exportParams)
+                });
+                const exportData = await exportResponse.json();
+                if (!exportData.success) throw new Error(exportData.message || 'فشل التصدير');
+
+                // 2) معالجة ورفع للجدولين ages و ages_translations
+                btn.textContent = 'جاري المعالجة والرفع...';
+                const processParams = {
+                    action: 'process_exported_file',
+                    exported_file: exportData.file_name,
+                    table_type: 'ages'
+                };
+                const processResponse = await fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: new URLSearchParams(processParams)
+                });
+                const processData = await processResponse.json();
+
+                if (processData.success) {
+                    showResult('ages_result', `✅ تم نقل ${processData.processed || 0} عمر مع الترجمات`, true);
+                    updateStats();
+                } else {
+                    showResult('ages_result', `❌ ${processData.message}`, false);
+                }
+            } catch (e) {
+                showResult('ages_result', `❌ خطأ: ${e.message}`, false);
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'نقل الأعمار';
+        }
+
+        function checkAges() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM ages) ag, (SELECT COUNT(*) FROM ages_translations) tr')
+            })
+            .then(r=>r.json())
+            .then(data=>{
+                if (data.success && data.result && data.result[0]) {
+                    const row = data.result[0];
+                    showResult('ages_result', `📊 Ages: ${row.ag || 0} | Translations: ${row.tr || 0}`, true);
+                } else {
+                    showResult('ages_result', '❌ فشل الفحص', false);
+                }
+            })
+            .catch(e=>showResult('ages_result', '❌ ' + e.message, false));
+        }
+
+        // وظائف السير الذاتية
+        function clearMaids() {
+            if (!confirm('⚠️ هل أنت متأكد من مسح جدول Maids في القاعدة الجديدة؟')) return;
+
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=execute_sql&sql=' + encodeURIComponent('DELETE FROM maids')
+            })
+            .then(response => response.text())
+            .then(result => {
+                showResult('maids_result', 'تم مسح جدول Maids', true);
+            });
+        }
+
+        function transferMaids() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'جاري النقل...';
+
+            fetch('migration/smart_structure_migration.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=migrate_maids_complete'
+            })
+            .then(response => response.text())
+            .then(result => {
+                try {
+                    const data = JSON.parse(result);
+                    showResult('maids_result', `✅ تم نقل ${data.processed || 0} سيرة ذاتية`, true);
+                } catch {
+                    showResult('maids_result', result, true);
+                }
+                btn.disabled = false;
+                btn.textContent = 'نقل السير الذاتية';
+            });
+        }
+
+        function checkMaids() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT COUNT(*) as count FROM maids')
+            })
+            .then(response => response.text())
+            .then(result => {
+                try {
+                    const data = JSON.parse(result);
+                    showResult('maids_result', `📊 عدد السير: ${data.result[0].count}`, true);
+                } catch {
+                    showResult('maids_result', result, true);
+                }
+            });
+        }
+
+        // وظائف عامة
+        function showResult(elementId, message, isSuccess) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = 'result ' + (isSuccess ? 'success' : 'error');
+            element.textContent = message;
+        }
+
+        function updateStats() {
+            const sql = `
+                SELECT
+                    (SELECT COUNT(*) FROM users) as users,
+                    (SELECT COUNT(*) FROM countries) as countries,
+                    (SELECT COUNT(*) FROM nationalities) as nationalities,
+                    (SELECT COUNT(*) FROM nationalities_translations) as translations,
+                    (SELECT COUNT(*) FROM job_titles) as job_titles,
+                    (SELECT COUNT(*) FROM religions) as religions,
+                    (SELECT COUNT(*) FROM social_status) as social_status,
+                    (SELECT COUNT(*) FROM skills) as skills,
+                    (SELECT COUNT(*) FROM experience) as experience,
+                    (SELECT COUNT(*) FROM ages) as ages,
+                    (SELECT COUNT(*) FROM languages) as languages,
+                    (SELECT COUNT(*) FROM maids) as maids
+            `;
+
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=execute_sql&sql=' + encodeURIComponent(sql)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.result && data.result[0]) {
+                    const stats = data.result[0];
+                    document.querySelectorAll('.stat .number')[0].textContent = stats.users || '0';
+                    document.querySelectorAll('.stat .number')[1].textContent = stats.countries || '0';
+                    document.querySelectorAll('.stat .number')[2].textContent = stats.nationalities || '0';
+                    document.querySelectorAll('.stat .number')[3].textContent = stats.translations || '0';
+                    document.querySelectorAll('.stat .number')[4].textContent = stats.job_titles || '0';
+                    document.querySelectorAll('.stat .number')[5].textContent = stats.religions || '0';
+                    document.querySelectorAll('.stat .number')[6].textContent = stats.social_status || '0';
+                    document.querySelectorAll('.stat .number')[7].textContent = stats.skills || '0';
+                    document.querySelectorAll('.stat .number')[8].textContent = stats.experience || '0';
+                    document.querySelectorAll('.stat .number')[9].textContent = stats.ages || '0';
+                    document.querySelectorAll('.stat .number')[10].textContent = stats.languages || '0';
+                    document.querySelectorAll('.stat .number')[11].textContent = stats.maids || '0';
+                }
+            })
+            .catch(err => console.error('Error updating stats:', err));
+        }
+
+        // تحديث الإحصائيات عند التحميل
+        window.onload = function() {
+            updateStats();
+        };
     </script>
 </body>
 </html>

@@ -171,6 +171,12 @@ const PARTENR_CONTROL = 'partenr_control';
     const JOB_TITLES_DELETE = 'job_titles_delete';
     const JOB_TITLES_CONTROL = 'job_titles_control';
 
+    const SOCIAL_STATUS_VIEW = 'social_status_view';
+    const SOCIAL_STATUS_CREATE = 'social_status_create';
+    const SOCIAL_STATUS_EDIT = 'social_status_edit';
+    const SOCIAL_STATUS_DELETE = 'social_status_delete';
+    const SOCIAL_STATUS_CONTROL = 'social_status_control';
+
     const PACKAGES_VIEW = 'packages_view';
     const PACKAGES_CREATE = 'packages_create';
     const PACKAGES_EDIT = 'packages_edit';

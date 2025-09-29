@@ -38,6 +38,7 @@ use App\Http\Controllers\ingaz\JobTitleController;
 use App\Http\Controllers\ingaz\NationalityController;
 use App\Http\Controllers\ingaz\SliderController;
 use App\Http\Controllers\ingaz\ReligionController;
+use App\Http\Controllers\ingaz\SocialStatusController;
 use App\Http\Controllers\ingaz\QuestionController;
 use App\Http\Controllers\ingaz\ContactController;
 use App\Http\Controllers\ingaz\ServiceController;
@@ -149,6 +150,7 @@ Route::group(
             Route::resource('nationalities', NationalityController::class);
             Route::resource('sliders', SliderController::class);
             Route::resource('religions', ReligionController::class);
+            Route::resource('social-statuses', SocialStatusController::class);
             Route::resource('questions', QuestionController::class);
             Route::resource('contact', ContactController::class);
             Route::resource('services', ServiceController::class);
