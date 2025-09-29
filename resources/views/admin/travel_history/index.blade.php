@@ -309,7 +309,7 @@ function deleteTravel(id) {
         if (result.isConfirmed) {
             $.ajax({
                 url: `{{ route('travel.delete', '') }}/${id}`,
-                type: 'DELETE',
+                type: 'Post',
                 data: {
                     _token: '{{ csrf_token() }}'
                 },

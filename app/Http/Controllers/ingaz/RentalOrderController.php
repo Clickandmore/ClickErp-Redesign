@@ -149,16 +149,16 @@ class RentalOrderController extends Controller
                     return '<span class="client-name">' . (($row->user) ? $row->user->name : '-') . '</span>';
                 })
                 ->editColumn('phone', function ($row) {
-                    return '<span class="phone-number">' . (($row->user) ? getPhoneWithTag($row->user->phone_code . $row->user->phone) : '-') . '</span>';
+                    return '<span class="phone-number">' . (($row->user) ? getPhoneWithTag(@$row->user->phone_code . @$row->user->phone) : '-') . '</span>';
                 })
                 ->editColumn('maid_id', function ($row) {
                     return ($row->maid) ? getImgTag($row->maid->cv_file, "50px", "50px", "maid-image") : '<span class="text-muted">-</span>';
                 })
                 ->editColumn('nationality_name', function ($row) {
-                    return ($row->maid) ? $row->maid->nationality->sub_title : '';
+                    return ($row->maid) ? @$row->maid->nationality->sub_title : '';
                 })
                 ->editColumn('maid_passport_num', function ($row) {
-                    return ($row->maid) ? $row->maid->passport_num : '';
+                    return ($row->maid) ? @$row->maid->passport_num : '';
                 })
                 ->editColumn('deliver_status', function ($row) {
                     if (@$row->details->deliver_maid == '1') {
