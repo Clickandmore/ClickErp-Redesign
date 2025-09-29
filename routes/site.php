@@ -35,6 +35,7 @@ use App\Http\Controllers\site\SelectWorkerController;
 use App\Http\Controllers\site\SupportController;
 use App\Http\Controllers\site\VisaController;
 use App\Models\ingaz\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
@@ -57,7 +58,7 @@ Route::get('/', function () {
 Route::group(
     [
         'prefix' => LaravelLocalization::setLocale(),
-        'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath']
+        'middleware' => ['check_system_subscription', 'localeSessionRedirect', 'localizationRedirect', 'localeViewPath']
     ], function () {
     Route::group(['as' => 'site.'], function () {
         Route::get('/', [HomeController::class, 'index'])->name('home.index');
@@ -79,7 +80,10 @@ Route::group(
         Route::resource('packages', PackagesController::class);
         Route::resource('immediate-recipts', ImmediateReciptsController::class);
         Route::resource('user-addresses', UserAddressController::class);
-
+        Route::post('/store-intended-url', function (Request $request) {
+            session(['url.intended' => $request->input('redirect_url')]);
+            return response()->json(['status' => 'ok']);
+        })->name('store.intended.url');
         Route::middleware('site_auth')->group(function () {
             Route::resource('profile', ProfileController::class);
             Route::resource('last-orders', OrderController::class);

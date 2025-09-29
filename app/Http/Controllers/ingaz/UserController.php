@@ -6,7 +6,6 @@ use App\Http\Actions\ingaz\UserAction as objAction;
 use App\Http\Controllers\Controller;
 use App\Models\ingaz\User as objModel;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
 
 class UserController extends Controller
@@ -200,7 +199,6 @@ class UserController extends Controller
             $query->where('old_sponsor_id', $client->id)
                   ->orWhere('new_sponsor_id', $client->id);
         })->orderBy('created_at', 'desc')->get();
-
         return view($this->folderPath . '.show', compact('client', 'sponsorshipTransfers'));
     }
 
@@ -226,7 +224,7 @@ class UserController extends Controller
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, $id)
     {
@@ -293,10 +291,7 @@ class UserController extends Controller
 
         $client->update($data);
 
-        return response()->json([
-            'success' => true,
-            'message' => __('ingaz.client_updated_successfully')
-        ]);
+        return jsonSuccess(null, null, 201);
     }
 
     /**

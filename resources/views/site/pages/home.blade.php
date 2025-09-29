@@ -727,7 +727,7 @@
                     @forelse($clients as $client)
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img src="{{showfile($client->image)}}" alt="">
+                                <img src="{!! showfile($client->image) !!}" alt="">
                             </div>
                         </div>
                     @empty

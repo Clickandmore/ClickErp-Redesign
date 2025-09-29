@@ -327,7 +327,6 @@
         <form action="{{route('site.customer-service.store')}}" method="POST" style="margin-top: 0 !important ">
             @csrf
             <input type="hidden" name="maid_id" value="{{$maid->id}}">
-            <input type="hidden" name="redirect_url" value="{{request()->fullUrl()}}">
             <button type="submit" class="btn book">{{__('ingaz.book_cv')}}</button>
         </form>
     </div>

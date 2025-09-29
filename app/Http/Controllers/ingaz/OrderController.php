@@ -155,7 +155,7 @@ class OrderController extends Controller
                     return ($row->maid) ? getImgTag($row->maid->cv_file, "50px", "50px", "maid-image") : '<span class="text-muted">-</span>';
                 })
                 ->editColumn('nationality_name', function ($row) {
-                    return ($row->maid) ? $row->maid->nationality->sub_title : '';
+                    return ($row->maid) ? @$row->maid->nationality->sub_title : '';
                 })
                 ->editColumn('maid_passport_num', function ($row) {
                     return ($row->maid) ? $row->maid->passport_num : '';

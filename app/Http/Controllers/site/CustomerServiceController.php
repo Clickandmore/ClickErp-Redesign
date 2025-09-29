@@ -28,6 +28,7 @@ class CustomerServiceController extends Controller
 
     public function store(Request $request, MaidAction $maidAction, AdminAction $adminAction, SettingAction $settingAction)
     {
+
         $maid = $maidAction->find($request->maid_id);
         $jobType = $maid->jobTypes->first();
         if (!isset($jobType)) {

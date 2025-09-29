@@ -73,15 +73,13 @@
                     processData: false,
                     contentType: false,
                     success: function (response) {
-                        if (response.code === 422) {
+                        if (!response.success) {
                             Toastify({
                                 text: response.message,
                                 duration: 4000,
                                 gravity: "top",
                                 position: "right",
-                                backgroundColor: "linear-gradient(to right, #e53935, #b71c1c)",
-                                stopOnFocus: true,
-                                className: "toast-error"
+                                backgroundColor: "linear-gradient(to right, #e53935, #b71c1c)"
                             }).showToast();
                         } else {
                             Toastify({
@@ -89,18 +87,13 @@
                                 duration: 4000,
                                 gravity: "top",
                                 position: "right",
-                                backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
-                                stopOnFocus: true
+                                backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)"
                             }).showToast();
+
                             setTimeout(function () {
-                                let target = response.result;
-                                const redirectUrl = localStorage.getItem('redirect_after_login');
-                                if (redirectUrl) {
-                                    target = redirectUrl;
-                                    localStorage.removeItem('redirect_after_login');
-                                }
+                                let target = response.result || '/'; // fallback
                                 window.location.href = target;
-                                }, 1000);
+                            }, 1000);
                         }
                     },
                     error: function (xhr) {
