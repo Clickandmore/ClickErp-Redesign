@@ -3,6 +3,7 @@
 namespace App\Http;
 
 use App\Http\Middleware\Admin;
+use App\Http\Middleware\CheckSystemSubscriptionMiddelware;
 use App\Http\Middleware\RevalidateBackHistory;
 use App\Http\Middleware\SiteAuthMiddleware;
 use App\Http\Middleware\Web;
@@ -83,5 +84,6 @@ class Kernel extends HttpKernel
         'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
         'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
         'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+        'check_system_subscription' => CheckSystemSubscriptionMiddelware::class,
     ];
 }

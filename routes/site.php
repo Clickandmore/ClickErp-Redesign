@@ -58,7 +58,7 @@ Route::get('/', function () {
 Route::group(
     [
         'prefix' => LaravelLocalization::setLocale(),
-        'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath']
+        'middleware' => ['check_system_subscription', 'localeSessionRedirect', 'localizationRedirect', 'localeViewPath']
     ], function () {
     Route::group(['as' => 'site.'], function () {
         Route::get('/', [HomeController::class, 'index'])->name('home.index');
