@@ -36,7 +36,8 @@ class ComplaintController extends Controller
 
             // تطبيق الفلاتر
             if ($request->ticket_number) {
-                $ticketNumber = str_replace('#', '', $request->ticket_number);
+                $ticketNumber = ltrim($request->ticket_number, '#0');
+                $ticketNumber = $ticketNumber === '' ? 0 : $ticketNumber;
                 $query->where('id', 'LIKE', '%' . $ticketNumber . '%');
             }
 
@@ -93,6 +94,9 @@ class ComplaintController extends Controller
                 ->editColumn('file', function($row) {
                     return $row->file ? Storage::url($row->file) : null;
                 })
+                ->editColumn('user_id', function($row) {
+                    return $row->user ? @$row->user->name : null;
+                })
                 ->editColumn('response', function($row) {
                     return $row->response ?? '-';
                 })
@@ -116,6 +120,25 @@ class ComplaintController extends Controller
                     $buttons .= deleteButton(route($this->mainRoute . ".destroy", $row->id));
                     $buttons .= '</div>';
                     return $buttons;
+                })
+                ->filter(function ($query) {
+                    if (request()->has('search') && $search = request('search.value')) {
+                        $query->where(function($q) use ($search) {
+                            $q->orWhereHas('user', function ($uq) use ($search) {
+                                $uq->where('name', 'LIKE', "%{$search}%");
+                            })
+                                ->orWhere('subject', 'LIKE', "%{$search}%")
+                                ->orWhere('priority', 'LIKE', "%{$search}%")
+                                ->orWhere('status', 'LIKE', "%{$search}%")
+                                ->orWhereHas('complaintType', function($qq) use ($search) {
+                                    $qq->where('name', 'LIKE', "%{$search}%");
+                                })
+                                ->orWhereHas('assignedTo', function($qq) use ($search) {
+                                    $qq->where('name', 'LIKE', "%{$search}%");
+                                });
+                        });
+
+                    }
                 })
                 ->rawColumns(['status', 'actions', 'response', 'phone'])
                 ->make(true);
