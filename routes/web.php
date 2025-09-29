@@ -99,6 +99,52 @@ Route::post('/migration/apply-order', [App\Http\Controllers\MigrationController:
 Route::post('/migration/migrate-all', [App\Http\Controllers\MigrationController::class, 'migrateAllUsers'])->name('migration.migrate_all');
 Route::post('/migration/upload-customers', [App\Http\Controllers\MigrationController::class, 'uploadCustomers'])->name('migration.customers');
 
+// Simple Migration System (Stable Link)
+Route::get('/migration/simple', function () {
+    return view('migration.simple');
+})->name('migration.simple');
+
+// Route لمعالج الملفات (من Laravel)
+Route::any('/migration/file_processor.php', function (Illuminate\Http\Request $request) {
+    // تمرير الطلب إلى المعالج الأصلي
+    $publicPath = public_path('migration/file_processor.php');
+    if (file_exists($publicPath)) {
+        // تعيين متغيرات الطلب
+        $_POST = $request->all();
+        $_FILES = $request->files->all();
+        $_GET = $request->query();
+
+        // تشغيل المعالج
+        ob_start();
+        include $publicPath;
+        $output = ob_get_clean();
+
+        return response($output)
+            ->header('Content-Type', 'application/json; charset=utf-8');
+    }
+
+    return response()->json(['success' => false, 'message' => 'المعالج غير موجود'], 404);
+})->name('migration.processor');
+
+// Route لمعالج العاملات (من Laravel)
+Route::any('/migration/migrate_cvs_now.php', function (Illuminate\Http\Request $request) {
+    $publicPath = public_path('migration/migrate_cvs_now.php');
+    if (file_exists($publicPath)) {
+        $_POST = $request->all();
+        $_FILES = $request->files->all();
+        $_GET = $request->query();
+
+        ob_start();
+        include $publicPath;
+        $output = ob_get_clean();
+
+        return response($output)
+            ->header('Content-Type', 'application/json; charset=utf-8');
+    }
+
+    return response()->json(['success' => false, 'message' => 'معالج العاملات غير موجود'], 404);
+})->name('migration.maids_processor');
+
 // Legacy redirect for old public script
 Route::get('/migration/legacy', function () {
     return redirect('/migration/file_only_migration.php');
@@ -360,3 +406,10 @@ Route::prefix('admin')->middleware(['auth:admin'])->group(function () {
 Route::get('/feedback/{token}', [\App\Http\Controllers\ComplaintFeedbackController::class, 'show'])->name('complaint.feedback');
 Route::post('/feedback/submit', [\App\Http\Controllers\ComplaintFeedbackController::class, 'submit'])->name('complaint.feedback.submit');
 
+// Stable Simple Migration Routes
+Route::get('/migration-system', function () {
+    return redirect('/migration.php');
+})->name('migration.redirect');
+
+Route::get('/simple-migration', function () {
+    return redirect('/migration.php');})->name('simple.migration.redirect');

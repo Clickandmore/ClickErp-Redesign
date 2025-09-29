@@ -82,22 +82,7 @@
                     </a>
                 </li>
 
-                <li>
-                    <a class="m-link {{ (Route::currentRouteName() == 'partenrs.index') ? 'active' : '' }}"
-                       href="{{route('partenrs.index')}}">
-                        <i class="fa fa-user"></i>
-                        <span class="ms-2"> {{ helperTrans('ingaz.partenrs') }}</span>
-                    </a>
-                </li>
-
-                <li>
-                    <a class="m-link {{ (Route::currentRouteName() == 'requiremens.index') ? 'active' : '' }}"
-                       href="{{route('requiremens.index')}}">
-                        <i class="fa fa-user"></i>
-                        <span class="ms-2"> {{ helperTrans('ingaz.requiremens') }}</span>
-                    </a>
-                </li>
-
+           
 
                 <!-- CV Management Section -->
                 <li class="collapsed">
@@ -133,6 +118,7 @@
                                 </a>
                             </li>
                         @endif
+
                     </ul>
                 </li>
 
@@ -141,7 +127,7 @@
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#my_dashboard2" href="#">
                         <i class="fa fa-shopping-cart"></i>
-                        <span class="ms-2"> طلبات  </span>
+                        <span class="ms-2">{{helperTrans('ingaz.orders')}}  </span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
                     <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['orders.current', 'orders.ended'])) ? 'show' : '' }}"
@@ -723,7 +709,15 @@
                                 </a>
                             </li>
                         @endif
-
+                        @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW))
+                        <li>
+                            <a class="m-link" href="{{route('social-statuses.index')}}" target="_blank">
+                                <i class="fa fa-heart"></i>
+                                <span class="ms-2">الحالات الاجتماعية</span>
+                                <span class="badge bg-success ms-2" style="font-size: 10px;">✅</span>
+                            </a>
+                        </li>
+                    @endif
                     </ul>
                 </li>
 
@@ -806,6 +800,13 @@
                                 <span class="ms-2">منصة الاستقدام</span>
                             </a>
                         </li>
+                        <li>
+                            <a class="m-link {{ (Request::is('migration/*') || Request::is('migration.php')) ? 'active' : '' }}" href="/migration/new_migration_system.php">
+                                <i class="fa fa-exchange"></i>
+                                <span class="ms-2">نظام نقل البيانات</span>
+                                <span class="badge bg-success ms-2">محدث</span>
+                            </a>
+                        </li>
                         @if (@AdminGuardHasPerm(\App\PermKeys::ABOUT_US_VIEW))
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'about-us.index') ? 'active' : '' }}"
@@ -863,7 +864,25 @@
                                 </a>
                             </li>
                         @endif
-                        {{--                            @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))--}}
+
+                        <li>
+                            <a class="m-link {{ (Route::currentRouteName() == 'partenrs.index') ? 'active' : '' }}"
+                               href="{{route('partenrs.index')}}">
+                                <i class="fa fa-user"></i>
+                                <span class="ms-2"> {{ helperTrans('ingaz.partenrs') }}</span>
+                            </a>
+                        </li>
+
+                              <li>
+                            <a class="m-link {{ (Route::currentRouteName() == 'requiremens.index') ? 'active' : '' }}"
+                               href="{{route('requiremens.index')}}">
+                                <i class="fa fa-user"></i>
+                                <span class="ms-2"> {{ helperTrans('ingaz.requiremens') }}</span>
+                            </a>
+                        </li>
+
+
+                                               @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))
                         <li>
                             <a class="m-link {{ (Route::currentRouteName() == 'services.index') ? 'active' : '' }}"
                                href="{{route('services.index')}}">
@@ -871,8 +890,8 @@
                                 <span class="ms-2">{{ helperTrans('ingaz.services') }}</span>
                             </a>
                         </li>
-                        {{--                        @endif--}}
-                            {{--                            @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))--}}
+                                             @endif
+                                                     @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))
                         <li>
                             <a class="m-link {{ (Route::currentRouteName() == 'features.index') ? 'active' : '' }}"
                                href="{{route('features.index')}}">
@@ -880,7 +899,8 @@
                                 <span class="ms-2">{{ helperTrans('ingaz.features') }}</span>
                             </a>
                         </li>
-                        {{--                        @endif--}}
+                                             @endif
+
                     </ul>
                 </li>
 
