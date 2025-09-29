@@ -83,43 +83,43 @@ class OrderController extends Controller
 
             // Apply admin filter
             if ($request->filled('admin_id')) {
-                $query->whereHas('details', function($q) use ($request) {
+                $query->whereHas('details', function ($q) use ($request) {
                     $q->where('admin_id', $request->admin_id);
                 });
             }
 
             // Apply client name search
             if ($request->filled('client_name')) {
-                $query->whereHas('user', function($q) use ($request) {
+                $query->whereHas('user', function ($q) use ($request) {
                     $q->where('name', 'like', '%' . $request->client_name . '%');
                 });
             }
 
             // Apply phone search
             if ($request->filled('phone')) {
-                $query->whereHas('user', function($q) use ($request) {
+                $query->whereHas('user', function ($q) use ($request) {
                     $q->where('phone', 'like', '%' . $request->phone . '%')
-                      ->orWhere('phone_code', 'like', '%' . $request->phone . '%');
+                        ->orWhere('phone_code', 'like', '%' . $request->phone . '%');
                 });
             }
 
             // Apply passport number search
             if ($request->filled('passport_num')) {
-                $query->whereHas('maid', function($q) use ($request) {
+                $query->whereHas('maid', function ($q) use ($request) {
                     $q->where('passport_num', 'like', '%' . $request->passport_num . '%');
                 });
             }
 
             // Apply timer status filter
             if ($request->filled('timer_status')) {
-                $query->where(function($q) use ($request) {
+                $query->where(function ($q) use ($request) {
                     switch ($request->timer_status) {
                         case 'overdue':
                             $q->where('deadline_at', '<', now());
                             break;
                         case 'urgent':
                             $q->where('deadline_at', '>', now())
-                              ->where('deadline_at', '<', now()->addHours(2));
+                                ->where('deadline_at', '<', now()->addHours(2));
                             break;
                         case 'normal':
                             $q->where('deadline_at', '>', now()->addHours(2));
@@ -249,40 +249,40 @@ class OrderController extends Controller
                 ->make(true);
         }
 
-                // Preload data for the main page to avoid multiple queries
+        // Preload data for the main page to avoid multiple queries
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["modalType"] = "modal-lg";
 
         // Cache filter data for 5 minutes to avoid repeated queries
-        $data['jobTypes'] = \Cache::remember('job_types_list', 300, function() {
+        $data['jobTypes'] = \Cache::remember('job_types_list', 300, function () {
             return JobTitle::with('translations')->get();
         });
 
-        $data['admins'] = \Cache::remember('admins_list', 300, function() {
+        $data['admins'] = \Cache::remember('admins_list', 300, function () {
             return \App\Models\auth\Admin::select('id', 'name')->whereNull('deleted_at')->get();
         });
 
         // Get statistics with optimized queries (cache for 1 minute) - Recruitment orders only
-        $data['totalOrders'] = \Cache::remember('recruitment_orders_count', 60, function() {
+        $data['totalOrders'] = \Cache::remember('recruitment_orders_count', 60, function () {
             return objModel::where('job_type_id', 1)->count();
         });
 
-        $data['newOrders'] = \Cache::remember('recruitment_new_orders_count', 60, function() {
+        $data['newOrders'] = \Cache::remember('recruitment_new_orders_count', 60, function () {
             return objModel::where('job_type_id', 1)->where('status', OrderEnum::New->value)->count();
         });
 
-        $data['underProcessOrders'] = \Cache::remember('recruitment_under_process_orders_count', 60, function() {
+        $data['underProcessOrders'] = \Cache::remember('recruitment_under_process_orders_count', 60, function () {
             return objModel::where('job_type_id', 1)->where('status', OrderEnum::UnderProcess->value)->count();
         });
 
-        $data['completedOrders'] = \Cache::remember('recruitment_completed_orders_count', 60, function() {
+        $data['completedOrders'] = \Cache::remember('recruitment_completed_orders_count', 60, function () {
             return objModel::where('job_type_id', 1)->whereIn('status', [OrderEnum::Completed->value, OrderEnum::Done->value, OrderEnum::Contracted->value])->count();
         });
 
         return view($this->folderPath . '.index', $data);
     }
 
-            private function getSelectedStatus($status)
+    private function getSelectedStatus($status)
     {
         if ($status == 'current') {
             return [OrderEnum::New->value, OrderEnum::UnderProcess->value];
@@ -297,7 +297,7 @@ class OrderController extends Controller
         }
     }
 
-        public function edit(Request $request, $id)
+    public function edit(Request $request, $id)
     {
         if ($request->ajax()) {
             try {
@@ -383,10 +383,18 @@ class OrderController extends Controller
      * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
-    public function destroy($id, objAction $action)
+    public function destroy($id)
     {
-        $action->delete($id);
-        return jsonSuccess(['success'=>__("index.order_deleted_successfuly")]);
+        $order = Order::withTrashed()->findOrFail($id);
+        if (!$order) {
+            return jsonError(['error' => __('index.order_not_found')], 404);
+        }
+        if ($order->trashed()) {
+            $order->forceDelete();
+        } else {
+            $order->delete();
+        }
+        return jsonSuccess(['success' => __("index.order_deleted_successfuly")]);
     }
 
     public function restore($id)
@@ -666,7 +674,7 @@ class OrderController extends Controller
         }
     }
 
-            public function changeResponsible(Request $request, $id = null)
+    public function changeResponsible(Request $request, $id = null)
     {
         try {
             // Get order ID from either route parameter or request
@@ -919,7 +927,7 @@ class OrderController extends Controller
         }
 
         // Auto-size columns
-        foreach(range('A','J') as $column) {
+        foreach (range('A', 'J') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 
