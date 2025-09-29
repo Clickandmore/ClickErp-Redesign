@@ -13,13 +13,23 @@ class ClientAction extends MainAction
         $this->files = ['image'];
         $this->fileFolder = 'images/clients/';
     }
-       public function store($data)
+
+    public function store($data)
     {
         if ($data['image']) {
             $image = $data['image'];
             $data['image'] = uploadFile($image, $this->fileFolder);
         }
         return parent::store($data);
+    }
+
+    public function update($id, $data)
+    {
+        if ($data['image']) {
+            $image = $data['image'];
+            $data['image'] = uploadFile($image, $this->fileFolder);
+        }
+        return parent::update($id, $data);
     }
 
 }

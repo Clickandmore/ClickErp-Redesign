@@ -96,7 +96,6 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label">{{__("ingaz.client_name")}} *</label>
                         <input type="text" class="form-control" name="client_name" placeholder="" />
-                        <div class="invalid-feedback">{{__("ingaz.this_field_is_required")}}</div>
                     </div>
 
                     <!-- الهاتف -->
@@ -276,8 +275,15 @@
     $(document).ready(function() {
         $('#form-renew-contract').on('submit', function(e) {
             e.preventDefault();
+            let $submitBtn = $(this).find('button[type="submit"]');
+            let originalText = $submitBtn.html();
+
+            // غير نص الزرار واضف لودر
+            $submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> {{ __("ingaz.sending") }}');
+
             let formData = new FormData(this);
             let url = $(this).attr('action');
+
             $.ajax({
                 url: url,
                 type: 'POST',
@@ -293,11 +299,12 @@
                         backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
                         stopOnFocus: true
                     }).showToast();
+
                     $('#form-renew-contract')[0].reset();
+
                     setTimeout(function() {
                         location.reload();
                     }, 1000);
-
                 },
                 error: function(xhr) {
                     if (xhr.status === 422) {
@@ -314,10 +321,14 @@
                     } else {
                         Swal.fire('{{ __("ingaz.error") }}', '{{ __("ingaz.error_from_server") }}', 'error');
                     }
+                },
+                complete: function() {
+                    // رجع الزرار لحالته الأصلية بعد الانتهاء
+                    $submitBtn.prop('disabled', false).html(originalText);
                 }
-
             });
         })
     })
+
 </script>
 @endsection

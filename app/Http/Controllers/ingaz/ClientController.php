@@ -70,11 +70,11 @@ class ClientController extends Controller
 
     public function store(objRequest $request, objAction $action)
     {
-        
+
       $data = $request->validated();
          $data = $action->store($data);
         return jsonSuccess($data);
- 
+
     }
 
 
@@ -91,7 +91,7 @@ class ClientController extends Controller
     public function update(objRequest $request, objAction $action, $id)
     {
         $updatedData = $request->only($this->postData);
-        $data = $action->find($id)->update($updatedData);
+        $data = $action->update($id , $updatedData);
         return jsonSuccess($data);
     }
 

@@ -21,6 +21,10 @@ class Country extends Model
         'is_active' => 'boolean',
         'sort_order' => 'integer'
     ];
+    public function cities()
+    {
+        return $this->hasMany(City::class , 'country_id');
+    }
 
     public function getTitleAttribute()
     {

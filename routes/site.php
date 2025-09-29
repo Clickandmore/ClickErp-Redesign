@@ -73,12 +73,16 @@ Route::group(
         Route::resource('arrival-worker', ArrivalWorkerController::class);
         Route::resource('select-worker', SelectWorkerController::class);
         Route::resource('visa', VisaController::class);
+        Route::get('immediate-recipts/{id}', [ImmediateReciptsController::class, 'show'])
+            ->name('immediate-recipts.show');
+        Route::post('immediate-recipts', [ImmediateReciptsController::class, 'store'])
+            ->name('immediate-recipts.store')
+            ->middleware('site_auth');
         Route::resource('daily-lebor-demand', DailyLabotDemandController::class);
         Route::resource('renew-contract', RenewContractController::class);
         Route::resource('support', SupportController::class);
         Route::resource('contact-us', ContactUsController::class);
         Route::resource('packages', PackagesController::class);
-        Route::resource('immediate-recipts', ImmediateReciptsController::class);
         Route::resource('user-addresses', UserAddressController::class);
         Route::post('/store-intended-url', function (Request $request) {
             session(['url.intended' => $request->input('redirect_url')]);
