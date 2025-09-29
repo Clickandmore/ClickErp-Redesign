@@ -16,7 +16,6 @@ class ReturnRequestController extends Controller
 {
 
 
-
     public $folderPath = "admin.ingaz.return_request";
     public $postData = ["status"];
     public $mainRoute = "return_requests";
@@ -28,17 +27,18 @@ class ReturnRequestController extends Controller
         // $this->middleware('permission:طلبات الارجاع-تعديل,admin', ['only' => ['edit', 'update']]);
         // $this->middleware('permission:طلبات الارجاع-حذف,admin', ['only' => ['destroy']]);
     }
+
     public function index(Request $request, objAction $Action)
     {
         if ($request->ajax()) {
             // عرض الطلبات المحذوفة أو الملغاة (refused, return) أو المحذوفة soft deleted
             $rows = \App\Models\ingaz\Order::withTrashed()
-                ->where(function($query) {
+                ->where(function ($query) {
                     $query->whereIn('status', [
                         \App\Enums\ingaz\OrderEnum::Refused->value,
                         \App\Enums\ingaz\OrderEnum::Return->value
                     ])
-                    ->orWhereNotNull('deleted_at'); // إضافة الطلبات المحذوفة soft deleted
+                        ->orWhereNotNull('deleted_at'); // إضافة الطلبات المحذوفة soft deleted
                 })
                 ->with(['user', 'maid', 'details.admin']);
 
@@ -63,7 +63,7 @@ class ReturnRequestController extends Controller
 
             // فلتر اسم العميل
             if ($request->filled('client_name')) {
-                $rows->whereHas('user', function($q) use ($request) {
+                $rows->whereHas('user', function ($q) use ($request) {
                     $q->where('name', 'like', '%' . $request->client_name . '%');
                 });
             }
@@ -86,10 +86,10 @@ class ReturnRequestController extends Controller
                     return '<span class="client-name">' . ($row->user ? $row->user->name : '-') . '</span>';
                 })
                 ->editColumn('phone', function ($row) {
-                    return '<span class="phone-number">' . ($row->user ? getPhoneWithTag($row->user->phone_code.$row->user->phone) : '-') . '</span>';
+                    return '<span class="phone-number">' . ($row->user ? getPhoneWithTag($row->user->phone_code . $row->user->phone) : '-') . '</span>';
                 })
                 ->editColumn('maid_id', function ($row) {
-                    return ($row->maid) ? getImgTag($row->maid->cv_file,"50px","50px", "maid-image") : '<span class="text-muted">-</span>';
+                    return ($row->maid) ? getImgTag($row->maid->cv_file, "50px", "50px", "maid-image") : '<span class="text-muted">-</span>';
                 })
                 ->editColumn('order_code', function ($row) {
                     return '<span class="order-code">' . $row->order_code . '</span>';
@@ -105,9 +105,11 @@ class ReturnRequestController extends Controller
 
                     // View button
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW)) {
-                        $actions .= '<a href="' . route('showSingleOrder', $row->id) . '" class="btn btn-info" title="عرض التفاصيل">
+                        if (!isset($row->deleted_at)) {
+                            $actions .= '<a href="' . route('showSingleOrder', $row->id) . '" class="btn btn-info" title="عرض التفاصيل">
                             <i class="fa fa-eye"></i>
                         </a>';
+                        }
                     }
 
                     // Edit button (only for non-deleted orders)
@@ -123,14 +125,19 @@ class ReturnRequestController extends Controller
                             <i class="fa fa-undo"></i>
                         </button>';
                     }
-
                     // Delete button
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE)) {
-                        $actions .= '<button class="btn btn-danger delete-order" data-id="' . $row->id . '" title="حذف نهائي">
+                        if (isset($row->deleted_at)) {
+                            $actions .= '<button class="btn btn-danger force-delete-order" data-id="' . $row->id . '" title="حذف نهائي">
                             <i class="fa fa-trash"></i>
-                        </button>';
-                    }
+                                         </button>';
+                        } else {
+                            $actions .= '<button class="btn btn-danger delete-order" data-id="' . $row->id . '" title="حذف ">
+                            <i class="fa fa-trash"></i>
+                                           </button>';
+                        }
 
+                    }
                     $actions .= '</div>';
                     return $actions;
                 })->escapeColumns([])->make(true);
@@ -146,12 +153,12 @@ class ReturnRequestController extends Controller
                 'return' => \App\Models\ingaz\Order::where('status', \App\Enums\ingaz\OrderEnum::Return->value)->count(),
                 'deleted' => \App\Models\ingaz\Order::withTrashed()->whereNotNull('deleted_at')->count(),
                 'total' => \App\Models\ingaz\Order::withTrashed()
-                    ->where(function($query) {
+                    ->where(function ($query) {
                         $query->whereIn('status', [
                             \App\Enums\ingaz\OrderEnum::Refused->value,
                             \App\Enums\ingaz\OrderEnum::Return->value
                         ])
-                        ->orWhereNotNull('deleted_at');
+                            ->orWhereNotNull('deleted_at');
                     })->count()
             ];
             return response()->json(['statistics' => $statistics]);
@@ -170,7 +177,7 @@ class ReturnRequestController extends Controller
     }
 
 
-    public function store(NationalityRequest $request,objAction $action)
+    public function store(NationalityRequest $request, objAction $action)
     {
 
         $data = $request->only($this->postData);
@@ -190,7 +197,7 @@ class ReturnRequestController extends Controller
     }
 
 
-    public function show(Request $request,objAction $action,$id)
+    public function show(Request $request, objAction $action, $id)
     {
         $updatedData = $request->only($this->postData);
         $data = $action->updateRequest($id, $updatedData);
@@ -217,12 +224,12 @@ class ReturnRequestController extends Controller
     {
         // Get filtered data
         $rows = \App\Models\ingaz\Order::withTrashed()
-            ->where(function($query) {
+            ->where(function ($query) {
                 $query->whereIn('status', [
                     \App\Enums\ingaz\OrderEnum::Refused->value,
                     \App\Enums\ingaz\OrderEnum::Return->value
                 ])
-                ->orWhereNotNull('deleted_at');
+                    ->orWhereNotNull('deleted_at');
             })
             ->with(['user', 'maid', 'details.admin']);
 
@@ -244,7 +251,7 @@ class ReturnRequestController extends Controller
         }
 
         if ($request->filled('client_name')) {
-            $rows->whereHas('user', function($q) use ($request) {
+            $rows->whereHas('user', function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->client_name . '%');
             });
         }
@@ -263,12 +270,12 @@ class ReturnRequestController extends Controller
     {
         // Get filtered data
         $rows = \App\Models\ingaz\Order::withTrashed()
-            ->where(function($query) {
+            ->where(function ($query) {
                 $query->whereIn('status', [
                     \App\Enums\ingaz\OrderEnum::Refused->value,
                     \App\Enums\ingaz\OrderEnum::Return->value
                 ])
-                ->orWhereNotNull('deleted_at');
+                    ->orWhereNotNull('deleted_at');
             })
             ->with(['user', 'maid', 'details.admin']);
 
@@ -290,7 +297,7 @@ class ReturnRequestController extends Controller
         }
 
         if ($request->filled('client_name')) {
-            $rows->whereHas('user', function($q) use ($request) {
+            $rows->whereHas('user', function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->client_name . '%');
             });
         }
