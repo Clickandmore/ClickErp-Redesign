@@ -3,6 +3,7 @@
 use App\Http\Controllers\ingaz\ArrivalWorkerController;
 use App\Http\Controllers\ingaz\SelectWorkerController;
 use App\Http\Controllers\ingaz\SelectWorkerSettingsController;
+use App\Http\Controllers\ingaz\ShelterPlaces;
 use App\Http\Controllers\ingaz\TestimonialController;
 use App\Http\Controllers\ingaz\WhyUsController;
 use App\Http\Controllers\office\OfficeController;
@@ -133,7 +134,7 @@ Route::group(
             Route::get('/travel/{id}/edit', [AdminTravelHistoryController::class, 'edit'])->name('travel.edit');
             Route::post('/travel', [AdminTravelHistoryController::class, 'store'])->name('travel.store');
             Route::post('/travel/{shelter_worker}', [AdminTravelHistoryController::class, 'update'])->name('travel.update');
-            Route::delete('/travel/{shelter_worker}', [AdminTravelHistoryController::class, 'destroy'])->name('travel.delete');
+            Route::post('/travel/{shelter_worker}', [AdminTravelHistoryController::class, 'destroy'])->name('travel.delete');
             Route::post('/store-travel-history', [AdminTravelHistoryController::class, 'storeTravelHistory'])->name('storeTravelHistory');
             Route::get('/travel/download/{id}', [AdminTravelHistoryController::class, 'downloadFile'])->name('travel.file.download');
             Route::delete('/travel/file/delete/{id}', [AdminTravelHistoryController::class, 'deleteFile'])->name('travel.file.delete');

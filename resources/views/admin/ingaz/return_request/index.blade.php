@@ -244,7 +244,7 @@
                             _token: '{{ csrf_token() }}'
                         },
                         success: function(response) {
-                            if (response.success) {
+                            if (response.data.success) {
                                 dataTable.ajax.reload();
                                 if (typeof toastr !== 'undefined') {
                                     toastr.success('{{helperTrans("ingaz.order_restored")}}');
@@ -281,7 +281,7 @@
                             _token: '{{ csrf_token() }}'
                         },
                         success: function(response) {
-                            if (response.success) {
+                            if (response.data.success) {
                                 dataTable.ajax.reload();
                                 if (typeof toastr !== 'undefined') {
                                     toastr.success('{{helperTrans("ingaz.order_deleted")}}');

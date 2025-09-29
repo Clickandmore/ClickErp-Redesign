@@ -381,12 +381,12 @@ class OrderController extends Controller
      * Remove the specified resource from storage.
      *
      * @param int $id
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
     public function destroy($id, objAction $action)
     {
         $action->delete($id);
-        return jsonSuccess();
+        return jsonSuccess(['success'=>__("index.order_deleted_successfuly")]);
     }
 
     public function restore($id)
@@ -394,9 +394,9 @@ class OrderController extends Controller
         try {
             $order = Order::withTrashed()->findOrFail($id);
             $order->restore();
-            return jsonSuccess(['message' => 'تم استعادة الطلب بنجاح']);
+            return jsonSuccess(['success' => 'تم استعادة الطلب بنجاح']);
         } catch (\Exception $e) {
-            return jsonError(['message' => 'حدث خطأ أثناء استعادة الطلب']);
+            return jsonError(['success' => 'حدث خطأ أثناء استعادة الطلب']);
         }
     }
 
