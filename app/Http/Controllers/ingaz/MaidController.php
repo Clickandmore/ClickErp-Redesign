@@ -25,7 +25,7 @@ class MaidController extends Controller
 {
 
     public $folderPath = "admin.ingaz.maids";
-    public $postData = ["nationality_id", "expertises", 'image', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages','percentage', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'create_shelter_contract'];
+    public $postData = ["nationality_id", "expertises", 'image','video', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages','percentage', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'create_shelter_contract'];
     public $mainRoute = "maids";
 
     public function __construct()
@@ -358,8 +358,9 @@ class MaidController extends Controller
         // Set default status in Arabic
         $data['status'] = 'available';
         $data = $action->storeMaid($data, $request);
-      return jsonSuccess($data, null, 203);
-
+        if ($request->ajax()) {
+            return jsonSuccess($data);
+        }
         // return response()->json(['code' => 200, 'message' => 'تم إضافة العاملة بنجاح']);
     }
 
@@ -506,7 +507,7 @@ class MaidController extends Controller
 
 
         // Handle direct form submission
-        return jsonSuccess($data, null, 203);
+//        return jsonSuccess($data, null, 201);
         if ($request->ajax()) {
             return jsonSuccess($data);
         }

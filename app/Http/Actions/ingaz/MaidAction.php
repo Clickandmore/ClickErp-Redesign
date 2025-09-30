@@ -40,6 +40,10 @@ class MaidAction extends MainAction
             $image = $data['cv_preview'];
             $data['cv_preview'] = uploadFile($image, $this->fileFolder);
         }
+        if (isset($data['video']) && $data['video'] instanceof \Illuminate\Http\UploadedFile) {
+            $video = $data['video'];
+            $data['video'] = uploadFile($video, $this->fileFolder);
+        }
 
         // Set default values for required fields if they're empty
         $data['name'] = $data['name:en'] ?? '';
@@ -174,6 +178,7 @@ class MaidAction extends MainAction
             'percentage' => $data['percentage'] ?? null,
             'cv_file' => $data['cv_file'] ?? '',
             'image' => $data['image'] ?? null,
+            'video' => $data['video'] ?? null,
             'cv_preview' => $data['cv_preview'] ?? null,
             'office_id' => $data['office_id'] ?? null,
             'status' => $data['status'],
@@ -376,6 +381,11 @@ class MaidAction extends MainAction
             deleteFile($maid->image);
             $image = $data['image'];
             $data['image'] = uploadFile($image, $this->fileFolder);
+        }
+        if (isset($data['video'])) {
+            deleteFile($maid->video);
+            $video = $data['video'];
+            $data['video'] = uploadFile($video, $this->fileFolder);
         }
 
         // Convert skills array to JSON if it exists

@@ -164,7 +164,6 @@ class RecruitmentController extends Controller
             DB::commit();
 
             \Log::info('Order Created Successfully', ['id' => $recruitment->id]);
-
             return response()->json([
                 'success' => true,
                 'message' => __('ingaz.recruitment_request_created')
@@ -172,6 +171,8 @@ class RecruitmentController extends Controller
 
         } catch (\Exception $e) {
             DB::rollback();
+            dd($e->getMessage());
+
             \Log::error('Order Creation Error: ' . $e->getMessage());
             \Log::error('Error Code: ' . $e->getCode());
             \Log::error('Error File: ' . $e->getFile());

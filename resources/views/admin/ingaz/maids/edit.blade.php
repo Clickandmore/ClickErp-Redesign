@@ -20,14 +20,18 @@
                     @method('Put')
 
                     <!-- الملفات -->
-                    <div class="col-6">
+                    <div class="col-4">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.cv_file")}} </label>
                         <input type="file" data-default-file="{{showFile($obj->cv_file)}}" name="cv_file"
                                class="dropify">
                     </div>
-                    <div class="col-6">
+                    <div class="col-4">
                         <label for="TextInput" class="form-label">صورة العامله </label>
                         <input type="file" data-default-file="{{showFile($obj->image)}}" name="image" class="dropify">
+                    </div>
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">الفيديو </label>
+                        <input type="file" data-default-file="{{showFile($obj->video)}}" name="video" class="dropify">
                     </div>
 
                     <!-- أنواع الوظائف -->

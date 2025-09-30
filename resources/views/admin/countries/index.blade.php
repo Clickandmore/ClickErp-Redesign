@@ -116,7 +116,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                        @foreach($countries as $country)
+                        @foreach($allCountries as $country)
                             <tr data-id="{{ $country->id }}">
                                 <td class="text-center"><i class="fa fa-arrows-alt sort-handle"></i></td>
                                 <td>
@@ -159,6 +159,10 @@
                         @endforeach
                         </tbody>
                     </table>
+                    <div class="d-flex justify-content-center my-3">
+                        {{ $allCountries->links('pagination::bootstrap-4') }}
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -173,16 +177,16 @@
 <script>
 $(document).ready(function() {
     // Initialize DataTable
-    $('#countries-table').DataTable({
-        "language": {
-            "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Arabic.json"
-        },
-        "pageLength": 25,
-        "order": [[6, 'asc']],
-        "columnDefs": [
-            {"orderable": false, "targets": [0, 7]}
-        ]
-    });
+    // $('#countries-table').DataTable({
+    //     "language": {
+    //         "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Arabic.json"
+    //     },
+    //     "pageLength": 25,
+    //     "order": [[6, 'asc']],
+    //     "columnDefs": [
+    //         {"orderable": false, "targets": [0, 7]}
+    //     ]
+    // });
 
     // Sortable functionality
     $("#countries-table tbody").sortable({
@@ -239,7 +243,7 @@ function toggleStatus(countryId) {
     if (confirm('هل أنت متأكد من تغيير حالة هذه الدولة؟')) {
         $.ajax({
             url: `/admin/ingaz/countries/${countryId}/toggle-status`,
-            method: 'PATCH',
+            method: 'Post',
             data: {
                 _token: '{{ csrf_token() }}'
             },
@@ -263,7 +267,8 @@ function deleteCountry(countryId) {
                 _token: '{{ csrf_token() }}'
             },
             success: function(response) {
-                 location.reload();
+                showAlert('success', 'تم حذف الدولة بنجاح');
+                location.reload();
             },
             error: function() {
                 showAlert('error', 'حدث خطأ في حذف الدولة');

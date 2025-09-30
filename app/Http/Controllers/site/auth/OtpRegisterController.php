@@ -19,18 +19,29 @@ class OtpRegisterController extends Controller
         return view('site.pages.auth.otp', compact('phone','type'));
     }
 
-    public function store(OtpRequest $request, PhoneVerificationAction $phoneVerificationAction, UserAction $userAction, LoginAction $loginAction)
-    {
+    public function store(
+        OtpRequest $request,
+        PhoneVerificationAction $phoneVerificationAction,
+        UserAction $userAction,
+        LoginAction $loginAction
+    ) {
         $data = $request->validated();
+
         $response = $phoneVerificationAction->confirmCode($request);
         if (!$response) {
             return jsonSuccess(null, __("ingaz.code_is_wrong"), 422);
         }
+
         $user = $phoneVerificationAction->getUser($request);
         auth('web')->login($user);
-        return jsonSuccess(['redirect_url' => route('site.profile.index')], __("ingaz.login_successfully"));
-        // return jsonSuccess(['redirect_url' => route('site.login.index')], __("ingaz.code_confirm_successfully"));
 
+        // رجّع المستخدم للـ intended URL أو للصفحة الرئيسية لو مش موجودة
+        $target = session()->pull('url.intended', route('site.home.index'));
+
+        return jsonSuccess([
+            'redirect_url' => $target
+        ], __("ingaz.login_successfully"));
     }
+
 
 }
