@@ -11,7 +11,7 @@
     <title> {{$settings->website_name}}</title>
     <link rel="icon" href="{{ showFile($settings->favicon) }}" type="image/png" />
     @else
-    <title>اسس الانجاز</title>
+    <title>بلاتنيوم الشرقية</title>
     @endif
     <meta name="title" content="الماجد للاستقدام" />
     <meta name="description" content="" />
@@ -135,12 +135,12 @@
                             <p class="innerTitle">رقم الجواز :</p>
                             <h6 class="innerData">{{ $obj->passport_num }}</h6>
                         </div>
-                      
+
                     </div>
                     <span class="logo">
                         @if (isset($settings->id) && $settings->logo_header)
                             <img src="{{ showFile($settings->logo_header) }}" alt="logo_header" />
-         
+
                         @endif
 
                         <h4 class="experiance">
@@ -200,11 +200,11 @@
                                     <td>{{ @$skill->title }}</td>
                                 @endforeach
                             </tr>
-                        
+
                         </table>
                     </div>
                 </div>
-            
+
                 <div class="category">
                     <h5 class="title"><span> تواصل معنا </span></h5>
                     <div class="passportData">
@@ -228,9 +228,9 @@
 
                         </div>
                         <div class="socialMedia">
-                           
+
                             <a href="#!" target="_blank">
-                           
+
                                 <!-- call -->
                                 <svg width="24" height="24" viewBox="0 0 512 512">
                                     <g>

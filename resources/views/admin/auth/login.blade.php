@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{isset($developSettings) ? $developSettings->name : 'اسس الانجاز للاستقدام'}} | {{__("auth.login")}}</title>
+    <title>{{isset($developSettings) ? $developSettings->name : 'بلاتنيوم الشرقية للاستقدام'}} | {{__("auth.login")}}</title>
     <link rel="stylesheet" href="{{asset('admin/login')}}/css/style.css">
     <link rel="stylesheet" href="{{asset('admin/login')}}/css/fontawesome.min.css">
     <link rel="stylesheet" href="{{asset('admin')}}/assets/vendor/toster/css/jquery.toast.css">
@@ -52,7 +52,7 @@
             <p class="footer">
                 {{__('auth.copyright')}} © {{date('Y')}} {{__('auth.message')}}
                 <a href="{{isset($developSettings) ? $developSettings->portfolio_url : 'https://ussusalenjaz.sa/ar'}}"
-                    target="_blank">{{isset($developSettings) ? $developSettings->name : 'اسس الانجاز للاستقدام' }}</a>
+                    target="_blank">{{isset($developSettings) ? $developSettings->name : 'بلاتنيوم الشرقية للاستقدام' }}</a>
             </p>
         </div>
 

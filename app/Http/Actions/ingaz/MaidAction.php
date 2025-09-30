@@ -218,16 +218,16 @@ class MaidAction extends MainAction
 
             if ($createShelterContract === '1') {
                 DB::beginTransaction();
-                // Find or create company client (أسس الانجاز)
-                $companyClient = ClientUser::where('name', 'like', '%شركة اسس الانجاز%')
-                    ->orWhere('email', 'company@asas-alinjaz.com')
+                // Find or create company client )
+                $companyClient = ClientUser::where('name', 'like', '%شركة  بلاتنيوم الشرقية %')
+                    ->orWhere('email', 'company@platinumestern.com')
                     ->orWhere('phone', '0500000002')
                     ->first();
 
                 if (!$companyClient) {
                     $companyClient = ClientUser::create([
-                        'name' => 'شركة اسس الانجاز للاستقدام',
-                        'email' => 'company@asas-alinjaz.com',
+                        'name' => ' شركة بلاتنيوم الشرقية للاستقدام ',
+                        'email' => 'company@platinumestern.com',
                         'phone' => '0500000002',
                         'password' => bcrypt('password123'),
                     ]);
