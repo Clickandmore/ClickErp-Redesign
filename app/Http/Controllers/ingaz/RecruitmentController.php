@@ -117,7 +117,7 @@ class RecruitmentController extends Controller
         \Log::info('Request URL: ' . $request->url());
         \Log::info('Request Method: ' . $request->method());
 
-//        try {
+        try {
             $request->validate([
                 'client_id' => 'required|exists:users,id',
                 'maid_id' => 'required|exists:maids,id',
@@ -169,23 +169,21 @@ class RecruitmentController extends Controller
                 'message' => __('ingaz.recruitment_request_created')
             ]);
 
-//        } catch (\Exception $e) {
-//            DB::rollback();
-//            dd($e);
-//
-//            \Log::error('Order Creation Error: ' . $e->getMessage());
-//            \Log::error('Error Code: ' . $e->getCode());
-//            \Log::error('Error File: ' . $e->getFile());
-//            \Log::error('Error Line: ' . $e->getLine());
-//            \Log::error('Stack trace: ' . $e->getTraceAsString());
-//            \Log::error('Request Data: ' . json_encode($request->all()));
-//
-//            return response()->json([
-//                'success' => false,
-//                'message' => __('ingaz.error_creating_recruitment_request'),
-//                'error' => $e->getMessage()
-//            ], 500);
-//        }
+        } catch (\Exception $e) {
+            DB::rollback();
+            \Log::error('Order Creation Error: ' . $e->getMessage());
+            \Log::error('Error Code: ' . $e->getCode());
+            \Log::error('Error File: ' . $e->getFile());
+            \Log::error('Error Line: ' . $e->getLine());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            \Log::error('Request Data: ' . json_encode($request->all()));
+
+            return response()->json([
+                'success' => false,
+                'message' => __('ingaz.error_creating_recruitment_request'),
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
