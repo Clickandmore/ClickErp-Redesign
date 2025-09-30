@@ -16,6 +16,9 @@ class CheckSystemSubscriptionMiddelware
 
     public function handle(Request $request, Closure $next)
     {
+        if (app()->isLocal()) {
+            return $next($request);
+        }
 
         $systemSubscription = $this->systemSubscriptionAction->first();
         if (!$systemSubscription) {
