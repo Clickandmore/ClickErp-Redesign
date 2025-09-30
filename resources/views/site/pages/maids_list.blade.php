@@ -23,7 +23,7 @@
                                 <h4>{{ $maid->name ?? '' }}</h4>
                                 <div class="workerInfo">
                                     <p>{{ __('ingaz.nationality') }} :
-                                        {{ $maid->nationality->title ?? '' }}</p>
+                                        {{ $maid->nationality->sub_title ?? '' }}</p>
                                     <p>{{ __('ingaz.religion') }} : {{ $maid->religion->title ?? '' }}
                                     </p>
                                     <p>{{ __('ingaz.job') }} :
@@ -43,8 +43,8 @@
                                     <a data-fancybox="cv1" href="{{ showFile($maid->cv_preview) }}" class="icon-btn">
                                         <i class="fa-regular fa-file-pdf"></i>
                                     </a>
-                                    @if(!empty($maid->video_preview) && $maid->video_preview !== '#')
-                                        <a data-fancybox="video1" href="{{ showFile($maid->video_preview) }}"
+                                    @if(!empty($maid->video) && $maid->video !== '#')
+                                        <a data-fancybox="video1" href="{{ showFile($maid->video) }}"
                                            class="icon-btn">
                                             <i class="fa-solid fa-video"></i>
                                         </a>
@@ -73,7 +73,7 @@
                                 </div>
                                 <h4>{{ $maid->name ?? '' }}</h4>
                                 <div class="workerInfo">
-                                    <p>{{ __('ingaz.nationality') }} : {{ $maid->nationality->title ?? '' }}</p>
+                                    <p>{{ __('ingaz.nationality') }} : {{ $maid->nationality->sub_title ?? '' }}</p>
                                     <p>{{ __('ingaz.religion') }} : {{ $maid->religion->title ?? '' }}</p>
                                     <p>{{ __('ingaz.job') }} :
                                         {{ $maid->jobTitles->first()->title ?? '' }}</p>
@@ -93,8 +93,8 @@
                                     <a data-fancybox="cv2" href="{{ showFile($maid->cv_preview) }}" class="icon-btn">
                                         <i class="fa-regular fa-file-pdf"></i>
                                     </a>
-                                    @if(!empty($maid->video_preview) && $maid->video_preview !== '#')
-                                        <a data-fancybox="video1" href="{{ showFile($maid->video_preview) }}"
+                                    @if(!empty($maid->video) && $maid->video !== '#')
+                                        <a data-fancybox="video1" href="{{ showFile($maid->video) }}"
                                            class="icon-btn">
                                             <i class="fa-solid fa-video"></i>
                                         </a>
@@ -124,7 +124,7 @@
                                 <h4>{{ $maid->name ?? '' }}</h4>
                                 <div class="workerInfo">
                                     <p>{{ __('ingaz.nationality') }} :
-                                        {{ $maid->nationality->title ?? '' }}</p>
+                                        {{ $maid->nationality->sub_title ?? '' }}</p>
                                     <p>{{ __('ingaz.religion') }} : {{ $maid->religion->title ?? '' }}
                                     </p>
                                     <p>{{ __('ingaz.job') }} :
@@ -144,12 +144,12 @@
                                     <a data-fancybox="cv2" href="{{ showFile($maid->cv_preview) }}" class="icon-btn">
                                         <i class="fa-regular fa-file-pdf"></i>
                                     </a>
-                                    @if(!empty($maid->video_preview) && $maid->video_preview !== '#')
-                                        <a data-fancybox="video1" href="{{ showFile($maid->video_preview) }}"
-                                           class="icon-btn">
+                                    @if(!empty($maid->video) && $maid->video !== '#')
+                                        <a href="{{ showFile($maid->video) }}" class="icon-btn" target="_blank" rel="noopener noreferrer">
                                             <i class="fa-solid fa-video"></i>
                                         </a>
                                     @endif
+
                                     <a href="{{ route('site.immediate-recipts.show', $maid->id) }}" class="btn action-btn">
                                         {{ __('ingaz.Labor_transfer') }}
                                     </a>

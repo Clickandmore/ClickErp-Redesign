@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Country;
 use App\Models\City;
-use Illuminate\Http\Client\Request as ClientRequest;
+use App\Models\Country;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -14,34 +13,31 @@ class CountryController extends Controller
     public function index(Request $request)
     {
         $query = Country::query();
-
-        // فلترة حسب البحث في الاسم
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('name_ar', 'LIKE', "%{$search}%")
-                  ->orWhere('name_en', 'LIKE', "%{$search}%");
+                    ->orWhere('name_en', 'LIKE', "%{$search}%");
             });
         }
 
-        // فلترة حسب رمز الدولة
         if ($request->filled('code')) {
             $query->where('code', 'LIKE', "%{$request->code}%");
         }
 
-        // فلترة حسب العملة
         if ($request->filled('currency')) {
             $query->where('currency', 'LIKE', "%{$request->currency}%");
         }
 
-        // فلترة حسب الحالة
         if ($request->filled('status')) {
-            $query->where('is_active', $request->boolean('status'));
+            $query->where('is_active', $request->status);
         }
 
-        $countries = $query->ordered()->get();
-        return view('admin.countries.index', compact('countries'));
+        $allCountries = $query->orderBy('sort_order')->paginate(10);
+
+        return view('admin.countries.index', compact('allCountries'));
     }
+
 
     public function create(Request $request )
  {
@@ -112,11 +108,11 @@ class CountryController extends Controller
     public function destroy(Country $country)
     {
          $country->delete();
-  return response()->json([
+        return response()->json([
             'success' => true,
             'message' => 'تم حذف الدولة بنجاح'
-        ],200);       
-        
+        ], 200);
+
         return redirect()->route('countries.index')
             ->with('success', 'تم حذف الدولة بنجاح');
     }

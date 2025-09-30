@@ -82,7 +82,7 @@
                     </a>
                 </li>
 
-           
+
 
                 <!-- CV Management Section -->
                 <li class="collapsed">
@@ -556,7 +556,6 @@
                         </a>
                         <ul class="sub-menu collapse {{ (in_array(Route::currentRouteName(), ['SponsorshipTransfer.create', 'SponsorshipTransfer.index', 'SponsorshipTransfer.webRequests', 'ShelterContract.availableForTransfer', 'SponsorshipTransfer.trial', 'SponsorshipTransfer.failed', 'SponsorshipTransfer.transferred', 'transfer-contract-terms.index', 'transfer-contract-terms.create', 'transfer-contract-terms.edit'])) ? 'show' : '' }}"
                             id="sponsorshipTransfer">
-                            id="sponsorshipTransfer">
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.index') ? 'active' : '' }}"
                                    href="{{ route('SponsorshipTransfer.index') }}">
@@ -701,13 +700,13 @@
                                     <span class="ms-2">المدن</span>
                                 </a>
                             </li>
-                            <li>
-                                <a class="m-link {{ (Route::currentRouteName() == 'countries.index') ? 'active' : '' }}"
-                                   href="{{ route('countries.index') }}">
-                                    <i class="fa fa-arrow-left"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.countries') }}</span>
-                                </a>
-                            </li>
+{{--                            <li>--}}
+{{--                                <a class="m-link {{ (Route::currentRouteName() == 'countries.index') ? 'active' : '' }}"--}}
+{{--                                   href="{{ route('countries.index') }}">--}}
+{{--                                    <i class="fa fa-arrow-left"></i>--}}
+{{--                                    <span class="ms-2">{{ helperTrans('ingaz.countries') }}</span>--}}
+{{--                                </a>--}}
+{{--                            </li>--}}
                         @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW))
                         <li>
