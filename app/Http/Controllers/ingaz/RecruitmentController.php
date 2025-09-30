@@ -171,7 +171,7 @@ class RecruitmentController extends Controller
 
         } catch (\Exception $e) {
             DB::rollback();
-            dd($e->getMessage());
+            dd($e);
 
             \Log::error('Order Creation Error: ' . $e->getMessage());
             \Log::error('Error Code: ' . $e->getCode());
