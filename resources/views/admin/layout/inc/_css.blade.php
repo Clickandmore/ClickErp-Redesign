@@ -23,5 +23,14 @@
     tr , td{
         position: unset !important;
     }
+    .editButton,
+    .deleteButton {
+        width: 40px !important;
+        height: 40px !important;
+        padding: 0 !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
 
 </style>
