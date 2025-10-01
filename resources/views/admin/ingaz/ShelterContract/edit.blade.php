@@ -90,7 +90,7 @@
         </div>
 
         <div class="col-12 modal-footer">
-            <button class="btn btn-primary" type="submit">{{__('buttons.save')}}</button>
+            <button class="btn btn-primary ml-4" type="submit">{{__('buttons.save')}}</button>
             <a href="{{ route('ShelterContract.index') }}" class="btn btn-secondary">{{__('buttons.cancel')}}</a>
         </div>
     </form>

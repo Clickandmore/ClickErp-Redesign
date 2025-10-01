@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ContractReturnRequestController;
 use App\Http\Controllers\ingaz\ArrivalWorkerController;
 use App\Http\Controllers\ingaz\SelectWorkerController;
 use App\Http\Controllers\ingaz\SelectWorkerSettingsController;
@@ -374,10 +375,10 @@ Route::group(
 
             // طلبات استرجاع العقود - الإدارة
             Route::prefix('contract-return-requests')->name('contract-return-requests.')->group(function () {
-                Route::get('/', [\App\Http\Controllers\Admin\ContractReturnRequestController::class, 'index'])->name('index');
-                Route::get('/{returnRequest}', [\App\Http\Controllers\Admin\ContractReturnRequestController::class, 'show'])->name('show');
-                Route::post('/{returnRequest}/process', [\App\Http\Controllers\Admin\ContractReturnRequestController::class, 'process'])->name('process');
-                Route::get('/statistics', [\App\Http\Controllers\Admin\ContractReturnRequestController::class, 'statistics'])->name('statistics');
+                Route::get('/', [ContractReturnRequestController::class, 'index'])->name('index');
+                Route::get('/{returnRequest}', [ContractReturnRequestController::class, 'show'])->name('show');
+                Route::post('/{returnRequest}/process', [ContractReturnRequestController::class, 'process'])->name('process');
+                Route::get('/statistics', [ContractReturnRequestController::class, 'statistics'])->name('statistics');
             });
         });
     }

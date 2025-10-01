@@ -34,7 +34,7 @@ class RentalContractTermsController extends Controller
     /**
      * تحديث البنود
      */
-        public function update(Request $request)
+    public function update(Request $request)
     {
         // حذف جميع البنود القديمة
         RentalContractTerm::truncate();
@@ -57,105 +57,105 @@ class RentalContractTermsController extends Controller
         }
 
         return redirect()->route('rent-contract-terms.edit')
-                       ->with('success', 'تم تحديث بنود العقد بنجاح');
+            ->with('success', 'تم تحديث بنود العقد بنجاح');
     }
 
     /**
      * استيراد البنود الافتراضية
      */
-        public function importDefault()
+    public function importDefault()
     {
         // حذف البنود الحالية
         RentalContractTerm::truncate();
 
-            // البنود الافتراضية
-            $defaultTerms = [
-                // الصفحة الأولى
-                [
-                    'section_title' => 'أولاً: موضوع العقد',
-                    'section_order' => 1,
-                    'term_number' => null,
-                    'term_content' => 'يقر الطرف الأول بأنه يزاول نشاط تقديم خدمات العمالة المنزلية بموجب ترخيص رقم -------------- ويقدم الطرف الأول خدمات العمالة المنزلية للطرف الثاني بناء على طلبه وفقا للشروط والأحكام الواردة في هذا العقد.',
-                    'term_order' => 1,
-                    'page_number' => 1,
-                    'is_active' => true
-                ],
+        // البنود الافتراضية
+        $defaultTerms = [
+            // الصفحة الأولى
+            [
+                'section_title' => 'أولاً: موضوع العقد',
+                'section_order' => 1,
+                'term_number' => null,
+                'term_content' => 'يقر الطرف الأول بأنه يزاول نشاط تقديم خدمات العمالة المنزلية بموجب ترخيص رقم -------------- ويقدم الطرف الأول خدمات العمالة المنزلية للطرف الثاني بناء على طلبه وفقا للشروط والأحكام الواردة في هذا العقد.',
+                'term_order' => 1,
+                'page_number' => 1,
+                'is_active' => true
+            ],
 
-                // الصفحة الثانية
-                [
-                    'section_title' => 'ثانياً: مدة العقد',
-                    'section_order' => 2,
-                    'term_number' => null,
-                    'term_content' => 'مدة العقد -------------- يوما على أن تبدأ من -------------- قابلة للتجديد لمدة أو مدد مماثلة بموجب أشعار مكتوب من الطرف الثاني للطرف الأول قبل نهاية',
-                    'term_order' => 1,
-                    'page_number' => 2,
-                    'is_active' => true
-                ],
-                [
-                    'section_title' => 'ثالثاً: قيمة العقد',
-                    'section_order' => 3,
-                    'term_number' => 1,
-                    'term_content' => 'يدفع الطرف الثاني للطرف الأول تكلفة مقابل تقديم خدمات العاملة المنزلية: وفقا للتكلفة الشهرية (------) المعلنة --- في تاريخ التعاقد: وفقا لما يلي:',
-                    'term_order' => 1,
-                    'page_number' => 2,
-                    'is_active' => true
-                ],
-                [
-                    'section_title' => 'ثالثاً: قيمة العقد',
-                    'section_order' => 3,
-                    'term_number' => 3,
-                    'term_content' => 'في حال تجديد هذا العقد، ومرافقة العامل على الاستمرار في العمل لدى الطرف الثاني، يدفع الطرف الثاني للطرف الأول تكلفة مقابل تقديم خدمات العامل المنزلي للمدة الجديدة تعادل التكلفة السابقة.',
-                    'term_order' => 2,
-                    'page_number' => 2,
-                    'is_active' => true
-                ],
-                [
-                    'section_title' => 'رابعا: التزامات الطرف الأول',
-                    'section_order' => 4,
-                    'term_number' => 1,
-                    'term_content' => 'أن يقدم للطرف الثاني عاملة منزلية ذو كفاءة وخبرة بمهنة خدمة المنازل.',
-                    'term_order' => 1,
-                    'page_number' => 2,
-                    'is_active' => true
-                ],
-                [
-                    'section_title' => 'رابعا: التزامات الطرف الأول',
-                    'section_order' => 4,
-                    'term_number' => 2,
-                    'term_content' => 'إعداد العامل وتهيئته للعمل، والتأكد من جاهزيته لتقديم الخدمة.',
-                    'term_order' => 2,
-                    'page_number' => 2,
-                    'is_active' => true
-                ],
-                [
-                    'section_title' => 'رابعا: التزامات الطرف الأول',
-                    'section_order' => 4,
-                    'term_number' => 3,
-                    'term_content' => 'تسليم العامل للطرف الثاني في الوقت والمكان المتفق عليه.',
-                    'term_order' => 3,
-                    'page_number' => 2,
-                    'is_active' => true
-                ],
-                [
-                    'section_title' => 'رابعا: التزامات الطرف الأول',
-                    'section_order' => 4,
-                    'term_number' => 4,
-                    'term_content' => 'استبدال العامل في حال عدم كفاءته، أو رغبة الطرف الثاني في استبداله خلال (24) ساعة.',
-                    'term_order' => 4,
-                    'page_number' => 2,
-                    'is_active' => true
-                ],
+            // الصفحة الثانية
+            [
+                'section_title' => 'ثانياً: مدة العقد',
+                'section_order' => 2,
+                'term_number' => null,
+                'term_content' => 'مدة العقد -------------- يوما على أن تبدأ من -------------- قابلة للتجديد لمدة أو مدد مماثلة بموجب أشعار مكتوب من الطرف الثاني للطرف الأول قبل نهاية',
+                'term_order' => 1,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'ثالثاً: قيمة العقد',
+                'section_order' => 3,
+                'term_number' => 1,
+                'term_content' => 'يدفع الطرف الثاني للطرف الأول تكلفة مقابل تقديم خدمات العاملة المنزلية: وفقا للتكلفة الشهرية (------) المعلنة --- في تاريخ التعاقد: وفقا لما يلي:',
+                'term_order' => 1,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'ثالثاً: قيمة العقد',
+                'section_order' => 3,
+                'term_number' => 3,
+                'term_content' => 'في حال تجديد هذا العقد، ومرافقة العامل على الاستمرار في العمل لدى الطرف الثاني، يدفع الطرف الثاني للطرف الأول تكلفة مقابل تقديم خدمات العامل المنزلي للمدة الجديدة تعادل التكلفة السابقة.',
+                'term_order' => 2,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'رابعا: التزامات الطرف الأول',
+                'section_order' => 4,
+                'term_number' => 1,
+                'term_content' => 'أن يقدم للطرف الثاني عاملة منزلية ذو كفاءة وخبرة بمهنة خدمة المنازل.',
+                'term_order' => 1,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'رابعا: التزامات الطرف الأول',
+                'section_order' => 4,
+                'term_number' => 2,
+                'term_content' => 'إعداد العامل وتهيئته للعمل، والتأكد من جاهزيته لتقديم الخدمة.',
+                'term_order' => 2,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'رابعا: التزامات الطرف الأول',
+                'section_order' => 4,
+                'term_number' => 3,
+                'term_content' => 'تسليم العامل للطرف الثاني في الوقت والمكان المتفق عليه.',
+                'term_order' => 3,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'رابعا: التزامات الطرف الأول',
+                'section_order' => 4,
+                'term_number' => 4,
+                'term_content' => 'استبدال العامل في حال عدم كفاءته، أو رغبة الطرف الثاني في استبداله خلال (24) ساعة.',
+                'term_order' => 4,
+                'page_number' => 2,
+                'is_active' => true
+            ],
 
-                // يمكنك إضافة باقي البنود هنا...
-            ];
+            // يمكنك إضافة باقي البنود هنا...
+        ];
 
-                        // إدراج البنود الافتراضية
-            foreach ($defaultTerms as $term) {
-                RentalContractTerm::create($term);
-            }
+        // إدراج البنود الافتراضية
+        foreach ($defaultTerms as $term) {
+            RentalContractTerm::create($term);
+        }
 
-            return redirect()->route('rent-contract-terms.edit')
-                           ->with('success', 'تم استيراد البنود الافتراضية بنجاح');
+        return redirect()->route('rent-contract-terms.edit')
+            ->with('success', 'تم استيراد البنود الافتراضية بنجاح');
     }
 
     /**
@@ -205,8 +205,7 @@ class RentalContractTermsController extends Controller
                 ['value' => $logoPath]
             );
         }
+        return jsonSuccess(['url' => route('rent-contract.settings')], __("تم حفظ الإعدادات بنجاح"), 201);
 
-        return redirect()->route('rent-contract.settings')
-                       ->with('success', 'تم حفظ الإعدادات بنجاح');
     }
 }
