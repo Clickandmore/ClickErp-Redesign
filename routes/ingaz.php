@@ -246,9 +246,11 @@ Route::group(
             Route::post('RentContract/{id}/save-signature', [RentContractController::class, 'saveSignature'])->name('RentContract.saveSignature');
 
             // إدارة بنود عقد التأجير
+            Route::get('rent-contract-terms/create', [RentalContractTermsController::class, 'create'])->name('rent-contract-terms.create');
+            Route::post('rent-contract-terms/store', [RentalContractTermsController::class, 'store'])->name('rent-contract-terms.store');
             Route::get('rent-contract-terms', [RentalContractTermsController::class, 'index'])->name('rent-contract-terms.index');
-            Route::get('rent-contract-terms/edit', [RentalContractTermsController::class, 'edit'])->name('rent-contract-terms.edit');
-            Route::put('rent-contract-terms/update', [RentalContractTermsController::class, 'update'])->name('rent-contract-terms.update');
+            Route::get('rent-contract-terms/edit/{id}', [RentalContractTermsController::class, 'edit'])->name('rent-contract-terms.edit');
+            Route::put('rent-contract-terms/update/{id}', [RentalContractTermsController::class, 'update'])->name('rent-contract-terms.update');
             Route::get('rent-contract-terms/import-default', [RentalContractTermsController::class, 'importDefault'])->name('rent-contract-terms.import-default');
 
             // إعدادات عقد التأجير
