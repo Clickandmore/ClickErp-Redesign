@@ -153,12 +153,25 @@ class DeportationTravelController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'contract_id' => 'required|exists:contracts,id',
-            'arrival_airport' => 'required',
-            'arrival_date' => 'required|date',
-            'arrival_time' => 'required',
-            'travel_with' => 'required'
+            'contract_id'    => 'required|exists:contracts,id',
+            'arrival_airport'=> 'required',
+            'arrival_date'   => 'required|date',
+            'arrival_time'   => 'required',
+            'travel_with'    => 'required',
+        ], [
+            'contract_id.required'     => 'يجب اختيار العقد.',
+            'contract_id.exists'       => 'العقد غير موجود في النظام.',
+
+            'arrival_airport.required' => 'حقل مطار الوصول مطلوب.',
+
+            'arrival_date.required'    => 'حقل تاريخ الوصول مطلوب.',
+            'arrival_date.date'        => 'صيغة تاريخ الوصول غير صحيحة.',
+
+            'arrival_time.required'    => 'حقل وقت الوصول مطلوب.',
+
+            'travel_with.required'     => 'يجب تحديد المرافق في السفر.',
         ]);
+
 
         $contract = Contract::with(['maid', 'user'])->findOrFail($request->contract_id);
 
@@ -186,9 +199,10 @@ class DeportationTravelController extends Controller
                 'trip_id' => $travel->id
             ]);
         }
+        return  jsonSuccess(['url'=>route('DeportationTravel.index')] , __("تم جدولة رحلة الترحيل بنجاح") , 201);
 
-        return redirect()->route('DeportationTravel.index')
-            ->with('success', 'تم جدولة رحلة الترحيل بنجاح');
+//        return redirect()->route('DeportationTravel.index')
+//            ->with('success', 'تم جدولة رحلة الترحيل بنجاح');
     }
 
     /**
