@@ -581,15 +581,26 @@ try {
     }
 
 } catch (Exception $e) {
-    ob_clean();
+    // تنظيف أي output قبل JSON
+    if (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+
+    // إرسال JSON نظيف
+    header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
         'success' => false,
-        'message' => 'خطأ: ' . $e->getMessage()
+        'message' => 'خطأ: ' . $e->getMessage(),
+        'error_line' => $e->getLine(),
+        'error_file' => basename($e->getFile())
     ], JSON_UNESCAPED_UNICODE);
     exit();
 }
 
-ob_end_flush();
+// إنهاء output buffer إذا كان مفتوحاً
+if (ob_get_level() > 0) {
+    ob_end_flush();
+}
 
 /**
  * إعادة ترتيب الجدول حسب المطلوب

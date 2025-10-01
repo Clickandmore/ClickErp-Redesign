@@ -164,7 +164,6 @@ class RecruitmentController extends Controller
             DB::commit();
 
             \Log::info('Order Created Successfully', ['id' => $recruitment->id]);
-
             return response()->json([
                 'success' => true,
                 'message' => __('ingaz.recruitment_request_created')

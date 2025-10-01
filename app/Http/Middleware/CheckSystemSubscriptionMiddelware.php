@@ -16,7 +16,6 @@ class CheckSystemSubscriptionMiddelware
 
     public function handle(Request $request, Closure $next)
     {
-
         $systemSubscription = $this->systemSubscriptionAction->first();
         if (!$systemSubscription) {
             return redirect()->route('admin.form.login');
