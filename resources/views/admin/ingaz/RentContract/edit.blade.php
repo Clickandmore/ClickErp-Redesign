@@ -317,7 +317,8 @@
                             تاريخ الميلاد
                         </label>
                         <input type="date" class="form-control" id="client_birthdate" name="client_birthdate"
-                               value="{{ @$contract->user->birthdate ? @$contract->user->birthdate->format('Y-m-d') : '' }}" required>
+                               value="{{ @$contract->user->birthdate ? \Carbon\Carbon::parse($contract->user->birthdate)->format('Y-m-d') : '' }}"
+                               required>
                     </div>
                 </div>
 

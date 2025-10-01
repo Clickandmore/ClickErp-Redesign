@@ -333,7 +333,7 @@
                             <div class="info-row">
                                 <span class="info-label">الديانة:</span>
                                 <span
-                                    class="info-value">{{ @$contract->maid->religion->first()->title ?? 'غير محدد' }}</span>
+                                    class="info-value">{{ $contract->maid && $contract->maid->religion ? ($contract->maid->religion->title ?? $contract->maid->religion->first()->title ?? 'غير محدد') : 'غير محدد' }}</span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">العمر:</span>
