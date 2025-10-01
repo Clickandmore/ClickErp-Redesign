@@ -55,6 +55,16 @@
             height: auto;
         }
 
+        /* إظهار اسم المكتب بالكامل مع التفاف مناسب */
+        .table td.office-column,
+        .table th.office-column-header {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+            width: 200px;
+        }
+
         /* تحسين شكل الأزرار */
         .btn {
             border-radius: 8px;
@@ -350,6 +360,7 @@
                 <th>{{helperTrans("ingaz.cv_file")}}</th>
                 <th class="d-none d-lg-table-cell">{{helperTrans("ingaz.nationality_id")}}</th>
                 <th class="d-none d-lg-table-cell">{{helperTrans("ingaz.job_type")}}</th>
+                <th class="office-column-header">{{helperTrans("ingaz.office_id")}}</th>
                 <th>{{helperTrans("ingaz.passport_num")}}</th>
                 <th class="d-none d-md-table-cell">{{helperTrans("ingaz.price")}}</th>
                 <th class="d-none d-md-table-cell">{{helperTrans("ingaz.salary")}}</th>
@@ -407,6 +418,7 @@
                 {"data": "cv_file", orderable: false, searchable: false},
                 {"data": "nationality_id", orderable: true, searchable: true, className: 'd-none d-lg-table-cell'},
                 {"data": "job_type", orderable: true, searchable: true, className: 'd-none d-lg-table-cell'},
+                {"data": "office", orderable: false, searchable: false, className: 'office-column'},
                 {"data": "passport_num", orderable: true, searchable: true},
                 {"data": "price", orderable: true, searchable: true, className: 'd-none d-md-table-cell'},
                 {"data": "salary", orderable: true, searchable: true, className: 'd-none d-md-table-cell'},
@@ -507,7 +519,7 @@
                     },
                     columns: columns,
                     pageLength: 10,
-                    order: [[13, 'desc']], // Order by created_at column by default in descending order
+                    order: [], // حافظ على ترتيب الاستعلام (مثبتات أولاً ثم الأحدث)
                     language: {
                         processing: '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">جاري التحميل...</span></div>'
                     },
@@ -781,4 +793,3 @@
 
     </script>
 @endsection
-

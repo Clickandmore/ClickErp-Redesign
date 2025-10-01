@@ -19,6 +19,7 @@ use App\Models\RecruitmentOffices;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 
 class MaidController extends Controller
@@ -44,8 +45,8 @@ class MaidController extends Controller
     public function index(Request $request, objAction $Action)
     {
         $query = objModel::query()
-            ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders']) // Eager load relationships
-            ->select(['id', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at', 'is_pinned', 'status']) // Added status field
+            ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders', 'office']) // Eager load relationships
+            ->select(['id', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at', 'is_pinned', 'status', 'office_id']) // Added office and status field
             ->orderBy('is_pinned', 'desc')
             ->orderBy('created_at', 'desc');
 
@@ -100,13 +101,20 @@ class MaidController extends Controller
                     $row->available_at;
                 })
                 ->editColumn('cv_file', function ($row) {
-                    if ($row->image) {
-                        $imgTag = '<img src="' . showFile($row->image) . '" alt="cv1" style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">';
-                    } else {
-                        $imgUrl = $row->cv_preview ? showFile($row->cv_preview) : showFile($row->cv_file);
-                        $imgTag = '<img src="' . $imgUrl . '" alt="cv1" style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">';
+                    $rawPath = $row->image ?: ($row->cv_preview ?: $row->cv_file);
+                    $imageUrl = $rawPath ? showFile($rawPath) : null;
+
+                    if (!$imageUrl) {
+                        return '';
                     }
-                    return '<a href="#" class="maidViewData" data-id="' . $row->id . '">' . $imgTag . '</a>';
+
+                    $isExternal = preg_match('#^https?://#i', $rawPath ?? '');
+                    $displayPath = $isExternal ? $rawPath : 'storage/' . ltrim($rawPath, '/');
+
+                    $imgTag = '<img src="' . $imageUrl . '" alt="cv" style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">';
+                    $linkTag = '<small class="d-block mt-2 text-break"><a href="' . $imageUrl . '" target="_blank">' . e($displayPath) . '</a></small>';
+
+                    return '<a href="#" class="maidViewData" data-id="' . $row->id . '">' . $imgTag . '</a>' . $linkTag;
                 })
                 ->editColumn('created_at', function ($row) {
                     return $row->created_at->format('Y-m-d h:i A');
@@ -142,6 +150,14 @@ class MaidController extends Controller
                         }
                     }
                 })
+                ->addColumn('office', function ($row) {
+                    $title = optional($row->office)->title ?? '-';
+                    if ($title === '-') {
+                        return '-';
+                    }
+                    $short = Str::limit($title, 20);
+                    return '<span title="' . e($title) . '">' . e($short) . '</span>';
+                })
                 ->addColumn('actions', function ($row) {
                     $buttons = '';
 
@@ -170,7 +186,7 @@ class MaidController extends Controller
 
                     return $buttons;
                 })
-                ->rawColumns(['is_show', 'available', 'available_at', 'cv_file', 'cv_status', 'actions'])
+                ->rawColumns(['is_show', 'available', 'available_at', 'cv_file', 'cv_status', 'office', 'actions'])
                 ->make(true);
         }
 
@@ -223,20 +239,20 @@ class MaidController extends Controller
                     $row->available_at;
                 })
                 ->editColumn('cv_file', function ($row) {
-                    // Check if the `image` property is not null
-                    if ($row->image) {
-                        // Generate the image tag with the `image` property
-                        $imgTag = '<img src="' . showFile($row->image) . '" alt="cv1" style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">';
-                    } else {
-                        // Use `cv_preview` if available, otherwise fall back to `cv_file`
-                        $imgUrl = $row->cv_preview ? showFile($row->cv_preview) : showFile($row->cv_file);
-                        $imgTag = '<img src="' . $imgUrl . '" alt="cv1" style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">';
+                    $rawPath = $row->image ?: ($row->cv_preview ?: $row->cv_file);
+                    $imageUrl = $rawPath ? showFile($rawPath) : null;
+
+                    if (!$imageUrl) {
+                        return '';
                     }
 
-                    // Wrap the image tag in a link
-                    $link = '<a href="#" class="maidViewData" data-id="' . $row->id . '">' . $imgTag . '</a>';
+                    $isExternal = preg_match('#^https?://#i', $rawPath ?? '');
+                    $displayPath = $isExternal ? $rawPath : 'storage/' . ltrim($rawPath, '/');
 
-                    return $link;
+                    $imgTag = '<img src="' . $imageUrl . '" alt="cv" style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">';
+                    $linkTag = '<small class="d-block mt-2 text-break"><a href="' . $imageUrl . '" target="_blank">' . e($displayPath) . '</a></small>';
+
+                    return '<a href="#" class="maidViewData" data-id="' . $row->id . '">' . $imgTag . '</a>' . $linkTag;
                 })
                 ->editColumn('created_at', function ($row) {
                     return ($row->created_at->format('Y-m-d h:i A'));
