@@ -328,7 +328,7 @@
                             <div class="info-row">
                                 <span class="info-label">الجنسية:</span>
                                 <span
-                                    class="info-value">{{ optional($contract->maid->nationality->first())->title ?? 'غير محدد' }}</span>
+                                    class="info-value">{{ optional($contract->maid->nationality)->title ?? 'غير محدد' }}</span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">الديانة:</span>
