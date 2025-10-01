@@ -33,6 +33,8 @@ class OfficeRequest extends MainRequest
             "nationality_id" => "required|exists:nationalities,id",
             "street" => "required|string",
             "manager_name" => "required|string",
+            "file" => "required|file",
+            "file_name" => "required|string",
             "bank_address" => "required|string",
             "bank_account" => "required|string",
             "bank_account_name" => "required|string",

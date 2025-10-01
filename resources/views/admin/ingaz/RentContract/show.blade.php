@@ -307,11 +307,11 @@
                 </div>
                 <div class="info-row">
                     <span class="info-label">الجنسية:</span>
-                    <span class="info-value">{{ $contract->maid->nationality->translations->first()->title ?? 'غير محدد' }}</span>
+                    <span class="info-value">{{ @$contract->maid->nationality->translations->first()->title ?? 'غير محدد' }}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">الديانة:</span>
-                    <span class="info-value">{{ $contract->maid->religion->translations->first()->title ?? 'غير محدد' }}</span>
+                    <span class="info-value">{{ @$contract->maid->religion->translations->first()->title ?? 'غير محدد' }}</span>
                 </div>
                 <div class="info-row">
                     <span class="info-label">العمر:</span>

@@ -28,9 +28,12 @@
                     </div>
                     <div class="col-4">
                         <label for="TextInput" class="form-label">الفيديو </label>
-                        <input type="file" data-default-file="" name="video" class="dropify" required>
+                        <input type="file" data-default-file="" name="video" class="dropify" >
                     </div>
-
+                    <div class="col-12">
+                        <label for="TextInput" class="form-label">رابط الفيديو </label>
+                        <input type="url"  name="video_link" class="form-control" required>
+                    </div>
                     <!-- أنواع الوظائف -->
                     <div class="col-4">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.job_types_2")}} </label>
@@ -279,7 +282,8 @@
                         <tbody id="json_array">
                         <tr class="y-group">
                             <td>
-                                <select name="expertises[0][country_id]" data-placeholder="" class="form-control select2"
+                                <select name="expertises[0][country_id]" data-placeholder=""
+                                        class="form-control select2"
                                         required>
                                     <option value="">{{helperTrans('ingaz.choose')}}</option>
                                     @foreach($countries as $country)
@@ -291,7 +295,8 @@
                                 <input type="text" name="expertises[0][number_of_years]" class="form-control" required>
                             </td>
                             <td>
-                                <select name="expertises[0][job_title_id]" data-placeholder="" class="form-control select2"
+                                <select name="expertises[0][job_title_id]" data-placeholder=""
+                                        class="form-control select2"
                                         required>
                                     <option value="">{{helperTrans('ingaz.choose')}}</option>
                                     @foreach($jobs as $job)
@@ -329,7 +334,7 @@
     <script src="{{asset("admin")}}/assets/js/bundle/select2.bundle.js"></script>
     <script src="{{asset("admin")}}/assets/js/bundle/sweetalert2.bundle.js"></script>
     <script>
-        $(function(){
+        $(function () {
             $('.lang-check').on('change', function () {
                 const $wrapper = $(this).closest('.form-check').siblings('.lang-extra');
                 const val = $(this).val();

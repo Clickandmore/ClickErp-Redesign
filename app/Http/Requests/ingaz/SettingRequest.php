@@ -63,6 +63,7 @@ class SettingRequest extends MainRequest
             'show_customer_service_during_booking' => 'nullable|boolean',
             'note_ar' => 'nullable|string',
             'note_en' => 'nullable|string',
+            'link_rights_and_duties' => 'nullable|string',
         ];
     }
 }

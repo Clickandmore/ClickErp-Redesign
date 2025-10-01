@@ -178,6 +178,7 @@ class MaidAction extends MainAction
             'percentage' => $data['percentage'] ?? null,
             'cv_file' => $data['cv_file'] ?? '',
             'image' => $data['image'] ?? null,
+            'video_link' => $data['video_link'] ?? null,
             'video' => $data['video'] ?? null,
             'cv_preview' => $data['cv_preview'] ?? null,
             'office_id' => $data['office_id'] ?? null,
@@ -192,7 +193,6 @@ class MaidAction extends MainAction
         \Log::info('About to create maid with data keys: ' . implode(', ', array_keys($createData)));
         \Log::info('Languages in createData: ' . ($createData['languages'] ?? 'null'));
         \Log::info('Name in createData: ' . ($createData['name'] ?? 'null'));
-
         try {
             $maid = $this->model->create($createData);
             \Log::info('Maid created successfully with ID: ' . $maid->id);
