@@ -372,4 +372,8 @@ const PARTENR_CONTROL = 'partenr_control';
     const TRAVEL_EDIT = 'travel_edit';
     const TRAVEL_DELETE = 'travel_delete';
     const TRAVEL_CONTROL = 'travel_control';
+
+
+    const RELEGIONS_DELETE = 'relegions_delete';
+    const RELEGIONS_CONTROL = 'relegions_control';
 }

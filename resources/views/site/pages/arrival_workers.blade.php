@@ -74,7 +74,7 @@
             <ol class=" mb-0 ps-0">
                 <li class="mb-2 d-flex align-items-center flex-wrap">
                     <span class="fw-bold">{{ __('ingaz.link_1_text') }}</span>
-                    <a href="https://www.hrsd.gov.sa/sites/default/files/2025-03/%D8%AD%D9%82%D9%88%D9%82%20%D9%88%D8%A7%D8%AC%D8%A8%D8%A7%D8%AA%20%D8%A7%D9%84%D8%B9%D8%A7%D9%85%D9%84%20%D9%88%D8%B5%D8%A7%D8%AD%D8%A8%20%D8%A7%D9%84%D8%B9%D9%85%D9%84.pdf"
+                    <a href="{{isset($settings) ? $settings->link_rights_and_duties : ''}}"
                        target="_blank" rel="noopener" class="btn btn-outline btn-sm ms-2">
                         <i class="fa-solid fa-link"></i> {{ __('ingaz.link_1_btn') }}
                     </a>

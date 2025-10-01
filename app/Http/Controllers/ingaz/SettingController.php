@@ -57,6 +57,7 @@ class SettingController extends Controller
         'show_customer_service_during_booking',
         'note_ar',
         'note_en',
+        'link_rights_and_duties',
     ];
     public $mainRoute = "settings";
 
@@ -143,7 +144,7 @@ class SettingController extends Controller
         // Get the first setting record or create one if it doesn't exist
         $setting = Setting::first();
          if (!$setting) {
- 
+
             $setting = Setting::create();
         }
 

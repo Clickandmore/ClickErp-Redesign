@@ -168,10 +168,13 @@
 
                 <!-- Pagination -->
                 @if($cities->hasPages())
-                <div class="d-flex justify-content-center mt-4">
-                    {{ $cities->appends(request()->query())->links() }}
-                </div>
+                    <div class="d-flex justify-content-center mt-4">
+                        <nav>
+                            {{ $cities->appends(request()->query())->onEachSide(1)->links('pagination::bootstrap-4') }}
+                        </nav>
+                    </div>
                 @endif
+
             </div>
         </div>
     </div>
