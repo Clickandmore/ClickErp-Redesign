@@ -3,32 +3,65 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Controllers\Controller;
+use App\Models\ingaz\Service as objModel;
 use App\Models\RentalContractTerm;
 use App\Models\ingaz\Setting;
+use App\Models\RentContractTerm;
 use Illuminate\Http\Request;
-use DB;
+use Illuminate\Support\Facades\DB;
+use Yajra\DataTables\Facades\DataTables;
 
 class RentalContractTermsController extends Controller
 {
     /**
      * عرض صفحة إدارة البنود
      */
+
     public function index()
     {
-        $terms = RentalContractTerm::ordered()->get()->groupBy('section_title');
-        return view('admin.ingaz.RentContract.terms.index', compact('terms'));
+        $terms = RentalContractTerm::query()->get();
+        $data["createRoute"] = route('rent-contract-terms.create');
+        $data["dataTableRoute"] = route('rent-contract-terms.index');
+        $data["bladeTitle"] = helperTrans('api.services');
+        $data["addButtonText"] = helperTrans('api.service');
+        $data["modalType"] = "modal-lg";
+        return view('admin.ingaz.RentContractTerms.index', compact('data'))->with(['terms' => $terms]);
     }
 
     /**
      * عرض صفحة تعديل البنود
      */
-    public function edit()
+    public function create()
     {
         $termsPage1 = RentalContractTerm::byPage(1)->ordered()->get();
         $termsPage2 = RentalContractTerm::byPage(2)->ordered()->get();
         $termsPage3 = RentalContractTerm::byPage(3)->ordered()->get();
 
-        return view('admin.ingaz.RentContract.terms.edit', compact('termsPage1', 'termsPage2', 'termsPage3'));
+        return view('admin.ingaz.RentContractTerms.create', compact('termsPage1', 'termsPage2', 'termsPage3'));
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'section_title' => 'required|string',
+            'term_number' => 'required|numeric',
+            'section_order' => 'required|numeric',
+            'term_order' => 'required|numeric',
+            'page_number' => 'required|numeric',
+            'term_content' => 'required|string',
+            'is_active' => 'required',
+        ]);
+        RentalContractTerm::create($data);
+        return redirect(route('rent-contract-terms.index'));
+    }
+
+    public function edit($id)
+    {
+        $termsPage1 = RentalContractTerm::byPage(1)->ordered()->get();
+        $termsPage2 = RentalContractTerm::byPage(2)->ordered()->get();
+        $termsPage3 = RentalContractTerm::byPage(3)->ordered()->get();
+        $term = RentalContractTerm::findorfail($id);
+        return view('admin.ingaz.RentContractTerms.edit', compact('termsPage1', 'term', 'termsPage2', 'termsPage3'));
     }
 
     /**
@@ -56,7 +89,7 @@ class RentalContractTermsController extends Controller
             }
         }
 
-        return redirect()->route('rent-contract-terms.edit')
+        return redirect()->route('rent-contract-terms.index')
             ->with('success', 'تم تحديث بنود العقد بنجاح');
     }
 
