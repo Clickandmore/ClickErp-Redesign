@@ -85,9 +85,10 @@ class TransferContractTermsController extends Controller
             'page_number' => $request->page_number,
             'is_active' => $request->has('is_active'),
         ]);
+        return jsonSuccess(['redirect' => route('transfer-contract-terms.index')], 'تم اضافة البند بنجاح');
 
-        return redirect()->route('transfer-contract-terms.index')
-            ->with('success', 'تم إضافة البند بنجاح');
+//        return redirect()->route('transfer-contract-terms.index')
+//            ->with('success', 'تم إضافة البند بنجاح');
     }
 
     /**
@@ -129,8 +130,10 @@ class TransferContractTermsController extends Controller
             'is_active' => $request->has('is_active'),
         ]);
 
-        return redirect()->route('transfer-contract-terms.index')
-            ->with('success', 'تم تحديث البند بنجاح');
+        return jsonSuccess(['redirect' => route('transfer-contract-terms.index')], 'تم تحديث البند بنجاح');
+
+//        return redirect()->route('transfer-contract-terms.index')
+//            ->with('success', 'تم تحديث البند بنجاح');
     }
 
     /**

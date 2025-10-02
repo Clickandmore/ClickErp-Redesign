@@ -26,7 +26,7 @@ class MaidController extends Controller
 {
 
     public $folderPath = "admin.ingaz.maids";
-    public $postData = ["nationality_id", "expertises", 'image','video', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages','percentage', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'create_shelter_contract'];
+    public $postData = ["nationality_id", "expertises", 'image', 'video', 'video_link', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'percentage', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'create_shelter_contract'];
     public $mainRoute = "maids";
 
     public function __construct()
@@ -85,20 +85,20 @@ class MaidController extends Controller
                 ->editColumn('is_show', function ($row) {
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_STATUS)) {
                         return $row->is_show == 1 ?
-                        '<button class="btn btn-sm btn-success update-status" data-id="' . $row->id . '" title="انقر لتغيير الحالة إلى مخفي"><i class="fa fa-eye"></i> ظاهر</button>' :
-                        '<button class="btn btn-sm btn-dark update-status" data-id="' . $row->id . '" title="انقر لتغيير الحالة إلى ظاهر"><i class="fa fa-eye-slash"></i> مخفي</button>';
+                            '<button class="btn btn-sm btn-success update-status" data-id="' . $row->id . '" title="انقر لتغيير الحالة إلى مخفي"><i class="fa fa-eye"></i> ظاهر</button>' :
+                            '<button class="btn btn-sm btn-dark update-status" data-id="' . $row->id . '" title="انقر لتغيير الحالة إلى ظاهر"><i class="fa fa-eye-slash"></i> مخفي</button>';
                     } else {
                         return $row->is_show == 1 ? '<span class="badge bg-success"><i class="fa fa-eye"></i> ظاهر</span>' : '<span class="badge bg-dark"><i class="fa fa-eye-slash"></i> مخفي</span>';
                     }
                 })
                 ->editColumn('available', function ($row) {
                     return $row->available == 1 ?
-                    '<i class ="fa fa-check text-success">' : '<i class ="fa fa-times text-danger">';
+                        '<i class ="fa fa-check text-success">' : '<i class ="fa fa-times text-danger">';
                 })
                 ->editColumn('available_at', function ($row) {
                     return $row->available_at <= date('Y-m-d') ?
-                    '<i class="fa fa-check text-success"></i>' :
-                    $row->available_at;
+                        '<i class="fa fa-check text-success"></i>' :
+                        $row->available_at;
                 })
                 ->editColumn('cv_file', function ($row) {
                     $rawPath = $row->image ?: ($row->cv_preview ?: $row->cv_file);
@@ -211,8 +211,7 @@ class MaidController extends Controller
             ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders', 'unavailableRecords']) // Added unavailableRecords
             ->select(['id', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at', 'is_pinned', 'status']) // Added status field
             ->where('status', 'backout')
-            ->where('available', false)
-        ;
+            ->where('available', false);
 
         if ($request->ajax()) {
             // تطبيق الفلاتر الإضافية مع الحفاظ على فلتر backout
@@ -223,20 +222,20 @@ class MaidController extends Controller
                 ->editColumn('is_show', function ($row) {
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_STATUS)) {
                         return $row->is_show == 1 ?
-                        '<button class="btn btn-sm btn-success update-status" data-id="' . $row->id . '">ظاهر</button>' :
-                        '<button class="btn btn-sm btn-dark update-status" data-id="' . $row->id . '">مخفي</button>';
+                            '<button class="btn btn-sm btn-success update-status" data-id="' . $row->id . '">ظاهر</button>' :
+                            '<button class="btn btn-sm btn-dark update-status" data-id="' . $row->id . '">مخفي</button>';
                     } else {
                         return $row->is_show == 1 ? '<span class="badge bg-success">ظاهر</span>' : '<span class="badge bg-dark">مخفي</span>';
                     }
                 })
                 ->editColumn('available', function ($row) {
                     return $row->available == 1 ?
-                    '<i class ="fa fa-check text-success">' : '<i class ="fa fa-times text-danger">';
+                        '<i class ="fa fa-check text-success">' : '<i class ="fa fa-times text-danger">';
                 })
                 ->editColumn('available_at', function ($row) {
                     return $row->available_at <= date('Y-m-d') ?
-                    '<i class="fa fa-check text-success"></i>' :
-                    $row->available_at;
+                        '<i class="fa fa-check text-success"></i>' :
+                        $row->available_at;
                 })
                 ->editColumn('cv_file', function ($row) {
                     $rawPath = $row->image ?: ($row->cv_preview ?: $row->cv_file);
@@ -297,8 +296,8 @@ class MaidController extends Controller
                     $unavailableRecord = $row->unavailableRecords()->latest()->first();
                     if ($unavailableRecord) {
                         return '<span class="reason-badge" title="' . htmlspecialchars($unavailableRecord->reason) . '">' .
-                               htmlspecialchars(substr($unavailableRecord->reason, 0, 50)) .
-                               (strlen($unavailableRecord->reason) > 50 ? '...' : '') . '</span>';
+                            htmlspecialchars(substr($unavailableRecord->reason, 0, 50)) .
+                            (strlen($unavailableRecord->reason) > 50 ? '...' : '') . '</span>';
                     }
                     return '<span class="text-muted">لا يوجد سبب محدد</span>';
                 })
@@ -443,7 +442,8 @@ class MaidController extends Controller
         $data = objModel::where('id', $id)->first();
         return view($this->folderPath . '.convert_page', ['data' => $data]);
     }
-        public function show($id)
+
+    public function show($id)
     {
         // Check if user has permission to toggle status
         $hasPermission = @AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_STATUS);
@@ -812,7 +812,7 @@ class MaidController extends Controller
         }
 
         // Auto-size columns
-        foreach(range('A','L') as $column) {
+        foreach (range('A', 'L') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 
@@ -891,27 +891,27 @@ class MaidController extends Controller
             if ($request->cv_status == 'available') {
                 $rows->where('available', 1)
                     ->where('status', 'available')
-                    ->whereDoesntHave('contracts', function($q) {
+                    ->whereDoesntHave('contracts', function ($q) {
                         $q->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival']);
                     })
-                    ->whereDoesntHave('orders', function($q) {
+                    ->whereDoesntHave('orders', function ($q) {
                         $q->whereIn('status', ['new', 'under_process', 'contracted']);
                     });
             } elseif ($request->cv_status == 'reserved') {
-                $rows->where(function($q) {
+                $rows->where(function ($q) {
                     $q->where('available', 0)
-                      ->where('status', 'reserved')
-                      ->orWhereHas('contracts', function($subQ) {
-                          $subQ->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival']);
-                      })
-                      ->orWhereHas('orders', function($subQ) {
-                          $subQ->whereIn('status', ['new', 'under_process', 'contracted']);
-                      });
+                        ->where('status', 'reserved')
+                        ->orWhereHas('contracts', function ($subQ) {
+                            $subQ->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival']);
+                        })
+                        ->orWhereHas('orders', function ($subQ) {
+                            $subQ->whereIn('status', ['new', 'under_process', 'contracted']);
+                        });
                 });
             } elseif ($request->cv_status == 'backout') {
                 // فلتر خاص للعاملات باك اوت
                 $rows->where('status', 'backout')
-                      ->where('available', 0);
+                    ->where('available', 0);
             }
         }
     }
@@ -1069,7 +1069,7 @@ class MaidController extends Controller
                 ->with(['nationality'])
                 ->select(['id', 'name', 'passport_num', 'nationality_id'])
                 ->get()
-                ->map(function($maid) {
+                ->map(function ($maid) {
                     return [
                         'id' => $maid->id,
                         'name' => $maid->name,
@@ -1091,14 +1091,14 @@ class MaidController extends Controller
 
             $maids = Maid::where('available', true)
                 ->where('status', 'available')
-                ->where(function($query) use ($search) {
+                ->where(function ($query) use ($search) {
                     $query->where('name', 'like', '%' . $search . '%')
-                          ->orWhere('passport_num', 'like', '%' . $search . '%');
+                        ->orWhere('passport_num', 'like', '%' . $search . '%');
                 })
                 ->with(['nationality'])
                 ->select(['id', 'name', 'passport_num', 'nationality_id'])
                 ->get()
-                ->map(function($maid) {
+                ->map(function ($maid) {
                     return [
                         'id' => $maid->id,
                         'name' => $maid->name,

@@ -29,6 +29,7 @@ class MaidRequest extends MainRequest
             'name:en' => 'required|string|max:255',
             'cv_file' => 'nullable',
             'video' => 'nullable',
+            'video_link' => 'nullable',
             'nationality_id' => 'required|exists:nationalities,id',
             'passport_num' => [
                 'required',
