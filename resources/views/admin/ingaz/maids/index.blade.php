@@ -43,6 +43,8 @@
         /* تحسين مظهر الجدول */
         .table th, .table td {
             vertical-align: middle;
+            text-align: center;
+            padding: 0.75rem;
         }
 
         .badge {
@@ -353,7 +355,7 @@
     </div>
 
     <div class="table-responsive">
-        <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
+        <table id="dataTableObject" class="table table-striped table-hover align-middle text-center display dataTable" style="width:100%">
             <thead>
             <tr>
                 <th class="d-none d-md-table-cell">ID</th>

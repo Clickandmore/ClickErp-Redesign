@@ -108,13 +108,9 @@ class MaidController extends Controller
                         return '';
                     }
 
-                    $isExternal = preg_match('#^https?://#i', $rawPath ?? '');
-                    $displayPath = $isExternal ? $rawPath : 'storage/' . ltrim($rawPath, '/');
-
                     $imgTag = '<img src="' . $imageUrl . '" alt="cv" style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">';
-                    $linkTag = '<small class="d-block mt-2 text-break"><a href="' . $imageUrl . '" target="_blank">' . e($displayPath) . '</a></small>';
 
-                    return '<a href="#" class="maidViewData" data-id="' . $row->id . '">' . $imgTag . '</a>' . $linkTag;
+                    return '<a href="#" class="maidViewData" data-id="' . $row->id . '">' . $imgTag . '</a>';
                 })
                 ->editColumn('created_at', function ($row) {
                     return $row->created_at->format('Y-m-d h:i A');
@@ -245,13 +241,9 @@ class MaidController extends Controller
                         return '';
                     }
 
-                    $isExternal = preg_match('#^https?://#i', $rawPath ?? '');
-                    $displayPath = $isExternal ? $rawPath : 'storage/' . ltrim($rawPath, '/');
-
                     $imgTag = '<img src="' . $imageUrl . '" alt="cv" style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">';
-                    $linkTag = '<small class="d-block mt-2 text-break"><a href="' . $imageUrl . '" target="_blank">' . e($displayPath) . '</a></small>';
 
-                    return '<a href="#" class="maidViewData" data-id="' . $row->id . '">' . $imgTag . '</a>' . $linkTag;
+                    return '<a href="#" class="maidViewData" data-id="' . $row->id . '">' . $imgTag . '</a>';
                 })
                 ->editColumn('created_at', function ($row) {
                     return ($row->created_at->format('Y-m-d h:i A'));

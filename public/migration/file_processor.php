@@ -127,6 +127,12 @@ try {
             exit();
             break;
 
+        case 'migrate_admins_from_users':
+            ob_clean();
+            echo json_encode(migrateAdminsFromUsers(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
         case 'migrate_customers_simple':
             ob_clean();
             echo json_encode(migrateCustomersSimple(), JSON_UNESCAPED_UNICODE);
@@ -944,6 +950,72 @@ function migrateUsersSimple() {
         return [
             'success' => false,
             'message' => 'خطأ في نقل المستخدمين: ' . $e->getMessage()
+        ];
+    }
+}
+
+function migrateAdminsFromUsers() {
+    try {
+        $db = get_db_connection();
+
+        $totalAdmins = (int)$db->query("SELECT COUNT(*) FROM users WHERE user_type = 'admin'")->fetchColumn();
+
+        if ($totalAdmins === 0) {
+            return [
+                'success' => false,
+                'message' => 'لا يوجد أي مستخدمين بنوع admin في جدول users.'
+            ];
+        }
+
+        // تحديث أي سجلات حالية في جدول admins مرتبطة بنفس البريد الإلكتروني
+        $updateSql = "UPDATE admins a
+            JOIN users u ON u.email = a.email AND u.user_type = 'admin'
+            SET a.name = u.name,
+                a.phone = NULLIF(u.phone, ''),
+                a.password = u.password,
+                a.remember_token = u.remember_token,
+                a.admin_type = 'admin',
+                a.sort = COALESCE(a.sort, 999),
+                a.lang = COALESCE(a.lang, 'ar'),
+                a.updated_at = COALESCE(u.updated_at, NOW()),
+                a.whatsapp = COALESCE(NULLIF(u.phone, ''), a.whatsapp)";
+        $updated = $db->exec($updateSql);
+
+        // إدراج السجلات غير الموجودة مسبقًا
+        $insertSql = "INSERT INTO admins (name, phone, email, password, remember_token, admin_type, sort, role_id, lang, created_at, updated_at, whatsapp)
+            SELECT u.name,
+                   NULLIF(u.phone, ''),
+                   u.email,
+                   u.password,
+                   u.remember_token,
+                   'admin',
+                   999,
+                   NULL,
+                   'ar',
+                   COALESCE(u.created_at, NOW()),
+                   COALESCE(u.updated_at, NOW()),
+                   COALESCE(NULLIF(u.phone, ''), '')
+            FROM users u
+            WHERE u.user_type = 'admin'
+              AND u.email IS NOT NULL
+              AND u.email <> ''
+              AND NOT EXISTS (
+                  SELECT 1 FROM admins a WHERE a.email = u.email
+              )";
+        $inserted = $db->exec($insertSql);
+
+        return [
+            'success' => true,
+            'total_admin_users' => $totalAdmins,
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'message' => "✅ تمت مزامنة المدراء بنجاح.\nإجمالي في users: {$totalAdmins}\n➕ تمت إضافة: {$inserted}\n🔄 تم تحديث: {$updated}"
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل مزامنة المدراء: ' . $e->getMessage()
         ];
     }
 }

@@ -161,6 +161,7 @@
                 <button onclick="prepareUsersTable()" class="btn-info">إعداد الجدول</button>
                 <button onclick="transferUsersSimple()" class="btn-success">نقل المستخدمين</button>
                 <button onclick="transferCustomersSimple()" class="btn-success">دمج العملاء</button>
+                <button onclick="syncAdminsFromUsers(this)" class="btn-success">مزامنة المدراء (Users→Admins)</button>
                 <button onclick="checkUsers()" class="btn-info">فحص النتيجة</button>
             </div>
             <div id="users_result" class="result"></div>
@@ -454,6 +455,40 @@
 
             btn.disabled = false;
             btn.textContent = 'نقل المستخدمين';
+        }
+
+        async function syncAdminsFromUsers(button) {
+            const btn = button instanceof HTMLElement ? button : event.target;
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'جاري المزامنة...';
+
+            try {
+                const response = await fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'action=migrate_admins_from_users'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    let message = data.message || '✅ تم التحديث بنجاح';
+                    if (typeof data.inserted !== 'undefined' || typeof data.updated !== 'undefined') {
+                        message += `\n➕ جديد: ${data.inserted || 0}\n🔄 محدث: ${data.updated || 0}`;
+                    }
+                    showResult('users_result', message, true);
+                } else {
+                    showResult('users_result', '❌ ' + (data.message || 'فشل مزامنة المدراء'), false);
+                }
+
+                updateStats();
+            } catch (error) {
+                showResult('users_result', '❌ خطأ: ' + error.message, false);
+            }
+
+            btn.disabled = false;
+            btn.textContent = originalText;
         }
 
         // دمج العملاء (النظام الناجح من simple_migration.php)
