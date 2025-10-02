@@ -110,7 +110,7 @@
             </div>
         </div>
 
-        <button type="submit" id="submitBtn" class="btn btn-success">
+        <button type="submit" id="submitBtn" class="btn btn-success mt-3">
             {{ __('admin.confirm') }}
         </button>
 
@@ -133,7 +133,7 @@
                     data: $(this).serialize(),
                     beforeSend: function () {
                         $btn.prop('disabled', true).html(
-                            '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> {{ __("admin.loading") }}'
+                            '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> {{ __("ingaz.sending") }}'
                         );
                     },
                     success: function (response) {
