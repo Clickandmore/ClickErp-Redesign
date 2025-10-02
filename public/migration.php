@@ -289,6 +289,16 @@
             <div id="contracts_result" class="result"></div>
         </div>
 
+        <!-- قسم أنواع الإيواء (Accommodation Types) -->
+        <div class="section">
+            <h3>1️⃣3️⃣ أنواع الإيواء (Accommodation Types)</h3>
+            <div class="buttons">
+                <button onclick="transferAccommodationTypes()" class="btn-success">نقل أنواع الإيواء</button>
+                <button onclick="checkAccommodationTypes()" class="btn-info">فحص النتيجة</button>
+            </div>
+            <div id="accommodation_types_result" class="result"></div>
+        </div>
+
         <!-- الإحصائيات -->
         <div class="section">
             <h3>📊 الإحصائيات الحالية</h3>
@@ -348,6 +358,10 @@
                 <div class="stat">
                     <div class="number">-</div>
                     <div class="label">Contract Infos</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Accommodation Types</div>
                 </div>
             </div>
             <button onclick="updateStats()" class="btn-info">تحديث الإحصائيات</button>
@@ -1356,7 +1370,8 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showResult('contracts_result', `📊 العقود: ${data.contracts || 0}\n🗂️ معلومات العقود: ${data.contract_infos || 0}`, true);
+                    showResult('contracts_result', `📊 العقود: ${data.contracts || 0}
+🗂️ معلومات العقود: ${data.contract_infos || 0}`, true);
                 } else {
                     showResult('contracts_result', `❌ ${data.message}`, false);
                 }
@@ -1366,7 +1381,62 @@
             });
         }
 
-        window.transferContracts = transferContracts;\r\n        window.checkContracts = checkContracts;\r\n\r\n        // وظائف عامة
+        function transferAccommodationTypes() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'جاري النقل...';
+
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=migrate_accommodation_types'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showResult('accommodation_types_result', `✅ ${data.message}
+📦 الإجمالي: ${data.processed || 0}
+🆕 مضاف: ${data.inserted || 0}
+🔁 محدث: ${data.updated || 0}
+➖ بدون تغيير: ${data.unchanged || 0}
+⏭ متجاوز: ${data.skipped || 0}`, true);
+                    updateStats();
+                } else {
+                    showResult('accommodation_types_result', `❌ ${data.message}`, false);
+                }
+                btn.disabled = false;
+                btn.textContent = 'نقل أنواع الإيواء';
+            })
+            .catch(error => {
+                showResult('accommodation_types_result', '❌ خطأ: ' + error.message, false);
+                btn.disabled = false;
+                btn.textContent = 'نقل أنواع الإيواء';
+            });
+        }
+
+        function checkAccommodationTypes() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=accommodation_types_summary'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showResult('accommodation_types_result', `📊 أنواع الإيواء: ${data.types || 0}`, true);
+                } else {
+                    showResult('accommodation_types_result', `❌ ${data.message}`, false);
+                }
+            })
+            .catch(error => {
+                showResult('accommodation_types_result', '❌ خطأ: ' + error.message, false);
+            });
+        }
+
+        window.transferContracts = transferContracts;
+        window.checkContracts = checkContracts;
+        window.transferAccommodationTypes = transferAccommodationTypes;
+        window.checkAccommodationTypes = checkAccommodationTypes;        // وظائف عامة
         function showResult(elementId, message, isSuccess) {
             const element = document.getElementById(elementId);
             element.style.display = 'block';
@@ -1437,6 +1507,7 @@
     </script>
 </body>
 </html>
+
 
 
 

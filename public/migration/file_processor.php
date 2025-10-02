@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * معالج النظام الثابت - تطوير مستمر للميزات
  * Fixed System Processor - Continuous Feature Development
@@ -156,6 +156,18 @@ try {
             echo json_encode(getContractsSummary(), JSON_UNESCAPED_UNICODE);
             exit();
             break;
+        case 'migrate_accommodation_types':
+            ob_clean();
+            echo json_encode(migrateAccommodationTypes(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'accommodation_types_summary':
+            ob_clean();
+            echo json_encode(getAccommodationTypesSummary(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
 
         case 'execute_sql':
             ob_clean();
@@ -3850,4 +3862,151 @@ function normalizeContractDate($value) {
     return $dateTime ? substr($dateTime, 0, 10) : null;
 }
 
-?>
+
+function migrateAccommodationTypes() {
+    $oldHost = $_POST['old_db_host'] ?? '127.0.0.1';
+    $oldPort = $_POST['old_db_port'] ?? 8889;
+    $oldDbName = $_POST['old_db_name'] ?? 'platinum';
+    $oldUser = $_POST['old_db_user'] ?? 'root';
+    $oldPass = $_POST['old_db_pass'] ?? 'root';
+
+    try {
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة الجديدة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $oldDsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $oldHost, $oldPort, $oldDbName);
+        $oldDb = new PDO($oldDsn, $oldUser, $oldPass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4'
+        ]);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة القديمة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $createSql = "CREATE TABLE IF NOT EXISTS accommodation_types (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            name VARCHAR(255) NOT NULL,
+            created_at TIMESTAMP NULL DEFAULT NULL,
+            updated_at TIMESTAMP NULL DEFAULT NULL,
+            PRIMARY KEY (id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+        $newDb->exec($createSql);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل في تجهيز جدول accommodation_types: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $rows = $oldDb->query('SELECT id, name, created_at, updated_at FROM accommodation_types ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'لم يتمكن من قراءة جدول accommodation_types من القاعدة القديمة: ' . $e->getMessage()
+        ];
+    }
+
+    if (empty($rows)) {
+        return [
+            'success' => true,
+            'message' => 'لا توجد بيانات في جدول accommodation_types في القاعدة القديمة',
+            'processed' => 0,
+            'inserted' => 0,
+            'updated' => 0,
+            'unchanged' => 0,
+            'skipped' => 0
+        ];
+    }
+
+    $insertSql = "INSERT INTO accommodation_types (id, name, created_at, updated_at)
+                  VALUES (:id, :name, :created_at, :updated_at)
+                  ON DUPLICATE KEY UPDATE
+                      name = VALUES(name),
+                      updated_at = VALUES(updated_at)";
+
+    $stmt = $newDb->prepare($insertSql);
+    $newDb->beginTransaction();
+
+    $processed = 0;
+    $inserted = 0;
+    $updated = 0;
+    $unchanged = 0;
+    $skipped = 0;
+
+    foreach ($rows as $row) {
+        $processed++;
+        $id = isset($row['id']) ? (int)$row['id'] : 0;
+        if ($id <= 0) {
+            $skipped++;
+            continue;
+        }
+
+        $params = [
+            ':id' => $id,
+            ':name' => trim((string)($row['name'] ?? '')),
+            ':created_at' => parseDateValue($row['created_at'] ?? null),
+            ':updated_at' => parseDateValue($row['updated_at'] ?? null)
+        ];
+
+        if ($params[':name'] === '') {
+            $skipped++;
+            continue;
+        }
+
+        try {
+            $stmt->execute($params);
+            $affected = $stmt->rowCount();
+            if ($affected === 1) {
+                $inserted++;
+            } elseif ($affected === 2) {
+                $updated++;
+            } else {
+                $unchanged++;
+            }
+        } catch (Exception $e) {
+            $skipped++;
+            error_log('خطأ في نقل accommodation_type #' . $id . ': ' . $e->getMessage());
+        }
+    }
+
+    $newDb->commit();
+
+    return [
+        'success' => true,
+        'message' => 'تم نقل أنواع الإيواء بنجاح',
+        'processed' => $processed,
+        'inserted' => $inserted,
+        'updated' => $updated,
+        'unchanged' => $unchanged,
+        'skipped' => $skipped
+    ];
+}
+
+function getAccommodationTypesSummary() {
+    try {
+        $db = get_db_connection();
+        $total = $db->query('SELECT COUNT(*) AS total FROM accommodation_types')->fetch(PDO::FETCH_ASSOC);
+        return [
+            'success' => true,
+            'types' => (int)($total['total'] ?? 0),
+            'message' => 'تم جلب إحصائيات أنواع الإيواء'
+        ];
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في جلب إحصائيات أنواع الإيواء: ' . $e->getMessage()
+        ];
+    }
+}\r\n?>
