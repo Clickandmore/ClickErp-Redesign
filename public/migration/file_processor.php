@@ -145,6 +145,24 @@ try {
             exit();
             break;
 
+        case 'migrate_contracts':
+            ob_clean();
+            echo json_encode(migrateContracts(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'contracts_summary':
+            ob_clean();
+            echo json_encode(getContractsSummary(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'execute_sql':
+            ob_clean();
+            echo json_encode(handleExecuteSql(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
         case 'scan_old_database':
             ob_clean();
             echo json_encode(scanOldDatabaseColumns(), JSON_UNESCAPED_UNICODE);
@@ -3582,6 +3600,254 @@ function guessColumnType($columnName) {
     } else {
         return 'VARCHAR(255) NULL';
     }
+}
+
+
+
+function handleExecuteSql() {
+    $sql = $_POST['sql'] ?? '';
+    if (!is_string($sql) || trim($sql) === '') {
+        return [
+            'success' => false,
+            'message' => 'لم يتم توفير الاستعلام'
+        ];
+    }
+
+    try {
+        $db = get_db_connection();
+        $statements = array_filter(array_map('trim', preg_split('/;\s*/', $sql)));
+        $lastResult = [];
+
+        foreach ($statements as $statement) {
+            if ($statement === '') {
+                continue;
+            }
+
+            if (stripos($statement, 'select') === 0 || stripos($statement, 'show') === 0 || stripos($statement, 'describe') === 0) {
+                $query = $db->query($statement);
+                $lastResult = $query ? $query->fetchAll(PDO::FETCH_ASSOC) : [];
+            } else {
+                $db->exec($statement);
+            }
+        }
+
+        return [
+            'success' => true,
+            'message' => 'تم تنفيذ الاستعلام',
+            'result' => $lastResult
+        ];
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في تنفيذ الاستعلام: ' . $e->getMessage()
+        ];
+    }
+}
+
+function migrateContracts() {
+    $oldHost = $_POST['old_db_host'] ?? '127.0.0.1';
+    $oldPort = $_POST['old_db_port'] ?? 8889;
+    $oldDbName = $_POST['old_db_name'] ?? 'platinum_old';
+    $oldUser = $_POST['old_db_user'] ?? 'root';
+    $oldPass = $_POST['old_db_pass'] ?? 'root';
+
+    try {
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة الجديدة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $oldDsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $oldHost, $oldPort, $oldDbName);
+        $oldDb = new PDO($oldDsn, $oldUser, $oldPass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4'
+        ]);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة القديمة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $contracts = $oldDb->query('SELECT id, attatches, covered_guarantee_date, expired_date, created_at, updated_at, throwback_date, resv_id, throwback_reason, date_contract, contract_visa_num, musand_num FROM contracts ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل قراءة بيانات العقود: ' . $e->getMessage()
+        ];
+    }
+
+    if (empty($contracts)) {
+        return [
+            'success' => true,
+            'message' => 'لا توجد عقود في القاعدة القديمة لنقلها',
+            'processed' => 0,
+            'inserted' => 0,
+            'updated' => 0,
+            'unchanged' => 0,
+            'skipped' => 0
+        ];
+    }
+
+    $insertSql = <<<SQL
+INSERT INTO contracts (id, status, warranty_status, signature, warranty_start_date, warranty_end_date, created_at, updated_at, completed_at, order_id, user_id, marketer_id, maid_id, required_maid_notes, contract_date, visa_number, msaned_number)
+VALUES (:id, :status, :warranty_status, :signature, :warranty_start_date, :warranty_end_date, :created_at, :updated_at, :completed_at, :order_id, :user_id, :marketer_id, :maid_id, :required_maid_notes, :contract_date, :visa_number, :msaned_number)
+ON DUPLICATE KEY UPDATE
+    status = VALUES(status),
+    warranty_status = VALUES(warranty_status),
+    signature = VALUES(signature),
+    warranty_start_date = VALUES(warranty_start_date),
+    warranty_end_date = VALUES(warranty_end_date),
+    created_at = VALUES(created_at),
+    updated_at = VALUES(updated_at),
+    completed_at = VALUES(completed_at),
+    order_id = VALUES(order_id),
+    user_id = VALUES(user_id),
+    marketer_id = VALUES(marketer_id),
+    maid_id = VALUES(maid_id),
+    required_maid_notes = VALUES(required_maid_notes),
+    contract_date = VALUES(contract_date),
+    visa_number = VALUES(visa_number),
+    msaned_number = VALUES(msaned_number)
+SQL;
+
+    $insertStmt = $newDb->prepare($insertSql);
+
+    $newDb->beginTransaction();
+
+    $processed = 0;
+    $inserted = 0;
+    $updated = 0;
+    $unchanged = 0;
+    $skipped = 0;
+
+    foreach ($contracts as $row) {
+        $processed++;
+
+        $contractId = isset($row['id']) ? (int)$row['id'] : 0;
+        if ($contractId <= 0) {
+            $skipped++;
+            continue;
+        }
+
+        try {
+            $params = [
+                ':id' => $contractId,
+                ':status' => 'shelter',
+                ':warranty_status' => 'not_applicable',
+                ':signature' => normalizeContractValue($row['attatches'] ?? null),
+                ':warranty_start_date' => normalizeContractDateTime($row['covered_guarantee_date'] ?? null),
+                ':warranty_end_date' => normalizeContractDateTime($row['expired_date'] ?? null),
+                ':created_at' => normalizeContractDateTime($row['created_at'] ?? null),
+                ':updated_at' => normalizeContractDateTime($row['updated_at'] ?? null),
+                ':completed_at' => normalizeContractDateTime($row['throwback_date'] ?? null),
+                ':order_id' => normalizeContractInt($row['resv_id'] ?? null),
+                ':user_id' => 1673,
+                ':marketer_id' => 61,
+                ':maid_id' => 1323,
+                ':required_maid_notes' => normalizeContractValue($row['throwback_reason'] ?? null),
+                ':contract_date' => normalizeContractDate($row['date_contract'] ?? null),
+                ':visa_number' => normalizeContractValue($row['contract_visa_num'] ?? null),
+                ':msaned_number' => normalizeContractValue($row['musand_num'] ?? null)
+            ];
+
+            $insertStmt->execute($params);
+            $affected = $insertStmt->rowCount();
+
+            if ($affected === 1) {
+                $inserted++;
+            } elseif ($affected === 2) {
+                $updated++;
+            } else {
+                $unchanged++;
+            }
+        } catch (Exception $e) {
+            $skipped++;
+            error_log('خطأ في نقل العقد #' . $contractId . ': ' . $e->getMessage());
+        }
+    }
+
+    $newDb->commit();
+
+    return [
+        'success' => true,
+        'message' => 'تم نقل العقود بنجاح',
+        'processed' => $processed,
+        'inserted' => $inserted,
+        'updated' => $updated,
+        'unchanged' => $unchanged,
+        'skipped' => $skipped
+    ];
+}
+
+function getContractsSummary() {
+    try {
+        $db = get_db_connection();
+        $contracts = $db->query('SELECT COUNT(*) AS total FROM contracts')->fetch(PDO::FETCH_ASSOC);
+        $infos = $db->query('SELECT COUNT(*) AS total FROM contract_infos')->fetch(PDO::FETCH_ASSOC);
+
+        return [
+            'success' => true,
+            'contracts' => (int)($contracts['total'] ?? 0),
+            'contract_infos' => (int)($infos['total'] ?? 0),
+            'message' => 'تم جلب إحصائيات العقود'
+        ];
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في جلب الإحصائيات: ' . $e->getMessage()
+        ];
+    }
+}
+
+function normalizeContractValue($value) {
+    if ($value === null) {
+        return null;
+    }
+
+    if (is_string($value)) {
+        $trimmed = trim($value);
+        if ($trimmed === '' || strtoupper($trimmed) === 'NULL') {
+            return null;
+        }
+        return $trimmed;
+    }
+
+    if (is_numeric($value)) {
+        return (string)$value;
+    }
+
+    return null;
+}
+
+function normalizeContractInt($value) {
+    $normalized = normalizeContractValue($value);
+    if ($normalized === null) {
+        return null;
+    }
+
+    $intValue = (int)$normalized;
+    return $intValue > 0 ? $intValue : null;
+}
+
+function normalizeContractDateTime($value) {
+    $normalized = normalizeContractValue($value);
+    if ($normalized === null) {
+        return null;
+    }
+
+    return parseDateValue($normalized);
+}
+
+function normalizeContractDate($value) {
+    $dateTime = normalizeContractDateTime($value);
+    return $dateTime ? substr($dateTime, 0, 10) : null;
 }
 
 ?>

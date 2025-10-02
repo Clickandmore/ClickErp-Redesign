@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
@@ -279,6 +279,16 @@
             <div id="maids_result" class="result"></div>
         </div>
 
+        <!-- قسم العقود (Contracts) -->
+        <div class="section">
+            <h3>1️⃣2️⃣ نقل العقود (Contracts)</h3>
+            <div class="buttons">
+                <button onclick="transferContracts()" class="btn-success">نقل العقود</button>
+                <button onclick="checkContracts()" class="btn-info">فحص النتيجة</button>
+            </div>
+            <div id="contracts_result" class="result"></div>
+        </div>
+
         <!-- الإحصائيات -->
         <div class="section">
             <h3>📊 الإحصائيات الحالية</h3>
@@ -331,6 +341,14 @@
                     <div class="number">-</div>
                     <div class="label">Maids</div>
                 </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Contracts</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Contract Infos</div>
+                </div>
             </div>
             <button onclick="updateStats()" class="btn-info">تحديث الإحصائيات</button>
         </div>
@@ -342,7 +360,7 @@
             const mode = document.querySelector('input[name="transfer_mode"]:checked').value;
             document.getElementById('upload_section').style.display = mode === 'file' ? 'block' : 'none';
         }
-
+        
         // إعداد جدول المستخدمين
         function prepareUsersTable() {
             const btn = event.target;
@@ -1297,7 +1315,58 @@
             });
         }
 
-        // وظائف عامة
+        function transferContracts() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'جاري النقل...';
+
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=migrate_contracts'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showResult(
+                        'contracts_result',
+                        `✅ ${data.message}\n📦 الإجمالي: ${data.processed || 0}\n🆕 مضاف: ${data.inserted || 0}\n🔁 محدث: ${data.updated || 0}\n➖ بدون تغيير: ${data.unchanged || 0}\n⏭ متجاوز: ${data.skipped || 0}`,
+                        true
+                    );
+                    updateStats();
+                } else {
+                    showResult('contracts_result', `❌ ${data.message}`, false);
+                }
+                btn.disabled = false;
+                btn.textContent = 'نقل العقود';
+            })
+            .catch(error => {
+                showResult('contracts_result', '❌ خطأ: ' + error.message, false);
+                btn.disabled = false;
+                btn.textContent = 'نقل العقود';
+            });
+        }
+
+        function checkContracts() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=contracts_summary'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showResult('contracts_result', `📊 العقود: ${data.contracts || 0}\n🗂️ معلومات العقود: ${data.contract_infos || 0}`, true);
+                } else {
+                    showResult('contracts_result', `❌ ${data.message}`, false);
+                }
+            })
+            .catch(error => {
+                showResult('contracts_result', '❌ خطأ: ' + error.message, false);
+            });
+        }
+
+        window.transferContracts = transferContracts;\r\n        window.checkContracts = checkContracts;\r\n\r\n        // وظائف عامة
         function showResult(elementId, message, isSuccess) {
             const element = document.getElementById(elementId);
             element.style.display = 'block';
@@ -1319,7 +1388,9 @@
                     (SELECT COUNT(*) FROM experience) as experience,
                     (SELECT COUNT(*) FROM ages) as ages,
                     (SELECT COUNT(*) FROM languages) as languages,
-                    (SELECT COUNT(*) FROM maids) as maids
+                    (SELECT COUNT(*) FROM maids) as maids,
+                    (SELECT COUNT(*) FROM contracts) as contracts,
+                    (SELECT COUNT(*) FROM contract_infos) as contract_infos
             `;
 
             fetch('migration/file_processor.php', {
@@ -1331,18 +1402,29 @@
             .then(data => {
                 if (data.success && data.result && data.result[0]) {
                     const stats = data.result[0];
-                    document.querySelectorAll('.stat .number')[0].textContent = stats.users || '0';
-                    document.querySelectorAll('.stat .number')[1].textContent = stats.countries || '0';
-                    document.querySelectorAll('.stat .number')[2].textContent = stats.nationalities || '0';
-                    document.querySelectorAll('.stat .number')[3].textContent = stats.translations || '0';
-                    document.querySelectorAll('.stat .number')[4].textContent = stats.job_titles || '0';
-                    document.querySelectorAll('.stat .number')[5].textContent = stats.religions || '0';
-                    document.querySelectorAll('.stat .number')[6].textContent = stats.social_status || '0';
-                    document.querySelectorAll('.stat .number')[7].textContent = stats.skills || '0';
-                    document.querySelectorAll('.stat .number')[8].textContent = stats.experience || '0';
-                    document.querySelectorAll('.stat .number')[9].textContent = stats.ages || '0';
-                    document.querySelectorAll('.stat .number')[10].textContent = stats.languages || '0';
-                    document.querySelectorAll('.stat .number')[11].textContent = stats.maids || '0';
+                    const order = [
+                        'users',
+                        'countries',
+                        'nationalities',
+                        'translations',
+                        'job_titles',
+                        'religions',
+                        'social_status',
+                        'skills',
+                        'experience',
+                        'ages',
+                        'languages',
+                        'maids',
+                        'contracts',
+                        'contract_infos'
+                    ];
+
+                    const numbers = document.querySelectorAll('.stat .number');
+                    order.forEach((key, index) => {
+                        if (numbers[index]) {
+                            numbers[index].textContent = stats[key] || '0';
+                        }
+                    });
                 }
             })
             .catch(err => console.error('Error updating stats:', err));
@@ -1355,3 +1437,8 @@
     </script>
 </body>
 </html>
+
+
+
+
+
