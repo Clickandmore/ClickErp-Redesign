@@ -299,6 +299,15 @@
             <div id="accommodation_types_result" class="result"></div>
         </div>
 
+        <!-- Airports -->
+        <div class="section">
+            <h3>Airports</h3>
+            <div class="buttons">
+                <button onclick="transferAirports()" class="btn-success">Transfer Airports</button>
+                <button onclick="checkAirports()" class="btn-info">Check Airports</button>
+            </div>
+            <div id="airports_result" class="result"></div>
+        </div
         <!-- الإحصائيات -->
         <div class="section">
             <h3>📊 الإحصائيات الحالية</h3>
@@ -358,6 +367,10 @@
                 <div class="stat">
                     <div class="number">-</div>
                     <div class="label">Contract Infos</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Airports</div>
                 </div>
                 <div class="stat">
                     <div class="number">-</div>
@@ -1433,10 +1446,71 @@
             });
         }
 
+
+        function transferAirports() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Transferring...';
+
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=migrate_airports'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const lines = [
+                        'Airports migrated successfully',
+                        'Total: ' + (data.processed ?? data.total ?? 0),
+                        'Inserted: ' + (data.inserted ?? 0),
+                        'Updated: ' + (data.updated ?? 0),
+                        'Unchanged: ' + (data.unchanged ?? 0),
+                        'Skipped: ' + (data.skipped ?? 0)
+                    ];
+                    showResult('airports_result', lines.join('\n'), true);
+                    updateStats();
+                } else {
+                    showResult('airports_result', 'Migration failed: ' + (data.message || 'operation could not be completed'), false);
+                }
+            })
+            .catch(error => {
+                showResult('airports_result', 'Error: ' + error.message, false);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.textContent = 'Transfer Airports';
+            });
+        }
+
+        function checkAirports() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=airports_summary'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const lines = [
+                        'Current airports stats:',
+                        'Total: ' + (data.total ?? data.airports ?? 0)
+                    ];
+                    if (data.message) lines.push(data.message);
+                    showResult('airports_result', lines.join('\n'), true);
+                } else {
+                    showResult('airports_result', 'Failed to fetch stats: ' + (data.message || 'unknown'), false);
+                }
+            })
+            .catch(error => {
+                showResult('airports_result', 'Error: ' + error.message, false);
+            });
+        }
+
         window.transferContracts = transferContracts;
         window.checkContracts = checkContracts;
         window.transferAccommodationTypes = transferAccommodationTypes;
-        window.checkAccommodationTypes = checkAccommodationTypes;        // وظائف عامة
+        window.checkAccommodationTypes = checkAccommodationTypes;\r\n        window.transferAirports = transferAirports;\r\n        window.checkAirports = checkAirports;        // وظائف عامة
         function showResult(elementId, message, isSuccess) {
             const element = document.getElementById(elementId);
             element.style.display = 'block';
@@ -1460,7 +1534,8 @@
                     (SELECT COUNT(*) FROM languages) as languages,
                     (SELECT COUNT(*) FROM maids) as maids,
                     (SELECT COUNT(*) FROM contracts) as contracts,
-                    (SELECT COUNT(*) FROM contract_infos) as contract_infos
+                    (SELECT COUNT(*) FROM contract_infos) as contract_infos,
+                    (SELECT COUNT(*) FROM airports) as airports
             `;
 
             fetch('migration/file_processor.php', {
@@ -1486,7 +1561,8 @@
                         'languages',
                         'maids',
                         'contracts',
-                        'contract_infos'
+                        'contract_infos',
+                        'airports'
                     ];
 
                     const numbers = document.querySelectorAll('.stat .number');
@@ -1507,6 +1583,10 @@
     </script>
 </body>
 </html>
+
+
+
+
 
 
 

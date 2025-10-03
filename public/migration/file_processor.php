@@ -168,6 +168,18 @@ try {
             exit();
             break;
 
+        case 'migrate_airports':
+            ob_clean();
+            echo json_encode(migrateAirports(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'airports_summary':
+            ob_clean();
+            echo json_encode(getAirportsSummary(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
 
         case 'execute_sql':
             ob_clean();
@@ -4009,4 +4021,158 @@ function getAccommodationTypesSummary() {
             'message' => 'خطأ في جلب إحصائيات أنواع الإيواء: ' . $e->getMessage()
         ];
     }
-}\r\n?>
+}\r\n
+
+function migrateAirports() {
+    $oldHost = $_POST['old_db_host'] ?? '127.0.0.1';
+    $oldPort = $_POST['old_db_port'] ?? 8889;
+    $oldDbName = $_POST['old_db_name'] ?? 'platinum';
+    $oldUser = $_POST['old_db_user'] ?? 'root';
+    $oldPass = $_POST['old_db_pass'] ?? 'root';
+
+    try {
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة الجديدة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $oldDsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $oldHost, $oldPort, $oldDbName);
+        $oldDb = new PDO($oldDsn, $oldUser, $oldPass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4'
+        ]);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة القديمة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $createSql = "CREATE TABLE IF NOT EXISTS airports (\n            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,\n            name VARCHAR(255) NOT NULL,\n            country_id BIGINT UNSIGNED NOT NULL,\n            city_id BIGINT UNSIGNED NOT NULL,\n            created_at TIMESTAMP NULL DEFAULT NULL,\n            updated_at TIMESTAMP NULL DEFAULT NULL,\n            PRIMARY KEY (id)\n        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+        $newDb->exec($createSql);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل في تجهيز جدول airports: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $rows = $oldDb->query('SELECT id, name, country_id, city_id, created_at, updated_at FROM airports ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'لم يتمكن من قراءة جدول airports من القاعدة القديمة: ' . $e->getMessage()
+        ];
+    }
+
+    if (empty($rows)) {
+        return [
+            'success' => true,
+            'message' => 'لا توجد بيانات في جدول airports في القاعدة القديمة',
+            'processed' => 0,
+            'inserted' => 0,
+            'updated' => 0,
+            'unchanged' => 0,
+            'skipped' => 0
+        ];
+    }
+
+    $insertSql = "INSERT INTO airports (id, name, country_id, city_id, created_at, updated_at)\n                  VALUES (:id, :name, :country_id, :city_id, :created_at, :updated_at)\n                  ON DUPLICATE KEY UPDATE\n                      name = VALUES(name),\n                      country_id = VALUES(country_id),\n                      city_id = VALUES(city_id),\n                      updated_at = VALUES(updated_at)";
+
+    $stmt = $newDb->prepare($insertSql);
+
+    $processed = 0;
+    $inserted = 0;
+    $updated = 0;
+    $unchanged = 0;
+    $skipped = 0;
+
+    try {
+        $newDb->beginTransaction();
+
+        foreach ($rows as $row) {
+            $processed++;
+
+            $id = isset($row['id']) ? (int)$row['id'] : 0;
+            $countryId = isset($row['country_id']) ? (int)$row['country_id'] : 0;
+            $cityId = isset($row['city_id']) ? (int)$row['city_id'] : 0;
+            $name = trim((string)($row['name'] ?? ''));
+
+            if ($id <= 0 || $countryId <= 0 || $cityId <= 0 || $name === '') {
+                $skipped++;
+                continue;
+            }
+
+            $params = [
+                ':id' => $id,
+                ':name' => $name,
+                ':country_id' => $countryId,
+                ':city_id' => $cityId,
+                ':created_at' => parseDateValue($row['created_at'] ?? null),
+                ':updated_at' => parseDateValue($row['updated_at'] ?? null)
+            ];
+
+            try {
+                $stmt->execute($params);
+                $affected = $stmt->rowCount();
+                if ($affected === 1) {
+                    $inserted++;
+                } elseif ($affected === 2) {
+                    $updated++;
+                } else {
+                    $unchanged++;
+                }
+            } catch (Exception $e) {
+                $skipped++;
+                error_log('خطأ في نقل airport #' . $id . ': ' . $e->getMessage());
+            }
+        }
+
+        $newDb->commit();
+    } catch (Exception $e) {
+        if ($newDb->inTransaction()) {
+            $newDb->rollBack();
+        }
+        return [
+            'success' => false,
+            'message' => 'فشل أثناء نقل المطارات: ' . $e->getMessage()
+        ];
+    }
+
+    return [
+        'success' => true,
+        'message' => 'تم نقل المطارات بنجاح',
+        'processed' => $processed,
+        'inserted' => $inserted,
+        'updated' => $updated,
+        'unchanged' => $unchanged,
+        'skipped' => $skipped
+    ];
+}
+
+function getAirportsSummary() {
+    try {
+        $db = get_db_connection();
+        $total = $db->query('SELECT COUNT(*) AS total FROM airports')->fetch(PDO::FETCH_ASSOC);
+        return [
+            'success' => true,
+            'total' => (int)($total['total'] ?? 0),
+            'airports' => (int)($total['total'] ?? 0),
+            'message' => 'تم جلب إحصائيات المطارات'
+        ];
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في جلب إحصائيات المطارات: ' . $e->getMessage()
+        ];
+    }
+}
+
+?>
