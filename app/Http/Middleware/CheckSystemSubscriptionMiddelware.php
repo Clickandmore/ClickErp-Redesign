@@ -18,14 +18,14 @@ class CheckSystemSubscriptionMiddelware
     {
         $systemSubscription = $this->systemSubscriptionAction->first();
         if (!$systemSubscription) {
-            return redirect()->route('admin.form.login');
+            return $next($request);
         }
 
         $systemPlans = $systemSubscription->system_plans;
         $hasModuleWebsite = $systemPlans->contains('module_name', ModulaNamesEnum::Website->value);
 
         if (!$hasModuleWebsite) {
-            return redirect()->route('admin.form.login');
+            return $next($request);
         }
 
         return $next($request);
