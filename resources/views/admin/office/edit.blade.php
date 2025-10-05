@@ -172,6 +172,9 @@
             <div class="step">
                 <div class="circle">3</div>
                 <p>{{helperTrans("ingaz.bank_account_details")}}</p></div>
+            <div class="step">
+                <div class="circle">4</div>
+                <p>{{helperTrans("ingaz.office_attachments")}}</p></div>
         </div>
 
         <form id="wizardForm" class="from-submit-global" action="{{ route('offices.update' , $office->id) }}"
@@ -316,11 +319,12 @@
                     <div class="form-group">
                         <label>{{helperTrans("ingaz.file")}} *</label>
                         <input type="file" class="dropify" name="file" data-validation="required"
-                               data-default-file="{{showFile($office->file)}}">
+                               data-default-file="{{showFile($office->attachment->file ?? '-')}}">
                     </div>
                     <div class="form-group">
                         <label>{{helperTrans("ingaz.file_name")}} *</label>
-                        <input type="text" class="form-control" value="{{$office->file_name}}" name="file_name"
+                        <input type="text" class="form-control" value="{{$office->attachment->file_name ?? '-'}}"
+                               name="file_name"
                                data-validation="required">
                     </div>
                 </div>
