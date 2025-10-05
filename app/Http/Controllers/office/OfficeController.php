@@ -142,7 +142,7 @@ class OfficeController extends Controller
         DB::beginTransaction();
         $data = $request->validated();
         $jobTitleIds = $data['job_title_id'] ?? [];
-        unset($data['job_title_id'] , $data['file'] , $data['file_name']);
+        unset($data['job_title_id'], $data['file'], $data['file_name']);
         $office = $action->store($data);
         foreach ($jobTitleIds as $jobTitleId) {
             $jopTypeOfficeAction->store([
@@ -162,7 +162,7 @@ class OfficeController extends Controller
         ]);
         $officeAttachmentAction->store([
             'office_id' => $office->id,
-            'file' => uploadFile($request->file('file') , 'office_attachments'),
+            'file' => uploadFile($request->file('file'), 'office_attachments'),
             'file_name' => $request->file_name,
         ]);
         DB::commit();
@@ -205,10 +205,26 @@ class OfficeController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function update(OfficeRequest $request, objAction $action, $id, AdminAction $adminAction, AdminOfficeAction $adminOfficeAction)
+    public function update(OfficeRequest $request, objAction $action, $id, OfficeAttachmentAction $officeAttachmentAction, AdminAction $adminAction, AdminOfficeAction $adminOfficeAction)
     {
         $data = $request->only($this->postData);
         $obj = $action->find($id);
+        if (isset($data['file']) && $data['file_name']) {
+            $attachment = $obj->attachment;
+            if (isset($attachment)) {
+                $attachment->update([
+                    'file' => uploadFile($request->file('file'), 'office_attachments'),
+                    'file_name' => $request->file_name,
+                ]);
+            } else {
+                $officeAttachmentAction->store([
+                    'office_id' => $id,
+                    'file' => uploadFile($request->file('file'), 'office_attachments'),
+                    'file_name' => $request->file_name,
+                ]);
+            }
+        }
+        unset($data['file'], $data['file_name']);
         if (isset($obj->officeManager->admin_id)) {
             $admin = $adminAction->find($obj->officeManager->admin_id);
             $adminData['name'] = $data['manager_name'];
@@ -231,8 +247,6 @@ class OfficeController extends Controller
 
         $jobTitleIds = $data['job_title_id'] ?? [];
         unset($data['job_title_id']);
-
-
         $obj->update($data);
         $obj->jobTypes()->sync($jobTitleIds);
         return jsonSuccess(['url' => route('offices.index')], null, 201);
