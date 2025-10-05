@@ -180,6 +180,18 @@ try {
             exit();
             break;
 
+        case 'migrate_contract_logs':
+            ob_clean();
+            echo json_encode(migrateContractLogs(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'contract_logs_summary':
+            ob_clean();
+            echo json_encode(getContractLogsSummary(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
 
         case 'execute_sql':
             ob_clean();
@@ -3699,18 +3711,20 @@ function migrateContracts() {
     }
 
     try {
-        $contracts = $oldDb->query('SELECT id, attatches, covered_guarantee_date, expired_date, created_at, updated_at, throwback_date, resv_id, throwback_reason, date_contract, contract_visa_num, musand_num FROM contracts ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+        $contracts = $oldDb->query(
+            'SELECT id, attatches, covered_guarantee_date, expired_date, created_at, updated_at, throwback_date, resv_id, throwback_reason, date_contract, contract_visa_num, musand_num, authorization_num, contract_border_num, contract_cost, contract_tex, contract_visa_type, contract_visa_date, contract_late_cost, contract_holiday_day, musand_date, driver_id FROM contracts ORDER BY id'
+        )->fetchAll(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         return [
             'success' => false,
-            'message' => 'فشل قراءة بيانات العقود: ' . $e->getMessage()
+            'message' => 'لم يتمكن من قراءة جدول العقد القديم: ' . $e->getMessage()
         ];
     }
 
     if (empty($contracts)) {
         return [
             'success' => true,
-            'message' => 'لا توجد عقود في القاعدة القديمة لنقلها',
+            'message' => 'لا توجد بيانات لنقلها من جدول العقود القديم',
             'processed' => 0,
             'inserted' => 0,
             'updated' => 0,
@@ -3720,8 +3734,72 @@ function migrateContracts() {
     }
 
     $insertSql = <<<SQL
-INSERT INTO contracts (id, status, warranty_status, signature, warranty_start_date, warranty_end_date, created_at, updated_at, completed_at, order_id, user_id, marketer_id, maid_id, required_maid_notes, contract_date, visa_number, msaned_number)
-VALUES (:id, :status, :warranty_status, :signature, :warranty_start_date, :warranty_end_date, :created_at, :updated_at, :completed_at, :order_id, :user_id, :marketer_id, :maid_id, :required_maid_notes, :contract_date, :visa_number, :msaned_number)
+INSERT INTO contracts (
+    id,
+    status,
+    warranty_status,
+    signature,
+    warranty_start_date,
+    warranty_end_date,
+    created_at,
+    updated_at,
+    completed_at,
+    order_id,
+    user_id,
+    marketer_id,
+    maid_id,
+    required_maid_nationality_id,
+    required_maid_religion_id,
+    required_maid_job_title_id,
+    required_maid_notes,
+    contract_date,
+    visa_number,
+    msaned_number,
+    authorization_num,
+    contract_border_num,
+    contract_cost,
+    contract_tex,
+    contract_visa_type,
+    contract_visa_date,
+    contract_late_cost,
+    contract_holiday_day,
+    throwback_reason,
+    throwback_date,
+    musand_date
+)
+VALUES (
+    :id,
+    :status,
+    :warranty_status,
+    :signature,
+    :warranty_start_date,
+    :warranty_end_date,
+    :created_at,
+    :updated_at,
+    :completed_at,
+    :order_id,
+    :user_id,
+    :marketer_id,
+    :maid_id,
+    :required_maid_nationality_id,
+    :required_maid_religion_id,
+    :required_maid_job_title_id,
+    :required_maid_notes,
+    :contract_date,
+    :visa_number,
+    :msaned_number,
+    :authorization_num,
+    :contract_border_num,
+    :contract_cost,
+    :contract_tex,
+    :contract_visa_type,
+    :contract_visa_date,
+    :contract_late_cost,
+    :contract_holiday_day,
+    :throwback_reason,
+    :throwback_date,
+    :musand_date
+)
 ON DUPLICATE KEY UPDATE
     status = VALUES(status),
     warranty_status = VALUES(warranty_status),
@@ -3735,10 +3813,24 @@ ON DUPLICATE KEY UPDATE
     user_id = VALUES(user_id),
     marketer_id = VALUES(marketer_id),
     maid_id = VALUES(maid_id),
+    required_maid_nationality_id = VALUES(required_maid_nationality_id),
+    required_maid_religion_id = VALUES(required_maid_religion_id),
+    required_maid_job_title_id = VALUES(required_maid_job_title_id),
     required_maid_notes = VALUES(required_maid_notes),
     contract_date = VALUES(contract_date),
     visa_number = VALUES(visa_number),
-    msaned_number = VALUES(msaned_number)
+    msaned_number = VALUES(msaned_number),
+    authorization_num = VALUES(authorization_num),
+    contract_border_num = VALUES(contract_border_num),
+    contract_cost = VALUES(contract_cost),
+    contract_tex = VALUES(contract_tex),
+    contract_visa_type = VALUES(contract_visa_type),
+    contract_visa_date = VALUES(contract_visa_date),
+    contract_late_cost = VALUES(contract_late_cost),
+    contract_holiday_day = VALUES(contract_holiday_day),
+    throwback_reason = VALUES(throwback_reason),
+    throwback_date = VALUES(throwback_date),
+    musand_date = VALUES(musand_date)
 SQL;
 
     $insertStmt = $newDb->prepare($insertSql);
@@ -3773,12 +3865,26 @@ SQL;
                 ':completed_at' => normalizeContractDateTime($row['throwback_date'] ?? null),
                 ':order_id' => normalizeContractInt($row['resv_id'] ?? null),
                 ':user_id' => 1673,
-                ':marketer_id' => 61,
-                ':maid_id' => 1323,
+                ':marketer_id' => normalizeContractInt($row['driver_id'] ?? null),
+                ':maid_id' => null,
+                ':required_maid_nationality_id' => null,
+                ':required_maid_religion_id' => null,
+                ':required_maid_job_title_id' => null,
                 ':required_maid_notes' => normalizeContractValue($row['throwback_reason'] ?? null),
                 ':contract_date' => normalizeContractDate($row['date_contract'] ?? null),
                 ':visa_number' => normalizeContractValue($row['contract_visa_num'] ?? null),
-                ':msaned_number' => normalizeContractValue($row['musand_num'] ?? null)
+                ':msaned_number' => normalizeContractValue($row['musand_num'] ?? null),
+                ':authorization_num' => normalizeContractValue($row['authorization_num'] ?? null),
+                ':contract_border_num' => normalizeContractValue($row['contract_border_num'] ?? null),
+                ':contract_cost' => normalizeContractFloat($row['contract_cost'] ?? null),
+                ':contract_tex' => normalizeContractFloat($row['contract_tex'] ?? null),
+                ':contract_visa_type' => normalizeContractValue($row['contract_visa_type'] ?? null),
+                ':contract_visa_date' => normalizeContractDate($row['contract_visa_date'] ?? null),
+                ':contract_late_cost' => normalizeContractValue($row['contract_late_cost'] ?? null),
+                ':contract_holiday_day' => normalizeContractValue($row['contract_holiday_day'] ?? null),
+                ':throwback_reason' => normalizeContractValue($row['throwback_reason'] ?? null),
+                ':throwback_date' => normalizeContractDate($row['throwback_date'] ?? null),
+                ':musand_date' => normalizeContractDate($row['musand_date'] ?? null)
             ];
 
             $insertStmt->execute($params);
@@ -3809,6 +3915,7 @@ SQL;
         'skipped' => $skipped
     ];
 }
+
 
 function getContractsSummary() {
     try {
@@ -3858,6 +3965,19 @@ function normalizeContractInt($value) {
 
     $intValue = (int)$normalized;
     return $intValue > 0 ? $intValue : null;
+}
+
+function normalizeContractFloat($value) {
+    $normalized = normalizeContractValue($value);
+    if ($normalized === null) {
+        return null;
+    }
+
+    if (is_string($normalized)) {
+        $normalized = str_replace(',', '', $normalized);
+    }
+
+    return is_numeric($normalized) ? (float)$normalized : null;
 }
 
 function normalizeContractDateTime($value) {
@@ -4021,7 +4141,7 @@ function getAccommodationTypesSummary() {
             'message' => 'خطأ في جلب إحصائيات أنواع الإيواء: ' . $e->getMessage()
         ];
     }
-}\r\n
+}
 
 function migrateAirports() {
     $oldHost = $_POST['old_db_host'] ?? '127.0.0.1';
@@ -4175,4 +4295,176 @@ function getAirportsSummary() {
     }
 }
 
+function migrateContractLogs() {
+    $oldHost = $_POST['old_db_host'] ?? '127.0.0.1';
+    $oldPort = $_POST['old_db_port'] ?? 8889;
+    $oldDbName = $_POST['old_db_name'] ?? 'platinum_old';
+    $oldUser = $_POST['old_db_user'] ?? 'root';
+    $oldPass = $_POST['old_db_pass'] ?? 'root';
+
+    try {
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة الجديدة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $oldDsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $oldHost, $oldPort, $oldDbName);
+        $oldDb = new PDO($oldDsn, $oldUser, $oldPass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4'
+        ]);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة القديمة: ' . $e->getMessage()
+        ];
+    }
+
+    $statusMap = [
+        '1' => 'new',
+        '2' => 'approval',
+        '3' => 'msaned',
+        '4' => 'tafwed',
+        '5' => 'taffez',
+        '6' => 'tazker',
+        '7' => 'completed',
+        '8' => 'return'
+    ];
+
+    try {
+        $rows = $oldDb->query('SELECT id, contract_id, user_id, status, note, date, created_at, updated_at FROM contract_logs ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'لم يتمكن من قراءة جدول العقد القديم: ' . $e->getMessage()
+        ];
+    }
+
+    if (empty($rows)) {
+        return [
+            'success' => true,
+            'message' => 'لا توجد بيانات في جدول contract_logs في القاعدة القديمة',
+            'processed' => 0,
+            'inserted' => 0,
+            'updated' => 0,
+            'unchanged' => 0,
+            'skipped' => 0
+        ];
+    }
+
+    $insertSql = "INSERT INTO contract_status_logs (id, contract_id, user_id, status, notes, date, created_at, updated_at)
+                  VALUES (:id, :contract_id, :user_id, :status, :notes, :date, :created_at, :updated_at)
+                  ON DUPLICATE KEY UPDATE
+                      contract_id = VALUES(contract_id),
+                      user_id = VALUES(user_id),
+                      status = VALUES(status),
+                      notes = VALUES(notes),
+                      date = VALUES(date),
+                      created_at = VALUES(created_at),
+                      updated_at = VALUES(updated_at)";
+
+    $stmt = $newDb->prepare($insertSql);
+
+    $processed = 0;
+    $inserted = 0;
+    $updated = 0;
+    $unchanged = 0;
+    $skipped = 0;
+
+    try {
+        $newDb->beginTransaction();
+
+        foreach ($rows as $row) {
+            $processed++;
+
+            $id = isset($row['id']) ? (int)$row['id'] : 0;
+            $contractId = isset($row['contract_id']) ? (int)$row['contract_id'] : 0;
+            $userId = isset($row['user_id']) ? (int)$row['user_id'] : 0;
+            $rawStatus = isset($row['status']) ? (string)$row['status'] : '';
+            $status = $statusMap[$rawStatus] ?? 'unknown';
+            $notes = trim((string)($row['note'] ?? ''));
+            $dateValue = $row['date'] ?? null;
+            $date = parseDateValue($dateValue);
+            $date = $date ? substr($date, 0, 10) : null;
+            $createdAt = parseDateValue($row['created_at'] ?? null);
+            $updatedAt = parseDateValue($row['updated_at'] ?? null);
+
+            if ($id <= 0 || $contractId <= 0 || $userId <= 0 || !$date) {
+                $skipped++;
+                continue;
+            }
+
+            $params = [
+                ':id' => $id,
+                ':contract_id' => $contractId,
+                ':user_id' => $userId,
+                ':status' => $status,
+                ':notes' => $notes !== '' ? $notes : null,
+                ':date' => $date,
+                ':created_at' => $createdAt,
+                ':updated_at' => $updatedAt
+            ];
+
+            try {
+                $stmt->execute($params);
+                $affected = $stmt->rowCount();
+                if ($affected === 1) {
+                    $inserted++;
+                } elseif ($affected === 2) {
+                    $updated++;
+                } else {
+                    $unchanged++;
+                }
+            } catch (Exception $e) {
+                $skipped++;
+                error_log('خطأ في نقل contract_log #' . $id . ': ' . $e->getMessage());
+            }
+        }
+
+        $newDb->commit();
+    } catch (Exception $e) {
+        if ($newDb->inTransaction()) {
+            $newDb->rollBack();
+        }
+        return [
+            'success' => false,
+            'message' => 'فشل أثناء نقل سجلات العقود: ' . $e->getMessage()
+        ];
+    }
+
+    return [
+        'success' => true,
+        'message' => 'تم نقل سجلات العقود بنجاح',
+        'processed' => $processed,
+        'inserted' => $inserted,
+        'updated' => $updated,
+        'unchanged' => $unchanged,
+        'skipped' => $skipped
+    ];
+}
+
+function getContractLogsSummary() {
+    try {
+        $db = get_db_connection();
+        $total = $db->query('SELECT COUNT(*) AS total FROM contract_status_logs')->fetch(PDO::FETCH_ASSOC);
+        return [
+            'success' => true,
+            'total' => (int)($total['total'] ?? 0),
+            'contract_logs' => (int)($total['total'] ?? 0),
+            'message' => 'تم جلب إحصائيات سجلات العقود'
+        ];
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في جلب إحصائيات سجلات العقود: ' . $e->getMessage()
+        ];
+    }
+}
+
 ?>
+
