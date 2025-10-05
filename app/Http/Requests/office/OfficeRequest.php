@@ -78,13 +78,13 @@ class OfficeRequest extends MainRequest
     {
         $officeId = $this->route("office");
         return [
-            "title:ar" => "nullable|string",
-            "title:en" => "nullable|string",
-            "phone_office" => "nullable|numeric",
-            "license_number" => "nullable|numeric",
-            "nationality_id" => "nullable|exists:nationalities,id",
-            "street" => "nullable|string",
-            "manager_name" => "required|string",
+            "title:ar" => "required|string",
+            "title:en" => "required|string",
+            "phone_office" => "required|numeric",
+            "license_number" => "required|numeric",
+            "nationality_id" => "required|exists:nationalities,id",
+            "street" => "required|string",
+            "manager_name" => "nullable|string",
             "manager_email" => [
                 "nullable",
                 "email",
@@ -136,8 +136,8 @@ class OfficeRequest extends MainRequest
             "bank_iban" => "nullable|numeric",
             "cost_of_dollar" => "nullable|numeric",
             "cost_of_other" => "nullable|numeric",
-            "job_title_id" => "nullable|array",
-            "job_title_id.*" => "nullable|exists:job_types,id",
+            "job_title_id" => "required|array",
+            "job_title_id.*" => "required|exists:job_types,id",
         ];
     }
 
