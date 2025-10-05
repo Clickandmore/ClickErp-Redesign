@@ -84,7 +84,7 @@ class OfficeRequest extends MainRequest
             "license_number" => "nullable|numeric",
             "nationality_id" => "nullable|exists:nationalities,id",
             "street" => "nullable|string",
-            "manager_name" => "required|string",
+            "manager_name" => "nullable|string",
             "manager_email" => [
                 "nullable",
                 "email",
