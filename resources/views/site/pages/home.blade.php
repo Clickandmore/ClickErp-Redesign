@@ -47,25 +47,18 @@
     </section>
     <!-- services -->
     <section class="hero-services" data-aos="fade-up">
-        <div class="expertise">
+        <!-- <div class="expertise">
             {{__('ingaz.experience more than')}}
             <span> {{isset($settings->years) ? $settings->years : ''}} <small> {{__('ingaz.years')}} </small> </span>
+        </div> -->
+          <div class="expertise">
+          <img src="{{asset('site')}}/assets/images/experience.jpg"
+          alt="" />
+
         </div>
         <a href="{{route('site.all-workers.index') }}?type=estqdam" class="service">
             <div class="icon">
-                <svg viewBox="0 0 43.491 43.491">
-                    <g>
-                        <path
-                            d="m41.625 9.778-3.22-1.961s2.054-5.874 1.875-6.688C40.104.316 39.232 0 39.232 0l-3.461 6.388-3.557-1.546-.021-2.333-1.087-.966s-.317 2.663-.77 3.308c-.449.644-2.229 1.851-2.229 1.851l.938.95 2.426-1.307 2.991 2.071-3.716 6.216s.749.923 1.486.521c.736-.402 4.342-5.037 4.342-5.037s3.501 1.958 3.873 2.043c.372.087 1.291.574 1.757-.54.466-1.113-.201-1.611-.579-1.841z">
-                        </path>
-                        <path
-                            d="M36.078 16.177a15.68 15.68 0 0 0-1.732-1.745l-.899.93a14.635 14.635 0 0 1 1.592 1.587 15.085 15.085 0 0 1-3.024 1.496c-.832-2.472-2.047-4.528-3.511-5.924a13.92 13.92 0 0 1 1.609.646l.688-1.107a15.588 15.588 0 0 0-6.768-1.539H23.996l-.055.002c-4.798.028-9.092 2.224-11.951 5.654-.264.317-.514.645-.752.982a15.575 15.575 0 0 0-2.882 9.04 15.58 15.58 0 0 0 2.882 9.04c.238.337.488.666.752.981 2.86 3.431 7.153 5.625 11.951 5.653l.055.002H24.033c4.836 0 9.167-2.202 12.045-5.655.264-.316.514-.646.752-.982a15.586 15.586 0 0 0 2.881-9.04c0-3.365-1.068-6.483-2.881-9.04a14.816 14.816 0 0 0-.752-.981zM19.451 12.56c-1.441 1.39-2.638 3.422-3.463 5.861a14.877 14.877 0 0 1-2.959-1.473 14.452 14.452 0 0 1 6.422-4.388zm-7.177 5.372c.974.651 2.101 1.22 3.347 1.689a24.951 24.951 0 0 0-.856 6.446H9.646a14.31 14.31 0 0 1 2.628-8.135zm-2.581 9.422h5.096a24.65 24.65 0 0 0 .832 5.424 16.525 16.525 0 0 0-3.347 1.689 14.309 14.309 0 0 1-2.581-7.113zm3.34 8.093a14.951 14.951 0 0 1 2.953-1.469c.826 2.438 2.023 4.47 3.465 5.859a14.428 14.428 0 0 1-6.418-4.39zm10.358 5.096c-2.639-.361-4.917-3.068-6.209-6.967 1.862-.559 3.971-.896 6.209-.952v7.919zm0-9.204c-2.36.058-4.587.423-6.568 1.03a23.925 23.925 0 0 1-.745-5.016h7.313v3.986zm0-5.273h-7.339a24.25 24.25 0 0 1 .776-6.036c1.979.606 4.204.972 6.563 1.028v5.008zm0-6.293c-2.237-.055-4.346-.392-6.207-.95 1.293-3.896 3.568-6.607 6.207-6.969v7.919zm1.287-7.909c2.61.403 4.858 3.108 6.137 6.979-1.844.546-3.926.877-6.137.931v-7.91zm0 9.195c2.332-.056 4.53-.413 6.494-1.007.479 1.829.76 3.863.77 6.015h-7.264v-5.008zm0 6.295h7.238a24.033 24.033 0 0 1-.738 4.994c-1.965-.595-4.168-.953-6.5-1.009v-3.985zm0 13.18v-7.909c2.211.055 4.295.385 6.141.932-1.28 3.871-3.531 6.573-6.141 6.977zm3.824-.658c1.463-1.396 2.682-3.45 3.514-5.922a15.08 15.08 0 0 1 3.021 1.493 14.443 14.443 0 0 1-6.535 4.429zm7.292-5.409c-.991-.664-2.144-1.242-3.416-1.716.452-1.664.742-3.481.824-5.397h5.173a14.309 14.309 0 0 1-2.581 7.113zm-2.565-8.401c-.012-2.291-.317-4.462-.852-6.42 1.273-.474 2.424-1.052 3.415-1.714a14.302 14.302 0 0 1 2.628 8.134h-5.191z">
-                        </path>
-                        <path
-                            d="M3.69 25.822c0-11.465 9.327-20.794 20.794-20.794 1.187 0 2.344.117 3.475.31l1.316-.811.434-1.44c-1.486-.3-3.65-.622-5.225-.622-12.88 0-23.357 10.479-23.357 23.357a30.4 30.4 0 0 0 .222 3.83c.641 5.061 7.079 13.838 12.19 13.839C8.005 39.533 3.69 33.273 3.69 25.822z">
-                        </path>
-                    </g>
-                </svg>
+                <i class="fa-duotone fa-user-plus fa-2x mb-2"></i>
             </div>
             <div class="text">
                 <h4 class="title">{{__('ingaz.recruitment_request')}}</h4>
@@ -74,17 +67,7 @@
         </a>
         <a href="{{route('site.all-workers.index') }}?type=transfer" class="service">
             <div class="icon">
-                <svg viewBox="0 0 64 64">
-                    <g transform="matrix(1.0799999999999996,0,0,1.0799999999999996,-2.5600001525878824,-2.5600003051757767)">
-                        <path
-                            d="M10.995 58a3.009 3.009 0 0 1-3-3V9a3.009 3.009 0 0 1 3-3h19a2.015 2.015 0 0 1 2 2v5a5.002 5.002 0 0 0 5 5h5a2.015 2.015 0 0 1 2 2v12.04c.33-.03.67-.04 1.01-.04.33 0 .66.01.99.04V20a3.951 3.951 0 0 0-1.04-2.68c-.04-.05-12.13-12.15-12.13-12.15A4.043 4.043 0 0 0 29.995 4h-19a5.002 5.002 0 0 0-5 5v46a5.002 5.002 0 0 0 5 5h26.54a14.377 14.377 0 0 1-2.71-2z">
-                        </path>
-                        <path
-                            d="M40.995 22H19.473a1 1 0 0 0 0 2h21.522a1 1 0 0 0 0-2zM41.995 32a1 1 0 0 0-1-1H19.473a1 1 0 0 0 0 2h21.522a1 1 0 0 0 1-1zM31.745 40h-12.27a1 1 0 0 0 0 2h11.39a14.268 14.268 0 0 1 .88-2zM18.475 50a1.003 1.003 0 0 0 1 1h11.07a13.357 13.357 0 0 1-.4-2h-10.67a1.003 1.003 0 0 0-1 1zM16.702 20.626a1 1 0 0 0-1.414 0l-2.627 2.626-.959-.959a1 1 0 1 0-1.414 1.414l1.667 1.667a1 1 0 0 0 1.414 0l3.333-3.333a1 1 0 0 0 0-1.415zM16.702 29.626a1 1 0 0 0-1.414 0l-2.627 2.626-.959-.959a1 1 0 1 0-1.414 1.414l1.667 1.667a1 1 0 0 0 1.414 0l3.333-3.333a1 1 0 0 0 0-1.415zM16.702 38.626a1 1 0 0 0-1.414 0l-2.627 2.626-.959-.959a1 1 0 1 0-1.414 1.414l1.667 1.667a1 1 0 0 0 1.414 0l3.333-3.333a1 1 0 0 0 0-1.415zM15.288 47.626l-2.626 2.626-.96-.959a1 1 0 1 0-1.414 1.414l1.667 1.667a1 1 0 0 0 1.414 0l3.333-3.333a1 1 0 0 0-1.414-1.415zM45.005 34a13 13 0 1 0 13 13 13.012 13.012 0 0 0-13-13zm8.98 19.35a4.435 4.435 0 0 0-3.07-4.08l-.46-.15a7.137 7.137 0 0 1-10.91-.01l-.45.15a4.459 4.459 0 0 0-3.07 4.08 10.855 10.855 0 0 1-2.02-6.34 11 11 0 1 1 19.98 6.35z">
-                        </path>
-                        <circle cx="45.005" cy="44.49" r="5.16" transform="rotate(-13.34 44.909 44.48)"></circle>
-                    </g>
-                </svg>
+                <i class="fa-duotone fa-people-arrows fa-2x mb-2"></i>
             </div>
             <div class="text">
                 <h4 class="title">{{__('ingaz.Labor_transfer')}}</h4>
@@ -93,13 +76,7 @@
         </a>
         <a href="{{route('site.all-workers.index') }}?type=egar" class="service">
             <div class="icon">
-                <svg viewBox="0 0 64 64">
-                    <g>
-                        <path d="M32 4a28 28 0 1 0 28 28A28 28 0 0 0 32 4zm0 52A24 24 0 1 1 56 32 24 24 0 0 1 32 56z"/>
-                        <path d="M32 18a8 8 0 1 0 8 8 8 8 0 0 0-8-8zm0 12a4 4 0 1 1 4-4 4 4 0 0 1-4 4z"/>
-                        <path d="M32 34c-6.63 0-12 4.03-12 9v3h24v-3c0-4.97-5.37-9-12-9z"/>
-                    </g>
-                </svg>
+             <i class="fa-duotone fa-business-time"></i>
             </div>
             <div class="text">
                 <h4 class="title">{{__('ingaz.Labor_rental')}}</h4>
@@ -152,62 +129,64 @@
             </div>
 
             <!-- Vision / Mission / Values -->
-            <div class="row g-4">
-                <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
-                    <div class="about-card">
-                        <span class="about-number">01</span>
-                        <i class="fa-solid fa-eye"></i>
-                        <h4>{{__('ingaz.vision')}}</h4>
-                        <p>
-                            @if(isset($about)&& isset($about->vision))
-                                {!!$about->vision!!}
-                            @else
-                                أن نكون الخيار الأول للاستقدام في المملكة العربية السعودية، وذلك
-                                بالتفرد بتقديم أجود الخدمات وانتقاء أجود الكفاءات، والحرص على
-                                راحة العملاء وحفظ حقوقهم، ونحقق ذلك بعد اكتساب ثقة العملاء
-                                وتوصيتهم بنا لمن حولهم.
-                            @endif
-                        </p>
-                    </div>
-                </div>
+   <div class="row g-4">
+    <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+        <div class="about-card" style="--bg-image: url('{{ asset('site/assets/images/selectworker.webp') }}');">
+            <span class="about-number">01</span>
+            <i class="fa-solid fa-eye"></i>
+            <h4>{{ __('ingaz.vision') }}</h4>
+            <p>
+                @if(isset($about) && isset($about->vision))
+                    {!! $about->vision !!}
+                @else
+                    أن نكون الخيار الأول للاستقدام في المملكة العربية السعودية، وذلك
+                    بالتفرد بتقديم أجود الخدمات وانتقاء أجود الكفاءات، والحرص على
+                    راحة العملاء وحفظ حقوقهم، ونحقق ذلك بعد اكتساب ثقة العملاء
+                    وتوصيتهم بنا لمن حولهم.
+                @endif
+            </p>
+        </div>
+    </div>
 
-                <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
-                    <div class="about-card">
-                        <span class="about-number">02</span>
-                        <i class="fa-solid fa-envelope-open-text"></i>
-                        <h4>{{__('ingaz.mission')}}</h4>
-                        <p>
-                            @if(isset($about)&& isset($about->mission))
-                                {!!$about->mission!!}
-                            @else
-                                نفتخر بعملنا كونه يسهم بتوفير موارد
-                                ودخل جيّد لأسرة وفرد بحاجة لهذه الموارد لدعم أسرته وبناء مستقبله،
-                                وبالمقابل توفير سبل الراحة للأسرة السعودية والمقيمة في وطننا
-                                المعطاء.
-                                ((( احتياجاتكم اولوياتنا ))).
-                            @endif
-                        </p>
-                    </div>
-                </div>
+    <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+        <div class="about-card" style="--bg-image: url('{{ asset('site/assets/images/service2.webp') }}');">
+            <span class="about-number">02</span>
+            <i class="fa-solid fa-envelope-open-text"></i>
+            <h4>{{ __('ingaz.mission') }}</h4>
+            <p>
+                @if(isset($about) && isset($about->mission))
+                    {!! $about->mission !!}
+                @else
+                    نفتخر بعملنا كونه يسهم بتوفير موارد
+                    ودخل جيّد لأسرة وفرد بحاجة لهذه الموارد لدعم أسرته وبناء مستقبله،
+                    وبالمقابل توفير سبل الراحة للأسرة السعودية والمقيمة في وطننا
+                    المعطاء.
+                    ((( احتياجاتكم اولوياتنا ))).
+                @endif
+            </p>
+        </div>
+    </div>
 
-                <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
-                    <div class="about-card">
-                        <span class="about-number">03</span>
-                        <i class="fa-solid fa-handshake"></i>
-                        <h4>{{__('ingaz.values')}}</h4>
-                        <p>
-                            @if(isset($about)&& isset($about->value))
-                                {!!$about->value!!}
-                            @else
-                                قيمنا تركز على رضى العميل، حيث نولي الأولوية للجودة والكمال في كل
-                                خدماتنا. نحن روح الفريق لتحقيق النجاح، نحرص على السرعة والانجاز
-                                لتلبية احتياجات عملائنا، ونعتبر النزاهة والشفافية أساساً في كل
-                                تعاملاتنا.
-                            @endif
-                        </p>
-                    </div>
-                </div>
-            </div>
+    <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
+        <div class="about-card" style="--bg-image: url('{{ asset('site/assets/images/about.webp') }}');">
+            <span class="about-number">03</span>
+            <i class="fa-solid fa-handshake"></i>
+            <h4>{{ __('ingaz.values') }}</h4>
+            <p>
+                @if(isset($about) && isset($about->value))
+                    {!! $about->value !!}
+                @else
+                    قيمنا تركز على رضى العميل، حيث نولي الأولوية للجودة والكمال في كل
+                    خدماتنا. نحن روح الفريق لتحقيق النجاح، نحرص على السرعة والانجاز
+                    لتلبية احتياجات عملائنا، ونعتبر النزاهة والشفافية أساساً في كل
+                    تعاملاتنا.
+                @endif
+            </p>
+        </div>
+    </div>
+</div>
+
+
         </div>
     </section>
 
@@ -358,98 +337,100 @@
             </div>
     </section>
 
-    <!-- ================ services ================= -->
-    <section class="services-sec" id="services">
-        <div class="">
-            <div class="headTitle" data-aos="fade-up">
-                <h2>{{__('ingaz.our_services')}}</h2>
-                <p>{{__('ingaz.our_services_desc')}}</p>
-            </div>
-            <div class="services-slider swiper" data-aos="fade-up">
-                <div class="swiper-wrapper">
-                    @forelse($services as $service)
-                        <div class="swiper-slide" style="min-width:300px;max-width:100%;">
-                            <div class="col p-2">
-                                <a href="#"
-                                   class="service d-flex flex-column justify-content-center"
-                                   style="background: url('{{showFile($service->image)}}') no-repeat">
-                                    <i class="fa-solid fa-passport"></i>
-                                    <h3 class="serviceTitle">{{$service->title}}</h3>
-                                    <h6 class="serviceP">
-                                        {{ Str::limit($service->description, 100) }}
-                                    </h6>
-                                </a>
-                            </div>
-                        </div>
-                    @empty
-                        <div class="swiper-slide" style="min-width:300px;max-width:100%;">
-                            <div class="col p-2">
-                                <a
-                                    href="#"
-                                    class="service d-flex flex-column justify-content-center"
-                                    style="background: url({{asset('site')}}assets/images/files.webp) no-repeat">
-                                    <i class="fa-solid fa-users-gear"></i>
-                                    <h3 class="serviceTitle">اختيار العمالة</h3>
-                                    <h6 class="serviceP">
-                                        اختيار السيره الذاتيه للعماله المنزليه عبر البحث في برنامج مساند
-                                    </h6>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="swiper-slide" style="min-width:300px;max-width:100%;">
-                            <div class="col p-2">
-                                <a
-                                    href="#"
-                                    class="service d-flex flex-column justify-content-center"
-                                    style="background: url({asset('site')}}/assets/images/bg-plane.webp) no-repeat"
-                                >
-                                    <i class="fa-solid fa-plane-arrival"></i>
-                                    <h3 class="serviceTitle">وصول العمالة</h3>
-                                    <h6 class="serviceP">
-                                        وصول العمالة المنزلية من المطار المحلي الى المكتب
-                                    </h6>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="swiper-slide" style="min-width:300px;max-width:100%;">
-                            <div class="col p-2">
-                                <a
-                                    href="#"
-                                    class="service d-flex flex-column justify-content-center"
-                                    style="background: url({asset('site')}}/assets/images/hands.webp) no-repeat;"
-                                >
-                                    <i class="fa-solid fa-file-contract"></i>
-                                    <h3 class="serviceTitle">تجديد عقد عاملة</h3>
-                                    <h6 class="serviceP">
-                                        خدمة تجديد عقد العاملة المنزلية بشكل إلكتروني عبر منصة مساند
-                                    </h6>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="swiper-slide" style="min-width:300px;max-width:100%;">
-                            <div class="col p-2">
-                                <a
-                                    href="#"
-                                    class="service d-flex flex-column justify-content-center"
-                                    style="background: url({{asset('site')}}/assets/images/f3.webp) no-repeat;"
-                                >
-                                    <i class="fa-solid fa-users-gear"></i>
-                                    <h3 class="serviceTitle">طلب العمالة المهنية</h3>
-                                    <h6 class="serviceP">
-                                        نحن قادرون على جلب أفضل أنواع العمالة المهنية من مختلف التخصصات لتلبية
-                                        احتياجاتك بأعلى جودة وكفاءة
-                                    </h6>
-                                </a>
-                            </div>
-                        </div>
-                    @endforelse
-                </div>
-                <!-- <div class="swiper-pagination"></div> -->
-                <div class="swiper-button-next custom-swiper-btn"></div>
-                <div class="swiper-button-prev custom-swiper-btn"></div>
-            </div>
+   <!-- ================ services ================= -->
+<section class="services-sec" id="services">
+    <div class="container">
+        <div class="headTitle" data-aos="fade-up">
+            <h2>{{ __('ingaz.our_services') }}</h2>
+            <p>{{ __('ingaz.our_services_desc') }}</p>
         </div>
-    </section>
+
+        <!-- السلايدر -->
+        <div class="services-slider swiper" data-aos="fade-up">
+            <div class="swiper-wrapper">
+                @forelse($services as $service)
+                    <div class="swiper-slide">
+                        <a href="#"
+                           class="service d-flex flex-column justify-content-center"
+                           style="background: url('{{ showFile($service->image) }}') no-repeat center/cover;">
+                            <i class="fa-solid fa-passport"></i>
+                            <h3 class="serviceTitle">{{ $service->title }}</h3>
+                            <h6 class="serviceP">
+                                {{ Str::limit($service->description, 100) }}
+                            </h6>
+                        </a>
+                    </div>
+                @empty
+                    <div class="swiper-slide">
+                        <a href="#"
+                           class="service d-flex flex-column justify-content-center"
+                           style="background: url('{{ asset('site/assets/images/passport-bg.webp') }}') no-repeat center/cover;">
+                            <i class="fa-solid fa-passport"></i>
+                            <h3 class="serviceTitle">إصدار التأشيرة</h3>
+                            <h6 class="serviceP">
+                                طلب اصدار تاشيرة العمالة المنزلية الخاصة بك في برنامج مساند
+                            </h6>
+                        </a>
+                    </div>
+
+                    <div class="swiper-slide">
+                        <a href="#"
+                           class="service d-flex flex-column justify-content-center"
+                           style="background: url('{{ asset('site/assets/images/files.webp') }}') no-repeat center/cover;">
+                            <i class="fa-solid fa-users-gear"></i>
+                            <h3 class="serviceTitle">اختيار العمالة</h3>
+                            <h6 class="serviceP">
+                                اختيار السيره الذاتيه للعماله المنزليه عبر البحث في برنامج مساند
+                            </h6>
+                        </a>
+                    </div>
+
+                    <div class="swiper-slide">
+                        <a href="#"
+                           class="service d-flex flex-column justify-content-center"
+                           style="background: url('{{ asset('site/assets/images/bg-plane.webp') }}') no-repeat center/cover;">
+                            <i class="fa-solid fa-plane-arrival"></i>
+                            <h3 class="serviceTitle">وصول العمالة</h3>
+                            <h6 class="serviceP">
+                                وصول العمالة المنزلية من المطار المحلي الى المكتب
+                            </h6>
+                        </a>
+                    </div>
+
+                    <div class="swiper-slide">
+                        <a href="#"
+                           class="service d-flex flex-column justify-content-center"
+                           style="background: url('{{ asset('site/assets/images/hands.webp') }}') no-repeat center/cover;">
+                            <i class="fa-solid fa-file-contract"></i>
+                            <h3 class="serviceTitle">تجديد عقد عاملة</h3>
+                            <h6 class="serviceP">
+                                خدمة تجديد عقد العاملة المنزلية بشكل إلكتروني عبر منصة مساند
+                            </h6>
+                        </a>
+                    </div>
+                @endforelse
+            </div>
+
+            <!--  nav btns -->
+            <div class="swiper-button-next custom-swiper-btn"></div>
+            <div class="swiper-button-prev custom-swiper-btn"></div>
+        </div>
+
+        <!--  last card  -->
+        <div class="wide-card mt-4" data-aos="fade-up">
+            <a href="#"
+               class="service d-flex flex-column justify-content-center"
+               style="background: url('{{ asset('site/assets/images/f3.webp') }}') no-repeat center/cover;">
+                <i class="fa-solid fa-users-gear"></i>
+                <h3 class="serviceTitle">طلب العمالة المهنية</h3>
+                <h6 class="serviceP">
+                    نحن قادرون على جلب أفضل أنواع العمالة المهنية من مختلف التخصصات
+                    لتلبية احتياجاتك بأعلى جودة وكفاءة
+                </h6>
+            </a>
+        </div>
+    </div>
+</section>
 
     <!-- statistics sec  -->
     <section class="statistics" id="statistics">
@@ -501,8 +482,6 @@
             @endforelse
         </div>
     </section>
-
-
 
     <!-- steps sec  -->
     <section class="steps" id="steps">
@@ -718,6 +697,82 @@
             </div>
         </div>
     </section>
+<!-- ================ musaned-platform ================= -->
+ <!-- musaned-platform  -->
+     <section class="musaned-platform">
+        <div class="container">
+          <div class="platform-content">
+            <div class="row">
+              <div class="col-lg-8 col-md-12">
+                <div class="platform-detail">
+            <h3>{{ __('ingaz.musaned_platform_title') }}</h3>
+            <p>{{ __('ingaz.musaned_platform_desc') }}</p>
+          </div>
+
+            <div class="twm-explore-bottom-section">
+                  <div class="row">
+              <!-- feature 1 -->
+                <div class="col-lg-6 col-md-6">
+                      <div class="detail-info">
+                        <div class="info-icon">
+                          <i class="fa-solid fa-badge-check me-3"></i>
+                        </div>
+                        <div class="info-text">
+                    <h3>{{ __('ingaz.feature_1_title') }}</h3>
+                    <p>{{ __('ingaz.feature_1_desc') }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- feature 2 -->
+             <div class="col-lg-6 col-md-6">
+                      <div class="detail-info">
+                        <div class="info-icon">
+                          <i class="fa-solid fa-badge-check me-3"></i>
+                        </div>
+                        <div class="info-text">
+                    <h3>{{ __('ingaz.feature_2_title') }}</h3>
+                    <p>{{ __('ingaz.feature_2_desc') }}</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- feature 3 -->
+              <div class="col-lg-6 col-md-6">
+                      <div class="detail-info">
+                        <div class="info-icon">
+                          <i class="fa-solid fa-badge-check me-3"></i>
+                        </div>
+                        <div class="info-text">
+                    <h3>{{ __('ingaz.feature_3_title') }}</h3>
+                    <p>{{ __('ingaz.feature_3_desc') }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- الفيديو -->
+         <div class="col-lg-4 col-md-12">
+                <div class="platform-media">
+                  <div class="platform-video" style="background: url('{{ asset('site/assets/images/family2.webp') }}') no-repeat center/cover;">
+              <a
+                class="videopopup"
+                href="https://www.youtube.com/embed/wlLjqeDDi2Y"
+                data-fancybox
+              >
+                <i class="fa-solid fa-play"></i>
+                <!-- <span class="video-text">{{ __('ingaz.watch_video') }}</span> -->
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 
     <!-- ================ references ================= -->
     <section class="references" data-aos="fade-up">

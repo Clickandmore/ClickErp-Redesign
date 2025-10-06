@@ -2419,8 +2419,7 @@ input:focus {
   height: 90px;
   z-index: -1;
   background-color: #e1e1e1;
-  -webkit-clip-path: ellipse(61% 58% at 46% 19%);
-          clip-path: ellipse(61% 58% at 46% 19%);
+  clip-path: ellipse(61% 58% at 46% 19%);
   transform: rotate(-4deg);
 }
 .cvPage #btnSave {
@@ -3544,8 +3543,7 @@ input:focus {
   transform: rotate(360deg);
 }
 .cvPage .experienceYears {
-  -webkit-clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
-          clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
   background-color: rgb(238, 170, 44);
   width: 100px;
   aspect-ratio: 1;
