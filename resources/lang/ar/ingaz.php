@@ -1200,8 +1200,7 @@
     'bank_statement' => 'شهادة بنكية: قم بإدخال القيمة لمتوسط الحساب الشهري من الشهادة البنكية',
   ),
   'upload_documents' => 'رفع الوثائق والمرفقات',
-  'documents_list' => 
-  'documents_list' =>
+
   array (
     'financial_proof_doc' => 'إثبات المقدرة المالية',
     'id_or_family_card' => 'صورة سجل الأسرة أو الهوية الوطنية',

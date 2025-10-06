@@ -118,34 +118,34 @@ $(document).ready(function () {
 
   ////
   // theme costomization
-  $(document).ready(function () {
-    // Retrieve values ​​from local storage if available
-    var mainColor = localStorage.getItem("mainColor");
-    var mainColor80 = localStorage.getItem("mainColor80");
-    var mainColor10 = localStorage.getItem("mainColor10");
+  // $(document).ready(function () {
+  //   // Retrieve values ​​from local storage if available
+  //   var mainColor = localStorage.getItem("mainColor");
+  //   var mainColor80 = localStorage.getItem("mainColor80");
+  //   var mainColor10 = localStorage.getItem("mainColor10");
 
-    // Apply saved values
-    if (mainColor) {
-      $(":root").css("--mainColor", mainColor);
-      $("#colorInput").val(mainColor);
-    }
-    if (mainColor80) $(":root").css("--mainColor80", mainColor80);
-    if (mainColor10) $(":root").css("--mainColor10", mainColor10);
+  //   // Apply saved values
+  //   if (mainColor) {
+  //     $(":root").css("--mainColor", mainColor);
+  //     $("#colorInput").val(mainColor);
+  //   }
+  //   if (mainColor80) $(":root").css("--mainColor80", mainColor80);
+  //   if (mainColor10) $(":root").css("--mainColor10", mainColor10);
 
-    // Change theme on input
-    $("#colorInput").on("input", function () {
-      var newColor = $(this).val();
+  //   // Change theme on input
+  //   $("#colorInput").on("input", function () {
+  //     var newColor = $(this).val();
 
-      $(":root").css("--mainColor", newColor);
-      $(":root").css("--mainColor80", newColor + "33"); // 20%
-      $(":root").css("--mainColor10", newColor + "1a"); // 10%
+  //     $(":root").css("--mainColor", newColor);
+  //     $(":root").css("--mainColor80", newColor + "33"); // 20%
+  //     $(":root").css("--mainColor10", newColor + "1a"); // 10%
 
-      // Save to localStorage
-      localStorage.setItem("mainColor", newColor);
-      localStorage.setItem("mainColor80", newColor + "33");
-      localStorage.setItem("mainColor10", newColor + "1a");
-    });
-  });
+  //     // Save to localStorage
+  //     localStorage.setItem("mainColor", newColor);
+  //     localStorage.setItem("mainColor80", newColor + "33");
+  //     localStorage.setItem("mainColor10", newColor + "1a");
+  //   });
+  // });
 });
 
 // Back Button Function
