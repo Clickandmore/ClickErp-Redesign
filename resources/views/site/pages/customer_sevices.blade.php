@@ -38,9 +38,9 @@
         </div>
     </section>
     <!-- themeColor -->
-    <div class="themeColor">
+    <!-- <div class="themeColor">
         <input type="color" id="colorInput" class="color-input">
-    </div>
+    </div> -->
 @endsection
 @section('js')
 @endsection
