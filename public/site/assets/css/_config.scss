@@ -45,6 +45,8 @@
   --transition: all 0.3s ease-in-out;
   --shadow: 0px 2px 4px #00000020;
   --mainColor80: #cdebeaf5; /* 80% */
+  --mainColor40: rgba(0, 92, 169, 0.6) ;
+  --mainColor30: rgba(0, 92, 169, 0.9) ;
   --mainColor20: #005ca933; /* 20% */
   --mainColor10: #a5cff11a; /* 10% */
   --BigShadow: 0px 8px 24px var(--mainColor10);
@@ -111,7 +113,14 @@ html[lang="en"] {
     .mainBanner ul li::after {
       left: 100%;
     }
-    
+    .worker-media {
+            left: 90px;
+    }
+     .allWorkers .workers-list .worker-box .ribbon {
+        left: -2px;
+        transform: rotate(-90deg);
+       
+    }
 }
 
 ul {
@@ -222,8 +231,8 @@ textarea {
   padding: 100px 30px 120px;
   transition: var(--transition);
   margin-bottom: 20px;
-  background-image: linear-gradient(45deg, var(--mainColor80), var(--gray)),
-    url(../images/s2.webp);
+  background-image: linear-gradient(45deg, var(--mainColor10), var(--mainColor40)),
+    url(../images/ban.png);
   background-size: cover;
   background-attachment: fixed;
   animation: sky 100s infinite;

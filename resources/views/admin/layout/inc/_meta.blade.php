@@ -6,3 +6,11 @@
       content="LUNO, Bootstrap 5, ReactJs, Angular, Laravel, VueJs, ASP .Net, Admin Dashboard, Admin Theme, HRMS, Projects, Hospital Admin, CRM Admin, Events, Fitness, Music, Inventory, Job Portal">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <link rel="icon" href="{{asset('admin')}}/assets/img/favicon.ico" type="image/x-icon">
+<!-- /// -->
+ <!-- DataTables CSS -->
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+
+<!-- DataTables Responsive CSS -->
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">

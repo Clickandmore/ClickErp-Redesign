@@ -719,9 +719,11 @@
     'my_account' => 'MY Account',
     'widow' => 'Widow',
     'client_address' => 'Client Address',
-
     'recruitment_request' => 'Recruitment Request',
+    'about_Recruitment'=> 'About Recruitment',
     'musaned_initiative' => 'Musaned Initiative',
+    'Policies_laws' => 'Policies and laws',
+    'Avoid_human' => 'Avoid human trafficking',
     'arrival_worker' => 'Arrival Worker',
     'recruitment_contract' => 'Recruitment Contract',
     'selection_of_workers' => 'Selection of workers',
@@ -1390,6 +1392,26 @@
     'select_worker_text' => 'Selecting and finding suitable, professional, and reliable domestic workers for homes is not a simple process, despite the ease of the recruitment procedure. Therefore, based on our extensive experience in domestic staffing, we work with utmost care and conduct thorough research to complete all the necessary procedures to recruit the best and most suitable domestic workers for our clients.  This allows our clients to focus on their own affairs, while we handle the recruitment process. Clients can choose their preferred candidate from the available resumes of domestic workers of various nationalities, based on their specific job requirements, by simply filling out the recruitment application form or contacting us through our recruitment agency website.',
     'office_attachments' => 'Office Attachments',
     'file' => 'File',
+    //musand
+     'office_id' => 'Office id',
+   'musaned_platform_title' => 'Musaned Platform',
+    'musaned_platform_desc' => 'The Musaned program operates through informative windows and electronic services such as issuing recruitment visas and other models to provide recruitment services for citizens and residents wishing to hire domestic workers, by providing an ideal work environment to improve the recruitment sector in and outside the Kingdom.',
+
+    'feature_1_title' => 'Electronic Documentation',
+    'feature_1_desc' => 'Easily contract with more than 1,400 recruitment companies across the Kingdom.',
+
+    'feature_2_title' => 'Ease of Procedures',
+    'feature_2_desc' => 'The program allows you to track requests step by step online.',
+
+    'feature_3_title' => 'Comprehensive Services',
+    'feature_3_desc' => 'From visa issuance to worker arrival, all services are available electronically.',
+
+    'watch_video' => 'Watch Video',
+    'domestic_worker_services' => 'Domestic Worker Recruitment Services',
+'domestic_worker_text_1' => 'Selecting and finding suitable, skilled domestic workers for homes is not a simple task, despite the ease of the recruitment process. For this reason, through our experience in domestic worker recruitment, we work carefully and continuously to complete all procedures to recruit the best suitable and reliable domestic workers for our clients.',
+'domestic_worker_text_2' => 'You can choose the CV of the suitable worker from different available nationalities via the recruitment office website or by filling out the request form.',
+'start_recruitment' => 'Start Recruitment',
+
     'HIGH SCHOOL' => 'High School',
     'Intermediate education' => 'Intermediate Education',
     'ELEMENTARY GRADUATE' => 'Elementary Graduate',

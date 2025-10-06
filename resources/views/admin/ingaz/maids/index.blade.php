@@ -142,7 +142,7 @@
             border-radius: 6px;
             font-size: 0.8rem;
             padding: 0.25rem 0.5rem;
-            margin: 0 0.1rem;
+            margin: 0.25rem 0.1rem;
             transition: all 0.2s ease;
         }
 

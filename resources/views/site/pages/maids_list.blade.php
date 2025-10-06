@@ -21,6 +21,8 @@
                                         {{ $maid->int_code ?? '' }}</div>
                                 </div>
                                 <h4>{{ $maid->name ?? '' }}</h4>
+                                                           <div class="ribbon"><span>خصم خاص</span></div>
+
                                 <div class="workerInfo">
                                     <p>{{ __('ingaz.nationality') }} :
                                         {{ $maid->nationality->sub_title ?? '' }}</p>
