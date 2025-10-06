@@ -87,40 +87,30 @@
                     </li>
                 </ul>
             </li>
-              <!--عن الاستقدام -->
+            <!--عن الاستقدام -->
             <li class="nav-item dropdown">
-              <a
-                class="nav-link dropdown-toggle"
-                href="#"
-                data-bs-toggle="dropdown"
-                >  {{__("ingaz.about_Recruitment")}}
-                </a
-              >
-              <ul class="dropdown-menu">
-                <li class="nav-item">
-                <a class="nav-link" 
-                href="{{route('site.musaned.index')}}"
-                >
-                    {{__("ingaz.musaned_initiative")}}
-                    <span></span>
-                </a>                
-            </li>
-                <li class="nav-item">
-                      <a class="nav-link"
-                     href="{{route('site.musaned.index')}}">
-                    {{__("ingaz.arrival_worker")}}
-                    <span></span>
+                <a class="nav-link dropdown-toggle" href="#"
+                   data-bs-toggle="dropdown">  {{__("ingaz.about_Recruitment")}}
                 </a>
-                </li>
-                <li> 
-                   <a class="nav-link"  href="{{route('site.musaned.index')}}">
-                    {{__("ingaz.Avoid_human")}}
-                    <span></span>
-                </a>
-                </li>
-              </ul>
+                <ul class="dropdown-menu">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{route('site.musaned.index')}}">{{__("ingaz.musaned_initiative")}}
+                            <span></span>
+                        </a>
+                    </li>
+                    <li class="nav-item"><a class="nav-link" href="{{route('site.policies.index')}}">
+                            {{__("ingaz.Policies and laws")}}
+                            <span></span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="nav-link" href="{{route('site.anti-traficking.index')}}">
+                            {{__("ingaz.Avoid_human")}}<span></span>
+                        </a>
+                    </li>
+                </ul>
             </li>
-           
+
             <li class="nav-item">
                 <a class="nav-link" href="{{route('site.all-workers.index')}}">
                     {{__("ingaz.recruitment_request")}}
@@ -132,7 +122,8 @@
                    data-bs-toggle="dropdown">{{__("ingaz.contact_us")}}</a>
                 <ul class="dropdown-menu">
                     <li class="nav-item">
-                        <a class="dropdown-item" href="{{route('site.contact-us.index')}}">  {{__("ingaz.contact_us")}}</a>
+                        <a class="dropdown-item"
+                           href="{{route('site.contact-us.index')}}">  {{__("ingaz.contact_us")}}</a>
                     </li>
                     <li>
                         <a class="dropdown-item" href="{{route('site.support.index')}}">{{__("ingaz.support")}}</a>

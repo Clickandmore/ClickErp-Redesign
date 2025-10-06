@@ -40,9 +40,9 @@
     </div>
 </main>
 <!-- themeColor -->
-<div class="themeColor">
-    <input type="color" id="colorInput" class="color-input">
-</div>
+{{--<div class="themeColor">--}}
+{{--    <input type="color" id="colorInput" class="color-input">--}}
+{{--</div>--}}
 <footer class="footer">
     @include('site.layouts.footer')
 </footer>
