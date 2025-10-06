@@ -32709,7 +32709,7 @@ button:focus:not(:focus-visible) {
 
 .table.dataTable {
     width: 100% !important;
-    white-space: nowrap
+    /* white-space: nowrap; */
 }
 
 .table.dataTable .form-check {

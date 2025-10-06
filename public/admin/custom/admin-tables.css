@@ -519,7 +519,7 @@ body:has(.dropdown-menu:visible) .actions-dropdown .dropdown-toggle {
 /* ضمان ظهور القائمة المنسدلة للصفوف الأخيرة */
 .table tbody tr:last-child:not(:only-child) .dropdown-menu {
     top: auto !important;
-    bottom: 100% !important;
+    bottom: 80% !important;
     margin-bottom: 10px;
 }
 
