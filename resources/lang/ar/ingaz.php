@@ -1201,6 +1201,7 @@
   ),
   'upload_documents' => 'رفع الوثائق والمرفقات',
   'documents_list' => 
+  'documents_list' =>
   array (
     'financial_proof_doc' => 'إثبات المقدرة المالية',
     'id_or_family_card' => 'صورة سجل الأسرة أو الهوية الوطنية',
@@ -1360,4 +1361,24 @@
   'domestic_worker_text_1' => 'اختيار عاملات المنازل وإيجاد عاملات منازل مناسبات ومهنيات وأفضل للعمل في المنازل ليست إجراءات بسيطة رغم سهولة عملية الاستقدام. لهذا السبب ، ومن خلال خبرتنا في استقدام العمالة المنزلية ، فإننا نعمل بعناية تامة وبحث مستمر لاستكمال جميع الإجراءات لاستقدام أفضل العمالة المنزلية المناسبة والموثوقة لعملائنا.',
   'domestic_worker_text_2' => 'يمكنك اختيار السيرة الذاتية للعامل المناسب من مختلف الجنسيات المتاحة عبر موقع مكتب الاستقدام أو عن طريق تعبئة نموذج الطلب.',
   'office_id' => 'Office id',
+  'file' => 'File',
+  'HIGH SCHOOL' => 'المدرسة الثانوية',
+  'Intermediate education' => 'التعليم المتوسط',
+  'ELEMENTARY GRADUATE' => 'خريج ابتدائي',
+  'HIGH SCHOOL GRADUATE' => 'خريج ثانوي',
+  '2ND YEAR HIGH SCHOOL' => 'الصف الثاني الثانوي',
+  'COLLEGE UNDERGRAD' => 'طالب جامعي غير متخرج',
+  'COLLEGE GRADUATE' => 'خريج جامعي',
+  'HIGH SCHOOL UNDERGRADUATE' => 'طالب ثانوي غير متخرج',
+  'SECONDARY' => 'الثانوي',
+  'ELEMENTARY' => 'الابتدائي',
+  'COLLEGE UNDERGRAD (FINANCIAL MANAGEMENT' => 'طالب جامعي غير متخرج (إدارة مالية)',
+  '3RD YEAR HIGH SCHOOL' => 'الصف الثالث الثانوي',
+  'HIGH SCHOOL GRADUTE' => 'خريج ثانوي',
+  'HIGH SCHOOL LEVEL' => 'مستوى المدرسة الثانوية',
+  'SENIOR FOUR' => 'الصف الرابع الثانوي',
+  'UNDER GRAD HIGHSCHOOL' => 'طالب ثانوي غير متخرج',
+  'VOCATIONAL' => 'تعليم مهني',
+  'COLLEGE UNDER GRADUATE' => 'طالب جامعي غير متخرج',
+  'office_attachments' => 'مرفقات المكتب',
 );

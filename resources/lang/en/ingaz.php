@@ -1412,4 +1412,22 @@
 'domestic_worker_text_2' => 'You can choose the CV of the suitable worker from different available nationalities via the recruitment office website or by filling out the request form.',
 'start_recruitment' => 'Start Recruitment',
 
+    'HIGH SCHOOL' => 'High School',
+    'Intermediate education' => 'Intermediate Education',
+    'ELEMENTARY GRADUATE' => 'Elementary Graduate',
+    'HIGH SCHOOL GRADUATE' => 'High School Graduate',
+    '2ND YEAR HIGH SCHOOL' => '2nd Year High School',
+    'COLLEGE UNDERGRAD' => 'College Undergraduate',
+    'COLLEGE GRADUATE' => 'College Graduate',
+    'HIGH SCHOOL UNDERGRADUATE' => 'High School Undergraduate',
+    'SECONDARY' => 'Secondary',
+    'ELEMENTARY' => 'Elementary',
+    'COLLEGE UNDERGRAD (FINANCIAL MANAGEMENT' => 'College Undergrad (Financial Management)',
+    '3RD YEAR HIGH SCHOOL' => '3rd Year High School',
+    'HIGH SCHOOL GRADUTE' => 'High School Gradute', // نفس الكلمة بخطأ إملائي في enum
+    'HIGH SCHOOL LEVEL' => 'High School Level',
+    'SENIOR FOUR' => 'Senior Four',
+    'UNDER GRAD HIGHSCHOOL' => 'Undergrad High School',
+    'VOCATIONAL' => 'Vocational',
+    'COLLEGE UNDER GRADUATE' => 'College Under Graduate',
 );
