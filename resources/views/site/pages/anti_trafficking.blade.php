@@ -5,40 +5,31 @@
 @section('content')
     <section class="anti-trafficking">
         <div class="container">
-            <h2 class="section-title">مكافحة الاتجار بالبشر</h2>
+            <h2 class="section-title">{{ __('ingaz.anti_trafficking') }}</h2>
 
             <div class="anti-wrapper">
                 <!-- سكشن 1: تعريف -->
                 <div class="anti-card definition">
-                    <h3><i class="fa-solid fa-circle-info"></i> تعريف الجريمة</h3>
-                    <p>
-                        استخدام شخص أو نقله أو إيواؤه أو استقباله بقصد الاستغلال (العمل
-                        القسري، الاستغلال الجنسي، التسول، الاسترقاق).
-                    </p>
+                    <h3><i class="fa-solid fa-circle-info"></i> {{ __('ingaz.definition_title') }}</h3>
+                    <p>{{ __('ingaz.definition_desc') }}</p>
                 </div>
 
                 <!-- سكشن 2: العقوبات -->
                 <div class="anti-card punishment">
-                    <h3><i class="fa-solid fa-scale-balanced"></i> العقوبات النظامية</h3>
-                    <p>السجن حتى 15 سنة أو غرامة تصل إلى مليون ريال أو كليهما.</p>
+                    <h3><i class="fa-solid fa-scale-balanced"></i> {{ __('ingaz.punishment_title') }}</h3>
+                    <p>{{ __('ingaz.punishment_desc') }}</p>
                 </div>
 
                 <!-- سكشن 3: الجهات المسؤولة -->
                 <div class="anti-card authority">
-                    <h3><i class="fa-solid fa-building"></i> الجهات المسؤولة</h3>
-                    <p>
-                        وزارة الموارد البشرية والتنمية الاجتماعية (إدارة مكافحة جرائم
-                        الاتجار بالأشخاص) بالتعاون مع هيئة حقوق الإنسان.
-                    </p>
+                    <h3><i class="fa-solid fa-building"></i> {{ __('ingaz.authority_title') }}</h3>
+                    <p>{{ __('ingaz.authority_desc') }}</p>
                 </div>
 
                 <!-- سكشن 4: التحديثات -->
                 <div class="anti-card updates">
-                    <h3><i class="fa-solid fa-rotate"></i> التحديثات حتى 2025</h3>
-                    <p>
-                        استمرار سريان النظام مع تعزيز التعاون الدولي وتشديد الملاحقة
-                        القانونية للجناة.
-                    </p>
+                    <h3><i class="fa-solid fa-rotate"></i> {{ __('ingaz.updates_title') }}</h3>
+                    <p>{{ __('ingaz.updates_desc') }}</p>
                 </div>
             </div>
         </div>
@@ -49,67 +40,52 @@
         <div class="container">
             <div class="awareness-wrapper">
                 <div class="awareness-image">
-                    <img src="{{asset('site')}}/assets/images/awarness.jpg" alt="التوعية"/>
+                    <img src="{{ asset('site/assets/images/awarness.jpg') }}" alt="{{ __('ingaz.awareness_title') }}" />
                 </div>
                 <div class="awareness-content">
-                    <h2>التوعية والوقاية</h2>
-                    <p>
-                        التوعية المجتمعية عنصر أساسي للحد من جرائم الاتجار بالبشر، وتشمل
-                        نشر المعرفة بحقوق الإنسان، وتقديم البرامج التدريبية، وحملات
-                        إعلامية توضح العقوبات والأنظمة.
-                    </p>
+                    <h2>{{ __('ingaz.awareness_title') }}</h2>
+                    <p>{{ __('ingaz.awareness_desc') }}</p>
                     <ul>
-                        <li>برامج تدريبية للمواطنين والمقيمين</li>
-                        <li>حملات إعلامية دورية</li>
-                        <li>تعاون مع المنظمات الدولية</li>
+                        <li>{{ __('ingaz.awareness_list_1') }}</li>
+                        <li>{{ __('ingaz.awareness_list_2') }}</li>
+                        <li>{{ __('ingaz.awareness_list_3') }}</li>
                     </ul>
                 </div>
             </div>
         </div>
     </section>
+
     <!-- policies-accordion  -->
     <section class="policies-accordion">
         <div class="container">
-            <h2>سياسات مكافحة الاتجار بالأشخاص</h2>
+            <h2>{{ __('ingaz.policies_title') }}</h2>
 
             <div class="accordion">
                 <div class="accordion-item">
-                    <button class="accordion-header">الإطار القانوني</button>
+                    <button class="accordion-header">{{ __('ingaz.legal_framework') }}</button>
                     <div class="accordion-body">
-                        <p>
-                            نظام مكافحة جرائم الاتجار بالأشخاص، نظام العمل السعودي، نظام
-                            حماية الطفل، الخطة الوطنية لمنع عمل الأطفال (2024).
-                        </p>
+                        <p>{{ __('ingaz.legal_framework_desc') }}</p>
                     </div>
                 </div>
 
                 <div class="accordion-item">
-                    <button class="accordion-header">السياسات العامة</button>
+                    <button class="accordion-header">{{ __('ingaz.general_policies') }}</button>
                     <div class="accordion-body">
-                        <p>
-                            عدم التسامح مطلقًا مع جميع أشكال الاتجار بالبشر أو تشغيل
-                            الأطفال، وحماية العمالة من أي استغلال أو رسوم غير قانونية.
-                        </p>
+                        <p>{{ __('ingaz.general_policies_desc') }}</p>
                     </div>
                 </div>
 
                 <div class="accordion-item">
-                    <button class="accordion-header">الإجراءات التنفيذية</button>
+                    <button class="accordion-header">{{ __('ingaz.execution_procedures') }}</button>
                     <div class="accordion-body">
-                        <p>
-                            التحقق من الأهلية، مراجعة العقود، الموافقة الحرة، التدريب
-                            المستمر، وآليات التبليغ عن حالات الاشتباه.
-                        </p>
+                        <p>{{ __('ingaz.execution_procedures_desc') }}</p>
                     </div>
                 </div>
 
                 <div class="accordion-item">
-                    <button class="accordion-header">آليات المراقبة</button>
+                    <button class="accordion-header">{{ __('ingaz.monitoring_mechanisms') }}</button>
                     <div class="accordion-body">
-                        <p>
-                            إدارة الشكاوى إلكترونيًا، متابعة أوضاع العمالة، تدقيق داخلي
-                            وخارجي، دورات تدريبية سنوية.
-                        </p>
+                        <p>{{ __('ingaz.monitoring_mechanisms_desc') }}</p>
                     </div>
                 </div>
             </div>
@@ -118,34 +94,29 @@
 
     <section class="report-section">
         <div class="container">
-            <h2 class="section-title">آليات الإبلاغ عن المخالفات</h2>
+            <h2 class="section-title">{{ __('ingaz.reporting_title') }}</h2>
 
             <div class="report-cards">
                 <div class="report-card">
-
-                    <h3 class="card-title">الرقم الموحد</h3>
-                    <p class="card-desc">لوزارة الموارد البشرية والتنمية الاجتماعية</p>
-                    <!-- <div class="card-contact">19911</div> -->
+                    <h3 class="card-title">{{ __('ingaz.unified_number_title') }}</h3>
+                    <p class="card-desc">{{ __('ingaz.unified_number_desc') }}</p>
                     <a href="tel:19911" class="card-link">
                         <span>19911</span>
                         <i class="fa-solid fa-phone"></i>
                     </a>
-
                 </div>
 
                 <div class="report-card">
-
-                    <h3 class="card-title">التطبيق الإلكتروني</h3>
-                    <p class="card-desc">للهيئة الوطنية لحقوق الإنسان</p>
+                    <h3 class="card-title">{{ __('ingaz.electronic_app_title') }}</h3>
+                    <p class="card-desc">{{ __('ingaz.electronic_app_desc') }}</p>
                     <a href="#" class="card-link">
-                        <span>عبر التطبيق الإلكتروني. </span>
+                        <span>{{ __('ingaz.electronic_app_link') }}</span>
                     </a>
                 </div>
 
                 <div class="report-card">
-
-                    <h3 class="card-title">البريد الإلكتروني</h3>
-                    <p class="card-desc">للجنة الوطنية لمكافحة الاتجار بالأشخاص</p>
+                    <h3 class="card-title">{{ __('ingaz.email_title') }}</h3>
+                    <p class="card-desc">{{ __('ingaz.email_desc') }}</p>
                     <a href="mailto:info@ncct.gov.sa" class="card-link">
                         <span>info@ncct.gov.sa</span>
                         <i class="fa-solid fa-envelope"></i>
@@ -154,10 +125,11 @@
             </div>
 
             <div class="report-note">
-                <p>جميع آليات الإبلاغ سرية وتضمن حماية للمبلغين وفقاً للأنظمة واللوائح</p>
+                <p>{{ __('ingaz.report_confidential') }}</p>
             </div>
         </div>
     </section>
+
 @endsection
 @section('js')
 @endsection
