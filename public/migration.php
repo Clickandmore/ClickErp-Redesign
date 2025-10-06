@@ -318,6 +318,26 @@
             </div>
             <div id="contract_logs_result" class="result"></div>
         </div>
+
+        <!-- Activity Logs -->
+        <div class="section">
+            <h3>Activity Logs</h3>
+            <div class="buttons">
+                <button onclick="transferActivityLogs()" class="btn-success">Transfer Activity Logs</button>
+                <button onclick="checkActivityLogs()" class="btn-info">Check Activity Logs</button>
+            </div>
+            <div id="activity_logs_result" class="result"></div>
+        </div>
+
+        <!-- Messages -->
+        <div class="section">
+            <h3>Messages</h3>
+            <div class="buttons">
+                <button onclick="transferMessages()" class="btn-success">Transfer Messages</button>
+                <button onclick="checkMessages()" class="btn-info">Check Messages</button>
+            </div>
+            <div id="messages_result" class="result"></div>
+        </div>
         <!-- الإحصائيات -->
         <div class="section">
             <h3>📊 الإحصائيات الحالية</h3>
@@ -381,6 +401,14 @@
                 <div class="stat">
                     <div class="number">-</div>
                     <div class="label">Contract Logs</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Activity Logs</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Messages</div>
                 </div>
                 <div class="stat">
                     <div class="number">-</div>
@@ -1472,6 +1500,131 @@
             });
         }
 
+        function transferActivityLogs() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Transferring...';
+
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=migrate_activity_logs'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const lines = [
+                        'Activity logs migrated successfully',
+                        'Total: ' + (data.processed ?? data.total ?? 0),
+                        'Inserted: ' + (data.inserted ?? 0),
+                        'Updated: ' + (data.updated ?? 0),
+                        'Unchanged: ' + (data.unchanged ?? 0),
+                        'Skipped: ' + (data.skipped ?? 0)
+                    ];
+                    showResult('activity_logs_result', lines.join('\n'), true);
+                    updateStats();
+                } else {
+                    showResult('activity_logs_result', 'Migration failed: ' + (data.message || 'operation could not be completed'), false);
+                }
+                btn.disabled = false;
+                btn.textContent = 'Transfer Activity Logs';
+            })
+            .catch(error => {
+                showResult('activity_logs_result', 'Error: ' + error.message, false);
+                btn.disabled = false;
+                btn.textContent = 'Transfer Activity Logs';
+            });
+        }
+
+        function checkActivityLogs() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=activity_logs_summary'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const lines = [
+                        'Current activity logs stats:',
+                        'Total: ' + (data.total ?? data.activity_logs ?? 0)
+                    ];
+                    if (data.message) {
+                        lines.push(data.message);
+                    }
+                    showResult('activity_logs_result', lines.join('\n'), true);
+                } else {
+                    showResult('activity_logs_result', 'Failed to fetch stats: ' + (data.message || 'unknown'), false);
+                }
+            })
+            .catch(error => {
+                showResult('activity_logs_result', 'Error: ' + error.message, false);
+            });
+        }
+
+
+        function transferMessages() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Transferring...';
+
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=migrate_messages'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const lines = [
+                        'Messages migrated successfully',
+                        'Total: ' + (data.processed ?? data.total ?? 0),
+                        'Inserted: ' + (data.inserted ?? 0),
+                        'Updated: ' + (data.updated ?? 0),
+                        'Unchanged: ' + (data.unchanged ?? 0),
+                        'Skipped: ' + (data.skipped ?? 0)
+                    ];
+                    showResult('messages_result', lines.join('\n'), true);
+                    updateStats();
+                } else {
+                    showResult('messages_result', 'Migration failed: ' + (data.message || 'operation could not be completed'), false);
+                }
+                btn.disabled = false;
+                btn.textContent = 'Transfer Messages';
+            })
+            .catch(error => {
+                showResult('messages_result', 'Error: ' + error.message, false);
+                btn.disabled = false;
+                btn.textContent = 'Transfer Messages';
+            });
+        }
+
+        function checkMessages() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=messages_summary'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const lines = [
+                        'Current messages stats:',
+                        'Total: ' + (data.total ?? data.messages ?? 0)
+                    ];
+                    if (data.message) {
+                        lines.push(data.message);
+                    }
+                    showResult('messages_result', lines.join('\n'), true);
+                } else {
+                    showResult('messages_result', 'Failed to fetch stats: ' + (data.message || 'unknown'), false);
+                }
+            })
+            .catch(error => {
+                showResult('messages_result', 'Error: ' + error.message, false);
+            });
+        }
+
         function transferAccommodationTypes() {
             const btn = event.target;
             btn.disabled = true;
@@ -1589,6 +1742,10 @@
         window.checkContracts = checkContracts;
         window.transferContractLogs = transferContractLogs;
         window.checkContractLogs = checkContractLogs;
+        window.transferActivityLogs = transferActivityLogs;
+        window.checkActivityLogs = checkActivityLogs;
+        window.transferMessages = transferMessages;
+        window.checkMessages = checkMessages;
         window.transferAccommodationTypes = transferAccommodationTypes;
         window.checkAccommodationTypes = checkAccommodationTypes;
         window.transferAirports = transferAirports;
@@ -1618,6 +1775,8 @@
                     (SELECT COUNT(*) FROM contracts) as contracts,
                     (SELECT COUNT(*) FROM contract_infos) as contract_infos,
                     (SELECT COUNT(*) FROM contract_status_logs) as contract_logs,
+                    (SELECT COUNT(*) FROM activity_log) as activity_logs,
+                    (SELECT COUNT(*) FROM messages) as messages,
                     (SELECT COUNT(*) FROM accommodation_types) as accommodation_types,
                     (SELECT COUNT(*) FROM airports) as airports
             `;
@@ -1646,6 +1805,8 @@
                         'contracts',
                         'contract_infos',
                         'contract_logs',
+                        'activity_logs',
+                        'messages',
                         'accommodation_types',
                         'airports'
                     ];
