@@ -2,7 +2,6 @@
 @section("style")
 <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link href="{{ asset('admin/custom/admin-tables.css') }}" rel="stylesheet" type="text/css" />
 <link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
 <style>
     .ui-sortable-helper {
@@ -101,7 +100,7 @@
         <!-- Data Table Card -->
         <div class="card shadow">
             <div class="card-body">
-                <div class="table-responsive">
+
                     <table class="table table-bordered table-striped table-hover" id="countries-table">
                         <thead class="table-dark">
                             <tr>
@@ -163,7 +162,6 @@
                         {{ $allCountries->links('pagination::bootstrap-4') }}
                     </div>
 
-                </div>
             </div>
         </div>
     </div>

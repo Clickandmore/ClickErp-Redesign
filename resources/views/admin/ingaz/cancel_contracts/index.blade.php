@@ -1,7 +1,6 @@
 @extends('admin.layout.indexs.index')
 @section("style")
-<!-- DataTables CSS CDN -->
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.css">
+
 @endsection
 
 @section('page-title')
@@ -56,7 +55,7 @@
 <!-- jQuery CDN -->
 {{-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> --}}
 <!-- DataTables JS CDN -->
-<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.js"></script>
+{{-- <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.js"></script> --}}
 <script>
     $(document).ready(function() {
         $('#cancelContractsTable').DataTable();

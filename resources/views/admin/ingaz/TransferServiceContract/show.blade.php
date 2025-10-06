@@ -5,7 +5,6 @@
 @endsection
 
 @section('style')
-    <link rel="stylesheet" href="{{asset("admin")}}/custom/admin-tables.css">
     <style>
         .contract-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

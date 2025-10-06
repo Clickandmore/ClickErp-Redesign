@@ -1,7 +1,6 @@
 @extends('admin.layout.indexs.index')
 
 @section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
 @endsection
 
 @section('page-title')
@@ -114,7 +113,7 @@
 
     <hr>
     <h5>@lang('ingaz.orders')</h5>
-    <div class="table-responsive">
+     
         <table class="table table-hover">
             <thead>
                 <tr>
@@ -156,11 +155,10 @@
                 @endforeach
             </tbody>
         </table>
-    </div>
-
+     
     <hr>
     <h5>@lang('ingaz.contracts')</h5>
-    <div class="table-responsive">
+     
         <table class="table table-hover">
             <thead>
                 <tr>

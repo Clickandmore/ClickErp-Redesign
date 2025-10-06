@@ -5,7 +5,6 @@
 @endsection
 
 @section('style')
-    <link rel="stylesheet" href="{{asset("admin")}}/custom/admin-tables.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
     <style>
         .stats-card {
@@ -171,7 +170,6 @@
             </div>
         </div>
 
-        <div class="table-responsive">
             <table id="contractsTable" class="table table-striped table-bordered nowrap" style="width:100%">
                 <thead>
                     <tr>
@@ -191,7 +189,6 @@
                     <!-- سيتم تحميل البيانات عبر AJAX -->
                 </tbody>
             </table>
-        </div>
     </div>
 </div>
 @endsection

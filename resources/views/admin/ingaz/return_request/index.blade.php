@@ -1,6 +1,5 @@
 @extends('admin.layout.indexs.index')
 @section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
     <link rel="stylesheet" href="{{asset("admin")}}/custom/table-actions.css">
     <style>
         .table-responsive {
@@ -161,8 +160,7 @@
                 </form>
             </div>
         </div>
-
-        <div class="table-responsive">
+                
             <table id="dataTableObject" class="table table-hover" style="width:100%">
                 <thead>
                 <tr>
@@ -180,7 +178,6 @@
                 <tbody>
                 </tbody>
             </table>
-        </div>
 
     @else
         @include('components.no_permissions')
@@ -189,7 +186,6 @@
 @endsection
 @section('js')
 
-    <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
     <script>
         $(document).ready(function () {
             let columns = [

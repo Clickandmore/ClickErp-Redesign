@@ -138,7 +138,7 @@
                         </h5>
                     </div>
                     <div class="card-body">
-                        <div class="table-responsive">
+
                             <table id="deportationTravelTable" class="table table-hover align-middle mb-0">
                                 <thead>
                                     <tr>
@@ -154,7 +154,8 @@
                                 <tbody>
                                 </tbody>
                             </table>
-                        </div>
+
+
                     </div>
                 </div>
             </div>

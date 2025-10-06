@@ -1,6 +1,5 @@
 @extends('admin.layout.indexs.index')
 @section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
     <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/daterangepicker.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -353,8 +352,7 @@
             </form>
         </div>
     </div>
-
-    <div class="table-responsive">
+        
         <table id="dataTableObject" class="table table-striped table-hover align-middle text-center display dataTable" style="width:100%">
             <thead>
             <tr>
@@ -380,7 +378,6 @@
 
             </tbody>
         </table>
-    </div>
 
     @include('web.ingaz.maids.sub.maid_modal_view')
 
@@ -391,7 +388,6 @@
 
 @endsection
 @section('js')
-    <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
     <script src="{{asset("admin")}}/assets/js/bundle/daterangepicker.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>

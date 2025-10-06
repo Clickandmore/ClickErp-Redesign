@@ -4,9 +4,7 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
 
     <!-- الملفات المحلية -->
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="{{asset("admin")}}/custom/admin-tables.css">
 @endsection
 
 @section('page-title')
@@ -263,7 +261,7 @@
             </h6>
         </div>
         <div class="card-body">
-            <div class="table-responsive">
+                        
                 <table class="table table-bordered" id="dataTableObject" width="100%" cellspacing="0">
                     <thead>
                         <tr>
@@ -282,7 +280,6 @@
                         <!-- سيتم تعبئتها بواسطة DataTables -->
                     </tbody>
                 </table>
-            </div>
         </div>
     </div>
 

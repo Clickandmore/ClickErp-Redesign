@@ -1,6 +1,5 @@
 @extends('admin.layout.indexs.index')
 @section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
     <style>
 
         .wizard-container {
@@ -317,7 +316,6 @@
 @endsection
 @section('js')
 
-    <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
     <script>
         $(document).ready(function () {
             let columns = [

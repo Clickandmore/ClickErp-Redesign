@@ -3,7 +3,6 @@
     {{helperTrans('ingaz.Roles')}}
 @endsection
 @section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
 @endsection
 @section('page-title')
     {{helperTrans("ingaz.Roles")}}
@@ -26,7 +25,7 @@
             {{--            @endcan--}}
         </div>
         <div class="card-body">
-            <div class="table-responsive">
+                        
                 <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
                     <thead>
                     <tr>
@@ -40,13 +39,12 @@
                     <tbody>
                     </tbody>
                 </table>
-            </div>
+                    
         </div>
     </div>
 
 @endsection
 @section('js')
-    <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
     <script>
         $(document).ready(function () {
             var columns = [

@@ -907,14 +907,14 @@
                             <h6>البحث مكتمل - ${data.total_tables} جدول في القاعدة</h6>
 
                             <h6 class="mt-3">الجداول المحتملة لـ CV:</h6>
-                            <div class="table-responsive">
+
                                 <table class="table table-sm table-hover">
                                     <thead>
                                         <tr><th>الجدول</th><th>السجلات</th><th>الاحتمالية</th><th>الأعمدة المرتبطة</th></tr>
                                     </thead>
                                     <tbody>${potentialTablesHTML}</tbody>
                                 </table>
-                            </div>
+
 
                             ${data.top_candidate ? `
                                 <div class="alert alert-info mt-3">
@@ -928,12 +928,12 @@
 
                             ${relatedTablesHTML ? `
                                 <h6 class="mt-3">الجداول المرتبطة:</h6>
-                                <div class="table-responsive">
+
                                     <table class="table table-sm">
                                         <thead><tr><th>الجدول</th><th>السجلات</th><th>النوع</th><th>الأعمدة</th></tr></thead>
                                         <tbody>${relatedTablesHTML}</tbody>
                                     </table>
-                                </div>
+
                             ` : ''}
                         </div>
                     `;
@@ -995,23 +995,21 @@
                             <h6>تحليل مكتمل - ${data.timestamp}</h6>
 
                             <h6 class="mt-3">الجداول:</h6>
-                            <div class="table-responsive">
+
                                 <table class="table table-sm">
                                     <thead>
                                         <tr><th>الجدول</th><th>القديم</th><th>الجديد</th><th>أعمدة قديمة</th><th>أعمدة جديدة</th></tr>
                                     </thead>
                                     <tbody>${tablesHTML}</tbody>
                                 </table>
-                            </div>
+
 
                             ${cvStatusHTML ? `
                                 <h6 class="mt-3">حالات CV:</h6>
-                                <div class="table-responsive">
                                     <table class="table table-sm">
                                         <thead><tr><th>الرقم</th><th>الحالة</th><th>العدد</th></tr></thead>
                                         <tbody>${cvStatusHTML}</tbody>
                                     </table>
-                                </div>
                             ` : '<p class="text-warning">لم يتم العثور على بيانات cv_status</p>'}
 
                             <div class="mt-3">

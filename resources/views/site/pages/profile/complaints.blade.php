@@ -1499,70 +1499,69 @@
                                 </button>
                             </div>
                             <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table">
-                                        <thead>
+
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>{{ helperTrans('web.complaint_type') }}</th>
+                                            <th>{{ helperTrans('web.complaint_title') }}</th>
+                                            <th>{{ helperTrans('web.complaint_details') }}</th>
+                                            <th>{{ helperTrans('web.status') }}</th>
+                                            <th>{{ helperTrans('web.response') }}</th>
+                                            <th>{{ helperTrans('web.attachment') }}</th>
+                                            <th>{{ helperTrans('web.date') }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($complaints as $complaint)
                                             <tr>
-                                                <th>#</th>
-                                                <th>{{ helperTrans('web.complaint_type') }}</th>
-                                                <th>{{ helperTrans('web.complaint_title') }}</th>
-                                                <th>{{ helperTrans('web.complaint_details') }}</th>
-                                                <th>{{ helperTrans('web.status') }}</th>
-                                                <th>{{ helperTrans('web.response') }}</th>
-                                                <th>{{ helperTrans('web.attachment') }}</th>
-                                                <th>{{ helperTrans('web.date') }}</th>
+                                                <td>{{ $loop->iteration }}</td>
+                                                <td>{{ $complaint->complaintType->name ?? '-' }}</td>
+                                                <td>{{ $complaint->address }}</td>
+                                                <td>{{ $complaint->message }}</td>
+                                                <td>
+                                                    @php
+                                                        $statusClass = '';
+                                                        switch ($complaint->status) {
+                                                            case 'pending':
+                                                                $statusClass = 'text-warning';
+                                                                break;
+                                                            case 'resolved':
+                                                                $statusClass = 'text-success';
+                                                                break;
+                                                            case 'rejected':
+                                                                $statusClass = 'text-danger';
+                                                                break;
+                                                        }
+                                                    @endphp
+                                                    <span class="{{ $statusClass }}">
+                                                        {{ helperTrans('web.complaint_status_' . $complaint->status) }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ $complaint->response ?? '-' }}</td>
+                                                <td>
+                                                    @if ($complaint->file)
+                                                        <a href="{{ Storage::url($complaint->file) }}" target="_blank"
+                                                            class="btn btn-sm btn-primary">
+                                                            <i class="fa-regular fa-file"></i>
+                                                            {{ helperTrans('web.view_attachment') }}
+                                                        </a>
+                                                    @else
+                                                        -
+                                                    @endif
+                                                </td>
+                                                <td>{{ $complaint->created_at->format('Y-m-d') }}</td>
                                             </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach ($complaints as $complaint)
-                                                <tr>
-                                                    <td>{{ $loop->iteration }}</td>
-                                                    <td>{{ $complaint->complaintType->name ?? '-' }}</td>
-                                                    <td>{{ $complaint->address }}</td>
-                                                    <td>{{ $complaint->message }}</td>
-                                                    <td>
-                                                        @php
-                                                            $statusClass = '';
-                                                            switch ($complaint->status) {
-                                                                case 'pending':
-                                                                    $statusClass = 'text-warning';
-                                                                    break;
-                                                                case 'resolved':
-                                                                    $statusClass = 'text-success';
-                                                                    break;
-                                                                case 'rejected':
-                                                                    $statusClass = 'text-danger';
-                                                                    break;
-                                                            }
-                                                        @endphp
-                                                        <span class="{{ $statusClass }}">
-                                                            {{ helperTrans('web.complaint_status_' . $complaint->status) }}
-                                                        </span>
-                                                    </td>
-                                                    <td>{{ $complaint->response ?? '-' }}</td>
-                                                    <td>
-                                                        @if ($complaint->file)
-                                                            <a href="{{ Storage::url($complaint->file) }}"
-                                                                target="_blank" class="btn btn-sm btn-primary">
-                                                                <i class="fa-regular fa-file"></i>
-                                                                {{ helperTrans('web.view_attachment') }}
-                                                            </a>
-                                                        @else
-                                                            -
-                                                        @endif
-                                                    </td>
-                                                    <td>{{ $complaint->created_at->format('Y-m-d') }}</td>
-                                                </tr>
-                                            @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
+                                        @endforeach
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
-
-
                 </div>
+
+
             </div>
         </section>
 

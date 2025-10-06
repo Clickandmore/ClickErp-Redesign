@@ -325,7 +325,6 @@
                 </div>
             </div>
 
-            <div class="table-responsive">
                 <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
                     <thead>
                         <tr>
@@ -347,7 +346,6 @@
                     <tbody>
                     </tbody>
                 </table>
-            </div>
         </div>
     </div>
 

@@ -1,6 +1,5 @@
 @extends('admin.layout.indexs.index')
 @section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
     <style>
         .order-info-card {
             background: #fff;
@@ -309,7 +308,6 @@
                 </div>
                 <div class="order-info-body">
                     @if ($data->transfers->isNotEmpty())
-                        <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
                                     <tr>
@@ -335,7 +333,6 @@
                                     @endforeach
                                 </tbody>
                             </table>
-                        </div>
                     @else
                         <p class="text-muted">{{helperTrans("ingaz.no_files_found")}}</p>
                     @endif

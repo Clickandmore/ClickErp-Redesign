@@ -1,10 +1,8 @@
 @extends('admin.layout.indexs.index')
 
 @section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="{{asset("admin")}}/custom/admin-tables.css">
     <style>
         /* إحصائيات محسنة */
         .stats-card {
@@ -372,7 +370,7 @@
                                 </h5>
                             </div>
                             <div class="card-body">
-                                <div class="table-responsive">
+
                                     <table id="complaintsTable" class="table display dataTable table-hover"
                                            style="width:100%">
                                         <thead>
@@ -390,7 +388,8 @@
                                         </thead>
                                         <tbody></tbody>
                                     </table>
-                                </div>
+
+
                             </div>
                         </div>
                     </div>
@@ -469,7 +468,6 @@
 @endsection
 
 @section('js')
-    <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function () {

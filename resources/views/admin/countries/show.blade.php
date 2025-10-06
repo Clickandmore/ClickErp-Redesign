@@ -2,7 +2,6 @@
 @section("style")
 <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link href="{{ asset('admin/custom/admin-tables.css') }}" rel="stylesheet" type="text/css" />
 @endsection
 
 @section('page-title')
@@ -109,7 +108,7 @@
             </div>
             <div class="card-body">
                 @if($cities->count() > 0)
-                    <div class="table-responsive">
+
                         <table class="table table-bordered table-striped table-hover" id="cities-table">
                             <thead class="table-dark">
                                 <tr>
@@ -160,7 +159,7 @@
                                 @endforeach
                             </tbody>
                         </table>
-                    </div>
+
                 @else
                     <div class="text-center py-5">
                         <i class="fas fa-city fa-3x text-muted mb-3"></i>
