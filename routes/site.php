@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\site\AntiTrafickingController;
 use App\Http\Controllers\site\EagarRequestController;
 use App\Http\Controllers\site\PackagesController;
+use App\Http\Controllers\site\PoliciesController;
 use App\Http\Controllers\site\UserAddressController;
 
 use App\Http\Controllers\site\AllWorkerController;
@@ -80,6 +82,9 @@ Route::group(
             ->middleware('site_auth');
         Route::resource('daily-lebor-demand', DailyLabotDemandController::class);
         Route::resource('renew-contract', RenewContractController::class);
+        Route::resource('support', SupportController::class);
+        Route::resource('anti-traficking', AntiTrafickingController::class);
+        Route::resource('policies', PoliciesController::class);
         Route::resource('support', SupportController::class);
         Route::resource('contact-us', ContactUsController::class);
         Route::resource('packages', PackagesController::class);

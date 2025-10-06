@@ -720,7 +720,7 @@
     'widow' => 'Widow',
     'client_address' => 'Client Address',
     'recruitment_request' => 'Recruitment Request',
-    'about_Recruitment'=> 'About Recruitment',
+    'about_Recruitment' => 'About Recruitment',
     'musaned_initiative' => 'Musaned Initiative',
     'Policies_laws' => 'Policies and laws',
     'Avoid_human' => 'Avoid human trafficking',
@@ -1393,8 +1393,8 @@
     'office_attachments' => 'Office Attachments',
     'file' => 'File',
     //musand
-     'office_id' => 'Office id',
-   'musaned_platform_title' => 'Musaned Platform',
+    'office_id' => 'Office id',
+    'musaned_platform_title' => 'Musaned Platform',
     'musaned_platform_desc' => 'The Musaned program operates through informative windows and electronic services such as issuing recruitment visas and other models to provide recruitment services for citizens and residents wishing to hire domestic workers, by providing an ideal work environment to improve the recruitment sector in and outside the Kingdom.',
 
     'feature_1_title' => 'Electronic Documentation',
@@ -1408,9 +1408,9 @@
 
     'watch_video' => 'Watch Video',
     'domestic_worker_services' => 'Domestic Worker Recruitment Services',
-'domestic_worker_text_1' => 'Selecting and finding suitable, skilled domestic workers for homes is not a simple task, despite the ease of the recruitment process. For this reason, through our experience in domestic worker recruitment, we work carefully and continuously to complete all procedures to recruit the best suitable and reliable domestic workers for our clients.',
-'domestic_worker_text_2' => 'You can choose the CV of the suitable worker from different available nationalities via the recruitment office website or by filling out the request form.',
-'start_recruitment' => 'Start Recruitment',
+    'domestic_worker_text_1' => 'Selecting and finding suitable, skilled domestic workers for homes is not a simple task, despite the ease of the recruitment process. For this reason, through our experience in domestic worker recruitment, we work carefully and continuously to complete all procedures to recruit the best suitable and reliable domestic workers for our clients.',
+    'domestic_worker_text_2' => 'You can choose the CV of the suitable worker from different available nationalities via the recruitment office website or by filling out the request form.',
+    'start_recruitment' => 'Start Recruitment',
 
     'HIGH SCHOOL' => 'High School',
     'Intermediate education' => 'Intermediate Education',
@@ -1430,4 +1430,6 @@
     'UNDER GRAD HIGHSCHOOL' => 'Undergrad High School',
     'VOCATIONAL' => 'Vocational',
     'COLLEGE UNDER GRADUATE' => 'College Under Graduate',
+    'Policies and laws' => 'Policies and Laws',
+
 );
