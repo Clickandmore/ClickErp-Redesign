@@ -190,8 +190,8 @@ class OfficeController extends Controller
             'officeManager.admin',
         ])->findOrFail($id);
 
-        $office->is_show = !$office->is_show;
-        $office->save();
+        // $office->is_show = !$office->is_show;
+        // $office->save();
 
         $activities = Activity::query()
             ->with('causer')
