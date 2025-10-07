@@ -195,7 +195,7 @@
                     {{helperTrans("ingaz.sponsorship_transfer_requests_list")}}
                 </h6>
             </div>
-            <div class="card-body p-0">
+            <div class="card-body">
 
                     <table id="sponsorshipTransferTable" class="table table-hover align-middle mb-0" style="width: 100%;">
                         <thead>

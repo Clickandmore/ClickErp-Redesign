@@ -122,7 +122,7 @@
                     </div>
                     <div class="info-row">
                         <span class="info-label">{{helperTrans("ingaz.job_type")}}:</span>
-                        <span class="info-value">{{ $data->jobType->title ?? 'N/A' }}</span>
+                        <span class="info-value">{{ $data->jobType?->title ?? 'N/A' }}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">{{helperTrans("ingaz.payment_method")}}:</span>
@@ -149,19 +149,19 @@
                 <div class="order-info-body">
                     <div class="info-row">
                         <span class="info-label">{{helperTrans("ingaz.client_name")}}:</span>
-                        <span class="info-value">{{ $data->user->name ?? 'N/A' }}</span>
+                        <span class="info-value">{{ $data->user?->name ?? 'N/A' }}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">{{helperTrans("ingaz.phone")}}:</span>
-                        <span class="info-value">{{ $data->user->phone ?? 'N/A' }}</span>
+                        <span class="info-value">{{ $data->user?->phone ?? 'N/A' }}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">{{helperTrans("ingaz.nationality")}}:</span>
-                        <span class="info-value">{{ $data->user->nationality->title ?? 'N/A' }}</span>
+                        <span class="info-value">{{ $data->user?->nationality?->title ?? 'N/A' }}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">{{helperTrans("ingaz.email")}}:</span>
-                        <span class="info-value">{{ $data->user->email ?? 'N/A' }}</span>
+                        <span class="info-value">{{ $data->user?->email ?? 'N/A' }}</span>
                     </div>
                     @if($data->details && $data->details->address)
                     <div class="info-row">
@@ -184,7 +184,7 @@
                 <div class="order-info-body">
                     <div class="row">
                         <div class="col-md-3 text-center">
-                            <img src="{{ $data->maid->photo_url ?? asset('images/no-image.png') }}"
+                            <img src="{{ $data->maid?->photo_url ?? asset('images/no-image.png') }}"
                                  alt="Maid Photo" class="maid-photo mb-3">
                         </div>
                         <div class="col-md-9">
@@ -192,37 +192,37 @@
                                 <div class="col-md-6">
                                     <div class="info-row">
                                         <span class="info-label">{{helperTrans("ingaz.maid_name")}}:</span>
-                                        <span class="info-value">{{ $data->maid->name ?? 'N/A' }}</span>
+                                        <span class="info-value">{{ $data->maid?->name ?? 'N/A' }}</span>
                                     </div>
                                     <div class="info-row">
                                         <span class="info-label">{{helperTrans("ingaz.nationality")}}:</span>
-                                        <span class="info-value">{{ $data->maid->nationality->sub_title ?? 'N/A' }}</span>
+                                        <span class="info-value">{{ $data->maid?->nationality?->sub_title ?? 'N/A' }}</span>
                                     </div>
                                     <div class="info-row">
                                         <span class="info-label">{{helperTrans("ingaz.religion")}}:</span>
-                                        <span class="info-value">{{ $data->maid->religion->title ?? 'N/A' }}</span>
+                                        <span class="info-value">{{ $data->maid?->religion?->title ?? 'N/A' }}</span>
                                     </div>
                                     <div class="info-row">
                                         <span class="info-label">{{helperTrans("ingaz.passport_num")}}:</span>
-                                        <span class="info-value">{{ $data->maid->passport_num ?? 'N/A' }}</span>
+                                        <span class="info-value">{{ $data->maid?->passport_num ?? 'N/A' }}</span>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="info-row">
                                         <span class="info-label">{{helperTrans("ingaz.age")}}:</span>
-                                        <span class="info-value">{{ $data->maid->age ?? 'N/A' }} {{helperTrans("ingaz.years")}}</span>
+                                        <span class="info-value">{{ $data->maid?->age ?? 'N/A' }} {{helperTrans("ingaz.years")}}</span>
                                     </div>
                                     <div class="info-row">
                                         <span class="info-label">{{helperTrans("ingaz.salary")}}:</span>
-                                        <span class="info-value">{{ $data->maid->salary ?? 'N/A' }} {{helperTrans("ingaz.riyal")}}</span>
+                                        <span class="info-value">{{ $data->maid?->salary ?? 'N/A' }} {{helperTrans("ingaz.riyal")}}</span>
                                     </div>
                                     <div class="info-row">
                                         <span class="info-label">{{helperTrans("ingaz.recruitment_price")}}:</span>
-                                        <span class="info-value">{{ $data->maid->price ?? 'N/A' }} {{helperTrans("ingaz.riyal")}}</span>
+                                        <span class="info-value">{{ $data->maid?->price ?? 'N/A' }} {{helperTrans("ingaz.riyal")}}</span>
                                     </div>
                                     <div class="info-row">
                                         <span class="info-label">{{helperTrans("ingaz.job_titles")}}:</span>
-                                        <span class="info-value">{{ $data->maid->jobTitles->pluck('title')->implode(', ') ?? 'N/A' }}</span>
+                                        <span class="info-value">{{ $data->maid?->jobTitles?->pluck('title')?->implode(', ') ?? 'N/A' }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -244,7 +244,7 @@
                     @if($data->details)
                         <div class="info-row">
                             <span class="info-label">{{helperTrans("ingaz.responsible_employee")}}:</span>
-                            <span class="info-value">{{ $data->details->admin->name ?? 'N/A' }}</span>
+                            <span class="info-value">{{ $data->details->admin?->name ?? 'N/A' }}</span>
                         </div>
                         @if($data->details->package)
                         <div class="info-row">
@@ -430,7 +430,7 @@
                         <option value="">{{helperTrans("ingaz.choose_maid")}}</option>
                         @foreach(\App\Models\ingaz\Maid::where('available', 1)->where('status', 'متاحة')->get() as $maid)
                             <option value="{{ $maid->id }}">
-                                {{ $maid->name }} - {{ $maid->nationality->sub_title ?? 'N/A' }} - {{ $maid->passport_num }}
+                                {{ $maid->name }} - {{ $maid->nationality?->sub_title ?? 'N/A' }} - {{ $maid->passport_num }}
                             </option>
                         @endforeach
                     </select>

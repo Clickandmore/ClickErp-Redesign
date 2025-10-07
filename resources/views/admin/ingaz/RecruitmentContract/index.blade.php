@@ -212,7 +212,7 @@
                         قائمة العقود
                     </h5>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body">
                     <!-- Modern Loading Overlay -->
                     <div id="loadingOverlay"
                         style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(74, 144, 226, 0.1), rgba(80, 200, 120, 0.1)); backdrop-filter: blur(5px); z-index: 1000; display: flex; justify-content: center; align-items: center; border-radius: 0.375rem;">

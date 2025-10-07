@@ -100,7 +100,7 @@ $user = getAuthUser();
                                     <h6 class="card-title mb-0">الإشعارات</h6>
                                     <button class="btn btn-sm btn-link mark-all-read">تعيين الكل كمقروء</button>
                                 </div>
-                                <div class="card-body p-0">
+                                <div class="card-body">
                                     <div class="notification-list">
                                         <!-- Notifications will be loaded here -->
                                     </div>

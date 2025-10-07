@@ -1,6 +1,5 @@
 @extends('admin.layout.indexs.index')
 @section("style")
-<link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
 @endsection
@@ -126,7 +125,7 @@
                         <i class="fa fa-list"></i> قائمة طلبات الإيجار
                     </h5>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body">
                         
                         <table id="dataTableObject" class="table table-hover align-middle mb-0" style="width:100%">
                             <thead>
