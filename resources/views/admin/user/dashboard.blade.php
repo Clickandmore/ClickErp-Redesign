@@ -1,6 +1,5 @@
 @extends('admin.layout.indexs.index')
 @section("style")
-<link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
 <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/fancybox.min.css">
 <style>
     .quote-imgs-thumbs {

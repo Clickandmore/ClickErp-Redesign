@@ -1,6 +1,5 @@
 @extends('admin.layout.indexs.index')
 @section("style")
-    <link rel="stylesheet" href="{{asset(" admin")}}/assets/cssbundle/dataTables.min.css">
 @endsection
 @section('page-title')
     الرئيسية

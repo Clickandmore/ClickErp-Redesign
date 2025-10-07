@@ -22,9 +22,9 @@
 @endsection
 
 @section('style')
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+    {{-- <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="{{ asset('admin') }}/custom/admin-tables.css">
+    <link rel="stylesheet" href="{{ asset('admin') }}/custom/admin-tables.css"> --}}
 @endsection
 
 @section('content')

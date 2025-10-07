@@ -154,7 +154,7 @@ $total_pages = ceil($total_batches / $per_page);
         </div>
     </div>
 
-    <div class="card-body p-0">
+    <div class="card-body">
         <?php if (empty($batches)): ?>
             <div class="text-center py-5">
                 <i class="fas fa-inbox fa-3x text-muted mb-3"></i>

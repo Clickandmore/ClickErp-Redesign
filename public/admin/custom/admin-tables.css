@@ -377,13 +377,13 @@ body:has(.dropdown-menu:visible) .actions-dropdown .dropdown-toggle {
 }
 
 /* عندما تكون القائمة مفتوحة، خفض z-index للصفوف الأخرى */
-.dropdown-menu-open tbody tr:not(.active-dropdown-row) {
+/* .dropdown-menu-open tbody tr:not(.active-dropdown-row) {
     z-index: 0 !important;
-}
+} */
 
-.dropdown-menu-open tbody tr.active-dropdown-row {
+/* .dropdown-menu-open tbody tr.active-dropdown-row {
     z-index: 2147483646 !important;
-}
+} */
 
 /* إصلاح نهائي لضمان ظهور القائمة فوق كل شيء */
 .dropdown-menu {
@@ -399,9 +399,9 @@ body:has(.dropdown-menu:visible) .actions-dropdown .dropdown-toggle {
 }
 
 /* رفع z-index للزر النشط فقط */
-.dropdown-menu-open .active-dropdown-row .actions-dropdown .dropdown-toggle {
+/* .dropdown-menu-open .active-dropdown-row .actions-dropdown .dropdown-toggle {
     z-index: 2147483646 !important;
-}
+} */
 
 /* التأكد من أن القائمة تظهر فوق كل شيء */
 .dropdown-menu.show {
