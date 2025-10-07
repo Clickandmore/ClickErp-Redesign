@@ -18,6 +18,11 @@ class OfficeFile extends Model
         'languages' => 'array',
     ];
 
+    public function jobTitle()
+    {
+        return $this->belongsTo(\App\Models\ingaz\JobTitle::class, 'job_title_id');
+    }
+
     public function office()
     {
         return $this->belongsTo(Office::class, 'recruitment_office_id');

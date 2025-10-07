@@ -20,6 +20,7 @@
 {{--    <li class="breadcrumb-item active" aria-current="page"> {{__("finance.clients")}}</li>--}}
 {{--@endsection--}}
 @section('content')
+
     @if (@AdminGuardHasPerm(\App\PermKeys::JOB_TITLES_VIEW))
         @if (@AdminGuardHasPerm(\App\PermKeys::JOB_TITLES_CONTROL))
             <div class="d-flex mb-3 justify-content-end">

@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\Models\Activity;
 use Yajra\DataTables\Facades\DataTables;
 
 //use function App\Http\Controllers\ingaz\__;
@@ -83,12 +84,16 @@ class OfficeController extends Controller
                 })
                 ->addColumn('actions', function ($row) {
                     $editButton = '';
+                    $showButton = '';
                     $deleteButton = '';
                     $fileButton = '';
                     $sendEmailButton = '';
                     // if (Auth::guard('admin')->user()->hasPermission('programs-update')) {
                     $editButton = '<a href="' . route('offices.edit', $row->id) . '" class="btn btn-primary">
                                     <i class="fa fa-pencil"></i>
+                                   </a>';
+                    $showButton = '<a href="' . route('offices.show', $row->id) . '" class="btn btn-primary">
+                                    <i class="fa fa-eye"></i>
                                    </a>';
                     // }
                     // if (Auth::guard('admin')->user()->hasPermission('programs-delete')) {
@@ -105,7 +110,7 @@ class OfficeController extends Controller
                     }
                     $sendEmailButton = '<button class="btn btn-success sendEmailResetPassword" data-id="' . $row->id . '"data-email="' . $row->manager_email . '">' . '  <i class="fa fa-email"></i> ' . __("ingaz.send_email_reset_password") . '</button>';
 
-                    return $fileButton . " " . $editButton . " " . $sendEmailButton . " " . $deleteButton;
+                    return $fileButton . " " . $editButton . " " . $showButton . " " . $sendEmailButton . " " . $deleteButton;
                 })
                 ->rawColumns(['actions', 'license_number', 'title', 'nationality_id', 'office_number', 'status'])->make(true);
         }
@@ -177,11 +182,28 @@ class OfficeController extends Controller
      */
     public function show($id)
     {
+        $office = objModel::with([
+            'nationality',
+            'jobTypes',
+            'attachment',
+            'file.jobTitle',
+            'officeManager.admin',
+        ])->findOrFail($id);
 
-        $model = objModel::find($id);
-        $model->is_show = !$model->is_show;
-        $model->update();
-        return response()->json(['success' => true]);
+        $office->is_show = !$office->is_show;
+        $office->save();
+
+        $activities = Activity::query()
+            ->with('causer')
+            ->where('subject_type', objModel::class)
+            ->where('subject_id', $office->id)
+            ->latest('created_at')
+            ->get();
+
+        return view('admin.office.show', [
+            'office' => $office,
+            'activities' => $activities,
+        ]);
     }
 
     /**
@@ -270,3 +292,8 @@ class OfficeController extends Controller
         return jsonSuccess();
     }
 }
+
+
+
+
+

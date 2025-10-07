@@ -9,6 +9,8 @@ use App\Models\Maid;
 use App\Models\OfficeAttachment;
 use App\Models\RecruitmentOfficeTranslation;
 use Astrotomic\Translatable\Translatable;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
 
 use App\Models\ingaz\JobTitlesTranslation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,7 +18,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Office extends Model
 {
-    use HasFactory, Translatable;
+    use HasFactory, Translatable, LogsActivity;
 
     protected $guarded = [];
     public $translatedAttributes = ['title'];
@@ -34,6 +36,7 @@ class Office extends Model
     {
         return $this->belongsToMany(JobType::class, 'jop_type_offices', 'office_id', 'jop_type_id');
     }
+
     public function officeManager()
     {
         return $this->hasOne(AdminOffice::class, 'office_id');
@@ -49,9 +52,36 @@ class Office extends Model
         return $this->hasMany(Maid::class, 'office_id');
     }
 
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->useLogName('office')
+            ->logOnly([
+                'title',
+                'nationality_id',
+                'phone_office',
+                'license_number',
+                'street',
+                'manager_name',
+                'manager_phone',
+                'manager_email',
+                'bank_address',
+                'bank_name',
+                'bank_account_name',
+                'bank_account',
+                'bank_swift_code',
+                'bank_iban',
+                'cost_of_dollar',
+                'cost_of_other',
+                'status',
+                'is_show',
+            ])
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs();
+    }
+
     public function attachment()
     {
         return $this->hasOne(OfficeAttachment::class, 'office_id');
     }
-
 }

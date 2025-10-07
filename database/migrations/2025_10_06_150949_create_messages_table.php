@@ -13,17 +13,19 @@ class CreateMessagesTable extends Migration
      */
     public function up()
     {
-        Schema::create('messages', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('conversation_id');
-            $table->foreign('conversation_id')->references('id')->on('conversations');
-            $table->unsignedBigInteger('user_id');
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-            $table->string('from_user', 255)->nullable();
-            $table->text('message')->nullable();
-            $table->text('files')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('messages')) {
+            Schema::create('messages', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('conversation_id');
+                $table->foreign('conversation_id')->references('id')->on('conversations');
+                $table->unsignedBigInteger('user_id');
+                $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+                $table->string('from_user', 255)->nullable();
+                $table->text('message')->nullable();
+                $table->text('files')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     /**
@@ -33,6 +35,8 @@ class CreateMessagesTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('messages');
+        if (Schema::hasTable('messages')) {
+            Schema::dropIfExists('messages');
+        }
     }
 }
