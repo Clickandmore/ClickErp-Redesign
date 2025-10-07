@@ -183,7 +183,7 @@ class OrderController extends Controller
                     return '<span class="text-info">' . ($row->details->admin->name ?? '-') . '</span>';
                 })
                 ->addColumn('actions', function ($row) {
-                    $actions = '<div class="dropdown actions-dropdown">
+                    $actions = ' <div class="dropdown actions-dropdown">
                                     <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
                                         <i class="fas fa-cogs me-1"></i> الإجراءات
                         </button>

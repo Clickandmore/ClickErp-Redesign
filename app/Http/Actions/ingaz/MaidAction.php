@@ -570,6 +570,13 @@ class MaidAction extends MainAction
         };
 
         return $this->model
+            ->shown()
+            ->where('available', true)
+            ->where('status', 'available')
+            ->where(function ($query) {
+                $query->whereNull('available_at')
+                    ->orWhere('available_at', '<=', now()->toDateString());
+            })
             ->when(isset($type), function ($query) use ($type) {
                 $query->whereHas('jobTypes', function ($q) use ($type) {
                     $q->where('job_type_id', $type);
