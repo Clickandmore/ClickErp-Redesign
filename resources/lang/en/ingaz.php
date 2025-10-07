@@ -1223,6 +1223,16 @@
     'status' => 'Status',
     'status_approved' => 'Approved',
     'status_pending' => 'Pending',
+    'pending' => 'Pending',
+    'approved' => 'Approved',
+    'rejected' => 'Rejected',
+    'confirm_accept' => 'Confirm Approved',
+    'confirm_reject' => 'Confirm Rejected',
+    'are_you_sure' => 'Are you sure',
+    'total_requests' => 'Total Requests',
+    'total_approved_requests' => 'Total Approved Requests',
+    'total_rejected_requests' => 'Total Rejected Requests',
+    'total_pending_requests' => 'Total Pending Requests',
 
     // Buttons / UI
     'back_to_list' => 'Back to List',
