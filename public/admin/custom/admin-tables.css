@@ -2731,7 +2731,6 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 
-.table tbody tr,
-tr , td{
+.table tbody tr, tr , td{
     position: unset !important;
 }

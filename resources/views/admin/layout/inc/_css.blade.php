@@ -21,12 +21,6 @@
         display: none !important;
     }
 
-    .table tbody tr,
-    tr,
-    td {
-        position: unset !important;
-    }
-
     .toggle-pin,
     .btn-edit,
     .btn-view,
@@ -67,6 +61,10 @@
         z-index: 99999 !important;
     }
     tr.child.active-dropdown-row{
+        z-index: 99999999999999999999 !important;
+        position: relative !important;
+    }
+    tr.active-dropdown-row{
         z-index: 99999999999999999999 !important;
         position: relative !important;
     }
