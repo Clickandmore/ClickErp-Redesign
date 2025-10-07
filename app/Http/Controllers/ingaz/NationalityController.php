@@ -4,12 +4,12 @@ namespace App\Http\Controllers\ingaz;
 
 use App\Http\Actions\ingaz\NationalityAction as objAction;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\ingaz\JobTitleRequest;
 use App\Http\Requests\ingaz\NationalityRequest;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Nationality as objModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 
 class NationalityController extends Controller
@@ -21,10 +21,13 @@ class NationalityController extends Controller
         "phone_code",
         "sub_title:ar",
         "sub_title:en",
+        "description:ar",
+        "description:en",
         "price",
         "service_transportation_cost",
         "rental_cost",
-        "monthly_salary"
+        "monthly_salary",
+        "is_show",
     ];
     public $mainRoute = "nationalities";
 
@@ -44,13 +47,20 @@ class NationalityController extends Controller
             return DataTables::of($rows)
                 ->addIndexColumn()
                 ->editColumn('is_show', function ($row) {
-                    return
-                        $row->is_show == 1 ? '
-                        <button class="btn btn-sm btn-danger update-status" id="update-status" data-id="' . $row->id . '">اخفاء</button>' :
-                            '<button class="btn btn-sm btn-success update-status" data-id="' . $row->id . '">اظهار </button>';
+                    $statusLabel = $row->is_show
+                        ? helperTrans('ingaz.hide')
+                        : helperTrans('ingaz.show');
+
+                    $statusClass = $row->is_show ? 'btn-danger' : 'btn-success';
+
+                    return '<button class="btn btn-sm ' . $statusClass . ' update-status" data-id="'
+                        . $row->id . '">' . $statusLabel . '</button>';
                 })
                 ->editColumn('logo', function ($row) {
                     return getImgTag($row->logo);
+                })
+                ->addColumn('description', function ($row) {
+                    return Str::limit(strip_tags($row->description ?? ''), 60);
                 })
                 ->editColumn('price', function ($row) {
                     return $row->price ?? 'لم يتم توحيد سعر';
@@ -75,6 +85,15 @@ class NationalityController extends Controller
         $data["modalType"] = "modal-lg";
         return view($this->folderPath . '.index', $data);
 
+    }
+
+    public function show($id)
+    {
+        $model = objModel::findOrFail($id);
+        $model->is_show = !$model->is_show;
+        $model->save();
+
+        return response()->json(['success' => true, 'is_show' => $model->is_show]);
     }
 
 

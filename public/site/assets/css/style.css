@@ -1147,6 +1147,10 @@ main .about-section .about-card {
   border: 1px solid var(--gray);
   min-height: 100%;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: stretch;
 }
 main .about-section .about-card .about-number {
   position: absolute;
@@ -1157,7 +1161,7 @@ main .about-section .about-card .about-number {
   color: var(--mainColor80);
   z-index: 2;
 }
-main .about-section .about-card i, main .about-section .about-card h4, main .about-section .about-card p {
+main .about-section .about-card i, main .about-section .about-card h4, main .about-section .about-card .about-text {
   position: relative;
   z-index: 2;
   transition: color 0.3s ease;
@@ -1166,17 +1170,37 @@ main .about-section .about-card i {
   font-size: 2.2rem;
   color: var(--mainColor);
   margin-bottom: 15px;
+  align-self: center;
 }
 main .about-section .about-card h4 {
   font-size: 1.3rem;
   font-weight: 700;
   margin-bottom: 12px;
   color: var(--mainColor);
+  align-self: center;
 }
-main .about-section .about-card p {
+main .about-section .about-card .about-text {
+  direction: inherit;
+  width: 100%;
   font-size: 0.95rem;
   color: #555;
-  line-height: 1.7;
+  line-height: 1.8;
+  display: block;
+}
+main .about-section .about-card .about-text p {
+  margin-bottom: 0;
+  text-align: justify;
+}
+main .about-section .about-card .about-text ul,
+main .about-section .about-card .about-text ol {
+  margin: 0;
+  padding-inline-start: 1.4rem;
+  text-align: start;
+}
+main .about-section .about-card .about-text li {
+  color: inherit;
+  margin-bottom: 0.35rem;
+  text-align: start;
 }
 main .about-section .about-card::before {
   content: "";
@@ -1199,7 +1223,7 @@ main .about-section .about-card:hover {
   transform: translateY(-8px);
   box-shadow: 0 10px 25px rgba(var(--mainColor), 0.25);
 }
-main .about-section .about-card:hover h4, main .about-section .about-card:hover p, main .about-section .about-card:hover i {
+main .about-section .about-card:hover h4, main .about-section .about-card:hover i, main .about-section .about-card:hover .about-text, main .about-section .about-card:hover .about-text p, main .about-section .about-card:hover .about-text li {
   color: #fff;
 }
 @media (max-width: 768px) {
@@ -1382,11 +1406,47 @@ main .countries .country-card .country-content h3 {
   transition: var(--transition);
   font-size: 1.4rem;
 }
-main .countries .country-card .country-content p {
-  color: #666;
-  margin-bottom: 20px;
-  transition: var(--transition);
+main .countries .country-card .country-content .country-subtitle {
+  display: block;
+  font-weight: 600;
+  color: var(--mainColor);
+  margin-bottom: 10px;
+}
+main .countries .country-card .country-content .country-description {
+  color: #555;
+  text-align: start;
+  margin-bottom: 16px;
   font-size: 0.95rem;
+  line-height: 1.7;
+}
+main .countries .country-card .country-content .country-description p {
+  margin-bottom: 0.5rem;
+}
+main .countries .country-card .country-content .country-costs {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+  text-align: start;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+main .countries .country-card .country-content .country-costs li {
+  background: var(--mainColor10);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--black);
+}
+main .countries .country-card .country-content .country-costs li span {
+  font-weight: 500;
+  color: #555;
+}
+main .countries .country-card .country-content .country-costs li strong {
+  font-weight: 700;
+  color: var(--mainColor);
 }
 main .countries .country-card .country-content .animatedLink {
   display: inline-flex;

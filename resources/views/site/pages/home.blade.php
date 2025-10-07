@@ -135,16 +135,18 @@
             <span class="about-number">01</span>
             <i class="fa-solid fa-eye"></i>
             <h4>{{ __('ingaz.vision') }}</h4>
-            <p>
+            <div class="about-text">
                 @if(isset($about) && isset($about->vision))
                     {!! $about->vision !!}
                 @else
-                    أن نكون الخيار الأول للاستقدام في المملكة العربية السعودية، وذلك
-                    بالتفرد بتقديم أجود الخدمات وانتقاء أجود الكفاءات، والحرص على
-                    راحة العملاء وحفظ حقوقهم، ونحقق ذلك بعد اكتساب ثقة العملاء
-                    وتوصيتهم بنا لمن حولهم.
+                    <p>
+                        أن نكون الخيار الأول للاستقدام في المملكة العربية السعودية، وذلك
+                        بالتفرد بتقديم أجود الخدمات وانتقاء أجود الكفاءات، والحرص على
+                        راحة العملاء وحفظ حقوقهم، ونحقق ذلك بعد اكتساب ثقة العملاء
+                        وتوصيتهم بنا لمن حولهم.
+                    </p>
                 @endif
-            </p>
+            </div>
         </div>
     </div>
 
@@ -153,17 +155,19 @@
             <span class="about-number">02</span>
             <i class="fa-solid fa-envelope-open-text"></i>
             <h4>{{ __('ingaz.mission') }}</h4>
-            <p>
+            <div class="about-text">
                 @if(isset($about) && isset($about->mission))
                     {!! $about->mission !!}
                 @else
-                    نفتخر بعملنا كونه يسهم بتوفير موارد
-                    ودخل جيّد لأسرة وفرد بحاجة لهذه الموارد لدعم أسرته وبناء مستقبله،
-                    وبالمقابل توفير سبل الراحة للأسرة السعودية والمقيمة في وطننا
-                    المعطاء.
-                    ((( احتياجاتكم اولوياتنا ))).
+                    <p>
+                        نفتخر بعملنا كونه يسهم بتوفير موارد
+                        ودخل جيّد لأسرة وفرد بحاجة لهذه الموارد لدعم أسرته وبناء مستقبله،
+                        وبالمقابل توفير سبل الراحة للأسرة السعودية والمقيمة في وطننا
+                        المعطاء.
+                    </p>
+                    <p>((( احتياجاتكم اولوياتنا ))).</p>
                 @endif
-            </p>
+            </div>
         </div>
     </div>
 
@@ -172,16 +176,18 @@
             <span class="about-number">03</span>
             <i class="fa-solid fa-handshake"></i>
             <h4>{{ __('ingaz.values') }}</h4>
-            <p>
+            <div class="about-text">
                 @if(isset($about) && isset($about->value))
                     {!! $about->value !!}
                 @else
-                    قيمنا تركز على رضى العميل، حيث نولي الأولوية للجودة والكمال في كل
-                    خدماتنا. نحن روح الفريق لتحقيق النجاح، نحرص على السرعة والانجاز
-                    لتلبية احتياجات عملائنا، ونعتبر النزاهة والشفافية أساساً في كل
-                    تعاملاتنا.
+                    <p>
+                        قيمنا تركز على رضى العميل، حيث نولي الأولوية للجودة والكمال في كل
+                        خدماتنا. نحن روح الفريق لتحقيق النجاح، نحرص على السرعة والانجاز
+                        لتلبية احتياجات عملائنا، ونعتبر النزاهة والشفافية أساساً في كل
+                        تعاملاتنا.
+                    </p>
                 @endif
-            </p>
+            </div>
         </div>
     </div>
 </div>
@@ -202,23 +208,58 @@
                 <div class="row justify-content-center">
                     @forelse($nationalities as $nationality)
                         <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="100">
-                            <div class="country-card">
-                                <div class="flag-container">
-                                    <img src="{{ showfile($nationality->logo) }}" alt="" width="100px">
+                                <div class="country-card">
+                                    <div class="flag-container">
+                                        <img src="{{ showfile($nationality->logo) }}" alt="" width="100px">
+                                    </div>
+                                    <div class="country-content">
+                                        <h3>{{ $nationality->title }}</h3>
+
+                                        {{-- @if($nationality->sub_title)
+                                            <span class="country-subtitle">{{ $nationality->sub_title }}</span>
+                                        @endif --}}
+
+
+
+                                        <ul class="country-costs">
+                                            @if($nationality->price)
+                                                <li>
+                                                    <span>{{ __('ingaz.recruitment_cost') }}</span>
+                                                    <strong>{{ number_format($nationality->price, 0) }} {{ __('ingaz.currency_sar') }}</strong>
+                                                </li>
+                                            @endif
+                                            @if($nationality->rental_cost)
+                                                <li>
+                                                    <span>{{ __('ingaz.rental_cost') }}</span>
+                                                    <strong>{{ number_format($nationality->rental_cost, 0) }} {{ __('ingaz.currency_sar') }}</strong>
+                                                </li>
+                                            @endif
+                                            @if($nationality->service_transportation_cost)
+                                                <li>
+                                                    <span>{{ __('ingaz.service_transportation_cost') }}</span>
+                                                    <strong>{{ number_format($nationality->service_transportation_cost, 0) }} {{ __('ingaz.currency_sar') }}</strong>
+                                                </li>
+                                            @endif
+                                            @if($nationality->monthly_salary)
+                                                <li>
+                                                    <span>{{ __('ingaz.monthly_salary') }}</span>
+                                                    <strong>{{ number_format($nationality->monthly_salary, 0) }} {{ __('ingaz.currency_sar') }}</strong>
+                                                </li>
+                                            @endif
+                                              @if($nationality->description)
+                                            <div class="country-description">
+                                                {!! $nationality->description !!}
+                                            </div>
+                                        @endif
+                                        </ul>
+
+                                        <a href="{{ route('site.all-workers.index') }}?nationality_id={{ $nationality->id }}"
+                                           class="animatedLink">
+                                            {{ __('ingaz.request now') }}
+                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                        </a>
+                                    </div>
                                 </div>
-                                <div class="country-content">
-                                    <h3>{{ $nationality->title }}
-                                    </h3>
-                                    <p>
-                                        {{ $nationality->sub_title }}
-                                    </p>
-                                    <a href="{{ route('site.all-workers.index') }}?nationality_id={{ $nationality->id }}"
-                                       class="animatedLink">
-                                        {{ __('ingaz.request now') }}
-                                        <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                    </a>
-                                </div>
-                            </div>
                         </div>
                     @empty
                         <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="100">
@@ -228,7 +269,14 @@
                                 </div>
                                 <div class="country-content">
                                     <h3> اوغندا </h3>
-                                    <p>مدة الاستقدام في خلال 60 يوم </p>
+                                    <span class="country-subtitle">مدة الاستقدام في خلال 60 يوم</span>
+                                    <div class="country-description">
+                                        <p>خدمات استقدام متكاملة من أوغندا مع متابعة شاملة لكافة إجراءات العمل.</p>
+                                    </div>
+                                    <ul class="country-costs">
+                                        <li><span>{{ __('ingaz.recruitment_cost') }}</span><strong>8,500 {{ __('ingaz.currency_sar') }}</strong></li>
+                                        <li><span>{{ __('ingaz.rental_cost') }}</span><strong>2,000 {{ __('ingaz.currency_sar') }}</strong></li>
+                                    </ul>
                                     <a href="#" class="animatedLink">
                                         اطلب الآن
                                         <i class="fa-regular fa-left-long ms-2"><span></span></i>
@@ -243,7 +291,7 @@
                                     </div>
                                     <div class="country-content">
                                         <h3> كينيا </h3>
-                                        <p>مدة الاستقدام في خلال 60 يوم </p>
+                                        <span class="country-subtitle">مدة الاستقدام في خلال 60 يوم</span>
                                         <a href="#" class="animatedLink">
                                             اطلب الآن
                                             <i class="fa-regular fa-left-long ms-2"><span></span></i>
@@ -259,7 +307,7 @@
                                     </div>
                                     <div class="country-content">
                                         <h3> بنغلادش </h3>
-                                        <p>مدة الاستقدام في خلال 60 يوم </p>
+                                        <span class="country-subtitle">مدة الاستقدام في خلال 60 يوم</span>
                                         <a href="#" class="animatedLink">
                                             اطلب الآن
                                             <i class="fa-regular fa-left-long ms-2"><span></span></i>
@@ -275,7 +323,7 @@
                                     </div>
                                     <div class="country-content">
                                         <h3> الفلبين </h3>
-                                        <p>مدة الاستقدام في خلال 60 يوم </p>
+                                        <span class="country-subtitle">مدة الاستقدام في خلال 60 يوم</span>
                                         <a href="#" class="animatedLink">
                                             اطلب الآن
                                             <i class="fa-regular fa-left-long ms-2"><span></span></i>

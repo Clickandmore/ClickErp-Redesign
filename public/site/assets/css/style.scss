@@ -601,6 +601,10 @@ main {
     border: 1px solid var(--gray);
     min-height: 100%;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    align-items: stretch;
 
     .about-number {
       position: absolute;
@@ -612,7 +616,7 @@ main {
       z-index: 2;
     }
 
-    i, h4, p {
+    i, h4, .about-text {
       position: relative;
       z-index: 2;
       transition: color 0.3s ease;
@@ -622,6 +626,7 @@ main {
       font-size: 2.2rem;
       color: var(--mainColor);
       margin-bottom: 15px;
+      align-self: center;
     }
 
     h4 {
@@ -629,29 +634,50 @@ main {
       font-weight: 700;
       margin-bottom: 12px;
       color: var(--mainColor);
+      align-self: center;
     }
 
-    p {
+    .about-text {
+      direction: inherit;
+      width: 100%;
       font-size: 0.95rem;
       color: #555;
-      line-height: 1.7;
+      line-height: 1.8;
+      display: block;
+
+      p {
+        margin-bottom: 0;
+        text-align: justify;
+      }
+
+      ul,
+      ol {
+        margin: 0;
+        padding-inline-start: 1.4rem;
+        text-align: start;
+      }
+
+      li {
+        color: inherit;
+        margin-bottom: 0.35rem;
+        text-align: start;
+      }
     }
 
-     &::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: var(--bg-image);
-  background-size: cover;
-  background-position: center;
-  opacity: 0;
-  transition: opacity 0.5s ease;
-  border-radius: 15px;
-  z-index: 1;
-  background-blend-mode: overlay;
-  background-color: rgba(0, 0, 0, 0.692);
-}
-
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: var(--bg-image);
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      border-radius: 15px;
+      z-index: 1;
+      background-blend-mode: overlay;
+      background-color: rgba(0, 0, 0, 0.692);
+    }
 
     &:hover::before {
       opacity: 1;
@@ -661,12 +687,16 @@ main {
       transform: translateY(-8px);
       box-shadow: 0 10px 25px rgba(var(--mainColor), 0.25);
 
-      h4, p, i {
+      h4,
+      i,
+      .about-text,
+      .about-text p,
+      .about-text li {
         color: #fff;
       }
     }
 
-  
+
   }
 
   @media (max-width: 768px) {
@@ -879,11 +909,53 @@ main {
           font-size: 1.4rem;
         }
 
-        p {
-          color: #666;
-          margin-bottom: 20px;
-          transition: var(--transition);
+        .country-subtitle {
+          display: block;
+          font-weight: 600;
+          color: var(--mainColor);
+          margin-bottom: 10px;
+        }
+
+        .country-description {
+          color: #555;
+          text-align: start;
+          margin-bottom: 16px;
           font-size: 0.95rem;
+          line-height: 1.7;
+
+          p {
+            margin-bottom: 0.5rem;
+          }
+        }
+
+        .country-costs {
+          list-style: none;
+          padding: 0;
+          margin: 0 0 20px;
+          text-align: start;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+
+          li {
+            background: var(--mainColor10);
+            border-radius: 12px;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--black);
+
+            span {
+              font-weight: 500;
+              color: #555;
+            }
+
+            strong {
+              font-weight: 700;
+              color: var(--mainColor);
+            }
+          }
         }
 
         .animatedLink {

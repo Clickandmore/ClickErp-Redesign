@@ -32,7 +32,7 @@ class MainAction
 
             // Handle strings and other types
             $trimedValue = (gettype($value) == "string") ? trim($value) : $value;
-            if (empty($trimedValue)) {
+            if ($trimedValue === '' || $trimedValue === null) {
                 unset($data[$key]);
                 continue;
             }
