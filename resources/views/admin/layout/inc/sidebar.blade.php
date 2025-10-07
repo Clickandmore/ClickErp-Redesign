@@ -169,7 +169,7 @@
                             <a class="m-link {{ (Route::currentRouteName() == 'professional_application.index') ? 'active' : '' }}"
                                href="{{route('professional_application.index')}}">
                                 <i class="fa fa-envelope"></i>
-                                <span class="ms-2"> {{ helperTrans('ingaz.professional_application') }}</span>
+                                <span class="ms-2">  {{helperTrans("ingaz.request_professional_labor")}}</span>
                             </a>
                         </li>
                         {{-- @endif --}}
