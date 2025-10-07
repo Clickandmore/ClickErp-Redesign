@@ -30,9 +30,28 @@
             color: #066f63;
         }
 
-        .card-title-head{
+        /* .card-title-head{
             color: #4dca88;
             font-weight: bold;
+        } */
+
+        .btn-head-primary,.btn-head-success,.btn-head-secondary{
+            color: white;
+            border-color: white;
+            transition: 0.3s ease-in-out;
+        }
+
+        .btn-head-primary:hover{
+            background-color: #1e76bf;
+            border-color: #1e76bf;
+        }
+        .btn-head-success:hover{
+            background-color: #4dca88;
+            border-color: #4dca88;
+        }
+        .btn-head-secondary:hover{
+            background-color: #6c757d;
+            border-color: #6c757d;
         }
 
         .timeline-table th {
@@ -77,17 +96,17 @@
 
                     {{-- تفاصيل المكتب --}}
                     <div class="card shadow-sm mb-4">
-                        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="card-header d-flex bg-primary text-white justify-content-between align-items-center flex-wrap gap-2">
                             <h5 class="mb-0 card-title-head">{{ helperTrans('ingaz.office_details') }}</h5>
                             <div class="d-flex flex-wrap gap-2">
-                                <a href="{{ route('offices.edit', $office->id) }}" class="btn btn-sm btn-outline-primary">
+                                <a href="{{ route('offices.edit', $office->id) }}" class="btn btn-sm btn-outline btn-head-primary">
                                     <i class="fa fa-edit"></i> {{ helperTrans('ingaz.edit_office') }}
                                 </a>
-                                <a href="{{ route('offices-file.create', ['office_id' => $office->id]) }}" class="btn btn-sm btn-outline-success">
+                                <a href="{{ route('offices-file.create', ['office_id' => $office->id]) }}" class="btn btn-sm btn-outline btn-head-success">
                                     <i class="fa fa-plus"></i> {{ helperTrans('ingaz.add_new_file') }}
                                 </a>
                                 @if($officeFile)
-                                    <a href="{{ route('offices-file.edit', $officeFile->id) }}" class="btn btn-sm btn-outline-secondary">
+                                    <a href="{{ route('offices-file.edit', $officeFile->id) }}" class="btn btn-sm btn-outline btn-head-secondary">
                                         <i class="fa fa-eye"></i> {{ helperTrans('ingaz.view_current_file') }}
                                     </a>
                                 @endif
@@ -206,7 +225,7 @@
 
                     {{-- بيانات المدير --}}
                     <div class="card shadow-sm mb-4">
-                        <div class="card-header">
+                        <div class="card-header bg-primary text-white">
                             <h5 class="mb-0 card-title-head">{{ helperTrans('ingaz.manager_info') }}</h5>
                         </div>
                         <div class="card-body">
@@ -263,7 +282,7 @@
 
                     {{-- سجل النشاطات --}}
                     <div class="card shadow-sm">
-                        <div class="card-header">
+                        <div class="card-header bg-primary text-white">
                             <h5 class="mb-0 card-title-head">{{ helperTrans('ingaz.activity_log') }}</h5>
                         </div>
                         <div class="card-body">
