@@ -448,7 +448,7 @@
                                     data-maid-id="{{$order->maid->id ?? ''}}"
                                     data-maid-nationality="{{$order->maid->nationality_id ?? ''}}"
                                     data-maid-religion="{{$order->maid->religion_id ?? ''}}"
-                                    data-maid-job="{{$order->maid->job_types && $order->maid->job_types->first() && $order->maid->job_types->first()->translations && $order->maid->job_types->first()->translations->first() ? $order->maid->job_types->first()->translations->first()->title : ''}}"
+                                    data-maid-job="{{$order->maid?->job_types?->first()?->translations?->first()?->title ?? ''}}"
                                     data-maid-salary="{{$order->maid->salary ?? ''}}"
                                     data-maid-experience="{{$order->maid->experience_years ?? ''}}"
                                     data-maid-age="{{$order->maid->age ?? ''}}"
