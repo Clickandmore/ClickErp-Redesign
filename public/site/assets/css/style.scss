@@ -926,6 +926,16 @@ main {
           p {
             margin-bottom: 0.5rem;
           }
+
+          strong {
+            color: var(--mainColor);
+          }
+
+          ul,
+          ol {
+            padding-inline-start: 1.2rem;
+            margin-bottom: 0.75rem;
+          }
         }
 
         .country-costs {

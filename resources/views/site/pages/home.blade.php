@@ -215,11 +215,15 @@
                                     <div class="country-content">
                                         <h3>{{ $nationality->title }}</h3>
 
-                                        {{-- @if($nationality->sub_title)
+                                        @if($nationality->sub_title)
                                             <span class="country-subtitle">{{ $nationality->sub_title }}</span>
-                                        @endif --}}
+                                        @endif
 
-
+                                        @if($nationality->description)
+                                            <div class="country-description">
+                                                {!! $nationality->description !!}
+                                            </div>
+                                        @endif
 
                                         <ul class="country-costs">
                                             @if($nationality->price)
@@ -245,12 +249,7 @@
                                                     <span>{{ __('ingaz.monthly_salary') }}</span>
                                                     <strong>{{ number_format($nationality->monthly_salary, 0) }} {{ __('ingaz.currency_sar') }}</strong>
                                                 </li>
-                                            @endif
-                                              @if($nationality->description)
-                                            <div class="country-description">
-                                                {!! $nationality->description !!}
-                                            </div>
-                                        @endif
+                                           @endif
                                         </ul>
 
                                         <a href="{{ route('site.all-workers.index') }}?nationality_id={{ $nationality->id }}"
