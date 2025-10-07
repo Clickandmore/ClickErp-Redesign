@@ -6,9 +6,9 @@ enum recruitmentOrderEnum: string
 {
     case ChooseMaid = 'choose_maid';
 
-    public function lang()
-    {
-        return match ($this) {
-        };
-    }
+//    public function lang()
+//    {
+//        return match ($this) {
+//        };
+//    }
 }
