@@ -163,7 +163,7 @@
                         <div class="data">
                             <p class="innerTitle">{{ __('ingaz.education') }}</p>
                             <h6 class="innerData">
-                                {{ App\Enums\Office\EducationEnum::from($maid->education)->lang() }}</h6>
+                            {{ App\Enums\Office\EducationEnum::tryFrom($maid->education)?->lang() ?? $maid->education }}
                         </div>
                     </div>
                 </div>

@@ -1,7 +1,6 @@
 @extends('admin.layout.indexs.index')
 
 @section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
 @endsection
 
 @section('page-title')
@@ -38,7 +37,7 @@
                     <div class="col-md-6 mb-3">
                         <div class="p-3 border rounded">
                             <span class="fw-bold">مكتب الاستقدام:</span>
-                            <h5 class="d-inline">{{ $maid->office->title }}</h5>
+                            <h5 class="d-inline">{{ $maid->office->title ?? '-' }}</h5>
                         </div>
                     </div>
                     <div class="col-md-4 mb-3">
@@ -114,7 +113,7 @@
 
     <hr>
     <h5>@lang('ingaz.orders')</h5>
-    <div class="table-responsive">
+     
         <table class="table table-hover">
             <thead>
                 <tr>
@@ -156,11 +155,10 @@
                 @endforeach
             </tbody>
         </table>
-    </div>
-
+     
     <hr>
     <h5>@lang('ingaz.contracts')</h5>
-    <div class="table-responsive">
+     
         <table class="table table-hover">
             <thead>
                 <tr>

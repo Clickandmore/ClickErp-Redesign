@@ -1,9 +1,10 @@
 <div class="container">
-    <div class="row">
+    <div class="row align-items-start">
         @if(isset($settings))
-            <div class="col-lg-4 col-md-6 mb-4">
+            <div class="col-lg-4 col-md-6 mb-4 footer-about">
                 <img src="{{showFile($settings->logo_footer)}}" alt="Logo" class="footer-logo"/>
                 <p class="footer-desc">
+
                     {{showFile($settings->footer_text)}}
                 </p>
                 <ul class="footer-social">
@@ -14,6 +15,8 @@
                             <i class="fab fa-whatsapp"></i>
                         </a>
                     </li>
+          <li><a href="#"><i class="fab fa-instagram"></i></a></li>
+          <li><a href="#"><i class="fab fa-snapchat-ghost"></i></a></li>
 
                     <li>
                         <a href="mailto:{{ $settings->email }}">
@@ -90,4 +93,6 @@
         <script>document.write(new Date().getFullYear());</script>
         <a target="_blank" href="http://nami-tec.com">NAMI</a>
     </p>
+
+   
 </div>

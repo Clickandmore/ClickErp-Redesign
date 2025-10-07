@@ -1,6 +1,5 @@
 @extends('admin.layout.indexs.index')
 @section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
 @endsection
 @section('page-title')
     {{helperTrans("ingaz.statistics")}}
@@ -10,10 +9,11 @@
 {{--@endsection--}}
 @section('content')
 
-
-{{--    @if (@AdminGuardHasPerm(\App\PermKeys::STAT_CONTROL))--}}
+    {{--    @if (@AdminGuardHasPerm(\App\PermKeys::STAT_CONTROL))--}}
+    @if(\App\Models\ingaz\Statistic::count() < 4)
         {!! addButton(route("statistics.create") ,helperTrans("ingaz.statistics")) !!}
-{{--    @endif--}}
+    @endif
+    {{--    @endif--}}
 
     <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
         <thead>
@@ -30,19 +30,16 @@
         </tbody>
     </table>
 
-
-
 @endsection
 @section('js')
 
-    <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
     <script>
         $(document).ready(function () {
             let columns = [
                 {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                 {"data": "image", orderable: false, searchable: false},
-                {"data": "counter_num",orderable: true,searchable: true},
-                {"data": "title",orderable: true,searchable: true},
+                {"data": "counter_num", orderable: true, searchable: true},
+                {"data": "title", orderable: true, searchable: true},
                 {"data": "actions", orderable: false, searchable: false}
             ];
             showDataTable("{{route("statistics.index")}}", columns);

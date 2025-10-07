@@ -2,7 +2,6 @@
 @section("style")
 <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link href="{{ asset('admin/custom/admin-tables.css') }}" rel="stylesheet" type="text/css" />
 <link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
 <style>
     .ui-sortable-helper {
@@ -101,7 +100,7 @@
         <!-- Data Table Card -->
         <div class="card shadow">
             <div class="card-body">
-                <div class="table-responsive">
+
                     <table class="table table-bordered table-striped table-hover" id="countries-table">
                         <thead class="table-dark">
                             <tr>
@@ -116,7 +115,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                        @foreach($countries as $country)
+                        @foreach($allCountries as $country)
                             <tr data-id="{{ $country->id }}">
                                 <td class="text-center"><i class="fa fa-arrows-alt sort-handle"></i></td>
                                 <td>
@@ -159,7 +158,10 @@
                         @endforeach
                         </tbody>
                     </table>
-                </div>
+                    <div class="d-flex justify-content-center my-3">
+                        {{ $allCountries->links('pagination::bootstrap-4') }}
+                    </div>
+
             </div>
         </div>
     </div>
@@ -173,16 +175,16 @@
 <script>
 $(document).ready(function() {
     // Initialize DataTable
-    $('#countries-table').DataTable({
-        "language": {
-            "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Arabic.json"
-        },
-        "pageLength": 25,
-        "order": [[6, 'asc']],
-        "columnDefs": [
-            {"orderable": false, "targets": [0, 7]}
-        ]
-    });
+    // $('#countries-table').DataTable({
+    //     "language": {
+    //         "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Arabic.json"
+    //     },
+    //     "pageLength": 25,
+    //     "order": [[6, 'asc']],
+    //     "columnDefs": [
+    //         {"orderable": false, "targets": [0, 7]}
+    //     ]
+    // });
 
     // Sortable functionality
     $("#countries-table tbody").sortable({
@@ -239,7 +241,7 @@ function toggleStatus(countryId) {
     if (confirm('هل أنت متأكد من تغيير حالة هذه الدولة؟')) {
         $.ajax({
             url: `/admin/ingaz/countries/${countryId}/toggle-status`,
-            method: 'PATCH',
+            method: 'Post',
             data: {
                 _token: '{{ csrf_token() }}'
             },
@@ -263,7 +265,8 @@ function deleteCountry(countryId) {
                 _token: '{{ csrf_token() }}'
             },
             success: function(response) {
-                 location.reload();
+                showAlert('success', 'تم حذف الدولة بنجاح');
+                location.reload();
             },
             error: function() {
                 showAlert('error', 'حدث خطأ في حذف الدولة');

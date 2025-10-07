@@ -101,7 +101,6 @@
                     </div>
 
                     <!-- Table -->
-                    <div class="table-responsive">
                         <table class="table table-striped" id="return-requests-table">
                             <thead>
                                 <tr>
@@ -161,7 +160,6 @@
                                 @endforelse
                             </tbody>
                         </table>
-                    </div>
 
                     <!-- Pagination -->
                     <div class="d-flex justify-content-center">

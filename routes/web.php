@@ -352,7 +352,7 @@ Route::get('edit-profile', [AuthController::class, 'editProfile'])->name('edit-p
     Route::get('countries/{country}/edit', [App\Http\Controllers\admin\CountryController::class, 'edit'])->name('countries.edit');
     Route::put('countries/{country}', [App\Http\Controllers\admin\CountryController::class, 'update'])->name('countries.update');
     Route::delete('countries/{country}', [App\Http\Controllers\admin\CountryController::class, 'destroy'])->name('countries.destroy');
-    Route::patch('countries/{country}/toggle-status', [App\Http\Controllers\admin\CountryController::class, 'toggleStatus'])->name('countries.toggle-status');
+    Route::post('countries/{country}/toggle-status', [App\Http\Controllers\admin\CountryController::class, 'toggleStatus'])->name('countries.toggle-status');
     Route::post('countries/update-order', [App\Http\Controllers\admin\CountryController::class, 'updateOrder'])->name('countries.update-order');
 
     // مسارات المدن

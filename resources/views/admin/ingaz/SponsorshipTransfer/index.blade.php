@@ -1,8 +1,6 @@
 @extends('admin.layout.indexs.index')
 @section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="{{asset("admin")}}/custom/admin-tables.css">
 @endsection
 
 @section('content')
@@ -198,7 +196,7 @@
                 </h6>
             </div>
             <div class="card-body p-0">
-                <div class="table-responsive">
+
                     <table id="sponsorshipTransferTable" class="table table-hover align-middle mb-0" style="width: 100%;">
                         <thead>
                             <tr>
@@ -221,7 +219,6 @@
                         <tbody>
                         </tbody>
                     </table>
-                </div>
             </div>
         </div>
     </div>
@@ -257,7 +254,6 @@
 @endsection
 
 @section('js')
-    <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="{{asset("admin")}}/custom/admin-tables.js"></script>
     <script>

@@ -10,7 +10,7 @@
 @endsection
 
 @section('content')
-    <form method="POST" action="{{ route('clients.store') }}" id="addForm">
+    <form  id="addForm" method="POST" action="{{ route('clients.store') }}">
         @csrf
         <div class="row">
             <div class="card mg-b-20">
@@ -110,12 +110,10 @@
             </div>
         </div>
 
-        <div class="row mb-3 col-md-12 text-center mt-5">
-            <div class="col-sm-12 text-sm-end text-center mt-10">
-                <a href="{{ route('clients.index') }}" class="btn btn-danger">{{ __('admin.back') }}</a>
-                <button type="submit" class="btn btn-success">{{ __('admin.confirm') }}</button>
-            </div>
-        </div>
+        <button type="submit" id="submitBtn" class="btn btn-success mt-3">
+            {{ __('admin.confirm') }}
+        </button>
+
     </form>
 @endsection
 
@@ -125,10 +123,19 @@
         $(document).ready(function () {
             $('#addForm').on('submit', function (e) {
                 e.preventDefault();
+
+                let $btn = $('#submitBtn');
+                let originalHtml = $btn.html(); // نحفظ الشكل الأصلي
+
                 $.ajax({
                     type: 'POST',
                     url: $(this).attr('action'),
                     data: $(this).serialize(),
+                    beforeSend: function () {
+                        $btn.prop('disabled', true).html(
+                            '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> {{ __("ingaz.sending") }}'
+                        );
+                    },
                     success: function (response) {
                         if (response.code === 200) {
                             successToster('{{ helperTrans("ingaz.done successfully") }}', response.message);
@@ -136,11 +143,14 @@
                                 window.location.href = response.url;
                             }, 1000);
                         } else if (response.code === 422) {
-                            handleErrorResponce(response)
+                            handleErrorResponce(response);
                         }
                     },
                     error: function (response) {
-                        handleErrorResponce(response)
+                        handleErrorResponce(response);
+                    },
+                    complete: function () {
+                        $btn.prop('disabled', false).html(originalHtml);
                     }
                 });
             });

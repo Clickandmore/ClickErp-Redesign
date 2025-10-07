@@ -37,19 +37,26 @@ class NotificationAction extends MainAction
                 $this->sendSMS($user[0]->phone, $msg);
             }
         } else {
+            $usersIDs = [];
             $data['type'] = NotificationActionEnum::General->value;
+
             if ($request->all_or_some == 'all') {
                 $data['user_id'] = null;
                 $this->store($data);
-                $data['user_id'] = User::where('is_blocked', false)->pluck('id')->ToArray();
+                $usersIDs = User::where('is_blocked', false)->pluck('id')->toArray();
             } elseif ($request->all_or_some == 'some') {
-                $data['user_id'] = $request->user_id[0];
-                $this->store($data);
+                $usersIDs = $request->user_id;
+                foreach ($usersIDs as $user_id) {
+                    $data['user_id'] = $user_id;
+                    $this->store($data);
+                }
             }
-            foreach ($data['user_id'] as $to_user_id) {
+
+            foreach ($usersIDs as $to_user_id) {
                 $data['user_id'] = $to_user_id;
-                $this->sendFCMNotification($request->title, $request->description, $request->user_id, $data);
+                $this->sendFCMNotification($request->title, $request->description, $to_user_id, $data);
             }
         }
+
     }
 }

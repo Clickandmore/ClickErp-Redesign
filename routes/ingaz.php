@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\Admin\ContractReturnRequestController;
 use App\Http\Controllers\ingaz\ArrivalWorkerController;
 use App\Http\Controllers\ingaz\SelectWorkerController;
 use App\Http\Controllers\ingaz\SelectWorkerSettingsController;
+use App\Http\Controllers\ingaz\ShelterPlaces;
 use App\Http\Controllers\ingaz\TestimonialController;
 use App\Http\Controllers\ingaz\WhyUsController;
 use App\Http\Controllers\office\OfficeController;
@@ -133,7 +135,7 @@ Route::group(
             Route::get('/travel/{id}/edit', [AdminTravelHistoryController::class, 'edit'])->name('travel.edit');
             Route::post('/travel', [AdminTravelHistoryController::class, 'store'])->name('travel.store');
             Route::post('/travel/{shelter_worker}', [AdminTravelHistoryController::class, 'update'])->name('travel.update');
-            Route::delete('/travel/{shelter_worker}', [AdminTravelHistoryController::class, 'destroy'])->name('travel.delete');
+            Route::post('/travel/{shelter_worker}', [AdminTravelHistoryController::class, 'destroy'])->name('travel.delete');
             Route::post('/store-travel-history', [AdminTravelHistoryController::class, 'storeTravelHistory'])->name('storeTravelHistory');
             Route::get('/travel/download/{id}', [AdminTravelHistoryController::class, 'downloadFile'])->name('travel.file.download');
             Route::delete('/travel/file/delete/{id}', [AdminTravelHistoryController::class, 'deleteFile'])->name('travel.file.delete');
@@ -244,9 +246,11 @@ Route::group(
             Route::post('RentContract/{id}/save-signature', [RentContractController::class, 'saveSignature'])->name('RentContract.saveSignature');
 
             // إدارة بنود عقد التأجير
+            Route::get('rent-contract-terms/create', [RentalContractTermsController::class, 'create'])->name('rent-contract-terms.create');
+            Route::post('rent-contract-terms/store', [RentalContractTermsController::class, 'store'])->name('rent-contract-terms.store');
             Route::get('rent-contract-terms', [RentalContractTermsController::class, 'index'])->name('rent-contract-terms.index');
-            Route::get('rent-contract-terms/edit', [RentalContractTermsController::class, 'edit'])->name('rent-contract-terms.edit');
-            Route::put('rent-contract-terms/update', [RentalContractTermsController::class, 'update'])->name('rent-contract-terms.update');
+            Route::get('rent-contract-terms/edit/{id}', [RentalContractTermsController::class, 'edit'])->name('rent-contract-terms.edit');
+            Route::put('rent-contract-terms/update/{id}', [RentalContractTermsController::class, 'update'])->name('rent-contract-terms.update');
             Route::get('rent-contract-terms/import-default', [RentalContractTermsController::class, 'importDefault'])->name('rent-contract-terms.import-default');
 
             // إعدادات عقد التأجير
@@ -373,10 +377,10 @@ Route::group(
 
             // طلبات استرجاع العقود - الإدارة
             Route::prefix('contract-return-requests')->name('contract-return-requests.')->group(function () {
-                Route::get('/', [\App\Http\Controllers\Admin\ContractReturnRequestController::class, 'index'])->name('index');
-                Route::get('/{returnRequest}', [\App\Http\Controllers\Admin\ContractReturnRequestController::class, 'show'])->name('show');
-                Route::post('/{returnRequest}/process', [\App\Http\Controllers\Admin\ContractReturnRequestController::class, 'process'])->name('process');
-                Route::get('/statistics', [\App\Http\Controllers\Admin\ContractReturnRequestController::class, 'statistics'])->name('statistics');
+                Route::get('/', [ContractReturnRequestController::class, 'index'])->name('index');
+                Route::get('/{returnRequest}', [ContractReturnRequestController::class, 'show'])->name('show');
+                Route::post('/{returnRequest}/process', [ContractReturnRequestController::class, 'process'])->name('process');
+                Route::get('/statistics', [ContractReturnRequestController::class, 'statistics'])->name('statistics');
             });
         });
     }

@@ -28,7 +28,6 @@
                         </div>
                     @endif
 
-                    <div class="table-responsive">
                         <table class="table table-bordered table-striped">
                             <thead class="table-dark">
                                 <tr>
@@ -107,7 +106,8 @@
                                 @endforelse
                             </tbody>
                         </table>
-                    </div>
+
+
                 </div>
             </div>
         </div>

@@ -1,8 +1,6 @@
 @extends('admin.layout.indexs.index')
 @section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="{{asset("admin")}}/custom/admin-tables.css">
 
 
 
@@ -121,7 +119,7 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
+
                         <table id="web-requests-table" class="table table-striped table-bordered">
                             <thead>
                                 <tr>
@@ -138,7 +136,7 @@
                                 <!-- Data will be loaded via AJAX -->
                             </tbody>
                         </table>
-                    </div>
+
                 </div>
             </div>
         </div>

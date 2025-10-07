@@ -40,6 +40,10 @@ class MaidAction extends MainAction
             $image = $data['cv_preview'];
             $data['cv_preview'] = uploadFile($image, $this->fileFolder);
         }
+        if (isset($data['video']) && $data['video'] instanceof \Illuminate\Http\UploadedFile) {
+            $video = $data['video'];
+            $data['video'] = uploadFile($video, $this->fileFolder);
+        }
 
         // Set default values for required fields if they're empty
         $data['name'] = $data['name:en'] ?? '';
@@ -174,6 +178,8 @@ class MaidAction extends MainAction
             'percentage' => $data['percentage'] ?? null,
             'cv_file' => $data['cv_file'] ?? '',
             'image' => $data['image'] ?? null,
+            'video_link' => $data['video_link'] ?? null,
+            'video' => $data['video'] ?? null,
             'cv_preview' => $data['cv_preview'] ?? null,
             'office_id' => $data['office_id'] ?? null,
             'status' => $data['status'],
@@ -187,7 +193,6 @@ class MaidAction extends MainAction
         \Log::info('About to create maid with data keys: ' . implode(', ', array_keys($createData)));
         \Log::info('Languages in createData: ' . ($createData['languages'] ?? 'null'));
         \Log::info('Name in createData: ' . ($createData['name'] ?? 'null'));
-
         try {
             $maid = $this->model->create($createData);
             \Log::info('Maid created successfully with ID: ' . $maid->id);
@@ -218,16 +223,16 @@ class MaidAction extends MainAction
 
             if ($createShelterContract === '1') {
                 DB::beginTransaction();
-                // Find or create company client (أسس الانجاز)
-                $companyClient = ClientUser::where('name', 'like', '%شركة اسس الانجاز%')
-                    ->orWhere('email', 'company@asas-alinjaz.com')
+                // Find or create company client )
+                $companyClient = ClientUser::where('name', 'like', '%شركة  بلاتنيوم الشرقية %')
+                    ->orWhere('email', 'company@platinumestern.com')
                     ->orWhere('phone', '0500000002')
                     ->first();
 
                 if (!$companyClient) {
                     $companyClient = ClientUser::create([
-                        'name' => 'شركة اسس الانجاز للاستقدام',
-                        'email' => 'company@asas-alinjaz.com',
+                        'name' => ' شركة بلاتنيوم الشرقية للاستقدام ',
+                        'email' => 'company@platinumestern.com',
                         'phone' => '0500000002',
                         'password' => bcrypt('password123'),
                     ]);
@@ -376,6 +381,11 @@ class MaidAction extends MainAction
             deleteFile($maid->image);
             $image = $data['image'];
             $data['image'] = uploadFile($image, $this->fileFolder);
+        }
+        if (isset($data['video'])) {
+            deleteFile($maid->video);
+            $video = $data['video'];
+            $data['video'] = uploadFile($video, $this->fileFolder);
         }
 
         // Convert skills array to JSON if it exists

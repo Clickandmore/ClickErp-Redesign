@@ -5,7 +5,6 @@
 @endsection
 
 @section('style')
-    <link rel="stylesheet" href="{{asset("admin")}}/custom/admin-tables.css">
     <style>
         .info-card {
             background: #f8f9fa;

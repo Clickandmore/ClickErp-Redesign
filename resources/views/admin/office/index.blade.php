@@ -1,6 +1,5 @@
 @extends('admin.layout.indexs.index')
 @section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
     <style>
         /* خلّي القائمة تظهر فوق كل عناصر الجدول */
         .table .dropdown-menu {
@@ -56,7 +55,6 @@
 @endsection
 @section('js')
 
-    <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
     <script>
         $(document).ready(function () {
             let columns = [

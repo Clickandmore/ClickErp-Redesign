@@ -3,38 +3,71 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Controllers\Controller;
+use App\Models\ingaz\Service as objModel;
 use App\Models\RentalContractTerm;
 use App\Models\ingaz\Setting;
+use App\Models\RentContractTerm;
 use Illuminate\Http\Request;
-use DB;
+use Illuminate\Support\Facades\DB;
+use Yajra\DataTables\Facades\DataTables;
 
 class RentalContractTermsController extends Controller
 {
     /**
      * عرض صفحة إدارة البنود
      */
+
     public function index()
     {
-        $terms = RentalContractTerm::ordered()->get()->groupBy('section_title');
-        return view('admin.ingaz.RentContract.terms.index', compact('terms'));
+        $terms = RentalContractTerm::query()->get();
+        $data["createRoute"] = route('rent-contract-terms.create');
+        $data["dataTableRoute"] = route('rent-contract-terms.index');
+        $data["bladeTitle"] = helperTrans('api.services');
+        $data["addButtonText"] = helperTrans('api.service');
+        $data["modalType"] = "modal-lg";
+        return view('admin.ingaz.RentContractTerms.index', compact('data'))->with(['terms' => $terms]);
     }
 
     /**
      * عرض صفحة تعديل البنود
      */
-    public function edit()
+    public function create()
     {
         $termsPage1 = RentalContractTerm::byPage(1)->ordered()->get();
         $termsPage2 = RentalContractTerm::byPage(2)->ordered()->get();
         $termsPage3 = RentalContractTerm::byPage(3)->ordered()->get();
 
-        return view('admin.ingaz.RentContract.terms.edit', compact('termsPage1', 'termsPage2', 'termsPage3'));
+        return view('admin.ingaz.RentContractTerms.create', compact('termsPage1', 'termsPage2', 'termsPage3'));
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'section_title' => 'required|string',
+            'term_number' => 'required|numeric',
+            'section_order' => 'required|numeric',
+            'term_order' => 'required|numeric',
+            'page_number' => 'required|numeric',
+            'term_content' => 'required|string',
+            'is_active' => 'required',
+        ]);
+        RentalContractTerm::create($data);
+        return redirect(route('rent-contract-terms.index'));
+    }
+
+    public function edit($id)
+    {
+        $termsPage1 = RentalContractTerm::byPage(1)->ordered()->get();
+        $termsPage2 = RentalContractTerm::byPage(2)->ordered()->get();
+        $termsPage3 = RentalContractTerm::byPage(3)->ordered()->get();
+        $term = RentalContractTerm::findorfail($id);
+        return view('admin.ingaz.RentContractTerms.edit', compact('termsPage1', 'term', 'termsPage2', 'termsPage3'));
     }
 
     /**
      * تحديث البنود
      */
-        public function update(Request $request)
+    public function update(Request $request)
     {
         // حذف جميع البنود القديمة
         RentalContractTerm::truncate();
@@ -56,106 +89,106 @@ class RentalContractTermsController extends Controller
             }
         }
 
-        return redirect()->route('rent-contract-terms.edit')
-                       ->with('success', 'تم تحديث بنود العقد بنجاح');
+        return redirect()->route('rent-contract-terms.index')
+            ->with('success', 'تم تحديث بنود العقد بنجاح');
     }
 
     /**
      * استيراد البنود الافتراضية
      */
-        public function importDefault()
+    public function importDefault()
     {
         // حذف البنود الحالية
         RentalContractTerm::truncate();
 
-            // البنود الافتراضية
-            $defaultTerms = [
-                // الصفحة الأولى
-                [
-                    'section_title' => 'أولاً: موضوع العقد',
-                    'section_order' => 1,
-                    'term_number' => null,
-                    'term_content' => 'يقر الطرف الأول بأنه يزاول نشاط تقديم خدمات العمالة المنزلية بموجب ترخيص رقم -------------- ويقدم الطرف الأول خدمات العمالة المنزلية للطرف الثاني بناء على طلبه وفقا للشروط والأحكام الواردة في هذا العقد.',
-                    'term_order' => 1,
-                    'page_number' => 1,
-                    'is_active' => true
-                ],
+        // البنود الافتراضية
+        $defaultTerms = [
+            // الصفحة الأولى
+            [
+                'section_title' => 'أولاً: موضوع العقد',
+                'section_order' => 1,
+                'term_number' => null,
+                'term_content' => 'يقر الطرف الأول بأنه يزاول نشاط تقديم خدمات العمالة المنزلية بموجب ترخيص رقم -------------- ويقدم الطرف الأول خدمات العمالة المنزلية للطرف الثاني بناء على طلبه وفقا للشروط والأحكام الواردة في هذا العقد.',
+                'term_order' => 1,
+                'page_number' => 1,
+                'is_active' => true
+            ],
 
-                // الصفحة الثانية
-                [
-                    'section_title' => 'ثانياً: مدة العقد',
-                    'section_order' => 2,
-                    'term_number' => null,
-                    'term_content' => 'مدة العقد -------------- يوما على أن تبدأ من -------------- قابلة للتجديد لمدة أو مدد مماثلة بموجب أشعار مكتوب من الطرف الثاني للطرف الأول قبل نهاية',
-                    'term_order' => 1,
-                    'page_number' => 2,
-                    'is_active' => true
-                ],
-                [
-                    'section_title' => 'ثالثاً: قيمة العقد',
-                    'section_order' => 3,
-                    'term_number' => 1,
-                    'term_content' => 'يدفع الطرف الثاني للطرف الأول تكلفة مقابل تقديم خدمات العاملة المنزلية: وفقا للتكلفة الشهرية (------) المعلنة --- في تاريخ التعاقد: وفقا لما يلي:',
-                    'term_order' => 1,
-                    'page_number' => 2,
-                    'is_active' => true
-                ],
-                [
-                    'section_title' => 'ثالثاً: قيمة العقد',
-                    'section_order' => 3,
-                    'term_number' => 3,
-                    'term_content' => 'في حال تجديد هذا العقد، ومرافقة العامل على الاستمرار في العمل لدى الطرف الثاني، يدفع الطرف الثاني للطرف الأول تكلفة مقابل تقديم خدمات العامل المنزلي للمدة الجديدة تعادل التكلفة السابقة.',
-                    'term_order' => 2,
-                    'page_number' => 2,
-                    'is_active' => true
-                ],
-                [
-                    'section_title' => 'رابعا: التزامات الطرف الأول',
-                    'section_order' => 4,
-                    'term_number' => 1,
-                    'term_content' => 'أن يقدم للطرف الثاني عاملة منزلية ذو كفاءة وخبرة بمهنة خدمة المنازل.',
-                    'term_order' => 1,
-                    'page_number' => 2,
-                    'is_active' => true
-                ],
-                [
-                    'section_title' => 'رابعا: التزامات الطرف الأول',
-                    'section_order' => 4,
-                    'term_number' => 2,
-                    'term_content' => 'إعداد العامل وتهيئته للعمل، والتأكد من جاهزيته لتقديم الخدمة.',
-                    'term_order' => 2,
-                    'page_number' => 2,
-                    'is_active' => true
-                ],
-                [
-                    'section_title' => 'رابعا: التزامات الطرف الأول',
-                    'section_order' => 4,
-                    'term_number' => 3,
-                    'term_content' => 'تسليم العامل للطرف الثاني في الوقت والمكان المتفق عليه.',
-                    'term_order' => 3,
-                    'page_number' => 2,
-                    'is_active' => true
-                ],
-                [
-                    'section_title' => 'رابعا: التزامات الطرف الأول',
-                    'section_order' => 4,
-                    'term_number' => 4,
-                    'term_content' => 'استبدال العامل في حال عدم كفاءته، أو رغبة الطرف الثاني في استبداله خلال (24) ساعة.',
-                    'term_order' => 4,
-                    'page_number' => 2,
-                    'is_active' => true
-                ],
+            // الصفحة الثانية
+            [
+                'section_title' => 'ثانياً: مدة العقد',
+                'section_order' => 2,
+                'term_number' => null,
+                'term_content' => 'مدة العقد -------------- يوما على أن تبدأ من -------------- قابلة للتجديد لمدة أو مدد مماثلة بموجب أشعار مكتوب من الطرف الثاني للطرف الأول قبل نهاية',
+                'term_order' => 1,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'ثالثاً: قيمة العقد',
+                'section_order' => 3,
+                'term_number' => 1,
+                'term_content' => 'يدفع الطرف الثاني للطرف الأول تكلفة مقابل تقديم خدمات العاملة المنزلية: وفقا للتكلفة الشهرية (------) المعلنة --- في تاريخ التعاقد: وفقا لما يلي:',
+                'term_order' => 1,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'ثالثاً: قيمة العقد',
+                'section_order' => 3,
+                'term_number' => 3,
+                'term_content' => 'في حال تجديد هذا العقد، ومرافقة العامل على الاستمرار في العمل لدى الطرف الثاني، يدفع الطرف الثاني للطرف الأول تكلفة مقابل تقديم خدمات العامل المنزلي للمدة الجديدة تعادل التكلفة السابقة.',
+                'term_order' => 2,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'رابعا: التزامات الطرف الأول',
+                'section_order' => 4,
+                'term_number' => 1,
+                'term_content' => 'أن يقدم للطرف الثاني عاملة منزلية ذو كفاءة وخبرة بمهنة خدمة المنازل.',
+                'term_order' => 1,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'رابعا: التزامات الطرف الأول',
+                'section_order' => 4,
+                'term_number' => 2,
+                'term_content' => 'إعداد العامل وتهيئته للعمل، والتأكد من جاهزيته لتقديم الخدمة.',
+                'term_order' => 2,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'رابعا: التزامات الطرف الأول',
+                'section_order' => 4,
+                'term_number' => 3,
+                'term_content' => 'تسليم العامل للطرف الثاني في الوقت والمكان المتفق عليه.',
+                'term_order' => 3,
+                'page_number' => 2,
+                'is_active' => true
+            ],
+            [
+                'section_title' => 'رابعا: التزامات الطرف الأول',
+                'section_order' => 4,
+                'term_number' => 4,
+                'term_content' => 'استبدال العامل في حال عدم كفاءته، أو رغبة الطرف الثاني في استبداله خلال (24) ساعة.',
+                'term_order' => 4,
+                'page_number' => 2,
+                'is_active' => true
+            ],
 
-                // يمكنك إضافة باقي البنود هنا...
-            ];
+            // يمكنك إضافة باقي البنود هنا...
+        ];
 
-                        // إدراج البنود الافتراضية
-            foreach ($defaultTerms as $term) {
-                RentalContractTerm::create($term);
-            }
+        // إدراج البنود الافتراضية
+        foreach ($defaultTerms as $term) {
+            RentalContractTerm::create($term);
+        }
 
-            return redirect()->route('rent-contract-terms.edit')
-                           ->with('success', 'تم استيراد البنود الافتراضية بنجاح');
+        return redirect()->route('rent-contract-terms.edit')
+            ->with('success', 'تم استيراد البنود الافتراضية بنجاح');
     }
 
     /**
@@ -205,8 +238,7 @@ class RentalContractTermsController extends Controller
                 ['value' => $logoPath]
             );
         }
+        return jsonSuccess(['url' => route('rent-contract.settings')], __("تم حفظ الإعدادات بنجاح"), 201);
 
-        return redirect()->route('rent-contract.settings')
-                       ->with('success', 'تم حفظ الإعدادات بنجاح');
     }
 }

@@ -1,6 +1,5 @@
 @extends('admin.layout.indexs.index')
 @section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
 @endsection
 @section('page-title')
     {{helperTrans("ingaz.features")}}
@@ -30,7 +29,6 @@
 @endsection
 @section('js')
 
-    <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
     <script src="{{asset('admin')}}/assets/js/tinymce.min.js"></script>
 
     <script>

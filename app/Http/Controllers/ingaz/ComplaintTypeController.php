@@ -48,6 +48,6 @@ class ComplaintTypeController extends Controller
     {
         $type = ComplaintType::findOrFail($id);
         $type->delete();
-        return redirect()->route('complaint-types.index')->with('success', 'تم حذف النوع بنجاح');
+        return jsonSuccess(['url'=>route('complaint-types.index')] , 'تم حذف النوع بنجاح' , 201);
     }
 }

@@ -43,13 +43,13 @@ class StatisticController extends Controller
                     ->addColumn('actions', function ($row) {
                         $editButton = '';
                         $deleteButton = '';
-                        if (@AdminGuardHasPerm(\App\PermKeys::STAT_CONTROL)) {
+//                        if (@AdminGuardHasPerm(\App\PermKeys::STAT_CONTROL)) {
                             $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
-                        }
+//                        }
 
-                        if (@AdminGuardHasPerm(\App\PermKeys::STAT_DELETE)) {
+//                        if (@AdminGuardHasPerm(\App\PermKeys::STAT_DELETE)) {
                             $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
-                        }
+//                        }
                         return $editButton . " " . $deleteButton;
                     })->escapeColumns([])->make(true);
             }

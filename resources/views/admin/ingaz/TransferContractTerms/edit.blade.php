@@ -29,7 +29,7 @@
                     </h4>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('transfer-contract-terms.update', $transferContractTerm->id) }}" method="POST">
+                    <form id="transfer-contract-terms-form" action="{{ route('transfer-contract-terms.update', $transferContractTerm->id) }}" method="POST">
                         @csrf
                         @method('PUT')
 
@@ -169,7 +169,64 @@
     </div>
 </div>
 @endsection
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"
+        integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo="
+        crossorigin="anonymous"></script>
 
+<script>
+    $(document).ready(function () {
+        $('#transfer-contract-terms-form').on('submit', function (e) {
+            e.preventDefault();
+            let form = $(this);
+            let formData = new FormData(this);
+            let url = $(this).attr('action');
+            let btn = form.find('button[type="submit"]');
+            let originalBtnHtml = btn.html();
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> جاري إرسال البيانات...');
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                beforeSend: function () {
+                    btn.prop('disabled', true)
+                        .html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> جاري إرسال البيانات...');
+                },
+                success: function (response) {
+                    btn.prop('disabled', false).html(originalBtnHtml);
+                    Swal.fire({
+                        icon: 'success',
+                        title: '{{ __("ingaz.success") }}',
+                        html: response.message,
+                    });
+                    $('#transfer-contract-terms-form')[0].reset();
+                    setTimeout(function () {
+                        location.href = response.data.redirect
+                    }, 1000)
+                },
+                error: function (xhr) {
+                    if (xhr.status === 422) {
+                        let errors = xhr.responseJSON.errors;
+                        let errorMessages = '';
+                        for (let key in errors) {
+                            errorMessages += `<p style="margin: 0 0 5px; color: red; text-align: center;">${errors[key][0]}</p>`;
+                        }
+                        Swal.fire({
+                            icon: 'error',
+                            title: '{{ __("ingaz.error") }}',
+                            html: `<div>${errorMessages}</div>`,
+                        });
+                    } else {
+                        Swal.fire('{{ __("ingaz.error") }}', '{{ __("ingaz.error_from_server") }}', 'error');
+                    }
+                    btn.prop('disabled', false).html(originalBtnHtml);
+
+                }
+            });
+        })
+    });
+</script>
 @section('css')
 <style>
 .form-text {

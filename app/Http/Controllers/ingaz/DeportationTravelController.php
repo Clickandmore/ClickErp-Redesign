@@ -9,7 +9,7 @@ use App\Models\Contract;
 use App\Models\ingaz\User;
 use App\Models\ingaz\Maid;
 use App\Models\DeportationProcedure;
-use DataTables;
+use Yajra\DataTables\Facades\DataTables;
 
 class DeportationTravelController extends Controller
 {
@@ -25,33 +25,42 @@ class DeportationTravelController extends Controller
                 'maid.nationality.translations',
                 'order'
             ])->where('travel_type', 'deportation')
-            ->orderBy('id', 'desc');
+                ->orderBy('id', 'desc');
 
-            // Default to show only active/new trips unless filtered
+
             if (!$request->filled('status') || $request->status === '') {
-                $query->whereIn('status', ['new', 'active', 'scheduled', 'in_progress', 'pending', 'confirmed']);
+                $query->whereIn('status', [
+                    'new', 'active', 'scheduled', 'in_progress', 'pending', 'confirmed'
+                ]);
             } elseif ($request->status !== 'all') {
-                // If status is not 'all', filter by specific status
                 $query->where('status', $request->status);
             }
-            // If status is 'all', don't add any status filter
 
-            // Apply filters
+            // فلترة حسب عقد
             if ($request->filled('contract_number')) {
-                $query->whereHas('order', function($q) use ($request) {
-                    $q->where('id', 'like', '%' . $request->contract_number . '%');
+                $contract_number = (int) $request->contract_number;
+                $query->where(function ($q) use ($contract_number) {
+                    $q->whereHas('order', function ($sub) use ($contract_number) {
+                        $sub->where('id', $contract_number);
+                    })
+                        ->orWhere('order_id', $contract_number);
                 });
             }
 
+
+            // فلترة حسب اسم العاملة
             if ($request->filled('maid_name')) {
-                $query->whereHas('maid', function($q) use ($request) {
+                $query->whereHas('maid', function ($q) use ($request) {
                     $q->where('name', 'like', '%' . $request->maid_name . '%');
                 });
             }
 
+            // فلترة حسب تاريخ السفر
             if ($request->filled('travel_date')) {
                 $query->whereDate('arrival_date', $request->travel_date);
             }
+
+
 
             return DataTables::of($query)
                 ->addIndexColumn()
@@ -144,12 +153,25 @@ class DeportationTravelController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'contract_id' => 'required|exists:contracts,id',
-            'arrival_airport' => 'required',
-            'arrival_date' => 'required|date',
-            'arrival_time' => 'required',
-            'travel_with' => 'required'
+            'contract_id'    => 'required|exists:contracts,id',
+            'arrival_airport'=> 'required',
+            'arrival_date'   => 'required|date',
+            'arrival_time'   => 'required',
+            'travel_with'    => 'required',
+        ], [
+            'contract_id.required'     => 'يجب اختيار العقد.',
+            'contract_id.exists'       => 'العقد غير موجود في النظام.',
+
+            'arrival_airport.required' => 'حقل مطار الوصول مطلوب.',
+
+            'arrival_date.required'    => 'حقل تاريخ الوصول مطلوب.',
+            'arrival_date.date'        => 'صيغة تاريخ الوصول غير صحيحة.',
+
+            'arrival_time.required'    => 'حقل وقت الوصول مطلوب.',
+
+            'travel_with.required'     => 'يجب تحديد المرافق في السفر.',
         ]);
+
 
         $contract = Contract::with(['maid', 'user'])->findOrFail($request->contract_id);
 
@@ -177,9 +199,10 @@ class DeportationTravelController extends Controller
                 'trip_id' => $travel->id
             ]);
         }
+        return  jsonSuccess(['url'=>route('DeportationTravel.index')] , __("تم جدولة رحلة الترحيل بنجاح") , 201);
 
-        return redirect()->route('DeportationTravel.index')
-            ->with('success', 'تم جدولة رحلة الترحيل بنجاح');
+//        return redirect()->route('DeportationTravel.index')
+//            ->with('success', 'تم جدولة رحلة الترحيل بنجاح');
     }
 
     /**

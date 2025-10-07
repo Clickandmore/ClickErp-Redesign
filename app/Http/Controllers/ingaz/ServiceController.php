@@ -67,7 +67,7 @@ class ServiceController extends Controller
 
     public function create(Request $request)
     {
-        if ($request->ajax() && objModel::count() < 4) {
+        if ($request->ajax() ) {
             $returnHTML = view($this->folderPath . ".create")->render();
             return jsonSuccess(["html" => $returnHTML]);
         }

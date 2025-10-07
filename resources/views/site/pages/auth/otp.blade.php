@@ -69,8 +69,10 @@
         $(document).ready(function () {
             $('#otp-form').on('submit', function (e) {
                 e.preventDefault();
+
                 let formData = new FormData(this);
                 let url = $(this).attr('action');
+
                 $.ajax({
                     url: url,
                     type: 'POST',
@@ -78,6 +80,7 @@
                     processData: false,
                     contentType: false,
                     success: function (response) {
+                        // لو الكود غلط (إحنا مرجعينه بكود 422 داخل jsonSuccess)
                         if (response.code === 422) {
                             Toastify({
                                 text: response.message,
@@ -88,43 +91,56 @@
                                 stopOnFocus: true,
                                 className: "toast-error"
                             }).showToast();
+
+                            // فضي كل الخانات بتاعت OTP
                             document.querySelectorAll('.otp-input').forEach(function (input) {
                                 input.value = '';
                             });
                             document.querySelector('.otp-value').value = '';
-                        } else {
-                            Toastify({
-                                text: response.message,
-                                duration: 4000,
-                                gravity: "top",
-                                position: "right",
-                                backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
-                                stopOnFocus: true
-                            }).showToast();
-                            setTimeout(function () {
-                                window.location.href = response.data.redirect_url;
-                            }, 1000);
+
+                            return;
                         }
+
+                        // لو نجح التحقق
+                        Toastify({
+                            text: response.message,
+                            duration: 4000,
+                            gravity: "top",
+                            position: "right",
+                            backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
+                            stopOnFocus: true
+                        }).showToast();
+
+                        // روح على الصفحة اللي backend رجعها (url.intended أو الرئيسية)
+                        setTimeout(function () {
+                            window.location.href = response.data.redirect_url;
+                        }, 1000);
                     },
                     error: function (xhr) {
                         if (xhr.status === 422) {
                             let errors = xhr.responseJSON.errors;
                             let errorMessages = '';
+
                             for (let key in errors) {
                                 errorMessages += `<p style="margin: 0 0 5px; color: red; text-align: center;">${errors[key][0]}</p>`;
                             }
+
                             Swal.fire({
                                 icon: 'error',
                                 title: '{{ __("ingaz.error") }}',
                                 html: `<div>${errorMessages}</div>`,
                             });
                         } else {
-                            Swal.fire('{{ __("ingaz.error") }}', '{{ __("ingaz.error_from_server") }}', 'error');
+                            Swal.fire(
+                                '{{ __("ingaz.error") }}',
+                                '{{ __("ingaz.error_from_server") }}',
+                                'error'
+                            );
                         }
                     }
-
                 });
-            })
-        })
+            });
+        });
     </script>
+
 @endsection

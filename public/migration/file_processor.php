@@ -127,6 +127,18 @@ try {
             exit();
             break;
 
+        case 'migrate_admins_from_users':
+            ob_clean();
+            echo json_encode(migrateAdminsFromUsers(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_staff_from_users':
+            ob_clean();
+            echo json_encode(migrateStaffFromUsers(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
         case 'migrate_customers_simple':
             ob_clean();
             echo json_encode(migrateCustomersSimple(), JSON_UNESCAPED_UNICODE);
@@ -1022,6 +1034,172 @@ function migrateUsersSimple() {
         return [
             'success' => false,
             'message' => 'خطأ في نقل المستخدمين: ' . $e->getMessage()
+        ];
+    }
+}
+
+function migrateAdminsFromUsers() {
+    try {
+        $db = get_db_connection();
+
+        $totalAdmins = (int)$db->query("SELECT COUNT(*) FROM users WHERE user_type = 'admin'")->fetchColumn();
+
+        if ($totalAdmins === 0) {
+            return [
+                'success' => false,
+                'message' => 'لا يوجد أي مستخدمين بنوع admin في جدول users.'
+            ];
+        }
+
+        // تحديث أي سجلات حالية في جدول admins مرتبطة بنفس البريد الإلكتروني
+        $updateSql = "UPDATE admins a
+            JOIN users u ON u.email = a.email AND u.user_type = 'admin'
+            SET a.name = u.name,
+                a.phone = NULLIF(u.phone, ''),
+                a.password = u.password,
+                a.remember_token = u.remember_token,
+                a.admin_type = 'admin',
+                a.sort = COALESCE(a.sort, 999),
+                a.lang = COALESCE(a.lang, 'ar'),
+                a.updated_at = COALESCE(u.updated_at, NOW()),
+                a.whatsapp = COALESCE(NULLIF(u.phone, ''), a.whatsapp)";
+        $updated = $db->exec($updateSql);
+
+        // إدراج السجلات غير الموجودة مسبقًا
+        $insertSql = "INSERT INTO admins (name, phone, email, password, remember_token, admin_type, sort, role_id, lang, created_at, updated_at, whatsapp)
+            SELECT u.name,
+                   NULLIF(u.phone, ''),
+                   u.email,
+                   u.password,
+                   u.remember_token,
+                   'admin',
+                   999,
+                   NULL,
+                   'ar',
+                   COALESCE(u.created_at, NOW()),
+                   COALESCE(u.updated_at, NOW()),
+                   COALESCE(NULLIF(u.phone, ''), '')
+            FROM users u
+            WHERE u.user_type = 'admin'
+              AND u.email IS NOT NULL
+              AND u.email <> ''
+              AND NOT EXISTS (
+                  SELECT 1 FROM admins a WHERE a.email = u.email
+              )";
+        $inserted = $db->exec($insertSql);
+
+        return [
+            'success' => true,
+            'total_admin_users' => $totalAdmins,
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'message' => "✅ تمت مزامنة المدراء بنجاح.\nإجمالي في users: {$totalAdmins}\n➕ تمت إضافة: {$inserted}\n🔄 تم تحديث: {$updated}"
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل مزامنة المدراء: ' . $e->getMessage()
+        ];
+    }
+}
+
+function migrateStaffFromUsers() {
+    try {
+        $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum;charset=utf8mb4", 'root', 'root');
+        $oldDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $newDb = get_db_connection();
+
+        $staffUsers = $oldDb->query("SELECT * FROM users WHERE user_type = 'staff'")->fetchAll(PDO::FETCH_ASSOC);
+
+        if (empty($staffUsers)) {
+            return [
+                'success' => false,
+                'message' => 'لا يوجد أي مستخدمين بنوع staff في القاعدة القديمة.'
+            ];
+        }
+
+        $checkStmt = $newDb->prepare("SELECT id FROM admins WHERE email = ? LIMIT 1");
+        $updateStmt = $newDb->prepare("UPDATE admins SET name = ?, phone = ?, password = ?, remember_token = ?, admin_type = ?, lang = ?, whatsapp = ?, updated_at = ? WHERE id = ?");
+        $insertStmt = $newDb->prepare("INSERT INTO admins (name, phone, email, password, remember_token, admin_type, sort, role_id, lang, created_at, updated_at, whatsapp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
+
+        foreach ($staffUsers as $user) {
+            $email = trim($user['email'] ?? '');
+            if ($email === '') {
+                $skipped++;
+                continue;
+            }
+
+            $name = $user['name'] ?? null;
+            $phone = trim($user['phone'] ?? '');
+            $phoneValue = $phone === '' ? null : $phone;
+            $whatsappPhone = trim($user['whatsapp_phone'] ?? '');
+            $whatsapp = $whatsappPhone !== '' ? $whatsappPhone : ($phoneValue ?? '');
+            $password = $user['password'] ?? null;
+            $rememberToken = $user['remember_token'] ?? null;
+            $lang = $user['lang'] ?? 'ar';
+            $createdAt = $user['created_at'] ?? null;
+            if (empty($createdAt) || $createdAt === '0000-00-00 00:00:00') {
+                $createdAt = date('Y-m-d H:i:s');
+            }
+            $updatedAt = $user['updated_at'] ?? null;
+            if (empty($updatedAt) || $updatedAt === '0000-00-00 00:00:00') {
+                $updatedAt = date('Y-m-d H:i:s');
+            }
+
+            $checkStmt->execute([$email]);
+            $adminId = $checkStmt->fetchColumn();
+
+            if ($adminId) {
+                $updateStmt->execute([
+                    $name,
+                    $phoneValue,
+                    $password,
+                    $rememberToken,
+                    'staff',
+                    $lang,
+                    $whatsapp,
+                    $updatedAt,
+                    $adminId
+                ]);
+                $updated++;
+            } else {
+                $insertStmt->execute([
+                    $name,
+                    $phoneValue,
+                    $email,
+                    $password,
+                    $rememberToken,
+                    'staff',
+                    999,
+                    null,
+                    $lang,
+                    $createdAt,
+                    $updatedAt,
+                    $whatsapp
+                ]);
+                $inserted++;
+            }
+        }
+
+        return [
+            'success' => true,
+            'total_staff' => count($staffUsers),
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'message' => "✅ تمت مزامنة طاقم العمل بنجاح.\nإجمالي: " . count($staffUsers) . "\n➕ جديد: $inserted\n🔄 محدث: $updated\n⏭️ تم تخطي: $skipped"
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل مزامنة الطاقم: ' . $e->getMessage()
         ];
     }
 }

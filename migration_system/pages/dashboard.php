@@ -134,7 +134,7 @@ try {
                         <a href="?page=upload" class="btn btn-primary">ابدأ نقل جديد</a>
                     </div>
                 <?php else: ?>
-                    <div class="table-responsive">
+
                         <table class="table table-hover">
                             <thead class="table-light">
                                 <tr>
@@ -193,7 +193,7 @@ try {
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
-                    </div>
+
                 <?php endif; ?>
             </div>
         </div>
@@ -249,7 +249,7 @@ try {
                 </h5>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
+
                     <table class="table table-striped">
                         <thead class="table-dark">
                             <tr>
@@ -307,7 +307,7 @@ try {
                             <?php endforeach; ?>
                         </tbody>
                     </table>
-                </div>
+
             </div>
         </div>
     </div>

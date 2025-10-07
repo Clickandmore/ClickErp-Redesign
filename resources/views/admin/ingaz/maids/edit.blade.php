@@ -20,16 +20,23 @@
                     @method('Put')
 
                     <!-- الملفات -->
-                    <div class="col-6">
+                    <div class="col-4">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.cv_file")}} </label>
                         <input type="file" data-default-file="{{showFile($obj->cv_file)}}" name="cv_file"
                                class="dropify">
                     </div>
-                    <div class="col-6">
+                    <div class="col-4">
                         <label for="TextInput" class="form-label">صورة العامله </label>
                         <input type="file" data-default-file="{{showFile($obj->image)}}" name="image" class="dropify">
                     </div>
-
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">الفيديو </label>
+                        <input type="file" data-default-file="{{showFile($obj->video)}}" name="video" class="dropify">
+                    </div>
+                    <div class="col-12">
+                        <label for="TextInput" class="form-label">رابط الفيديو </label>
+                        <input type="url" name="video_link" class="form-control" value="{{$obj->video_link}}" required>
+                    </div>
                     <!-- أنواع الوظائف -->
                     <div class="col-4">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.job_types_2")}} </label>
@@ -290,7 +297,8 @@
                                         <label class="form-check-label" for="{{ $key }}">{{ $label }}</label>
                                     </div>
 
-                                    <div class="lang-extra mt-2" style="{{ in_array($key,$langs) ? '' : 'display:none;' }}">
+                                    <div class="lang-extra mt-2"
+                                         style="{{ in_array($key,$langs) ? '' : 'display:none;' }}">
                                         <input type="number" min="0" max="100"
                                                class="form-control"
                                                placeholder="النسبة %"
@@ -852,7 +860,7 @@
                             });
                         }
                     },
-                    error: function(xhr) {
+                    error: function (xhr) {
                         var errorMessage = 'حدث خطأ أثناء تحديث العاملة';
 
                         if (xhr.responseJSON && xhr.responseJSON.errors) {
@@ -892,7 +900,7 @@
         });
     </script>
     <script>
-        $(function(){
+        $(function () {
             $('.lang-check').on('change', function () {
                 const $wrapper = $(this).closest('.form-check').siblings('.lang-extra');
                 const val = $(this).val();

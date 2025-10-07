@@ -175,7 +175,6 @@ try {
     <?php if (!empty($errors_summary)): ?>
     <div class="mt-4">
         <h6 class="text-warning">ملخص الأخطاء:</h6>
-        <div class="table-responsive">
             <table class="table table-sm">
                 <thead class="table-light">
                     <tr>
@@ -194,14 +193,13 @@ try {
                     <?php endforeach; ?>
                 </tbody>
             </table>
-        </div>
     </div>
     <?php endif; ?>
 
     <?php if (!empty($processed_sample)): ?>
     <div class="mt-4">
         <h6 class="text-success">عينة من البيانات المعالجة:</h6>
-        <div class="table-responsive">
+
             <table class="table table-sm table-striped">
                 <thead class="table-light">
                     <tr>
@@ -226,7 +224,7 @@ try {
                     <?php endforeach; ?>
                 </tbody>
             </table>
-        </div>
+
     </div>
     <?php endif; ?>
 

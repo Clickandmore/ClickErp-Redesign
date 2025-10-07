@@ -2,7 +2,6 @@
 @section("style")
 <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link href="{{ asset('admin/custom/admin-tables.css') }}" rel="stylesheet" type="text/css" />
 
 @endsection
 @section('page-title')
@@ -128,7 +127,7 @@
                     </h5>
                 </div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
+                        
                         <table id="dataTableObject" class="table table-hover align-middle mb-0" style="width:100%">
                             <thead>
                                 <tr>
@@ -153,7 +152,6 @@
                             </tbody>
                         </table>
                     </div>
-                </div>
             </div>
         </div>
     </div>

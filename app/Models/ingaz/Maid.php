@@ -51,6 +51,8 @@ class Maid extends Model
         'skills',
         'cv_file',
         'image',
+        'video',
+        'video_link',
         'cv_preview',
         'office_id',
         'status',

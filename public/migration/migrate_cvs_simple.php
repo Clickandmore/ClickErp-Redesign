@@ -203,7 +203,7 @@
 
                             ${data.status_stats && !data.status_stats.error ? `
                                 <h6 class="mt-3">توزيع cv_status:</h6>
-                                <div class="table-responsive">
+
                                     <table class="table table-sm">
                                         <thead><tr><th>cv_status</th><th>العدد</th><th>available</th><th>status</th></tr></thead>
                                         <tbody>
@@ -217,7 +217,7 @@
                                             `).join('')}
                                         </tbody>
                                     </table>
-                                </div>
+
                             ` : '<p class="text-warning">لا توجد بيانات cv_status</p>'}
                         </div>
                     `;

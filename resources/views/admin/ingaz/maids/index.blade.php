@@ -1,6 +1,5 @@
 @extends('admin.layout.indexs.index')
 @section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
     <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/daterangepicker.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -43,6 +42,8 @@
         /* تحسين مظهر الجدول */
         .table th, .table td {
             vertical-align: middle;
+            text-align: center;
+            padding: 0.75rem;
         }
 
         .badge {
@@ -53,6 +54,16 @@
         .table img {
             max-width: 100%;
             height: auto;
+        }
+
+        /* إظهار اسم المكتب بالكامل مع التفاف مناسب */
+        .table td.office-column,
+        .table th.office-column-header {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+            width: 200px;
         }
 
         /* تحسين شكل الأزرار */
@@ -130,7 +141,7 @@
             border-radius: 6px;
             font-size: 0.8rem;
             padding: 0.25rem 0.5rem;
-            margin: 0 0.1rem;
+            margin: 0.25rem 0.1rem;
             transition: all 0.2s ease;
         }
 
@@ -341,15 +352,15 @@
             </form>
         </div>
     </div>
-
-    <div class="table-responsive">
-        <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
+        
+        <table id="dataTableObject" class="table table-striped table-hover align-middle text-center display dataTable" style="width:100%">
             <thead>
             <tr>
                 <th class="d-none d-md-table-cell">ID</th>
                 <th>{{helperTrans("ingaz.cv_file")}}</th>
                 <th class="d-none d-lg-table-cell">{{helperTrans("ingaz.nationality_id")}}</th>
                 <th class="d-none d-lg-table-cell">{{helperTrans("ingaz.job_type")}}</th>
+                <th class="office-column-header">{{helperTrans("ingaz.office_id")}}</th>
                 <th>{{helperTrans("ingaz.passport_num")}}</th>
                 <th class="d-none d-md-table-cell">{{helperTrans("ingaz.price")}}</th>
                 <th class="d-none d-md-table-cell">{{helperTrans("ingaz.salary")}}</th>
@@ -367,7 +378,6 @@
 
             </tbody>
         </table>
-    </div>
 
     @include('web.ingaz.maids.sub.maid_modal_view')
 
@@ -378,7 +388,6 @@
 
 @endsection
 @section('js')
-    <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
     <script src="{{asset("admin")}}/assets/js/bundle/daterangepicker.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
@@ -407,6 +416,7 @@
                 {"data": "cv_file", orderable: false, searchable: false},
                 {"data": "nationality_id", orderable: true, searchable: true, className: 'd-none d-lg-table-cell'},
                 {"data": "job_type", orderable: true, searchable: true, className: 'd-none d-lg-table-cell'},
+                {"data": "office", orderable: false, searchable: false, className: 'office-column'},
                 {"data": "passport_num", orderable: true, searchable: true},
                 {"data": "price", orderable: true, searchable: true, className: 'd-none d-md-table-cell'},
                 {"data": "salary", orderable: true, searchable: true, className: 'd-none d-md-table-cell'},
@@ -507,7 +517,7 @@
                     },
                     columns: columns,
                     pageLength: 10,
-                    order: [[13, 'desc']], // Order by created_at column by default in descending order
+                    order: [], // حافظ على ترتيب الاستعلام (مثبتات أولاً ثم الأحدث)
                     language: {
                         processing: '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">جاري التحميل...</span></div>'
                     },
@@ -781,4 +791,3 @@
 
     </script>
 @endsection
-

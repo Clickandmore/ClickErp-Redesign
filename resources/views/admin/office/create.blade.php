@@ -1,6 +1,5 @@
 @extends('admin.layout.indexs.index')
 @section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
     <style>
 
         .wizard-container {
@@ -130,6 +129,7 @@
                 transform: translateY(0);
             }
         }
+
         .steps .step {
             cursor: pointer; /* يخلي المؤشر زي اليد */
             transition: background-color 0.3s, transform 0.2s;
@@ -137,8 +137,8 @@
 
         .steps .step:hover {
             background-color: #f8f9fa; /* لون فاتح عند المرور */
-            transform: scale(1.05);    /* تكبير بسيط */
-            border-radius: 8px;        /* شكل الزرار */
+            transform: scale(1.05); /* تكبير بسيط */
+            border-radius: 8px; /* شكل الزرار */
         }
 
         .steps .step .circle {
@@ -172,6 +172,9 @@
             <div class="step">
                 <div class="circle">3</div>
                 <p>{{helperTrans("ingaz.bank_account_details")}}</p></div>
+            <div class="step">
+                <div class="circle">4</div>
+                <p>{{helperTrans("ingaz.office_attachments")}}</p></div>
         </div>
 
         <form id="wizardForm" class="from-submit-global" action="{{ route('offices.store') }}" method="POST"
@@ -285,6 +288,25 @@
                 </div>
                 <div class="btns">
                     <button type="button" class="btn btn-prev">{{helperTrans("ingaz.back")}}</button>
+                    <button type="button" class="btn btn-next">{{helperTrans("ingaz.next")}}</button>
+                </div>
+            </div>
+
+            <!-- Step 4 -->
+
+            <div class="form-step">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>{{helperTrans("ingaz.file")}} *</label>
+                        <input type="file" class="dropify" name="file" data-validation="required">
+                    </div>
+                    <div class="form-group">
+                        <label>{{helperTrans("ingaz.file_name")}} *</label>
+                        <input type="text" class="form-control" name="file_name" data-validation="required">
+                    </div>
+                </div>
+                <div class="btns">
+                    <button type="button" class="btn btn-prev">{{helperTrans("ingaz.back")}}</button>
                     <button type="submit" class="btn btn-next">{{helperTrans("ingaz.save")}}</button>
                 </div>
             </div>
@@ -294,7 +316,6 @@
 @endsection
 @section('js')
 
-    <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
     <script>
         $(document).ready(function () {
             let columns = [

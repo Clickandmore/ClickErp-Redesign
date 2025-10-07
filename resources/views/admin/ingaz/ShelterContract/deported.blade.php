@@ -129,7 +129,6 @@
     <!-- Table Section -->
     <div class="card">
         <div class="card-body">
-            <div class="table-responsive">
                 <table id="deportedTable" class="table table-bordered table-hover">
                     <thead>
                         <tr>
@@ -147,7 +146,6 @@
                     <tbody>
                     </tbody>
                 </table>
-            </div>
         </div>
     </div>
 </div>
@@ -157,7 +155,6 @@
 @endsection
 
 @section("js")
-    <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="{{asset("admin")}}/custom/admin-tables.js"></script>
 

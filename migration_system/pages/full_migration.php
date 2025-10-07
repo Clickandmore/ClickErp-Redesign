@@ -383,7 +383,7 @@ $migration_stats = getFullMigrationStats();
         </h5>
     </div>
     <div class="card-body">
-        <div class="table-responsive">
+
             <table class="table table-striped">
                 <thead class="table-dark">
                     <tr>
@@ -417,7 +417,6 @@ $migration_stats = getFullMigrationStats();
                     <?php endforeach; ?>
                 </tbody>
             </table>
-        </div>
     </div>
 </div>
 <?php endif; ?>

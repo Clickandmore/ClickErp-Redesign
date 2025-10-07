@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Actions\ingaz\ComplaintAction;
+use App\Http\Actions\ingaz\UserAction;
 use App\Http\Controllers\Controller;
 use App\Models\ingaz\Complaint as objModel;
+use App\Models\ingaz\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
@@ -36,7 +38,8 @@ class ComplaintController extends Controller
 
             // تطبيق الفلاتر
             if ($request->ticket_number) {
-                $ticketNumber = str_replace('#', '', $request->ticket_number);
+                $ticketNumber = ltrim($request->ticket_number, '#0');
+                $ticketNumber = $ticketNumber === '' ? 0 : $ticketNumber;
                 $query->where('id', 'LIKE', '%' . $ticketNumber . '%');
             }
 
@@ -67,14 +70,14 @@ class ComplaintController extends Controller
             return DataTables::of($query)
                 ->with('statistics', $statistics)
                 ->addIndexColumn()
-                ->editColumn('user_id', function($row) {
+                ->editColumn('user_id', function ($row) {
                     return $row->user ? $row->user->name : 'غير معروف';
                 })
-                ->editColumn('status', function($row) {
+                ->editColumn('status', function ($row) {
                     $status = $row->status;
                     $badgeClass = '';
                     $statusText = '';
-                    switch($status) {
+                    switch ($status) {
                         case 'pending':
                             $badgeClass = 'bg-warning';
                             $statusText = 'قيد الانتظار';
@@ -90,19 +93,22 @@ class ComplaintController extends Controller
                     }
                     return '<span class="badge ' . $badgeClass . '">' . $statusText . '</span>';
                 })
-                ->editColumn('file', function($row) {
+                ->editColumn('file', function ($row) {
                     return $row->file ? Storage::url($row->file) : null;
                 })
-                ->editColumn('response', function($row) {
+                ->editColumn('user_id', function ($row) {
+                    return $row->user ? @$row->user->name : null;
+                })
+                ->editColumn('response', function ($row) {
                     return $row->response ?? '-';
                 })
-                ->addColumn('assignedTo', function($row) {
+                ->addColumn('assignedTo', function ($row) {
                     return $row->assignedTo ? [
                         'id' => $row->assignedTo->id,
                         'name' => $row->assignedTo->name
                     ] : null;
                 })
-                ->addColumn('complaintType', function($row) {
+                ->addColumn('complaintType', function ($row) {
                     return $row->complaintType ? [
                         'id' => $row->complaintType->id,
                         'name' => $row->complaintType->name
@@ -116,6 +122,26 @@ class ComplaintController extends Controller
                     $buttons .= deleteButton(route($this->mainRoute . ".destroy", $row->id));
                     $buttons .= '</div>';
                     return $buttons;
+                })
+                ->filter(function ($query) {
+                    if (request()->has('search') && $search = request('search.value')) {
+                        $query->where(function ($q) use ($search) {
+                            $q->orWhereHas('user', function ($uq) use ($search) {
+                                $uq->where('name', 'LIKE', "%{$search}%");
+                            })
+                                ->orWhere('subject', 'LIKE', "%{$search}%")
+                                ->orWhere('complainant_name', 'LIKE', "%{$search}%")
+                                ->orWhere('priority', 'LIKE', "%{$search}%")
+                                ->orWhere('status', 'LIKE', "%{$search}%")
+                                ->orWhereHas('complaintType', function ($qq) use ($search) {
+                                    $qq->where('name', 'LIKE', "%{$search}%");
+                                })
+                                ->orWhereHas('assignedTo', function ($qq) use ($search) {
+                                    $qq->where('name', 'LIKE', "%{$search}%");
+                                });
+                        });
+
+                    }
                 })
                 ->rawColumns(['status', 'actions', 'response', 'phone'])
                 ->make(true);
@@ -138,12 +164,21 @@ class ComplaintController extends Controller
         return view($this->folderPath . '.create', compact('users', 'nationalities', 'complaintTypes', 'admins'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, UserAction $userAction)
     {
         try {
             $request->validate([
                 'complainant_name' => 'required|string|max:255',
-                'complainant_phone' => 'required|regex:/^05[0-9]{8}$/',
+                'complainant_phone' => [
+                    'required',
+                    'regex:/^05[0-9]{8}$/',
+                    function ($attribute, $value, $fail) {
+                        $phoneWithout0 = ltrim($value, '0');
+                        if (!User::where('phone', $phoneWithout0)->exists()) {
+                            $fail(__('validation.exists', ['attribute' => $attribute]));
+                        }
+                    },
+                ],
                 'subject' => 'required|string|max:255',
                 'complaint_type_id' => 'required|exists:complaint_types,id',
                 'details' => 'required|string',
@@ -168,7 +203,9 @@ class ComplaintController extends Controller
                 }
                 $data['attachments'] = $attachmentPaths;
             }
-
+            $data['complainant_phone'] = ltrim($data['complainant_phone'], '0');
+            $user = $userAction->getWhereFirst(['phone' => $data['complainant_phone']]);
+            $data['user_id'] = $user->id;
             $complaint = objModel::create($data);
 
             // إرسال إشعار للموظف المختص إذا تم تحديده
@@ -480,7 +517,7 @@ class ComplaintController extends Controller
         // Send SMS notification to the user
         if ($complaint->user && $complaint->user->phone) {
             $statusText = '';
-            switch($request->status) {
+            switch ($request->status) {
                 case 'resolved':
                     $statusText = 'تم حل الشكوى';
                     break;

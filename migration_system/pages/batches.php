@@ -166,7 +166,7 @@ $total_pages = ceil($total_batches / $per_page);
                 </a>
             </div>
         <?php else: ?>
-            <div class="table-responsive">
+
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
@@ -324,7 +324,7 @@ $total_pages = ceil($total_batches / $per_page);
                         <?php endforeach; ?>
                     </tbody>
                 </table>
-            </div>
+
 
             <!-- Pagination -->
             <?php if ($total_pages > 1): ?>

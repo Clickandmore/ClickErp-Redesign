@@ -138,7 +138,7 @@
                         </h5>
                     </div>
                     <div class="card-body">
-                        <div class="table-responsive">
+
                             <table id="deportationTravelTable" class="table table-hover align-middle mb-0">
                                 <thead>
                                     <tr>
@@ -154,7 +154,8 @@
                                 <tbody>
                                 </tbody>
                             </table>
-                        </div>
+
+
                     </div>
                 </div>
             </div>
@@ -185,7 +186,7 @@ function resetFilters() {
 function loadTable() {
     // تحديث الإحصائيات عند تغيير الفلاتر
     updateStatistics();
-    
+
     if ($.fn.DataTable.isDataTable('#deportationTravelTable')) {
         $('#deportationTravelTable').DataTable().destroy();
     }
@@ -193,7 +194,7 @@ function loadTable() {
     $('#deportationTravelTable').DataTable({
         processing: true,
         serverSide: true,
-        searching: false,
+        searching: true,
         language: {
             url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/ar.json',
             processing: '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">جاري التحميل...</span></div>'
@@ -218,10 +219,10 @@ function loadTable() {
         },
         columns: [
             { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-            { data: 'contract_number', name: 'contract_number' },
-            { data: 'maid_data', name: 'maid_data', orderable: false },
-            { data: 'client', name: 'client', orderable: false },
-            { data: 'travel_details', name: 'travel_details', orderable: false },
+            { data: 'contract_number', name: 'contract_number' ,searchable: true },
+            { data: 'maid_data', name: 'maid_data', orderable: false  ,searchable: true },
+            { data: 'client', name: 'client', orderable: false  ,searchable: true },
+            { data: 'travel_details', name: 'travel_details', orderable: false ,searchable: true  },
             { data: 'status', name: 'status' },
             {
                 data: 'actions',

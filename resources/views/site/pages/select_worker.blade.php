@@ -102,38 +102,45 @@
     <!-- ================ /available ================= -->
 
     <!-- ================ /arrive Worker ================= -->
-    <div class="arriveWorker">
-        <div class="container">
-            <!-- arrive Worker Info -->
+   <div class="arriveWorker">
+    <div class="container">
+        <div class="arriveWorkerWrapper">
             @if(isset($selectedSettings))
-                <div class="arriveWorkerInfo">
-                    <div class="image wow fadeInUp">
-                        <img src="{{showFile($selectedSettings->image)}}">
-                    </div>
-                    <div class="info wow fadeInUp">
-                        <p>{{$selectedSettings->body}}
-                        </p>
-                        <a class="defaultBtn "
-                           href="{{$selectedSettings->link}}"><span></span> {{__("ingaz.start_recruitment")}} <i
-                                class="fa-regular fa-left-long ms-2"></i> </a>
-                    </div>
+                <div class="arriveWorkerImage wow fadeInUp">
+                    <img src="{{ showFile($selectedSettings->image) }}" alt="عامل منزلي" />
+                </div>
+
+                <div class="arriveWorkerContent wow fadeInUp">
+                    <h3>{{ $selectedSettings->title ?? __('ingaz.domestic_worker_services') }}</h3>
+                    <p>{{ $selectedSettings->body }}</p>
+                    <a class="defaultBtn" href="{{ $selectedSettings->link }}">
+                        <span></span> {{ __('ingaz.start_recruitment') }}
+                        <i class="fa-regular fa-left-long ms-2"></i>
+                    </a>
                 </div>
             @else
-                <div class="arriveWorkerInfo">
-                    <div class="image wow fadeInUp">
-                        <img src="{{asset('site')}}/assets/images/worker.webp">
-                    </div>
-                    <div class="info wow fadeInUp">
-                        <p>{{__("ingaz.select_worker_text")}}
-                        </p>
-                        <a class="defaultBtn "
-                           href="{{route('site.all-workers.index')}}"><span></span> {{__("ingaz.start_recruitment")}} <i
-                                class="fa-regular fa-left-long ms-2"></i> </a>
-                    </div>
+                <div class="arriveWorkerImage wow fadeInUp">
+                    <img src="{{ asset('site/assets/images/worker.webp') }}" alt="عامل منزلي" />
+                </div>
+
+                <div class="arriveWorkerContent wow fadeInUp">
+                    <h3>{{ __('ingaz.domestic_worker_services') }}</h3>
+                    <p>
+                        {{ __('ingaz.domestic_worker_text_1') }}
+                    </p>
+                    <p>
+                        {{ __('ingaz.domestic_worker_text_2') }}
+                    </p>
+                    <a class="defaultBtn" href="{{ route('site.all-workers.index') }}">
+                        <span></span> {{ __('ingaz.start_recruitment') }}
+                        <i class="fa-regular fa-left-long ms-2"></i>
+                    </a>
                 </div>
             @endif
         </div>
     </div>
+</div>
+
     <!-- ================ references ================= -->
     <section class="references">
         <div class="container">

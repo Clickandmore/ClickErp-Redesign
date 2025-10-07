@@ -13,19 +13,20 @@ class OfficeRequest extends MainRequest
      *
      * @return bool
      */
-    public function authorize()
+    public function rules(): array
     {
-        return true;
+        return match ($this->method()) {
+            'POST' => $this->store(),
+            'PUT', 'PATCH' => $this->update(),
+            'DELETE' => $this->destroy(),
+            'GET' => $this->view(),
+            default => [],
+        };
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array
-     */
-    public function rules()
+    protected function store(): array
     {
-        $rules = [
+        return [
             "title:ar" => "required|string",
             "title:en" => "required|string",
             "phone_office" => "required|numeric",
@@ -33,19 +34,7 @@ class OfficeRequest extends MainRequest
             "nationality_id" => "required|exists:nationalities,id",
             "street" => "required|string",
             "manager_name" => "required|string",
-            "bank_address" => "required|string",
-            "bank_account" => "required|string",
-            "bank_account_name" => "required|string",
-            "bank_swift_code" => "required|numeric",
-            "bank_iban" => "required|numeric",
-            "cost_of_dollar" => "required|numeric",
-            "cost_of_other" => "required|numeric",
-            "job_title_id" => "required|array",
-            "job_title_id.*" => "required|exists:job_types,id",
-        ];
-
-        if ($this->isMethod('post')) {
-            $rules["manager_email"] = [
+            "manager_email" => [
                 "required",
                 "email",
                 function ($attribute, $value, $fail) {
@@ -56,9 +45,8 @@ class OfficeRequest extends MainRequest
                         $fail(__('ingaz.manager_email_unique'));
                     }
                 },
-            ];
-
-            $rules["manager_phone"] = [
+            ],
+            "manager_phone" => [
                 "required",
                 "numeric",
                 function ($attribute, $value, $fail) {
@@ -69,14 +57,35 @@ class OfficeRequest extends MainRequest
                         $fail(__('ingaz.manager_phone_unique'));
                     }
                 },
-            ];
+            ],
+            "password" => "required|string|min:6",
+            "file" => "required|file",
+            "file_name" => "required|string",
+            "bank_address" => "required|string",
+            "bank_account" => "required|string",
+            "bank_account_name" => "required|string",
+            "bank_swift_code" => "required|numeric",
+            "bank_iban" => "required|numeric",
+            "cost_of_dollar" => "required|numeric",
+            "cost_of_other" => "required|numeric",
+            "job_title_id" => "required|array",
+            "job_title_id.*" => "required|exists:job_types,id",
+        ];
+    }
 
-            $rules["password"] = "required|string|min:6";
-        }
 
-        if ($this->isMethod('put') || $this->isMethod('patch')) {
-            $officeId = $this->route('office');
-            $rules["manager_email"] = [
+    protected function update(): array
+    {
+        $officeId = $this->route("office");
+        return [
+            "title:ar" => "required|string",
+            "title:en" => "required|string",
+            "phone_office" => "required|numeric",
+            "license_number" => "required|numeric",
+            "nationality_id" => "required|exists:nationalities,id",
+            "street" => "required|string",
+            "manager_name" => "nullable|string",
+            "manager_email" => [
                 "nullable",
                 "email",
                 function ($attribute, $value, $fail) use ($officeId) {
@@ -94,8 +103,8 @@ class OfficeRequest extends MainRequest
                         $fail(__('ingaz.manager_email_unique'));
                     }
                 },
-            ];
-            $rules["manager_phone"] = [
+            ],
+            "manager_phone" => [
                 "nullable",
                 "numeric",
                 function ($attribute, $value, $fail) use ($officeId) {
@@ -116,12 +125,28 @@ class OfficeRequest extends MainRequest
                         $fail(__('ingaz.manager_phone_unique'));
                     }
                 },
-            ];
-            $rules["password"] = "nullable|string|min:6";
-        }
-
-        return $rules;
+            ],
+            "password" => "nullable|string|min:6",
+            "file" => "nullable|file",
+            "file_name" => "nullable|string",
+            "bank_address" => "nullable|string",
+            "bank_account" => "nullable|string",
+            "bank_account_name" => "nullable|string",
+            "bank_swift_code" => "nullable|numeric",
+            "bank_iban" => "nullable|numeric",
+            "cost_of_dollar" => "nullable|numeric",
+            "cost_of_other" => "nullable|numeric",
+            "job_title_id" => "required|array",
+            "job_title_id.*" => "required|exists:job_types,id",
+        ];
     }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array
+     */
+
 
     public function messages()
     {

@@ -46,7 +46,7 @@ class UserController extends Controller
                     return getPhoneWithTag($row->phone_code.$row->phone);
                 })
                 ->editColumn('created_at', function ($row) {
-                    return ($row->created_at->format('Y-m-d h:i A'));
+                    return (isset($row->created_at)) ? $row->created_at->diffForHumans() : '-';
                 })
                 ->addColumn('actions', function ($row) {
                     $buttons = '';
