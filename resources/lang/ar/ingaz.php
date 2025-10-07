@@ -1471,6 +1471,6 @@
   'time' => 'الوقت',
   'by' => 'بواسطة',
   'bank_name' => 'اسم البنك',
-  'manager_name' => 'Manager name',
-  'manager_phone' => 'Manager phone',
+  'manager_name' => 'اسم المدير',
+  'manager_phone' => 'رقم المدير',
 );

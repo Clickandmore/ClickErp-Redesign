@@ -1533,4 +1533,6 @@
     'time' => 'Time',
     'by' => 'By',
     'bank_name' => 'Bank Name',
+    'manager_name' => 'Manager Name',
+    'manager_phone' => 'Manager Phone',
 );
