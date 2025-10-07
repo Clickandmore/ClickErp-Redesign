@@ -20,19 +20,16 @@
                     @method('Put')
 
                     <!-- الملفات -->
-                    <div class="col-4">
+                    <div class="col-6">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.cv_file")}} </label>
                         <input type="file" data-default-file="{{showFile($obj->cv_file)}}" name="cv_file"
                                class="dropify">
                     </div>
-                    <div class="col-4">
+                    <div class="col-6">
                         <label for="TextInput" class="form-label">صورة العامله </label>
                         <input type="file" data-default-file="{{showFile($obj->image)}}" name="image" class="dropify">
                     </div>
-                    <div class="col-12">
-                        <label for="TextInput" class="form-label">رابط الفيديو <small class="text-muted">(اختياري)</small></label>
-                        <input type="url" name="video_link" class="form-control" value="{{$obj->video_link}}" placeholder="https://...">
-                    </div>
+
                     <!-- أنواع الوظائف -->
                     <div class="col-4">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.job_types_2")}} </label>
@@ -249,7 +246,10 @@
                     </div>
 
                 </div>
-
+                    <div class="col-12">
+                        <label for="TextInput" class="form-label">رابط الفيديو <small class="text-muted">(اختياري)</small></label>
+                        <input type="url" name="video_link" class="form-control" value="{{$obj->video_link}}" placeholder="https://...">
+                    </div>
                 <div class="col-12" id="experience_section" style="display: {{$obj->experience_status == 'has_experience' ? 'block' : 'none'}};">
                     <label for="TextInput" class="form-label">{{helperTrans("ingaz.expertise")}}</label>
                     <table class="table table-bordered" id="experience_table">
@@ -427,19 +427,9 @@
             $(document).on('click', '.btnAdd', function () {
                 const $currentRow = $(this).closest('tr');
                 const $clone = $currentRow.clone();
-
                 $clone.find('input, textarea').val('');
-
-                $clone.find('span.select2').remove();
-                $clone.find('select.select2').each(function () {
-                    $(this)
-                        .removeAttr('data-select2-id')
-                        .removeClass('select2-hidden-accessible')
-                        .prop('selectedIndex', 0);
-                });
-
+                $clone.find('select').prop('selectedIndex', 0);
                 $currentRow.after($clone);
-                window.initExperienceSelects($clone);
                 if (typeof window.reindexRows === 'function') {
                     window.reindexRows();
                 }
@@ -457,18 +447,13 @@
                 if ($rows.length <= 1) {
                     return; // لن يحدث شيء؛ الزر مخفي فعلاً لكن هنا كحماية
                 }
-                const $row = $(this).closest('tr');
-                if ($row.find('select.select2[data-select2-id]').length) {
-                    $row.find('select.select2').select2('destroy');
-                }
-                $row.remove();
+                $(this).closest('tr').remove();
                 if (typeof window.reindexRows === 'function') {
                     window.reindexRows();
                 }
                 if (typeof window.updateRemoveButtons === 'function') {
                     window.updateRemoveButtons();
                 }
-                window.initExperienceSelects();
             });
 
         });
@@ -477,22 +462,6 @@
         $(document).ready(function () {
             $('.dropify').dropify();
             $('.js-example-basic-multiple').select2();
-
-            window.initExperienceSelects = function (context) {
-                const $context = context ? $(context) : $('#experience_section');
-                $context.find('select.form-control.select2').each(function () {
-                    const $select = $(this);
-                    if ($select.data('select2')) {
-                        $select.select2('destroy');
-                    }
-                    $select.select2({
-                        width: '100%',
-                        dropdownParent: $('#experience_section')
-                    });
-                });
-            }
-
-            window.initExperienceSelects();
 
             window.clearExperienceSection = function () {
                 $('#json_array tr.y-group').find('input, textarea').val('');
@@ -506,7 +475,6 @@
                 if (typeof window.updateRemoveButtons === 'function') {
                     window.updateRemoveButtons();
                 }
-                window.initExperienceSelects();
             }
 
             window.toggleExperienceSection = function () {
@@ -519,7 +487,6 @@
                     $fields.each(function () {
                         $(this).attr('required', 'required');
                     });
-                    window.initExperienceSelects();
                 } else {
                     $fields.each(function () {
                         $(this).removeAttr('required');
