@@ -1,4 +1,5 @@
 @charset "UTF-8";
+@import url("https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400..800&display=swap");
 @font-face {
   font-family: SF_Regular;
   font-display: swap;
@@ -55,7 +56,8 @@
   scroll-behavior: smooth;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
-  font-family: "SF_Regular", sans-serif;
+  font-family: "Baloo Bhaijaan 2", sans-serif;
+  font-weight: 500;
 }
 
 body {
