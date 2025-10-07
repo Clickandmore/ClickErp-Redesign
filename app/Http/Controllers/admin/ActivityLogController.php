@@ -15,5 +15,4 @@ class ActivityLogController extends Controller
         return view('admin.activity_log.index',compact('data'));
     }
 
-
 }

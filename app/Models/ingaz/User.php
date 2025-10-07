@@ -10,6 +10,8 @@ use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Permission\Traits\HasRoles;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Notifications\Notifiable;
+use App\Models\Message;
+use Spatie\Activitylog\Models\Activity;
 
 class User extends Authenticatable implements JWTSubject
 {
@@ -64,5 +66,15 @@ class User extends Authenticatable implements JWTSubject
         return LogOptions::defaults()
             ->logOnly(['*'])
             ->logOnlyDirty();
+    }
+
+    // Mahmoud Amer's code
+     public function messages()
+    {
+        return $this->hasMany(Message::class, 'user_id');
+    }
+    public function activities()
+    {
+        return $this->hasMany(Activity::class, 'subject_id');
     }
 }

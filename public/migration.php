@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
@@ -306,6 +306,65 @@
             <div id="maids_result" class="result"></div>
         </div>
 
+        <!-- قسم العقود (Contracts) -->
+        <div class="section">
+            <h3>1️⃣2️⃣ نقل العقود (Contracts)</h3>
+            <div class="buttons">
+                <button onclick="transferContracts()" class="btn-success">نقل العقود</button>
+                <button onclick="checkContracts()" class="btn-info">فحص النتيجة</button>
+            </div>
+            <div id="contracts_result" class="result"></div>
+        </div>
+
+        <!-- قسم أنواع الإيواء (Accommodation Types) -->
+        <div class="section">
+            <h3>1️⃣3️⃣ أنواع الإيواء (Accommodation Types)</h3>
+            <div class="buttons">
+                <button onclick="transferAccommodationTypes()" class="btn-success">نقل أنواع الإيواء</button>
+                <button onclick="checkAccommodationTypes()" class="btn-info">فحص النتيجة</button>
+            </div>
+            <div id="accommodation_types_result" class="result"></div>
+        </div>
+
+        <!-- Airports -->
+        <div class="section">
+            <h3>Airports</h3>
+            <div class="buttons">
+                <button onclick="transferAirports()" class="btn-success">Transfer Airports</button>
+                <button onclick="checkAirports()" class="btn-info">Check Airports</button>
+            </div>
+            <div id="airports_result" class="result"></div>
+        </div>
+
+        <!-- Contract Logs -->
+        <div class="section">
+            <h3>Contract Logs</h3>
+            <div class="buttons">
+                <button onclick="transferContractLogs()" class="btn-success">Transfer Contract Logs</button>
+                <button onclick="checkContractLogs()" class="btn-info">Check Contract Logs</button>
+            </div>
+            <div id="contract_logs_result" class="result"></div>
+        </div>
+
+        <!-- Activity Logs -->
+        <div class="section">
+            <h3>Activity Logs</h3>
+            <div class="buttons">
+                <button onclick="transferActivityLogs()" class="btn-success">Transfer Activity Logs</button>
+                <button onclick="checkActivityLogs()" class="btn-info">Check Activity Logs</button>
+            </div>
+            <div id="activity_logs_result" class="result"></div>
+        </div>
+
+        <!-- Messages -->
+        <div class="section">
+            <h3>Messages</h3>
+            <div class="buttons">
+                <button onclick="transferMessages()" class="btn-success">Transfer Messages</button>
+                <button onclick="checkMessages()" class="btn-info">Check Messages</button>
+            </div>
+            <div id="messages_result" class="result"></div>
+        </div>
         <!-- الإحصائيات -->
         <div class="section">
             <h3>📊 الإحصائيات الحالية</h3>
@@ -366,6 +425,34 @@
                     <div class="number">-</div>
                     <div class="label">Maids</div>
                 </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Contracts</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Contract Infos</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Contract Logs</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Activity Logs</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Messages</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Airports</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Accommodation Types</div>
+                </div>
             </div>
             <button onclick="updateStats()" class="btn-info">تحديث الإحصائيات</button>
         </div>
@@ -377,7 +464,7 @@
             const mode = document.querySelector('input[name="transfer_mode"]:checked').value;
             document.getElementById('upload_section').style.display = mode === 'file' ? 'block' : 'none';
         }
-
+        
         // إعداد جدول المستخدمين
         function prepareUsersTable() {
             const btn = event.target;
@@ -1796,7 +1883,372 @@
             });
         }
 
-        // وظائف عامة
+        function transferContracts() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'جاري النقل...';
+
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=migrate_contracts'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showResult(
+                        'contracts_result',
+                        `✅ ${data.message}\n📦 الإجمالي: ${data.processed || 0}\n🆕 مضاف: ${data.inserted || 0}\n🔁 محدث: ${data.updated || 0}\n➖ بدون تغيير: ${data.unchanged || 0}\n⏭ متجاوز: ${data.skipped || 0}`,
+                        true
+                    );
+                    updateStats();
+                } else {
+                    showResult('contracts_result', `❌ ${data.message}`, false);
+                }
+                btn.disabled = false;
+                btn.textContent = 'نقل العقود';
+            })
+            .catch(error => {
+                showResult('contracts_result', '❌ خطأ: ' + error.message, false);
+                btn.disabled = false;
+                btn.textContent = 'نقل العقود';
+            });
+        }
+
+        function checkContracts() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=contracts_summary'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showResult('contracts_result', `📊 العقود: ${data.contracts || 0}
+🗂️ معلومات العقود: ${data.contract_infos || 0}`, true);
+                } else {
+                    showResult('contracts_result', `❌ ${data.message}`, false);
+                }
+            })
+            .catch(error => {
+                showResult('contracts_result', '❌ خطأ: ' + error.message, false);
+            });
+        }
+
+
+
+        function transferContractLogs() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Transferring...';
+
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=migrate_contract_logs'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const lines = [
+                        'Contract logs migrated successfully',
+                        'Total: ' + (data.processed ?? data.total ?? 0),
+                        'Inserted: ' + (data.inserted ?? 0),
+                        'Updated: ' + (data.updated ?? 0),
+                        'Unchanged: ' + (data.unchanged ?? 0),
+                        'Skipped: ' + (data.skipped ?? 0)
+                    ];
+                    showResult('contract_logs_result', lines.join('\n'), true);
+                    updateStats();
+                } else {
+                    showResult('contract_logs_result', 'Migration failed: ' + (data.message || 'operation could not be completed'), false);
+                }
+                btn.disabled = false;
+                btn.textContent = 'Transfer Contract Logs';
+            })
+            .catch(error => {
+                showResult('contract_logs_result', 'Error: ' + error.message, false);
+                btn.disabled = false;
+                btn.textContent = 'Transfer Contract Logs';
+            });
+        }
+
+        function checkContractLogs() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=contract_logs_summary'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const lines = [
+                        'Current contract logs stats:',
+                        'Total: ' + (data.total ?? data.contract_logs ?? 0)
+                    ];
+                    if (data.message) {
+                        lines.push(data.message);
+                    }
+                    showResult('contract_logs_result', lines.join('\n'), true);
+                } else {
+                    showResult('contract_logs_result', 'Failed to fetch stats: ' + (data.message || 'unknown'), false);
+                }
+            })
+            .catch(error => {
+                showResult('contract_logs_result', 'Error: ' + error.message, false);
+            });
+        }
+
+        function transferActivityLogs() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Transferring...';
+
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=migrate_activity_logs'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const lines = [
+                        'Activity logs migrated successfully',
+                        'Total: ' + (data.processed ?? data.total ?? 0),
+                        'Inserted: ' + (data.inserted ?? 0),
+                        'Updated: ' + (data.updated ?? 0),
+                        'Unchanged: ' + (data.unchanged ?? 0),
+                        'Skipped: ' + (data.skipped ?? 0)
+                    ];
+                    showResult('activity_logs_result', lines.join('\n'), true);
+                    updateStats();
+                } else {
+                    showResult('activity_logs_result', 'Migration failed: ' + (data.message || 'operation could not be completed'), false);
+                }
+                btn.disabled = false;
+                btn.textContent = 'Transfer Activity Logs';
+            })
+            .catch(error => {
+                showResult('activity_logs_result', 'Error: ' + error.message, false);
+                btn.disabled = false;
+                btn.textContent = 'Transfer Activity Logs';
+            });
+        }
+
+        function checkActivityLogs() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=activity_logs_summary'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const lines = [
+                        'Current activity logs stats:',
+                        'Total: ' + (data.total ?? data.activity_logs ?? 0)
+                    ];
+                    if (data.message) {
+                        lines.push(data.message);
+                    }
+                    showResult('activity_logs_result', lines.join('\n'), true);
+                } else {
+                    showResult('activity_logs_result', 'Failed to fetch stats: ' + (data.message || 'unknown'), false);
+                }
+            })
+            .catch(error => {
+                showResult('activity_logs_result', 'Error: ' + error.message, false);
+            });
+        }
+
+
+        function transferMessages() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Transferring...';
+
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=migrate_messages'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const lines = [
+                        'Messages migrated successfully',
+                        'Total: ' + (data.processed ?? data.total ?? 0),
+                        'Inserted: ' + (data.inserted ?? 0),
+                        'Updated: ' + (data.updated ?? 0),
+                        'Unchanged: ' + (data.unchanged ?? 0),
+                        'Skipped: ' + (data.skipped ?? 0)
+                    ];
+                    showResult('messages_result', lines.join('\n'), true);
+                    updateStats();
+                } else {
+                    showResult('messages_result', 'Migration failed: ' + (data.message || 'operation could not be completed'), false);
+                }
+                btn.disabled = false;
+                btn.textContent = 'Transfer Messages';
+            })
+            .catch(error => {
+                showResult('messages_result', 'Error: ' + error.message, false);
+                btn.disabled = false;
+                btn.textContent = 'Transfer Messages';
+            });
+        }
+
+        function checkMessages() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=messages_summary'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const lines = [
+                        'Current messages stats:',
+                        'Total: ' + (data.total ?? data.messages ?? 0)
+                    ];
+                    if (data.message) {
+                        lines.push(data.message);
+                    }
+                    showResult('messages_result', lines.join('\n'), true);
+                } else {
+                    showResult('messages_result', 'Failed to fetch stats: ' + (data.message || 'unknown'), false);
+                }
+            })
+            .catch(error => {
+                showResult('messages_result', 'Error: ' + error.message, false);
+            });
+        }
+
+        function transferAccommodationTypes() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'جاري النقل...';
+
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=migrate_accommodation_types'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showResult('accommodation_types_result', `✅ ${data.message}
+📦 الإجمالي: ${data.processed || 0}
+🆕 مضاف: ${data.inserted || 0}
+🔁 محدث: ${data.updated || 0}
+➖ بدون تغيير: ${data.unchanged || 0}
+⏭ متجاوز: ${data.skipped || 0}`, true);
+                    updateStats();
+                } else {
+                    showResult('accommodation_types_result', `❌ ${data.message}`, false);
+                }
+                btn.disabled = false;
+                btn.textContent = 'نقل أنواع الإيواء';
+            })
+            .catch(error => {
+                showResult('accommodation_types_result', '❌ خطأ: ' + error.message, false);
+                btn.disabled = false;
+                btn.textContent = 'نقل أنواع الإيواء';
+            });
+        }
+
+        function checkAccommodationTypes() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=accommodation_types_summary'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showResult('accommodation_types_result', `📊 أنواع الإيواء: ${data.types || 0}`, true);
+                } else {
+                    showResult('accommodation_types_result', `❌ ${data.message}`, false);
+                }
+            })
+            .catch(error => {
+                showResult('accommodation_types_result', '❌ خطأ: ' + error.message, false);
+            });
+        }
+
+
+        function transferAirports() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Transferring...';
+
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=migrate_airports'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const lines = [
+                        'Airports migrated successfully',
+                        'Total: ' + (data.processed ?? data.total ?? 0),
+                        'Inserted: ' + (data.inserted ?? 0),
+                        'Updated: ' + (data.updated ?? 0),
+                        'Unchanged: ' + (data.unchanged ?? 0),
+                        'Skipped: ' + (data.skipped ?? 0)
+                    ];
+                    showResult('airports_result', lines.join('\n'), true);
+                    updateStats();
+                } else {
+                    showResult('airports_result', 'Migration failed: ' + (data.message || 'operation could not be completed'), false);
+                }
+            })
+            .catch(error => {
+                showResult('airports_result', 'Error: ' + error.message, false);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.textContent = 'Transfer Airports';
+            });
+        }
+
+        function checkAirports() {
+            fetch('migration/file_processor.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'action=airports_summary'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const lines = [
+                        'Current airports stats:',
+                        'Total: ' + (data.total ?? data.airports ?? 0)
+                    ];
+                    if (data.message) lines.push(data.message);
+                    showResult('airports_result', lines.join('\n'), true);
+                } else {
+                    showResult('airports_result', 'Failed to fetch stats: ' + (data.message || 'unknown'), false);
+                }
+            })
+            .catch(error => {
+                showResult('airports_result', 'Error: ' + error.message, false);
+            });
+        }
+
+        window.transferContracts = transferContracts;
+        window.checkContracts = checkContracts;
+        window.transferContractLogs = transferContractLogs;
+        window.checkContractLogs = checkContractLogs;
+        window.transferActivityLogs = transferActivityLogs;
+        window.checkActivityLogs = checkActivityLogs;
+        window.transferMessages = transferMessages;
+        window.checkMessages = checkMessages;
+        window.transferAccommodationTypes = transferAccommodationTypes;
+        window.checkAccommodationTypes = checkAccommodationTypes;
+        window.transferAirports = transferAirports;
+        window.checkAirports = checkAirports;        // وظائف عامة
         function showResult(elementId, message, isSuccess) {
             const element = document.getElementById(elementId);
             element.style.display = 'block';
@@ -1825,9 +2277,15 @@
                     (SELECT COUNT(*) FROM experience) as experience,
                     (SELECT COUNT(*) FROM ages) as ages,
                     (SELECT COUNT(*) FROM languages) as languages,
-                    (SELECT COUNT(*) FROM maids) as maids
+                    (SELECT COUNT(*) FROM maids) as maids,
+                    (SELECT COUNT(*) FROM contracts) as contracts,
+                    (SELECT COUNT(*) FROM contract_infos) as contract_infos,
+                    (SELECT COUNT(*) FROM contract_status_logs) as contract_logs,
+                    (SELECT COUNT(*) FROM activity_log) as activity_logs,
+                    (SELECT COUNT(*) FROM messages) as messages,
+                    (SELECT COUNT(*) FROM accommodation_types) as accommodation_types,
+                    (SELECT COUNT(*) FROM airports) as airports
             `;
-
             fetch('migration/file_processor.php', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -1837,6 +2295,35 @@
             .then(data => {
                 if (data.success && data.result && data.result[0]) {
                     const stats = data.result[0];
+                    const order = [
+                        'users',
+                        'countries',
+                        'nationalities',
+                        'translations',
+                        'job_titles',
+                        'religions',
+                        'social_status',
+                        'skills',
+                        'experience',
+                        'ages',
+                        'languages',
+                        'maids',
+                        'contracts',
+                        'contract_infos',
+                        'contract_logs',
+                        'activity_logs',
+                        'messages',
+                        'accommodation_types',
+                        'airports'
+                    ];
+
+                    const numbers = document.querySelectorAll('.stat .number');
+                    order.forEach((key, index) => {
+                        if (numbers[index]) {
+                            numbers[index].textContent = stats[key] || '0';
+                        }
+                    });
+
                     const numbers = document.querySelectorAll('.stat .number');
                     if (numbers.length >= 14) {
                         numbers[0].textContent = stats.users || '0';
@@ -1866,3 +2353,32 @@
     </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

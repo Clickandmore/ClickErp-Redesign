@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * معالج النظام الثابت - تطوير مستمر للميزات
  * Fixed System Processor - Continuous Feature Development
@@ -154,6 +154,84 @@ try {
         case 'process_exported_file':
             ob_clean();
             echo json_encode(processExportedFile(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_contracts':
+            ob_clean();
+            echo json_encode(migrateContracts(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'contracts_summary':
+            ob_clean();
+            echo json_encode(getContractsSummary(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+        case 'migrate_accommodation_types':
+            ob_clean();
+            echo json_encode(migrateAccommodationTypes(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'accommodation_types_summary':
+            ob_clean();
+            echo json_encode(getAccommodationTypesSummary(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_airports':
+            ob_clean();
+            echo json_encode(migrateAirports(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'airports_summary':
+            ob_clean();
+            echo json_encode(getAirportsSummary(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_contract_logs':
+            ob_clean();
+            echo json_encode(migrateContractLogs(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'contract_logs_summary':
+            ob_clean();
+            echo json_encode(getContractLogsSummary(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_activity_logs':
+            ob_clean();
+            echo json_encode(migrateActivityLogs(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'activity_logs_summary':
+            ob_clean();
+            echo json_encode(getActivityLogsSummary(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_messages':
+            ob_clean();
+            echo json_encode(migrateMessages(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'messages_summary':
+            ob_clean();
+            echo json_encode(getMessagesSummary(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+
+        case 'execute_sql':
+            ob_clean();
+            echo json_encode(handleExecuteSql(), JSON_UNESCAPED_UNICODE);
             exit();
             break;
 
@@ -3762,4 +3840,1141 @@ function guessColumnType($columnName) {
     }
 }
 
+
+
+function handleExecuteSql() {
+    $sql = $_POST['sql'] ?? '';
+    if (!is_string($sql) || trim($sql) === '') {
+        return [
+            'success' => false,
+            'message' => 'لم يتم توفير الاستعلام'
+        ];
+    }
+
+    try {
+        $db = get_db_connection();
+        $statements = array_filter(array_map('trim', preg_split('/;\s*/', $sql)));
+        $lastResult = [];
+
+        foreach ($statements as $statement) {
+            if ($statement === '') {
+                continue;
+            }
+
+            if (stripos($statement, 'select') === 0 || stripos($statement, 'show') === 0 || stripos($statement, 'describe') === 0) {
+                $query = $db->query($statement);
+                $lastResult = $query ? $query->fetchAll(PDO::FETCH_ASSOC) : [];
+            } else {
+                $db->exec($statement);
+            }
+        }
+
+        return [
+            'success' => true,
+            'message' => 'تم تنفيذ الاستعلام',
+            'result' => $lastResult
+        ];
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في تنفيذ الاستعلام: ' . $e->getMessage()
+        ];
+    }
+}
+
+function migrateContracts() {
+    $oldHost = $_POST['old_db_host'] ?? '127.0.0.1';
+    $oldPort = $_POST['old_db_port'] ?? 8889;
+    $oldDbName = $_POST['old_db_name'] ?? 'platinum_old';
+    $oldUser = $_POST['old_db_user'] ?? 'root';
+    $oldPass = $_POST['old_db_pass'] ?? 'root';
+
+    try {
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة الجديدة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $oldDsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $oldHost, $oldPort, $oldDbName);
+        $oldDb = new PDO($oldDsn, $oldUser, $oldPass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4'
+        ]);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة القديمة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $contracts = $oldDb->query(
+            'SELECT id, attatches, covered_guarantee_date, expired_date, created_at, updated_at, throwback_date, resv_id, throwback_reason, date_contract, contract_visa_num, musand_num, authorization_num, contract_border_num, contract_cost, contract_tex, contract_visa_type, contract_visa_date, contract_late_cost, contract_holiday_day, musand_date, driver_id FROM contracts ORDER BY id'
+        )->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'لم يتمكن من قراءة جدول العقد القديم: ' . $e->getMessage()
+        ];
+    }
+
+    if (empty($contracts)) {
+        return [
+            'success' => true,
+            'message' => 'لا توجد بيانات لنقلها من جدول العقود القديم',
+            'processed' => 0,
+            'inserted' => 0,
+            'updated' => 0,
+            'unchanged' => 0,
+            'skipped' => 0
+        ];
+    }
+
+    $insertSql = <<<SQL
+INSERT INTO contracts (
+    id,
+    status,
+    warranty_status,
+    signature,
+    warranty_start_date,
+    warranty_end_date,
+    created_at,
+    updated_at,
+    completed_at,
+    order_id,
+    user_id,
+    marketer_id,
+    maid_id,
+    required_maid_nationality_id,
+    required_maid_religion_id,
+    required_maid_job_title_id,
+    required_maid_notes,
+    contract_date,
+    visa_number,
+    msaned_number,
+    authorization_num,
+    contract_border_num,
+    contract_cost,
+    contract_tex,
+    contract_visa_type,
+    contract_visa_date,
+    contract_late_cost,
+    contract_holiday_day,
+    throwback_reason,
+    throwback_date,
+    musand_date
+)
+VALUES (
+    :id,
+    :status,
+    :warranty_status,
+    :signature,
+    :warranty_start_date,
+    :warranty_end_date,
+    :created_at,
+    :updated_at,
+    :completed_at,
+    :order_id,
+    :user_id,
+    :marketer_id,
+    :maid_id,
+    :required_maid_nationality_id,
+    :required_maid_religion_id,
+    :required_maid_job_title_id,
+    :required_maid_notes,
+    :contract_date,
+    :visa_number,
+    :msaned_number,
+    :authorization_num,
+    :contract_border_num,
+    :contract_cost,
+    :contract_tex,
+    :contract_visa_type,
+    :contract_visa_date,
+    :contract_late_cost,
+    :contract_holiday_day,
+    :throwback_reason,
+    :throwback_date,
+    :musand_date
+)
+ON DUPLICATE KEY UPDATE
+    status = VALUES(status),
+    warranty_status = VALUES(warranty_status),
+    signature = VALUES(signature),
+    warranty_start_date = VALUES(warranty_start_date),
+    warranty_end_date = VALUES(warranty_end_date),
+    created_at = VALUES(created_at),
+    updated_at = VALUES(updated_at),
+    completed_at = VALUES(completed_at),
+    order_id = VALUES(order_id),
+    user_id = VALUES(user_id),
+    marketer_id = VALUES(marketer_id),
+    maid_id = VALUES(maid_id),
+    required_maid_nationality_id = VALUES(required_maid_nationality_id),
+    required_maid_religion_id = VALUES(required_maid_religion_id),
+    required_maid_job_title_id = VALUES(required_maid_job_title_id),
+    required_maid_notes = VALUES(required_maid_notes),
+    contract_date = VALUES(contract_date),
+    visa_number = VALUES(visa_number),
+    msaned_number = VALUES(msaned_number),
+    authorization_num = VALUES(authorization_num),
+    contract_border_num = VALUES(contract_border_num),
+    contract_cost = VALUES(contract_cost),
+    contract_tex = VALUES(contract_tex),
+    contract_visa_type = VALUES(contract_visa_type),
+    contract_visa_date = VALUES(contract_visa_date),
+    contract_late_cost = VALUES(contract_late_cost),
+    contract_holiday_day = VALUES(contract_holiday_day),
+    throwback_reason = VALUES(throwback_reason),
+    throwback_date = VALUES(throwback_date),
+    musand_date = VALUES(musand_date)
+SQL;
+
+    $insertStmt = $newDb->prepare($insertSql);
+
+    $newDb->beginTransaction();
+
+    $processed = 0;
+    $inserted = 0;
+    $updated = 0;
+    $unchanged = 0;
+    $skipped = 0;
+
+    foreach ($contracts as $row) {
+        $processed++;
+
+        $contractId = isset($row['id']) ? (int)$row['id'] : 0;
+        if ($contractId <= 0) {
+            $skipped++;
+            continue;
+        }
+
+        try {
+            $params = [
+                ':id' => $contractId,
+                ':status' => 'shelter',
+                ':warranty_status' => 'not_applicable',
+                ':signature' => normalizeContractValue($row['attatches'] ?? null),
+                ':warranty_start_date' => normalizeContractDateTime($row['covered_guarantee_date'] ?? null),
+                ':warranty_end_date' => normalizeContractDateTime($row['expired_date'] ?? null),
+                ':created_at' => normalizeContractDateTime($row['created_at'] ?? null),
+                ':updated_at' => normalizeContractDateTime($row['updated_at'] ?? null),
+                ':completed_at' => normalizeContractDateTime($row['throwback_date'] ?? null),
+                ':order_id' => normalizeContractInt($row['resv_id'] ?? null),
+                ':user_id' => 1673,
+                ':marketer_id' => normalizeContractInt($row['driver_id'] ?? null),
+                ':maid_id' => null,
+                ':required_maid_nationality_id' => null,
+                ':required_maid_religion_id' => null,
+                ':required_maid_job_title_id' => null,
+                ':required_maid_notes' => normalizeContractValue($row['throwback_reason'] ?? null),
+                ':contract_date' => normalizeContractDate($row['date_contract'] ?? null),
+                ':visa_number' => normalizeContractValue($row['contract_visa_num'] ?? null),
+                ':msaned_number' => normalizeContractValue($row['musand_num'] ?? null),
+                ':authorization_num' => normalizeContractValue($row['authorization_num'] ?? null),
+                ':contract_border_num' => normalizeContractValue($row['contract_border_num'] ?? null),
+                ':contract_cost' => normalizeContractFloat($row['contract_cost'] ?? null),
+                ':contract_tex' => normalizeContractFloat($row['contract_tex'] ?? null),
+                ':contract_visa_type' => normalizeContractValue($row['contract_visa_type'] ?? null),
+                ':contract_visa_date' => normalizeContractDate($row['contract_visa_date'] ?? null),
+                ':contract_late_cost' => normalizeContractValue($row['contract_late_cost'] ?? null),
+                ':contract_holiday_day' => normalizeContractValue($row['contract_holiday_day'] ?? null),
+                ':throwback_reason' => normalizeContractValue($row['throwback_reason'] ?? null),
+                ':throwback_date' => normalizeContractDate($row['throwback_date'] ?? null),
+                ':musand_date' => normalizeContractDate($row['musand_date'] ?? null)
+            ];
+
+            $insertStmt->execute($params);
+            $affected = $insertStmt->rowCount();
+
+            if ($affected === 1) {
+                $inserted++;
+            } elseif ($affected === 2) {
+                $updated++;
+            } else {
+                $unchanged++;
+            }
+        } catch (Exception $e) {
+            $skipped++;
+            error_log('خطأ في نقل العقد #' . $contractId . ': ' . $e->getMessage());
+        }
+    }
+
+    $newDb->commit();
+
+    return [
+        'success' => true,
+        'message' => 'تم نقل العقود بنجاح',
+        'processed' => $processed,
+        'inserted' => $inserted,
+        'updated' => $updated,
+        'unchanged' => $unchanged,
+        'skipped' => $skipped
+    ];
+}
+
+
+function getContractsSummary() {
+    try {
+        $db = get_db_connection();
+        $contracts = $db->query('SELECT COUNT(*) AS total FROM contracts')->fetch(PDO::FETCH_ASSOC);
+        $infos = $db->query('SELECT COUNT(*) AS total FROM contract_infos')->fetch(PDO::FETCH_ASSOC);
+
+        return [
+            'success' => true,
+            'contracts' => (int)($contracts['total'] ?? 0),
+            'contract_infos' => (int)($infos['total'] ?? 0),
+            'message' => 'تم جلب إحصائيات العقود'
+        ];
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في جلب الإحصائيات: ' . $e->getMessage()
+        ];
+    }
+}
+
+function normalizeContractValue($value) {
+    if ($value === null) {
+        return null;
+    }
+
+    if (is_string($value)) {
+        $trimmed = trim($value);
+        if ($trimmed === '' || strtoupper($trimmed) === 'NULL') {
+            return null;
+        }
+        return $trimmed;
+    }
+
+    if (is_numeric($value)) {
+        return (string)$value;
+    }
+
+    return null;
+}
+
+function normalizeContractInt($value) {
+    $normalized = normalizeContractValue($value);
+    if ($normalized === null) {
+        return null;
+    }
+
+    $intValue = (int)$normalized;
+    return $intValue > 0 ? $intValue : null;
+}
+
+function normalizeContractFloat($value) {
+    $normalized = normalizeContractValue($value);
+    if ($normalized === null) {
+        return null;
+    }
+
+    if (is_string($normalized)) {
+        $normalized = str_replace(',', '', $normalized);
+    }
+
+    return is_numeric($normalized) ? (float)$normalized : null;
+}
+
+function normalizeContractDateTime($value) {
+    $normalized = normalizeContractValue($value);
+    if ($normalized === null) {
+        return null;
+    }
+
+    return parseDateValue($normalized);
+}
+
+function normalizeContractDate($value) {
+    $dateTime = normalizeContractDateTime($value);
+    return $dateTime ? substr($dateTime, 0, 10) : null;
+}
+
+
+function migrateAccommodationTypes() {
+    $oldHost = $_POST['old_db_host'] ?? '127.0.0.1';
+    $oldPort = $_POST['old_db_port'] ?? 8889;
+    $oldDbName = $_POST['old_db_name'] ?? 'platinum';
+    $oldUser = $_POST['old_db_user'] ?? 'root';
+    $oldPass = $_POST['old_db_pass'] ?? 'root';
+
+    try {
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة الجديدة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $oldDsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $oldHost, $oldPort, $oldDbName);
+        $oldDb = new PDO($oldDsn, $oldUser, $oldPass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4'
+        ]);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة القديمة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $createSql = "CREATE TABLE IF NOT EXISTS accommodation_types (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            name VARCHAR(255) NOT NULL,
+            created_at TIMESTAMP NULL DEFAULT NULL,
+            updated_at TIMESTAMP NULL DEFAULT NULL,
+            PRIMARY KEY (id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+        $newDb->exec($createSql);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل في تجهيز جدول accommodation_types: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $rows = $oldDb->query('SELECT id, name, created_at, updated_at FROM accommodation_types ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'لم يتمكن من قراءة جدول accommodation_types من القاعدة القديمة: ' . $e->getMessage()
+        ];
+    }
+
+    if (empty($rows)) {
+        return [
+            'success' => true,
+            'message' => 'لا توجد بيانات في جدول accommodation_types في القاعدة القديمة',
+            'processed' => 0,
+            'inserted' => 0,
+            'updated' => 0,
+            'unchanged' => 0,
+            'skipped' => 0
+        ];
+    }
+
+    $insertSql = "INSERT INTO accommodation_types (id, name, created_at, updated_at)
+                  VALUES (:id, :name, :created_at, :updated_at)
+                  ON DUPLICATE KEY UPDATE
+                      name = VALUES(name),
+                      updated_at = VALUES(updated_at)";
+
+    $stmt = $newDb->prepare($insertSql);
+    $newDb->beginTransaction();
+
+    $processed = 0;
+    $inserted = 0;
+    $updated = 0;
+    $unchanged = 0;
+    $skipped = 0;
+
+    foreach ($rows as $row) {
+        $processed++;
+        $id = isset($row['id']) ? (int)$row['id'] : 0;
+        if ($id <= 0) {
+            $skipped++;
+            continue;
+        }
+
+        $params = [
+            ':id' => $id,
+            ':name' => trim((string)($row['name'] ?? '')),
+            ':created_at' => parseDateValue($row['created_at'] ?? null),
+            ':updated_at' => parseDateValue($row['updated_at'] ?? null)
+        ];
+
+        if ($params[':name'] === '') {
+            $skipped++;
+            continue;
+        }
+
+        try {
+            $stmt->execute($params);
+            $affected = $stmt->rowCount();
+            if ($affected === 1) {
+                $inserted++;
+            } elseif ($affected === 2) {
+                $updated++;
+            } else {
+                $unchanged++;
+            }
+        } catch (Exception $e) {
+            $skipped++;
+            error_log('خطأ في نقل accommodation_type #' . $id . ': ' . $e->getMessage());
+        }
+    }
+
+    $newDb->commit();
+
+    return [
+        'success' => true,
+        'message' => 'تم نقل أنواع الإيواء بنجاح',
+        'processed' => $processed,
+        'inserted' => $inserted,
+        'updated' => $updated,
+        'unchanged' => $unchanged,
+        'skipped' => $skipped
+    ];
+}
+
+function getAccommodationTypesSummary() {
+    try {
+        $db = get_db_connection();
+        $total = $db->query('SELECT COUNT(*) AS total FROM accommodation_types')->fetch(PDO::FETCH_ASSOC);
+        return [
+            'success' => true,
+            'types' => (int)($total['total'] ?? 0),
+            'message' => 'تم جلب إحصائيات أنواع الإيواء'
+        ];
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في جلب إحصائيات أنواع الإيواء: ' . $e->getMessage()
+        ];
+    }
+}
+
+function migrateAirports() {
+    $oldHost = $_POST['old_db_host'] ?? '127.0.0.1';
+    $oldPort = $_POST['old_db_port'] ?? 8889;
+    $oldDbName = $_POST['old_db_name'] ?? 'platinum';
+    $oldUser = $_POST['old_db_user'] ?? 'root';
+    $oldPass = $_POST['old_db_pass'] ?? 'root';
+
+    try {
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة الجديدة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $oldDsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $oldHost, $oldPort, $oldDbName);
+        $oldDb = new PDO($oldDsn, $oldUser, $oldPass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4'
+        ]);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة القديمة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $createSql = "CREATE TABLE IF NOT EXISTS airports (\n            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,\n            name VARCHAR(255) NOT NULL,\n            country_id BIGINT UNSIGNED NOT NULL,\n            city_id BIGINT UNSIGNED NOT NULL,\n            created_at TIMESTAMP NULL DEFAULT NULL,\n            updated_at TIMESTAMP NULL DEFAULT NULL,\n            PRIMARY KEY (id)\n        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+        $newDb->exec($createSql);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل في تجهيز جدول airports: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $rows = $oldDb->query('SELECT id, name, country_id, city_id, created_at, updated_at FROM airports ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'لم يتمكن من قراءة جدول airports من القاعدة القديمة: ' . $e->getMessage()
+        ];
+    }
+
+    if (empty($rows)) {
+        return [
+            'success' => true,
+            'message' => 'لا توجد بيانات في جدول airports في القاعدة القديمة',
+            'processed' => 0,
+            'inserted' => 0,
+            'updated' => 0,
+            'unchanged' => 0,
+            'skipped' => 0
+        ];
+    }
+
+    $insertSql = "INSERT INTO airports (id, name, country_id, city_id, created_at, updated_at)\n                  VALUES (:id, :name, :country_id, :city_id, :created_at, :updated_at)\n                  ON DUPLICATE KEY UPDATE\n                      name = VALUES(name),\n                      country_id = VALUES(country_id),\n                      city_id = VALUES(city_id),\n                      updated_at = VALUES(updated_at)";
+
+    $stmt = $newDb->prepare($insertSql);
+
+    $processed = 0;
+    $inserted = 0;
+    $updated = 0;
+    $unchanged = 0;
+    $skipped = 0;
+
+    try {
+        $newDb->beginTransaction();
+
+        foreach ($rows as $row) {
+            $processed++;
+
+            $id = isset($row['id']) ? (int)$row['id'] : 0;
+            $countryId = isset($row['country_id']) ? (int)$row['country_id'] : 0;
+            $cityId = isset($row['city_id']) ? (int)$row['city_id'] : 0;
+            $name = trim((string)($row['name'] ?? ''));
+
+            if ($id <= 0 || $countryId <= 0 || $cityId <= 0 || $name === '') {
+                $skipped++;
+                continue;
+            }
+
+            $params = [
+                ':id' => $id,
+                ':name' => $name,
+                ':country_id' => $countryId,
+                ':city_id' => $cityId,
+                ':created_at' => parseDateValue($row['created_at'] ?? null),
+                ':updated_at' => parseDateValue($row['updated_at'] ?? null)
+            ];
+
+            try {
+                $stmt->execute($params);
+                $affected = $stmt->rowCount();
+                if ($affected === 1) {
+                    $inserted++;
+                } elseif ($affected === 2) {
+                    $updated++;
+                } else {
+                    $unchanged++;
+                }
+            } catch (Exception $e) {
+                $skipped++;
+                error_log('خطأ في نقل airport #' . $id . ': ' . $e->getMessage());
+            }
+        }
+
+        $newDb->commit();
+    } catch (Exception $e) {
+        if ($newDb->inTransaction()) {
+            $newDb->rollBack();
+        }
+        return [
+            'success' => false,
+            'message' => 'فشل أثناء نقل المطارات: ' . $e->getMessage()
+        ];
+    }
+
+    return [
+        'success' => true,
+        'message' => 'تم نقل المطارات بنجاح',
+        'processed' => $processed,
+        'inserted' => $inserted,
+        'updated' => $updated,
+        'unchanged' => $unchanged,
+        'skipped' => $skipped
+    ];
+}
+
+function getAirportsSummary() {
+    try {
+        $db = get_db_connection();
+        $total = $db->query('SELECT COUNT(*) AS total FROM airports')->fetch(PDO::FETCH_ASSOC);
+        return [
+            'success' => true,
+            'total' => (int)($total['total'] ?? 0),
+            'airports' => (int)($total['total'] ?? 0),
+            'message' => 'تم جلب إحصائيات المطارات'
+        ];
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في جلب إحصائيات المطارات: ' . $e->getMessage()
+        ];
+    }
+}
+
+function migrateContractLogs() {
+    $oldHost = $_POST['old_db_host'] ?? '127.0.0.1';
+    $oldPort = $_POST['old_db_port'] ?? 8889;
+    $oldDbName = $_POST['old_db_name'] ?? 'platinum_old';
+    $oldUser = $_POST['old_db_user'] ?? 'root';
+    $oldPass = $_POST['old_db_pass'] ?? 'root';
+
+    try {
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة الجديدة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $oldDsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $oldHost, $oldPort, $oldDbName);
+        $oldDb = new PDO($oldDsn, $oldUser, $oldPass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4'
+        ]);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة القديمة: ' . $e->getMessage()
+        ];
+    }
+
+    $statusMap = [
+        '1' => 'new',
+        '2' => 'approval',
+        '3' => 'msaned',
+        '4' => 'tafwed',
+        '5' => 'taffez',
+        '6' => 'tazker',
+        '7' => 'completed',
+        '8' => 'return'
+    ];
+
+    try {
+        $rows = $oldDb->query('SELECT id, contract_id, user_id, status, note, date, created_at, updated_at FROM contract_logs ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'لم يتمكن من قراءة جدول العقد القديم: ' . $e->getMessage()
+        ];
+    }
+
+    if (empty($rows)) {
+        return [
+            'success' => true,
+            'message' => 'لا توجد بيانات في جدول contract_logs في القاعدة القديمة',
+            'processed' => 0,
+            'inserted' => 0,
+            'updated' => 0,
+            'unchanged' => 0,
+            'skipped' => 0
+        ];
+    }
+
+    $insertSql = "INSERT INTO contract_status_logs (id, contract_id, user_id, status, notes, date, created_at, updated_at)
+                  VALUES (:id, :contract_id, :user_id, :status, :notes, :date, :created_at, :updated_at)
+                  ON DUPLICATE KEY UPDATE
+                      contract_id = VALUES(contract_id),
+                      user_id = VALUES(user_id),
+                      status = VALUES(status),
+                      notes = VALUES(notes),
+                      date = VALUES(date),
+                      created_at = VALUES(created_at),
+                      updated_at = VALUES(updated_at)";
+
+    $stmt = $newDb->prepare($insertSql);
+
+    $processed = 0;
+    $inserted = 0;
+    $updated = 0;
+    $unchanged = 0;
+    $skipped = 0;
+
+    try {
+        $newDb->beginTransaction();
+
+        foreach ($rows as $row) {
+            $processed++;
+
+            $id = isset($row['id']) ? (int)$row['id'] : 0;
+            $contractId = isset($row['contract_id']) ? (int)$row['contract_id'] : 0;
+            $userId = isset($row['user_id']) ? (int)$row['user_id'] : 0;
+            $rawStatus = isset($row['status']) ? (string)$row['status'] : '';
+            $status = $statusMap[$rawStatus] ?? 'unknown';
+            $notes = trim((string)($row['note'] ?? ''));
+            $dateValue = $row['date'] ?? null;
+            $date = parseDateValue($dateValue);
+            $date = $date ? substr($date, 0, 10) : null;
+            $createdAt = parseDateValue($row['created_at'] ?? null);
+            $updatedAt = parseDateValue($row['updated_at'] ?? null);
+
+            if ($id <= 0 || $contractId <= 0 || $userId <= 0 || !$date) {
+                $skipped++;
+                continue;
+            }
+
+            $params = [
+                ':id' => $id,
+                ':contract_id' => $contractId,
+                ':user_id' => $userId,
+                ':status' => $status,
+                ':notes' => $notes !== '' ? $notes : null,
+                ':date' => $date,
+                ':created_at' => $createdAt,
+                ':updated_at' => $updatedAt
+            ];
+
+            try {
+                $stmt->execute($params);
+                $affected = $stmt->rowCount();
+                if ($affected === 1) {
+                    $inserted++;
+                } elseif ($affected === 2) {
+                    $updated++;
+                } else {
+                    $unchanged++;
+                }
+            } catch (Exception $e) {
+                $skipped++;
+                error_log('خطأ في نقل contract_log #' . $id . ': ' . $e->getMessage());
+            }
+        }
+
+        $newDb->commit();
+    } catch (Exception $e) {
+        if ($newDb->inTransaction()) {
+            $newDb->rollBack();
+        }
+        return [
+            'success' => false,
+            'message' => 'فشل أثناء نقل سجلات العقود: ' . $e->getMessage()
+        ];
+    }
+
+    return [
+        'success' => true,
+        'message' => 'تم نقل سجلات العقود بنجاح',
+        'processed' => $processed,
+        'inserted' => $inserted,
+        'updated' => $updated,
+        'unchanged' => $unchanged,
+        'skipped' => $skipped
+    ];
+}
+
+function migrateActivityLogs() {
+    $oldHost = $_POST['old_db_host'] ?? '127.0.0.1';
+    $oldPort = $_POST['old_db_port'] ?? 8889;
+    $oldDbName = $_POST['old_db_name'] ?? 'platinum_old';
+    $oldUser = $_POST['old_db_user'] ?? 'root';
+    $oldPass = $_POST['old_db_pass'] ?? 'root';
+
+    try {
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة الجديدة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $oldDsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $oldHost, $oldPort, $oldDbName);
+        $oldDb = new PDO($oldDsn, $oldUser, $oldPass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4'
+        ]);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة القديمة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $rows = $oldDb->query('SELECT id, log_name, description, subject_id, subject_type, causer_id, causer_type, properties, created_at, updated_at FROM activity_log ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'لم يتمكن من قراءة جدول النشاط القديم: ' . $e->getMessage()
+        ];
+    }
+
+    if (empty($rows)) {
+        return [
+            'success' => true,
+            'message' => 'لا توجد بيانات في جدول activity_log في القاعدة القديمة',
+            'processed' => 0,
+            'inserted' => 0,
+            'updated' => 0,
+            'unchanged' => 0,
+            'skipped' => 0
+        ];
+    }
+
+    $insertSql = "INSERT INTO activity_log (id, log_name, description, subject_id, subject_type, causer_id, causer_type, properties, event, batch_uuid, created_at, updated_at)
+                  VALUES (:id, :log_name, :description, :subject_id, :subject_type, :causer_id, :causer_type, :properties, :event, :batch_uuid, :created_at, :updated_at)
+                  ON DUPLICATE KEY UPDATE
+                      log_name = VALUES(log_name),
+                      description = VALUES(description),
+                      subject_id = VALUES(subject_id),
+                      subject_type = VALUES(subject_type),
+                      causer_id = VALUES(causer_id),
+                      causer_type = VALUES(causer_type),
+                      properties = VALUES(properties),
+                      event = VALUES(event),
+                      batch_uuid = VALUES(batch_uuid),
+                      created_at = VALUES(created_at),
+                      updated_at = VALUES(updated_at)";
+
+    $stmt = $newDb->prepare($insertSql);
+
+    $processed = 0;
+    $inserted = 0;
+    $updated = 0;
+    $unchanged = 0;
+    $skipped = 0;
+
+    try {
+        $newDb->beginTransaction();
+
+        foreach ($rows as $row) {
+            $processed++;
+
+            $id = isset($row['id']) ? (int)$row['id'] : 0;
+            if ($id <= 0) {
+                $skipped++;
+                continue;
+            }
+
+            $params = [
+                ':id' => $id,
+                ':log_name' => normalizeContractValue($row['log_name'] ?? null),
+                ':description' => normalizeContractValue($row['description'] ?? null),
+                ':subject_id' => normalizeContractInt($row['subject_id'] ?? null),
+                ':subject_type' => normalizeContractValue($row['subject_type'] ?? null),
+                ':causer_id' => normalizeContractInt($row['causer_id'] ?? null),
+                ':causer_type' => normalizeContractValue($row['causer_type'] ?? null),
+                ':properties' => $row['properties'] ?? null,
+                ':event' => 'created',
+                ':batch_uuid' => null,
+                ':created_at' => normalizeContractDateTime($row['created_at'] ?? null),
+                ':updated_at' => normalizeContractDateTime($row['updated_at'] ?? null)
+            ];
+
+            try {
+                $stmt->execute($params);
+                $affected = $stmt->rowCount();
+                if ($affected === 1) {
+                    $inserted++;
+                } elseif ($affected === 2) {
+                    $updated++;
+                } else {
+                    $unchanged++;
+                }
+            } catch (Exception $e) {
+                $skipped++;
+                error_log('خطأ في نقل activity_log #' . $id . ': ' . $e->getMessage());
+            }
+        }
+
+        $newDb->commit();
+    } catch (Exception $e) {
+        if ($newDb->inTransaction()) {
+            $newDb->rollBack();
+        }
+        return [
+            'success' => false,
+            'message' => 'فشل أثناء نقل سجلات النشاط: ' . $e->getMessage()
+        ];
+    }
+
+    return [
+        'success' => true,
+        'message' => 'تم نقل سجلات النشاط بنجاح',
+        'processed' => $processed,
+        'inserted' => $inserted,
+        'updated' => $updated,
+        'unchanged' => $unchanged,
+        'skipped' => $skipped
+    ];
+}
+
+function migrateMessages() {
+    $oldHost = $_POST['old_db_host'] ?? '127.0.0.1';
+    $oldPort = $_POST['old_db_port'] ?? 8889;
+    $oldDbName = $_POST['old_db_name'] ?? 'platinum_old';
+    $oldUser = $_POST['old_db_user'] ?? 'root';
+    $oldPass = $_POST['old_db_pass'] ?? 'root';
+
+    try {
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة الجديدة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $oldDsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $oldHost, $oldPort, $oldDbName);
+        $oldDb = new PDO($oldDsn, $oldUser, $oldPass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4'
+        ]);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بالقاعدة القديمة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $rows = $oldDb->query('SELECT id, conversation_id, user_id, from_user, message, files, created_at, updated_at FROM messages ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'لم يتمكن من قراءة جدول الرسائل في القاعدة القديمة: ' . $e->getMessage()
+        ];
+    }
+
+    if (empty($rows)) {
+        return [
+            'success' => true,
+            'message' => 'لا توجد رسائل لنقلها',
+            'processed' => 0,
+            'inserted' => 0,
+            'updated' => 0,
+            'unchanged' => 0,
+            'skipped' => 0
+        ];
+    }
+
+    $insertSql = "INSERT INTO messages (id, conversation_id, user_id, from_user, message, files, created_at, updated_at)
+                  VALUES (:id, :conversation_id, :user_id, :from_user, :message, :files, :created_at, :updated_at)
+                  ON DUPLICATE KEY UPDATE
+                      conversation_id = VALUES(conversation_id),
+                      user_id = VALUES(user_id),
+                      from_user = VALUES(from_user),
+                      message = VALUES(message),
+                      files = VALUES(files),
+                      created_at = VALUES(created_at),
+                      updated_at = VALUES(updated_at)";
+
+    $stmt = $newDb->prepare($insertSql);
+
+    $processed = 0;
+    $inserted = 0;
+    $updated = 0;
+    $unchanged = 0;
+    $skipped = 0;
+
+    try {
+        $newDb->beginTransaction();
+
+        foreach ($rows as $row) {
+            $processed++;
+
+            $id = isset($row['id']) ? (int)$row['id'] : 0;
+            if ($id <= 0) {
+                $skipped++;
+                continue;
+            }
+
+            $params = [
+                ':id' => $id,
+                ':conversation_id' => normalizeContractInt($row['conversation_id'] ?? null),
+                ':user_id' => normalizeContractInt($row['user_id'] ?? null),
+                ':from_user' => normalizeContractValue($row['from_user'] ?? null),
+                ':message' => $row['message'] ?? null,
+                ':files' => $row['files'] ?? null,
+                ':created_at' => normalizeContractDateTime($row['created_at'] ?? null),
+                ':updated_at' => normalizeContractDateTime($row['updated_at'] ?? null)
+            ];
+
+            try {
+                $stmt->execute($params);
+                $affected = $stmt->rowCount();
+                if ($affected === 1) {
+                    $inserted++;
+                } elseif ($affected === 2) {
+                    $updated++;
+                } else {
+                    $unchanged++;
+                }
+            } catch (Exception $e) {
+                $skipped++;
+                error_log('خطأ في نقل message #' . $id . ': ' . $e->getMessage());
+            }
+        }
+
+        $newDb->commit();
+    } catch (Exception $e) {
+        if ($newDb->inTransaction()) {
+            $newDb->rollBack();
+        }
+        return [
+            'success' => false,
+            'message' => 'فشل أثناء نقل الرسائل: ' . $e->getMessage()
+        ];
+    }
+
+    return [
+        'success' => true,
+        'message' => 'تم نقل الرسائل بنجاح',
+        'processed' => $processed,
+        'inserted' => $inserted,
+        'updated' => $updated,
+        'unchanged' => $unchanged,
+        'skipped' => $skipped
+    ];
+}
+
+function getMessagesSummary() {
+    try {
+        $db = get_db_connection();
+        $total = $db->query('SELECT COUNT(*) AS total FROM messages')->fetch(PDO::FETCH_ASSOC);
+        return [
+            'success' => true,
+            'total' => (int)($total['total'] ?? 0),
+            'messages' => (int)($total['total'] ?? 0),
+            'message' => 'تم جلب إحصائيات الرسائل'
+        ];
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في جلب إحصائيات الرسائل: ' . $e->getMessage()
+        ];
+    }
+}
+
+
+function getActivityLogsSummary() {
+    try {
+        $db = get_db_connection();
+        $total = $db->query('SELECT COUNT(*) AS total FROM activity_log')->fetch(PDO::FETCH_ASSOC);
+        return [
+            'success' => true,
+            'total' => (int)($total['total'] ?? 0),
+            'activity_logs' => (int)($total['total'] ?? 0),
+            'message' => 'تم جلب إحصائيات سجلات النشاط'
+        ];
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في جلب إحصائيات سجلات النشاط: ' . $e->getMessage()
+        ];
+    }
+}
+
+
+function getContractLogsSummary() {
+    try {
+        $db = get_db_connection();
+        $total = $db->query('SELECT COUNT(*) AS total FROM contract_status_logs')->fetch(PDO::FETCH_ASSOC);
+        return [
+            'success' => true,
+            'total' => (int)($total['total'] ?? 0),
+            'contract_logs' => (int)($total['total'] ?? 0),
+            'message' => 'تم جلب إحصائيات سجلات العقود'
+        ];
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في جلب إحصائيات سجلات العقود: ' . $e->getMessage()
+        ];
+    }
+}
+
 ?>
+

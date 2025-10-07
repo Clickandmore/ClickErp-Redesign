@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Models\ingaz\User as objModel;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
+use Spatie\Activitylog\Models\Activity;
+use App\Keys;
 
 class UserController extends Controller
 {
@@ -185,7 +187,8 @@ class UserController extends Controller
             abort(403, 'ليس لديك صلاحية لعرض تفاصيل العميل');
         }
 
-        $client = objModel::findOrFail($id);
+        // Mahmoud Amer's code (Used eager loading)
+        $client = objModel::with(['activities','messages','complaints', 'orders'])->findOrFail($id);
 
         // جلب طلبات نقل الكفالة للعميل
         $sponsorshipTransfers = \App\Models\SponsorshipTransfer::with([
@@ -199,6 +202,15 @@ class UserController extends Controller
             $query->where('old_sponsor_id', $client->id)
                   ->orWhere('new_sponsor_id', $client->id);
         })->orderBy('created_at', 'desc')->get();
+
+        // Mahmoud Amer's code
+        // logger()->info('Show Data from DB', [
+        //     'client' => $client ?? 'null',
+        //     'activity_logs' => $client->activities ?? 'null',
+        //     'messages' => $client->messages ?? 'null',
+        //     'complaints' => $client->complaints ?? 'null',
+        //     'orders' => $client->orders ?? 'null',
+        // ]);
         return view($this->folderPath . '.show', compact('client', 'sponsorshipTransfers'));
     }
 
