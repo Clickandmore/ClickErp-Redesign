@@ -3,7 +3,7 @@
         <p class=" text-muted d-flex align-items-center gap-1">
             {{ __('auth.All Rights Reserved.') }}
             <a href="#" target="_blank" title="Assus" class="namiFotter">
-                 اسس الإنجاز للاستقدام
+                 بلاتنيوم الشرقية للاستقدام
             </a>
             © 2024
             ❤️

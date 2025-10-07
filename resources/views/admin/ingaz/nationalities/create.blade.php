@@ -46,6 +46,23 @@
         </div>
     @endforeach
 
+    @foreach (config('translatable.locales') as $locale)
+        <div class="col-6">
+            <label class="form-label">
+                {{ helperTrans('ingaz.description') }}
+                ({{ helperTrans('ingaz.'.$locale) }})
+            </label>
+            <textarea name="description:{{ $locale }}" class="form-control" rows="4" placeholder="{{ helperTrans('ingaz.description') }}">{{ old('description:'.$locale) }}</textarea>
+        </div>
+    @endforeach
+
+    <div class="col-12">
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="is_show" name="is_show" value="1" {{ old('is_show', 1) ? 'checked' : '' }}>
+            <label class="form-check-label" for="is_show">{{ helperTrans('ingaz.show_on_home') }}</label>
+        </div>
+    </div>
+
     <div class="col-12 modal-footer">
         <button class="btn btn-primary" type="submit">{{__("buttons.save")}}</button>
         <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">{{__("buttons.close")}}</button>

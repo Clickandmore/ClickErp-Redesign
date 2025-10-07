@@ -34,10 +34,12 @@ class NationalityRequest extends MainRequest
             'service_transportation_cost' => "nullable|numeric|min:0",
             'rental_cost' => "nullable|numeric|min:0",
             'monthly_salary' => "nullable|numeric|min:0",
+            'is_show' => 'nullable|in:0,1,on',
         ];
 
         foreach (config('translatable.locales') as $locale) {
             $rules["sub_title:$locale"] = ['required', Rule::unique('nationalities_translations', 'sub_title')->where('locale', $locale)->ignore($updateId, 'nationality_id')];
+            $rules["description:$locale"] = ['nullable', 'string'];
         }
 
         return $rules;

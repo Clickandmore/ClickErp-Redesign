@@ -201,7 +201,7 @@ $total_pages = ceil($total_mappings / $per_page);
                 </div>
             </div>
 
-            <div class="card-body p-0">
+            <div class="card-body">
                 <?php if (empty($mappings)): ?>
                     <div class="text-center py-5">
                         <i class="fas fa-search fa-3x text-muted mb-3"></i>

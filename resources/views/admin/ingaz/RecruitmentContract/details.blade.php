@@ -1,7 +1,5 @@
 @extends('admin.layout.indexs.index')
 @section("style")
-<link rel="stylesheet" href="{{asset(" admin")}}/assets/cssbundle/dataTables.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="{{asset("admin")}}/custom/status-badges.css">
 @endsection
 @section('page-title')
