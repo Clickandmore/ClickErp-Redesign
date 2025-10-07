@@ -34,34 +34,34 @@
                     <img src="{{ showFile($maid->image) }}" alt=""/>
                 </div>
                 <div class="mainInfo">
-                    <!-- sub -->
-                    <div class="sub">
-                        <h5 class="title">{{ __('ingaz.nationality') }}</h5>
-                        <p class="dis">{{ $maid->nationality->title ?? '' }}</p>
-                    </div>
-                    <!-- sub -->
-                    <div class="sub">
-                        <h5 class="title">{{ __('ingaz.job_title') }}</h5>
-                        <p class="dis">{{ $maid->jobTitles->first()->title ?? '' }}</p>
-                    </div>
-                    <!-- sub -->
-                    <div class="sub">
-                        <h5 class="title">{{ __('ingaz.religion') }} : </h5>
-                        <p class="dis">{{ $maid->religion->title ?? '' }}</p>
-                    </div>
-                    <!-- sub -->
-                    <div class="sub">
-                        <h5 class="title">{{ __('ingaz.age') }} :</h5>
-                        <p class="dis">{{ $maid->age ?? '' }} {{ __('ingaz.year') }}</p>
-                    </div>
-                    <!-- sub -->
-                    <div class="sub">
-                        <h5 class="title">{{ __('ingaz.experience') }} :</h5>
-                        <p class="dis">
-                            {{ $maid->experience_years != null && $maid->experience_years > 0 ? $maid->experience_years : '' }}
-                            {{ __('ingaz.year') }}</p>
-                    </div>
-                    <!-- sub -->
+{{--                    <!-- sub -->--}}
+{{--                    <div class="sub">--}}
+{{--                        <h5 class="title">{{ __('ingaz.nationality') }}</h5>--}}
+{{--                        <p class="dis">{{ $maid->nationality->title ?? '' }}</p>--}}
+{{--                    </div>--}}
+{{--                    <!-- sub -->--}}
+{{--                    <div class="sub">--}}
+{{--                        <h5 class="title">{{ __('ingaz.job_title') }}</h5>--}}
+{{--                        <p class="dis">{{ $maid->jobTitles->first()->title ?? '' }}</p>--}}
+{{--                    </div>--}}
+{{--                    <!-- sub -->--}}
+{{--                    <div class="sub">--}}
+{{--                        <h5 class="title">{{ __('ingaz.religion') }} : </h5>--}}
+{{--                        <p class="dis">{{ $maid->religion->title ?? '' }}</p>--}}
+{{--                    </div>--}}
+{{--                    <!-- sub -->--}}
+{{--                    <div class="sub">--}}
+{{--                        <h5 class="title">{{ __('ingaz.age') }} :</h5>--}}
+{{--                        <p class="dis">{{ $maid->age ?? '' }} {{ __('ingaz.year') }}</p>--}}
+{{--                    </div>--}}
+{{--                    <!-- sub -->--}}
+{{--                    <div class="sub">--}}
+{{--                        <h5 class="title">{{ __('ingaz.experience') }} :</h5>--}}
+{{--                        <p class="dis">--}}
+{{--                            {{ $maid->experience_years != null && $maid->experience_years > 0 ? $maid->experience_years : '' }}--}}
+{{--                            {{ __('ingaz.year') }}</p>--}}
+{{--                    </div>--}}
+{{--                    <!-- sub -->--}}
                     <div class="sub">
                         <h5 class="title">{{ __('ingaz.month_salary') }} :</h5>
                         <p class="dis">{{ $maid->salary ?? '' }} {{ __('ingaz.SAR') }}</p>
