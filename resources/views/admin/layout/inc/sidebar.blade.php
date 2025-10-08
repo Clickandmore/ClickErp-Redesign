@@ -380,6 +380,21 @@
                                 </a>
                             </li>
                         @endif
+                         @if (@AdminGuardHasPerm(\App\PermKeys::PACKAGES_VIEW))
+                            <li>
+                                <a class="m-link" href="{{ route('packages.index') }}">
+                                    <i class="fa fa-arrow-left"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.packages') }}</span>
+                                </a>
+                            </li>
+                        @endif
+                        <li>
+                            <a class="m-link {{ (in_array(Route::currentRouteName(), ['rent-contract-terms.index', 'rent-contract-terms.create', 'rent-contract-terms.edit'])) ? 'active' : '' }}"
+                                href="{{ route('rent-contract-terms.index') }}">
+                                <i class="fa fa-file-contract"></i>
+                                <span class="ms-2">بنود عقد الإيجار</span>
+                            </a>
+                        </li>
                     </ul>
                 </li>
 
@@ -612,13 +627,7 @@
                                     <span class="ms-2">بنود عقد نقل الكفالة</span>
                                 </a>
                             </li>
-                            <li>
-                                <a class="m-link {{ (in_array(Route::currentRouteName(), ['rent-contract-terms.index', 'rent-contract-terms.create', 'rent-contract-terms.edit'])) ? 'active' : '' }}"
-                                   href="{{ route('rent-contract-terms.index') }}">
-                                    <i class="fa fa-file-contract"></i>
-                                    <span class="ms-2">بنود عقد الإيجار</span>
-                                </a>
-                            </li>
+
                         </ul>
                     </li>
                 @endif
@@ -660,14 +669,7 @@
                                 </a>
                             </li>
                         @endif
-                        @if (@AdminGuardHasPerm(\App\PermKeys::PACKAGES_VIEW))
-                            <li>
-                                <a class="m-link" href="{{ route('packages.index') }}">
-                                    <i class="fa fa-arrow-left"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.packages') }}</span>
-                                </a>
-                            </li>
-                        @endif
+
 
                         @if (@AdminGuardHasPerm(\App\PermKeys::RELIGIONS_VIEW))
                             <li>
