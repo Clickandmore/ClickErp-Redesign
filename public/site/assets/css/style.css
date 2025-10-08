@@ -1392,7 +1392,7 @@ main .countries .country-card .country-content p {
   margin-bottom: 20px;
   transition: var(--transition);
   font-size: 0.95rem;
-=======
+}
 main .countries .country-card .country-content .country-description {
   color: #555;
   text-align: center;
