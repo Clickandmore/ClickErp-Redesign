@@ -38,34 +38,77 @@
         white-space: nowrap !important;
         /* padding-inline-start: 26px !important; */
     }
-    .table *{
+
+    .table * {
         text-align: start !important;
     }
-    table.dataTable thead>tr>th.sorting:before, table.dataTable thead>tr>th.sorting:after, table.dataTable thead>tr>th.sorting_asc:before, table.dataTable thead>tr>th.sorting_asc:after, table.dataTable thead>tr>th.sorting_desc:before, table.dataTable thead>tr>th.sorting_desc:after, table.dataTable thead>tr>th.sorting_asc_disabled:before, table.dataTable thead>tr>th.sorting_asc_disabled:after, table.dataTable thead>tr>th.sorting_desc_disabled:before, table.dataTable thead>tr>th.sorting_desc_disabled:after, table.dataTable thead>tr>td.sorting:before, table.dataTable thead>tr>td.sorting:after, table.dataTable thead>tr>td.sorting_asc:before, table.dataTable thead>tr>td.sorting_asc:after, table.dataTable thead>tr>td.sorting_desc:before, table.dataTable thead>tr>td.sorting_desc:after, table.dataTable thead>tr>td.sorting_asc_disabled:before, table.dataTable thead>tr>td.sorting_asc_disabled:after, table.dataTable thead>tr>td.sorting_desc_disabled:before, table.dataTable thead>tr>td.sorting_desc_disabled:after{
+
+    table.dataTable thead>tr>th.sorting:before,
+    table.dataTable thead>tr>th.sorting:after,
+    table.dataTable thead>tr>th.sorting_asc:before,
+    table.dataTable thead>tr>th.sorting_asc:after,
+    table.dataTable thead>tr>th.sorting_desc:before,
+    table.dataTable thead>tr>th.sorting_desc:after,
+    table.dataTable thead>tr>th.sorting_asc_disabled:before,
+    table.dataTable thead>tr>th.sorting_asc_disabled:after,
+    table.dataTable thead>tr>th.sorting_desc_disabled:before,
+    table.dataTable thead>tr>th.sorting_desc_disabled:after,
+    table.dataTable thead>tr>td.sorting:before,
+    table.dataTable thead>tr>td.sorting:after,
+    table.dataTable thead>tr>td.sorting_asc:before,
+    table.dataTable thead>tr>td.sorting_asc:after,
+    table.dataTable thead>tr>td.sorting_desc:before,
+    table.dataTable thead>tr>td.sorting_desc:after,
+    table.dataTable thead>tr>td.sorting_asc_disabled:before,
+    table.dataTable thead>tr>td.sorting_asc_disabled:after,
+    table.dataTable thead>tr>td.sorting_desc_disabled:before,
+    table.dataTable thead>tr>td.sorting_desc_disabled:after {
         right: unset !important;
         left: 10px;
     }
-    .table.dataTable.dtr-inline.collapsed>tbody>tr.even>td:first-child::before, .table.dataTable.dtr-inline.collapsed>tbody>tr.even>th:first-child::before, .table.dataTable.dtr-inline.collapsed>tbody>tr.odd>td:first-child::before, .table.dataTable.dtr-inline.collapsed>tbody>tr.odd>th:first-child::before{
+
+    .table.dataTable.dtr-inline.collapsed>tbody>tr.even>td:first-child::before,
+    .table.dataTable.dtr-inline.collapsed>tbody>tr.even>th:first-child::before,
+    .table.dataTable.dtr-inline.collapsed>tbody>tr.odd>td:first-child::before,
+    .table.dataTable.dtr-inline.collapsed>tbody>tr.odd>th:first-child::before {
         position: relative !important;
         display: inline-flex !important;
         align-items: center;
         justify-content: center;
         transform: unset !important;
-        
+
     }
-    .dropdown-menu.dropdown-menu-end{
-        right: 0 !important;
+
+    .dropdown-menu.dropdown-menu-end {
+        right: 50% !important;
         left: unset !important;
+        transform: translateX(50%) !important;
         top: 0 !important;
         position: absolute !important;
         z-index: 99999 !important;
+        min-width: 150px !important;
     }
-    tr.child.active-dropdown-row{
+
+    tr.child.active-dropdown-row {
         z-index: 99999999999999999999 !important;
         position: relative !important;
     }
-    tr.active-dropdown-row{
+
+    tr.active-dropdown-row {
         z-index: 99999999999999999999 !important;
         position: relative !important;
     }
+
+    @media only screen and (max-width: 1440px) {
+        .layout-1 .sidebar {
+            width: 300px;
+        }
+
+       
+    }
+     table {
+
+            box-shadow: none !important;
+            overflow: unset !important;
+        }
 </style>

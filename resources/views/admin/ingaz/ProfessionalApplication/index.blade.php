@@ -1,8 +1,6 @@
 @extends('admin.layout.indexs.index')
 @section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="{{asset("admin")}}/custom/admin-tables.css">
+    
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
         .instant-receipt-card {
@@ -167,7 +165,7 @@
                             {{helperTrans("ingaz.request_professional_labor")}}
                         </h6>
                     </div>
-                    <div class="card-body p-0">
+                    <div class="card-body">
                         <table id="shelterContractsTable" class="table table-hover align-middle mb-0"
                                style="width: 100%;">
                             <thead>
