@@ -28,11 +28,11 @@
                     </div>
                     <div class="col-4">
                         <label for="TextInput" class="form-label">الفيديو </label>
-                        <input type="file" data-default-file="" name="video" class="dropify" >
+                        <input type="file" data-default-file="" name="video" class="dropify">
                     </div>
                     <div class="col-12">
                         <label for="TextInput" class="form-label">رابط الفيديو </label>
-                        <input type="url"  name="video_link" class="form-control" required>
+                        <input type="url" name="video_link" class="form-control" required>
                     </div>
                     <!-- أنواع الوظائف -->
                     <div class="col-4">
@@ -41,7 +41,7 @@
                             <option value="">اختر نوع السيرة</option>
                             @foreach($types as $type)
                                 <option
-                                    value="{{$type->id}}" {{$type->title == 'استقدام' ? 'selected' : ''}}>{{$type->title}}</option>
+                                        value="{{$type->id}}" {{$type->title == 'استقدام' ? 'selected' : ''}}>{{$type->title}}</option>
                             @endforeach
                         </select>
                     </div>
@@ -151,11 +151,28 @@
                         <select name="religion_id" class="form-control">
                             @foreach($religions as $religion)
                                 <option
-                                    value="{{$religion->id}}" {{$religion->id == 4 ? 'selected' : ''}}>{{$religion->title}}</option>
+                                        value="{{$religion->id}}" {{$religion->id == 4 ? 'selected' : ''}}>{{$religion->title}}</option>
                             @endforeach
                         </select>
                     </div>
-
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.childrens_count")}}
+                        </label>
+                        <input type="number" name="childrens_count" class="form-control" min="1" step="1">
+                    </div>
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.duration")}}
+                        </label>
+                        <input type="text" name="duration" class="form-control">
+                    </div>
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.additional_notes")}}
+                        </label>
+                        <textarea type="text" name="additional_notes" class="form-control"></textarea>
+                    </div>
                     <div class="col-4">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.marital status")}} </label>
                         <select name="marital_status:ar" class="form-control" required>
@@ -194,7 +211,7 @@
                     <!-- المهارات -->
                     <div class="col-4">
                         <label for="skills" class="form-label">{{helperTrans("ingaz.skills")}} <small
-                                class="text-muted">(اختياري)</small></label>
+                                    class="text-muted">(اختياري)</small></label>
                         <select name="skills[]" class="form-control js-example-basic-multiple" multiple>
                             @foreach($skills as $skill)
                                 <option value="{{$skill->id}}">{{$skill->title}}</option>

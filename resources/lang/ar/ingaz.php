@@ -274,7 +274,7 @@
   'trial_work_info' => 'معلومات العمل التجريبي',
   'cost_info' => 'معلومات التكاليف',
   'contract_number' => 'رقم العقد',
-  'passport_number' => 'رقم جواز السفر',
+  'passport_number' => 'رقم جواز ',
   'sponsor_name' => 'اسم الكفيل',
   'sponsor_id' => 'رقم الهوية',
   'sponsor_phone' => 'رقم الجوال',
@@ -1460,4 +1460,12 @@
   'kenya_guidelines' => 'التوجيهات باللغة الكينية والتنزانية – السواحيلية',
   'kenya_instructions' => 'الإرشادات باللغة الكينية والتنزانية – السواحيلية',
   'religion_id ' => 'Religion id ',
+    'duration' => 'مدة التعاقد',
+    'religion' => 'الديانة',
+    'has_experience' => 'سبق لها العمل',
+    'no_experience' => 'لم يسبق لها العمل',
+    'no_additional_notes' => 'لا يوجد معلومات اضافية',
+    'job' => 'المهنة',
+    'experience_status' => 'الخبرة',
+
 );
