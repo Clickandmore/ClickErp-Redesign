@@ -37,7 +37,7 @@
                             <option value="">اختر نوع السيرة</option>
                             @foreach($types as $type)
                                 <option
-                                    value="{{$type->id}}" {{ in_array($type->id, $obj->jobTypes->pluck('id')->toArray()) ? 'selected' : '' }}>{{$type->title}}</option>
+                                        value="{{$type->id}}" {{ in_array($type->id, $obj->jobTypes->pluck('id')->toArray()) ? 'selected' : '' }}>{{$type->title}}</option>
                             @endforeach
                         </select>
                     </div>
@@ -53,7 +53,7 @@
                                         data-salary="{{$nationality->monthly_salary}}"
                                         data-service_transfer_cost="{{$nationality->service_transfer_cost}}"
                                         data-rental_cost="{{$nationality->rental_cost}}"
-                                    {{$obj->nationality_id == $nationality->id ? 'selected' : ''}}>
+                                        {{$obj->nationality_id == $nationality->id ? 'selected' : ''}}>
                                     {{$nationality->sub_title}}
                                 </option>
                             @endforeach
@@ -86,7 +86,7 @@
                                 class="form-control js-example-basic-multiple" multiple required>
                             @foreach($jobs as $job)
                                 <option
-                                    value="{{$job->id}}" {{ in_array($job->id, $obj->jobTitles->pluck('id')->toArray()) ? 'selected' : '' }}>{{$job->title}}</option>
+                                        value="{{$job->id}}" {{ in_array($job->id, $obj->jobTitles->pluck('id')->toArray()) ? 'selected' : '' }}>{{$job->title}}</option>
                             @endforeach
                         </select>
                     </div>
@@ -151,28 +151,47 @@
                         <select name="religion_id" class="form-control">
                             @foreach($religions as $religion)
                                 <option
-                                    value="{{$religion->id}}" {{$obj->religion_id == $religion->id ? 'selected' : ''}}>{{$religion->title}}</option>
+                                        value="{{$religion->id}}" {{$obj->religion_id == $religion->id ? 'selected' : ''}}>{{$religion->title}}</option>
                             @endforeach
                         </select>
                     </div>
-
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.childrens_count")}}
+                        </label>
+                        <input type="number" name="childrens_count" class="form-control" min="1" step="1"
+                               value="{{$obj->childrens_count}}">
+                    </div>
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.duration")}}
+                        </label>
+                        <input type="text" name="duration" class="form-control"
+                               value="{{$obj->duration}}">
+                    </div>
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.additional_notes")}}
+                        </label>
+                        <textarea type="text" name="additional_notes" class="form-control">{{$obj->additional_notes}}</textarea>
+                    </div>
                     <div class="col-4">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.marital status")}} </label>
                         <select name="marital_status:ar" class="form-control" required>
                             <option
-                                value="عازبة" {{(optional($obj->translate('ar'))->marital_status == 'عازبة') ? 'selected' : ''}}>
+                                    value="عازبة" {{(optional($obj->translate('ar'))->marital_status == 'عازبة') ? 'selected' : ''}}>
                                 عازبة
                             </option>
                             <option
-                                value="أعزب" {{(optional($obj->translate('ar'))->marital_status == 'أعزب') ? 'selected' : ''}}>
+                                    value="أعزب" {{(optional($obj->translate('ar'))->marital_status == 'أعزب') ? 'selected' : ''}}>
                                 أعزب
                             </option>
                             <option
-                                value="متزوجة" {{(optional($obj->translate('ar'))->marital_status == 'متزوجة') ? 'selected' : ''}}>
+                                    value="متزوجة" {{(optional($obj->translate('ar'))->marital_status == 'متزوجة') ? 'selected' : ''}}>
                                 متزوجة
                             </option>
                             <option
-                                value="متزوج" {{(optional($obj->translate('ar'))->marital_status == 'متزوج') ? 'selected' : ''}}>
+                                    value="متزوج" {{(optional($obj->translate('ar'))->marital_status == 'متزوج') ? 'selected' : ''}}>
                                 متزوج
                             </option>
                         </select>
@@ -208,7 +227,7 @@
                     <!-- المهارات -->
                     <div class="col-4">
                         <label for="skills" class="form-label">{{helperTrans("ingaz.skills")}} <small
-                                class="text-muted">(اختياري)</small></label>
+                                    class="text-muted">(اختياري)</small></label>
                         <select name="skills[]" class="form-control js-example-basic-multiple" multiple>
                             @foreach($skills as $skill)
                                 @php
@@ -222,7 +241,7 @@
                                     }
                                 @endphp
                                 <option
-                                    value="{{$skill->id}}" {{ in_array($skill->id, $maidSkills) ? 'selected' : '' }}>{{$skill->title}}</option>
+                                        value="{{$skill->id}}" {{ in_array($skill->id, $maidSkills) ? 'selected' : '' }}>{{$skill->title}}</option>
                             @endforeach
                         </select>
                     </div>
@@ -235,16 +254,73 @@
                         <select name="experience_status" id="experience_status" class="form-control" required>
                             <option value="">اختر حالة الخبرة</option>
                             <option
-                                value="has_experience" {{$obj->experience_status == 'has_experience' ? 'selected' : ''}}>
+                                    value="has_experience" {{$obj->experience_status == 'has_experience' ? 'selected' : ''}}>
                                 سبق لها العمل
                             </option>
                             <option
-                                value="no_experience" {{$obj->experience_status == 'no_experience' ? 'selected' : ''}}>
+                                    value="no_experience" {{$obj->experience_status == 'no_experience' ? 'selected' : ''}}>
                                 لم يسبق لها العمل
                             </option>
                         </select>
                     </div>
 
+                    <div class="col-4" id="experience_years_container"
+                         style="display: {{$obj->experience_status == 'has_experience' ? 'block' : 'none'}};">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.experience_years")}} <small class="text-muted">(مطلوب)</small>
+                        </label>
+                        <select name="experience_years" id="experience_years"
+                                class="form-control" {{$obj->experience_status == 'has_experience' ? 'required' : ''}}>
+                            <option value="">اختر سنوات الخبرة</option>
+                            @for($i = 1; $i <= 10; $i++)
+                                <option
+                                        value="{{$i}}" {{$obj->experience_years == $i ? 'selected' : ''}}>{{$i}} {{$i == 1 ? 'سنة' : 'سنوات'}}</option>
+                            @endfor
+                        </select>
+                    </div>
+
+                    <!-- اللغات والحالة الاجتماعية -->
+                    <div class="col-12">
+                        <label for="TextInput" class="form-label">{{helperTrans("ingaz.languages")}} <small
+                                    class="text-muted">(اختياري)</small></label>
+                        @php
+                            $langs = is_array($obj->languages)
+                                ? $obj->languages
+                                : (json_decode($obj->languages, true) ?? []);
+                            $percentages = is_array($obj->percentage)
+                                ? $obj->percentage
+                                : (json_decode($obj->percentage, true) ?? []);
+                        @endphp
+
+                        <div class="row">
+                            @foreach (['arabic'=>'اللغة العربية',
+                                       'english'=>'اللغة الإنجليزية',
+                                       'amharic'=>'اللغة الأمهرية',
+                                       'mother'=>'اللغة الأم'] as $key => $label)
+
+                                <div class="col-md-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input lang-check"
+                                               type="checkbox"
+                                               name="languages[{{ $key }}]"
+                                               id="{{ $key }}"
+                                               value="{{ $key }}"
+                                                {{ in_array($key, $langs) ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="{{ $key }}">{{ $label }}</label>
+                                    </div>
+
+                                    <div class="lang-extra mt-2"
+                                         style="{{ in_array($key,$langs) ? '' : 'display:none;' }}">
+                                        <input type="number" min="0" max="100"
+                                               class="form-control"
+                                               placeholder="النسبة %"
+                                               name="percentage[{{ $key }}]"
+                                               value="{{ $percentages[$key] ?? '' }}">
+                                    </div>
+                                </div>
+
+                            @endforeach
+                        </div>
                 </div>
                     <div class="col-12">
                         <label for="TextInput" class="form-label">رابط الفيديو <small class="text-muted">(اختياري)</small></label>
@@ -269,6 +345,7 @@
                                             class="form-control select2" data-exp-required="true">
                                         <option value="">{{helperTrans('ingaz.choose')}}</option>
                                         @foreach($countries as $country)
+                                        
                                             <option value="{{$country->id}}" {{$expertise->country_id == $country->id ? 'selected' : ''}}>{{$country->name_ar}}</option>
                                         @endforeach
                                     </select>

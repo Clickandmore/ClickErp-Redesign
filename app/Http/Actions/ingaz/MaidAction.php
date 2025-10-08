@@ -2,13 +2,12 @@
 
 namespace App\Http\Actions\ingaz;
 
+use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Actions\MainAction;
-use App\Models\ingaz\Maid;
 use App\Models\Contract;
 use App\Models\ContractInfo;
-use App\Models\ingaz\JobType;
+use App\Models\ingaz\Maid;
 use App\Models\ingaz\User as ClientUser;
-use App\Enums\ingaz\ContractStatusEnum;
 use Illuminate\Support\Facades\DB;
 
 class MaidAction extends MainAction
@@ -80,6 +79,9 @@ class MaidAction extends MainAction
         $data['age'] = $data['age'] ?? 0;
         $data['height'] = $data['height'] ?? '160';
         $data['weight'] = $data['weight'] ?? '60';
+        $data['childrens_count'] = $data['childrens_count'] ?? '0';
+        $data['duration'] = $data['duration'] ?? ' ';
+        $data['additional_notes'] = $data['additional_notes'] ?? ' ';
         $data['cv_file'] = $data['cv_file'] ?? '';
         $data['available'] = $data['available'] ?? 1;
         $data['available_at'] = $data['available_at'] ?? date('Y-m-d');
@@ -194,6 +196,9 @@ class MaidAction extends MainAction
             'age' => $data['age'],
             'height' => $data['height'],
             'weight' => $data['weight'],
+            'childrens_count' => $data['childrens_count'],
+            'duration' => $data['duration'],
+            'additional_notes' => $data['additional_notes'],
             'birth_date' => $data['birth_date'] ?? null,
             'experience_years' => $data['experience_years'] ?? '0',
             'experience_status' => $data['experience_status'] ?? 'no_experience',

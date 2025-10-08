@@ -1,5 +1,4 @@
 @charset "UTF-8";
-@import url("https://fonts.googleapis.com/css2?family=Baloo+Bhaijaan+2:wght@400..800&display=swap");
 @font-face {
   font-family: SF_Regular;
   font-display: swap;
@@ -56,8 +55,7 @@
   scroll-behavior: smooth;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
-  font-family: "Baloo Bhaijaan 2", sans-serif;
-  font-weight: 500;
+  font-family: "SF_Regular", sans-serif;
 }
 
 body {
@@ -1147,10 +1145,6 @@ main .about-section .about-card {
   border: 1px solid var(--gray);
   min-height: 100%;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  align-items: stretch;
 }
 main .about-section .about-card .about-number {
   position: absolute;
@@ -1161,7 +1155,7 @@ main .about-section .about-card .about-number {
   color: var(--mainColor80);
   z-index: 2;
 }
-main .about-section .about-card i, main .about-section .about-card h4, main .about-section .about-card .about-text {
+main .about-section .about-card i, main .about-section .about-card h4, main .about-section .about-card p {
   position: relative;
   z-index: 2;
   transition: color 0.3s ease;
@@ -1170,43 +1164,22 @@ main .about-section .about-card i {
   font-size: 2.2rem;
   color: var(--mainColor);
   margin-bottom: 15px;
-  align-self: center;
 }
 main .about-section .about-card h4 {
   font-size: 1.3rem;
   font-weight: 700;
   margin-bottom: 12px;
   color: var(--mainColor);
-  align-self: center;
 }
-main .about-section .about-card .about-text {
-  direction: inherit;
-  width: 100%;
+main .about-section .about-card p {
   font-size: 0.95rem;
   color: #555;
-  line-height: 1.8;
-  display: block;
-}
-main .about-section .about-card .about-text p {
-  margin-bottom: 0;
-  text-align: justify;
-}
-main .about-section .about-card .about-text ul,
-main .about-section .about-card .about-text ol {
-  margin: 0;
-  padding-inline-start: 1.4rem;
-  text-align: start;
-}
-main .about-section .about-card .about-text li {
-  color: inherit;
-  margin-bottom: 0.35rem;
-  text-align: start;
+  line-height: 1.7;
 }
 main .about-section .about-card::before {
   content: "";
   position: absolute;
   inset: 0;
-  background-image: var(--bg-image);
   background-size: cover;
   background-position: center;
   opacity: 0;
@@ -1223,8 +1196,17 @@ main .about-section .about-card:hover {
   transform: translateY(-8px);
   box-shadow: 0 10px 25px rgba(var(--mainColor), 0.25);
 }
-main .about-section .about-card:hover h4, main .about-section .about-card:hover i, main .about-section .about-card:hover .about-text, main .about-section .about-card:hover .about-text p, main .about-section .about-card:hover .about-text li {
+main .about-section .about-card:hover h4, main .about-section .about-card:hover p, main .about-section .about-card:hover i {
   color: #fff;
+}
+main .about-section .about-card.vision::before {
+  background-image: url("../images/selectworker.webp");
+}
+main .about-section .about-card.mission::before {
+  background-image: url("../images/service2.webp");
+}
+main .about-section .about-card.values::before {
+  background-image: url("../images/about.webp");
 }
 @media (max-width: 768px) {
   main .about-section .row {
@@ -1317,7 +1299,6 @@ main .services-sec .service .serviceTitle {
   position: relative;
   z-index: 2;
   white-space: nowrap;
-  font-size: 1.3rem;
 }
 main .services-sec .service .serviceP {
   color: #eee;
@@ -1406,6 +1387,12 @@ main .countries .country-card .country-content h3 {
   transition: var(--transition);
   font-size: 1.4rem;
 }
+main .countries .country-card .country-content p {
+  color: #666;
+  margin-bottom: 20px;
+  transition: var(--transition);
+  font-size: 0.95rem;
+=======
 main .countries .country-card .country-content .country-description {
   color: #555;
   text-align: center;

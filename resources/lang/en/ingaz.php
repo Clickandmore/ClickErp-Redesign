@@ -1530,5 +1530,11 @@
     'kenya_title' => 'Kenya',
     'kenya_guidelines' => 'Guidelines in Kenyan and Tanzanian – Swahili',
     'kenya_instructions' => 'Instructions in Kenyan and Tanzanian – Swahili',
+    'duration' => 'Duration',
+    'experience_status' => 'Experience',
+    'has_experience' => 'Has Experience',
+    'no_experience' => 'No Experience',
+    'no_additional_notes' => 'No Additional Notes',
+    'job' => 'Job',
 
 );

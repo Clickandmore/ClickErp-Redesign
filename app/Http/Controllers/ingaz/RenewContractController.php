@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers\ingaz;
 
+use App\Enums\ingaz\RequestsStatusEnum;
+use App\Enums\Office\MaritalStatusEnum;
+use App\Http\Actions\ingaz\JobTitleAction;
+use App\Http\Actions\ingaz\NationalityAction;
+use App\Http\Actions\ingaz\ReligionAction;
 use App\Http\Actions\ingaz\RenewContractAction as objAction;
 use App\Http\Controllers\Controller;
-use App\Models\RenewContract as objModel;
 use App\Http\Requests\ingaz\RenewContractRequest as objRequest;
+use App\Models\RenewContract as objModel;
 use Illuminate\Http\Request;
- use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 
 class RenewContractController extends Controller
@@ -25,58 +29,88 @@ class RenewContractController extends Controller
         // $this->middleware('permission:عنا-حذف,admin', ['only' => ['destroy']]);
     }
 
-    public function index(Request $request, objAction $Action)
+    public function index(Request $request, objAction $Action, JobTitleAction $jobTitleAction, NationalityAction $nationalityAction, ReligionAction $religionAction)
     {
         if ($request->ajax()) {
-            $rows = objModel::query()->latest();
+            $rows = objModel::query()
+                ->when($request->filled('status'), function ($query) use ($request) {
+                    $query->where('status', $request->get('status'));
+                })
+                ->when($request->filled('nationality'), function ($query) use ($request) {
+                    $query->where('nationality_id', $request->get('nationality'));
+                })
+                ->when($request->filled('marital_state'), function ($query) use ($request) {
+                    $query->where('worker_marital_status', $request->get('marital_state'));
+                })
+                ->latest();
             return DataTables::of($rows)
                 ->addIndexColumn()
                 ->editColumn('client_name', function ($row) {
                     return $row->client_name;
-                    
                 })
-                  ->editColumn('city', function ($row) {
-                    return $row->city;
-                    
+                ->editColumn('city', function ($row) {
+                    return $row->city ?? '-';
                 })
-                     ->editColumn('nationality_id', function ($row) {
-                    return $row->nationality_id;
-                    
+                ->editColumn('nationality', function ($row) {
+                    return $row->nationality?->title ?? '-';
                 })
-->editColumn('status', function ($row) {
-    $status = $row->status ?? 'pending';
-    $id = $row->id;
-    $checked = $status === 'approved' ? 'checked' : '';
+                ->editColumn('worker_marital_status', function ($row) {
+                    $enum = MaritalStatusEnum::tryFrom($row->worker_marital_status);
+                    return $enum ? $enum->lang() : ($row->worker_marital_status ?? '-');
+                })
+                ->editColumn('status', function ($row) {
+                    if ($row->status == RequestsStatusEnum::Pending->value) {
+                        return '
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-success btn-sm accept-request" data-id="' . $row->id . '" data-store-id="' . @$row->id . '">
+                                <i class="fas fa-check"></i> ' . __('ingaz.approved') . '
+                            </button>
+                            <button class="btn btn-danger btn-sm reject-request mx-2" data-id="' . $row->id . '" data-store-id="' . @$row->id . '">
+                                <i class="fas fa-times"></i> ' . __('ingaz.rejected') . '
+                            </button>
+                        </div>';
+                    } else if ($row->status == RequestsStatusEnum::Approved->value) {
+                        return '<span class="badge bg-success" > ' . RequestsStatusEnum::tryFrom($row->status)->lang() . '</span>';
 
-    return '
-        <label class="switch">
-            <input type="checkbox" class="toggle-status" data-id="' . $id . '" ' . $checked . '>
-            <span class="slider round"></span>
-        </label>
-        <span class="badge badge-' . ($status === 'approved' ? 'success bg-success' : 'secondary bg-secondary') . ' ml-2 status-text-' . $id . '">' . $status . '</span>
-    ';
-})
-
-
-                ->addColumn('actions', function ($row) {
-                    $editButton = '';
-                    $deleteButton = '';
-                   
-
-                    // if (@AdminGuardHasPerm(\App\PermKeys::PARTENR_DELETE)) {
-                        $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                    } else if ($row->status == RequestsStatusEnum::Rejected->value) {
+                        return '<span class="badge bg-danger" >' . RequestsStatusEnum::tryFrom($row->status)->lang() . '</span>';
+                    }
+                })->addColumn('actions', function ($row) {
+                    // if (@AdminGuardHasPerm(\App\PermKeys::PARTNER_DELETE)) {
+                    $deleteButton = ' <button class="dropdown-item delete-order-request" data-id="' . $row->id . '">
+                            <i class="fa fa-trash"></i> حذف الطلب
+                        </button>';
                     // }
-                     // if (@AdminGuardHasPerm(\App\PermKeys::PARTENR_DELETE)) {
-                        $showbutton = viewSingleButton(route($this->mainRoute . ".show", $row->id));
+                    // if (@AdminGuardHasPerm(\App\PermKeys::PARTNER_SHOW)) {
+                    $showButton = '<a class="dropdown-item" href="' . route('renew-contracts.show', $row->id) . '">
+                                    <i class="fas fa-eye"></i> عرض التفاصيل
+                                </a>';
                     // }
-                    return  $editButton . " " . $deleteButton."  ".$showbutton;
-                })->escapeColumns([])->make(true);
+                    $actions = '
+                                <div class="dropdown actions-dropdown">
+                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="الإجراءات المتاحة">
+                                        <i class="fas fa-cogs me-1"></i> الإجراءات
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-lg">
+                                        <li>' . $showButton . '</li>
+                                        <li>' . $deleteButton . '</li>
+                                    </ul>
+                                </div>';
+                    return $actions;
+                })
+                ->escapeColumns([])->make(true);
         }
         $data["createRoute"] = route($this->mainRoute . ".create");
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = helperTrans('api.parteners');
         $data["addButtonText"] = helperTrans('api.parteners');
+        $data['nationalities'] = $nationalityAction->get();
+        $data['status'] = RequestsStatusEnum::cases();
+        $data['marital_status'] = MaritalStatusEnum::cases();
         $data['count'] = objModel::count();
+        $data['approvedCount'] = objModel::where('status', RequestsStatusEnum::Approved->value)->count();
+        $data['rejectedCount'] = objModel::where('status', RequestsStatusEnum::Rejected->value)->count();
+        $data['pendingCount'] = objModel::where('status', RequestsStatusEnum::Pending->value)->count();
         return view($this->folderPath . '.index', compact('data'));
     }
 
@@ -92,11 +126,11 @@ class RenewContractController extends Controller
 
     public function store(objRequest $request, objAction $action)
     {
-        
+
       $data = $request->validated();
          $data = $action->store($data);
         return jsonSuccess($data);
- 
+
     }
 
 
@@ -128,7 +162,7 @@ class RenewContractController extends Controller
     $data = $action->find($id)->update($updatedData);
 
     return jsonSuccess($data);
-    }   
+    }
 public function show($id)
 {
     $renew = objModel::with(['user', 'nationality'])->findOrFail($id);
@@ -138,6 +172,6 @@ public function show($id)
     public function destroy($id, objAction $action)
     {
         $action->deletewithfiles($id);
-        return jsonSuccess();
+        return jsonSuccess(['success' => true]);
     }
 }
