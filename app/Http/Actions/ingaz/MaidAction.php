@@ -81,7 +81,7 @@ class MaidAction extends MainAction
         $data['weight'] = $data['weight'] ?? '60';
         $data['childrens_count'] = $data['childrens_count'] ?? '0';
         $data['duration'] = $data['duration'] ?? ' ';
-        $data['additional_notes'] = $data['additional_notes'] ?? ' ';
+        $data['additional_notes'] = $data['additional_notes'] ?? null;
         $data['cv_file'] = $data['cv_file'] ?? '';
         $data['available'] = $data['available'] ?? 1;
         $data['available_at'] = $data['available_at'] ?? date('Y-m-d');
@@ -198,7 +198,7 @@ class MaidAction extends MainAction
             'weight' => $data['weight'],
             'childrens_count' => $data['childrens_count'],
             'duration' => $data['duration'],
-            'additional_notes' => $data['additional_notes'],
+            'additional_notes' => $data['additional_notes'] ?? null,
             'birth_date' => $data['birth_date'] ?? null,
             'experience_years' => $data['experience_years'] ?? '0',
             'experience_status' => $data['experience_status'] ?? 'no_experience',
@@ -299,6 +299,7 @@ class MaidAction extends MainAction
             DB::rollBack();
             \Log::error('Failed to create shelter contract for maid: ' . $t->getMessage());
         }
+
         return $maid;
     }
 

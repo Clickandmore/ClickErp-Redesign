@@ -1,4 +1,4 @@
-<?php return array(
+<?php return array (
   'users' => 'المستخدمين',
   'banner' => 'البنر الرئيسي',
   'sliders' => 'الاعلانات',
@@ -32,7 +32,7 @@
   'skaeeb' => 'سكايب',
   'clients' => 'العملاء',
   'client' => 'العميل',
-  'activity_log' => 'سجل النشاط',
+  'activity_log' => 'سجل النشاطات',
   'job_titles' => 'المهن',
   'title' => 'العنوان',
   'actions' => 'الإجراءات',
@@ -614,7 +614,7 @@
   'timer_urgent' => 'وقت محدود',
   'timer_normal' => 'وقت طبيعي',
   'timer_status' => 'حالة التايمر',
-  'deleted' => 'محذوفة',
+  'deleted' => 'تم الحذف',
   'restore' => 'استعادة',
   'restore_order' => 'استعادة الطلب',
   'delete_permanently' => 'حذف نهائي',
@@ -708,7 +708,7 @@
   'bank_account_name' => 'اسم الحساب',
   'bank_address' => 'اسم البنك',
   'office_type' => 'نوع المكتب ',
-  'edit_office' => 'تعديل مكتب',
+  'edit_office' => 'تعديل بيانات المكتب',
   'title_ar_required' => 'العنوان بالعربية مطلوب.',
   'title_ar_string' => 'العنوان بالعربية يجب أن يكون نصاً.',
   'title_ar_max' => 'العنوان بالعربية يجب ألا يتجاوز 255 حرفاً.',
@@ -796,7 +796,7 @@
   'this_email_is_invalid' => 'هذا البريد غير صالح',
   'mail_sent_successfully' => 'تم ارسال البريد الالكتروني بنجاح',
   'no_manager_found_for_this_office' => 'لا يوجد مدير مكتب لهذا الوكيل',
-  'job_title_for_file' => 'المهنة لهذا الملف',
+  'job_title_for_file' => 'المسمى الوظيفي للملف',
   'recruitment_office_id_required' => 'حقل مكتب الاستقدام مطلوب.',
   'recruitment_office_id_exists' => 'مكتب الاستقدام المحدد غير موجود.',
   'office_file_name_required' => 'اسم ملف المكتب مطلوب.',
@@ -1166,8 +1166,8 @@
   'step_create_account' => 'تسجيل حساب جديد',
   'step_verification_note' => 'سوف يتم التحقق من رقم الهوية من خلال (أبشر) خدمات وزارة الداخلية، لذا يجب التأكد من التسجيل بخدمات أبشر مسبقاً وللمزيد من التفاصيل يمكنك زيارة خدمات أبشر موقع وزارة الداخلية',
   'step_basic_info_form' => 'تعبئة نموذج تسجيل المعلومات الأساسية',
-  'basic_info_fields' =>
-  array(
+  'basic_info_fields' => 
+  array (
     'id_number' => 'رقم الهوية الوطنية للمواطنين أو الإقامة للمقيمين',
     'first_last_name' => 'الإسم الأول و اسم العائلة',
     'birth_date' => 'تاريخ الميلاد (هجري)',
@@ -1176,23 +1176,23 @@
   ),
   'activation_code_note' => 'بعد تسجيل المعلومات الأساسية ستصلك رسالة نصية على جوالك تحتوي على رمز تفعيل مساند. أدخل “رمز التفعيل” لتعبئة النموذج لتسجيل حساب في مساند',
   'step_password_info' => 'تأكيد كلمة المرور: إعادة كلمة المرور المختارة',
-  'step_password_mobile_email' =>
-  array(
+  'step_password_mobile_email' => 
+  array (
     'password_confirmation' => 'تأكيد كلمة المرور: إعادة كلمة المرور المختارة',
     'mobile_number_registered' => 'رقم جوال مسجل في أبشر',
     'email_address' => 'البريد الإلكتروني: لتفعيل حساب مساند',
   ),
   'password_hint' => 'كلمة المرور: اختر كلمة مرور تحتوي على حروف وأرقام ورموز',
   'requirements_title' => 'قبل البدأ في اصدار التأشيرة يجب التأكد من جاهزية المتطلبات التالية :',
-  'requirements_list' =>
-  array(
+  'requirements_list' => 
+  array (
     'social_insurance' => 'هل أنت مسجل في المؤسسة العامة التأمينات الإجتماعية؟',
     'employment_status' => 'الحالة الوظيفية: حسب الإثبات للمقدرة المالية',
     'financial_proof' => 'نوع إثبات المقدرة المالية: تعريف بالراتب من القطاع الخاص أو الحكومي، أوكشف حساب البنك حسب عدد التأشيرات المسموحة',
   ),
   'payment_step_title' => 'طريقة سداد رسوم التأشيرة عن طريق خدمة سداد',
-  'payment_steps' =>
-  array(
+  'payment_steps' => 
+  array (
     'login_to_bank' => 'الدخول الى موقع او تطبيق البنك او الصراف الالى',
     'choose_payments' => '"اختيار "المدفوعات',
     'gov_payments' => '"اختيار "المدفوعات الحكومية -سداد',
@@ -1206,21 +1206,21 @@
   'payment_note' => 'إصدار الفاتورة لرسوم التأشيرة عن طريق (سداد) ودفع المبلغ خلال يوم واحد ليتم إرسال الطلب',
   'visa_request_title' => 'طلب إصدار التأشيرة',
   'visa_info_step' => 'تعبئة بيانات التأشيرة',
-  'visa_info_fields' =>
-  array(
+  'visa_info_fields' => 
+  array (
     'job_title' => 'المهنة: قم بإختيار المهنة للعمالة المنزلية',
     'nationality' => 'الجنسية: قم بإختيار الجنسية للعمالة المنزلية',
     'arrival_country' => 'جهة القدوم: قم بإختيار جهة القدوم حسب الدولة',
   ),
   'financial_proof_step' => 'إثبات المقدرة المالية',
-  'financial_proof_fields' =>
-  array(
+  'financial_proof_fields' => 
+  array (
     'salary_statement' => 'تعريف الراتب: قم بإدخال القيمة للراتب الشهري من القطاع الخاص أو الحكومي',
     'bank_statement' => 'شهادة بنكية: قم بإدخال القيمة لمتوسط الحساب الشهري من الشهادة البنكية',
   ),
   'upload_documents' => 'رفع الوثائق والمرفقات',
-  0 =>
-  array(
+  0 => 
+  array (
     'financial_proof_doc' => 'إثبات المقدرة المالية',
     'id_or_family_card' => 'صورة سجل الأسرة أو الهوية الوطنية',
   ),
@@ -1462,35 +1462,25 @@
   'kenya_title' => 'كينيا',
   'kenya_guidelines' => 'التوجيهات باللغة الكينية والتنزانية – السواحيلية',
   'kenya_instructions' => 'الإرشادات باللغة الكينية والتنزانية – السواحيلية',
-  //
   'created' => 'تم الإنشاء',
   'updated' => 'تم التحديث',
-  'deleted' => 'تم الحذف',
   'office_details' => 'تفاصيل المكتب',
-  'edit_office' => 'تعديل بيانات المكتب',
   'add_new_file' => 'إضافة ملف جديد',
   'view_current_file' => 'عرض الملف الحالي',
-  'created_at' => 'تاريخ الإنشاء',
   'updated_at' => 'آخر تحديث',
-  'attachments' => 'المرفقات',
   'no_attachments' => 'لا توجد مرفقات حالياً.',
-  'file_name' => 'اسم الملف',
-  'job_title_for_file' => 'المسمى الوظيفي للملف',
   'current_file' => 'الملف الحالي',
   'manager_info' => 'بيانات المدير',
   'manager_account_info' => 'بيانات حساب المدير في النظام',
-  'language' => 'اللغة',
   'created_in' => 'أنشئ في',
   'no_manager_account' => 'لا يوجد حساب مدير مرتبط بهذا المكتب.',
-  'activity_log' => 'سجل النشاطات',
   'no_activities' => 'لا توجد نشاطات مسجلة لهذا المكتب حالياً.',
   'event' => 'الحدث',
-  'description' => 'الوصف',
-  'date' => 'التاريخ',
   'time' => 'الوقت',
   'by' => 'بواسطة',
   'bank_name' => 'اسم البنك',
   'manager_name' => 'اسم المدير',
   'manager_phone' => 'رقم المدير',
   'total_offices' => 'اجمالي المكاتب',
+  'duration' => 'Duration',
 );

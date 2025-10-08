@@ -362,13 +362,19 @@ class MaidController extends Controller
     public function store(MaidRequest $request, objAction $action)
     {
         $data = $request->all();
+        // logger()->info('Amer', [
+        //     'data' => $data,
+        
+        // ]);
+
         // Set default status in Arabic
         $data['status'] = 'available';
         $data = $action->storeMaid($data, $request);
         if ($request->ajax()) {
             return jsonSuccess($data);
         }
-        // return response()->json(['code' => 200, 'message' => 'تم إضافة العاملة بنجاح']);
+        
+        return response()->json(['code' => 200, 'message' => 'تم إضافة العاملة بنجاح']);
     }
 
     // Helper method to get status in current language
