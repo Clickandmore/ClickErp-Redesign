@@ -32,7 +32,9 @@ class HomeController extends Controller
         $clients = $clientAction->get();
         $about = $about->first();
         $features = $feature->get();
-        $nationalities = $nationalityAction->get();
+        $nationalities = method_exists($nationalityAction, 'getVisible')
+            ? $nationalityAction->getVisible()
+            : $nationalityAction->get();
         $requirments = $requirement_action->get();
         $Visa = $requirments->where('type',RequirementEnum::VisaIssuance->value);
         $Domestic = $requirments->where('type',RequirementEnum::RecruitDomestic->value);

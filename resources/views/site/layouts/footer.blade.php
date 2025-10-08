@@ -91,8 +91,8 @@
     <p>
         {{__("ingaz.all_rights_reserved")}} © -
         <script>document.write(new Date().getFullYear());</script>
-        <a target="_blank" href="http://nami-tec.com">NAMI</a>
+        <a target="_blank" href="#">عالم الاستقدام</a>
     </p>
 
-   
+
 </div>

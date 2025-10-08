@@ -18,21 +18,21 @@
                       enctype="multipart/form-data" id="maidForm">
                     @csrf
                     <!-- الملفات -->
-                    <div class="col-4">
+                    <div class="col-6">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.cv_file")}} </label>
                         <input type="file" data-default-file="" name="cv_file" class="dropify">
                     </div>
-                    <div class="col-4">
+                    <div class="col-6">
                         <label for="TextInput" class="form-label">صورة العامله </label>
                         <input type="file" data-default-file="" name="image" class="dropify" required>
                     </div>
                     <div class="col-4">
                         <label for="TextInput" class="form-label">الفيديو </label>
-                        <input type="file" data-default-file="" name="video" class="dropify" >
+                        <input type="file" data-default-file="" name="video" class="dropify">
                     </div>
                     <div class="col-12">
                         <label for="TextInput" class="form-label">رابط الفيديو </label>
-                        <input type="url"  name="video_link" class="form-control" required>
+                        <input type="url" name="video_link" class="form-control" required>
                     </div>
                     <!-- أنواع الوظائف -->
                     <div class="col-4">
@@ -41,7 +41,7 @@
                             <option value="">اختر نوع السيرة</option>
                             @foreach($types as $type)
                                 <option
-                                    value="{{$type->id}}" {{$type->title == 'استقدام' ? 'selected' : ''}}>{{$type->title}}</option>
+                                        value="{{$type->id}}" {{$type->title == 'استقدام' ? 'selected' : ''}}>{{$type->title}}</option>
                             @endforeach
                         </select>
                     </div>
@@ -151,11 +151,28 @@
                         <select name="religion_id" class="form-control">
                             @foreach($religions as $religion)
                                 <option
-                                    value="{{$religion->id}}" {{$religion->id == 4 ? 'selected' : ''}}>{{$religion->title}}</option>
+                                        value="{{$religion->id}}" {{$religion->id == 4 ? 'selected' : ''}}>{{$religion->title}}</option>
                             @endforeach
                         </select>
                     </div>
-
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.childrens_count")}}
+                        </label>
+                        <input type="number" name="childrens_count" class="form-control" min="1" step="1">
+                    </div>
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.duration")}}
+                        </label>
+                        <input type="text" name="duration" class="form-control">
+                    </div>
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.additional_notes")}}
+                        </label>
+                        <textarea type="text" name="additional_notes" class="form-control"></textarea>
+                    </div>
                     <div class="col-4">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.marital status")}} </label>
                         <select name="marital_status:ar" class="form-control" required>
@@ -194,14 +211,17 @@
                     <!-- المهارات -->
                     <div class="col-4">
                         <label for="skills" class="form-label">{{helperTrans("ingaz.skills")}} <small
-                                class="text-muted">(اختياري)</small></label>
+                                    class="text-muted">(اختياري)</small></label>
                         <select name="skills[]" class="form-control js-example-basic-multiple" multiple>
                             @foreach($skills as $skill)
                                 <option value="{{$skill->id}}">{{$skill->title}}</option>
                             @endforeach
                         </select>
                     </div>
-
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">رابط الفيديو <small class="text-muted">(اختياري)</small></label>
+                        <input type="url" name="video_link" class="form-control" placeholder="https://...">
+                    </div>
                     <div class="col-4">
                         <label for="experience_status" class="form-label">
                             حالة الخبرة <small class="text-muted">(مطلوب)</small>
@@ -213,16 +233,31 @@
                         </select>
                     </div>
 
-                    <div class="col-4" id="experience_years_container">
-                        <label for="TextInput" class="form-label">
-                            {{helperTrans("ingaz.experience_years")}} <small class="text-muted"></small>
-                        </label>
-                        <select name="experience_years" id="experience_years" class="form-control">
-                            <option value="">اختر سنوات الخبرة</option>
-                            @for($i = 1; $i <= 10; $i++)
-                                <option value="{{$i}}">{{$i}} {{$i == 1 ? 'سنة' : 'سنوات'}}</option>
-                            @endfor
-                        </select>
+                    <div id="experience_details" class="row g-3" style="display: none;">
+                        <div class="col-4">
+                            <label class="form-label">الدولة التي تم العمل بها</label>
+                            <select name="experience_country_id" id="experience_country_id" class="form-control">
+                                <option value="">{{ helperTrans('ingaz.choose') }}</option>
+                                @foreach($countries as $country)
+                                    <option value="{{ $country->id }}">{{ $country->name_ar }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-4">
+                            <label class="form-label">المسمى الوظيفي</label>
+                            <select name="experience_job_title_id" id="experience_job_title_id" class="form-control">
+                                <option value="">{{ helperTrans('ingaz.choose') }}</option>
+                                @foreach($jobs as $job)
+                                    <option value="{{ $job->id }}">{{ $job->title }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-4">
+                            <label class="form-label">سنوات الخبرة</label>
+                            <input type="number" name="experience_years_total" id="experience_years_total" class="form-control" min="1" max="40" placeholder="عدد السنوات">
+                        </div>
                     </div>
 
                     <!-- اللغات والحالة الاجتماعية -->
@@ -270,7 +305,7 @@
                         </div>
                     </div>
                     <label for="TextInput" class="form-label">{{helperTrans("ingaz.expertise")}} </label>
-                    <table class="table table-bordered">
+                    <table class="table table-bordered" id="experience_table" style="display: none;">
                         <thead>
                         <tr>
                             <th>{{ __("ingaz.country") }} </th>
@@ -283,8 +318,7 @@
                         <tr class="y-group">
                             <td>
                                 <select name="expertises[0][country_id]" data-placeholder=""
-                                        class="form-control select2"
-                                        required>
+                                        class="form-control select2">
                                     <option value="">{{helperTrans('ingaz.choose')}}</option>
                                     @foreach($countries as $country)
                                         <option value="{{$country->id}}">{{$country->name_ar}}</option>
@@ -292,12 +326,11 @@
                                 </select>
                             </td>
                             <td>
-                                <input type="text" name="expertises[0][number_of_years]" class="form-control" required>
+                                <input type="text" name="expertises[0][number_of_years]" class="form-control">
                             </td>
                             <td>
                                 <select name="expertises[0][job_title_id]" data-placeholder=""
-                                        class="form-control select2"
-                                        required>
+                                        class="form-control select2">
                                     <option value="">{{helperTrans('ingaz.choose')}}</option>
                                     @foreach($jobs as $job)
                                         <option value="{{$job->id}}">{{$job->title}}</option>
@@ -760,9 +793,6 @@
                 if (!formData.get('cv_file')) {
                     formData.append('cv_file', '');
                 }
-                if (!formData.get('experience_years')) {
-                    formData.append('experience_years', '0');
-                }
                 if (!formData.get('religion_id')) {
                     formData.append('religion_id', ''); // Default to غير محدد
                 }
@@ -789,6 +819,12 @@
                 if (!formData.get('type_id')) {
                     var defaultType = $('select[name="type_id"] option:selected').val();
                     formData.append('type_id', defaultType);
+                }
+
+                if (formData.get('experience_status') !== 'has_experience') {
+                    formData.delete('experience_country_id');
+                    formData.delete('experience_job_title_id');
+                    formData.delete('experience_years_total');
                 }
 
                 $.ajax({
@@ -853,4 +889,3 @@
         });
     </script>
 @endsection
-

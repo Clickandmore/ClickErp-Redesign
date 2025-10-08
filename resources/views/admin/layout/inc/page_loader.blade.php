@@ -3,12 +3,10 @@
         <div id="loading-text">LOADING</div>
         <div id="loading-content"></div>
     </div>
-    <div class="container-fluid">
-        <div class="card mb-3">
-            <div class="card-body" style="min-height: calc(100vh - 196px);">
+    <div class="container-fluid bg-white p-2 " style="min-height: calc(100vh - 196px); border-radius: 10px;">
+      
                 @yield('content')
-            </div>
-        </div>
+        
     </div>
 </div>
 <style>

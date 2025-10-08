@@ -2,13 +2,12 @@
 
 namespace App\Http\Actions\ingaz;
 
+use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Actions\MainAction;
-use App\Models\ingaz\Maid;
 use App\Models\Contract;
 use App\Models\ContractInfo;
-use App\Models\ingaz\JobType;
+use App\Models\ingaz\Maid;
 use App\Models\ingaz\User as ClientUser;
-use App\Enums\ingaz\ContractStatusEnum;
 use Illuminate\Support\Facades\DB;
 
 class MaidAction extends MainAction
@@ -45,6 +44,29 @@ class MaidAction extends MainAction
             $data['video'] = uploadFile($video, $this->fileFolder);
         }
 
+        // Normalize experience values before defaults so they survive cleanup
+        $experienceStatus = $data['experience_status'] ?? 'no_experience';
+        if ($experienceStatus === 'has_experience') {
+            $totalYears = 0;
+            if (isset($data['expertises']) && is_array($data['expertises'])) {
+                foreach ($data['expertises'] as $expertise) {
+                    $totalYears += (float)($expertise['number_of_years'] ?? 0);
+                }
+            } elseif (isset($data['experience_years']) && $data['experience_years'] !== '') {
+                $totalYears = (float)$data['experience_years'];
+            }
+            $data['experience_years'] = (string)$totalYears;
+        } else {
+            $data['experience_years'] = '0';
+        }
+        $data['experience_status'] = $experienceStatus;
+
+        if (isset($data['skills']) && is_array($data['skills'])) {
+            $data['skills'] = array_values(array_filter($data['skills'], function ($value) {
+                return $value !== null && $value !== '';
+            }));
+        }
+
         // Set default values for required fields if they're empty
         $data['name'] = $data['name:en'] ?? '';
         $data['nationality_id'] = $data['nationality_id'] ?? null;
@@ -57,6 +79,9 @@ class MaidAction extends MainAction
         $data['age'] = $data['age'] ?? 0;
         $data['height'] = $data['height'] ?? '160';
         $data['weight'] = $data['weight'] ?? '60';
+        $data['childrens_count'] = $data['childrens_count'] ?? '0';
+        $data['duration'] = $data['duration'] ?? ' ';
+        $data['additional_notes'] = $data['additional_notes'] ?? ' ';
         $data['cv_file'] = $data['cv_file'] ?? '';
         $data['available'] = $data['available'] ?? 1;
         $data['available_at'] = $data['available_at'] ?? date('Y-m-d');
@@ -171,8 +196,12 @@ class MaidAction extends MainAction
             'age' => $data['age'],
             'height' => $data['height'],
             'weight' => $data['weight'],
+            'childrens_count' => $data['childrens_count'],
+            'duration' => $data['duration'],
+            'additional_notes' => $data['additional_notes'],
             'birth_date' => $data['birth_date'] ?? null,
-            'experience_years' => $data['experience_years'] ?? null,
+            'experience_years' => $data['experience_years'] ?? '0',
+            'experience_status' => $data['experience_status'] ?? 'no_experience',
             'skills' => $data['skills'] ?? null,
             'languages' => $data['languages'] ?? null,
             'percentage' => $data['percentage'] ?? null,
@@ -202,7 +231,7 @@ class MaidAction extends MainAction
             throw $e;
         }
 
-        if (isset($data['expertises'])) {
+        if ($experienceStatus === 'has_experience' && isset($data['expertises'])) {
             foreach ($data['expertises'] as $expertise) {
                 $expertise['maid_id'] = $maid->id;
                 $this->maidExpertiseAction->store($expertise);
@@ -297,6 +326,12 @@ class MaidAction extends MainAction
             });
         }
 
+        if ($request->experience_country_id) {
+            $query->whereHas('expertises', function ($q) use ($request) {
+                $q->where('country_id', $request->experience_country_id);
+            });
+        }
+
         if ($request->age_from && $request->age_to) {
             $query->whereBetween('age', [$request->age_from, $request->age_to]);
         }
@@ -338,6 +373,23 @@ class MaidAction extends MainAction
         \Log::info('Request data:', $request->all());
 
         $maid = parent::find($id);
+
+        $experienceStatusValue = $data['experience_status'] ?? $maid->experience_status ?? 'no_experience';
+        if ($experienceStatusValue === 'has_experience') {
+            $totalYears = 0;
+            if (isset($data['expertises']) && is_array($data['expertises'])) {
+                foreach ($data['expertises'] as $expertise) {
+                    $totalYears += (float)($expertise['number_of_years'] ?? 0);
+                }
+            } elseif (isset($data['experience_years']) && $data['experience_years'] !== '') {
+                $totalYears = (float)$data['experience_years'];
+            } else {
+                $totalYears = (float)($maid->experience_years ?? 0);
+            }
+            $data['experience_years'] = (string)$totalYears;
+        } else {
+            $data['experience_years'] = '0';
+        }
 
         // Handle name field
         if (isset($data['name:en'])) {
@@ -390,7 +442,10 @@ class MaidAction extends MainAction
 
         // Convert skills array to JSON if it exists
         if (isset($data['skills']) && is_array($data['skills'])) {
-            $data['skills'] = json_encode($data['skills']);
+            $filteredSkills = array_values(array_filter($data['skills'], function ($value) {
+                return $value !== null && $value !== '';
+            }));
+            $data['skills'] = json_encode($filteredSkills);
         }
 
         // استخرج القيم الحالية
@@ -431,9 +486,15 @@ class MaidAction extends MainAction
 
 
         $row = parent::find($id);
+
+        if ($experienceStatusValue !== 'has_experience') {
+            $row->expertises()->delete();
+            unset($data['expertises']);
+        }
+
         $row->update($data);
 
-        if (isset($data['expertises'])) {
+        if (isset($data['expertises']) && $experienceStatusValue === 'has_experience') {
             $row->expertises()->delete();
             foreach ($data['expertises'] as $expertise) {
                 $expertise['maid_id'] = $maid->id;
@@ -560,6 +621,24 @@ class MaidAction extends MainAction
         return $maid;
     }
 
+    protected function availableQuery()
+    {
+        return $this->model
+            ->shown()
+            ->where('available', true)
+            ->where('status', 'available')
+            ->where(function ($query) {
+                $query->whereNull('available_at')
+                    ->orWhere('available_at', '<=', now()->toDateString());
+            })
+            ->whereDoesntHave('contracts', function ($query) {
+                $query->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival']);
+            })
+            ->whereDoesntHave('orders', function ($query) {
+                $query->whereIn('status', ['new', 'under_process', 'contracted']);
+            });
+    }
+
     public function paginate($request, $limit = 10)
     {
         $type = match ($request->type) {
@@ -569,14 +648,7 @@ class MaidAction extends MainAction
             default => null,
         };
 
-        return $this->model
-            ->shown()
-            ->where('available', true)
-            ->where('status', 'available')
-            ->where(function ($query) {
-                $query->whereNull('available_at')
-                    ->orWhere('available_at', '<=', now()->toDateString());
-            })
+        return $this->availableQuery()
             ->when(isset($type), function ($query) use ($type) {
                 $query->whereHas('jobTypes', function ($q) use ($type) {
                     $q->where('job_type_id', $type);
@@ -584,6 +656,14 @@ class MaidAction extends MainAction
             })
             ->when(isset($request->nationality_id), function ($query) use ($request) {
                 $query->where('nationality_id', $request->nationality_id);
+            })
+            ->when(isset($request->experience_country_id), function ($query) use ($request) {
+                $query->whereHas('expertises', function ($q) use ($request) {
+                    $q->where('country_id', $request->experience_country_id);
+                });
+            })
+            ->when(isset($request->experience_status), function ($query) use ($request) {
+                $query->where('experience_status', $request->experience_status);
             })
             ->when(isset($request->age), function ($query) use ($request) {
                 if ($request->age == '20_30') {
@@ -599,6 +679,13 @@ class MaidAction extends MainAction
                     $q->where('job_title_id', $request->job);
                 });
             })
+            ->orderBy('is_pinned', 'desc')
+            ->orderBy('created_at', 'desc')
             ->paginate($limit);
+    }
+
+    public function findAvailable($id)
+    {
+        return $this->availableQuery()->find($id);
     }
 }

@@ -26,7 +26,7 @@ class MaidController extends Controller
 {
 
     public $folderPath = "admin.ingaz.maids";
-    public $postData = ["nationality_id", "expertises", 'image', 'video', 'video_link', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'percentage', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'create_shelter_contract'];
+    public $postData = ["nationality_id", "expertises", 'image', 'video', 'childrens_count', 'duration', 'additional_notes', 'video_link', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'percentage', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'create_shelter_contract'];
     public $mainRoute = "maids";
 
     public function __construct()
@@ -869,6 +869,9 @@ class MaidController extends Controller
         if ($request->has('experience_years') && $request->experience_years != null) {
             $rows->where('experience_years', $request->experience_years);
         }
+        if ($request->has('experience_status') && $request->experience_status != null) {
+            $rows->where('experience_status', $request->experience_status);
+        }
         if ($request->has('datefilter') && $request->datefilter != null) {
             $dates = explode(' - ', $request->datefilter);
             if (count($dates) == 2) {
@@ -938,6 +941,9 @@ class MaidController extends Controller
         }
         if ($request->has('experience_years') && $request->experience_years != null) {
             $rows->where('experience_years', $request->experience_years);
+        }
+        if ($request->has('experience_status') && $request->experience_status != null) {
+            $rows->where('experience_status', $request->experience_status);
         }
         if ($request->has('datefilter') && $request->datefilter != null) {
             $dates = explode(' - ', $request->datefilter);

@@ -1,5 +1,5 @@
 <div class="sidebar p-2 py-md-3 @@cardClass">
-    <div class="container-fluid">
+    <div class="container-fluid p-0">
 
         <div class="title-text d-flex align-items-center mb-4 mt-1">
             <h4 class="sidebar-title mb-0 flex-grow-1"><span class="sm-txt"></span>
@@ -169,7 +169,7 @@
                             <a class="m-link {{ (Route::currentRouteName() == 'professional_application.index') ? 'active' : '' }}"
                                href="{{route('professional_application.index')}}">
                                 <i class="fa fa-envelope"></i>
-                                <span class="ms-2"> {{ helperTrans('ingaz.professional_application') }}</span>
+                                <span class="ms-2">  {{helperTrans("ingaz.request_professional_labor")}}</span>
                             </a>
                         </li>
                         {{-- @endif --}}
@@ -380,6 +380,21 @@
                                 </a>
                             </li>
                         @endif
+                         @if (@AdminGuardHasPerm(\App\PermKeys::PACKAGES_VIEW))
+                            <li>
+                                <a class="m-link" href="{{ route('packages.index') }}">
+                                    <i class="fa fa-arrow-left"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.packages') }}</span>
+                                </a>
+                            </li>
+                        @endif
+                        <li>
+                            <a class="m-link {{ (in_array(Route::currentRouteName(), ['rent-contract-terms.index', 'rent-contract-terms.create', 'rent-contract-terms.edit'])) ? 'active' : '' }}"
+                                href="{{ route('rent-contract-terms.index') }}">
+                                <i class="fa fa-file-contract"></i>
+                                <span class="ms-2">بنود عقد الإيجار</span>
+                            </a>
+                        </li>
                     </ul>
                 </li>
 
@@ -612,13 +627,7 @@
                                     <span class="ms-2">بنود عقد نقل الكفالة</span>
                                 </a>
                             </li>
-                            <li>
-                                <a class="m-link {{ (in_array(Route::currentRouteName(), ['rent-contract-terms.index', 'rent-contract-terms.create', 'rent-contract-terms.edit'])) ? 'active' : '' }}"
-                                   href="{{ route('rent-contract-terms.index') }}">
-                                    <i class="fa fa-file-contract"></i>
-                                    <span class="ms-2">بنود عقد الإيجار</span>
-                                </a>
-                            </li>
+
                         </ul>
                     </li>
                 @endif
@@ -660,14 +669,7 @@
                                 </a>
                             </li>
                         @endif
-                        @if (@AdminGuardHasPerm(\App\PermKeys::PACKAGES_VIEW))
-                            <li>
-                                <a class="m-link" href="{{ route('packages.index') }}">
-                                    <i class="fa fa-arrow-left"></i>
-                                    <span class="ms-2">{{ helperTrans('ingaz.packages') }}</span>
-                                </a>
-                            </li>
-                        @endif
+
 
                         @if (@AdminGuardHasPerm(\App\PermKeys::RELIGIONS_VIEW))
                             <li>

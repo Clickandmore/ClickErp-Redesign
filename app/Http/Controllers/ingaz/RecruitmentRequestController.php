@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers\ingaz;
 
+use App\Enums\ingaz\RequestsStatusEnum;
+use App\Enums\Office\MaritalStatusEnum;
+use App\Http\Actions\ingaz\JobTitleAction;
+use App\Http\Actions\ingaz\NationalityAction;
 use App\Http\Actions\ingaz\RecruitmentRequestAction as objAction;
+use App\Http\Actions\ingaz\ReligionAction;
 use App\Http\Controllers\Controller;
-use App\Models\ingaz\RecruitmentRequestMaid as objModel;
 use App\Http\Requests\ingaz\ProfessionalApplicationRequest as objRequest;
+use App\Models\ingaz\RecruitmentRequestMaid as objModel;
 use Illuminate\Http\Request;
- use Yajra\DataTables\Facades\DataTables;
+use Yajra\DataTables\Facades\DataTables;
 
 class RecruitmentRequestController extends Controller
 {
@@ -24,55 +29,100 @@ class RecruitmentRequestController extends Controller
         // $this->middleware('permission:عنا-حذف,admin', ['only' => ['destroy']]);
     }
 
-    public function index(Request $request, objAction $Action)
+    public function index(Request $request, objAction $Action, JobTitleAction $jobTitleAction, NationalityAction $nationalityAction, ReligionAction $religionAction)
     {
-         if ($request->ajax()) {
-            $rows = objModel::query()->latest();
+        if ($request->ajax()) {
+            $rows = objModel::query()
+                ->when($request->filled('status'), function ($query) use ($request) {
+                    $query->where('status', $request->get('status'));
+                })
+                ->when($request->filled('jobTitle'), function ($query) use ($request) {
+                    $query->where('job_title', $request->get('jobTitle'));
+                })
+                ->when($request->filled('nationality'), function ($query) use ($request) {
+                    $query->where('nationality', $request->get('nationality'));
+                })
+                ->when($request->filled('religion'), function ($query) use ($request) {
+                    $query->where('religion_id', $request->get('religion'));
+                })
+                ->when($request->filled('marital_state'), function ($query) use ($request) {
+                    $query->where('social_status', $request->get('marital_state'));
+                })
+                ->latest();
             return DataTables::of($rows)
                 ->addIndexColumn()
-                ->editColumn('jobType', function ($row) {
-                    return $row->jobType->title ?? 'N/A';
-                    
+                ->editColumn('job_title', function ($row) {
+                    return $row->job_title;
                 })
-                  ->editColumn('client', function ($row) {
-                    return $row->client->name ?? 'N/A';
-                    
+                ->editColumn('client_id', function ($row) {
+                    return $row->client->name ?? '-';
                 })
-           
-->editColumn('status', function ($row) {
-    $status = $row->status ?? 'pending';
-    $id = $row->id;
-    $checked = $status === 'approved' ? 'checked' : '';
+                ->editColumn('nationality', function ($row) {
+                    return $row->nationality ?? '-';
+                })
+                ->editColumn('religion_id ', function ($row) {
+                    return $row->religion?->title ?? '-';
+                })
+                ->editColumn('social_status', function ($row) {
+                    $enum = MaritalStatusEnum::tryFrom($row->social_status);
+                    return $enum ? $enum->lang() : ($row->social_status ?? '-');
+                })
+                ->editColumn('status', function ($row) {
+                    if ($row->status == RequestsStatusEnum::Pending->value) {
+                        return '
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-success btn-sm accept-request" data-id="' . $row->id . '" data-store-id="' . @$row->id . '">
+                                <i class="fas fa-check"></i> ' . __('ingaz.approved') . '
+                            </button>
+                            <button class="btn btn-danger btn-sm reject-request mx-2" data-id="' . $row->id . '" data-store-id="' . @$row->id . '">
+                                <i class="fas fa-times"></i> ' . __('ingaz.rejected') . '
+                            </button>
+                        </div>';
+                    } else if ($row->status == RequestsStatusEnum::Approved->value) {
+                        return '<span class="badge bg-success" > ' . RequestsStatusEnum::tryFrom($row->status)->lang() . '</span>';
 
-    return '
-        <label class="switch">
-            <input type="checkbox" class="toggle-status" data-id="' . $id . '" ' . $checked . '>
-            <span class="slider round"></span>
-        </label>
-        <span class="badge badge-' . ($status === 'approved' ? 'success bg-success' : 'secondary bg-secondary') . ' ml-2 status-text-' . $id . '">' . $status . '</span>
-    ';
-})
+                    } else if ($row->status == RequestsStatusEnum::Rejected->value) {
+                        return '<span class="badge bg-danger" >' . RequestsStatusEnum::tryFrom($row->status)->lang() . '</span>';
+                    }
 
-
-                ->addColumn('actions', function ($row) {
-                    $editButton = '';
-                    $deleteButton = '';
-                   
-
-                    // if (@AdminGuardHasPerm(\App\PermKeys::PARTENR_DELETE)) {
-                        $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                })->addColumn('actions', function ($row) {
+                    // if (@AdminGuardHasPerm(\App\PermKeys::PARTNER_DELETE)) {
+                    $deleteButton = ' <button class="dropdown-item delete-order-request" data-id="' . $row->id . '">
+                            <i class="fa fa-trash"></i> حذف الطلب
+                        </button>';
                     // }
-                     // if (@AdminGuardHasPerm(\App\PermKeys::PARTENR_DELETE)) {
-                        $showbutton = viewSingleButton(route($this->mainRoute . ".show", $row->id));
+                    // if (@AdminGuardHasPerm(\App\PermKeys::PARTNER_SHOW)) {
+                    $showButton = '<a class="dropdown-item" href="' . route('recruitment_requests.show', $row->id) . '">
+                                    <i class="fas fa-eye"></i> عرض التفاصيل
+                                </a>';
                     // }
-                    return  $editButton . " " . $deleteButton."  ".$showbutton;
-                })->escapeColumns([])->make(true);
+                    $actions = '
+                                <div class="dropdown actions-dropdown">
+                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="الإجراءات المتاحة">
+                                        <i class="fas fa-cogs me-1"></i> الإجراءات
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-lg">
+                                        <li>' . $showButton . '</li>
+                                        <li>' . $deleteButton . '</li>
+                                    </ul>
+                                </div>';
+                    return $actions;
+                })
+                ->escapeColumns([])->make(true);
         }
         $data["createRoute"] = route($this->mainRoute . ".create");
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = helperTrans('api.parteners');
         $data["addButtonText"] = helperTrans('api.parteners');
+        $data['jobTitles'] = $jobTitleAction->get();
+        $data['nationalities'] = $nationalityAction->get();
+        $data['religions'] = $religionAction->get();
+        $data['status'] = RequestsStatusEnum::cases();
+        $data['marital_status'] = MaritalStatusEnum::cases();
         $data['count'] = objModel::count();
+        $data['approvedCount'] = objModel::where('status', RequestsStatusEnum::Approved->value)->count();
+        $data['rejectedCount'] = objModel::where('status', RequestsStatusEnum::Rejected->value)->count();
+        $data['pendingCount'] = objModel::where('status', RequestsStatusEnum::Pending->value)->count();
         return view($this->folderPath . '.index', compact('data'));
     }
 
@@ -88,11 +138,11 @@ class RecruitmentRequestController extends Controller
 
     public function store(objRequest $request, objAction $action)
     {
-        
+
       $data = $request->validated();
          $data = $action->store($data);
         return jsonSuccess($data);
- 
+
     }
 
 
@@ -124,18 +174,18 @@ class RecruitmentRequestController extends Controller
     $data = $action->find($id)->update($updatedData);
 
     return jsonSuccess($data);
-    }   
+    }
 public function show($id)
 {
    // جلب الطلب مع العميل والمساعدة (Maid) ونوع الوظيفة (JobType)
     $recruitmentRequest = objModel::with(['client', 'maid'])->findOrFail($id);
-    
+
     return view($this->folderPath . '.show', compact('recruitmentRequest'));
 }
 
     public function destroy($id, objAction $action)
     {
         $action->delete($id);
-        return jsonSuccess();
+        return jsonSuccess(['success' => true]);
     }
 }

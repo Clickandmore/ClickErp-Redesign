@@ -41,7 +41,7 @@
                     <!-- Statistics Cards -->
                     <div class="row mb-4">
                         <!-- Orders Statistics -->
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <div class="dashboard_stat_card">
                                 <div class="stat_header">
                                     <div class="stat_icon orders_icon">
@@ -69,7 +69,7 @@
                         </div>
 
                         <!-- Contracts Statistics -->
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <div class="dashboard_stat_card">
                                 <div class="stat_header">
                                     <div class="stat_icon contracts_icon">

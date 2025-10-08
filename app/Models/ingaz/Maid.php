@@ -61,6 +61,9 @@ class Maid extends Model
         'is_show',
         'is_pinned',
         'percentage',
+        'childrens_count',
+        'additional_notes',
+        'duration',
         'languages'
     ];
 

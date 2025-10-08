@@ -3,7 +3,6 @@
 namespace App\Http\Requests\ingaz;
 
 use App\Http\Requests\MainRequest;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class MaidRequest extends MainRequest
@@ -38,8 +37,12 @@ class MaidRequest extends MainRequest
             'price' => 'nullable|numeric',
             'salary' => 'nullable|numeric',
             'experience_years' => 'nullable',
+            'experience_status' => 'required|in:has_experience,no_experience',
             'religion_id' => 'nullable|exists:religions,id',
             'age' => 'nullable|numeric',
+            'childrens_count' => 'nullable|numeric',
+            'duration' => 'nullable|string',
+            'additional_notes' => 'nullable',
             'birth_date' => 'nullable|date',
             'job_id' => 'required|array',
             'job_id.*' => 'required|exists:job_titles,id',
