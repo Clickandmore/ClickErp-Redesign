@@ -18,11 +18,11 @@
                       enctype="multipart/form-data" id="maidForm">
                     @csrf
                     <!-- الملفات -->
-                    <div class="col-4">
+                    <div class="col-6">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.cv_file")}} </label>
                         <input type="file" data-default-file="" name="cv_file" class="dropify">
                     </div>
-                    <div class="col-4">
+                    <div class="col-6">
                         <label for="TextInput" class="form-label">صورة العامله </label>
                         <input type="file" data-default-file="" name="image" class="dropify" required>
                     </div>
@@ -218,7 +218,10 @@
                             @endforeach
                         </select>
                     </div>
-
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">رابط الفيديو <small class="text-muted">(اختياري)</small></label>
+                        <input type="url" name="video_link" class="form-control" placeholder="https://...">
+                    </div>
                     <div class="col-4">
                         <label for="experience_status" class="form-label">
                             حالة الخبرة <small class="text-muted">(مطلوب)</small>
@@ -230,16 +233,31 @@
                         </select>
                     </div>
 
-                    <div class="col-4" id="experience_years_container">
-                        <label for="TextInput" class="form-label">
-                            {{helperTrans("ingaz.experience_years")}} <small class="text-muted"></small>
-                        </label>
-                        <select name="experience_years" id="experience_years" class="form-control">
-                            <option value="">اختر سنوات الخبرة</option>
-                            @for($i = 1; $i <= 10; $i++)
-                                <option value="{{$i}}">{{$i}} {{$i == 1 ? 'سنة' : 'سنوات'}}</option>
-                            @endfor
-                        </select>
+                    <div id="experience_details" class="row g-3" style="display: none;">
+                        <div class="col-4">
+                            <label class="form-label">الدولة التي تم العمل بها</label>
+                            <select name="experience_country_id" id="experience_country_id" class="form-control">
+                                <option value="">{{ helperTrans('ingaz.choose') }}</option>
+                                @foreach($countries as $country)
+                                    <option value="{{ $country->id }}">{{ $country->name_ar }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-4">
+                            <label class="form-label">المسمى الوظيفي</label>
+                            <select name="experience_job_title_id" id="experience_job_title_id" class="form-control">
+                                <option value="">{{ helperTrans('ingaz.choose') }}</option>
+                                @foreach($jobs as $job)
+                                    <option value="{{ $job->id }}">{{ $job->title }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-4">
+                            <label class="form-label">سنوات الخبرة</label>
+                            <input type="number" name="experience_years_total" id="experience_years_total" class="form-control" min="1" max="40" placeholder="عدد السنوات">
+                        </div>
                     </div>
 
                     <!-- اللغات والحالة الاجتماعية -->
@@ -287,7 +305,7 @@
                         </div>
                     </div>
                     <label for="TextInput" class="form-label">{{helperTrans("ingaz.expertise")}} </label>
-                    <table class="table table-bordered">
+                    <table class="table table-bordered" id="experience_table" style="display: none;">
                         <thead>
                         <tr>
                             <th>{{ __("ingaz.country") }} </th>
@@ -300,8 +318,7 @@
                         <tr class="y-group">
                             <td>
                                 <select name="expertises[0][country_id]" data-placeholder=""
-                                        class="form-control select2"
-                                        required>
+                                        class="form-control select2">
                                     <option value="">{{helperTrans('ingaz.choose')}}</option>
                                     @foreach($countries as $country)
                                         <option value="{{$country->id}}">{{$country->name_ar}}</option>
@@ -309,12 +326,11 @@
                                 </select>
                             </td>
                             <td>
-                                <input type="text" name="expertises[0][number_of_years]" class="form-control" required>
+                                <input type="text" name="expertises[0][number_of_years]" class="form-control">
                             </td>
                             <td>
                                 <select name="expertises[0][job_title_id]" data-placeholder=""
-                                        class="form-control select2"
-                                        required>
+                                        class="form-control select2">
                                     <option value="">{{helperTrans('ingaz.choose')}}</option>
                                     @foreach($jobs as $job)
                                         <option value="{{$job->id}}">{{$job->title}}</option>
@@ -777,9 +793,6 @@
                 if (!formData.get('cv_file')) {
                     formData.append('cv_file', '');
                 }
-                if (!formData.get('experience_years')) {
-                    formData.append('experience_years', '0');
-                }
                 if (!formData.get('religion_id')) {
                     formData.append('religion_id', ''); // Default to غير محدد
                 }
@@ -806,6 +819,12 @@
                 if (!formData.get('type_id')) {
                     var defaultType = $('select[name="type_id"] option:selected').val();
                     formData.append('type_id', defaultType);
+                }
+
+                if (formData.get('experience_status') !== 'has_experience') {
+                    formData.delete('experience_country_id');
+                    formData.delete('experience_job_title_id');
+                    formData.delete('experience_years_total');
                 }
 
                 $.ajax({
@@ -870,4 +889,3 @@
         });
     </script>
 @endsection
-

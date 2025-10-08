@@ -485,6 +485,7 @@
                     office_id: $('#office_id').val(),
                     job_type: $('#type').val(),
                     experience_years: $('input[name="experience_years"]').val(),
+                    experience_status: $('select[name="experience_status"]').val(),
                     datefilter: $('input[name="daterange"]').val(),
                     order_by: $('select[name="order_by"]').val(),
                     cv_status: $('#cv_status').val()

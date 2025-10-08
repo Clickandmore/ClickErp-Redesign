@@ -247,7 +247,7 @@
                                                 </li>
                                             @endif
                                               @if($nationality->description)
-                                            <div class="country-description">
+                                            <div class="country-description center">
                                                 {!! $nationality->description !!}
                                             </div>
                                         @endif

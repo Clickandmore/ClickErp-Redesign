@@ -37,6 +37,7 @@ class MaidRequest extends MainRequest
             'price' => 'nullable|numeric',
             'salary' => 'nullable|numeric',
             'experience_years' => 'nullable',
+            'experience_status' => 'required|in:has_experience,no_experience',
             'religion_id' => 'nullable|exists:religions,id',
             'age' => 'nullable|numeric',
             'childrens_count' => 'nullable|numeric',

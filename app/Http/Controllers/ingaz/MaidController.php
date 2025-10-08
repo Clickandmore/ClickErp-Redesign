@@ -869,6 +869,9 @@ class MaidController extends Controller
         if ($request->has('experience_years') && $request->experience_years != null) {
             $rows->where('experience_years', $request->experience_years);
         }
+        if ($request->has('experience_status') && $request->experience_status != null) {
+            $rows->where('experience_status', $request->experience_status);
+        }
         if ($request->has('datefilter') && $request->datefilter != null) {
             $dates = explode(' - ', $request->datefilter);
             if (count($dates) == 2) {
@@ -938,6 +941,9 @@ class MaidController extends Controller
         }
         if ($request->has('experience_years') && $request->experience_years != null) {
             $rows->where('experience_years', $request->experience_years);
+        }
+        if ($request->has('experience_status') && $request->experience_status != null) {
+            $rows->where('experience_status', $request->experience_status);
         }
         if ($request->has('datefilter') && $request->datefilter != null) {
             $dates = explode(' - ', $request->datefilter);

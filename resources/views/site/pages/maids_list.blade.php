@@ -17,8 +17,11 @@
                                     <div class="worker-age">
                                         <span>{{ $maid->age ?? '' }}</span>{{ __('ingaz.year') }}
                                     </div>
-                                    <div class="worker-id">{{ $maid->st_code ?? '' }} /
-                                        {{ $maid->int_code ?? '' }}</div>
+                                    @if($maid->st_code || $maid->int_code)
+                                        <div class="worker-id">
+                                            {{ implode(' / ', array_filter([$maid->st_code ?? null, $maid->int_code ?? null])) }}
+                                        </div>
+                                    @endif
                                 </div>
                                 <h4>{{ $maid->name ?? '' }}</h4>
                                                            <div class="ribbon"><span>خصم خاص</span></div>
@@ -26,17 +29,20 @@
                                 <div class="workerInfo">
                                     <p>{{ __('ingaz.nationality') }} :
                                         {{ $maid->nationality->sub_title ?? '' }}</p>
-                                    <p>{{ __('ingaz.religion') }} : {{ $maid->religion->title ?? '' }}
-                                    </p>
+                                    <p>{{ __('ingaz.religion') }} : {{ $maid->religion->title ?? '' }}</p>
+                                    @if(!empty($maid->passport_num))
+                                        <p>{{ __('ingaz.passport_num') }} : {{ $maid->passport_num }}</p>
+                                    @endif
                                     <p>{{ __('ingaz.job') }} :
                                         {{ $maid->jobTitles->first()->title ?? '' }}</p>
                                     <p>{{ __('ingaz.experience') }} :
-                                        {{ $maid->experience_years != null && $maid->experience_years > 0 ? $maid->experience_years : '' }}
-                                        {{ __('ingaz.year') }}</p>
+                                        {{ $maid->experience_status === 'has_experience' ? __('ingaz.has_experience_label') : __('ingaz.no_experience_label') }}
+                                        @if($maid->experience_status === 'has_experience' && is_numeric($maid->experience_years) && (float)$maid->experience_years > 0)
+                                            - {{ $maid->experience_years }} {{ __('ingaz.year') }}
+                                        @endif
+                                    </p>
                                     <p>{{ __('ingaz.cost_with_tax') }} : {{ $maid->salary ?? '' }}
                                         {{ __('ingaz.SAR') }}</p>
-                                    <p>{{ __('ingaz.rent_duration') }} : {{ __('ingaz.through') }}
-                                        {{ $maid->duration ?? '' }} {{ __('ingaz.day') }}</p>
                                 </div>
                                 <p class="guarantee">
                                     {{ __('ingaz.cv_alert') }}
@@ -45,9 +51,12 @@
                                     <a data-fancybox="cv1" href="{{ showFile($maid->cv_preview) }}" class="icon-btn">
                                         <i class="fa-regular fa-file-pdf"></i>
                                     </a>
-                                    @if(!empty($maid->video) && $maid->video !== '#')
-                                        <a data-fancybox="video1" href="{{ showFile($maid->video) }}"
-                                           class="icon-btn">
+                                    @if(!empty($maid->video_link) || (!empty($maid->video) && $maid->video !== '#'))
+                                        @php
+                                            $videoHref = !empty($maid->video_link) ? $maid->video_link : showFile($maid->video);
+                                            $isExternal = !empty($maid->video_link);
+                                        @endphp
+                                        <a href="{{ $videoHref }}" class="icon-btn" @if($isExternal) target="_blank" rel="noopener noreferrer" @else data-fancybox="video{{ $maid->id }}" @endif>
                                             <i class="fa-solid fa-video"></i>
                                         </a>
                                     @endif
@@ -70,17 +79,26 @@
                             <div class="worker-content">
                                 <div class="worker-header">
                                     <span>{{ $maid->age ?? '' }}</span>{{ __('ingaz.year') }}
-                                    <div class="worker-id">{{ $maid->st_code ?? '' }} /
-                                        {{ $maid->int_code ?? '' }}</div>
+                                    @if($maid->st_code || $maid->int_code)
+                                        <div class="worker-id">
+                                            {{ implode(' / ', array_filter([$maid->st_code ?? null, $maid->int_code ?? null])) }}
+                                        </div>
+                                    @endif
                                 </div>
                                 <h4>{{ $maid->name ?? '' }}</h4>
                                 <div class="workerInfo">
                                     <p>{{ __('ingaz.nationality') }} : {{ $maid->nationality->sub_title ?? '' }}</p>
                                     <p>{{ __('ingaz.religion') }} : {{ $maid->religion->title ?? '' }}</p>
+                                    @if(!empty($maid->passport_num))
+                                        <p>{{ __('ingaz.passport_num') }} : {{ $maid->passport_num }}</p>
+                                    @endif
                                     <p>{{ __('ingaz.job') }} :
                                         {{ $maid->jobTitles->first()->title ?? '' }}</p>
                                     <p>{{ __('ingaz.experience') }} :
-                                        {{ $maid->experience_years != null && $maid->experience_years > 0 ? $maid->experience_years : '' }}
+                                        {{ $maid->experience_status === 'has_experience' ? __('ingaz.has_experience_label') : __('ingaz.no_experience_label') }}
+                                        @if($maid->experience_status === 'has_experience' && is_numeric($maid->experience_years) && (float)$maid->experience_years > 0)
+                                            - {{ $maid->experience_years }} {{ __('ingaz.year') }}
+                                        @endif
                                     </p>
                                     <p>{{ __('ingaz.monthly_rental') }}
                                         : {{ $maid->salary ?? '' }} {{ __('ingaz.SAR') }}
@@ -95,9 +113,12 @@
                                     <a data-fancybox="cv2" href="{{ showFile($maid->cv_preview) }}" class="icon-btn">
                                         <i class="fa-regular fa-file-pdf"></i>
                                     </a>
-                                    @if(!empty($maid->video) && $maid->video !== '#')
-                                        <a data-fancybox="video1" href="{{ showFile($maid->video) }}"
-                                           class="icon-btn">
+                                    @if(!empty($maid->video_link) || (!empty($maid->video) && $maid->video !== '#'))
+                                        @php
+                                            $videoHref = !empty($maid->video_link) ? $maid->video_link : showFile($maid->video);
+                                            $isExternal = !empty($maid->video_link);
+                                        @endphp
+                                        <a href="{{ $videoHref }}" class="icon-btn" @if($isExternal) target="_blank" rel="noopener noreferrer" @else data-fancybox="video{{ $maid->id }}" @endif>
                                             <i class="fa-solid fa-video"></i>
                                         </a>
                                     @endif
@@ -120,19 +141,27 @@
                             <div class="worker-content">
                                 <div class="worker-header">
                                     <span>{{ $maid->age ?? '' }}</span>{{ __('ingaz.year') }}
-                                    <div class="worker-id">{{ $maid->st_code ?? '' }} /
-                                        {{ $maid->int_code ?? '' }}</div>
+                                    @if($maid->st_code || $maid->int_code)
+                                        <div class="worker-id">
+                                            {{ implode(' / ', array_filter([$maid->st_code ?? null, $maid->int_code ?? null])) }}
+                                        </div>
+                                    @endif
                                 </div>
                                 <h4>{{ $maid->name ?? '' }}</h4>
                                 <div class="workerInfo">
                                     <p>{{ __('ingaz.nationality') }} :
                                         {{ $maid->nationality->sub_title ?? '' }}</p>
-                                    <p>{{ __('ingaz.religion') }} : {{ $maid->religion->title ?? '' }}
-                                    </p>
+                                    <p>{{ __('ingaz.religion') }} : {{ $maid->religion->title ?? '' }}</p>
+                                    @if(!empty($maid->passport_num))
+                                        <p>{{ __('ingaz.passport_num') }} : {{ $maid->passport_num }}</p>
+                                    @endif
                                     <p>{{ __('ingaz.job') }} :
                                         {{ $maid->jobTitles->first()->title ?? '' }}</p>
                                     <p>{{ __('ingaz.experience') }} :
-                                        {{ $maid->experience_years != null && $maid->experience_years > 0 ? $maid->experience_years : '' }}
+                                        {{ $maid->experience_status === 'has_experience' ? __('ingaz.has_experience_label') : __('ingaz.no_experience_label') }}
+                                        @if($maid->experience_status === 'has_experience' && is_numeric($maid->experience_years) && (float)$maid->experience_years > 0)
+                                            - {{ $maid->experience_years }} {{ __('ingaz.year') }}
+                                        @endif
                                     </p>
                                     <p>{{ __('ingaz.cost_with_tax') }} : {{ $maid->salary ?? '' }}
                                         {{ __('ingaz.SAR') }}</p>

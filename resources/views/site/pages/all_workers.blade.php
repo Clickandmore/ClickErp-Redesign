@@ -213,7 +213,6 @@
             let age = $("#age").val();
             let job = $("#job").val();
             let nationality_id = $("#nationality_id").val();
-
             fetchWorkers({ type: type, age: age, job: job, nationality_id: nationality_id });
         });
 
