@@ -3477,6 +3477,14 @@ main .allWorkers .workers-list .worker-box .worker-media img {
      object-position: top;
   border-radius: inherit;
 }
+main .allWorkers .workers-list .worker-box .worker-content {
+  margin-top: 70px;
+}
+@media screen and (max-width: 992px) {
+  main .allWorkers .workers-list .worker-box .worker-content {
+    margin-top: 60px;
+  }
+}
 main .allWorkers .workers-list .worker-box .worker-header {
   display: flex;
   flex-direction: column;

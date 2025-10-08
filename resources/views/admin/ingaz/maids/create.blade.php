@@ -26,14 +26,11 @@
                         <label for="TextInput" class="form-label">صورة العامله </label>
                         <input type="file" data-default-file="" name="image" class="dropify" required>
                     </div>
-                    <div class="col-4">
+                    {{-- <div class="col-4">
                         <label for="TextInput" class="form-label">الفيديو </label>
                         <input type="file" data-default-file="" name="video" class="dropify">
-                    </div>
-                    <div class="col-12">
-                        <label for="TextInput" class="form-label">رابط الفيديو </label>
-                        <input type="url" name="video_link" class="form-control" required>
-                    </div>
+                    </div> --}}
+                   
                     <!-- أنواع الوظائف -->
                     <div class="col-4">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.job_types_2")}} </label>
@@ -159,7 +156,7 @@
                         <label for="TextInput" class="form-label">
                             {{helperTrans("ingaz.childrens_count")}}
                         </label>
-                        <input type="number" name="childrens_count" class="form-control" min="1" step="1">
+                        <input type="number" name="childrens_count" class="form-control" min="0" step="1" value="0">
                     </div>
                     <div class="col-4">
                         <label for="TextInput" class="form-label">
@@ -233,33 +230,6 @@
                         </select>
                     </div>
 
-                    <div id="experience_details" class="row g-3" style="display: none;">
-                        <div class="col-4">
-                            <label class="form-label">الدولة التي تم العمل بها</label>
-                            <select name="experience_country_id" id="experience_country_id" class="form-control">
-                                <option value="">{{ helperTrans('ingaz.choose') }}</option>
-                                @foreach($countries as $country)
-                                    <option value="{{ $country->id }}">{{ $country->name_ar }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="col-4">
-                            <label class="form-label">المسمى الوظيفي</label>
-                            <select name="experience_job_title_id" id="experience_job_title_id" class="form-control">
-                                <option value="">{{ helperTrans('ingaz.choose') }}</option>
-                                @foreach($jobs as $job)
-                                    <option value="{{ $job->id }}">{{ $job->title }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="col-4">
-                            <label class="form-label">سنوات الخبرة</label>
-                            <input type="number" name="experience_years_total" id="experience_years_total" class="form-control" min="1" max="40" placeholder="عدد السنوات">
-                        </div>
-                    </div>
-
                     <!-- اللغات والحالة الاجتماعية -->
                     <div class="col-12">
                         <label for="TextInput" class="form-label">
@@ -304,51 +274,53 @@
                             </div>
                         </div>
                     </div>
-                    <label for="TextInput" class="form-label">{{helperTrans("ingaz.expertise")}} </label>
-                    <table class="table table-bordered" id="experience_table" style="display: none;">
-                        <thead>
-                        <tr>
-                            <th>{{ __("ingaz.country") }} </th>
-                            <th>{{ __("ingaz.number_of_years") }}</th>
-                            <th>{{ __("ingaz.job_title") }}</th>
-                            <th style="width:150px">{{ __("ingaz.actions") }}</th>
-                        </tr>
-                        </thead>
-                        <tbody id="json_array">
-                        <tr class="y-group">
-                            <td>
-                                <select name="expertises[0][country_id]" data-placeholder=""
-                                        class="form-control select2">
-                                    <option value="">{{helperTrans('ingaz.choose')}}</option>
-                                    @foreach($countries as $country)
-                                        <option value="{{$country->id}}">{{$country->name_ar}}</option>
-                                    @endforeach
-                                </select>
-                            </td>
-                            <td>
-                                <input type="text" name="expertises[0][number_of_years]" class="form-control">
-                            </td>
-                            <td>
-                                <select name="expertises[0][job_title_id]" data-placeholder=""
-                                        class="form-control select2">
-                                    <option value="">{{helperTrans('ingaz.choose')}}</option>
-                                    @foreach($jobs as $job)
-                                        <option value="{{$job->id}}">{{$job->title}}</option>
-                                    @endforeach
-                                </select>
-                            </td>
-                            <td class="text-center">
-                                <button type="button" class="btn btn-link p-0 me-2 btnAdd" title="إضافة">
-                                    <i class="fa fa-plus-circle text-success fs-5"></i>
-                                </button>
-                                <button type="button" class="btn btn-link p-0 btnRemove" title="حذف">
-                                    <i class="fa fa-trash text-danger fs-5"></i>
-                                </button>
-                            </td>
+                    <div id="experience_section" style="display: none;">
+                        <label for="TextInput" class="form-label">{{helperTrans("ingaz.expertise")}} </label>
+                        <table class="table table-bordered" id="experience_table">
+                            <thead>
+                            <tr>
+                                <th>{{ __("ingaz.country") }} </th>
+                                <th>{{ __("ingaz.number_of_years") }}</th>
+                                <th>{{ __("ingaz.job_title") }}</th>
+                                <th style="width:150px">{{ __("ingaz.actions") }}</th>
+                            </tr>
+                            </thead>
+                            <tbody id="json_array">
+                            <tr class="y-group">
+                                <td>
+                                    <select name="expertises[0][country_id]" data-placeholder=""
+                                            class="form-control select2" data-exp-required="true">
+                                        <option value="">{{helperTrans('ingaz.choose')}}</option>
+                                        @foreach($countries as $country)
+                                            <option value="{{$country->id}}">{{$country->name_ar}}</option>
+                                        @endforeach
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="text" name="expertises[0][number_of_years]" class="form-control" data-exp-required="true">
+                                </td>
+                                <td>
+                                    <select name="expertises[0][job_title_id]" data-placeholder=""
+                                            class="form-control select2" data-exp-required="true">
+                                        <option value="">{{helperTrans('ingaz.choose')}}</option>
+                                        @foreach($jobs as $job)
+                                            <option value="{{$job->id}}">{{$job->title}}</option>
+                                        @endforeach
+                                    </select>
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-link p-0 me-2 btnAdd" title="إضافة">
+                                        <i class="fa fa-plus-circle text-success fs-5"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-link p-0 btnRemove" title="حذف">
+                                        <i class="fa fa-trash text-danger fs-5"></i>
+                                    </button>
+                                </td>
 
-                        </tr>
-                        </tbody>
-                    </table>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit">{{__("buttons.save")}}</button>
                         <a href="{{ route('maids.index') }}"
@@ -388,7 +360,7 @@
         $(function () {
 
             // إعادة ترقيم أسماء الحقول بعد أي تغيير
-            function reindexRows() {
+            window.reindexRows = function () {
                 $('#json_array tr.y-group').each(function (rowIndex) {
                     $(this).find('input, select, textarea').each(function () {
                         let name = $(this).attr('name') || '';
@@ -399,7 +371,7 @@
             }
 
             // إظهار/إخفاء أزرار الحذف بناءً على عدد الصفوف
-            function updateRemoveButtons() {
+            window.updateRemoveButtons = function () {
                 const rowCount = $('#json_array tr.y-group').length;
                 if (rowCount <= 1) {
                     $('#json_array .btnRemove').hide(); // اختفاء الزرار لو الصف واحد أو أقل
@@ -409,18 +381,29 @@
             }
 
             // مبدئياً
-            reindexRows();
-            updateRemoveButtons();
+            window.reindexRows();
+            window.updateRemoveButtons();
 
             // إضافة صف (ينسخ الصف الحالي ويُفرغ الحقول)
             $(document).on('click', '.btnAdd', function () {
                 const $currentRow = $(this).closest('tr');
                 const $clone = $currentRow.clone();
+
                 $clone.find('input, textarea').val('');
-                $clone.find('select').prop('selectedIndex', 0);
+                $clone.find('span.select2').remove();
+                $clone.find('select.select2').each(function () {
+                    $(this)
+                        .removeAttr('data-select2-id')
+                        .removeClass('select2-hidden-accessible')
+                        .prop('selectedIndex', 0);
+                });
+
                 $currentRow.after($clone);
-                reindexRows();
-                updateRemoveButtons();
+                window.reindexRows();
+                window.updateRemoveButtons();
+                if (typeof window.initExperienceSelects === 'function') {
+                    window.initExperienceSelects($clone);
+                }
             });
 
             // حذف صف
@@ -429,9 +412,16 @@
                 if ($rows.length <= 1) {
                     return; // لن يحدث شيء؛ الزر مخفي فعلاً لكن هنا كحماية
                 }
-                $(this).closest('tr').remove();
-                reindexRows();
-                updateRemoveButtons();
+                const $row = $(this).closest('tr');
+                if ($row.find('select.select2[data-select2-id]').length) {
+                    $row.find('select.select2').select2('destroy');
+                }
+                $row.remove();
+                window.reindexRows();
+                window.updateRemoveButtons();
+                if (typeof window.initExperienceSelects === 'function') {
+                    window.initExperienceSelects();
+                }
             });
 
         });
@@ -445,6 +435,22 @@
             });
             $('.dropify').dropify();
             $('.js-example-basic-multiple').select2();
+
+            window.initExperienceSelects = function (context) {
+                const $context = context ? $(context) : $('#experience_section');
+                $context.find('select.form-control.select2').each(function () {
+                    const $select = $(this);
+                    if ($select.data('select2')) {
+                        $select.select2('destroy');
+                    }
+                    $select.select2({
+                        width: '100%',
+                        dropdownParent: $('#experience_section')
+                    });
+                });
+            }
+
+            window.initExperienceSelects();
 
             // Function to handle fields visibility based on job type
             // هذه الدالة تتحكم في إظهار/إخفاء الحقول بناءً على نوع السيرة المختار
@@ -886,6 +892,50 @@
                     }
                 });
             });
+        });
+    </script>
+    <script>
+        $(function () {
+            function clearExperienceSection() {
+                $('#experience_section').find('[data-exp-required]').each(function () {
+                    $(this).val('');
+                });
+                $('#json_array tr.y-group').slice(1).remove();
+                if (typeof window.reindexRows === 'function') {
+                    window.reindexRows();
+                }
+                if (typeof window.updateRemoveButtons === 'function') {
+                    window.updateRemoveButtons();
+                }
+                if (typeof window.initExperienceSelects === 'function') {
+                    window.initExperienceSelects();
+                }
+            }
+
+            function toggleExperienceSection() {
+                var status = $('#experience_status').val();
+                var $section = $('#experience_section');
+                var $requiredFields = $section.find('[data-exp-required]');
+
+                if (status === 'has_experience') {
+                    $section.slideDown();
+                    $requiredFields.each(function () {
+                        $(this).attr('required', 'required');
+                    });
+                    if (typeof window.initExperienceSelects === 'function') {
+                        window.initExperienceSelects();
+                    }
+                } else {
+                    $requiredFields.each(function () {
+                        $(this).removeAttr('required');
+                    });
+                    clearExperienceSection();
+                    $section.slideUp();
+                }
+            }
+
+            $('#experience_status').on('change', toggleExperienceSection);
+            toggleExperienceSection();
         });
     </script>
 @endsection
