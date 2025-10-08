@@ -160,7 +160,8 @@
                 </form>
             </div>
         </div>
-                
+                 <div class="card shadow">
+            <div class="card-body">
             <table id="dataTableObject" class="table table-hover" style="width:100%">
                 <thead>
                 <tr>
@@ -178,7 +179,8 @@
                 <tbody>
                 </tbody>
             </table>
-
+</div>
+                 </div>
     @else
         @include('components.no_permissions')
     @endif
