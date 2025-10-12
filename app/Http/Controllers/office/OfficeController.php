@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\Models\Activity;
 use Yajra\DataTables\Facades\DataTables;
 
 //use function App\Http\Controllers\ingaz\__;
@@ -83,38 +84,60 @@ class OfficeController extends Controller
                 })
                 ->addColumn('actions', function ($row) {
                     $editButton = '';
+                    $showButton = '';
                     $deleteButton = '';
                     $fileButton = '';
                     $sendEmailButton = '';
                     // if (Auth::guard('admin')->user()->hasPermission('programs-update')) {
-                    $editButton = '<a href="' . route('offices.edit', $row->id) . '" class="btn btn-primary">
-                                    <i class="fa fa-pencil"></i>
+                    $editButton = '<a href="' . route('offices.edit', $row->id) . '" class="dropdown-item">
+                                    <i class="fa fa-pencil"></i> ' . __("ingaz.edit") . '
+                                   </a>';
+                    $showButton = '<a href="' . route('offices.show', $row->id) . '" class="dropdown-item">
+                                    <i class="fa fa-eye"></i> ' . __("ingaz.view_details") . '
                                    </a>';
                     // }
                     // if (Auth::guard('admin')->user()->hasPermission('programs-delete')) {
-                    $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                    // $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                    $deleteButton = ' <button type="button" class="dropdown-item deleteButton" delete-route="' . route($this->mainRoute . ".destroy", $row->id) . '" title="حذف">
+                            <i class="fa fa-trash"></i> حذف المكتب
+                        </button>';
                     // }
                     if (isset($row->file)) {
-                        $fileButton = '<a href="' . route('offices-file.edit', @$row->file->id) . '" class="btn btn-sm btn-dark mx-1">
+                        $fileButton = '<a href="' . route('offices-file.edit', @$row->file->id) . '" class="dropdown-item">
                                     <i class="fa fa-plus"></i> ' . __("ingaz.office_file") . '
                                    </a>';
                     } else {
-                        $fileButton = '<a href="' . route('offices-file.create', ['office_id' => $row->id]) . '" class="btn btn-sm btn-dark mx-1">
+                        $fileButton = '<a href="' . route('offices-file.create', ['office_id' => $row->id]) . '" class="dropdown-item">
                                     <i class="fa fa-plus"></i> ' . __("ingaz.office_file") . '
                                    </a>';
                     }
-                    $sendEmailButton = '<button class="btn btn-success sendEmailResetPassword" data-id="' . $row->id . '"data-email="' . $row->manager_email . '">' . '  <i class="fa fa-email"></i> ' . __("ingaz.send_email_reset_password") . '</button>';
+                    $sendEmailButton = '<button class="dropdown-item sendEmailResetPassword" data-id="' . $row->id . '"data-email="' . $row->manager_email . '">' . '  <i class="fa fa-email"></i> ' . __("ingaz.send_email_reset_password") . '</button>';
 
-                    return $fileButton . " " . $editButton . " " . $sendEmailButton . " " . $deleteButton;
+                    // Action Buttons
+                    $actions = '
+                                <div class="dropdown actions-dropdown">
+                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="الإجراءات المتاحة">
+                                        <i class="fas fa-cogs me-1"></i> ' . __("ingaz.actions") . '
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-lg">
+                                        <li>' . $showButton . '</li>
+                                        <li>' . $editButton . '</li>
+                                        <li>' . $deleteButton . '</li>
+                                        <li>' . $fileButton . '</li>
+                                        <li>' . $sendEmailButton . '</li>
+                                    </ul>
+                                </div>';
+                    return $actions;
                 })
                 ->rawColumns(['actions', 'license_number', 'title', 'nationality_id', 'office_number', 'status'])->make(true);
         }
+        $data['count'] = objModel::count();
         $data["createRoute"] = route($this->mainRoute . ".create");
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = __("auth.admins");
         $data["addButtonText"] = __("auth.admin");
         $data["modalType"] = "";
-        return view($this->folderPath . '.index', $data);
+        return view($this->folderPath . '.index', compact('data'));
     }
 
     /**
@@ -177,11 +200,28 @@ class OfficeController extends Controller
      */
     public function show($id)
     {
+        $office = objModel::with([
+            'nationality',
+            'jobTypes',
+            'attachment',
+            'file.jobTitle',
+            'officeManager.admin',
+        ])->findOrFail($id);
 
-        $model = objModel::find($id);
-        $model->is_show = !$model->is_show;
-        $model->update();
-        return response()->json(['success' => true]);
+        // $office->is_show = !$office->is_show;
+        // $office->save();
+
+        $activities = Activity::query()
+            ->with('causer')
+            ->where('subject_type', objModel::class)
+            ->where('subject_id', $office->id)
+            ->latest('created_at')
+            ->get();
+
+        return view('admin.office.show', [
+            'office' => $office,
+            'activities' => $activities,
+        ]);
     }
 
     /**
@@ -270,3 +310,8 @@ class OfficeController extends Controller
         return jsonSuccess();
     }
 }
+
+
+
+
+

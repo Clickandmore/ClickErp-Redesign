@@ -26,7 +26,7 @@
 @section('content')
     <div class="page-body p-4 text-dark admin-tables">
 {{--        @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_CONTRACT_VIEW))--}}
-            <div class="container-fluid ">
+            <div class="container-fluid">
                 <!-- Page Title Section -->
                 <div class="row mb-4">
                     <div class="col-12">

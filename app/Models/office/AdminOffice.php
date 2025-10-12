@@ -10,4 +10,9 @@ class AdminOffice extends Model
     use HasFactory;
 
     protected $guarded = [];
+
+    public function admin()
+    {
+        return $this->belongsTo(\App\Models\auth\Admin::class, 'admin_id');
+    }
 }

@@ -90,7 +90,7 @@
         </div>
 
         {{-- Mahmoud Amer's Code --}}
-        <div class="card mt-4">
+        <div class="card mt-4 shadow-sm">
             <div class="card-header bg-primary text-white">
                 <h4 class="mb-0">{{ __('طلبات العميل') }}</h4>
             </div>
@@ -266,9 +266,10 @@
             </div>
         </div>
 
-        <div class="card">
-            <h4 class="card-title">{{ __('شكاوى العميل') }}</h4>
-
+        <div class="card mt-4 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">{{ __('شكاوى العميل') }}</h4>
+            </div>
             <div class="card-body table-responsive  table-sm ">
                 <table class="table  ">
                     <thead class="bg-success text-white">
@@ -349,9 +350,10 @@
             <br />
         </div>
 
-        <div class="card">
-            <h4 class="card-title">{{ __('رسايل العميل') }}</h4>
-
+        <div class="card mt-4 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">{{ __('رسايل العميل') }}</h4>
+            </div>
             <div class="card-body table-responsive  table-sm ">
                 <table class="table  ">
                     <thead class="bg-success text-white">
