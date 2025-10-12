@@ -54,9 +54,12 @@
                                     @if(!empty($maid->video_link) || (!empty($maid->video) && $maid->video !== '#'))
                                         @php
                                             $videoHref = !empty($maid->video_link) ? $maid->video_link : showFile($maid->video);
-                                            $isExternal = !empty($maid->video_link);
+                                            $openAsIframe = !empty($maid->video_link);
                                         @endphp
-                                        <a href="{{ $videoHref }}" class="icon-btn" @if($isExternal) target="_blank" rel="noopener noreferrer" @else data-fancybox="video{{ $maid->id }}" @endif>
+                                        <a href="{{ $videoHref }}" class="icon-btn"
+                                           data-fancybox="video{{ $maid->id }}"
+                                           @if($openAsIframe) data-type="iframe" @endif
+                                        >
                                             <i class="fa-solid fa-video"></i>
                                         </a>
                                     @endif
@@ -116,9 +119,12 @@
                                     @if(!empty($maid->video_link) || (!empty($maid->video) && $maid->video !== '#'))
                                         @php
                                             $videoHref = !empty($maid->video_link) ? $maid->video_link : showFile($maid->video);
-                                            $isExternal = !empty($maid->video_link);
+                                            $openAsIframe = !empty($maid->video_link);
                                         @endphp
-                                        <a href="{{ $videoHref }}" class="icon-btn" @if($isExternal) target="_blank" rel="noopener noreferrer" @else data-fancybox="video{{ $maid->id }}" @endif>
+                                        <a href="{{ $videoHref }}" class="icon-btn"
+                                           data-fancybox="video{{ $maid->id }}"
+                                           @if($openAsIframe) data-type="iframe" @endif
+                                        >
                                             <i class="fa-solid fa-video"></i>
                                         </a>
                                     @endif
@@ -176,7 +182,7 @@
                                         <i class="fa-regular fa-file-pdf"></i>
                                     </a>
                                     @if(!empty($maid->video) && $maid->video !== '#')
-                                        <a href="{{ showFile($maid->video) }}" class="icon-btn" target="_blank" rel="noopener noreferrer">
+                                        <a href="{{ showFile($maid->video) }}" class="icon-btn" data-fancybox="video{{ $maid->id }}">
                                             <i class="fa-solid fa-video"></i>
                                         </a>
                                     @endif

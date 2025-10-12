@@ -159,6 +159,8 @@ class MaidAction extends MainAction
             throw new \Exception('Selected religion does not exist in the database');
         }
 
+        unset($data['duration'], $data['additional_notes'], $data['id']);
+
         // معالجة جميع الحقول التي هي array
         foreach ($data as $key => $value) {
             if ($key === 'expertises') {
@@ -196,9 +198,9 @@ class MaidAction extends MainAction
             'age' => $data['age'],
             'height' => $data['height'],
             'weight' => $data['weight'],
-            'childrens_count' => $data['childrens_count'],
             'duration' => $data['duration'],
             'additional_notes' => $data['additional_notes'] ?? null,
+            'childrens_count' => $data['childrens_count'] ?? 0,
             'birth_date' => $data['birth_date'] ?? null,
             'experience_years' => $data['experience_years'] ?? '0',
             'experience_status' => $data['experience_status'] ?? 'no_experience',
@@ -376,6 +378,7 @@ class MaidAction extends MainAction
         $maid = parent::find($id);
 
         $experienceStatusValue = $data['experience_status'] ?? $maid->experience_status ?? 'no_experience';
+        unset($data['duration'], $data['additional_notes'], $data['id']);
         if ($experienceStatusValue === 'has_experience') {
             $totalYears = 0;
             if (isset($data['expertises']) && is_array($data['expertises'])) {
