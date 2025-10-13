@@ -737,7 +737,8 @@ class RecruitmentContractController extends Controller
         }
 
         $info = ContractInfo::where('contract_id', $contract->id)->first();
-
+        // dump($info);
+        // exit;
         // الحصول على بيانات المسوق
         $marketer = null;
         try {
@@ -855,25 +856,25 @@ class RecruitmentContractController extends Controller
             ], 403);
         }
 
-        \Log::info('Recruitment Contract Creation Request:', $request->all());
-        \Log::info('Request validation:', [
-            'order_id' => $request->order_id,
-            'client_type' => $request->client_type,
-            'contract_date' => $request->contract_date,
-            'msaned_number' => $request->msaned_number,
-            'visa_number' => $request->visa_number,
-            'contract_duration' => $request->contract_duration,
-            'client_national_num' => $request->client_national_num,
-            'new_client_national_num' => $request->new_client_national_num,
-            'client_birthdate' => $request->client_birthdate,
-            'new_client_birthdate' => $request->new_client_birthdate,
-            'client_address' => $request->address,
-            'new_client_address' => $request->new_client_address,
-            'client_phone2' => $request->phone2,
-            'new_client_phone2' => $request->new_client_phone2,
-            'client_city' => $request->city,
-            'new_client_city' => $request->new_client_city
-        ]);
+        // \Log::info('Recruitment Contract Creation Request:', $request->all());
+        // \Log::info('Request validation:', [
+        //     'order_id' => $request->order_id,
+        //     'client_type' => $request->client_type,
+        //     'contract_date' => $request->contract_date,
+        //     'msaned_number' => $request->msaned_number,
+        //     'visa_number' => $request->visa_number,
+        //     'contract_duration' => $request->contract_duration,
+        //     'client_national_num' => $request->client_national_num,
+        //     'new_client_national_num' => $request->new_client_national_num,
+        //     'client_birthdate' => $request->client_birthdate,
+        //     'new_client_birthdate' => $request->new_client_birthdate,
+        //     'client_address' => $request->address,
+        //     'new_client_address' => $request->new_client_address,
+        //     'client_phone2' => $request->phone2,
+        //     'new_client_phone2' => $request->new_client_phone2,
+        //     'client_city' => $request->city,
+        //     'new_client_city' => $request->new_client_city
+        // ]);
 
         try {
             DB::beginTransaction();

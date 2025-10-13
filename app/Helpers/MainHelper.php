@@ -790,7 +790,19 @@ if (!function_exists('getContractStatus')) {
             'completed' => [
                 'ar' => 'عقد مكتمل',
                 'en' => 'Completed Contract'
-            ]
+            ],
+            'delegate_selected' => [
+                'ar' => 'تم اختيار أحد المندوبين',
+                'en' => 'Delegate Selected'
+            ],
+            'client_contracted' => [
+                'ar' => 'تم التعاقد مع العميل',
+                'en' => 'Client Contracted'
+            ],
+            'in_progress' => [
+                'ar' => 'مرحلة الاجراءات',
+                'en' => 'In Progress'
+            ],
         ];
 
         return $statuses[$status]['ar'] ?? $status;
@@ -813,7 +825,10 @@ if (!function_exists('getContractStatusColor')) {
             'closed' => 'secondary',
             'shelter' => 'dark',
             'pending_maid_selection' => 'warning',
-            'completed' => 'success'
+            'completed' => 'success',
+            'delegate_selected' => 'info',
+            'client_contracted' => 'primary',
+            'in_progress' => 'warning',
         ];
 
         return $colors[$status] ?? 'secondary';

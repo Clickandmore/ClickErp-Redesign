@@ -1303,6 +1303,7 @@ $(document).ready(function() {
         $('#new_client_name').removeClass('is-invalid');
         $('#err_new_client_name').text('');
         console.log('Client name validation passed');
+        isValid = true;
       }
 
     // تحقق رقم الجوال
@@ -1321,6 +1322,7 @@ $(document).ready(function() {
     } else {
       $('#new_client_phone').removeClass('is-invalid');
       $('#err_new_client_phone').text('');
+      isValid = true;
       console.log('Client phone validation passed');
     }
 
@@ -1340,6 +1342,7 @@ $(document).ready(function() {
     } else {
       $('#new_client_national_num').removeClass('is-invalid');
       $('#err_new_client_national_num').text('');
+      isValid = true;
       console.log('Client nationality number validation passed');
     }
 
@@ -1352,6 +1355,7 @@ $(document).ready(function() {
     } else {
       $('#new_client_birthdate').removeClass('is-invalid');
       $('#new_client_birthdate').next('.invalid-feedback').remove();
+      isValid = true;
     }
 
     // تحقق رقم الهاتف الإضافي
@@ -1363,6 +1367,7 @@ $(document).ready(function() {
     } else {
       $('#new_client_phone2').removeClass('is-invalid');
       $('#new_client_phone2').next('.invalid-feedback').remove();
+      isValid = true;
     }
 
     // تحقق العنوان (اختياري)
@@ -1381,6 +1386,7 @@ $(document).ready(function() {
     } else {
       $('#new_client_city').removeClass('is-invalid');
       $('#new_client_city').next('.invalid-feedback').remove();
+      isValid = true;
     }
 
     // تحقق البريد الإلكتروني (اختياري)
@@ -1392,6 +1398,7 @@ $(document).ready(function() {
     } else {
       $('#new_client_email').removeClass('is-invalid');
       $('#err_new_client_email').text('');
+      isValid = true;
     }
 
     // تحقق الجنسية (مطلوب في التبويب الجديد)
@@ -1405,6 +1412,7 @@ $(document).ready(function() {
     } else {
       $('#client_nationality_id').removeClass('is-invalid');
       $('#err_client_nationality_id').text('');
+      isValid = true;
       console.log('Client nationality validation passed');
     }
 
@@ -1422,6 +1430,7 @@ $(document).ready(function() {
       } else {
         $('#required_maid_nationality').removeClass('is-invalid');
         $('#err_required_maid_nationality').text('');
+        isValid = true;
         console.log('Required maid nationality validation passed');
       }
 
@@ -1436,6 +1445,7 @@ $(document).ready(function() {
       } else {
         $('#required_maid_religion').removeClass('is-invalid');
         $('#err_required_maid_religion').text('');
+        isValid = true;
         console.log('Required maid religion validation passed');
       }
 
@@ -1450,6 +1460,7 @@ $(document).ready(function() {
       } else {
         $('#required_maid_age_min').removeClass('is-invalid');
         $('#err_required_maid_age_min').text('');
+        isValid = true;
         console.log('Required maid age min validation passed');
       }
 
@@ -1464,6 +1475,7 @@ $(document).ready(function() {
       } else {
         $('#required_maid_age_max').removeClass('is-invalid');
         $('#err_required_maid_age_max').text('');
+        isValid = true;
         console.log('Required maid age max validation passed');
       }
 
@@ -1478,6 +1490,7 @@ $(document).ready(function() {
       } else {
         $('#required_maid_experience_min').removeClass('is-invalid');
         $('#err_required_maid_experience_min').text('');
+        isValid = true;
         console.log('Required maid experience min validation passed');
       }
     }
@@ -1511,6 +1524,7 @@ $(document).ready(function() {
       } else {
         $('#tab-order-pane #contract_date').addClass('is-invalid');
         $('<div class="invalid-feedback">يرجى ادخال تاريخ العقد</div>').insertAfter('#tab-order-pane #contract_date');
+        isValid = true;
       }
       console.log('Contract date validation failed: empty');
     } else {
@@ -1532,6 +1546,7 @@ $(document).ready(function() {
       } else {
         $('#tab-order-pane #msaned_number').addClass('is-invalid');
         $('<div class="invalid-feedback">يرجى ادخال رقم مساند</div>').insertAfter('#tab-order-pane #msaned_number');
+        isValid = true;
       }
       console.log('Msaned number validation failed: empty');
     } else {
@@ -1553,6 +1568,7 @@ $(document).ready(function() {
       } else {
         $('#tab-order-pane #visa_number').addClass('is-invalid');
         $('<div class="invalid-feedback">يرجى ادخال رقم التأشيرة</div>').insertAfter('#tab-order-pane #visa_number');
+        isValid = true;
       }
       console.log('Visa number validation failed: empty');
     } else {
@@ -1582,6 +1598,7 @@ $(document).ready(function() {
       } else {
         $('#tab-order-pane #marketer_id').addClass('is-invalid');
         $('#tab-order-pane #err_marketer_id').text('يرجى اختيار المسوق');
+        isValid = true;
       }
       console.log('Marketer validation failed: empty');
     } else {

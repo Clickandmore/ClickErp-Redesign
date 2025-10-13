@@ -1924,8 +1924,7 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showResult('contracts_result', `📊 العقود: ${data.contracts || 0}
-🗂️ معلومات العقود: ${data.contract_infos || 0}`, true);
+                    showResult('contracts_result', `📊 العقود: ${data.contracts || 0} 🗂️ معلومات العقود: ${data.contract_infos || 0}`, true);
                 } else {
                     showResult('contracts_result', `❌ ${data.message}`, false);
                 }
@@ -2317,14 +2316,14 @@
                         'airports'
                     ];
 
-                    const numbers = document.querySelectorAll('.stat .number');
-                    order.forEach((key, index) => {
-                        if (numbers[index]) {
-                            numbers[index].textContent = stats[key] || '0';
-                        }
-                    });
+                    // let numbers = document.querySelectorAll('.stat .number');
+                    // order.forEach((key, index) => {
+                    //     if (numbers[index]) {
+                    //         numbers[index].textContent = stats[key] || '0';
+                    //     }
+                    // });
 
-                    const numbers = document.querySelectorAll('.stat .number');
+                    let numbers = document.querySelectorAll('.stat .number');
                     if (numbers.length >= 14) {
                         numbers[0].textContent = stats.users || '0';
                         numbers[1].textContent = stats.countries || '0';
