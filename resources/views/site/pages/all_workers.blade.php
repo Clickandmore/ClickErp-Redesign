@@ -43,22 +43,39 @@
                     <div class="filter">
                         <h4 class="sideTitle mb-4">{{ __('ingaz.advanced_search') }}</h4>
 
-                        <div class="toggleBtns mb-4">
-                            <button type="button" class="btn toggle-btn {{ $type == 'all' ? 'active' : '' }}" data-target="all">
+                        <div class="toggleBtns mb-2">
+                            <button type="button" class="btn toggle-btn {{ $type == 'all' ? 'active' : '' }}" data-role="type" data-target="all">
                                 {{ __('ingaz.all') }}
                             </button>
-                            <button type="button" class="btn toggle-btn {{ $type == 'estqdam' ? 'active' : '' }}" data-target="estqdam">
+                            <button type="button" class="btn toggle-btn {{ $type == 'estqdam' ? 'active' : '' }}" data-role="type" data-target="estqdam">
                                 {{ __('ingaz.recruitment') }}
                             </button>
-                            <button type="button" class="btn toggle-btn {{ $type == 'egar' ? 'active' : '' }}" data-target="egar">
+                            <button type="button" class="btn toggle-btn {{ $type == 'egar' ? 'active' : '' }}" data-role="type" data-target="egar">
                                 {{ __('ingaz.Labor_rental') }}
                             </button>
-                            <button type="button" class="btn toggle-btn {{ $type == 'transfer' ? 'active' : '' }}" data-target="transfer">
+                            <button type="button" class="btn toggle-btn {{ $type == 'transfer' ? 'active' : '' }}" data-role="type" data-target="transfer">
                                 {{ __('ingaz.Labor_transfer') }}
                             </button>
                         </div>
 
+                        @php
+                            $currentExperienceStatus = request()->experience_status ?? '';
+                        @endphp
                         <form action="" class="row" id="maids_filter">
+                            <input type="hidden" name="experience_status" id="experience_status_input" value="{{ $currentExperienceStatus }}">
+                            <!-- Experience Status -->
+                            <div class="py-3 col col-md-12">
+
+                                <div class="toggleBtns mb-2">
+
+                                    <button type="button" class="btn toggle-btn experience-toggle {{ $currentExperienceStatus === 'has_experience' ? 'active' : '' }}" data-role="experience" data-experience="has_experience">
+                                        {{ __('ingaz.has_experience_label') }}
+                                    </button>
+                                    <button type="button" class="btn toggle-btn experience-toggle {{ $currentExperienceStatus === 'no_experience' ? 'active' : '' }}" data-role="experience" data-experience="no_experience">
+                                        {{ __('ingaz.no_experience_label') }}
+                                    </button>
+                                </div>
+                            </div>
                             <!-- age -->
                             <div class="py-3 col col-md-12" style="min-width: 120px">
                                 <label for="age">
@@ -204,38 +221,70 @@
 @section('js')
 <script>
     $(document).ready(function () {
-        // 🔹 Toggle buttons
-        $(".toggle-btn").on("click", function () {
-            $(".toggle-btn").removeClass("active");
-            $(this).addClass("active");
-
-            let type = $(this).data("target");
+        // 🔹 Helpers
+        function collectFilters() {
+            let filters = {};
+            let type = $(".toggle-btn[data-role='type'].active").data("target");
+            let experience = $("#experience_status_input").val();
             let age = $("#age").val();
             let job = $("#job").val();
             let nationality_id = $("#nationality_id").val();
-            fetchWorkers({ type: type, age: age, job: job, nationality_id: nationality_id });
+
+            if (type) filters.type = type;
+            if (experience) filters.experience_status = experience;
+            if (age) filters.age = age;
+            if (job) filters.job = job;
+            if (nationality_id) filters.nationality_id = nationality_id;
+
+            return filters;
+        }
+
+        const experienceButtons = $(".experience-toggle");
+        const experienceInput = $("#experience_status_input");
+
+        function syncExperienceButtons() {
+            const current = experienceInput.val();
+            experienceButtons.removeClass("active");
+            if (current) {
+                experienceButtons.filter(`[data-experience='${current}']`).addClass("active");
+            }
+        }
+
+        syncExperienceButtons();
+
+        // 🔹 Toggle buttons (type)
+        const typeButtons = $(".toggle-btn[data-role='type']");
+        typeButtons.on("click", function () {
+            typeButtons.removeClass("active");
+            $(this).addClass("active");
+
+            fetchWorkers(collectFilters());
+        });
+
+        // 🔹 Experience toggle buttons
+        experienceButtons.on("click", function () {
+            const selectedExperience = $(this).data("experience") || "";
+            experienceInput.val(selectedExperience);
+            syncExperienceButtons();
+
+            fetchWorkers(collectFilters());
         });
 
         // 🔹 Form submit
         $("#maids_filter").on("submit", function (e) {
             e.preventDefault();
 
-            let filters = {
-                age: $("#age").val(),
-                job: $("#job").val(),
-                nationality_id: $("#nationality_id").val(),
-                type: $(".toggle-btn.active").data("target"),
-            };
-
-            fetchWorkers(filters);
+            fetchWorkers(collectFilters());
         });
 
         // 🔹 Clear button
         $("#maids_filter .clear").on("click", function () {
             $("#maids_filter")[0].reset();
             $(".select2").val(null).trigger("change"); // reset select2
-            let type = $(".toggle-btn.active").data("target");
-            fetchWorkers({ type: type }); // reload all
+            experienceInput.val("");
+            syncExperienceButtons();
+
+            fetchWorkers(collectFilters()); // reload with current type
         });
 
         // 🔹 Reusable function

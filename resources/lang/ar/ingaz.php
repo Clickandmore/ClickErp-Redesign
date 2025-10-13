@@ -694,7 +694,7 @@
   'response' => 'Response',
   'response_to_complaint' => 'Response to complaint',
   'add_complaint' => 'Add complaint',
-  'offices' => 'المكاتب',
+  'offices' => 'الوكلاء الخارجيين ',
   'license_number' => 'الترخيص',
   'office_number' => 'رقم المكتب',
   'add_office' => 'اضف مكتب',

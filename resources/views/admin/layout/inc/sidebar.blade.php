@@ -904,7 +904,15 @@
 
                     </ul>
                 </li>
-
+  {{--                @if (@AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW))--}}
+                <li>
+                    <a class="m-link {{ (Route::currentRouteName() == 'offices.index') ? 'active' : '' }}"
+                       href="{{route('offices.index')}}">
+                        <i class="fa fa-envelope"></i>
+                        <span class="ms-2"> {{ helperTrans('ingaz.offices') }}</span>
+                    </a>
+                </li>
+                {{--                @endif--}}
                 @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
                     <li>
                         <a class="m-link {{ (Route::currentRouteName() == 'notifications.index') ? 'active' : '' }}"
@@ -927,15 +935,7 @@
 
 
 
-                {{--                @if (@AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW))--}}
-                <li>
-                    <a class="m-link {{ (Route::currentRouteName() == 'offices.index') ? 'active' : '' }}"
-                       href="{{route('offices.index')}}">
-                        <i class="fa fa-envelope"></i>
-                        <span class="ms-2"> {{ helperTrans('ingaz.offices') }}</span>
-                    </a>
-                </li>
-                {{--                @endif--}}
+
             </ul>
         </div>
 
