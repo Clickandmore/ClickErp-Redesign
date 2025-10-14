@@ -54,7 +54,7 @@
                                 {{ __('ingaz.Labor_rental') }}
                             </button>
                             <button type="button" class="btn toggle-btn {{ $type == 'transfer' ? 'active' : '' }}" data-role="type" data-target="transfer">
-                                {{ __('ingaz.Labor_transfer') }}
+                                {{ __('ingaz.transfer_services') }}
                             </button>
                         </div>
 
@@ -64,7 +64,7 @@
                         <form action="" class="row" id="maids_filter">
                             <input type="hidden" name="experience_status" id="experience_status_input" value="{{ $currentExperienceStatus }}">
                             <!-- Experience Status -->
-                            <div class="py-3 col col-md-12">
+                            <!-- <div class="py-3 col col-md-12">
 
                                 <div class="toggleBtns mb-2">
 
@@ -75,7 +75,7 @@
                                         {{ __('ingaz.no_experience_label') }}
                                     </button>
                                 </div>
-                            </div>
+                            </div> -->
                             <!-- age -->
                             <div class="py-3 col col-md-12" style="min-width: 120px">
                                 <label for="age">
@@ -112,6 +112,17 @@
                                     @endforeach
                                 </select>
                             </div>
+                             <!-- Work Experience -->
+                  <div class="py-3 col col-md-12" style="min-width: 120px">
+                    <label for="workExperience">
+                      <i class="fa-duotone fa-briefcase me-1"></i>{{__('ingaz.experience')}} 
+                    </label>
+                    <select id="workExperience" class="select2">
+                      <option value="worked"> {{ __('ingaz.has_experience_label') }}</option>
+                      <option value="not-worked"> {{ __('ingaz.no_experience_label') }}</option>
+                    </select>
+                  </div>
+
                             <div class="pt-4 d-flex align-items-center justify-content-center flex-wrap">
                                 <button type="button" class="btn clear m-1">
                                     {{__('ingaz.clear')}}

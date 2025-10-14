@@ -1,11 +1,11 @@
 <nav class="navbar mainNav navbar-expand-lg">
-    <!-- <div class="container"> -->
+        <div class="container-fluid">
     <!-- Logo -->
     <a class="navbar-brand" href="{{route('site.home.index')}}">
         @if(isset($settings))
             <img class="logo" src="{{showFile($settings->logo_header)}}" alt="Logo"/>
         @else
-            <img class="logo" src="{{asset('site')}}/assets/images/logo.svg" alt="Logo"/>
+            <img class="logo" src="{{asset('site')}}/assets/images/logo.png" alt="Logo"/>
         @endif
     </a>
 
@@ -20,7 +20,7 @@
 
     <!-- Nav Items -->
     <div class="collapse navbar-collapse" id="navContent">
-        <ul class="navbar-nav ms-auto align-items-lg-center">
+          <ul class="navbar-nav align-items-lg-center">
             <li class="nav-item">
                 <a class="nav-link active" href="{{route('site.home.index')}}">{{__("ingaz.home")}}</a>
             </li>
@@ -30,7 +30,12 @@
                 <ul class="dropdown-menu">
                     <li>
                         <a class="dropdown-item"
-                           href="{{route('site.all-workers.index') }}?type=estqdam"> {{__("ingaz.recruitment_request")}}
+                           href="{{route('site.all-workers.index') }}?type=estqdam"> {{__("ingaz.recruitment_request_title")}}
+                        </a>
+                    </li>
+                     <li>
+                        <a class="dropdown-item"
+                           href="{{route('site.all-workers.index') }}?type=estqdam"> {{__("ingaz.Labor_transfer_services")}}
                         </a>
                     </li>
                     <li>
@@ -184,7 +189,11 @@
                     @endif
                 </ul>
             </li>
-
+           <li class="nav-item">
+              <a class="nav-link" href="complaint.html" title="إضافة شكوى">
+                <i class="fa-solid fa-comment-dots me-3 fs-5"></i>
+              </a>
+            </li>
 
             @if(!\Illuminate\Support\Facades\Auth::guard('web')->check())
                 <!-- Login Btn -->
@@ -194,7 +203,7 @@
             @endif
         </ul>
     </div>
-    <!-- </div> -->
+    </div>
 </nav>
 <div class="news-ticker">
     <marquee id="news-marquee">
