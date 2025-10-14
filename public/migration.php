@@ -1,5 +1,6 @@
 ﻿<!DOCTYPE html>
 <html dir="rtl" lang="ar">
+
 <head>
     <meta charset="UTF-8">
     <title>نظام نقل البيانات</title>
@@ -17,7 +18,7 @@
             background: white;
             padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
         h1 {
@@ -58,14 +59,29 @@
             font-weight: bold;
         }
 
-        .btn-success { background: #28a745; }
-        .btn-success:hover { background: #218838; }
+        .btn-success {
+            background: #28a745;
+        }
 
-        .btn-danger { background: #dc3545; }
-        .btn-danger:hover { background: #c82333; }
+        .btn-success:hover {
+            background: #218838;
+        }
 
-        .btn-info { background: #17a2b8; }
-        .btn-info:hover { background: #138496; }
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
 
         button:disabled {
             background: #6c757d !important;
@@ -124,14 +140,15 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>نظام نقل البيانات</h1>
 
         <!-- إشارة للأنظمة البديلة الناجحة -->
         <a href="/migration/new_migration_system.php" style="color: #ff6b6b; font-weight: bold; font-size: 1.1em;">
-                        نظام النقل المحسن
-                    </a><br>
+            نظام النقل المحسن
+        </a><br>
 
         <!-- قسم المستخدمين -->
         <div class="section">
@@ -316,6 +333,15 @@
             <div id="contracts_result" class="result"></div>
         </div>
 
+        <!-- Contract Infos -->
+        <div class="section">
+            <h3>Contract Infos</h3>
+            <div class="buttons">
+                <button onclick="transferContractInfos()" class="btn-success">Transfer Contract Infos</button>
+                <button onclick="checkContractInfos()" class="btn-info">Check Contract Infos</button>
+            </div>
+            <div id="contract_infos_result" class="result"></div>
+        </div>
         <!-- قسم أنواع الإيواء (Accommodation Types) -->
         <div class="section">
             <h3>1️⃣3️⃣ أنواع الإيواء (Accommodation Types)</h3>
@@ -464,7 +490,7 @@
             const mode = document.querySelector('input[name="transfer_mode"]:checked').value;
             document.getElementById('upload_section').style.display = mode === 'file' ? 'block' : 'none';
         }
-        
+
         // إعداد جدول المستخدمين
         function prepareUsersTable() {
             const btn = event.target;
@@ -472,21 +498,23 @@
             btn.textContent = 'جاري الإعداد...';
 
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=add_system_status_columns'
-            })
-            .then(response => response.text())
-            .then(result => {
-                try {
-                    const data = JSON.parse(result);
-                    showResult('users_result', data.success ? '✅ تم إعداد الجدول' : '❌ ' + data.message, data.success);
-                } catch {
-                    showResult('users_result', result, false);
-                }
-                btn.disabled = false;
-                btn.textContent = 'إعداد الجدول';
-            });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=add_system_status_columns'
+                })
+                .then(response => response.text())
+                .then(result => {
+                    try {
+                        const data = JSON.parse(result);
+                        showResult('users_result', data.success ? '✅ تم إعداد الجدول' : '❌ ' + data.message, data.success);
+                    } catch {
+                        showResult('users_result', result, false);
+                    }
+                    btn.disabled = false;
+                    btn.textContent = 'إعداد الجدول';
+                });
         }
 
         // نقل المستخدمين (النظام الناجح من simple_migration.php)
@@ -523,7 +551,9 @@
                 } else {
                     const response = await fetch('migration/file_processor.php', {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
                         body: body
                     });
 
@@ -554,7 +584,9 @@
             try {
                 const response = await fetch('migration/file_processor.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: 'action=migrate_admins_from_users'
                 });
 
@@ -588,7 +620,9 @@
             try {
                 const response = await fetch('migration/file_processor.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: 'action=migrate_staff_from_users'
                 });
 
@@ -650,7 +684,9 @@
 
                 const response = await fetch('migration/file_processor.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: body
                 });
 
@@ -673,19 +709,21 @@
 
         function checkUsers() {
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT COUNT(*) as count FROM users')
-            })
-            .then(response => response.text())
-            .then(result => {
-                try {
-                    const data = JSON.parse(result);
-                    showResult('users_result', `📊 عدد المستخدمين: ${data.result[0].count}`, true);
-                } catch {
-                    showResult('users_result', result, true);
-                }
-            });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT COUNT(*) as count FROM users')
+                })
+                .then(response => response.text())
+                .then(result => {
+                    try {
+                        const data = JSON.parse(result);
+                        showResult('users_result', `📊 عدد المستخدمين: ${data.result[0].count}`, true);
+                    } catch {
+                        showResult('users_result', result, true);
+                    }
+                });
         }
 
         // وظائف البلدان
@@ -693,14 +731,16 @@
             if (!confirm('⚠️ هل أنت متأكد من مسح جدول Countries في القاعدة الجديدة؟')) return;
 
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=execute_sql&sql=' + encodeURIComponent('DELETE FROM countries')
-            })
-            .then(response => response.text())
-            .then(result => {
-                showResult('countries_result', 'تم مسح جدول Countries', true);
-            });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=execute_sql&sql=' + encodeURIComponent('DELETE FROM countries')
+                })
+                .then(response => response.text())
+                .then(result => {
+                    showResult('countries_result', 'تم مسح جدول Countries', true);
+                });
         }
 
         function transferCountries() {
@@ -709,38 +749,42 @@
             btn.textContent = 'جاري النقل...';
 
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=exportAndUpload&table=countries'
-            })
-            .then(response => response.text())
-            .then(result => {
-                try {
-                    const data = JSON.parse(result);
-                    showResult('countries_result', `✅ تم نقل ${data.processed || 0} دولة`, true);
-                } catch {
-                    showResult('countries_result', result, true);
-                }
-                btn.disabled = false;
-                btn.textContent = 'نقل البلدان';
-            });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=exportAndUpload&table=countries'
+                })
+                .then(response => response.text())
+                .then(result => {
+                    try {
+                        const data = JSON.parse(result);
+                        showResult('countries_result', `✅ تم نقل ${data.processed || 0} دولة`, true);
+                    } catch {
+                        showResult('countries_result', result, true);
+                    }
+                    btn.disabled = false;
+                    btn.textContent = 'نقل البلدان';
+                });
         }
 
         function checkCountries() {
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT COUNT(*) as count FROM countries')
-            })
-            .then(response => response.text())
-            .then(result => {
-                try {
-                    const data = JSON.parse(result);
-                    showResult('countries_result', `📊 عدد البلدان: ${data.result[0].count}`, true);
-                } catch {
-                    showResult('countries_result', result, true);
-                }
-            });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT COUNT(*) as count FROM countries')
+                })
+                .then(response => response.text())
+                .then(result => {
+                    try {
+                        const data = JSON.parse(result);
+                        showResult('countries_result', `📊 عدد البلدان: ${data.result[0].count}`, true);
+                    } catch {
+                        showResult('countries_result', result, true);
+                    }
+                });
         }
 
         // وظائف الجنسيات المتقدمة
@@ -750,44 +794,48 @@
             btn.textContent = 'جاري التحليل...';
 
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=analyze_nationalities_structure'
-            })
-            .then(response => response.text())
-            .then(result => {
-                try {
-                    const data = JSON.parse(result);
-                    if (data.success) {
-                        let analysis = `📊 تحليل البنية:\n`;
-                        analysis += `القديم: ${data.old_count || 0} جنسية\n`;
-                        analysis += `الجديد: ${data.new_count || 0} جنسية\n`;
-                        analysis += `الترجمات: ${data.translations_count || 0}`;
-                        showResult('nationalities_result', analysis, true);
-                    } else {
-                        showResult('nationalities_result', '❌ ' + data.message, false);
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=analyze_nationalities_structure'
+                })
+                .then(response => response.text())
+                .then(result => {
+                    try {
+                        const data = JSON.parse(result);
+                        if (data.success) {
+                            let analysis = `📊 تحليل البنية:\n`;
+                            analysis += `القديم: ${data.old_count || 0} جنسية\n`;
+                            analysis += `الجديد: ${data.new_count || 0} جنسية\n`;
+                            analysis += `الترجمات: ${data.translations_count || 0}`;
+                            showResult('nationalities_result', analysis, true);
+                        } else {
+                            showResult('nationalities_result', '❌ ' + data.message, false);
+                        }
+                    } catch {
+                        showResult('nationalities_result', result, false);
                     }
-                } catch {
-                    showResult('nationalities_result', result, false);
-                }
-                btn.disabled = false;
-                btn.textContent = 'تحليل البنية';
-            });
+                    btn.disabled = false;
+                    btn.textContent = 'تحليل البنية';
+                });
         }
 
         function clearNationalities() {
             if (!confirm('⚠️ هل أنت متأكد من مسح جداول Nationalities في القاعدة الجديدة؟\n\nسيتم مسح:\n- nationalities\n- nationalities_translations')) return;
 
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=execute_sql&sql=' + encodeURIComponent('SET FOREIGN_KEY_CHECKS=0; DELETE FROM nationalities_translations; DELETE FROM nationalities; SET FOREIGN_KEY_CHECKS=1;')
-            })
-            .then(response => response.text())
-            .then(result => {
-                showResult('nationalities_result', 'تم مسح جداول Nationalities', true);
-                updateStats();
-            });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=execute_sql&sql=' + encodeURIComponent('SET FOREIGN_KEY_CHECKS=0; DELETE FROM nationalities_translations; DELETE FROM nationalities; SET FOREIGN_KEY_CHECKS=1;')
+                })
+                .then(response => response.text())
+                .then(result => {
+                    showResult('nationalities_result', 'تم مسح جداول Nationalities', true);
+                    updateStats();
+                });
         }
 
         async function transferNationalitiesAdvanced() {
@@ -822,7 +870,9 @@
 
                 const exportResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: new URLSearchParams(exportParams)
                 });
 
@@ -848,7 +898,9 @@
 
                 const processResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: new URLSearchParams(processParams)
                 });
 
@@ -895,42 +947,46 @@
             }
 
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=reorder_nationalities_table'
-            })
-            .then(response => response.text())
-            .then(result => {
-                try {
-                    const data = JSON.parse(result);
-                    if (data.success) {
-                        showResult('nationalities_result', `✅ ${data.message}\n📋 ترتيب الأعمدة: ${data.columns_order || 'تم'}`, true);
-                    } else {
-                        showResult('nationalities_result', '❌ ' + data.message, false);
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=reorder_nationalities_table'
+                })
+                .then(response => response.text())
+                .then(result => {
+                    try {
+                        const data = JSON.parse(result);
+                        if (data.success) {
+                            showResult('nationalities_result', `✅ ${data.message}\n📋 ترتيب الأعمدة: ${data.columns_order || 'تم'}`, true);
+                        } else {
+                            showResult('nationalities_result', '❌ ' + data.message, false);
+                        }
+                    } catch {
+                        showResult('nationalities_result', result, false);
                     }
-                } catch {
-                    showResult('nationalities_result', result, false);
-                }
-                btn.disabled = false;
-                btn.textContent = 'ترتيب الأعمدة';
-            });
+                    btn.disabled = false;
+                    btn.textContent = 'ترتيب الأعمدة';
+                });
         }
 
         function checkNationalities() {
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT COUNT(*) as count FROM nationalities')
-            })
-            .then(response => response.text())
-            .then(result => {
-                try {
-                    const data = JSON.parse(result);
-                    showResult('nationalities_result', `📊 عدد الجنسيات: ${data.result[0].count}`, true);
-                } catch {
-                    showResult('nationalities_result', result, true);
-                }
-            });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT COUNT(*) as count FROM nationalities')
+                })
+                .then(response => response.text())
+                .then(result => {
+                    try {
+                        const data = JSON.parse(result);
+                        showResult('nationalities_result', `📊 عدد الجنسيات: ${data.result[0].count}`, true);
+                    } catch {
+                        showResult('nationalities_result', result, true);
+                    }
+                });
         }
 
         // وظائف المكاتب الخارجية
@@ -952,53 +1008,55 @@
             });
 
             fetch('migration/migrate_offices.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: params.toString()
-            })
-            .then(response => response.text())
-            .then(result => {
-                try {
-                    const data = JSON.parse(result);
-                    if (data.success) {
-                        const lines = [];
-                        const oldStats = data.old_stats || {};
-                        const newStats = data.new_stats || {};
-                        lines.push(`📦 القاعدة القديمة: ${oldStats.total || 0} مكتب (نشط: ${oldStats.active || 0}, موقوف: ${oldStats.banned || 0})`);
-                        lines.push(`🆕 القاعدة الجديدة: ${newStats.total || 0} مكتب (نشط: ${newStats.active || 0}, متوقف: ${newStats.inactive || 0})`);
-                        lines.push(`🆔 معرفات مفقودة: ${data.missing_office_ids ? data.missing_office_ids.length : 0}`);
-                        lines.push(`🌍 مطابقات الجنسيات: ${data.nationality_mapping_resolved || 0}`);
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: params.toString()
+                })
+                .then(response => response.text())
+                .then(result => {
+                    try {
+                        const data = JSON.parse(result);
+                        if (data.success) {
+                            const lines = [];
+                            const oldStats = data.old_stats || {};
+                            const newStats = data.new_stats || {};
+                            lines.push(`📦 القاعدة القديمة: ${oldStats.total || 0} مكتب (نشط: ${oldStats.active || 0}, موقوف: ${oldStats.banned || 0})`);
+                            lines.push(`🆕 القاعدة الجديدة: ${newStats.total || 0} مكتب (نشط: ${newStats.active || 0}, متوقف: ${newStats.inactive || 0})`);
+                            lines.push(`🆔 معرفات مفقودة: ${data.missing_office_ids ? data.missing_office_ids.length : 0}`);
+                            lines.push(`🌍 مطابقات الجنسيات: ${data.nationality_mapping_resolved || 0}`);
 
-                        if (data.unresolved_nationalities && data.unresolved_nationalities.length) {
-                            const sample = data.unresolved_nationalities.slice(0, 5).map(item => `${item.old_id}${item.name ? ` (${item.name})` : ''}`).join(', ');
-                            const remaining = data.unresolved_nationalities.length - Math.min(5, data.unresolved_nationalities.length);
-                            lines.push(`⚠️ جنسيات لم يتم إيجادها: ${sample}${remaining > 0 ? ` ... (+${remaining})` : ''}`);
+                            if (data.unresolved_nationalities && data.unresolved_nationalities.length) {
+                                const sample = data.unresolved_nationalities.slice(0, 5).map(item => `${item.old_id}${item.name ? ` (${item.name})` : ''}`).join(', ');
+                                const remaining = data.unresolved_nationalities.length - Math.min(5, data.unresolved_nationalities.length);
+                                lines.push(`⚠️ جنسيات لم يتم إيجادها: ${sample}${remaining > 0 ? ` ... (+${remaining})` : ''}`);
+                            }
+
+                            if (data.translation_orphans && data.translation_orphans.length) {
+                                lines.push(`📝 ترجمات دون أصل: ${data.translation_orphans.length}`);
+                            }
+
+                            showResult('offices_result', lines.join('\n'), true);
+                        } else {
+                            showResult('offices_result', '❌ ' + (data.message || 'فشل التحليل'), false);
                         }
-
-                        if (data.translation_orphans && data.translation_orphans.length) {
-                            lines.push(`📝 ترجمات دون أصل: ${data.translation_orphans.length}`);
-                        }
-
-                        showResult('offices_result', lines.join('\n'), true);
-                    } else {
-                        showResult('offices_result', '❌ ' + (data.message || 'فشل التحليل'), false);
+                    } catch (e) {
+                        showResult('offices_result', result, false);
                     }
-                } catch (e) {
-                    showResult('offices_result', result, false);
-                }
 
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = 'تحليل المكاتب';
-                }
-            })
-            .catch(error => {
-                showResult('offices_result', '❌ خطأ: ' + error.message, false);
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = 'تحليل المكاتب';
-                }
-            });
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = 'تحليل المكاتب';
+                    }
+                })
+                .catch(error => {
+                    showResult('offices_result', '❌ خطأ: ' + error.message, false);
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = 'تحليل المكاتب';
+                    }
+                });
         }
 
         function migrateOffices(button) {
@@ -1020,66 +1078,68 @@
             });
 
             fetch('migration/migrate_offices.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: params.toString()
-            })
-            .then(response => response.text())
-            .then(result => {
-                try {
-                    const data = JSON.parse(result);
-                    if (data.success) {
-                        const stats = data.stats || {};
-                        let message = `✅ ${data.message || 'تم نقل المكاتب بنجاح'}\n`;
-                        message += `📦 إجمالي المصدر: ${stats.total_source_rows || 0}\n`;
-                        message += `⚙️ تمت معالجتها: ${stats.processed || 0}\n`;
-                        message += `🆕 مضافة: ${stats.inserted || 0}\n`;
-                        message += `♻️ محدثة: ${stats.updated || 0}\n`;
-                        message += `⏭ متخطاة: ${stats.skipped || 0}`;
-                        if (typeof data.nationality_mapping_count === 'number') {
-                            message += `\n🧭 مطابقات الجنسيات المستخدمة: ${data.nationality_mapping_count}`;
-                        }
-
-                        if (Array.isArray(data.unmapped_nationalities) && data.unmapped_nationalities.length) {
-                            const sample = data.unmapped_nationalities.slice(0, 5).map(item => `${item.old_id}${item.name ? ` (${item.name})` : ''}`).join(', ');
-                            const remaining = data.unmapped_nationalities.length - Math.min(5, data.unmapped_nationalities.length);
-                            message += `\n⚠️ جنسيات غير مطابقة: ${sample}${remaining > 0 ? ` ... (+${remaining})` : ''}`;
-                        }
-
-                        if (data.profiles_migration) {
-                            const profiles = data.profiles_migration;
-                            message += `\n🗂 ملفات المكتب: المصدر ${profiles.total_source_rows || 0} | مضافة ${profiles.inserted || 0} | محدثة ${profiles.updated || 0}`;
-                            if (profiles.skills_links !== undefined) {
-                                message += ` | روابط المهارات ${profiles.skills_links}`;
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: params.toString()
+                })
+                .then(response => response.text())
+                .then(result => {
+                    try {
+                        const data = JSON.parse(result);
+                        if (data.success) {
+                            const stats = data.stats || {};
+                            let message = `✅ ${data.message || 'تم نقل المكاتب بنجاح'}\n`;
+                            message += `📦 إجمالي المصدر: ${stats.total_source_rows || 0}\n`;
+                            message += `⚙️ تمت معالجتها: ${stats.processed || 0}\n`;
+                            message += `🆕 مضافة: ${stats.inserted || 0}\n`;
+                            message += `♻️ محدثة: ${stats.updated || 0}\n`;
+                            message += `⏭ متخطاة: ${stats.skipped || 0}`;
+                            if (typeof data.nationality_mapping_count === 'number') {
+                                message += `\n🧭 مطابقات الجنسيات المستخدمة: ${data.nationality_mapping_count}`;
                             }
-                        }
 
-                        if (data.errors && data.errors.length) {
-                            const firstError = data.errors[0];
-                            message += `\n⚠️ أول خطأ: ${(firstError.error || '')}`;
-                        }
+                            if (Array.isArray(data.unmapped_nationalities) && data.unmapped_nationalities.length) {
+                                const sample = data.unmapped_nationalities.slice(0, 5).map(item => `${item.old_id}${item.name ? ` (${item.name})` : ''}`).join(', ');
+                                const remaining = data.unmapped_nationalities.length - Math.min(5, data.unmapped_nationalities.length);
+                                message += `\n⚠️ جنسيات غير مطابقة: ${sample}${remaining > 0 ? ` ... (+${remaining})` : ''}`;
+                            }
 
-                        showResult('offices_result', message, true);
-                        updateStats();
-                    } else {
-                        showResult('offices_result', '❌ ' + (data.message || 'فشل النقل'), false);
+                            if (data.profiles_migration) {
+                                const profiles = data.profiles_migration;
+                                message += `\n🗂 ملفات المكتب: المصدر ${profiles.total_source_rows || 0} | مضافة ${profiles.inserted || 0} | محدثة ${profiles.updated || 0}`;
+                                if (profiles.skills_links !== undefined) {
+                                    message += ` | روابط المهارات ${profiles.skills_links}`;
+                                }
+                            }
+
+                            if (data.errors && data.errors.length) {
+                                const firstError = data.errors[0];
+                                message += `\n⚠️ أول خطأ: ${(firstError.error || '')}`;
+                            }
+
+                            showResult('offices_result', message, true);
+                            updateStats();
+                        } else {
+                            showResult('offices_result', '❌ ' + (data.message || 'فشل النقل'), false);
+                        }
+                    } catch (e) {
+                        showResult('offices_result', result, false);
                     }
-                } catch (e) {
-                    showResult('offices_result', result, false);
-                }
 
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = 'نقل المكاتب';
-                }
-            })
-            .catch(error => {
-                showResult('offices_result', '❌ خطأ: ' + error.message, false);
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = 'نقل المكاتب';
-                }
-            });
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = 'نقل المكاتب';
+                    }
+                })
+                .catch(error => {
+                    showResult('offices_result', '❌ خطأ: ' + error.message, false);
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = 'نقل المكاتب';
+                    }
+                });
         }
 
         function checkOffices() {
@@ -1090,25 +1150,27 @@
             `;
 
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=execute_sql&sql=' + encodeURIComponent(sql)
-            })
-            .then(response => response.text())
-            .then(result => {
-                try {
-                    const data = JSON.parse(result);
-                    if (data.success && data.result && data.result[0]) {
-                        const row = data.result[0];
-                        showResult('offices_result', `📊 مكاتب جديدة: ${row.offices || 0} | ترجمات: ${row.translations || 0}`, true);
-                    } else {
-                        showResult('offices_result', '❌ فشل التحقق من النتائج', false);
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=execute_sql&sql=' + encodeURIComponent(sql)
+                })
+                .then(response => response.text())
+                .then(result => {
+                    try {
+                        const data = JSON.parse(result);
+                        if (data.success && data.result && data.result[0]) {
+                            const row = data.result[0];
+                            showResult('offices_result', `📊 مكاتب جديدة: ${row.offices || 0} | ترجمات: ${row.translations || 0}`, true);
+                        } else {
+                            showResult('offices_result', '❌ فشل التحقق من النتائج', false);
+                        }
+                    } catch (e) {
+                        showResult('offices_result', result, false);
                     }
-                } catch (e) {
-                    showResult('offices_result', result, false);
-                }
-            })
-            .catch(error => showResult('offices_result', '❌ خطأ: ' + error.message, false));
+                })
+                .catch(error => showResult('offices_result', '❌ خطأ: ' + error.message, false));
         }
 
         function exportOfficesCsv() {
@@ -1144,7 +1206,9 @@
 
                 const exportResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: new URLSearchParams(exportParams)
                 });
                 const exportData = await exportResponse.json();
@@ -1159,7 +1223,9 @@
                 };
                 const processResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: new URLSearchParams(processParams)
                 });
                 const processData = await processResponse.json();
@@ -1179,20 +1245,22 @@
 
         function checkJobTitles() {
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM job_titles) jt, (SELECT COUNT(*) FROM job_titles_translations) tr')
-            })
-            .then(r=>r.json())
-            .then(data=>{
-                if (data.success && data.result && data.result[0]) {
-                    const row = data.result[0];
-                    showResult('jobs_result', `📊 Job Titles: ${row.jt || 0} | Translations: ${row.tr || 0}`, true);
-                } else {
-                    showResult('jobs_result', '❌ فشل الفحص', false);
-                }
-            })
-            .catch(e=>showResult('jobs_result', '❌ ' + e.message, false));
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM job_titles) jt, (SELECT COUNT(*) FROM job_titles_translations) tr')
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.result && data.result[0]) {
+                        const row = data.result[0];
+                        showResult('jobs_result', `📊 Job Titles: ${row.jt || 0} | Translations: ${row.tr || 0}`, true);
+                    } else {
+                        showResult('jobs_result', '❌ فشل الفحص', false);
+                    }
+                })
+                .catch(e => showResult('jobs_result', '❌ ' + e.message, false));
         }
 
         // وظائف الأديان Religions
@@ -1215,7 +1283,9 @@
 
                 const exportResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: new URLSearchParams(exportParams)
                 });
                 const exportData = await exportResponse.json();
@@ -1230,7 +1300,9 @@
                 };
                 const processResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: new URLSearchParams(processParams)
                 });
                 const processData = await processResponse.json();
@@ -1251,20 +1323,22 @@
 
         function checkReligions() {
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM religions) rl, (SELECT COUNT(*) FROM religions_translations) tr')
-            })
-            .then(r=>r.json())
-            .then(data=>{
-                if (data.success && data.result && data.result[0]) {
-                    const row = data.result[0];
-                    showResult('religions_result', `📊 Religions: ${row.rl || 0} | Translations: ${row.tr || 0}`, true);
-                } else {
-                    showResult('religions_result', '❌ فشل الفحص', false);
-                }
-            })
-            .catch(e=>showResult('religions_result', '❌ ' + e.message, false));
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM religions) rl, (SELECT COUNT(*) FROM religions_translations) tr')
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.result && data.result[0]) {
+                        const row = data.result[0];
+                        showResult('religions_result', `📊 Religions: ${row.rl || 0} | Translations: ${row.tr || 0}`, true);
+                    } else {
+                        showResult('religions_result', '❌ فشل الفحص', false);
+                    }
+                })
+                .catch(e => showResult('religions_result', '❌ ' + e.message, false));
         }
 
         // وظائف الحالات الاجتماعية Social Status
@@ -1287,7 +1361,9 @@
 
                 const exportResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: new URLSearchParams(exportParams)
                 });
                 const exportData = await exportResponse.json();
@@ -1302,7 +1378,9 @@
                 };
                 const processResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: new URLSearchParams(processParams)
                 });
                 const processData = await processResponse.json();
@@ -1323,20 +1401,22 @@
 
         function checkSocialStatus() {
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM social_status) ss, (SELECT COUNT(*) FROM social_status_translations) tr')
-            })
-            .then(r=>r.json())
-            .then(data=>{
-                if (data.success && data.result && data.result[0]) {
-                    const row = data.result[0];
-                    showResult('social_status_result', `📊 Social Status: ${row.ss || 0} | Translations: ${row.tr || 0}`, true);
-                } else {
-                    showResult('social_status_result', '❌ فشل الفحص', false);
-                }
-            })
-            .catch(e=>showResult('social_status_result', '❌ ' + e.message, false));
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM social_status) ss, (SELECT COUNT(*) FROM social_status_translations) tr')
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.result && data.result[0]) {
+                        const row = data.result[0];
+                        showResult('social_status_result', `📊 Social Status: ${row.ss || 0} | Translations: ${row.tr || 0}`, true);
+                    } else {
+                        showResult('social_status_result', '❌ فشل الفحص', false);
+                    }
+                })
+                .catch(e => showResult('social_status_result', '❌ ' + e.message, false));
         }
 
         // وظائف المهارات Skills
@@ -1359,7 +1439,9 @@
 
                 const exportResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: new URLSearchParams(exportParams)
                 });
                 const exportData = await exportResponse.json();
@@ -1374,7 +1456,9 @@
                 };
                 const processResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: new URLSearchParams(processParams)
                 });
                 const processData = await processResponse.json();
@@ -1395,20 +1479,22 @@
 
         function checkSkills() {
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM skills) sk, (SELECT COUNT(*) FROM skills_translations) tr')
-            })
-            .then(r=>r.json())
-            .then(data=>{
-                if (data.success && data.result && data.result[0]) {
-                    const row = data.result[0];
-                    showResult('skills_result', `📊 Skills: ${row.sk || 0} | Translations: ${row.tr || 0}`, true);
-                } else {
-                    showResult('skills_result', '❌ فشل الفحص', false);
-                }
-            })
-            .catch(e=>showResult('skills_result', '❌ ' + e.message, false));
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM skills) sk, (SELECT COUNT(*) FROM skills_translations) tr')
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.result && data.result[0]) {
+                        const row = data.result[0];
+                        showResult('skills_result', `📊 Skills: ${row.sk || 0} | Translations: ${row.tr || 0}`, true);
+                    } else {
+                        showResult('skills_result', '❌ فشل الفحص', false);
+                    }
+                })
+                .catch(e => showResult('skills_result', '❌ ' + e.message, false));
         }
 
         // وظائف الخبرات Experience
@@ -1430,7 +1516,9 @@
 
                 const exportResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: new URLSearchParams(exportParams)
                 });
                 const exportData = await exportResponse.json();
@@ -1444,7 +1532,9 @@
                 };
                 const processResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: new URLSearchParams(processParams)
                 });
                 const processData = await processResponse.json();
@@ -1465,20 +1555,22 @@
 
         function checkExperience() {
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM experience) ex, (SELECT COUNT(*) FROM experience_translations) tr')
-            })
-            .then(r=>r.json())
-            .then(data=>{
-                if (data.success && data.result && data.result[0]) {
-                    const row = data.result[0];
-                    showResult('experience_result', `📊 Experience: ${row.ex || 0} | Translations: ${row.tr || 0}`, true);
-                } else {
-                    showResult('experience_result', '❌ فشل الفحص', false);
-                }
-            })
-            .catch(e=>showResult('experience_result', '❌ ' + e.message, false));
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM experience) ex, (SELECT COUNT(*) FROM experience_translations) tr')
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.result && data.result[0]) {
+                        const row = data.result[0];
+                        showResult('experience_result', `📊 Experience: ${row.ex || 0} | Translations: ${row.tr || 0}`, true);
+                    } else {
+                        showResult('experience_result', '❌ فشل الفحص', false);
+                    }
+                })
+                .catch(e => showResult('experience_result', '❌ ' + e.message, false));
         }
 
         // وظائف اللغات Languages
@@ -1500,7 +1592,9 @@
 
                 const exportResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: new URLSearchParams(exportParams)
                 });
                 const exportData = await exportResponse.json();
@@ -1514,7 +1608,9 @@
                 };
                 const processResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: new URLSearchParams(processParams)
                 });
                 const processData = await processResponse.json();
@@ -1535,20 +1631,22 @@
 
         function checkLanguages() {
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM languages) lg, (SELECT COUNT(*) FROM languages_translations) tr')
-            })
-            .then(r=>r.json())
-            .then(data=>{
-                if (data.success && data.result && data.result[0]) {
-                    const row = data.result[0];
-                    showResult('languages_result', `📊 Languages: ${row.lg || 0} | Translations: ${row.tr || 0}`, true);
-                } else {
-                    showResult('languages_result', '❌ فشل الفحص', false);
-                }
-            })
-            .catch(e=>showResult('languages_result', '❌ ' + e.message, false));
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM languages) lg, (SELECT COUNT(*) FROM languages_translations) tr')
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.result && data.result[0]) {
+                        const row = data.result[0];
+                        showResult('languages_result', `📊 Languages: ${row.lg || 0} | Translations: ${row.tr || 0}`, true);
+                    } else {
+                        showResult('languages_result', '❌ فشل الفحص', false);
+                    }
+                })
+                .catch(e => showResult('languages_result', '❌ ' + e.message, false));
         }
 
         // وظائف الأعمار Ages
@@ -1571,7 +1669,9 @@
 
                 const exportResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: new URLSearchParams(exportParams)
                 });
                 const exportData = await exportResponse.json();
@@ -1586,7 +1686,9 @@
                 };
                 const processResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: new URLSearchParams(processParams)
                 });
                 const processData = await processResponse.json();
@@ -1607,20 +1709,22 @@
 
         function checkAges() {
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM ages) ag, (SELECT COUNT(*) FROM ages_translations) tr')
-            })
-            .then(r=>r.json())
-            .then(data=>{
-                if (data.success && data.result && data.result[0]) {
-                    const row = data.result[0];
-                    showResult('ages_result', `📊 Ages: ${row.ag || 0} | Translations: ${row.tr || 0}`, true);
-                } else {
-                    showResult('ages_result', '❌ فشل الفحص', false);
-                }
-            })
-            .catch(e=>showResult('ages_result', '❌ ' + e.message, false));
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT (SELECT COUNT(*) FROM ages) ag, (SELECT COUNT(*) FROM ages_translations) tr')
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.result && data.result[0]) {
+                        const row = data.result[0];
+                        showResult('ages_result', `📊 Ages: ${row.ag || 0} | Translations: ${row.tr || 0}`, true);
+                    } else {
+                        showResult('ages_result', '❌ فشل الفحص', false);
+                    }
+                })
+                .catch(e => showResult('ages_result', '❌ ' + e.message, false));
         }
 
         // وظائف السير الذاتية
@@ -1628,14 +1732,16 @@
             if (!confirm('⚠️ هل أنت متأكد من مسح جدول Maids في القاعدة الجديدة؟')) return;
 
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=execute_sql&sql=' + encodeURIComponent('DELETE FROM maids')
-            })
-            .then(response => response.text())
-            .then(result => {
-                showResult('maids_result', 'تم مسح جدول Maids', true);
-            });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=execute_sql&sql=' + encodeURIComponent('DELETE FROM maids')
+                })
+                .then(response => response.text())
+                .then(result => {
+                    showResult('maids_result', 'تم مسح جدول Maids', true);
+                });
         }
 
         function analyzeMaids(button) {
@@ -1646,74 +1752,76 @@
             }
 
             fetch('migration/migrate_maids.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=analyze'
-            })
-            .then(response => response.text())
-            .then(result => {
-                try {
-                    const data = JSON.parse(result);
-                    if (data.success) {
-                        let message = `📦 cvs القديمة: ${data.stats?.old_total || 0}\n`;
-                        message += `🆕 maids الحالية: ${data.stats?.new_total || 0}`;
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=analyze'
+                })
+                .then(response => response.text())
+                .then(result => {
+                    try {
+                        const data = JSON.parse(result);
+                        if (data.success) {
+                            let message = `📦 cvs القديمة: ${data.stats?.old_total || 0}\n`;
+                            message += `🆕 maids الحالية: ${data.stats?.new_total || 0}`;
 
-                        if (Array.isArray(data.status_breakdown)) {
-                            const mapStatus = {
-                                0: 'متاحة',
-                                1: 'محجوزة',
-                                2: 'باك آوت',
-                                3: 'معلقة',
-                                4: 'تم الترحيل',
-                                5: 'هروب',
-                            };
-                            message += '\n📊 توزيع الحالات:';
-                            data.status_breakdown.forEach(row => {
-                                const label = mapStatus[row.cv_status] || row.cv_status;
-                                message += `\n- ${label}: ${row.total}`;
-                            });
+                            if (Array.isArray(data.status_breakdown)) {
+                                const mapStatus = {
+                                    0: 'متاحة',
+                                    1: 'محجوزة',
+                                    2: 'باك آوت',
+                                    3: 'معلقة',
+                                    4: 'تم الترحيل',
+                                    5: 'هروب',
+                                };
+                                message += '\n📊 توزيع الحالات:';
+                                data.status_breakdown.forEach(row => {
+                                    const label = mapStatus[row.cv_status] || row.cv_status;
+                                    message += `\n- ${label}: ${row.total}`;
+                                });
+                            }
+
+                            if (data.missing_nationalities?.length) {
+                                message += `\n⚠️ جنسيات مفقودة (${data.missing_nationalities.length}): ${data.missing_nationalities.slice(0, 10).join(', ')}`;
+                            }
+
+                            if (data.missing_religions?.length) {
+                                message += `\n⚠️ ديانات مفقودة (${data.missing_religions.length}): ${data.missing_religions.join(', ')}`;
+                            }
+
+                            if (data.unmapped_occupations?.length) {
+                                message += `\n⚠️ مهن غير معروفة (${data.unmapped_occupations.length}): ${data.unmapped_occupations.slice(0, 10).join(', ')}`;
+                            }
+
+                            if (data.unmatched_offices?.length) {
+                                message += `\n⚠️ مكاتب لم يتم مطابقتها (${data.unmatched_offices.length}): ${data.unmatched_offices.slice(0, 10).join(', ')}`;
+                            }
+
+                            if (data.unmapped_languages?.length) {
+                                message += `\n⚠️ لغات غير معروفة (${data.unmapped_languages.length}): ${data.unmapped_languages.slice(0, 10).join(', ')}`;
+                            }
+
+                            showResult('maids_result', message, true);
+                        } else {
+                            showResult('maids_result', '❌ ' + (data.message || 'فشل التحليل'), false);
                         }
-
-                        if (data.missing_nationalities?.length) {
-                            message += `\n⚠️ جنسيات مفقودة (${data.missing_nationalities.length}): ${data.missing_nationalities.slice(0, 10).join(', ')}`;
-                        }
-
-                        if (data.missing_religions?.length) {
-                            message += `\n⚠️ ديانات مفقودة (${data.missing_religions.length}): ${data.missing_religions.join(', ')}`;
-                        }
-
-                        if (data.unmapped_occupations?.length) {
-                            message += `\n⚠️ مهن غير معروفة (${data.unmapped_occupations.length}): ${data.unmapped_occupations.slice(0, 10).join(', ')}`;
-                        }
-
-                        if (data.unmatched_offices?.length) {
-                            message += `\n⚠️ مكاتب لم يتم مطابقتها (${data.unmatched_offices.length}): ${data.unmatched_offices.slice(0, 10).join(', ')}`;
-                        }
-
-                        if (data.unmapped_languages?.length) {
-                            message += `\n⚠️ لغات غير معروفة (${data.unmapped_languages.length}): ${data.unmapped_languages.slice(0, 10).join(', ')}`;
-                        }
-
-                        showResult('maids_result', message, true);
-                    } else {
-                        showResult('maids_result', '❌ ' + (data.message || 'فشل التحليل'), false);
+                    } catch (error) {
+                        showResult('maids_result', result, false);
                     }
-                } catch (error) {
-                    showResult('maids_result', result, false);
-                }
 
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = 'تحليل السير الذاتية';
-                }
-            })
-            .catch(error => {
-                showResult('maids_result', '❌ خطأ: ' + error.message, false);
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = 'تحليل السير الذاتية';
-                }
-            });
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = 'تحليل السير الذاتية';
+                    }
+                })
+                .catch(error => {
+                    showResult('maids_result', '❌ خطأ: ' + error.message, false);
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = 'تحليل السير الذاتية';
+                    }
+                });
         }
 
         function transferMaids(button) {
@@ -1724,69 +1832,71 @@
             }
 
             fetch('migration/migrate_maids.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=migrate'
-            })
-            .then(response => response.text())
-            .then(result => {
-                try {
-                    const data = JSON.parse(result);
-                    if (data.success) {
-                        const stats = data.stats || {};
-                        let message = `✅ ${data.message || 'تم نقل السير الذاتية.'}`;
-                        message += `\n📦 إجمالي المصدر: ${stats.total_source_rows || 0}`;
-                        message += `\n⚙️ تمت معالجتها: ${stats.processed || 0}`;
-                        message += `\n🆕 مضافة: ${stats.inserted || 0}`;
-                        message += `\n♻️ محدثة: ${stats.updated || 0}`;
-                        message += `\n⏭ متخطاة: ${stats.skipped || 0}`;
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=migrate'
+                })
+                .then(response => response.text())
+                .then(result => {
+                    try {
+                        const data = JSON.parse(result);
+                        if (data.success) {
+                            const stats = data.stats || {};
+                            let message = `✅ ${data.message || 'تم نقل السير الذاتية.'}`;
+                            message += `\n📦 إجمالي المصدر: ${stats.total_source_rows || 0}`;
+                            message += `\n⚙️ تمت معالجتها: ${stats.processed || 0}`;
+                            message += `\n🆕 مضافة: ${stats.inserted || 0}`;
+                            message += `\n♻️ محدثة: ${stats.updated || 0}`;
+                            message += `\n⏭ متخطاة: ${stats.skipped || 0}`;
 
-                        if (data.profiles_migration) {
-                            const profiles = data.profiles_migration;
-                            message += `\n🗂 ملفات المكتب: المصدر ${profiles.total_source_rows || 0} | مضافة ${profiles.inserted || 0} | محدثة ${profiles.updated || 0}`;
-                            message += ` | روابط المهارات ${profiles.skills_links || 0}`;
-                            message += ` | روابط الوظائف ${profiles.job_title_links || 0}`;
-                        }
-
-                        if (Array.isArray(data.errors) && data.errors.length) {
-                            const sample = data.errors.slice(0, 5).map(err => `#${err.id}: ${err.reason}`).join('\n');
-                            message += `\n⚠️ أخطاء (${data.errors.length}):\n${sample}`;
-                        }
-
-                        if (Array.isArray(data.warnings) && data.warnings.length) {
-                            const sampleWarnings = data.warnings.slice(0, 5).map(warn => `#${warn.id}: ${warn.message}`).join('\n');
-                            message += `\nℹ️ تحذيرات (${data.warnings.length}):\n${sampleWarnings}`;
-                        }
-
-                        if (data.defaults_used) {
-                            const nat = data.defaults_used.nationality || 0;
-                            const rel = data.defaults_used.religion || 0;
-                            if (nat || rel) {
-                                message += `\n🧭 تم استخدام القيم الافتراضية: جنسية ${nat} مرة/مرات، ديانة ${rel} مرة/مرات`;
+                            if (data.profiles_migration) {
+                                const profiles = data.profiles_migration;
+                                message += `\n🗂 ملفات المكتب: المصدر ${profiles.total_source_rows || 0} | مضافة ${profiles.inserted || 0} | محدثة ${profiles.updated || 0}`;
+                                message += ` | روابط المهارات ${profiles.skills_links || 0}`;
+                                message += ` | روابط الوظائف ${profiles.job_title_links || 0}`;
                             }
+
+                            if (Array.isArray(data.errors) && data.errors.length) {
+                                const sample = data.errors.slice(0, 5).map(err => `#${err.id}: ${err.reason}`).join('\n');
+                                message += `\n⚠️ أخطاء (${data.errors.length}):\n${sample}`;
+                            }
+
+                            if (Array.isArray(data.warnings) && data.warnings.length) {
+                                const sampleWarnings = data.warnings.slice(0, 5).map(warn => `#${warn.id}: ${warn.message}`).join('\n');
+                                message += `\nℹ️ تحذيرات (${data.warnings.length}):\n${sampleWarnings}`;
+                            }
+
+                            if (data.defaults_used) {
+                                const nat = data.defaults_used.nationality || 0;
+                                const rel = data.defaults_used.religion || 0;
+                                if (nat || rel) {
+                                    message += `\n🧭 تم استخدام القيم الافتراضية: جنسية ${nat} مرة/مرات، ديانة ${rel} مرة/مرات`;
+                                }
+                            }
+
+                            showResult('maids_result', message, true);
+                            updateStats();
+                        } else {
+                            showResult('maids_result', '❌ ' + (data.message || 'فشل النقل'), false);
                         }
-
-                        showResult('maids_result', message, true);
-                        updateStats();
-                    } else {
-                        showResult('maids_result', '❌ ' + (data.message || 'فشل النقل'), false);
+                    } catch (error) {
+                        showResult('maids_result', result, false);
                     }
-                } catch (error) {
-                    showResult('maids_result', result, false);
-                }
 
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = 'نقل السير الذاتية';
-                }
-            })
-            .catch(error => {
-                showResult('maids_result', '❌ خطأ: ' + error.message, false);
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = 'نقل السير الذاتية';
-                }
-            });
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = 'نقل السير الذاتية';
+                    }
+                })
+                .catch(error => {
+                    showResult('maids_result', '❌ خطأ: ' + error.message, false);
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = 'نقل السير الذاتية';
+                    }
+                });
         }
 
         function fetchMaidMissingDetails(button) {
@@ -1797,90 +1907,94 @@
             }
 
             fetch('migration/migrate_maids.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=missing_details'
-            })
-            .then(response => response.text())
-            .then(result => {
-                try {
-                    const data = JSON.parse(result);
-                    if (data.success && data.details) {
-                        const details = data.details;
-                        const lines = [];
-                        lines.push('🔍 تفاصيل النواقص:');
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=missing_details'
+                })
+                .then(response => response.text())
+                .then(result => {
+                    try {
+                        const data = JSON.parse(result);
+                        if (data.success && data.details) {
+                            const details = data.details;
+                            const lines = [];
+                            lines.push('🔍 تفاصيل النواقص:');
 
-                        if (details.missing_nationalities?.length) {
-                            lines.push(`⚠️ جنسيات مفقودة (${details.missing_nationalities.length}): ${details.missing_nationalities.join(', ')}`);
+                            if (details.missing_nationalities?.length) {
+                                lines.push(`⚠️ جنسيات مفقودة (${details.missing_nationalities.length}): ${details.missing_nationalities.join(', ')}`);
+                            }
+
+                            if (details.missing_religions?.length) {
+                                lines.push(`⚠️ ديانات مفقودة (${details.missing_religions.length}): ${details.missing_religions.join(', ')}`);
+                            }
+
+                            if (details.null_nationalities?.count) {
+                                const sample = (details.null_nationalities.samples || []).join(', ');
+                                lines.push(`⚠️ سجلات بدون جنسية (${details.null_nationalities.count}): ${sample}`);
+                            }
+
+                            if (details.null_religions?.count) {
+                                const sample = (details.null_religions.samples || []).join(', ');
+                                lines.push(`⚠️ سجلات بدون ديانة (${details.null_religions.count}): ${sample}`);
+                            }
+
+                            if (details.unmapped_occupations?.length) {
+                                lines.push(`⚠️ مهن غير معروفة (${details.unmapped_occupations.length}): ${details.unmapped_occupations.join(', ')}`);
+                            }
+
+                            if (details.unmatched_offices?.length) {
+                                lines.push(`⚠️ مكاتب لم يتم مطابقتها (${details.unmatched_offices.length}): ${details.unmatched_offices.slice(0, 20).join(', ')}`);
+                            }
+
+                            if (details.unmapped_languages?.length) {
+                                lines.push(`⚠️ لغات غير معروفة (${details.unmapped_languages.length}): ${details.unmapped_languages.join(', ')}`);
+                            }
+
+                            if (lines.length === 1) {
+                                lines.push('لا توجد نواقص في البيانات المرجعية.');
+                            }
+
+                            showResult('maids_result', lines.join('\n'), true);
+                        } else {
+                            showResult('maids_result', '❌ فشل استخراج النواقص', false);
                         }
-
-                        if (details.missing_religions?.length) {
-                            lines.push(`⚠️ ديانات مفقودة (${details.missing_religions.length}): ${details.missing_religions.join(', ')}`);
-                        }
-
-                        if (details.null_nationalities?.count) {
-                            const sample = (details.null_nationalities.samples || []).join(', ');
-                            lines.push(`⚠️ سجلات بدون جنسية (${details.null_nationalities.count}): ${sample}`);
-                        }
-
-                        if (details.null_religions?.count) {
-                            const sample = (details.null_religions.samples || []).join(', ');
-                            lines.push(`⚠️ سجلات بدون ديانة (${details.null_religions.count}): ${sample}`);
-                        }
-
-                        if (details.unmapped_occupations?.length) {
-                            lines.push(`⚠️ مهن غير معروفة (${details.unmapped_occupations.length}): ${details.unmapped_occupations.join(', ')}`);
-                        }
-
-                        if (details.unmatched_offices?.length) {
-                            lines.push(`⚠️ مكاتب لم يتم مطابقتها (${details.unmatched_offices.length}): ${details.unmatched_offices.slice(0, 20).join(', ')}`);
-                        }
-
-                        if (details.unmapped_languages?.length) {
-                            lines.push(`⚠️ لغات غير معروفة (${details.unmapped_languages.length}): ${details.unmapped_languages.join(', ')}`);
-                        }
-
-                        if (lines.length === 1) {
-                            lines.push('لا توجد نواقص في البيانات المرجعية.');
-                        }
-
-                        showResult('maids_result', lines.join('\n'), true);
-                    } else {
-                        showResult('maids_result', '❌ فشل استخراج النواقص', false);
+                    } catch (error) {
+                        showResult('maids_result', result, false);
                     }
-                } catch (error) {
-                    showResult('maids_result', result, false);
-                }
 
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = 'عرض النواقص';
-                }
-            })
-            .catch(error => {
-                showResult('maids_result', '❌ خطأ: ' + error.message, false);
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = 'عرض النواقص';
-                }
-            });
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = 'عرض النواقص';
+                    }
+                })
+                .catch(error => {
+                    showResult('maids_result', '❌ خطأ: ' + error.message, false);
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = 'عرض النواقص';
+                    }
+                });
         }
 
         function checkMaids() {
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT COUNT(*) as count FROM maids')
-            })
-            .then(response => response.text())
-            .then(result => {
-                try {
-                    const data = JSON.parse(result);
-                    showResult('maids_result', `📊 عدد السير: ${data.result[0].count}`, true);
-                } catch {
-                    showResult('maids_result', result, true);
-                }
-            });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=execute_sql&sql=' + encodeURIComponent('SELECT COUNT(*) as count FROM maids')
+                })
+                .then(response => response.text())
+                .then(result => {
+                    try {
+                        const data = JSON.parse(result);
+                        showResult('maids_result', `📊 عدد السير: ${data.result[0].count}`, true);
+                    } catch {
+                        showResult('maids_result', result, true);
+                    }
+                });
         }
 
         function transferContracts() {
@@ -1889,51 +2003,115 @@
             btn.textContent = 'جاري النقل...';
 
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=migrate_contracts'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showResult(
-                        'contracts_result',
-                        `✅ ${data.message}\n📦 الإجمالي: ${data.processed || 0}\n🆕 مضاف: ${data.inserted || 0}\n🔁 محدث: ${data.updated || 0}\n➖ بدون تغيير: ${data.unchanged || 0}\n⏭ متجاوز: ${data.skipped || 0}`,
-                        true
-                    );
-                    updateStats();
-                } else {
-                    showResult('contracts_result', `❌ ${data.message}`, false);
-                }
-                btn.disabled = false;
-                btn.textContent = 'نقل العقود';
-            })
-            .catch(error => {
-                showResult('contracts_result', '❌ خطأ: ' + error.message, false);
-                btn.disabled = false;
-                btn.textContent = 'نقل العقود';
-            });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=migrate_contracts'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showResult(
+                            'contracts_result',
+                            `✅ ${data.message}\n📦 الإجمالي: ${data.processed || 0}\n🆕 مضاف: ${data.inserted || 0}\n🔁 محدث: ${data.updated || 0}\n➖ بدون تغيير: ${data.unchanged || 0}\n⏭ متجاوز: ${data.skipped || 0}`,
+                            true
+                        );
+                        updateStats();
+                    } else {
+                        showResult('contracts_result', `❌ ${data.message}`, false);
+                    }
+                    btn.disabled = false;
+                    btn.textContent = 'نقل العقود';
+                })
+                .catch(error => {
+                    showResult('contracts_result', '❌ خطأ: ' + error.message, false);
+                    btn.disabled = false;
+                    btn.textContent = 'نقل العقود';
+                });
         }
 
         function checkContracts() {
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=contracts_summary'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showResult('contracts_result', `📊 العقود: ${data.contracts || 0} 🗂️ معلومات العقود: ${data.contract_infos || 0}`, true);
-                } else {
-                    showResult('contracts_result', `❌ ${data.message}`, false);
-                }
-            })
-            .catch(error => {
-                showResult('contracts_result', '❌ خطأ: ' + error.message, false);
-            });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=contracts_summary'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showResult('contracts_result', `📊 العقود: ${data.contracts || 0} 🗂️ معلومات العقود: ${data.contract_infos || 0}`, true);
+                    } else {
+                        showResult('contracts_result', `❌ ${data.message}`, false);
+                    }
+                })
+                .catch(error => {
+                    showResult('contracts_result', '❌ خطأ: ' + error.message, false);
+                });
         }
 
+
+
+        function transferContractInfos() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'جاري النقل...';
+
+            fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=migrate_contract_infos'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showResult(
+                            'contract_infos_result',
+                            `✅ ${data.message}
+البيانات المعالجة: ${data.processed || 0}
+البيانات المدخلة: ${data.inserted || 0}
+البيانات المحدثة: ${data.updated || 0}
+البيانات المتجاوزة: ${data.skipped || 0}`,
+                            true
+                        );
+                        updateStats();
+                    } else {
+                        showResult('contract_infos_result', `? ${data.message}`, false);
+                    }
+                    btn.disabled = false;
+                    btn.textContent = 'Transfer Contract Infos';
+                })
+                .catch(error => {
+                    showResult('contract_infos_result', '? ???: ' + error.message, false);
+                    btn.disabled = false;
+                    btn.textContent = 'Transfer Contract Infos';
+                });
+        }
+
+        function checkContractInfos() {
+            fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=contract_infos_summary'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showResult('contract_infos_result', `البيانات: ${data.contract_infos || 0}`, true);
+                    } else {
+                        showResult('contract_infos_result', `❌ ${data.message}`, false);
+                    }
+                })
+                .catch(error => {
+                    showResult('contract_infos_result', `❌ ${error.message}`, false);
+                });
+        }
 
 
         function transferContractLogs() {
@@ -1942,60 +2120,64 @@
             btn.textContent = 'Transferring...';
 
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=migrate_contract_logs'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const lines = [
-                        'Contract logs migrated successfully',
-                        'Total: ' + (data.processed ?? data.total ?? 0),
-                        'Inserted: ' + (data.inserted ?? 0),
-                        'Updated: ' + (data.updated ?? 0),
-                        'Unchanged: ' + (data.unchanged ?? 0),
-                        'Skipped: ' + (data.skipped ?? 0)
-                    ];
-                    showResult('contract_logs_result', lines.join('\n'), true);
-                    updateStats();
-                } else {
-                    showResult('contract_logs_result', 'Migration failed: ' + (data.message || 'operation could not be completed'), false);
-                }
-                btn.disabled = false;
-                btn.textContent = 'Transfer Contract Logs';
-            })
-            .catch(error => {
-                showResult('contract_logs_result', 'Error: ' + error.message, false);
-                btn.disabled = false;
-                btn.textContent = 'Transfer Contract Logs';
-            });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=migrate_contract_logs'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lines = [
+                            'Contract logs migrated successfully',
+                            'Total: ' + (data.processed ?? data.total ?? 0),
+                            'Inserted: ' + (data.inserted ?? 0),
+                            'Updated: ' + (data.updated ?? 0),
+                            'Unchanged: ' + (data.unchanged ?? 0),
+                            'Skipped: ' + (data.skipped ?? 0)
+                        ];
+                        showResult('contract_logs_result', lines.join('\n'), true);
+                        updateStats();
+                    } else {
+                        showResult('contract_logs_result', 'Migration failed: ' + (data.message || 'operation could not be completed'), false);
+                    }
+                    btn.disabled = false;
+                    btn.textContent = 'Transfer Contract Logs';
+                })
+                .catch(error => {
+                    showResult('contract_logs_result', 'Error: ' + error.message, false);
+                    btn.disabled = false;
+                    btn.textContent = 'Transfer Contract Logs';
+                });
         }
 
         function checkContractLogs() {
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=contract_logs_summary'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const lines = [
-                        'Current contract logs stats:',
-                        'Total: ' + (data.total ?? data.contract_logs ?? 0)
-                    ];
-                    if (data.message) {
-                        lines.push(data.message);
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=contract_logs_summary'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lines = [
+                            'Current contract logs stats:',
+                            'Total: ' + (data.total ?? data.contract_logs ?? 0)
+                        ];
+                        if (data.message) {
+                            lines.push(data.message);
+                        }
+                        showResult('contract_logs_result', lines.join('\n'), true);
+                    } else {
+                        showResult('contract_logs_result', 'Failed to fetch stats: ' + (data.message || 'unknown'), false);
                     }
-                    showResult('contract_logs_result', lines.join('\n'), true);
-                } else {
-                    showResult('contract_logs_result', 'Failed to fetch stats: ' + (data.message || 'unknown'), false);
-                }
-            })
-            .catch(error => {
-                showResult('contract_logs_result', 'Error: ' + error.message, false);
-            });
+                })
+                .catch(error => {
+                    showResult('contract_logs_result', 'Error: ' + error.message, false);
+                });
         }
 
         function transferActivityLogs() {
@@ -2004,60 +2186,64 @@
             btn.textContent = 'Transferring...';
 
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=migrate_activity_logs'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const lines = [
-                        'Activity logs migrated successfully',
-                        'Total: ' + (data.processed ?? data.total ?? 0),
-                        'Inserted: ' + (data.inserted ?? 0),
-                        'Updated: ' + (data.updated ?? 0),
-                        'Unchanged: ' + (data.unchanged ?? 0),
-                        'Skipped: ' + (data.skipped ?? 0)
-                    ];
-                    showResult('activity_logs_result', lines.join('\n'), true);
-                    updateStats();
-                } else {
-                    showResult('activity_logs_result', 'Migration failed: ' + (data.message || 'operation could not be completed'), false);
-                }
-                btn.disabled = false;
-                btn.textContent = 'Transfer Activity Logs';
-            })
-            .catch(error => {
-                showResult('activity_logs_result', 'Error: ' + error.message, false);
-                btn.disabled = false;
-                btn.textContent = 'Transfer Activity Logs';
-            });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=migrate_activity_logs'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lines = [
+                            'Activity logs migrated successfully',
+                            'Total: ' + (data.processed ?? data.total ?? 0),
+                            'Inserted: ' + (data.inserted ?? 0),
+                            'Updated: ' + (data.updated ?? 0),
+                            'Unchanged: ' + (data.unchanged ?? 0),
+                            'Skipped: ' + (data.skipped ?? 0)
+                        ];
+                        showResult('activity_logs_result', lines.join('\n'), true);
+                        updateStats();
+                    } else {
+                        showResult('activity_logs_result', 'Migration failed: ' + (data.message || 'operation could not be completed'), false);
+                    }
+                    btn.disabled = false;
+                    btn.textContent = 'Transfer Activity Logs';
+                })
+                .catch(error => {
+                    showResult('activity_logs_result', 'Error: ' + error.message, false);
+                    btn.disabled = false;
+                    btn.textContent = 'Transfer Activity Logs';
+                });
         }
 
         function checkActivityLogs() {
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=activity_logs_summary'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const lines = [
-                        'Current activity logs stats:',
-                        'Total: ' + (data.total ?? data.activity_logs ?? 0)
-                    ];
-                    if (data.message) {
-                        lines.push(data.message);
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=activity_logs_summary'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lines = [
+                            'Current activity logs stats:',
+                            'Total: ' + (data.total ?? data.activity_logs ?? 0)
+                        ];
+                        if (data.message) {
+                            lines.push(data.message);
+                        }
+                        showResult('activity_logs_result', lines.join('\n'), true);
+                    } else {
+                        showResult('activity_logs_result', 'Failed to fetch stats: ' + (data.message || 'unknown'), false);
                     }
-                    showResult('activity_logs_result', lines.join('\n'), true);
-                } else {
-                    showResult('activity_logs_result', 'Failed to fetch stats: ' + (data.message || 'unknown'), false);
-                }
-            })
-            .catch(error => {
-                showResult('activity_logs_result', 'Error: ' + error.message, false);
-            });
+                })
+                .catch(error => {
+                    showResult('activity_logs_result', 'Error: ' + error.message, false);
+                });
         }
 
 
@@ -2067,60 +2253,64 @@
             btn.textContent = 'Transferring...';
 
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=migrate_messages'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const lines = [
-                        'Messages migrated successfully',
-                        'Total: ' + (data.processed ?? data.total ?? 0),
-                        'Inserted: ' + (data.inserted ?? 0),
-                        'Updated: ' + (data.updated ?? 0),
-                        'Unchanged: ' + (data.unchanged ?? 0),
-                        'Skipped: ' + (data.skipped ?? 0)
-                    ];
-                    showResult('messages_result', lines.join('\n'), true);
-                    updateStats();
-                } else {
-                    showResult('messages_result', 'Migration failed: ' + (data.message || 'operation could not be completed'), false);
-                }
-                btn.disabled = false;
-                btn.textContent = 'Transfer Messages';
-            })
-            .catch(error => {
-                showResult('messages_result', 'Error: ' + error.message, false);
-                btn.disabled = false;
-                btn.textContent = 'Transfer Messages';
-            });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=migrate_messages'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lines = [
+                            'Messages migrated successfully',
+                            'Total: ' + (data.processed ?? data.total ?? 0),
+                            'Inserted: ' + (data.inserted ?? 0),
+                            'Updated: ' + (data.updated ?? 0),
+                            'Unchanged: ' + (data.unchanged ?? 0),
+                            'Skipped: ' + (data.skipped ?? 0)
+                        ];
+                        showResult('messages_result', lines.join('\n'), true);
+                        updateStats();
+                    } else {
+                        showResult('messages_result', 'Migration failed: ' + (data.message || 'operation could not be completed'), false);
+                    }
+                    btn.disabled = false;
+                    btn.textContent = 'Transfer Messages';
+                })
+                .catch(error => {
+                    showResult('messages_result', 'Error: ' + error.message, false);
+                    btn.disabled = false;
+                    btn.textContent = 'Transfer Messages';
+                });
         }
 
         function checkMessages() {
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=messages_summary'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const lines = [
-                        'Current messages stats:',
-                        'Total: ' + (data.total ?? data.messages ?? 0)
-                    ];
-                    if (data.message) {
-                        lines.push(data.message);
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=messages_summary'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lines = [
+                            'Current messages stats:',
+                            'Total: ' + (data.total ?? data.messages ?? 0)
+                        ];
+                        if (data.message) {
+                            lines.push(data.message);
+                        }
+                        showResult('messages_result', lines.join('\n'), true);
+                    } else {
+                        showResult('messages_result', 'Failed to fetch stats: ' + (data.message || 'unknown'), false);
                     }
-                    showResult('messages_result', lines.join('\n'), true);
-                } else {
-                    showResult('messages_result', 'Failed to fetch stats: ' + (data.message || 'unknown'), false);
-                }
-            })
-            .catch(error => {
-                showResult('messages_result', 'Error: ' + error.message, false);
-            });
+                })
+                .catch(error => {
+                    showResult('messages_result', 'Error: ' + error.message, false);
+                });
         }
 
         function transferAccommodationTypes() {
@@ -2129,50 +2319,54 @@
             btn.textContent = 'جاري النقل...';
 
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=migrate_accommodation_types'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showResult('accommodation_types_result', `✅ ${data.message}
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=migrate_accommodation_types'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showResult('accommodation_types_result', `✅ ${data.message}
 📦 الإجمالي: ${data.processed || 0}
 🆕 مضاف: ${data.inserted || 0}
 🔁 محدث: ${data.updated || 0}
 ➖ بدون تغيير: ${data.unchanged || 0}
 ⏭ متجاوز: ${data.skipped || 0}`, true);
-                    updateStats();
-                } else {
-                    showResult('accommodation_types_result', `❌ ${data.message}`, false);
-                }
-                btn.disabled = false;
-                btn.textContent = 'نقل أنواع الإيواء';
-            })
-            .catch(error => {
-                showResult('accommodation_types_result', '❌ خطأ: ' + error.message, false);
-                btn.disabled = false;
-                btn.textContent = 'نقل أنواع الإيواء';
-            });
+                        updateStats();
+                    } else {
+                        showResult('accommodation_types_result', `❌ ${data.message}`, false);
+                    }
+                    btn.disabled = false;
+                    btn.textContent = 'نقل أنواع الإيواء';
+                })
+                .catch(error => {
+                    showResult('accommodation_types_result', '❌ خطأ: ' + error.message, false);
+                    btn.disabled = false;
+                    btn.textContent = 'نقل أنواع الإيواء';
+                });
         }
 
         function checkAccommodationTypes() {
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=accommodation_types_summary'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showResult('accommodation_types_result', `📊 أنواع الإيواء: ${data.types || 0}`, true);
-                } else {
-                    showResult('accommodation_types_result', `❌ ${data.message}`, false);
-                }
-            })
-            .catch(error => {
-                showResult('accommodation_types_result', '❌ خطأ: ' + error.message, false);
-            });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=accommodation_types_summary'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showResult('accommodation_types_result', `📊 أنواع الإيواء: ${data.types || 0}`, true);
+                    } else {
+                        showResult('accommodation_types_result', `❌ ${data.message}`, false);
+                    }
+                })
+                .catch(error => {
+                    showResult('accommodation_types_result', '❌ خطأ: ' + error.message, false);
+                });
         }
 
 
@@ -2182,62 +2376,68 @@
             btn.textContent = 'Transferring...';
 
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=migrate_airports'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const lines = [
-                        'Airports migrated successfully',
-                        'Total: ' + (data.processed ?? data.total ?? 0),
-                        'Inserted: ' + (data.inserted ?? 0),
-                        'Updated: ' + (data.updated ?? 0),
-                        'Unchanged: ' + (data.unchanged ?? 0),
-                        'Skipped: ' + (data.skipped ?? 0)
-                    ];
-                    showResult('airports_result', lines.join('\n'), true);
-                    updateStats();
-                } else {
-                    showResult('airports_result', 'Migration failed: ' + (data.message || 'operation could not be completed'), false);
-                }
-            })
-            .catch(error => {
-                showResult('airports_result', 'Error: ' + error.message, false);
-            })
-            .finally(() => {
-                btn.disabled = false;
-                btn.textContent = 'Transfer Airports';
-            });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=migrate_airports'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lines = [
+                            'Airports migrated successfully',
+                            'Total: ' + (data.processed ?? data.total ?? 0),
+                            'Inserted: ' + (data.inserted ?? 0),
+                            'Updated: ' + (data.updated ?? 0),
+                            'Unchanged: ' + (data.unchanged ?? 0),
+                            'Skipped: ' + (data.skipped ?? 0)
+                        ];
+                        showResult('airports_result', lines.join('\n'), true);
+                        updateStats();
+                    } else {
+                        showResult('airports_result', 'Migration failed: ' + (data.message || 'operation could not be completed'), false);
+                    }
+                })
+                .catch(error => {
+                    showResult('airports_result', 'Error: ' + error.message, false);
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.textContent = 'Transfer Airports';
+                });
         }
 
         function checkAirports() {
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=airports_summary'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const lines = [
-                        'Current airports stats:',
-                        'Total: ' + (data.total ?? data.airports ?? 0)
-                    ];
-                    if (data.message) lines.push(data.message);
-                    showResult('airports_result', lines.join('\n'), true);
-                } else {
-                    showResult('airports_result', 'Failed to fetch stats: ' + (data.message || 'unknown'), false);
-                }
-            })
-            .catch(error => {
-                showResult('airports_result', 'Error: ' + error.message, false);
-            });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=airports_summary'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lines = [
+                            'Current airports stats:',
+                            'Total: ' + (data.total ?? data.airports ?? 0)
+                        ];
+                        if (data.message) lines.push(data.message);
+                        showResult('airports_result', lines.join('\n'), true);
+                    } else {
+                        showResult('airports_result', 'Failed to fetch stats: ' + (data.message || 'unknown'), false);
+                    }
+                })
+                .catch(error => {
+                    showResult('airports_result', 'Error: ' + error.message, false);
+                });
         }
 
         window.transferContracts = transferContracts;
         window.checkContracts = checkContracts;
+        window.transferContractInfos = transferContractInfos;
+        window.checkContractInfos = checkContractInfos;
         window.transferContractLogs = transferContractLogs;
         window.checkContractLogs = checkContractLogs;
         window.transferActivityLogs = transferActivityLogs;
@@ -2247,7 +2447,7 @@
         window.transferAccommodationTypes = transferAccommodationTypes;
         window.checkAccommodationTypes = checkAccommodationTypes;
         window.transferAirports = transferAirports;
-        window.checkAirports = checkAirports;        // وظائف عامة
+        window.checkAirports = checkAirports; // وظائف عامة
         function showResult(elementId, message, isSuccess) {
             const element = document.getElementById(elementId);
             element.style.display = 'block';
@@ -2286,63 +2486,65 @@
                     (SELECT COUNT(*) FROM airports) as airports
             `;
             fetch('migration/file_processor.php', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'action=execute_sql&sql=' + encodeURIComponent(sql)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.result && data.result[0]) {
-                    const stats = data.result[0];
-                    const order = [
-                        'users',
-                        'countries',
-                        'nationalities',
-                        'translations',
-                        'job_titles',
-                        'religions',
-                        'social_status',
-                        'skills',
-                        'experience',
-                        'ages',
-                        'languages',
-                        'maids',
-                        'contracts',
-                        'contract_infos',
-                        'contract_logs',
-                        'activity_logs',
-                        'messages',
-                        'accommodation_types',
-                        'airports'
-                    ];
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=execute_sql&sql=' + encodeURIComponent(sql)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.result && data.result[0]) {
+                        const stats = data.result[0];
+                        const order = [
+                            'users',
+                            'countries',
+                            'nationalities',
+                            'translations',
+                            'job_titles',
+                            'religions',
+                            'social_status',
+                            'skills',
+                            'experience',
+                            'ages',
+                            'languages',
+                            'maids',
+                            'contracts',
+                            'contract_infos',
+                            'contract_logs',
+                            'activity_logs',
+                            'messages',
+                            'accommodation_types',
+                            'airports'
+                        ];
 
-                    // let numbers = document.querySelectorAll('.stat .number');
-                    // order.forEach((key, index) => {
-                    //     if (numbers[index]) {
-                    //         numbers[index].textContent = stats[key] || '0';
-                    //     }
-                    // });
+                        // let numbers = document.querySelectorAll('.stat .number');
+                        // order.forEach((key, index) => {
+                        //     if (numbers[index]) {
+                        //         numbers[index].textContent = stats[key] || '0';
+                        //     }
+                        // });
 
-                    let numbers = document.querySelectorAll('.stat .number');
-                    if (numbers.length >= 14) {
-                        numbers[0].textContent = stats.users || '0';
-                        numbers[1].textContent = stats.countries || '0';
-                        numbers[2].textContent = stats.nationalities || '0';
-                        numbers[3].textContent = stats.translations || '0';
-                        numbers[4].textContent = stats.offices || '0';
-                        numbers[5].textContent = stats.office_translations || '0';
-                        numbers[6].textContent = stats.job_titles || '0';
-                        numbers[7].textContent = stats.religions || '0';
-                        numbers[8].textContent = stats.social_status || '0';
-                        numbers[9].textContent = stats.skills || '0';
-                        numbers[10].textContent = stats.experience || '0';
-                        numbers[11].textContent = stats.ages || '0';
-                        numbers[12].textContent = stats.languages || '0';
-                        numbers[13].textContent = stats.maids || '0';
+                        let numbers = document.querySelectorAll('.stat .number');
+                        if (numbers.length >= 14) {
+                            numbers[0].textContent = stats.users || '0';
+                            numbers[1].textContent = stats.countries || '0';
+                            numbers[2].textContent = stats.nationalities || '0';
+                            numbers[3].textContent = stats.translations || '0';
+                            numbers[4].textContent = stats.offices || '0';
+                            numbers[5].textContent = stats.office_translations || '0';
+                            numbers[6].textContent = stats.job_titles || '0';
+                            numbers[7].textContent = stats.religions || '0';
+                            numbers[8].textContent = stats.social_status || '0';
+                            numbers[9].textContent = stats.skills || '0';
+                            numbers[10].textContent = stats.experience || '0';
+                            numbers[11].textContent = stats.ages || '0';
+                            numbers[12].textContent = stats.languages || '0';
+                            numbers[13].textContent = stats.maids || '0';
+                        }
                     }
-                }
-            })
-            .catch(err => console.error('Error updating stats:', err));
+                })
+                .catch(err => console.error('Error updating stats:', err));
         }
 
         // تحديث الإحصائيات عند التحميل
@@ -2351,33 +2553,5 @@
         };
     </script>
 </body>
+
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
