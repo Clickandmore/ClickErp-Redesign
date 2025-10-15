@@ -50,7 +50,7 @@
     <link rel="stylesheet" href="assets/css/animate.min.css" />
     <link rel="stylesheet" href="assets/css/bootstrap.rtl.min.css" />
     <link rel="stylesheet" href="assets/css/main.css" />
-    <link rel="stylesheet" href="assets/css/style.css?v=-15" />
+    <link rel="stylesheet" href="assets/css/style.css?v=-17" />
 
     <title>بلاتينيوم الشرقية للاستقدام</title>
   </head>
@@ -61,7 +61,8 @@
     </div>
     <header class="sticky-top">
       <nav class="navbar mainNav navbar-expand-lg">
-        <!-- <div class="container"> -->
+
+        <div class="container-fluid">
         <!-- Logo -->
         <a class="navbar-brand" href="index.html">
           <img class="logo" src="assets/images/logo.svg" alt="Logo" />
@@ -82,7 +83,7 @@
 
         <!-- Nav Items -->
         <div class="collapse navbar-collapse" id="navContent">
-          <ul class="navbar-nav ms-auto align-items-lg-center">
+          <ul class="navbar-nav align-items-lg-center">
             <li class="nav-item">
               <a class="nav-link active" href="index.html">الرئيسية</a>
             </li>
@@ -96,9 +97,9 @@
                 >خدماتنا</a
               >
               <ul class="dropdown-menu">
-                <li>
+                  <li>
                   <a class="dropdown-item" href="all-workers.html">
-                    طلب استقدام</a
+                     استقدام العمالة المنزلية</a
                   >
                 </li>
                 <li>
@@ -258,9 +259,8 @@
             </li>
           </ul>
         </div>
-        <!-- </div> -->
+              </div>
       </nav>
-
       <div class="news-ticker">
         <marquee id="news-marquee">
           <i class="fa-solid fa-bell mx-2"></i>
@@ -340,17 +340,8 @@
             <i class="fa-duotone fa-user-plus fa-2x mb-2"></i>
           </div>
           <div class="text">
-            <h4 class="title">طلب استقدام</h4>
-            <p class="description">ايدي عاملة مميزة ومدربة بحرفية</p>
-          </div>
-        </a>
-        <a href="all-workers.html" class="service">
-          <div class="icon">
-            <i class="fa-duotone fa-people-arrows fa-2x mb-2"></i>
-          </div>
-          <div class="text">
-            <h4 class="title">نقل الخدمات</h4>
-            <p class="description">تجربة نقل خدمات اسهل و افضل</p>
+            <h4 class="title">استقدام العمالة المنزلية</h4>
+            <p class="description">خدماتنا مرخصة من وزاره الموارد البشرية والتنمية الاجتماعية لضمان راحتك وراحة اسرتك</p>
           </div>
         </a>
         <a href="all-workers.html" class="service">
@@ -358,8 +349,20 @@
             <i class="fa-duotone fa-business-time"></i>
           </div>
           <div class="text">
-            <h4 class="title">إيجار عمالة</h4>
-            <p class="description">خدمات تأجير عمالة مدربة وموثوقة</p>
+            <h4 class="title">
+              التأجير الشهري</h4>
+            <p class="description">عمالة منزلية شهريه بعقود محددة المدة ، مع امكانية التجديد ونقل الخدمات بسهولة </p>
+          </div>
+        </a>
+        <a href="all-workers.html" class="service">
+          <div class="icon">
+            <i class="fa-duotone fa-people-arrows fa-2x mb-2"></i>
+          </div>
+          <div class="text">
+            <h4 class="title">
+              نقل الخدمات</h4>
+            <p class="description">
+              تنفيذ اجراءات نقل الخدمات بين صاحب العمل السابق والجديد بشكل نظامي وسريع  ، مع متابعة كامله لضمان سلاسة العمالية</p>
           </div>
         </a>
 
@@ -368,10 +371,9 @@
         </div>
       </section>
       <!-- about sec  -->
-      <section class="about-section" id="about">
+      <!-- <section class="about-section" id="about">
         <div class="container">
-          <!-- Title & Intro -->
-          <div class="section-header text-center mb-5" data-aos="fade-up">
+\          <div class="section-header text-center mb-5" data-aos="fade-up">
             <h2 class="section-title">من نحن</h2>
             <p class="section-subtitle">
               بلاتينيوم الشرقية للاستقدام مرخصة من وزارة العمل والموارد البشرية
@@ -399,232 +401,282 @@
             </ul>
           </div>
 
-          <!-- Vision / Mission / Values -->
-          <div class="row g-4">
-            <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
-              <div class="about-card vision">
-                <span class="about-number">01</span>
-                <i class="fa-solid fa-eye"></i>
-                <h4>رؤيتنا</h4>
-                <div class="about-text">
-                  <p>
-                    أن نكون الخيار الأول للاستقدام في المملكة العربية السعودية،
-                    وذلك بالتفرد بتقديم أجود الخدمات وانتقاء أجود الكفاءات، والحرص
-                    على راحة العملاء وحفظ حقوقهم، ونحقق ذلك بعد اكتساب ثقة العملاء
-                    وتوصيتهم بنا لمن حولهم.
-                  </p>
-                </div>
-              </div>
-            </div>
+         <div class="row g-4">
+  <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+    <div class="about-card vision" style="--bg-image: url('../images/selectworker.webp');">
+      <span class="about-number">01</span>
+      <i class="fa-solid fa-eye"></i>
+      <h4>رؤيتنا</h4>
+      <p>
+        أن نكون الخيار الأول للاستقدام في المملكة العربية السعودية،
+        وذلك بالتفرد بتقديم أجود الخدمات وانتقاء أجود الكفاءات، والحرص
+        على راحة العملاء وحفظ حقوقهم، ونحقق ذلك بعد اكتساب ثقة العملاء
+        وتوصيتهم بنا لمن حولهم.
+      </p>
+    </div>
+  </div>
 
-            <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
-              <div class="about-card mission">
-                <span class="about-number">02</span>
-                <i class="fa-solid fa-envelope-open-text"></i>
-                <h4>رسالتنا</h4>
-                <div class="about-text">
-                  <p>
-                    <strong>((انسانية))</strong> نفتخر بعملنا كونه يسهم بتوفير
-                    موارد ودخل جيّد لأسرة وفرد بحاجة لهذه الموارد لدعم أسرته وبناء
-                    مستقبله، وبالمقابل توفير سبل الراحة للأسرة السعودية والمقيمة
-                    في وطننا المعطاء.
-                  </p>
-                  <p>((( احتياجاتكم اولوياتنا ))).</p>
-                </div>
-              </div>
-            </div>
+  <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+    <div class="about-card mission" style="--bg-image: url('../images/service2.webp');">
+      <span class="about-number">02</span>
+      <i class="fa-solid fa-envelope-open-text"></i>
+      <h4>رسالتنا</h4>
+      <p>
+        <strong>((انسانية))</strong> نفتخر بعملنا كونه يسهم بتوفير
+        موارد ودخل جيّد لأسرة وفرد بحاجة لهذه الموارد لدعم أسرته وبناء
+        مستقبله، وبالمقابل توفير سبل الراحة للأسرة السعودية والمقيمة
+        في وطننا المعطاء. <br />
+        ((( احتياجاتكم اولوياتنا ))).
+      </p>
+    </div>
+  </div>
 
-            <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
-              <div class="about-card values">
-                <span class="about-number">03</span>
-                <i class="fa-solid fa-handshake"></i>
-                <h4>قيمنا</h4>
-                <div class="about-text">
-                  <p>
-                    قيمنا تركز على رضى العميل، حيث نولي الأولوية للجودة والكمال في
-                    كل خدماتنا. نحن روح الفريق لتحقيق النجاح، نحرص على السرعة
-                    والانجاز لتلبية احتياجات عملائنا، ونعتبر النزاهة والشفافية
-                    أساساً في كل تعاملاتنا.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+  <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
+    <div class="about-card values" style="--bg-image: url('../images/about.webp');">
+      <span class="about-number">03</span>
+      <i class="fa-solid fa-handshake"></i>
+      <h4>قيمنا</h4>
+      <p>
+        قيمنا تركز على رضى العميل، حيث نولي الأولوية للجودة والكمال في
+        كل خدماتنا. نحن روح الفريق لتحقيق النجاح، نحرص على السرعة
+        والانجاز لتلبية احتياجات عملائنا، ونعتبر النزاهة والشفافية
+        أساساً في كل تعاملاتنا.
+      </p>
+    </div>
+  </div>
+</div>
+
         </div>
-      </section>
+      </section> -->
+    <section class="about-section" id="about">
+  <div class="container">
+    <div class="about-content">
+      
+      <div class="about-text">
+        <h2>من نحن</h2>
+        <p>
+        بلاتينيوم الشرقية للاستقدام مرخصة من وزارة العمل والموارد البشرية لخدمات التوسط في استقدام العمالة الوافدة ومقرها المنطقة الشرقية في المملكة العربية السعودية، وحرصاً منا على تقديم خدمات متميزة تم اطلاق منصة رقمية متكاملة لتبسيط عملية الاستقدام وجعلها أكثر كفاءة وسهولة لعملائنا بما يتوافق مع رؤية المملكة.
+        </p>
+      </div>
+      <div class="about-image">
+        <img src="assets/images/about.webp" alt="من نحن" />
+      </div>
+    </div>
+
+   <div class="about-cards">
+  <div class="service">
+    <i class="fa-solid fa-headset"></i>
+    <div>
+      <h4>خدمة عملاء على مدار الساعة</h4>
+      <p>فريقنا متاح دائماً للرد على استفساراتك وتقديم الدعم في أي وقت تشائين.</p>
+    </div>
+  </div>
+
+  <div class="service">
+    <i class="fa-solid fa-id-card"></i>
+    <div>
+      <h4>مرخص من وزارة الموارد البشرية والتنمية الاجتماعية</h4>
+      <p>نلتزم بجميع اللوائح الرسمية لضمان جودة الخدمات وثقة العملاء.</p>
+    </div>
+  </div>
+
+  <div class="service">
+    <i class="fa-solid fa-shield-check"></i>
+    <div>
+      <h4>معتمدين من منصة مساند للعمالة المنزلية</h4>
+      <p>نقدم خدماتنا عبر منصة مساند الرسمية لضمان تجربة آمنة وموثوقة في الاستقدام.</p>
+    </div>
+  </div>
+</div>
+
+  </div>
+</section>
+
       <!-- ============= countries =============  -->
-      <section class="countries" data-aos="fade-up">
-        <div class="container">
-          <div
-            class="headTitle text-start"
-            data-aos="fade-up"
-            data-aos-delay="100"
-          >
-            <h2>دول الاستقدام</h2>
-            <p>يمكنك اختيار الدولة التي تتم عملية الاستقدام منها</p>
-          </div>
+     
+     <section class="countries" data-aos="fade-up">
+  <div class="container">
+    <div class="headTitle text-start" data-aos="fade-up" data-aos-delay="100">
+      <h2>دول الاستقدام</h2>
+      <p>يمكنك اختيار الدولة التي تتم عملية الاستقدام منها</p>
+    </div>
 
-          <div class="allCountries">
-            <div class="row justify-content-center">
-              <!-- Uganda -->
-              <div
-                class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2"
-                data-aos="zoom-in"
-                data-aos-delay="100"
-              >
-                <div class="country-card">
-                  <div class="flag-container">
-                    <img src="assets/images/countries/1.png" alt="علم أوغندا" />
-                  </div>
-                  <div class="country-content">
-                    <h3>أوغندا</h3>
-                    <p>مدة الاستقدام في خلال 60 يوم</p>
-                    <a href="all-workers.html" class="animatedLink">
-                      اطلب الآن
-                      <i class="fas fa-arrow-left"></i>
-                    </a>
-                  </div>
-                </div>
-              </div>
+    <div class="allCountries">
+      <div class="row justify-content-center">
 
-              <!-- Kenya -->
-              <div
-                class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2"
-                data-aos="zoom-in"
-                data-aos-delay="200"
-              >
-                <div class="country-card">
-                  <div class="flag-container">
-                    <img src="assets/images/countries/2.png" alt="علم كينيا" />
-                  </div>
-                  <div class="country-content">
-                    <h3>كينيا</h3>
-                    <p>مدة الاستقدام في خلال 60 يوم</p>
-                    <a href="all-workers.html" class="animatedLink">
-                      اطلب الآن
-                      <i class="fas fa-arrow-left"></i>
-                    </a>
-                  </div>
-                </div>
-              </div>
+        <!-- Uganda -->
+        <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="100">
+          <div class="country-card">
+            <div class="flag-container">
+              <img src="assets/images/countries/1.png" alt="علم أوغندا" />
+            </div>
+            <div class="country-content">
+              <h3>أوغندا</h3>
+              <p>مدة الاستقدام خلال 60 يوم</p>
 
-              <!-- Bangladesh -->
-              <div
-                class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2"
-                data-aos="zoom-in"
-                data-aos-delay="300"
-              >
-                <div class="country-card">
-                  <div class="flag-container">
-                    <img
-                      src="assets/images/countries/3.jpeg"
-                      alt="علم بنغلادش"
-                    />
-                  </div>
-                  <div class="country-content">
-                    <h3>بنغلادش</h3>
-                    <p>مدة الاستقدام في خلال 60 يوم</p>
-                    <a href="all-workers.html" class="animatedLink">
-                      اطلب الآن
-                      <i class="fas fa-arrow-left"></i>
-                    </a>
-                  </div>
-                </div>
-              </div>
+              <ul class="country-costs">
+                <li><span>تكلفة الاستقدام:</span> <strong>8500 ريال</strong></li>
+                <li><span>راتب العاملة:</span> <strong>900 ريال</strong></li>
+                <li><span>الخبرة:</span> <strong>لم يسبق لها العمل </strong></li>
+              </ul>
 
-              <!-- Philippines -->
-              <div
-                class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2"
-                data-aos="zoom-in"
-                data-aos-delay="400"
-              >
-                <div class="country-card">
-                  <div class="flag-container">
-                    <img
-                      src="assets/images/countries/4.jpeg"
-                      alt="علم الفلبين"
-                    />
-                  </div>
-                  <div class="country-content">
-                    <h3>الفلبين</h3>
-                    <p>مدة الاستقدام في خلال 60 يوم</p>
-                    <a href="all-workers.html" class="animatedLink">
-                      اطلب الآن
-                      <i class="fas fa-arrow-left"></i>
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              <!-- India -->
-              <div
-                class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2"
-                data-aos="zoom-in"
-                data-aos-delay="500"
-              >
-                <div class="country-card">
-                  <div class="flag-container">
-                    <img src="assets/images/countries/5.png" alt="علم الهند" />
-                  </div>
-                  <div class="country-content">
-                    <h3>الهند</h3>
-                    <p>مدة الاستقدام في خلال 60 يوم</p>
-                    <a href="all-workers.html" class="animatedLink">
-                      اطلب الآن
-                      <i class="fas fa-arrow-left"></i>
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Mauritania -->
-              <div
-                class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2"
-                data-aos="zoom-in"
-                data-aos-delay="600"
-              >
-                <div class="country-card">
-                  <div class="flag-container">
-                    <img
-                      src="assets/images/countries/6.png"
-                      alt="علم موريتانيا"
-                    />
-                  </div>
-                  <div class="country-content">
-                    <h3>موريتانيا</h3>
-                    <p>مدة الاستقدام في خلال 60 يوم</p>
-                    <a href="all-workers.html" class="animatedLink">
-                      اطلب الآن
-                      <i class="fas fa-arrow-left"></i>
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Djibouti -->
-              <div
-                class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2"
-                data-aos="zoom-in"
-                data-aos-delay="700"
-              >
-                <div class="country-card">
-                  <div class="flag-container">
-                    <img src="assets/images/countries/7.png" alt="علم جيبوتي" />
-                  </div>
-                  <div class="country-content">
-                    <h3>جيبوتي</h3>
-                    <p>مدة الاستقدام في خلال 60 يوم</p>
-                    <a href="all-workers.html" class="animatedLink">
-                      اطلب الآن
-                      <i class="fas fa-arrow-left"></i>
-                    </a>
-                  </div>
-                </div>
-              </div>
+              <a href="all-workers.html" class="animatedLink">
+                تصفح السير الذاتية
+                <i class="fas fa-arrow-left"></i>
+              </a>
             </div>
           </div>
         </div>
-      </section>
+
+        <!-- Kenya -->
+        <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="200">
+          <div class="country-card">
+            <div class="flag-container">
+              <img src="assets/images/countries/2.png" alt="علم كينيا" />
+            </div>
+            <div class="country-content">
+              <h3>كينيا</h3>
+              <p>مدة الاستقدام خلال 60 يوم</p>
+
+              <ul class="country-costs">
+                <li><span>تكلفة الاستقدام:</span> <strong>9500 ريال</strong></li>
+                <li><span>راتب العاملة:</span> <strong>1000 ريال</strong></li>
+                <li><span>الخبرة:</span> <strong>سبق لها العمل</strong></li>
+              </ul>
+
+              <a href="all-workers.html" class="animatedLink">
+                تصفح السير الذاتية
+                <i class="fas fa-arrow-left"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bangladesh -->
+        <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="300">
+          <div class="country-card">
+            <div class="flag-container">
+              <img src="assets/images/countries/3.jpeg" alt="علم بنغلادش" />
+            </div>
+            <div class="country-content">
+              <h3>بنغلادش</h3>
+              <p>مدة الاستقدام خلال 60 يوم</p>
+
+              <ul class="country-costs">
+                <li><span>تكلفة الاستقدام:</span> <strong>8000 ريال</strong></li>
+                <li><span>راتب العاملة:</span> <strong>850 ريال</strong></li>
+                <li><span>الخبرة:</span> <strong> لم يسبق لها العمل </strong></li>
+              </ul>
+
+              <a href="all-workers.html" class="animatedLink">
+                تصفح السير الذاتية
+                <i class="fas fa-arrow-left"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Philippines -->
+        <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="400">
+          <div class="country-card">
+            <div class="flag-container">
+              <img src="assets/images/countries/4.jpeg" alt="علم الفلبين" />
+            </div>
+            <div class="country-content">
+              <h3>الفلبين</h3>
+              <p>مدة الاستقدام خلال 60 يوم</p>
+
+              <ul class="country-costs">
+                <li><span>تكلفة الاستقدام:</span> <strong>12000 ريال</strong></li>
+                <li><span>راتب العاملة:</span> <strong>1500 ريال</strong></li>
+                <li><span>الخبرة:</span> <strong>سبق لها العمل</strong></li>
+              </ul>
+
+              <a href="all-workers.html" class="animatedLink">
+                تصفح السير الذاتية
+                <i class="fas fa-arrow-left"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- India -->
+        <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="500">
+          <div class="country-card">
+            <div class="flag-container">
+              <img src="assets/images/countries/5.png" alt="علم الهند" />
+            </div>
+            <div class="country-content">
+              <h3>الهند</h3>
+              <p>مدة الاستقدام خلال 60 يوم</p>
+
+              <ul class="country-costs">
+                <li><span>تكلفة الاستقدام:</span> <strong>9000 ريال</strong></li>
+                <li><span>راتب العاملة:</span> <strong>1000 ريال</strong></li>
+                <li><span>الخبرة:</span> <strong> لم يسبق لها العمل </strong></li>
+              </ul>
+
+              <a href="all-workers.html" class="animatedLink">
+                تصفح السير الذاتية
+                <i class="fas fa-arrow-left"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mauritania -->
+        <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="600">
+          <div class="country-card">
+            <div class="flag-container">
+              <img src="assets/images/countries/6.png" alt="علم موريتانيا" />
+            </div>
+            <div class="country-content">
+              <h3>موريتانيا</h3>
+              <p>مدة الاستقدام خلال 60 يوم</p>
+
+              <ul class="country-costs">
+                <li><span>تكلفة الاستقدام:</span> <strong>8500 ريال</strong></li>
+                <li><span>راتب العاملة:</span> <strong>950 ريال</strong></li>
+                <li><span>الخبرة:</span> <strong>سبق لها العمل</strong></li>
+              </ul>
+
+              <a href="all-workers.html" class="animatedLink">
+                تصفح السير الذاتية
+                <i class="fas fa-arrow-left"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Djibouti -->
+        <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="700">
+          <div class="country-card">
+            <div class="flag-container">
+              <img src="assets/images/countries/7.png" alt="علم جيبوتي" />
+            </div>
+            <div class="country-content">
+              <h3>جيبوتي</h3>
+              <p>مدة الاستقدام خلال 60 يوم</p>
+
+              <ul class="country-costs">
+                <li><span>تكلفة الاستقدام:</span> <strong>8800 ريال</strong></li>
+                <li><span>راتب العاملة:</span> <strong>950 ريال</strong></li>
+                <li><span>الخبرة:</span> <strong>سبق لها العمل</strong></li>
+              </ul>
+
+              <a href="all-workers.html" class="animatedLink">
+                تصفح السير الذاتية
+                <i class="fas fa-arrow-left"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
 
       <!-- ================ services ================= -->
       <!-- ================ services ================= -->
@@ -734,48 +786,79 @@
       </section>
 
       <!-- statistics sec  -->
-      <section class="statistics" id="statistics">
-        <div class="section-header" data-aos="fade-up" data-aos-duration="1000">
-          <h1 class="title">الإحصائيات</h1>
-          <h6 class="hint">
-            إليك بعض إحصائيات العملاء الذين تشرفنا بالعمل معهم
-          </h6>
+<section class="statistics" id="statistics">
+  <div class="container">
+    <div class="section-header" data-aos="fade-up" data-aos-duration="1000">
+      <h1 class="title">الإحصائيات</h1>
+      <h6 class="hint">
+        إليك بعض إحصائيات العملاء الذين تشرفنا بالعمل معهم
+      </h6>
+    </div>
+
+    <div class="stats-container">
+      <div class="stat-card" data-aos="zoom-in" data-aos-delay="100">
+        <div class="icon-wrapper">
+          <i class="fa-solid fa-users"></i>
         </div>
+        <span class="counter" data-target="794">0</span>
+        <h6>عملاؤنا</h6>
+      </div>
 
-        <div class="stats-container">
-          <div class="stat-card" data-aos="zoom-in" data-aos-delay="100">
-            <div class="icon-wrapper">
-              <i class="fa-solid fa-users"></i>
-            </div>
-            <span class="counter" data-target="794">0</span>
-            <h6>عملاؤنا</h6>
-          </div>
-
-          <div class="stat-card" data-aos="zoom-in" data-aos-delay="200">
-            <div class="icon-wrapper">
-              <i class="fa-solid fa-building"></i>
-            </div>
-            <span class="counter" data-target="812">0</span>
-            <h6>زوارنا</h6>
-          </div>
-
-          <div class="stat-card" data-aos="zoom-in" data-aos-delay="300">
-            <div class="icon-wrapper">
-              <i class="fa-solid fa-headset"></i>
-            </div>
-            <span class="counter" data-target="793">0</span>
-            <h6>خدمة العملاء</h6>
-          </div>
-
-          <div class="stat-card" data-aos="zoom-in" data-aos-delay="400">
-            <div class="icon-wrapper">
-              <i class="fa-solid fa-briefcase"></i>
-            </div>
-            <span class="counter" data-target="710">0</span>
-            <h6>عامل وعاملة</h6>
-          </div>
+      <div class="stat-card" data-aos="zoom-in" data-aos-delay="200">
+        <div class="icon-wrapper">
+          <i class="fa-solid fa-building"></i>
         </div>
-      </section>
+        <span class="counter" data-target="812">0</span>
+        <h6>زوارنا</h6>
+      </div>
+
+      <div class="stat-card" data-aos="zoom-in" data-aos-delay="300">
+        <div class="icon-wrapper">
+          <i class="fa-solid fa-headset"></i>
+        </div>
+        <span class="counter" data-target="793">0</span>
+        <h6>خدمة العملاء</h6>
+      </div>
+
+      <div class="stat-card" data-aos="zoom-in" data-aos-delay="400">
+        <div class="icon-wrapper">
+          <i class="fa-solid fa-briefcase"></i>
+        </div>
+        <span class="counter" data-target="710">0</span>
+        <h6>عامل وعاملة</h6>
+      </div>
+    </div>
+
+<div class="extra-stats" data-aos="fade-up" data-aos-delay="500">
+  <div class="extra-item">
+    <div class="title-row">
+      <i class="fa-solid fa-star"></i>
+      <h5>نسبة رضا العملاء:</h5>
+    </div>
+    <p><span>94%</span> من عملاؤنا راضيين عن الخدمة</p>
+  </div>
+
+  <div class="extra-item">
+    <div class="title-row">
+      <i class="fa-solid fa-stopwatch"></i>
+      <h5>إنجاز الطلبات في الوقت المحدد:</h5>
+    </div>
+    <p><span>98%</span> من الطلبات نُفذت في الفترة المحددة</p>
+  </div>
+
+  <div class="extra-item">
+    <div class="title-row">
+      <i class="fa-solid fa-user-shield"></i>
+      <h5>دعم ما بعد الوصول:</h5>
+    </div>
+    <p><span>100%</span> نسبة المتابعة والدعم بعد الوصول</p>
+  </div>
+</div>
+
+  </div>
+</section>
+
+
 
       <!-- steps sec  -->
       <section class="steps" id="steps">
@@ -812,6 +895,16 @@
                 />
                 <img
                   src="assets/images/mada.webp"
+                  data-aos="zoom-in"
+                  data-aos-delay="400"
+                />
+                 <img
+                  src="assets/images/tabby.png"
+                  data-aos="zoom-in"
+                  data-aos-delay="400"
+                />
+                 <img
+                  src="assets/images/tamara.webp"
                   data-aos="zoom-in"
                   data-aos-delay="400"
                 />
@@ -966,7 +1059,7 @@
         </div>
       </section>
       <!-- musaned-platform  -->
-      <section class="musaned-platform">
+      <!-- <section class="musaned-platform">
         <div class="container">
           <div class="platform-content">
             <div class="row">
@@ -983,7 +1076,6 @@
                 </div>
                 <div class="twm-explore-bottom-section">
                   <div class="row">
-                    <!--block 1-->
                     <div class="col-lg-6 col-md-6">
                       <div class="detail-info">
                         <div class="info-icon">
@@ -998,7 +1090,6 @@
                         </div>
                       </div>
                     </div>
-                    <!--block 2-->
                     <div class="col-lg-6 col-md-6">
                       <div class="detail-info">
                         <div class="info-icon">
@@ -1013,7 +1104,6 @@
                         </div>
                       </div>
                     </div>
-                    <!--block 3-->
                     <div class="col-lg-12 col-md-12">
                       <div class="detail-info">
                         <div class="info-icon">
@@ -1047,7 +1137,27 @@
             </div>
           </div>
         </div>
-      </section>
+      </section> -->
+    <section class="video-section" id="promo-video">
+  <div class="container">
+    <h2 class="video-title" data-aos="fade-up" data-aos-duration="800">
+      شاهد الفيديو التعريفي لمنصة مساند
+    </h2>
+
+    <div class="video-wrapper" data-aos="zoom-in" data-aos-duration="1000">
+      <iframe
+        src="https://www.youtube.com/embed/I3L7Ft6W0-s"
+        title="مساند المنصة الوطنية لتقديم خدمات العمالة المنزلية"
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        referrerpolicy="strict-origin-when-cross-origin"
+        allowfullscreen
+      ></iframe>
+    </div>
+  </div>
+</section>
+
+
       <!-- ================ contact Form ================= -->
       <section class="contactForm">
         <div class="container">
@@ -1149,87 +1259,89 @@
         </div>
       </section>
     </main>
-    <!-- themeColor -->
-    <div class="themeColor">
+      <!-- themeColor -->
+    <!-- <div class="themeColor">
       <input type="color" id="colorInput" class="color-input" />
-    </div>
-    <footer class="footer">
-      <div class="container">
-        <div class="row align-items-start">
-          
-          <div class="col-lg-4 col-md-6 mb-4 footer-about">
-            <img src="assets/images/logo.svg" alt="Logo" class="footer-logo" />
-            <p class="footer-desc">
-              بلاتينيوم للاستقدام يقدم خدمات استقدام العمالة المنزلية باحترافية
-              وجودة مميزة.
-            </p>
-            <ul class="footer-social">
-              <li>
-                <a href="#"><i class="fab fa-facebook-f"></i></a>
-              </li>
-              <li>
-                <a href="#"><i class="fab fa-twitter"></i></a>
-              </li>
-              <li>
-                <a href="#"><i class="fab fa-instagram"></i></a>
-              </li>
-              <li>
-                <a href="#"><i class="fab fa-whatsapp"></i></a>
-              </li>
-              <li>
-                <a href="#"><i class="fab fa-snapchat-ghost"></i></a>
-              </li>
-              <li>
-                <a href="#"><i class="fas fa-envelope"></i></a>
-              </li>
-            </ul>
-          </div>
+    </div> -->
+<footer class="footer">
+  <div class="container">
+    <div class="row align-items-start">
+      <div class="col-lg-4 col-md-6 mb-4 mb-md-0 footer-about">
+        <img src="assets/images/logo.svg" alt="Logo" class="footer-logo" />
+        <p class="footer-desc">
+          بلاتينيوم للاستقدام يقدم خدمات استقدام العمالة المنزلية باحترافية
+          وجودة مميزة.
+        </p>
 
-          <!-- Quick Links -->
-          <div class="col-lg-2 col-md-6 mb-4">
-            <h6 class="footer-title">خدماتنا</h6>
-            <ul class="footer-links">
-              <li><a href="all-workers.html">طلب استقدام</a></li>
-              <li><a href="all-workers.html">طلب نقل خدمات</a></li>
-              <li><a href="dailyLaborDemand.html">طلب عمالة مهنية</a></li>
-              <li><a href="renew-contract.html">تجديد عقد عاملة</a></li>
-            </ul>
-          </div>
-
-          <!-- Contact -->
-          <div class="col-lg-3 col-md-6 mb-4">
-            <h6 class="footer-title">تواصل معنا</h6>
-            <ul class="footer-contact">
-              <li><i class="fa-solid fa-map-marker-alt"></i> الدمام 32413</li>
-              <li><i class="fas fa-envelope"></i> info@platinumeastern.com</li>
-              <li><i class="fa-solid fa-phone"></i> 920003174</li>
-              <li><i class="fa-solid fa-headset"></i> 0552333182</li>
-            </ul>
-          </div>
-
-          <!-- Policies -->
-          <div class="col-lg-3 col-md-6 mb-4">
-            <h6 class="footer-title">سياسات الاستقدام</h6>
-            <ul class="footer-links">
-              <li><a href="visa.html">إصدار التأشيرة</a></li>
-              <li><a href="select-worker.html">اختيار العمالة</a></li>
-              <li><a href="all-workers.html">عقد استقدام</a></li>
-              <li><a href="arrive-worker.html">وصول العمالة</a></li>
-            </ul>
-          </div>
+        <div class="tax-info">
+          <img
+            src="assets/images/zatca-logo.png"
+            alt="شعار هيئة الزكاة والضريبة والجمارك"
+            class="tax-logo"
+          />
+          <p class="tax-number">الرقم الضريبي: <span>310012345600003</span> </p>
         </div>
       </div>
 
-      <div class="footer-bottom">
-        <p>
-          جميع الحقوق محفوظة ©
-          <script>
-            document.write(new Date().getFullYear());
-          </script>
-          <a target="_blank" href="http://nami-tec.com">NAMI</a>
-        </p>
+      <div class="col-6 col-lg-2 col-md-6 mb-4">
+        <h6 class="footer-title">خدماتنا</h6>
+        <ul class="footer-links">
+          <li><a href="all-workers.html">طلب استقدام</a></li>
+          <li><a href="all-workers.html">طلب نقل خدمات</a></li>
+          <li><a href="dailyLaborDemand.html">طلب عمالة مهنية</a></li>
+          <li><a href="renew-contract.html">تجديد عقد عاملة</a></li>
+        </ul>
       </div>
-    </footer>
+
+    
+      <div class=" col-6 col-lg-3 col-md-6 mb-4">
+        <h6 class="footer-title">سياسات الاستقدام</h6>
+        <ul class="footer-links">
+          <li><a href="visa.html">إصدار التأشيرة</a></li>
+          <li><a href="select-worker.html">اختيار العمالة</a></li>
+          <li><a href="all-workers.html">عقد استقدام</a></li>
+          <li><a href="arrive-worker.html">وصول العمالة</a></li>
+        </ul>
+      </div>
+        <div class="col-12 col-lg-3 col-md-6 mb-4">
+        <h6 class="footer-title">تواصل معنا</h6>
+        <ul class="footer-contact">
+          <li><i class="fa-solid fa-map-marker-alt"></i> الدمام 32413</li>
+          <li><i class="fas fa-envelope"></i> info@platinumeastern.com</li>
+          <li><i class="fa-solid fa-phone"></i> 920003174</li>
+          <li><i class="fa-solid fa-headset"></i> 0552333182</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+<div class="footer-bottom">
+  <div class="container">
+    <div class="footer-bottom-content">
+      <p>
+        جميع الحقوق محفوظة ©
+        <script>
+          document.write(new Date().getFullYear());
+        </script>
+        <a target="_blank" href="http://nami-tec.com">NAMI</a>
+      </p>
+
+      <ul class="footer-social">
+        <li><a href="#"><i class="fab fa-facebook-f"></i></a></li>
+        <li><a href="#"><i class="fab fa-twitter"></i></a></li>
+        <li><a href="#"><i class="fab fa-instagram"></i></a></li>
+        <li><a href="#"><i class="fab fa-whatsapp"></i></a></li>
+        <li><a href="#"><i class="fab fa-snapchat-ghost"></i></a></li>
+        <li><a href="#"><i class="fas fa-envelope"></i></a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+</footer>
+
+
 
     <script src="assets/js/swiper-bundle.min.js"></script>
     <script src="assets/js/main.js"></script>

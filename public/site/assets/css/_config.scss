@@ -1,9 +1,9 @@
-// @import url("https://fonts.googleapis.com/css2?family=El+Messiri:wght@400..700&display=swap");
-@font-face {
-  font-family: SF_Regular;
-  font-display: swap;
-  src: url(../font/SF_Regular.ttf);
-}
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+// @font-face {
+//   font-family: SF_Regular;
+//   font-display: swap;
+//   src: url(../font/SF_Regular.ttf);
+// }
 :target {
   scroll-margin-top: 100px;
 }
@@ -37,7 +37,7 @@
   outline: none;
 }
 :root {
-  --mainColor: #005ca9;
+  --mainColor: #005CA9;
   --secondColor: #41cde969;
   --black: #000000;
   --white: #ffffff;
@@ -71,7 +71,7 @@
   scroll-behavior: smooth;
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
-  font-family: "SF_Regular", sans-serif;
+  font-family:  'Cairo', sans-serif;
 }
 
 body {
@@ -114,13 +114,13 @@ html[lang="en"] {
       left: 100%;
     }
     .worker-media {
-            left: 90px;
+     left: 20px;
     }
-     .allWorkers .workers-list .worker-box .ribbon {
-        left: -2px;
-        transform: rotate(-90deg);
-       
+main .allWorkers .workers-list .worker-box .top-ribbon {
+         left: 64%;
     }
+.allWorkers .workers-list .worker-box .worker-header {         
+          margin: 0 0px 30px 40px;}
 }
 
 ul {

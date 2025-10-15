@@ -18,14 +18,17 @@
                                         <span>{{ $maid->age ?? '' }}</span>{{ __('ingaz.year') }}
                                     </div>
                                     @if($maid->st_code || $maid->int_code)
+                               <!-- اول تلت حروف من اسم المكتب والرقم حسب عدد السيرة المستلمة من المكتب  -->
                                         <div class="worker-id">
                                             {{ implode(' / ', array_filter([$maid->st_code ?? null, $maid->int_code ?? null])) }}
                                         </div>
                                     @endif
                                 </div>
                                 <h4>{{ $maid->name ?? '' }}</h4>
-                                                           <div class="ribbon"><span>خصم خاص</span></div>
-
+                         <div class="top-ribbon">
+                          <img src= "{{asset('site')}}/assets/images/ribbon.png" alt="عرض خاص" />
+                          <span> {{ __('ingaz.sale') }}</span>
+                        </div>
                                 <div class="workerInfo">
                                     <p>{{ __('ingaz.nationality') }} :
                                         {{ $maid->nationality->sub_title ?? '' }}</p>
