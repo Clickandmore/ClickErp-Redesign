@@ -284,17 +284,19 @@ class OrderController extends Controller
 
     private function getSelectedStatus($status)
     {
-        if ($status == 'current') {
-            return [OrderEnum::New->value, OrderEnum::UnderProcess->value];
-        } elseif ($status == 'ended') {
-            return [OrderEnum::Completed->value, OrderEnum::Done->value, OrderEnum::Contracted->value];
-        } elseif ($status == 'completed') {
-            return [OrderEnum::Completed->value, OrderEnum::Done->value, OrderEnum::Contracted->value];
-        } elseif ($status == 'not_completed') {
-            return [OrderEnum::Refused->value, OrderEnum::Return->value];
-        } else {
-            return array_map(fn($case) => $case->value, OrderEnum::cases());
-        }
+        return match ($status) {
+            'current' => [OrderEnum::New->value, OrderEnum::UnderProcess->value],
+            'ended', 'completed' => [
+                OrderEnum::Completed->value,
+                OrderEnum::Done->value,
+                OrderEnum::Contracted->value,
+                OrderEnum::ContractedWithoutContract->value,
+            ],
+            'not_completed' => [OrderEnum::Refused->value, OrderEnum::Return->value],
+            default => OrderEnum::tryFrom($status)
+                ? [$status]
+                : array_map(fn ($case) => $case->value, OrderEnum::cases()),
+        };
     }
 
     public function edit(Request $request, $id)
