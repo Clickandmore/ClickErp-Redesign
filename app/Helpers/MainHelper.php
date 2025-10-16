@@ -31,7 +31,20 @@ if (!function_exists('jsonSuccess')) {
         ], 200);
     }
 }
-
+if (!function_exists('submitButton')) {
+    function submitButton($route = "", $text = "", $color = 'primary')
+    {
+        $fullText = ($text != "") ? $text : __("buttons.save");
+        return '<button class="btn btn-' . $color . ' mySubmitButton" type="submit">' . $fullText . '</button>';
+    }
+}
+if (!function_exists('closeButton')) {
+    function closeButton($class = "", $text = "")
+    {
+        $fullText = ($text != "") ? $text : __("buttons.close");
+        return '<button class="btn btn-outline-secondary upCreateModalClose ' . $class . '" type="button" data-bs-dismiss="modal">' . $fullText . '</button>';
+    }
+}
 if (!function_exists('jsonError')) {
     function jsonError($msg = "", $code = 400)
     {
@@ -176,16 +189,28 @@ if (!function_exists('updateDangerEmployeeStatusButton')) {
  * @return \Illuminate\Http\Response
  */
 
+//if (!function_exists('getEnumData')) {
+//    function getEnumData($enumArr, $array_name, $optionSelect = '')
+//    {
+//        $options = '<option value="">' . helperTrans('ingaz.choose') . '</option>';
+//        $constantArray = Constant::globalArray[$array_name];
+//        $locale = \App::currentLocale();
+//        foreach ($enumArr as $case) {
+//            $text = (isset($constantArray[$case->value][$locale])) ? $constantArray[$case->value][$locale] : "undefined";
+//            $selected = ($optionSelect == $case->value) ? "selected" : "";
+//            $options .= '<option value="' . $case->value . '"  ' . $selected . '>' . $text . '</option>';
+//        }
+//        return $options;
+//    }
+//}
 if (!function_exists('getEnumData')) {
-    function getEnumData($enumArr, $array_name, $optionSelect = '')
+    function getEnumData($enumArr, $optionSelect = '')
     {
-        $options = '<option value="">' . helperTrans('ingaz.choose') . '</option>';
-        $constantArray = Constant::globalArray[$array_name];
+        $options = '<option value="">' . helperTrans('auth.choose') . '</option>';
         $locale = \App::currentLocale();
         foreach ($enumArr as $case) {
-            $text = (isset($constantArray[$case->value][$locale])) ? $constantArray[$case->value][$locale] : "undefined";
             $selected = ($optionSelect == $case->value) ? "selected" : "";
-            $options .= '<option value="' . $case->value . '"  ' . $selected . '>' . $text . '</option>';
+            $options .= '<option value="' . $case->value . '"  ' . $selected . '>' . $case->lang() . '</option>';
         }
         return $options;
     }
