@@ -38,7 +38,11 @@
         "psr-4": {
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
-            "Database\\Seeders\\": "database/seeders/"
+            "Database\\Seeders\\": "database/seeders/",
+            "Nami\\Finance\\": "packages/finance/src/",
+            "Nami\\Finance\\Database\\Seeders\\": "packages/finance/database/seeders/",
+            "Nami\\Hr\\": "packages/hr/src/",
+            "Nami\\Hr\\Database\\Seeders\\": "packages/hr/database/seeders/"
         },
         "files": [
             "app/Helpers/MainHelper.php",

@@ -11,6 +11,7 @@ use Spatie\Permission\Models\Role;
 
 class AdminAction extends MainAction
 {
+
     public function __construct()
     {
         $this->model = new Admin();
