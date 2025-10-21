@@ -191,7 +191,7 @@ class RecruitmentContractController extends Controller
 
             $rows = $query->orderBy('id', 'desc');
 
-            \Log::info('Query prepared for DataTables', [
+            logger()->info('Query prepared for DataTables', [
                 'filters_applied' => $request->except(['draw', 'start', 'length', 'search', 'order', 'columns']),
                 'status_filter' => $statusFilter
             ]);
@@ -737,7 +737,8 @@ class RecruitmentContractController extends Controller
         }
 
         $info = ContractInfo::where('contract_id', $contract->id)->first();
-
+        // dump($info);
+        // exit;
         // الحصول على بيانات المسوق
         $marketer = null;
         try {
@@ -750,7 +751,7 @@ class RecruitmentContractController extends Controller
                 $marketer = $contract->order->details->admin;
             }
         } catch (\Exception $e) {
-            \Log::warning('Could not load marketer for contract: ' . $contract->id, [
+            logger()->warning('Could not load marketer for contract: ' . $contract->id, [
                 'error' => $e->getMessage(),
                 'contract_marketer_id' => $contract->marketer_id,
                 'contract_order_id' => $contract->order_id
@@ -772,7 +773,7 @@ class RecruitmentContractController extends Controller
         }
 
         $orderId = request('orderId');
-        \Log::info('Loading create page with orderId: ' . $orderId);
+        logger()->info('Loading create page with orderId: ' . $orderId);
 
         // Load the selected order with all necessary relationships
         $selectedOrder = null;
@@ -783,7 +784,7 @@ class RecruitmentContractController extends Controller
                 'maid.religion',
                 'jobType.translations'
             ])->find($orderId);
-            \Log::info('Selected order loaded:', ['order' => $selectedOrder ? $selectedOrder->toArray() : null]);
+            logger()->info('Selected order loaded:', ['order' => $selectedOrder ? $selectedOrder->toArray() : null]);
         }
 
         // Get new orders with relationships
@@ -855,25 +856,25 @@ class RecruitmentContractController extends Controller
             ], 403);
         }
 
-        \Log::info('Recruitment Contract Creation Request:', $request->all());
-        \Log::info('Request validation:', [
-            'order_id' => $request->order_id,
-            'client_type' => $request->client_type,
-            'contract_date' => $request->contract_date,
-            'msaned_number' => $request->msaned_number,
-            'visa_number' => $request->visa_number,
-            'contract_duration' => $request->contract_duration,
-            'client_national_num' => $request->client_national_num,
-            'new_client_national_num' => $request->new_client_national_num,
-            'client_birthdate' => $request->client_birthdate,
-            'new_client_birthdate' => $request->new_client_birthdate,
-            'client_address' => $request->address,
-            'new_client_address' => $request->new_client_address,
-            'client_phone2' => $request->phone2,
-            'new_client_phone2' => $request->new_client_phone2,
-            'client_city' => $request->city,
-            'new_client_city' => $request->new_client_city
-        ]);
+        // logger()->info('Recruitment Contract Creation Request:', $request->all());
+        // logger()->info('Request validation:', [
+        //     'order_id' => $request->order_id,
+        //     'client_type' => $request->client_type,
+        //     'contract_date' => $request->contract_date,
+        //     'msaned_number' => $request->msaned_number,
+        //     'visa_number' => $request->visa_number,
+        //     'contract_duration' => $request->contract_duration,
+        //     'client_national_num' => $request->client_national_num,
+        //     'new_client_national_num' => $request->new_client_national_num,
+        //     'client_birthdate' => $request->client_birthdate,
+        //     'new_client_birthdate' => $request->new_client_birthdate,
+        //     'client_address' => $request->address,
+        //     'new_client_address' => $request->new_client_address,
+        //     'client_phone2' => $request->phone2,
+        //     'new_client_phone2' => $request->new_client_phone2,
+        //     'client_city' => $request->city,
+        //     'new_client_city' => $request->new_client_city
+        // ]);
 
         try {
             DB::beginTransaction();
@@ -903,12 +904,12 @@ class RecruitmentContractController extends Controller
 
             if ($request->order_id) {
                 $order = Order::findOrFail($request->order_id);
-                \Log::info('Found order:', ['order' => $order->toArray()]);
+                logger()->info('Found order:', ['order' => $order->toArray()]);
 
                 // تحديث بيانات المستخدم من الطلب المسبق
                 $user = $order->user;
                 if ($user) {
-                    \Log::info('Updating user from order - Request data:', [
+                    logger()->info('Updating user from order - Request data:', [
                         'new_client_national_num' => $request->new_client_national_num,
                         'client_national_num' => $request->client_national_num,
                         'new_client_birthdate' => $request->new_client_birthdate,
@@ -933,7 +934,7 @@ class RecruitmentContractController extends Controller
                         'children' => $request->new_client_children ?? $request->children ?? $user->children,
                         'job' => $request->new_client_job ?? $request->job ?? $user->job,
                     ]);
-                    \Log::info('Updated user from order:', ['user' => $user->toArray()]);
+                    logger()->info('Updated user from order:', ['user' => $user->toArray()]);
                 }
 
                 $contractData['user_id'] = $order->user_id;
@@ -941,10 +942,10 @@ class RecruitmentContractController extends Controller
                 $contractData['order_id'] = $order->id; // إضافة order_id للعقد
                 $contractData['marketer_id'] = $request->marketer_id ?: Auth::guard('admin')->id(); // أخذ المسوق من الطلب أو المستخدم الحالي
 
-                \Log::info('Contract data from order:', $contractData);
+                logger()->info('Contract data from order:', $contractData);
             } else {
                 // Handle new contract without existing order
-                \Log::info('Creating/updating user for new contract - Request data:', [
+                logger()->info('Creating/updating user for new contract - Request data:', [
                     'client_phone' => $request->client_phone,
                     'client_name' => $request->client_name,
                     'new_client_national_num' => $request->new_client_national_num,
@@ -978,7 +979,7 @@ class RecruitmentContractController extends Controller
                         'address' => $request->new_client_address ?? $request->client_address,
                         'birthdate' => $request->new_client_birthdate ?? $request->client_birthdate,
                     ]);
-                    \Log::info('Created new user:', ['user' => $user->toArray()]);
+                    logger()->info('Created new user:', ['user' => $user->toArray()]);
                 } else {
                     // Update existing user with new data
                     $user->update([
@@ -997,14 +998,14 @@ class RecruitmentContractController extends Controller
                         'birthdate' => $request->new_client_birthdate ?? $request->client_birthdate,
                         'password' => bcrypt('123456'), // Update password
                     ]);
-                    \Log::info('Updated existing user:', ['user' => $user->toArray()]);
+                    logger()->info('Updated existing user:', ['user' => $user->toArray()]);
                 }
                 $contractData['user_id'] = $user->id;
                 $contractData['marketer_id'] = $request->marketer_id ?: Auth::guard('admin')->id(); // إضافة المسوق تلقائياً
             }
 
-            \Log::info('Creating contract with data:', $contractData);
-            \Log::info('Final user data before contract creation:', [
+            logger()->info('Creating contract with data:', $contractData);
+            logger()->info('Final user data before contract creation:', [
                 'user_id' => $contractData['user_id'],
                 'user_national_num' => $user->national_num,
                 'user_birthdate' => $user->birthdate,
@@ -1014,8 +1015,8 @@ class RecruitmentContractController extends Controller
             ]);
 
             $contract = Contract::create($contractData);
-            \Log::info('Contract created:', ['contract' => $contract->toArray()]);
-            \Log::info('Contract user data after creation:', [
+            logger()->info('Contract created:', ['contract' => $contract->toArray()]);
+            logger()->info('Contract user data after creation:', [
                 'user_id' => $contract->user_id,
                 'order_id' => $contract->order_id,
                 'user_national_num' => $contract->user->national_num,
@@ -1036,19 +1037,19 @@ class RecruitmentContractController extends Controller
                 'contract_duration' => $request->contract_duration,
             ];
 
-            \Log::info('Creating contract info:', $contractInfo);
+            logger()->info('Creating contract info:', $contractInfo);
 
             $contract->info()->create($contractInfo);
-            \Log::info('Contract info created');
+            logger()->info('Contract info created');
 
             // حفظ سجل حالة العقد
             $contract->contract_status_logs()->create(['status' => $contractStatus]);
-            \Log::info('Contract status log created');
+            logger()->info('Contract status log created');
 
             // تحديث حالة الطلب إذا كان العقد من طلب
             if ($request->order_id) {
                 $order->update(['status' => OrderEnum::Completed->value]);
-                \Log::info('Order status updated to completed');
+                logger()->info('Order status updated to completed');
             }
 
             // تحديث حالة العاملات تلقائياً
@@ -1059,7 +1060,7 @@ class RecruitmentContractController extends Controller
                         'available' => false,
                         'status' => 'reserved'
                     ]);
-                    \Log::info('Maid status updated to reserved', [
+                    logger()->info('Maid status updated to reserved', [
                         'maid_id' => $maid->id,
                         'maid_name' => $maid->name,
                         'contract_id' => $contract->id
@@ -1069,7 +1070,7 @@ class RecruitmentContractController extends Controller
 
             DB::commit();
 
-            \Log::info('Contract created successfully', ['contract_id' => $contract->id]);
+            logger()->info('Contract created successfully', ['contract_id' => $contract->id]);
 
             $successMessage = 'تم إنشاء العقد بنجاح';
             if ($isNoMaid || $isMaidSelectionPostponed) {
@@ -1085,7 +1086,7 @@ class RecruitmentContractController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            \Log::error('Error creating contract:', [
+            logger()->error('Error creating contract:', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'request_data' => $request->all(),
@@ -1108,7 +1109,7 @@ class RecruitmentContractController extends Controller
 
             // التحقق من وجود العقد
             if (!$row) {
-                \Log::warning('Contract not found', ['id' => $id, 'request' => $request->all()]);
+                logger()->warning('Contract not found', ['id' => $id, 'request' => $request->all()]);
                 return response()->json([
                     'success' => false,
                     'message' => 'العقد غير موجود'
@@ -1118,7 +1119,7 @@ class RecruitmentContractController extends Controller
             // التحقق من أن العقد من نوع الاستقدام
             // تم إزالة هذا التحقق لأن جميع العقود في هذا Controller هي عقود استقدام
             // if ($row->type !== 'recruitment') {
-            //     \Log::warning('Contract is not recruitment type', ['id' => $id, 'type' => $row->type]);
+            //     logger()->warning('Contract is not recruitment type', ['id' => $id, 'type' => $row->type]);
             //     return response()->json([
             //         'success' => false,
             //         'message' => 'هذا العقد ليس من نوع الاستقدام'
@@ -1201,7 +1202,7 @@ class RecruitmentContractController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Error in show contract:', [
+            logger()->error('Error in show contract:', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'request' => $request->all()
@@ -1227,7 +1228,7 @@ class RecruitmentContractController extends Controller
 
         $contract = Contract::find($id);
         if (!$contract) {
-                \Log::warning('Contract not found in back function', ['id' => $id]);
+                logger()->warning('Contract not found in back function', ['id' => $id]);
             return response()->json([
                 'success' => false,
                 'message' => 'العقد غير موجود'
@@ -1260,7 +1261,7 @@ class RecruitmentContractController extends Controller
         ]);
 
         } catch (\Exception $e) {
-            \Log::error('Error in back contract', [
+            logger()->error('Error in back contract', [
                 'id' => $id,
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -1809,7 +1810,7 @@ class RecruitmentContractController extends Controller
 
                 DB::commit();
 
-                \Log::info('Trip completed and contract status updated', [
+                logger()->info('Trip completed and contract status updated', [
                     'trip_id' => $tripId,
                     'contract_id' => $contract->id,
                     'warranty_status' => $contract->warranty_status
@@ -1826,7 +1827,7 @@ class RecruitmentContractController extends Controller
             }
 
         } catch (\Exception $e) {
-            \Log::error('Error in completeTrip', [
+            logger()->error('Error in completeTrip', [
                 'tripId' => $tripId,
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -1883,7 +1884,7 @@ class RecruitmentContractController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Error in addTravel', [
+            logger()->error('Error in addTravel', [
                 'contractId' => $request->contract_id,
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -1991,7 +1992,7 @@ class RecruitmentContractController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Error in updateStatus', [
+            logger()->error('Error in updateStatus', [
                 'rowId' => $request->row_id,
                 'nextStatus' => $request->next_status,
                 'message' => $e->getMessage(),
@@ -2010,7 +2011,7 @@ class RecruitmentContractController extends Controller
      */
     public function getAvailableMaids(Request $request)
     {
-        \Log::info('getAvailableMaids called', ['request' => $request->all()]);
+        logger()->info('getAvailableMaids called', ['request' => $request->all()]);
 
         try {
             $query = Maid::with(['nationality'])
@@ -2027,7 +2028,7 @@ class RecruitmentContractController extends Controller
                     ]);
                 });
 
-            \Log::info('Query built', ['sql' => $query->toSql()]);
+            logger()->info('Query built', ['sql' => $query->toSql()]);
 
             // فلترة حسب الجنسية
             if ($request->has('nationality_id') && $request->nationality_id) {
@@ -2052,7 +2053,7 @@ class RecruitmentContractController extends Controller
             $availableMaids = $query->latest()->paginate(20)->withQueryString();
 
             // Log debug info
-            \Log::info('نتائج البحث عن العاملات:', [
+            logger()->info('نتائج البحث عن العاملات:', [
                 'count' => $availableMaids->count(),
                 'search' => $request->search,
                 'nationality_id' => $request->nationality_id,
@@ -2085,7 +2086,7 @@ class RecruitmentContractController extends Controller
                 ];
             });
 
-            \Log::info('Available maids loaded', [
+            logger()->info('Available maids loaded', [
                 'count' => $maidsData->count(),
                 'maids' => $maidsData->toArray()
             ]);
@@ -2096,7 +2097,7 @@ class RecruitmentContractController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Error in getAvailableMaids', [
+            logger()->error('Error in getAvailableMaids', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'request' => $request->all()
@@ -2311,7 +2312,7 @@ class RecruitmentContractController extends Controller
             $availableMaids = $query->latest()->paginate(20)->withQueryString();
 
             // Log debug info
-            \Log::info('نتائج البحث عن العاملات:', [
+            logger()->info('نتائج البحث عن العاملات:', [
                 'count' => $availableMaids->count(),
                 'search' => $request->search,
                 'nationality_id' => $request->nationality_id,
@@ -2350,7 +2351,7 @@ class RecruitmentContractController extends Controller
             ));
 
         } catch (\Exception $e) {
-            \Log::error('Error in selectMaidForContract', [
+            logger()->error('Error in selectMaidForContract', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
                 'contractId' => $contractId,
@@ -2475,7 +2476,7 @@ class RecruitmentContractController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Error in contract statistics:', [
+            logger()->error('Error in contract statistics:', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -2584,7 +2585,7 @@ class RecruitmentContractController extends Controller
                 $oldMaid = $contract->maid;
                 $oldMaidId = $oldMaid->id;
 
-                \Log::info('Changing maid in contract', [
+                logger()->info('Changing maid in contract', [
                     'contract_id' => $contractId,
                     'old_maid_id' => $oldMaidId,
                     'new_maid_id' => $newMaidId,
@@ -2612,7 +2613,7 @@ class RecruitmentContractController extends Controller
                     ]);
                 }
 
-                \Log::info('Old maid status updated', [
+                logger()->info('Old maid status updated', [
                     'old_maid_id' => $oldMaidId,
                     'new_status' => $oldMaid->status,
                     'new_available' => $oldMaid->available
@@ -2632,14 +2633,14 @@ class RecruitmentContractController extends Controller
                 // إعادة تحميل البيانات للتأكد من التحديث
                 $newMaid->refresh();
 
-                \Log::info('New maid status updated', [
+                logger()->info('New maid status updated', [
                     'new_maid_id' => $newMaidId,
                     'new_status' => $newMaid->status,
                     'new_available' => $newMaid->available
                 ]);
 
                 // تسجيل العملية في سجل التغييرات
-                \Log::info('Maid changed in contract', [
+                logger()->info('Maid changed in contract', [
                     'contract_id' => $contractId,
                     'old_maid_id' => $oldMaidId,
                     'new_maid_id' => $newMaidId,
@@ -2676,7 +2677,7 @@ class RecruitmentContractController extends Controller
             }
 
         } catch (\Exception $e) {
-            \Log::error('Error changing maid in contract:', [
+            logger()->error('Error changing maid in contract:', [
                 'contract_id' => $contractId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -2735,7 +2736,7 @@ class RecruitmentContractController extends Controller
             return view($this->folderPath . '.change_maid', compact('contract', 'availableMaids'));
 
         } catch (\Exception $e) {
-            \Log::error('Error showing change maid page:', [
+            logger()->error('Error showing change maid page:', [
                 'contract_id' => $contractId,
                 'error' => $e->getMessage()
             ]);
@@ -2829,7 +2830,7 @@ class RecruitmentContractController extends Controller
                 }
 
                 // تسجيل العملية
-                \Log::info('Contract cancelled', [
+                logger()->info('Contract cancelled', [
                     'contract_id' => $contract->id,
                     'cancel_reason' => $request->cancel_reason,
                     'maid_status_after_cancel' => $request->maid_status_after_cancel,
@@ -2850,7 +2851,7 @@ class RecruitmentContractController extends Controller
             }
 
         } catch (\Exception $e) {
-            \Log::error('Error cancelling contract:', [
+            logger()->error('Error cancelling contract:', [
                 'contract_id' => $request->contract_id ?? null,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
