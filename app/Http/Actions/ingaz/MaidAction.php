@@ -159,6 +159,7 @@ class MaidAction extends MainAction
             throw new \Exception('Selected religion does not exist in the database');
         }
 
+        $duration = $data['duration'] ?? null;
         unset($data['duration'], $data['additional_notes'], $data['id']);
 
         // معالجة جميع الحقول التي هي array
@@ -198,7 +199,7 @@ class MaidAction extends MainAction
             'age' => $data['age'],
             'height' => $data['height'],
             'weight' => $data['weight'],
-            'duration' => $data['duration'],
+            'duration' => $duration,
             'additional_notes' => $data['additional_notes'] ?? null,
             'childrens_count' => $data['childrens_count'] ?? 0,
             'birth_date' => $data['birth_date'] ?? null,
