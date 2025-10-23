@@ -17,6 +17,8 @@ class Nationality extends Model
         'logo',
         'phone_code',
         'price',
+        'salary_with_experience',
+        'salary_with_no_experience',
         'service_transportation_cost',
         'rental_cost',
         'monthly_salary',

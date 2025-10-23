@@ -650,6 +650,8 @@ class MaidAction extends MainAction
             'estqdam' => 1,
             'egar' => 2,
             'transfer' => 3,
+            'has_experience' => 'has_experience',
+            'no_experience' => 'no_experience',
             default => null,
         };
 
@@ -657,7 +659,7 @@ class MaidAction extends MainAction
             ->when(isset($type), function ($query) use ($type) {
                 $query->whereHas('jobTypes', function ($q) use ($type) {
                     $q->where('job_type_id', $type);
-                });
+                })->orWhere('experience_status', '=', $type);
             })
             ->when(isset($request->nationality_id), function ($query) use ($request) {
                 $query->where('nationality_id', $request->nationality_id);
@@ -668,7 +670,7 @@ class MaidAction extends MainAction
                 });
             })
             ->when(isset($request->experience_status), function ($query) use ($request) {
-                $query->where('experience_status', $request->experience_status);
+                $query->where('experience_status', '=', $request->experience_status);
             })
             ->when(isset($request->age), function ($query) use ($request) {
                 if ($request->age == '20_30') {

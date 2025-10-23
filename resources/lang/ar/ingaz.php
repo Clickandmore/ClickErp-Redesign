@@ -62,6 +62,7 @@
   'question' => 'سؤال',
   'answer' => 'الاجابة',
   'contact_us' => 'اتصل بنا',
+  'technical_support' => 'الدعم الفني',
   'contact' => 'اتصال',
   'subject' => 'الموضوع',
   'message' => 'الرسالة',
@@ -1494,4 +1495,6 @@
   'about_us' => 'About us',
     'hr' => 'أدارة الموارد البشرية',
     'finance' => 'أدارة الماليات',
+    'salary_with_no_experience' => 'راتب العاملة لم يسبق لها العمل',
+    'salary_with_experience' => 'راتب العاملة  سبق لها العمل',
 );

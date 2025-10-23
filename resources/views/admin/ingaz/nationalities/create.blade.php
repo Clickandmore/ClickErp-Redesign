@@ -17,6 +17,18 @@
         </label>
         <input type="number" name="price" class="form-control" placeholder="يترك فارغ في حالة تحديد سعر خاص لكل عاملة">
     </div>
+    <div class="col-6">
+        <label for="TextInput" class="form-label">
+            راتب العاملة سبق لها العمل
+        </label>
+        <input type="number" name="salary_with_experience" class="form-control">
+    </div>
+    <div class="col-6">
+        <label for="TextInput" class="form-label">
+            راتب العاملة لم يسبق لها العمل
+        </label>
+        <input type="number" name="salary_with_no_experience" class="form-control">
+    </div>
     <div class="col-12">
         <label for="TextInput" class="form-label">
             تكلفة نقل الخدمات

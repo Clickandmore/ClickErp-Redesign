@@ -106,7 +106,7 @@
                     <div class="data">
                         <p class="innerTitle">{{ __('ingaz.cv_number') }} :</p>
                         <div class="passportNumbers">
-                            <span> {{ $maid->st_code ?? '' }} </span>
+                            <span> {{ $maid->office->title ?? '' }} </span>
                             <span>/</span>
                             <span> {{ $maid->int_code ?? '' }} </span>
                         </div>

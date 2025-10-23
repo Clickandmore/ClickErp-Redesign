@@ -1587,4 +1587,8 @@
     'video_link' => 'https://www.youtube.com/embed/I3L7Ft6W0-s',
     'hr' => 'Hr Management',
     'finance' => 'Finance Management',
+    'technical_support' => 'Technical Support',
+
+    'salary_with_no_experience' => 'Salary with no experience',
+    'salary_with_experience' => 'Salary with experience',
 );

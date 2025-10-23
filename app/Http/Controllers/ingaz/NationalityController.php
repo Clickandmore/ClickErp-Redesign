@@ -24,6 +24,8 @@ class NationalityController extends Controller
         "description:ar",
         "description:en",
         "price",
+        "salary_with_no_experience",
+        "salary_with_experience",
         "service_transportation_cost",
         "rental_cost",
         "monthly_salary",

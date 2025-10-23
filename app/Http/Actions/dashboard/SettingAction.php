@@ -28,6 +28,10 @@ class SettingAction extends MainAction
             $image = $data['qr_image'];
             $data['qr_image'] = uploadFile($image, $this->fileFolder, 1);
         }
+        if ($request->hasFile('cover_image')) {
+            $image = $data['cover_image'];
+            $data['cover_image'] = uploadFile($image, $this->fileFolder, 1);
+        }
 
         if ($request->hasFile('experience_image')) {
             $image = $data['experience_image'];
@@ -67,6 +71,11 @@ class SettingAction extends MainAction
             deleteFile($setting->qr_image);
             $image = $data['qr_image'];
             $data['qr_image'] = uploadFile($image, $this->fileFolder, 1);
+        }
+        if (isset($data['cover_image']) && $data['cover_image'] instanceof \Illuminate\Http\UploadedFile) {
+            deleteFile($setting->cover_image);
+            $image = $data['cover_image'];
+            $data['cover_image'] = uploadFile($image, $this->fileFolder, 1);
         }
 
         if (isset($data['experience_image']) && $data['experience_image'] instanceof \Illuminate\Http\UploadedFile) {
