@@ -628,19 +628,58 @@ class MaidAction extends MainAction
 
     protected function availableQuery()
     {
+        $today = now()->toDateString();
+
         return $this->model
             ->shown()
-            ->where('available', true)
-            ->where('status', 'available')
-            ->where(function ($query) {
-                $query->whereNull('available_at')
-                    ->orWhere('available_at', '<=', now()->toDateString());
+            ->where(function ($query) use ($today) {
+                $query->where(function ($available) use ($today) {
+                    $available->where('available', true)
+                        ->whereIn('status', ['available', 'completed'])
+                        ->where(function ($dateQuery) use ($today) {
+                            $dateQuery->whereNull('available_at')
+                                ->orWhere('available_at', '<=', $today);
+                        })
+                        ->whereDoesntHave('contracts', function ($contractQuery) {
+                            $contractQuery->whereIn('status', [
+                                ContractStatusEnum::New->value,
+                                ContractStatusEnum::Msaned->value,
+                                ContractStatusEnum::Tafwed->value,
+                                ContractStatusEnum::Taffez->value,
+                                ContractStatusEnum::Tazker->value,
+                                ContractStatusEnum::Arrival->value,
+                            ]);
+                        })
+                        ->whereDoesntHave('orders', function ($orderQuery) {
+                            $orderQuery->whereIn('status', ['new', 'under_process', 'contracted']);
+                        });
+                })->orWhere(function ($shelter) use ($today) {
+                    $this->applyShelterInstantFilters($shelter, $today);
+                });
+            });
+    }
+
+    private function applyShelterInstantFilters($query, string $today)
+    {
+        return $query
+            ->where('status', 'in_accommodation')
+            ->where(function ($dateQuery) use ($today) {
+                $dateQuery->whereNull('available_at')
+                    ->orWhere('available_at', '<=', $today);
             })
-            ->whereDoesntHave('contracts', function ($query) {
-                $query->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival']);
+            ->whereHas('contracts', function ($contractQuery) {
+                $contractQuery->where('status', ContractStatusEnum::Shelter->value)
+                    ->whereHas('info', function ($infoQuery) {
+                        $infoQuery->whereIn('is_available_for_instant', [true, 1, '1'])
+                            ->where(function ($wantsToWorkQuery) {
+                                $wantsToWorkQuery
+                                    ->whereRaw('LOWER(TRIM(COALESCE(wants_to_work, ""))) = ?', ['yes'])
+                                    ->orWhereIn('wants_to_work', [1, '1', true]);
+                            });
+                    });
             })
-            ->whereDoesntHave('orders', function ($query) {
-                $query->whereIn('status', ['new', 'under_process', 'contracted']);
+            ->whereDoesntHave('orders', function ($orderQuery) {
+                $orderQuery->whereIn('status', ['new', 'under_process', 'contracted']);
             });
     }
 
@@ -653,11 +692,23 @@ class MaidAction extends MainAction
             default => null,
         };
 
+        $today = now()->toDateString();
+
         return $this->availableQuery()
-            ->when(isset($type), function ($query) use ($type) {
-                $query->whereHas('jobTypes', function ($q) use ($type) {
-                    $q->where('job_type_id', $type);
-                });
+            ->when(isset($type), function ($query) use ($type, $today) {
+                if ($type === 3) {
+                    $query->where(function ($transferQuery) use ($today) {
+                        $transferQuery->whereHas('jobTypes', function ($q) {
+                            $q->where('job_type_id', 3);
+                        })->orWhere(function ($orQuery) use ($today) {
+                            $this->applyShelterInstantFilters($orQuery, $today);
+                        });
+                    });
+                } else {
+                    $query->whereHas('jobTypes', function ($q) use ($type) {
+                        $q->where('job_type_id', $type);
+                    });
+                }
             })
             ->when(isset($request->nationality_id), function ($query) use ($request) {
                 $query->where('nationality_id', $request->nationality_id);
