@@ -662,11 +662,7 @@ class MaidAction extends MainAction
     private function applyShelterInstantFilters($query, string $today)
     {
         return $query
-            ->where('status', 'in_accommodation')
-            ->where(function ($dateQuery) use ($today) {
-                $dateQuery->whereNull('available_at')
-                    ->orWhere('available_at', '<=', $today);
-            })
+            ->whereIn('status', ['in_accommodation', 'available', 'completed'])
             ->whereHas('contracts', function ($contractQuery) {
                 $contractQuery->where('status', ContractStatusEnum::Shelter->value)
                     ->whereHas('info', function ($infoQuery) {
@@ -677,9 +673,6 @@ class MaidAction extends MainAction
                                     ->orWhereIn('wants_to_work', [1, '1', true]);
                             });
                     });
-            })
-            ->whereDoesntHave('orders', function ($orderQuery) {
-                $orderQuery->whereIn('status', ['new', 'under_process', 'contracted']);
             });
     }
 
