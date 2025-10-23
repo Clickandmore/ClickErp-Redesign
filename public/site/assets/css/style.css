@@ -219,7 +219,7 @@ textarea {
   padding: 100px 30px 120px;
   transition: var(--transition);
   margin-bottom: 20px;
-  background-image: linear-gradient(45deg, var(--mainColor10), var(--mainColor40)), url(../images/ban.png);
+  /*background-image: linear-gradient(45deg, var(--mainColor10), var(--mainColor40)), url(../images/ban.png);*/
   background-size: cover;
   background-attachment: fixed;
   animation: sky 100s infinite;
@@ -3051,7 +3051,7 @@ main .report-section .report-note {
   padding: 20px;
   background: rgba(13, 59, 102, 0.05);
   border-radius: 12px;
-  border-right: 4px solid var(--mainColor);
+    border-right: 4px solid #9D4655FF;
 }
 main .report-section .report-note p {
   color: var(--black);

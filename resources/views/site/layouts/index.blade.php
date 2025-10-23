@@ -16,13 +16,18 @@
     @include('site.layouts.header')
 </header>
 <main>
-    <div id="ad-popup" class="ad-popup">
-        <div class="ad-popup-content">
-            <h5 class="ad-popup-title">{{__("ingaz.Special offer!")}}</h5>
-            <p class="ad-popup-desc">{{__("ingaz.Take advantage of our new recruitment discounts for a limited time")}}</p>
-        </div>
-        <button id="close-ad" class="ad-popup-close" aria-label="إغلاق">&times;</button>
-    </div>
+    @if(isset($settings) )
+        @if($settings->there_are_offer == 1)
+            <div id="ad-popup" class="ad-popup">
+                <div class="ad-popup-content">
+                    <h5 class="ad-popup-title">{{__("ingaz.Special offer!")}}</h5>
+                    <p class="ad-popup-desc">{{$settings->offer_text}}</p>
+                </div>
+                <button id="close-ad" class="ad-popup-close" aria-label="إغلاق">&times;</button>
+            </div>
+        @endif
+    @endif
+
 
     @yield('content')
     <div class="modal fade add_location" id="addLocation" tabindex="-1" aria-labelledby="addLocationLabel"

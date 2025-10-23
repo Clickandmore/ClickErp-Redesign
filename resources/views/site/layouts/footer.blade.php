@@ -15,7 +15,7 @@
                     </p>
                 </div>
 
-              
+
             </div>
         @else
             <!-- الحالة الافتراضية -->
@@ -27,10 +27,10 @@
 
                 <div class="tax-info">
                     <img src="{{ asset('site/assets/images/zatca-logo.png') }}" alt="شعار هيئة الزكاة والضريبة والجمارك" class="tax-logo" />
-                    <p class="tax-number">الرقم الضريبي: <span>310012345600003</span></p>
+                    <p class="tax-number">الرقم الضريبي: <span>314232024200003</span></p>
                 </div>
 
-               
+
             </div>
         @endif
 

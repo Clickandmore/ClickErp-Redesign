@@ -179,6 +179,18 @@
                                             <strong>{{ number_format($nationality->price, 0) }} {{ __('ingaz.currency_sar') }}</strong>
                                         </li>
                                     @endif
+                                    @if($nationality->salary_with_experience)
+                                        <li>
+                                            <span>{{ __('ingaz.salary_with_experience') }}</span>
+                                            <strong>{{ number_format($nationality->salary_with_experience, 0) }} {{ __('ingaz.currency_sar') }}</strong>
+                                        </li>
+                                    @endif
+                                        @if($nationality->salary_with_no_experience)
+                                        <li>
+                                            <span>{{ __('ingaz.salary_with_no_experience') }}</span>
+                                            <strong>{{ number_format($nationality->salary_with_no_experience, 0) }} {{ __('ingaz.currency_sar') }}</strong>
+                                        </li>
+                                    @endif
 
                                     @if($nationality->rental_cost)
                                         <li>

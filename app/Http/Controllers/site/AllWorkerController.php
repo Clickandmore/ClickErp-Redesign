@@ -27,6 +27,8 @@ class AllWorkerController extends Controller
             'estqdam' => __('ingaz.recruitment_request'),
             'egar' => __('ingaz.labor_rental_request'),
             'transfer' => __('ingaz.Labor_transfer_request'),
+            'has_experience_label' => __('ingaz.has_experience_label'),
+            'no_experience_label' => __('ingaz.no_experience_label'),
             default => __('ingaz.recruitment_request')
         };
         return view('site.pages.all_workers', $data);

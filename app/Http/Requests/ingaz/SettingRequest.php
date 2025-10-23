@@ -3,7 +3,6 @@
 namespace App\Http\Requests\ingaz;
 
 use App\Http\Requests\MainRequest;
-use Illuminate\Foundation\Http\FormRequest;
 
 class SettingRequest extends MainRequest
 {
@@ -28,6 +27,7 @@ class SettingRequest extends MainRequest
             'second_qr_image' => 'nullable',
             'experience_image' => 'nullable',
             'qr_image' => 'nullable',
+             'cover_image' => 'nullable',
             'logo_header' => 'nullable',
             'logo_footer' => 'nullable',
             'about_image' => 'nullable',
@@ -52,7 +52,9 @@ class SettingRequest extends MainRequest
             'rights_maids:ar' => 'nullable|string',
             'rights_maids:en' => 'nullable|string',
             'rights_users:ar' => 'nullable|string',
-            'rights_users:en' => 'nullable|string',
+             'rights_users:en' => 'nullable|string',
+             'offer_text:ar' => 'nullable|string',
+             'offer_text:en' => 'nullable|string',
             'privacy:ar' => 'nullable|string',
             'privacy:en' => 'nullable|string',
             'about_us_sub_title:ar' => 'nullable|string',
@@ -64,6 +66,7 @@ class SettingRequest extends MainRequest
             'note_ar' => 'nullable|string',
             'note_en' => 'nullable|string',
             'link_rights_and_duties' => 'nullable|string',
+             'there_are_offer' => 'nullable',
         ];
     }
 }
