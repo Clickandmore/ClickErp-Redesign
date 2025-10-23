@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
 
 class FixMaidsPrimaryKey extends Migration
 {
@@ -39,7 +38,7 @@ class FixMaidsPrimaryKey extends Migration
             ->exists();
 
         if ($duplicatesRemain) {
-            throw new RuntimeException(
+            throw new \RuntimeException(
                 'Unable to clean duplicate maid IDs automatically. Resolve duplicates manually before rerunning the migration.'
             );
         }
