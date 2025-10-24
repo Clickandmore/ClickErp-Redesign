@@ -1,12 +1,11 @@
 <nav class="navbar mainNav navbar-expand-lg">
         <div class="container-fluid">
     <!-- Logo -->
+    @php
+        $headerLogo = isset($settings) ? showFile($settings->logo_header) : null;
+    @endphp
     <a class="navbar-brand" href="{{route('site.home.index')}}">
-        @if(isset($settings))
-            <img class="logo" src="{{showFile($settings->logo_header)}}" alt="Logo"/>
-        @else
-            <img class="logo" src="{{asset('site')}}/assets/images/logo.png" alt="Logo"/>
-        @endif
+        <img class="logo" src="{{ $headerLogo ?? asset('site/assets/images/logo.png') }}" alt="Logo"/>
     </a>
 
             <!-- Toggle Btn (Mobile) -->
@@ -55,12 +54,7 @@
                                    href="{{route('site.daily-lebor-demand.index')}}"> {{__("ingaz.request_professional_labor")}}
                                 </a>
                             </li>
-                            <li>
-                                <a class="dropdown-item" href="{{route('site.all-workers.index')}}">
-                                    {{__("ingaz.recruitment_request")}}
-                                    <span></span>
-                                </a>
-                            </li>
+
                             <li>
                                 <a class="dropdown-item"
                                    href="{{route('site.renew-contract.index')}}">{{__("ingaz.renewing_employment_contract")}}
@@ -68,10 +62,35 @@
                             </li>
                         </ul>
                     </li>
-                    <!--سياسات الاستقدام -->
+                     <!--عن الاستقدام -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#"
-                           data-bs-toggle="dropdown">{{__("ingaz.recruitment_policies")}}</a>
+                           data-bs-toggle="dropdown">  {{__("ingaz.about_Recruitment")}}
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li class="nav-item">
+                                <a class="nav-link"
+                                   href="{{route('site.musaned.index')}}">{{__("ingaz.musaned_initiative")}}
+                                    <span></span>
+                                </a>
+                            </li>
+                            <li class="nav-item"><a class="nav-link" href="{{route('site.policies.index')}}">
+                                    {{__("ingaz.Policies and laws")}}
+                                    <span></span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="nav-link" href="{{route('site.anti-traficking.index')}}">
+                                    {{__("ingaz.Avoid_human")}}<span></span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!--رحلة الاستقدام -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#"
+                           data-bs-toggle="dropdown">{{__("ingaz.recruitment_journey")}}</a>
                         <ul class="dropdown-menu">
                             <li>
                                 <a class="dropdown-item" href="{{route('site.visa.index')}}">
@@ -94,30 +113,6 @@
                                 <a class="dropdown-item"
                                    href="{{route('site.arrival-worker.index')}}">
                                     {{__("ingaz.employment_rules_and_regulations")}}
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
-                    <!--عن الاستقدام -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#"
-                           data-bs-toggle="dropdown">  {{__("ingaz.about_Recruitment")}}
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li class="nav-item">
-                                <a class="nav-link"
-                                   href="{{route('site.musaned.index')}}">{{__("ingaz.musaned_initiative")}}
-                                    <span></span>
-                                </a>
-                            </li>
-                            <li class="nav-item"><a class="nav-link" href="{{route('site.policies.index')}}">
-                                    {{__("ingaz.Policies and laws")}}
-                                    <span></span>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="nav-link" href="{{route('site.anti-traficking.index')}}">
-                                    {{__("ingaz.Avoid_human")}}<span></span>
                                 </a>
                             </li>
                         </ul>
@@ -206,6 +201,11 @@
                             <a class="login-btn" href="{{route('site.login.index')}}">{{__("ingaz.login")}}<span></span></a>
                         </li>
                     @endif
+
+                     <!-- resv Btn -->
+                        <li class="nav-item d-lg-block">
+                            <a class="login-btn" href="{{route('site.all-workers.index')}}">{{__("ingaz.recruitment_request")}}<span></span></a>
+                        </li>
                 </ul>
             </div>
         </div>

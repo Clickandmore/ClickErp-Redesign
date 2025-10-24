@@ -171,7 +171,11 @@
 
                             <div class="country-content">
                                 <h3>{{ $nationality->title }}</h3>
-
+@if($nationality->description)
+                                    <div class="country-description center">
+                                        {!! $nationality->description !!}
+                                    </div>
+                                @endif
                                 <ul class="country-costs">
                                     @if($nationality->price)
                                         <li>
@@ -214,11 +218,7 @@
                                     @endif
                                 </ul>
 
-                                @if($nationality->description)
-                                    <div class="country-description center">
-                                        {!! $nationality->description !!}
-                                    </div>
-                                @endif
+
 
                                 <a href="{{ route('site.all-workers.index') }}?nationality_id={{ $nationality->id }}" class="animatedLink">
                                     {{ __('ingaz.request now') }}

@@ -659,10 +659,9 @@ class MaidAction extends MainAction
             });
     }
 
-    private function applyShelterInstantFilters($query, string $today)
+    private function applyShelterInstantFilters($query, string $today): void
     {
-        return $query
-            ->whereIn('status', ['in_accommodation', 'available', 'completed'])
+        $query->whereIn('status', ['in_accommodation', 'available', 'completed'])
             ->whereHas('contracts', function ($contractQuery) {
                 $contractQuery->where('status', ContractStatusEnum::Shelter->value)
                     ->whereHas('info', function ($infoQuery) {
@@ -673,6 +672,9 @@ class MaidAction extends MainAction
                                     ->orWhereIn('wants_to_work', [1, '1', true]);
                             });
                     });
+            })
+            ->whereDoesntHave('orders', function ($orderQuery) {
+                $orderQuery->whereIn('status', ['new', 'under_process', 'contracted']);
             });
     }
 
@@ -682,18 +684,12 @@ class MaidAction extends MainAction
             'estqdam' => 1,
             'egar' => 2,
             'transfer' => 3,
-            'has_experience' => 'has_experience',
-            'no_experience' => 'no_experience',
             default => null,
         };
 
         $today = now()->toDateString();
 
         return $this->availableQuery()
-            ->when(isset($type), function ($query) use ($type) {
-                $query->whereHas('jobTypes', function ($q) use ($type) {
-                    $q->where('job_type_id', $type);
-                })->orWhere('experience_status', '=', $type);
             ->when(isset($type), function ($query) use ($type, $today) {
                 if ($type === 3) {
                     $query->where(function ($transferQuery) use ($today) {
@@ -718,7 +714,7 @@ class MaidAction extends MainAction
                 });
             })
             ->when(isset($request->experience_status), function ($query) use ($request) {
-                $query->where('experience_status', '=', $request->experience_status);
+                $query->where('experience_status', $request->experience_status);
             })
             ->when(isset($request->age), function ($query) use ($request) {
                 if ($request->age == '20_30') {
