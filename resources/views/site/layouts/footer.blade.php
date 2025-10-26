@@ -82,7 +82,7 @@
             <p>
                 {{ __("ingaz.all_rights_reserved") }} ©
                 <script>document.write(new Date().getFullYear());</script>
-                <a target="_blank" href="http://nami-tec.com">NAMI</a>
+                <a target="_blank" href="http://istqdim.com">عالم الاستقدام </a>
             </p>
               <ul class="footer-social">
                     @if($settings->facebook)

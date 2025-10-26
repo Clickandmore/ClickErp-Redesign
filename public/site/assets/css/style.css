@@ -2251,7 +2251,7 @@ main .steps .allSteps .step::before {
 main .steps .allSteps .step .images {
   display: flex;
   flex-wrap: wrap;
-  margin-top: 70px;
+  margin-top: 4px;
 }
 main .steps .allSteps .step .images img {
   -o-object-fit: contain;

@@ -581,17 +581,7 @@
                             سداد رسوم تاشيرة العمالة المنزلية الخاصة بك عبر الخدمات الحكومية
                             في البنك او عن طريق القنوات التالية
                         </p>
-                        <div class="images">
-                            <img src="{{asset('site')}}/assets/images/mc.webp" data-aos="zoom-in" data-aos-delay="200">
-                            <img src="{{asset('site')}}/assets/images/visa.webp" data-aos="zoom-in"
-                                 data-aos-delay="300">
-                            <img src="{{asset('site')}}/assets/images/mada.webp" data-aos="zoom-in"
-                                 data-aos-delay="400">
-                                  <img src="{{asset('site')}}/assets/images/tabby.png" data-aos="zoom-in"
-                                     data-aos-delay="400">
-                                      <img src="{{asset('site')}}/assets/images/tamara.webp" data-aos="zoom-in"
-                                     data-aos-delay="400">
-                        </div>
+
                     </div>
                     <div class="step" data-aos="fade-up" data-aos-delay="200">
                         <div class="icon">
@@ -616,6 +606,17 @@
                             دفع مبلغ اختياري وتوثيق طلب استقدام العمالة المنزلية المحددة بعد
                             اختيار السيرة الذاتية
                         </p>
+                         <div class="images">
+                            <img src="{{asset('site')}}/assets/images/mc.webp" data-aos="zoom-in" data-aos-delay="200">
+                            <img src="{{asset('site')}}/assets/images/visa.webp" data-aos="zoom-in"
+                                 data-aos-delay="300">
+                            <img src="{{asset('site')}}/assets/images/mada.webp" data-aos="zoom-in"
+                                 data-aos-delay="400">
+                                  <img src="{{asset('site')}}/assets/images/tabby.png" data-aos="zoom-in"
+                                     data-aos-delay="400">
+                                      <img src="{{asset('site')}}/assets/images/tamara.webp" data-aos="zoom-in"
+                                     data-aos-delay="400">
+                        </div>
                     </div>
                     <div class="step" data-aos="fade-up" data-aos-delay="500">
                         <div class="icon">
@@ -780,7 +781,81 @@
 
 
 
-    <!-- ================ references ================= -->
+
+
+    <!-- ================ contact Form ================= -->
+   <section class="contactForm">
+      <div class="container">
+           <div class="row">
+               <div class="col-md-6 p-2 mb-5 mb-md-0 wow fadeInUp">
+                   <div class="headTitle text-start">
+                       <h2> {{__('ingaz.contact-us')}}</h2>
+                       <p>
+                           {{__('ingaz.request your mid')}}
+                       </p>
+                   </div>
+                   <form action="" id="contact-form" class="row needs-validation" novalidate>
+                       @csrf
+
+                       <input type="hidden" name="latitude" id="latitude">
+                       <input type="hidden" name="longitude" id="longitude">
+                       <div class="col-md-12 p-2">
+                           <label class="form-label">
+                               <i class="fas fa-user me-2"></i> {{__('ingaz.full name')}}*
+                           </label>
+                           <input type="text" id="name" name="name" class="form-control" required/>
+                           <div class="invalid-feedback"> {{__('ingaz.this field is required')}}</div>
+                           <div class="valid-feedback">{{__('ingaz.good')}}</div>
+                       </div>
+                       <div class="col-md-6 p-2">
+                           <label class="form-label"><i class="fas fa-phone-alt me-2"></i> {{__('ingaz.phone')}}*
+                           </label>
+                           <input type="tel" id="phone" name="phone" id="phoneNum" class="form-control" required/>
+                           <div class="invalid-feedback"> {{__('ingaz.this field is required')}} </div>
+                       </div>
+                       <div class="col-md-6 p-2">
+                           <label class="form-label">
+                               <i class="fa-solid fa-comment-lines me-2"></i> {{__('ingaz.subject')}}
+                           </label>
+                           <input type="text" id="subject" name="subject" class="form-control"/>
+                       </div>
+                       <div class="col-md-12 p-2">
+                           <label class="form-label">
+                               <i class="fas fa-feather-alt me-2"></i>{{__('ingaz.Write your message')}}*
+                           </label>
+                           <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
+                           <div class="invalid-feedback"> {{__('ingaz.this field is required')}} </div>
+                       </div>
+                       {!! NoCaptcha::renderJs() !!}
+                       {!! NoCaptcha::display() !!}
+
+                       @error('g-recaptcha-response')
+                       <span class="text-danger">{{ $message }}</span>
+                       @enderror
+
+                       <div class="col-md-12 text-center p-2">
+                           <button type="submit" class="defaultBtn">
+                               {{__('ingaz.send')}} <i class="fas fa-paper-plane ms-2"></i>
+                               <span></span>
+                           </button>
+                       </div>
+                   </form>
+               </div>
+               <div class="col-md-6 p-2 wow fadeInUp">
+                   <section class="googleMap">
+                       <iframe
+                           src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d57144.98454618672!2d50.12401500000001!3d26.469859!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e49fbc320200d1b%3A0x1abc87f1ffdb75d5!2z2KjZhNin2KrZitmG2YrZiNmFINin2YTYtNix2YLZitipINmE2YTYpdiz2KrZgtiv2KfZhQ!5e0!3m2!1sar!2ssa!4v1761469557614!5m2!1sar!2ssa"
+                           frameborder="0"
+                           style="border: 0"
+                           allowfullscreen=""
+                           aria-hidden="false"
+                           tabindex="0"></iframe>
+                    </section>
+                </div>
+           </div>
+        </div>
+ </section>
+   <!-- ================ references ================= -->
     <section class="references" data-aos="fade-up">
         <div class="container">
             <div class="swiper referencesSlider">
@@ -819,79 +894,6 @@
             </div>
         </div>
     </section>
-
-    <!-- ================ contact Form ================= -->
-{{--    <section class="contactForm">--}}
-{{--        <div class="container">--}}
-{{--            <div class="row">--}}
-{{--                <div class="col-md-6 p-2 mb-5 mb-md-0 wow fadeInUp">--}}
-{{--                    <div class="headTitle text-start">--}}
-{{--                        <h2> {{__('ingaz.contact')}}</h2>--}}
-{{--                        <p>--}}
-{{--                            {{__('ingaz.request your mid')}}--}}
-{{--                        </p>--}}
-{{--                    </div>--}}
-{{--                    <form action="" id="contact-form" class="row needs-validation" novalidate>--}}
-{{--                        @csrf--}}
-
-{{--                        <input type="hidden" name="latitude" id="latitude">--}}
-{{--                        <input type="hidden" name="longitude" id="longitude">--}}
-{{--                        <div class="col-md-12 p-2">--}}
-{{--                            <label class="form-label">--}}
-{{--                                <i class="fas fa-user me-2"></i> {{__('ingaz.full name')}}*--}}
-{{--                            </label>--}}
-{{--                            <input type="text" id="name" name="name" class="form-control" required/>--}}
-{{--                            <div class="invalid-feedback"> {{__('ingaz.this field is required')}}</div>--}}
-{{--                            <div class="valid-feedback">{{__('ingaz.good')}}</div>--}}
-{{--                        </div>--}}
-{{--                        <div class="col-md-6 p-2">--}}
-{{--                            <label class="form-label"><i class="fas fa-phone-alt me-2"></i> {{__('ingaz.phone')}}*--}}
-{{--                            </label>--}}
-{{--                            <input type="tel" id="phone" name="phone" id="phoneNum" class="form-control" required/>--}}
-{{--                            <div class="invalid-feedback"> {{__('ingaz.this field is required')}} </div>--}}
-{{--                        </div>--}}
-{{--                        <div class="col-md-6 p-2">--}}
-{{--                            <label class="form-label">--}}
-{{--                                <i class="fa-solid fa-comment-lines me-2"></i> {{__('ingaz.subject')}}--}}
-{{--                            </label>--}}
-{{--                            <input type="text" id="subject" name="subject" class="form-control"/>--}}
-{{--                        </div>--}}
-{{--                        <div class="col-md-12 p-2">--}}
-{{--                            <label class="form-label">--}}
-{{--                                <i class="fas fa-feather-alt me-2"></i>{{__('ingaz.Write your message')}}*--}}
-{{--                            </label>--}}
-{{--                            <textarea class="form-control" id="message" name="message" rows="5" required></textarea>--}}
-{{--                            <div class="invalid-feedback"> {{__('ingaz.this field is required')}} </div>--}}
-{{--                        </div>--}}
-{{--                        {!! NoCaptcha::renderJs() !!}--}}
-{{--                        {!! NoCaptcha::display() !!}--}}
-
-{{--                        @error('g-recaptcha-response')--}}
-{{--                        <span class="text-danger">{{ $message }}</span>--}}
-{{--                        @enderror--}}
-
-{{--                        <div class="col-md-12 text-center p-2">--}}
-{{--                            <button type="submit" class="defaultBtn">--}}
-{{--                                {{__('ingaz.send')}} <i class="fas fa-paper-plane ms-2"></i>--}}
-{{--                                <span></span>--}}
-{{--                            </button>--}}
-{{--                        </div>--}}
-{{--                    </form>--}}
-{{--                </div>--}}
-{{--                <div class="col-md-6 p-2 wow fadeInUp">--}}
-{{--                    <section class="googleMap">--}}
-{{--                        <iframe--}}
-{{--                            src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d57946.84623396069!2d46.75688!3d24.806481!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0xc74fdd6f15256594!2z2YXZg9iq2Kgg2LHZiNin2YHYryDZhtis2K8g2YTZhNil2LPYqtmC2K_Yp9mF!5e0!3m2!1sar!2ssa!4v1650724949947!5m2!1sar!2ssa"--}}
-{{--                            frameborder="0"--}}
-{{--                            style="border: 0"--}}
-{{--                            allowfullscreen=""--}}
-{{--                            aria-hidden="false"--}}
-{{--                            tabindex="0"></iframe>--}}
-{{--                    </section>--}}
-{{--                </div>--}}
-{{--            </div>--}}
-{{--        </div>--}}
-{{--    </section>--}}
 @endsection
 @section('js')
     <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>

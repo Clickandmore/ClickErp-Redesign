@@ -125,7 +125,7 @@
                         <ul class="dropdown-menu">
                             <li class="nav-item">
                                 <a class="dropdown-item"
-                                   href="{{route('site.contact-us.index')}}">  {{__("ingaz.contact_us")}}</a>
+                                   href="{{route('site.contact-us.index')}}">  {{__("ingaz.contact-us")}}</a>
                             </li>
                             <li>
                                 <a class="dropdown-item"
