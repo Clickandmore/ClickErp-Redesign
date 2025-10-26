@@ -308,13 +308,24 @@
                     </div>
                 </div>
             </div>
-            <div class="col-12">
+            <div class="col-6">
                 <div class="col-12">
                     <div class="card">
                         <div class="card-body">
                             <h6>صورة المقطع الثاني</h6>
                             <input type="file" data-default-file="{{ showFile($settings->about_image) ?? '' }}"
                                    name="about_image" class="dropify">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6>صورة الازدهار والنمو</h6>
+                            <input type="file" data-default-file="{{ showFile($settings->light_image) ?? '' }}"
+                                   name="light_image" class="dropify">
                         </div>
                     </div>
                 </div>

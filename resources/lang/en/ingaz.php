@@ -1591,4 +1591,10 @@
 
     'salary_with_no_experience' => 'Salary with no experience',
     'salary_with_experience' => 'Salary with experience',
+    'our_vision' => 'Our Vision',
+    'our_message' => 'Our Message',
+    'our_value' => 'Our Value',
+    'our_vision_image' => 'Our Vision Image',
+    'our_message_image' => 'Our Message Image',
+    'our_value_image' => 'Our Value Image',
 );

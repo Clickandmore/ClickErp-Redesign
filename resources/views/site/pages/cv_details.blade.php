@@ -106,10 +106,12 @@
                     <div class="data">
                         <p class="innerTitle">{{ __('ingaz.cv_number') }} :</p>
                         <div class="passportNumbers">
-                            <span> {{ $maid->office->title ?? '' }} </span>
+                            <span>{{ optional($maid->recruitmentOffice?->maids)->count() ?? 0 }}</span>
                             <span>/</span>
-                            <span> {{ $maid->int_code ?? '' }} </span>
+                            <span>{{ mb_substr(optional($maid->recruitmentOffice)->title ?? '', 0, 3) }}</span>
                         </div>
+
+
                     </div>
                 </div>
                 <span class="logo">

@@ -454,7 +454,7 @@ class MaidAction extends MainAction
         }
 
         // استخرج القيم الحالية
-        $currentLanguages  = is_array($maid->languages) ? $maid->languages : (json_decode($maid->languages, true) ?? []);
+        $currentLanguages = is_array($maid->languages) ? $maid->languages : (json_decode($maid->languages, true) ?? []);
         $currentPercentage = is_array($maid->percentage) ? $maid->percentage : (json_decode($maid->percentage, true) ?? []);
 
 // لو المستخدم أرسل لغات جديدة
@@ -486,8 +486,6 @@ class MaidAction extends MainAction
                 'percentage' => json_encode($percs, JSON_UNESCAPED_UNICODE),
             ]);
         }
-
-
 
 
         $row = parent::find($id);

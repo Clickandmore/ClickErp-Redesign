@@ -152,6 +152,10 @@ class Maid extends Model
     {
         return $this->belongsTo(RecruitmentOffices::class, 'office_id');
     }
+    public function recruitmentOffice()
+    {
+        return $this->belongsTo(RecruitmentOffices::class, 'office_id');
+    }
 
     public function unavailableRecords()
     {
