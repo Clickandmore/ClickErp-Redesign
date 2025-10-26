@@ -883,7 +883,7 @@
                         </li>
 
 
-                                               @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))
+                            {{--                                               @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))--}}
                         <li>
                             <a class="m-link {{ (Route::currentRouteName() == 'services.index') ? 'active' : '' }}"
                                href="{{route('services.index')}}">
@@ -891,8 +891,8 @@
                                 <span class="ms-2">{{ helperTrans('ingaz.services') }}</span>
                             </a>
                         </li>
-                                             @endif
-                                                     @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))
+                            {{--                                             @endif--}}
+                            {{--                                                     @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))--}}
                         <li>
                             <a class="m-link {{ (Route::currentRouteName() == 'features.index') ? 'active' : '' }}"
                                href="{{route('features.index')}}">
@@ -900,7 +900,25 @@
                                 <span class="ms-2">{{ helperTrans('ingaz.features') }}</span>
                             </a>
                         </li>
-                                             @endif
+                            {{--                                             @endif       --}}
+                            {{--                            @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))--}}
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'country-polices.index') ? 'active' : '' }}"
+                                   href="{{route('country-polices.index')}}">
+                                    <i class="fa fa-question"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.country_polices') }}</span>
+                                </a>
+                            </li>
+                            {{--                                             @endif--}}
+                            {{--                            @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))--}}
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'police-settings.index') ? 'active' : '' }}"
+                                   href="{{route('police-settings.index')}}">
+                                    <i class="fa fa-question"></i>
+                                    <span class="ms-2">{{ helperTrans('ingaz.police_settings') }}</span>
+                                </a>
+                            </li>
+                            {{--                                             @endif--}}
 
                     </ul>
                 </li>

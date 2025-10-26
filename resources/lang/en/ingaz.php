@@ -1597,4 +1597,18 @@
     'our_vision_image' => 'Our Vision Image',
     'our_message_image' => 'Our Message Image',
     'our_value_image' => 'Our Value Image',
+    'country_polices' => 'Country Polices',
+    'flag' => 'Flag',
+    'text_file_1' => 'First File Text',
+    'text_file_2' => 'Second File Text',
+    'file_2' => 'Second File',
+    'file_1' => 'First File',
+    'police_settings' => 'Police Settings',
+    'title_1' => 'First Title',
+    'title_2' => 'Second Title',
+    'description_1' => 'First Description',
+    'description_2' => 'Second Description',
+    'file_workers_rights' => 'Employer rights and duties',
+    'file_employee_rights' => 'Rights and duties of domestic workers',
+
 );
