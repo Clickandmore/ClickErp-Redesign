@@ -942,9 +942,11 @@ main .mainSlider .swiper .swiper-slide .info .sliderTitle {
 main .mainSlider .swiper .swiper-slide .info .hint {
   color: var(--white);
   font-size: 30px;
+  font-weight: bold;
 }
 main .mainSlider .swiper-slide-active .sliderTitle {
   animation: fadeInUp 1s 0.75s both;
+  font-weight: bold;
 }
 main .mainSlider .swiper-slide-active .hint {
   animation: fadeInUp 1s 0s both;
@@ -1069,13 +1071,17 @@ main .hero-services .service .text {
   display: flex;
   flex-direction: column;
   gap: 0px;
+  font-weight: bold;
 }
 main .hero-services .service .text h4 {
   font-size: 1.1rem;
   font-weight: 600;
+    font-weight: bold;
 }
 main .hero-services .service .text p {
   font-size: 0.9rem;
+    font-weight: bold;
+
 }
 main .hero-services .service:hover:before {
   top: -50px;
@@ -1088,6 +1094,7 @@ main .hero-services .warning {
   text-align: center;
   padding: 12px;
   border-radius: 12px;
+    font-weight: bold;
 }
 main .about-section {
   padding: 80px 0;
