@@ -823,6 +823,7 @@ header .mainNav .login-btn {
   font-size: 1rem;
   width: -moz-max-content;
   width: max-content;
+  margin:0 4px 0 4px;
 }
 header .mainNav .login-btn span {
   position: absolute;
@@ -3049,9 +3050,9 @@ main .report-section .report-note {
   text-align: center;
   margin-top: 50px;
   padding: 20px;
-  background: rgba(13, 59, 102, 0.05);
+    background: #d23b56;
   border-radius: 12px;
-    border-right: 4px solid #9D4655FF;
+    border-right: 4px solid #dc2b4b;
 }
 main .report-section .report-note p {
   color: var(--black);
@@ -7407,3 +7408,140 @@ main .guidelines-section .country-card .links .btn:hover i {
   padding: 0 4px;
   line-height: 1;
 }/*# sourceMappingURL=style.css.map */
+
+main .about-section {
+    padding: 50px 0;
+}
+main .about-section .section-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--mainColor);
+}
+main .about-section .section-subtitle {
+    max-width: 750px;
+    margin: auto;
+    font-size: 1.1rem;
+    line-height: 1.9;
+    color: #444;
+}
+main .about-section .about-highlights {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+}
+main .about-section .about-highlights li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--mainColor10);
+    padding: 10px 18px;
+    border-radius: 15px;
+    font-size: 0.95rem;
+    color: var(--black);
+    transition: var(--transition);
+}
+main .about-section .about-highlights li:hover {
+    background: var(--mainColor20);
+    transform: translateY(-3px);
+}
+main .about-section .about-highlights li i {
+    font-size: 1.2rem;
+    color: var(--mainColor);
+    background: var(--white);
+    border: 1px solid var(--mainColor20);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+}
+li:hover main .about-section .about-highlights li i {
+    background: var(--mainColor);
+    color: var(--white);
+    border-color: var(--mainColor);
+}
+main .about-section .about-card {
+    background: #fff;
+    padding: 30px 20px;
+    border-radius: 15px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 6px 20px rgba(var(--mainColor), 0.15);
+    transition: all 0.5s ease;
+    border: 1px solid var(--gray);
+    min-height: 100%;
+    overflow: hidden;
+}
+main .about-section .about-card .about-number {
+    position: absolute;
+    top: -10px;
+    left: 20px;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--mainColor80);
+    z-index: 2;
+}
+main .about-section .about-card i, main .about-section .about-card h4, main .about-section .about-card p {
+    position: relative;
+    z-index: 2;
+    transition: color 0.3s ease;
+}
+main .about-section .about-card i {
+    font-size: 2.2rem;
+    color: var(--mainColor);
+    margin-bottom: 15px;
+}
+main .about-section .about-card h4 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--mainColor);
+}
+main .about-section .about-card p {
+    font-size: 0.95rem;
+    color: #555;
+    line-height: 1.7;
+}
+main .about-section .about-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    border-radius: 15px;
+    z-index: 1;
+    background-blend-mode: overlay;
+    background-color: rgba(0, 0, 0, 0.692);
+}
+main .about-section .about-card:hover::before {
+    opacity: 1;
+}
+main .about-section .about-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 10px 25px rgba(var(--mainColor), 0.25);
+}
+main .about-section .about-card:hover h4, main .about-section .about-card:hover p, main .about-section .about-card:hover i {
+    color: #fff;
+}
+/*main .about-section .about-card.vision::before {*/
+/*    background-image: url("../images/selectworker.webp");*/
+/*}*/
+/*main .about-section .about-card.mission::before {*/
+/*    background-image: url("../images/service2.webp");*/
+/*}*/
+/*main .about-section .about-card.values::before {*/
+/*    background-image: url("../images/about.webp");*/
+/*}*/
+@media (max-width: 768px) {
+    main .about-section .row {
+        gap: 20px;
+    }
+}

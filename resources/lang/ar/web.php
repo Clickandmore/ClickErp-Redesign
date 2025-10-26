@@ -391,7 +391,7 @@
   'under_warranty' => 'تحت الضمان',
   'back' => 'مرتجع',
   'shelter' => 'عقد إيواء',
-  'contract_stages' => 
+  'contract_stages' =>
   array (
     'pending' => 'قيد الانتظار',
     'active' => 'ساري',
@@ -399,7 +399,7 @@
     'cancelled' => 'ملغي',
     'expired' => 'منتهي',
   ),
-  'contract_statuses' => 
+  'contract_statuses' =>
   array (
     'pending' => 'قيد الانتظار',
     'active' => 'ساري',
@@ -422,8 +422,9 @@
   'stage_active' => 'حالة جيدة',
   'complaint' => 'شكوى',
   'experience_status' => 'حالة الخبرة',
-  'sponsorship_transfers' => 'Sponsorship transfers',
-  'follow_the_status_of_your_sponsorship_transfers' => 'Follow the status of your sponsorship transfers',
-  'Contract Refund Requests' => 'Contract Refund Requests',
-  'transferred' => 'Transferred',
+  'sponsorship_transfers' => ' طلبات نقل الكفالة',
+  'follow_the_status_of_your_sponsorship_transfers' => ' تابع حالة طلبات نقل الكفالة الخاصة بك',
+  'Contract Refund Requests' => 'طلبات استرداد العقود',
+  'transferred' => 'تم النقل',
+  'recruitment_journey' => 'رحلة الاستقدام'
 );

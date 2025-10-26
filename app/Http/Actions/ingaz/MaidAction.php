@@ -454,7 +454,7 @@ class MaidAction extends MainAction
         }
 
         // استخرج القيم الحالية
-        $currentLanguages  = is_array($maid->languages) ? $maid->languages : (json_decode($maid->languages, true) ?? []);
+        $currentLanguages = is_array($maid->languages) ? $maid->languages : (json_decode($maid->languages, true) ?? []);
         $currentPercentage = is_array($maid->percentage) ? $maid->percentage : (json_decode($maid->percentage, true) ?? []);
 
 // لو المستخدم أرسل لغات جديدة
@@ -486,8 +486,6 @@ class MaidAction extends MainAction
                 'percentage' => json_encode($percs, JSON_UNESCAPED_UNICODE),
             ]);
         }
-
-
 
 
         $row = parent::find($id);
@@ -628,19 +626,53 @@ class MaidAction extends MainAction
 
     protected function availableQuery()
     {
+        $today = now()->toDateString();
+
         return $this->model
             ->shown()
-            ->where('available', true)
-            ->where('status', 'available')
-            ->where(function ($query) {
-                $query->whereNull('available_at')
-                    ->orWhere('available_at', '<=', now()->toDateString());
+            ->where(function ($query) use ($today) {
+                $query->where(function ($available) use ($today) {
+                    $available->where('available', true)
+                        ->whereIn('status', ['available', 'completed'])
+                        ->where(function ($dateQuery) use ($today) {
+                            $dateQuery->whereNull('available_at')
+                                ->orWhere('available_at', '<=', $today);
+                        })
+                        ->whereDoesntHave('contracts', function ($contractQuery) {
+                            $contractQuery->whereIn('status', [
+                                ContractStatusEnum::New->value,
+                                ContractStatusEnum::Msaned->value,
+                                ContractStatusEnum::Tafwed->value,
+                                ContractStatusEnum::Taffez->value,
+                                ContractStatusEnum::Tazker->value,
+                                ContractStatusEnum::Arrival->value,
+                            ]);
+                        })
+                        ->whereDoesntHave('orders', function ($orderQuery) {
+                            $orderQuery->whereIn('status', ['new', 'under_process', 'contracted']);
+                        });
+                })->orWhere(function ($shelter) use ($today) {
+                    $this->applyShelterInstantFilters($shelter, $today);
+                });
+            });
+    }
+
+    private function applyShelterInstantFilters($query, string $today): void
+    {
+        $query->whereIn('status', ['in_accommodation', 'available', 'completed'])
+            ->whereHas('contracts', function ($contractQuery) {
+                $contractQuery->where('status', ContractStatusEnum::Shelter->value)
+                    ->whereHas('info', function ($infoQuery) {
+                        $infoQuery->whereIn('is_available_for_instant', [true, 1, '1'])
+                            ->where(function ($wantsToWorkQuery) {
+                                $wantsToWorkQuery
+                                    ->whereRaw('LOWER(TRIM(COALESCE(wants_to_work, ""))) = ?', ['yes'])
+                                    ->orWhereIn('wants_to_work', [1, '1', true]);
+                            });
+                    });
             })
-            ->whereDoesntHave('contracts', function ($query) {
-                $query->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival']);
-            })
-            ->whereDoesntHave('orders', function ($query) {
-                $query->whereIn('status', ['new', 'under_process', 'contracted']);
+            ->whereDoesntHave('orders', function ($orderQuery) {
+                $orderQuery->whereIn('status', ['new', 'under_process', 'contracted']);
             });
     }
 
@@ -650,16 +682,26 @@ class MaidAction extends MainAction
             'estqdam' => 1,
             'egar' => 2,
             'transfer' => 3,
-            'has_experience' => 'has_experience',
-            'no_experience' => 'no_experience',
             default => null,
         };
 
+        $today = now()->toDateString();
+
         return $this->availableQuery()
-            ->when(isset($type), function ($query) use ($type) {
-                $query->whereHas('jobTypes', function ($q) use ($type) {
-                    $q->where('job_type_id', $type);
-                })->orWhere('experience_status', '=', $type);
+            ->when(isset($type), function ($query) use ($type, $today) {
+                if ($type === 3) {
+                    $query->where(function ($transferQuery) use ($today) {
+                        $transferQuery->whereHas('jobTypes', function ($q) {
+                            $q->where('job_type_id', 3);
+                        })->orWhere(function ($orQuery) use ($today) {
+                            $this->applyShelterInstantFilters($orQuery, $today);
+                        });
+                    });
+                } else {
+                    $query->whereHas('jobTypes', function ($q) use ($type) {
+                        $q->where('job_type_id', $type);
+                    });
+                }
             })
             ->when(isset($request->nationality_id), function ($query) use ($request) {
                 $query->where('nationality_id', $request->nationality_id);
@@ -670,7 +712,7 @@ class MaidAction extends MainAction
                 });
             })
             ->when(isset($request->experience_status), function ($query) use ($request) {
-                $query->where('experience_status', '=', $request->experience_status);
+                $query->where('experience_status', $request->experience_status);
             })
             ->when(isset($request->age), function ($query) use ($request) {
                 if ($request->age == '20_30') {

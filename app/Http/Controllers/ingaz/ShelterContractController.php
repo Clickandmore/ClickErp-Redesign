@@ -6,6 +6,9 @@ use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ingaz\ShelterContactStore;
 use App\Models\Contract;
+use App\Models\ContractInfo;
+use App\Models\ingaz\JobType;
+use Illuminate\Support\Facades\DB;
 use App\Models\RecruitmentOffices;
 use App\Models\ingaz\Nationality;
 use App\Models\ShelterPlaces;
@@ -18,26 +21,29 @@ class ShelterContractController extends Controller
 {
     public $mainRoute = "ShelterContract";
     public $folderPath = "admin.ingaz.ShelterContract";
+    protected ?int $instantJobTypeId = null;
 
     public function index(Request $request)
     {
+        $shelterBaseQuery = Contract::insideShelter();
+
         // Get statistics
-        $totalContracts = Contract::where('status', ContractStatusEnum::Shelter->value)->count();
+        $totalContracts = $shelterBaseQuery->clone()->count();
 
         // العاملات اللواتي يرغبن بالعمل (متاحات للنقل)
-        $wantsToWork = Contract::where('status', ContractStatusEnum::Shelter->value)
+        $wantsToWork = $shelterBaseQuery->clone()
             ->whereHas('info', function($query) {
                 $query->where('wants_to_work', 'yes');
             })->count();
 
         // العاملات في مرحلة الترحيل
-        $inDeportation = Contract::where('status', ContractStatusEnum::Shelter->value)
+        $inDeportation = $shelterBaseQuery->clone()
             ->whereHas('info', function($query) {
                 $query->where('wants_to_work', 'no');
             })->count();
 
         // العاملات غير محدد وضعهن
-        $undecided = Contract::where('status', ContractStatusEnum::Shelter->value)
+        $undecided = $shelterBaseQuery->clone()
             ->whereHas('info', function($query) {
                 $query->where(function($q) {
                     $q->where('wants_to_work', 'unknown')
@@ -45,15 +51,9 @@ class ShelterContractController extends Controller
                 });
             })->count();
 
-        // العاملات المتاحة للاستلام الفوري (يرغبن بالعمل)
-        $availableForInstantReceipt = Contract::where('status', ContractStatusEnum::Shelter->value)
-            ->whereHas('info', function($query) {
-                $query->where('wants_to_work', 'yes');
-            })->count();
-
         // حساب حالة الضمان بناءً على تاريخ الوصول
         $today = now();
-        $withinGuarantee = Contract::where('status', ContractStatusEnum::Shelter->value)
+        $withinGuarantee = $shelterBaseQuery->clone()
             ->whereHas('info', function($query) use ($today) {
                 $query->where(function($q) use ($today) {
                     // التحقق من تاريخ الوصول في آخر 90 يوم
@@ -73,7 +73,7 @@ class ShelterContractController extends Controller
                 });
             })->count();
 
-        $expiredGuarantee = Contract::where('status', ContractStatusEnum::Shelter->value)
+        $expiredGuarantee = $shelterBaseQuery->clone()
             ->whereHas('info', function($query) use ($today) {
                 $query->where(function($q) use ($today) {
                     // التحقق من تاريخ الوصول أقدم من 90 يوم
@@ -94,7 +94,7 @@ class ShelterContractController extends Controller
             })->count();
 
         // العاملات المتاحة للاستلام الفوري (يرغبن بالعمل)
-        $availableForInstantReceipt = Contract::where('status', ContractStatusEnum::Shelter->value)
+        $availableForInstantReceipt = $shelterBaseQuery->clone()
             ->whereHas('info', function($query) {
                 $query->where('wants_to_work', 'yes');
             })->count();
@@ -357,33 +357,28 @@ class ShelterContractController extends Controller
 
     public function store(ShelterContactStore $request)
     {
-        $contract = Contract::find($request->contract_id);
+        $contract = Contract::with('maid')->find($request->contract_id);
+        $displayOnSite = $request->wants_to_work === 'yes' && $request->boolean('is_available_for_instant');
+        $existingAttachments = $contract->info ? ($contract->info->shelter_attachments ?? []) : [];
+        $attachments = $this->prepareShelterAttachments($request, $existingAttachments);
 
-        // Update or create contract info with arrival date
+        $infoPayload = [
+            'shelter_id' => $request->shelter_id,
+            'receipt_source' => $request->receipt_source,
+            'maid_date_back' => $request->maid_date_back,
+            'salary_final_status' => $request->salary_final_status,
+            'duration_from_enter' => $request->duration_from_enter,
+            'wants_to_work' => $request->wants_to_work,
+            'back_reasons' => $request->back_reasons,
+            'arrival_date' => $request->arrival_date,
+            'is_available_for_instant' => $displayOnSite,
+            'shelter_attachments' => $attachments,
+        ];
+
         if ($contract->info) {
-            $contract->info()->update([
-                'shelter_id' => $request->shelter_id,
-                'receipt_source' => $request->receipt_source,
-                'maid_date_back' => $request->maid_date_back,
-                'salary_final_status' => $request->salary_final_status,
-                'duration_from_enter' => $request->duration_from_enter,
-                'wants_to_work' => $request->wants_to_work,
-                'back_reasons' => $request->back_reasons,
-                'arrival_date' => $request->arrival_date,
-            ]);
+            $contract->info()->update($infoPayload);
         } else {
-            // Create contract info if it doesn't exist
-            $contract->info()->create([
-                'contract_id' => $contract->id,
-                'shelter_id' => $request->shelter_id,
-                'receipt_source' => $request->receipt_source,
-                'maid_date_back' => $request->maid_date_back,
-                'salary_final_status' => $request->salary_final_status,
-                'duration_from_enter' => $request->duration_from_enter,
-                'wants_to_work' => $request->wants_to_work,
-                'back_reasons' => $request->back_reasons,
-                'arrival_date' => $request->arrival_date,
-            ]);
+            $contract->info()->create(array_merge(['contract_id' => $contract->id], $infoPayload));
         }
 
         $contract->status = ContractStatusEnum::Shelter->value;
@@ -393,6 +388,8 @@ class ShelterContractController extends Controller
             'contract_id' => $contract->id,
             'status' => ContractStatusEnum::Shelter->value,
         ]);
+
+        $this->syncMaidInstantDisplay($contract, $displayOnSite);
 
         return jsonSuccess();
     }
@@ -460,9 +457,15 @@ class ShelterContractController extends Controller
             'is_available_for_instant' => 'required|boolean',
             'back_reasons' => 'nullable|string',
             'arrival_date' => 'required|date',
+            'attachments' => 'nullable|array',
+            'attachments.*' => 'nullable|file|max:10240|mimes:jpg,jpeg,png,pdf,doc,docx',
         ]);
 
-        $contract = Contract::findOrFail($id);
+        $contract = Contract::with('maid')->findOrFail($id);
+        $displayOnSite = $request->wants_to_work === 'yes' && $request->boolean('is_available_for_instant');
+        $existingAttachments = $contract->info ? ($contract->info->shelter_attachments ?? []) : [];
+        $attachments = $this->prepareShelterAttachments($request, $existingAttachments);
+
         $contract->info()->update([
             'shelter_id' => $request->shelter_id,
             'receipt_source' => $request->receipt_source,
@@ -470,10 +473,13 @@ class ShelterContractController extends Controller
             'salary_final_status' => $request->salary_final_status,
             'duration_from_enter' => $request->duration_from_enter,
             'wants_to_work' => $request->wants_to_work,
-            'is_available_for_instant' => $request->is_available_for_instant,
+            'is_available_for_instant' => $displayOnSite,
             'back_reasons' => $request->back_reasons,
             'arrival_date' => $request->arrival_date,
+            'shelter_attachments' => $attachments,
         ]);
+
+        $this->syncMaidInstantDisplay($contract, $displayOnSite);
 
         return jsonSuccess(['message' => 'تم تحديث العقد داخل الإيواء بنجاح']);
     }
@@ -482,6 +488,78 @@ class ShelterContractController extends Controller
     public function destroy($id)
     {
         //
+    }
+
+    private function prepareShelterAttachments(Request $request, array $existing = []): array
+    {
+        $attachments = $existing;
+
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $attachments[] = [
+                    'path' => $file->store('shelter-contracts/attachments', 'public'),
+                    'name' => $file->getClientOriginalName(),
+                    'size' => $file->getSize(),
+                    'uploaded_at' => now()->toDateTimeString(),
+                ];
+            }
+        }
+
+        return $attachments;
+    }
+
+    private function syncMaidInstantDisplay(Contract $contract, bool $displayOnSite): void
+    {
+        $maid = $contract->maid;
+        if (!$maid) {
+            return;
+        }
+
+        $instantJobTypeId = $this->getInstantJobTypeId();
+
+        if (!$instantJobTypeId) {
+            return;
+        }
+
+        if ($displayOnSite) {
+            $maid->jobTypes()->syncWithoutDetaching([$instantJobTypeId]);
+            $maid->is_show = true;
+            $maid->status = 'in_accommodation';
+            $maid->available = 0;
+            $maid->save();
+        } else {
+            $maid->jobTypes()->detach($instantJobTypeId);
+            if ($maid->jobTypes()->count() === 0) {
+                $maid->is_show = false;
+                if ($maid->status === 'in_accommodation') {
+                    $maid->status = 'available';
+                }
+                $maid->available = 1;
+            }
+            $maid->save();
+        }
+    }
+
+    private function getInstantJobTypeId(): ?int
+    {
+        if ($this->instantJobTypeId !== null) {
+            return $this->instantJobTypeId;
+        }
+
+        $jobType = JobType::whereHas('translations', function ($query) {
+            $query->where('title', 'LIKE', '%استلام%')
+                  ->orWhere('title', 'LIKE', '%إستلام%')
+                  ->orWhere('title', 'LIKE', '%instant%')
+                  ->orWhere('title', 'LIKE', '%Instant%');
+        })->first();
+
+        if (!$jobType) {
+            $jobType = JobType::find(3);
+        }
+
+        $this->instantJobTypeId = $jobType?->id;
+
+        return $this->instantJobTypeId;
     }
 
     /**
@@ -547,14 +625,15 @@ class ShelterContractController extends Controller
         if ($request->ajax()) {
 
             try {
-                $rows = Contract::where('status', ContractStatusEnum::Shelter->value)
+                $rows = Contract::insideShelter()
                     ->with([
                         'maid',
                         'user',
                         'info',
                         'maid.nationality.translations',
                         'maid.job_types.job_type.translations',
-                        'info.shelter.translations'
+                        'info.shelter.translations',
+                        'latestShelterLog'
                     ])
                     ->whereHas('info', function ($query) {
                         $query->where(function($q) {
@@ -566,7 +645,7 @@ class ShelterContractController extends Controller
                 // Apply same filters as index method
                 $this->applyFilters($rows, $request);
 
-                $rows = $rows->latest();
+                $rows = $rows->orderByDesc($this->getShelterOrderExpression());
 
                 // Handle export request
                 if ($request->has('export') && $request->input('export') == '1') {
@@ -609,7 +688,7 @@ class ShelterContractController extends Controller
         $filterStatus = Request('s');
 
         // حساب الإحصائيات لمرحلة الترحيل
-        $deportationContracts = Contract::where('status', ContractStatusEnum::Shelter->value)
+        $deportationContracts = Contract::insideShelter()
             ->whereHas('info', function ($query) {
                 $query->where('wants_to_work', 'no');
             });
@@ -659,13 +738,15 @@ class ShelterContractController extends Controller
             }
 
             try {
-                $rows = Contract::where('status', ContractStatusEnum::Shelter->value)
+                $rows = Contract::insideShelter()
                     ->with([
                         'maid',
                         'info',
+                        'deportationProcedure',
                         'maid.nationality.translations',
                         'maid.job_types.job_type.translations',
-                        'info.shelter.translations'
+                        'info.shelter.translations',
+                        'latestShelterLog'
                     ])
                     ->whereHas('info', function ($query) {
                         $query->where('wants_to_work', 'no');
@@ -674,7 +755,7 @@ class ShelterContractController extends Controller
                 // Apply same filters as index method
                 $this->applyFilters($rows, $request);
 
-                $rows = $rows->latest();
+                $rows = $rows->orderByDesc($this->getShelterOrderExpression());
 
                 // Handle export request
                 if ($request->has('export') && $request->input('export') == '1') {
@@ -735,7 +816,7 @@ class ShelterContractController extends Controller
         if ($request->ajax()) {
             \Log::info('generalShelter AJAX request');
             try {
-                $rows = Contract::where('status', ContractStatusEnum::Shelter->value)
+                $rows = Contract::insideShelter()
                     ->with([
                         'maid',
                         'info',
@@ -750,7 +831,7 @@ class ShelterContractController extends Controller
                 // Apply same filters as index method
                 $this->applyFilters($rows, $request);
 
-                $rows = $rows->latest();
+                $rows = $rows->orderByDesc($this->getShelterOrderExpression());
 
                 // Handle export request
                 if ($request->has('export') && $request->input('export') == '1') {
@@ -784,6 +865,169 @@ class ShelterContractController extends Controller
         $data["shelterPlaces"] = \App\Models\ShelterPlaces::with('translations')->get();
         $data["jobTypes"] = \App\Models\ingaz\JobType::with('translations')->get();
         return view($this->folderPath . '.general-shelter', $data);
+    }
+
+    public function outsideShelter(Request $request)
+    {
+        if ($request->ajax()) {
+            try {
+                $rows = Contract::outsideShelter()
+                    ->with([
+                        'maid',
+                        'user',
+                        'info.shelter.translations',
+                        'info.outsideShelterBy',
+                        'info.outsideReference',
+                        'maid.nationality.translations',
+                        'maid.job_types.job_type.translations',
+                    ]);
+
+                $this->applyFilters($rows, $request);
+
+                $rows = $rows->orderByDesc($this->getShelterOrderExpression());
+
+                return DataTables::of($rows)
+                    ->addIndexColumn()
+                    ->addColumn('contract_number', function ($row) {
+                        return 'عقد رقم: ' . $row->id;
+                    })
+                    ->addColumn('maid_data', function ($row) {
+                        if (!$row->maid) {
+                            return '<span class="text-muted">غير محدد</span>';
+                        }
+
+                        $maid = $row->maid;
+                        $name = $maid->name ?: 'عاملة رقم: ' . $maid->id;
+                        $passport = $maid->passport_num ?: 'غير محدد';
+
+                        return '<div class="maid-info">'
+                            . '<strong>' . e($name) . '</strong><br>'
+                            . '<small class="text-muted">جواز: ' . e($passport) . '</small>'
+                            . '</div>';
+                    })
+                    ->addColumn('outside_reason', function ($row) {
+                        $reason = optional($row->info)->outside_shelter_reason;
+
+                        return match ($reason) {
+                            'rental_delivery' => '<span class="badge bg-primary">تسليم عقد إيجار</span>',
+                            'transfer_delivery' => '<span class="badge bg-success">تسليم نقل كفالة</span>',
+                            default => '<span class="badge bg-secondary">غير محدد</span>',
+                        };
+                    })
+                    ->addColumn('outside_at', function ($row) {
+                        $info = $row->info;
+                        $timestamp = optional($info)->outside_shelter_at;
+
+                        if (!$timestamp && $info && $info->outsideReference) {
+                            $reference = $info->outsideReference;
+                            $referenceTimestamp = $reference->maid_delivered_at ?? $reference->transferred_at ?? null;
+
+                            if ($referenceTimestamp) {
+                                $timestamp = $referenceTimestamp;
+                            }
+                        }
+
+                        if ($timestamp instanceof \Carbon\CarbonInterface) {
+                            return $timestamp->format('Y-m-d H:i');
+                        }
+
+                        if ($timestamp) {
+                            try {
+                                return \Carbon\Carbon::parse($timestamp)->format('Y-m-d H:i');
+                            } catch (\Throwable) {
+                            }
+                        }
+
+                        return 'غير محدد';
+                    })
+                    ->addColumn('reference_link', function ($row) {
+                        $info = $row->info;
+                        if (!$info || !$info->outside_shelter_reference_type || !$info->outside_shelter_reference_id) {
+                            return '<span class="text-muted">لا يوجد</span>';
+                        }
+
+                        $label = 'عرض المرجع';
+                        $url = null;
+
+                        switch ($info->outside_shelter_reference_type) {
+                            case \App\Models\RentalContract::class:
+                                $url = route('RentContract.show', $info->outside_shelter_reference_id);
+                                $label = 'عرض عقد الإيجار';
+                                break;
+                            case \App\Models\SponsorshipTransfer::class:
+                                $url = route('SponsorshipTransfer.show', $info->outside_shelter_reference_id);
+                                $label = 'عرض طلب نقل الكفالة';
+                                break;
+                        }
+
+                        if (!$url) {
+                            return '<span class="text-muted">لا يوجد</span>';
+                        }
+
+                        return '<a href="' . e($url) . '" class="btn btn-sm btn-outline-primary" target="_blank">'
+                            . '<i class="fas fa-external-link-alt"></i> ' . e($label)
+                            . '</a>';
+                    })
+                    ->addColumn('actions', function ($row) {
+                        $actions = '<div class="dropdown actions-dropdown">'
+                            . '<button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">'
+                            . '<i class="fas fa-cogs me-1"></i> الإجراءات'
+                            . '</button>'
+                            . '<ul class="dropdown-menu dropdown-menu-end shadow-lg">';
+
+                        $actions .= '<li><a class="dropdown-item" href="' . route('ShelterContract.show', $row->id) . '">
+                                        <i class="fas fa-eye"></i> عرض تفاصيل العقد
+                                    </a></li>';
+
+                        if ($row->info && $row->info->outside_shelter_reason === 'rental_delivery' && $row->info->outside_shelter_reference_id) {
+                            $actions .= '<li><a class="dropdown-item" href="' . route('RentContract.show', $row->info->outside_shelter_reference_id) . '">
+                                            <i class="fas fa-file-contract"></i> عرض عقد الإيجار
+                                        </a></li>';
+                        }
+
+                        if ($row->info && $row->info->outside_shelter_reason === 'transfer_delivery' && $row->info->outside_shelter_reference_id) {
+                            $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.show', $row->info->outside_shelter_reference_id) . '">
+                                            <i class="fas fa-people-carry"></i> عرض طلب نقل الكفالة
+                                        </a></li>';
+                        }
+
+                        $actions .= '</ul></div>';
+
+                        return $actions;
+                    })
+                    ->rawColumns(['maid_data', 'outside_reason', 'reference_link', 'actions'])
+                    ->make(true);
+            } catch (\Exception $e) {
+                \Log::error('Error in outsideShelter: ' . $e->getMessage());
+                return response()->json([
+                    'error' => 'حدث خطأ في عرض البيانات: ' . $e->getMessage()
+                ], 500);
+            }
+        }
+
+        $outsideContracts = Contract::outsideShelter();
+        $outsideTotal = $outsideContracts->clone()->count();
+        $outsideRental = $outsideContracts->clone()->whereHas('info', function ($query) {
+            $query->where('outside_shelter_reason', 'rental_delivery');
+        })->count();
+        $outsideTransfer = $outsideContracts->clone()->whereHas('info', function ($query) {
+            $query->where('outside_shelter_reason', 'transfer_delivery');
+        })->count();
+        $outsideOther = max(0, $outsideTotal - $outsideRental - $outsideTransfer);
+
+        $data["dataTableRoute"] = route($this->mainRoute . '.outside');
+        $data["modalType"] = "modal-lg";
+        $data["nationalities"] = \App\Models\ingaz\Nationality::with('translations')->get();
+        $data["shelterPlaces"] = \App\Models\ShelterPlaces::with('translations')->get();
+        $data["jobTypes"] = \App\Models\ingaz\JobType::with('translations')->get();
+        $data['statistics'] = [
+            'total' => $outsideTotal,
+            'rental' => $outsideRental,
+            'transfer' => $outsideTransfer,
+            'other' => $outsideOther,
+        ];
+
+        return view($this->folderPath . '.outside', $data);
     }
 
     /**
@@ -882,6 +1126,13 @@ class ShelterContractController extends Controller
             });
         }
 
+        if ($request->filled('outside_reason')) {
+            $outsideReason = $request->input('outside_reason');
+            $rows->whereHas('info', function ($query) use ($outsideReason) {
+                $query->where('outside_shelter_reason', $outsideReason);
+            });
+        }
+
         // فلتر الاستلام الفوري (العاملات التي ترغب بالعمل)
         if ($request->filled('instant_receipt')) {
             $instantReceipt = $request->input('instant_receipt');
@@ -922,6 +1173,45 @@ class ShelterContractController extends Controller
             }
         }
 
+        if ($request->filled('missing_stage')) {
+            $missingStage = $request->input('missing_stage');
+            $rows->whereHas('deportationProcedure', function ($query) use ($missingStage) {
+                switch ($missingStage) {
+                    case 'salary':
+                        $query->where(function ($q) {
+                            $q->whereNull('salary_received')
+                              ->orWhere('salary_received', '!=', 1);
+                        });
+                        break;
+                    case 'passport':
+                        $query->where(function ($q) {
+                            $q->whereNull('has_passport')
+                              ->orWhere('has_passport', '!=', 1);
+                        });
+                        break;
+                    case 'letter':
+                        $query->where(function ($q) {
+                            $q->whereNull('has_deportation_letter')
+                              ->orWhere('has_deportation_letter', '!=', 1);
+                        });
+                        break;
+                    case 'settlement':
+                        $query->where(function ($q) {
+                            $q->whereNull('has_settlement_session')
+                              ->orWhere('has_settlement_session', '!=', 1);
+                        });
+                        break;
+                    case 'final_exit':
+                        $query->where(function ($q) {
+                            $q->whereNull('has_final_exit')
+                              ->orWhere('has_final_exit', '!=', 1)
+                              ->orWhereNull('final_exit_date');
+                        });
+                        break;
+                }
+            });
+        }
+
         return $rows;
     }
 
@@ -936,7 +1226,7 @@ class ShelterContractController extends Controller
         \Log::info('Is AJAX: ' . ($request->ajax() ? 'true' : 'false'));
 
         try {
-            $rows = Contract::where('status', ContractStatusEnum::Shelter->value)
+            $rows = Contract::insideShelter()
                 ->with([
                     'maid' => function($query) {
                         $query->with([
@@ -955,13 +1245,14 @@ class ShelterContractController extends Controller
                         $query->with(['shelter' => function($q) {
                             $q->with('translations');
                         }]);
-                    }
+                    },
+                    'latestShelterLog'
                 ]);
 
             // Apply filters
             $this->applyFilters($rows, $request);
 
-            $rows = $rows->latest();
+            $rows = $rows->orderByDesc($this->getShelterOrderExpression());
 
             // Handle export request
             if ($request->has('export') && $request->input('export') == '1') {
@@ -1005,7 +1296,13 @@ class ShelterContractController extends Controller
                     'shelter_id' => null,
                     'wants_to_work' => null,
                     'maid_date_back' => null,
-                    'receipt_source' => null
+                    'receipt_source' => null,
+                    'is_outside_shelter' => false,
+                    'outside_shelter_at' => null,
+                    'outside_shelter_reason' => null,
+                    'outside_shelter_reference_type' => null,
+                    'outside_shelter_reference_id' => null,
+                    'outside_shelter_by' => null,
                 ]);
             }
 
@@ -1138,15 +1435,33 @@ class ShelterContractController extends Controller
 
                     return $shelter;
                 })
-                ->editColumn('arrival_date', function ($row) {
-                    $arrivalDate = $row->info ?
-                        ($row->info->arrival_date) : null;
+                ->addColumn('added_to_shelter_at', function ($row) {
+                    $addedAt = optional($row->latestShelterLog)->created_at
+                        ?? optional($row->info)->created_at
+                        ?? $row->created_at;
 
-                    if (!$arrivalDate) {
+                    if (!$addedAt) {
                         return '<span class="text-muted">غير محدد</span>';
                     }
 
-                    return \Carbon\Carbon::parse($arrivalDate)->format('Y-m-d');
+                    $date = \Carbon\Carbon::parse($addedAt);
+
+                    return '<span data-order="' . $date->timestamp . '">' . $date->format('Y-m-d H:i') . '</span>';
+                })
+                ->editColumn('arrival_date', function ($row) {
+                    $arrivalDate = optional($row->info)->arrival_date;
+                    $addedAt = optional($row->latestShelterLog)->created_at
+                        ?? optional($row->info)->created_at
+                        ?? $row->created_at;
+
+                    $dateToDisplay = $arrivalDate ? \Carbon\Carbon::parse($arrivalDate)
+                        : ($addedAt ? \Carbon\Carbon::parse($addedAt) : null);
+
+                    if (!$dateToDisplay) {
+                        return '<span class="text-muted">غير محدد</span>';
+                    }
+
+                    return '<span data-order="' . $dateToDisplay->timestamp . '">' . $dateToDisplay->format('Y-m-d') . '</span>';
                 })
                 ->editColumn('return_date', function ($row) {
                     $returnDate = $row->info && $row->info->maid_date_back ?
@@ -1225,36 +1540,20 @@ class ShelterContractController extends Controller
                     }
                 })
                 ->addColumn('deportation_status', function ($row) {
-                    // التحقق من وجود إجراءات ترحيل
                     $procedure = \App\Models\DeportationProcedure::where('contract_id', $row->id)->first();
 
-                    if (!$procedure) {
-                        return '<span class="badge bg-secondary">لم تبدأ</span>';
-                    }
+                    $statusData = $this->determineDeportationStage($procedure);
 
                     $html = '<div class="deportation-status">';
-
-                    // نسبة الإكمال
-                    $percentage = $procedure->completion_percentage;
-                    $progressClass = $percentage < 50 ? 'bg-danger' : ($percentage < 100 ? 'bg-warning' : 'bg-success');
-
                     $html .= '<div class="progress mb-1" style="height: 20px;">
-                                <div class="progress-bar ' . $progressClass . '" role="progressbar" style="width: ' . $percentage . '%">
-                                    ' . $percentage . '%
+                                <div class="progress-bar ' . $statusData['progress_class'] . '" role="progressbar" style="width: ' . $statusData['percentage'] . '%">
+                                    ' . $statusData['percentage'] . '%
                                 </div>
                               </div>';
+                    $html .= '<span class="badge ' . $statusData['badge_class'] . '">' . $statusData['label'] . '</span>';
 
-                    // حالة الإجراءات
-                    if ($procedure->status === 'completed') {
-                        $html .= '<span class="badge bg-success">مكتملة</span>';
-                    } elseif ($procedure->trip_scheduled) {
-                        $html .= '<span class="badge bg-info">تم جدولة رحلة</span>';
-                    } elseif ($procedure->procedures_confirmed) {
-                        $html .= '<span class="badge bg-primary">تم التأكيد - بانتظار الرحلة</span>';
-                    } elseif ($procedure->status === 'in_progress') {
-                        $html .= '<span class="badge bg-warning">قيد التنفيذ</span>';
-                    } else {
-                        $html .= '<span class="badge bg-secondary">في الانتظار</span>';
+                    if (!empty($statusData['description'])) {
+                        $html .= '<div class="mt-1 text-muted" style="font-size: 12px;">' . e($statusData['description']) . '</div>';
                     }
 
                     $html .= '</div>';
@@ -1328,6 +1627,26 @@ class ShelterContractController extends Controller
                             $actions .= '<li><a class="dropdown-item" href="' . route('ShelterContract.deportation.procedures', $row->id) . '">
                                             <i class="fas fa-clipboard-check"></i> عرض إجراءات الترحيل
                                         </a></li>';
+
+                            $canConfirmProcedures = !$deportationProcedure->procedures_confirmed
+                                && $deportationProcedure->status !== 'completed'
+                                && $deportationProcedure->areAllQuestionsAnswered();
+
+                            if ($canConfirmProcedures) {
+                                $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="confirm-procedures" data-id="' . $deportationProcedure->id . '" data-text="هل تريد تأكيد اكتمال جميع إجراءات الترحيل؟">
+                                                <i class="fas fa-check-double"></i> تأكيد اكتمال الإجراءات
+                                            </a></li>';
+                            }
+
+                            $canCompleteDeportation = $deportationProcedure->status !== 'completed'
+                                && $deportationProcedure->trip_scheduled
+                                && $deportationProcedure->procedures_confirmed;
+
+                            if ($canCompleteDeportation) {
+                                $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="complete-deportation" data-id="' . $deportationProcedure->id . '" data-text="بعد إتمام الترحيل سيتم نقل العقد إلى قائمة تم الترحيل. هل تريد المتابعة؟">
+                                                <i class="fas fa-plane-arrival"></i> إكمال الترحيل
+                                            </a></li>';
+                            }
                         } else {
                             // بدء إجراءات الترحيل
                             $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="start-deportation" data-id="' . $row->id . '" data-text="هل تريد بدء إجراءات الترحيل للعاملة؟">
@@ -1340,7 +1659,10 @@ class ShelterContractController extends Controller
 
                     return $actions;
                 })
-                ->rawColumns(['maid_data', 'client', 'nationality', 'shelter', 'receipt_source', 'arrival_date', 'return_date', 'guarantee_status', 'work_willingness', 'instant_receipt_availability', 'deportation_status', 'actions'])
+                ->orderColumn('added_to_shelter_at', function ($query, $order) {
+                    $query->orderBy($this->getShelterOrderExpression(), $order);
+                })
+                ->rawColumns(['maid_data', 'client', 'nationality', 'shelter', 'added_to_shelter_at', 'receipt_source', 'arrival_date', 'return_date', 'guarantee_status', 'work_willingness', 'instant_receipt_availability', 'deportation_status', 'actions'])
                 ->toJson();
 
             \Log::info('DataTables processing completed');
@@ -1351,6 +1673,136 @@ class ShelterContractController extends Controller
             \Log::error('Stack trace: ' . $e->getTraceAsString());
             throw $e;
         }
+    }
+
+    private function getShelterOrderExpression()
+    {
+        $status = addslashes(ContractStatusEnum::Shelter->value);
+
+        return DB::raw("COALESCE(
+            (SELECT MAX(created_at)
+             FROM contract_status_logs
+             WHERE contract_status_logs.contract_id = contracts.id
+               AND contract_status_logs.status = '{$status}'),
+            (SELECT MAX(created_at)
+             FROM contract_infos
+             WHERE contract_infos.contract_id = contracts.id),
+            contracts.updated_at,
+            contracts.created_at
+        )");
+    }
+
+    private function determineDeportationStage($procedure): array
+    {
+        if (!$procedure) {
+            return [
+                'label' => 'لم تبدأ الإجراءات',
+                'badge_class' => 'bg-secondary',
+                'progress_class' => 'bg-secondary',
+                'percentage' => 0,
+                'description' => ''
+            ];
+        }
+
+        if ($procedure->status === 'completed') {
+            return [
+                'label' => 'تم الترحيل',
+                'badge_class' => 'bg-success',
+                'progress_class' => 'bg-success',
+                'percentage' => 100,
+                'description' => ''
+            ];
+        }
+
+        $percentage = $procedure->completion_percentage ?? 0;
+        $progressClass = $percentage < 50 ? 'bg-danger' : ($percentage < 100 ? 'bg-warning' : 'bg-success');
+
+        $stages = [
+            [
+                'field' => 'salary_received',
+                'date' => 'salary_received_date',
+                'label' => 'استلام الراتب',
+                'description' => 'بانتظار تأكيد استلام الراتب'
+            ],
+            [
+                'field' => 'has_passport',
+                'date' => 'passport_date',
+                'label' => 'استلام الجواز',
+                'description' => 'بانتظار استلام الجواز أو وثيقة السفر'
+            ],
+            [
+                'field' => 'has_deportation_letter',
+                'date' => 'deportation_letter_date',
+                'label' => 'خطاب الترحيل',
+                'description' => 'بانتظار استلام خطاب الترحيل'
+            ],
+            [
+                'field' => 'has_settlement_session',
+                'date' => 'settlement_date',
+                'label' => 'جلسة التسوية',
+                'description' => 'بانتظار جلسة التسوية'
+            ],
+            [
+                'field' => 'has_final_exit',
+                'date' => 'final_exit_date',
+                'label' => 'الخروج النهائي',
+                'description' => 'بانتظار إصدار خروج نهائي'
+            ],
+        ];
+
+        foreach ($stages as $stage) {
+            $value = $procedure->{$stage['field']};
+            $dateField = $stage['date'] ?? null;
+            $dateValue = $dateField ? $procedure->{$dateField} : null;
+
+            if ($value === null || ($value === true && $dateField && empty($dateValue))) {
+                return [
+                    'label' => $stage['label'],
+                    'badge_class' => 'bg-warning',
+                    'progress_class' => $progressClass,
+                    'percentage' => $percentage,
+                    'description' => $stage['description']
+                ];
+            }
+        }
+
+        if (!$procedure->procedures_confirmed) {
+            return [
+                'label' => 'بانتظار التأكيد النهائي',
+                'badge_class' => 'bg-primary',
+                'progress_class' => $progressClass,
+                'percentage' => $percentage,
+                'description' => 'يرجى تأكيد اكتمال الإجراءات للانتقال للخطوة التالية'
+            ];
+        }
+
+        if (!$procedure->trip_scheduled) {
+            return [
+                'label' => 'بانتظار جدولة الرحلة',
+                'badge_class' => 'bg-info',
+                'progress_class' => $progressClass,
+                'percentage' => $percentage,
+                'description' => 'يرجى جدولة رحلة للعاملة'
+            ];
+        }
+
+        if (!$procedure->has_final_exit || !$procedure->final_exit_date) {
+            return [
+                'label' => 'بانتظار إصدار الخروج النهائي',
+                'badge_class' => 'bg-warning',
+                'progress_class' => $progressClass,
+                'percentage' => $percentage,
+                'description' => 'الرحلة مجدولة، يرجى استكمال إجراءات الخروج النهائي'
+            ];
+        }
+
+        return [
+            'label' => 'قيد التنفيذ',
+            'badge_class' => 'bg-warning',
+            'progress_class' => $progressClass,
+            'percentage' => $percentage,
+            'description' => ''
+        ];
     }
 
     /**
@@ -1579,6 +2031,32 @@ class ShelterContractController extends Controller
                 'final_exit_date' => ($request->input('has_final_exit') == '1' && $request->final_exit_date) ? $request->final_exit_date : null,
                 'notes' => $request->notes
             ];
+
+            $existingAttachmentsGrouped = collect($procedure->attachments ?? [])->groupBy(function ($item) {
+                return is_array($item) && isset($item['type']) ? $item['type'] : 'unknown';
+            });
+
+            $attachmentRequirements = [
+                'salary_received' => ['field' => 'salary_attachments', 'type' => 'salary', 'label' => 'مرفقات استلام الراتب'],
+                'has_passport' => ['field' => 'passport_attachments', 'type' => 'passport', 'label' => 'مرفقات الجواز'],
+                'has_deportation_letter' => ['field' => 'letter_attachments', 'type' => 'letter', 'label' => 'مرفقات خطاب الترحيل'],
+                'has_settlement_session' => ['field' => 'settlement_attachments', 'type' => 'settlement', 'label' => 'مرفقات جلسة التسوية'],
+                'has_final_exit' => ['field' => 'exit_attachments', 'type' => 'exit', 'label' => 'مرفقات الخروج النهائي'],
+            ];
+
+            foreach ($attachmentRequirements as $field => $config) {
+                if (array_key_exists($field, $updateData) && $updateData[$field] === true) {
+                    $hasNew = $request->hasFile($config['field']) && count($request->file($config['field'])) > 0;
+                    $hasExisting = $existingAttachmentsGrouped->has($config['type']) && $existingAttachmentsGrouped[$config['type']]->count() > 0;
+
+                    if (!$hasNew && !$hasExisting) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'يرجى إرفاق ' . $config['label'] . ' قبل الحفظ.'
+                        ], 422);
+                    }
+                }
+            }
 
             // إذا كان حفظ جزئي، لا نغير الحالة إلى in_progress
             if (!$isPartialSave) {
@@ -2036,6 +2514,8 @@ class ShelterContractController extends Controller
             $contract->info->update([
                 'is_available_for_instant' => $newStatus
             ]);
+
+            $this->syncMaidInstantDisplay($contract, $newStatus);
 
             // تسجيل التغيير في اللوج
             \Log::info('Instant receipt availability changed for contract', [

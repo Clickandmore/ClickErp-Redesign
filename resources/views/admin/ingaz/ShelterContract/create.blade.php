@@ -35,7 +35,7 @@
         </div>
     </div>
 
-    <form class="row g-3 contractForm" method="post" action="{{route("ShelterContract.store")}}">
+    <form class="row g-3 contractForm" method="post" action="{{route("ShelterContract.store")}}" enctype="multipart/form-data">
         @csrf
         <div class="row p-3">
 
@@ -119,6 +119,21 @@
                     <option value="no">{{helperTrans('ingaz.work_willingness_no')}}</option>
                     <option value="unknown">{{helperTrans('ingaz.work_willingness_unknown')}}</option>
                 </select>
+            </div>
+
+            <div class="col-4 mt-4" id="instant_display_wrapper" style="display:none;">
+                <label for="is_available_for_instant" class="form-label">{{ helperTrans('ingaz.display_on_site') }}</label>
+                <select name="is_available_for_instant" id="is_available_for_instant" class="form-select form-control select2">
+                    <option value="0" selected>{{ helperTrans('ingaz.no') }}</option>
+                    <option value="1">{{ helperTrans('ingaz.yes') }}</option>
+                </select>
+                <small class="form-text text-muted">{{ helperTrans('ingaz.display_on_site_hint') }}</small>
+            </div>
+
+            <div class="col-12 mt-4">
+                <label for="attachments" class="form-label">{{ helperTrans('ingaz.shelter_attachments') }}</label>
+                <input type="file" name="attachments[]" id="attachments" class="form-control" multiple accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
+                <small class="form-text text-muted">{{ helperTrans('ingaz.shelter_attachments_hint') }}</small>
             </div>
 
             <div class="col-12 mt-4">
@@ -578,12 +593,27 @@
         // تعيين تاريخ الإرجاع عند تحميل الصفحة
         $(document).ready(function() {
             setReturnDateToToday();
+            toggleInstantDisplayField();
         });
 
         // تعيين تاريخ الإرجاع عند تغيير العقد
         $('#contract_id').on('change', function() {
             setReturnDateToToday();
         });
+
+        $('select[name="wants_to_work"]').on('change', function() {
+            toggleInstantDisplayField();
+        });
+
+        function toggleInstantDisplayField() {
+            const wantsValue = $('select[name="wants_to_work"]').val();
+            if (wantsValue === 'yes') {
+                $('#instant_display_wrapper').slideDown(200);
+            } else {
+                $('#instant_display_wrapper').slideUp(200);
+                $('#is_available_for_instant').val('0').trigger('change');
+            }
+        }
     });
 </script>
 
