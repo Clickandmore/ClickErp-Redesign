@@ -568,15 +568,15 @@ class MaidAction extends MainAction
             }
 
             // Find or create the company client
-            $companyClient = ClientUser::where('name', 'أسس الانجاز')
+            $companyClient = ClientUser::where('name', 'بلاتنيوم الشرقية')
                 ->orWhere('phone', '0112345678')
                 ->first();
 
             if (!$companyClient) {
                 $companyClient = ClientUser::create([
-                    'name' => 'أسس الانجاز',
+                    'name' => 'بلاتنيوم الشرقية',
                     'phone' => '0112345678',
-                    'email' => 'info@asas-alinjaz.com',
+                    'email' => 'info@platinumeastern.com',
                     'nationality_id' => 1, // Saudi Arabia
                     'password' => bcrypt('password123'),
                     'status' => 'active'

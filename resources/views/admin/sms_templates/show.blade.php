@@ -142,7 +142,7 @@
                                         </div>
                                         <div class="col-md-4">
                                             <label class="form-label">اسم الشركة:</label>
-                                            <input type="text" id="companyName" class="form-control" value="شركة أسس الإنجاز للاستقدام" onchange="updatePreview()">
+                                            <input type="text" id="companyName" class="form-control" value="شركة بلاتنيوم الشرقية للاستقدام" onchange="updatePreview()">
                                         </div>
                                         <div class="col-md-4">
                                             <label class="form-label">رقم جوال الشركة:</label>
@@ -201,9 +201,9 @@ $(document).ready(function() {
         const clientPhone = $('#clientPhone').val() || '0501234567';
         const clientEmail = $('#clientEmail').val() || 'client@example.com';
         const contractNumber = $('#contractNumber').val() || '12345';
-        const companyName = $('#companyName').val() || 'شركة أسس الإنجاز للاستقدام';
+        const companyName = $('#companyName').val() || 'شركة بلاتنيوم الشرقية للاستقدام';
         const companyPhone = $('#companyPhone').val() || '0112345678';
-        const companyEmail = 'info@asas-alinjaz.com';
+        const companyEmail = 'info@platinumeastern.com';
 
         let processedMessage = originalMessage
             .replace(/{client_name}/g, clientName)

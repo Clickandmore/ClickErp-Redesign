@@ -30,7 +30,7 @@
                         <label for="TextInput" class="form-label">الفيديو </label>
                         <input type="file" data-default-file="" name="video" class="dropify">
                     </div> --}}
-                   
+
                     <!-- أنواع الوظائف -->
                     <div class="col-4">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.job_types_2")}} </label>
@@ -50,7 +50,7 @@
                             <option value="0">لا - عاملة عادية</option>
                             <option value="1">نعم - تسكين للإيواء</option>
                         </select>
-                        <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم شركة أسس الانجاز</small>
+                        <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم شركة بلاتنيوم الشرقية</small>
                     </div>
 
                     <!-- الجنسية -->
