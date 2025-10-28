@@ -18,18 +18,15 @@
                       enctype="multipart/form-data" id="maidForm">
                     @csrf
                     <!-- الملفات -->
+
                     <div class="col-6">
-                        <label for="TextInput" class="form-label">{{helperTrans("ingaz.cv_file")}} </label>
-                        <input type="file" data-default-file="" name="cv_file" class="dropify">
-                    </div>
-                    <div class="col-6">
-                        <label for="TextInput" class="form-label">صورة العامله </label>
+                        <label for="TextInput" class="form-label">صورة شخصية   </label>
                         <input type="file" data-default-file="" name="image" class="dropify" required>
                     </div>
-                    {{-- <div class="col-4">
-                        <label for="TextInput" class="form-label">الفيديو </label>
-                        <input type="file" data-default-file="" name="video" class="dropify">
-                    </div> --}}
+                   <div class="col-6">
+                        <label for="TextInput" class="form-label">صورة كاملة </label>
+                        <input type="file" data-default-file="" name="cv_file" class="dropify">
+                    </div>
 
                     <!-- أنواع الوظائف -->
                     <div class="col-4">
