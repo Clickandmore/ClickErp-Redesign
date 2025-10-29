@@ -716,11 +716,9 @@ header.headerAnimate .inner {
 .mainSlider .swiper .swiper-slide .info .hint {
   color: #ffffff;
   font-size: 30px;
-  font-weight: bold;
 }
 .mainSlider .swiper-slide-active .sliderTitle {
   animation: fadeInUp 1s 0.75s both;
- font-weight: bold;
 }
 .mainSlider .swiper-slide-active .hint {
   animation: fadeInUp 1s 0s both;
