@@ -44,13 +44,13 @@
     'about_description' => 'Platinum Al Sharqiya Recruitment is licensed by the Ministry of Labor and Human Resources to provide mediation services for the recruitment of foreign workers. Headquartered in the Eastern Province of the Kingdom of Saudi Arabia, we are committed to offering exceptional services through a fully integrated digital platform that simplifies the recruitment process, making it more efficient and accessible for our clients in line with the Kingdom’s Vision.',
     // The three cards
     'customer_service_title' => '24/7 Customer Support',
-    'customer_service_text' => 'Our team is always available to answer your inquiries and provide support anytime you need it.',
+    'customer_service_text'  => 'Our team is always available to answer your inquiries and provide support anytime you need it.',
 
     'hr_license_title' => 'Licensed by the Ministry of Human Resources and Social Development',
-    'hr_license_text' => 'We comply with all official regulations to ensure service quality and customer trust.',
+    'hr_license_text'  => 'We comply with all official regulations to ensure service quality and customer trust.',
 
     'musaned_title' => 'Approved by Musaned Domestic Labor Platform',
-    'musaned_text' => 'We provide our services through the official Musaned platform to ensure a safe and reliable recruitment experience.',
+    'musaned_text'  => 'We provide our services through the official Musaned platform to ensure a safe and reliable recruitment experience.',
     'recruitment_cost' => 'Recruitment cost',
     'service_transportation_cost' => 'Transfer cost',
     'rental_cost' => 'Rental cost',
@@ -814,13 +814,13 @@
     'from_31_to_40_years' => 'from 31 to 40 year',
     'from_41_to_50_years' => 'from 41 to 50 year',
     'occupation' => 'Occupation',
-    'experience' => 'Experience',
-    'sale' => ' Special offer',
+    'experience'=>'Experience',
+    'sale'=>' Special offer',
     'apply' => 'Apply',
-    'recruitment_request_title' => 'Domestic Labor Recruitment',
-    'recruitment_request_text' => 'Our services are licensed by the Ministry of Human Resources and Social Development to ensure your comfort and your family’s peace of mind.',
-    'Labor_transfer_text' => 'Monthly domestic labor with fixed-term contracts, with the possibility of renewal and easy transfer of services.',
-    'transfer_service_text' => 'Processing the transfer of services between the previous and new employer in a legal and efficient manner, with full follow-up to ensure a smooth transition for the worker.',
+'recruitment_request_title' => 'Domestic Labor Recruitment',
+'recruitment_request_text' => 'Our services are licensed by the Ministry of Human Resources and Social Development to ensure your comfort and your family’s peace of mind.',
+  'Labor_transfer_text' => 'Monthly domestic labor with fixed-term contracts, with the possibility of renewal and easy transfer of services.',
+'transfer_service_text' => 'Processing the transfer of services between the previous and new employer in a legal and efficient manner, with full follow-up to ensure a smooth transition for the worker.',
 
     'Labor_transfer_request' => 'Labor Transfer Request',
     'We can provide suitable labor according to your specifications.' => 'We can provide suitable labor according to your specifications.',
@@ -1574,7 +1574,7 @@
     'no_additional_notes' => 'No Additional Notes',
     'job' => 'Job',
     'total_offices' => 'Total Offices',
-    'client_satisfaction' => 'Client Satisfaction:',
+     'client_satisfaction' => 'Client Satisfaction:',
     'client_satisfaction_text' => 'of our clients are satisfied with the service',
 
     'on_time_delivery' => 'On-Time Delivery:',
@@ -1583,8 +1583,8 @@
     'post_arrival_support' => 'Post-Arrival Support:',
     'post_arrival_support_text' => 'rate of follow-up and support after arrival',
     'video_title' => 'Watch the introductory video of the Musaned platform',
-    'video_description' => 'Musaned - The National Platform for Domestic Labor Services',
-    'video_link' => 'https://www.youtube.com/embed/I3L7Ft6W0-s',
-    'hr' => 'Hr Management',
-    'finance' => 'Finance Management',
+'video_description' => 'Musaned - The National Platform for Domestic Labor Services',
+'video_link' => 'https://www.youtube.com/embed/I3L7Ft6W0-s',
+    'Operations_Management' => 'Operations Management',
+
 );

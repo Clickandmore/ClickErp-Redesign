@@ -1492,6 +1492,6 @@
   'video_description' => 'مساند - المنصة الوطنية لتقديم خدمات العمالة المنزلية',
   'video_link' => 'https://www.youtube.com/embed/I3L7Ft6W0-s',
   'about_us' => 'About us',
-    'hr' => 'أدارة الموارد البشرية',
-    'finance' => 'أدارة الماليات',
+    'Operations_Management' => 'ادارة التشغيل',
+
 );
