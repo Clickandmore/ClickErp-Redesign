@@ -1579,6 +1579,8 @@
 
     'on_time_delivery' => 'On-Time Delivery:',
     'on_time_delivery_text' => 'of the orders were completed within the specified time',
+    'finance' => 'Finance Management',
+    'hr' => 'Human Resources Management',
 
     'post_arrival_support' => 'Post-Arrival Support:',
     'post_arrival_support_text' => 'rate of follow-up and support after arrival',
