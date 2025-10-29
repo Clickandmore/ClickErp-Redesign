@@ -73,13 +73,13 @@
                     </li>
                 @endif
                 <li class="collapsed">
-                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#mainMenu" href="#">
-                        <i class="fa fa-cogs"></i>
+                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#Operations_Management" href="#">
+                        <i class="fa fa-file-text"></i>
                         <span class="ms-2">{{ helperTrans('ingaz.Operations_Management') }}</span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
                     <ul class="sub-menu collapse show"
-                        id="mainMenu">
+                        id="Operations_Management">
                         <li>
                             <a class="m-link {{ (Route::currentRouteName() == 'clients.index') ? 'active' : '' }}"
                                href="{{route('clients.index')}}">
@@ -87,8 +87,6 @@
                                 <span class="ms-2"> {{ helperTrans('ingaz.clients') }}</span>
                             </a>
                         </li>
-
-
                         <!-- CV Management Section -->
                         <li class="collapsed">
                             <a class="m-link" data-bs-toggle="collapse" data-bs-target="#cvManagement" href="#">
@@ -214,7 +212,8 @@
                                     <li>
                                         <a class="m-link" href="{{ route('RecruitmentContract.create') }}">
                                             <i class="icon-star"></i>
-                                            <span class="ms-2">{{ helperTrans('ingaz.add Recruitment contract') }}</span>
+                                            <span
+                                                class="ms-2">{{ helperTrans('ingaz.add Recruitment contract') }}</span>
                                         </a>
                                     </li>
                                 @endif
@@ -222,7 +221,8 @@
                                     <li>
                                         <a class="m-link" href="{{ route('RecruitmentContract.index') }}">
                                             <i class="fa fa-list"></i>
-                                            <span class="ms-2">{{ helperTrans('ingaz.All Recruitment contracts') }}</span>&nbsp;&nbsp;
+                                            <span
+                                                class="ms-2">{{ helperTrans('ingaz.All Recruitment contracts') }}</span>&nbsp;&nbsp;
                                             <span class="badge bg-primary ms-2">{{ $contractsCount['all'] }}</span>
                                         </a>
                                     </li>
@@ -231,7 +231,8 @@
                                             <a class="m-link"
                                                href="{{ route('RecruitmentContract.index', ['status' => $newStatus->value]) }}">
                                                 <i class="fa fa-plus"></i>
-                                                <span class="ms-2">{{ helperTrans('ingaz.new Recruitment contracts') }}</span>&nbsp;
+                                                <span
+                                                    class="ms-2">{{ helperTrans('ingaz.new Recruitment contracts') }}</span>&nbsp;
                                                 <span class="badge bg-primary ms-2">{{ $contractsCount['new'] }}</span>
                                             </a>
                                         </li>
@@ -251,7 +252,8 @@
                                                href="{{ route('RecruitmentContract.index', ['status' => $msanedStatus->value]) }}">
                                                 <i class="fa fa-plus"></i>
                                                 <span class="ms-2">{{ helperTrans('ingaz.msaned') }}</span>&nbsp;&nbsp;
-                                                <span class="badge bg-primary ms-2">{{ $contractsCount['msaned'] }}</span>
+                                                <span
+                                                    class="badge bg-primary ms-2">{{ $contractsCount['msaned'] }}</span>
                                             </a>
                                         </li>
                                     @endif
@@ -261,7 +263,8 @@
                                                href="{{ route('RecruitmentContract.index', ['status' => $tafwedStatus->value]) }}">
                                                 <i class="fa fa-clock-o"></i>
                                                 <span class="ms-2">{{ helperTrans('ingaz.tafwed') }}</span>&nbsp;&nbsp;
-                                                <span class="badge bg-primary ms-2">{{ $contractsCount['tafwed'] }}</span>
+                                                <span
+                                                    class="badge bg-primary ms-2">{{ $contractsCount['tafwed'] }}</span>
                                             </a>
                                         </li>
                                     @endif
@@ -286,7 +289,8 @@
                                            href="{{ route('RecruitmentContract.index', ['status' => 'completed', 'warranty_status' => 'active']) }}">
                                             <i class="fa fa-shield"></i>
                                             <span class="ms-2"> تحت الضمان</span>&nbsp;&nbsp;
-                                            <span class="badge bg-warning">{{ $contractsCount['under_warranty'] }}</span>
+                                            <span
+                                                class="badge bg-warning">{{ $contractsCount['under_warranty'] }}</span>
                                         </a>
                                     </li>
                                     @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
@@ -569,7 +573,8 @@
 
                         @if (@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_VIEW))
                             <li class="collapsed">
-                                <a class="m-link" data-bs-toggle="collapse" data-bs-target="#sponsorshipTransfer" href="#">
+                                <a class="m-link" data-bs-toggle="collapse" data-bs-target="#sponsorshipTransfer"
+                                   href="#">
                                     <i class="icon-directions"></i>
                                     <span class="ms-2">{{ helperTrans('ingaz.sponsorship_transfer') }}</span>
                                     <span class="arrow fa fa-angle-left ms-auto text-end"></span>
@@ -580,7 +585,8 @@
                                         <a class="m-link {{ (Route::currentRouteName() == 'SponsorshipTransfer.index') ? 'active' : '' }}"
                                            href="{{ route('SponsorshipTransfer.index') }}">
                                             <i class="fa fa-list"></i>
-                                            <span class="ms-2">{{ helperTrans('ingaz.sponsorship_transfer_requests') }}</span>
+                                            <span
+                                                class="ms-2">{{ helperTrans('ingaz.sponsorship_transfer_requests') }}</span>
                                         </a>
                                     </li>
                                     <li>
