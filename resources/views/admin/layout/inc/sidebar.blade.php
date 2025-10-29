@@ -67,18 +67,23 @@
                     <li>
                         <a class="m-link {{ (Route::currentRouteName() == 'dashboard.index') ? 'active' : '' }}"
                            href="{{route('dashboard.index')}}">
-                            <i class="fa fa-home"></i>
+                            <i class="fa fa-home me-2"></i>
                             <span class="ms-2">{{ helperTrans('ingaz.home') }}</span>
                         </a>
                     </li>
                 @endif
+                @php
+                    $isHr = request()->is('hr*');
+                    $isFinance = request()->is('finance*');
+                    $isZatcka = request()->is('zatca*');
+                @endphp
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#Operations_Management" href="#">
-                        <i class="fa fa-file-text"></i>
+                        <i class="fa fa-tasks me-2"></i>
                         <span class="ms-2">{{ helperTrans('ingaz.Operations_Management') }}</span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
-                    <ul class="sub-menu collapse show"
+                    <ul class="sub-menu collapse"
                         id="Operations_Management">
                         <li>
                             <a class="m-link {{ (Route::currentRouteName() == 'clients.index') ? 'active' : '' }}"
@@ -952,7 +957,7 @@
                 @endphp
                 <li class="{{ $isHr ? '' : 'collapsed' }}">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#hr" href="#">
-                        <i class="fa fa-file-text"></i>
+                        <i class="fa fa-user-tie me-2"></i>
                         <span class="ms-2">{{ __('ingaz.hr') }}</span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
@@ -965,7 +970,7 @@
                 @endphp
                 <li class="{{ $isFinance ? '' : 'collapsed' }}">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#finance" href="#">
-                        <i class="fa fa-file-text"></i>
+                        <i class="fa fa-dollar-sign me-2"></i>
                         <span class="ms-2">{{ __('ingaz.finance') }}</span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
@@ -973,6 +978,12 @@
                         @include('finance::finance')
                     </ul>
                 </li>
+<<<<<<< HEAD
+=======
+                @include('finance::stock')
+                @include('finance::zatca')
+                <!-- Clients Section -->
+>>>>>>> 1da444094665821cc99670d86c263e7e4c477f68
             </ul>
         </div>
 
