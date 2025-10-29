@@ -21,6 +21,8 @@
     'slider' => 'Slider',
     'Contact us' => 'Contact us',
     'contact with us' => 'Contact with us',
+    'hr' => 'Hr Management',
+    'finance' => 'Finance Management',
     'religions' => 'Religions',
     'religion' => 'Religion',
     'is_show' => 'Is show',
