@@ -72,13 +72,17 @@
                         </a>
                     </li>
                 @endif
+                @php
+                    $isHr = request()->is('hr*');
+                    $isFinance = request()->is('finance*');
+                @endphp
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#Operations_Management" href="#">
                         <i class="fa fa-file-text"></i>
                         <span class="ms-2">{{ helperTrans('ingaz.Operations_Management') }}</span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
-                    <ul class="sub-menu collapse show"
+                    <ul class="sub-menu collapse  {{ (!$isHr && !$isFinance) ? 'show' : '' }}"
                         id="Operations_Management">
                         <li>
                             <a class="m-link {{ (Route::currentRouteName() == 'clients.index') ? 'active' : '' }}"
