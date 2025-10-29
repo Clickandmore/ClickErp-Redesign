@@ -1585,5 +1585,6 @@
     'video_title' => 'Watch the introductory video of the Musaned platform',
 'video_description' => 'Musaned - The National Platform for Domestic Labor Services',
 'video_link' => 'https://www.youtube.com/embed/I3L7Ft6W0-s',
+    'Operations_Management' => 'Operations Management',
 
 );
