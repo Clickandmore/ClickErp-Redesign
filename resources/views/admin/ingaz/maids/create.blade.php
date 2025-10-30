@@ -86,6 +86,14 @@
                             @endforeach
                         </select>
                     </div>
+                    <div class="col-4">
+                        <label for="request_type" class="form-label">{{ helperTrans('ingaz.request_type') }}</label>
+                        <select name="request_type" id="request_type" class="form-control">
+                            <option value="known" {{ old('request_type', 'known') === 'known' ? 'selected' : '' }}>{{ helperTrans('ingaz.request_type_known') }}</option>
+                            <option value="specific" {{ old('request_type') === 'specific' ? 'selected' : '' }}>{{ helperTrans('ingaz.request_type_specific') }}</option>
+                            <option value="custom_spec" {{ old('request_type') === 'custom_spec' ? 'selected' : '' }}>{{ helperTrans('ingaz.request_type_custom') }}</option>
+                        </select>
+                    </div>
 
                     <!-- اسم العاملة -->
                     <div class="col-4">
@@ -101,6 +109,26 @@
                             {{helperTrans("ingaz.price")}}
                         </label>
                         <input type="number" name="price" id="price" class="form-control">
+                    </div>
+                    <div class="col-4">
+                        <label for="offer_price" class="form-label">{{ helperTrans('ingaz.offer_price_new') }}</label>
+                        <input type="number" step="0.01" name="offer_price" id="offer_price" class="form-control" value="{{ old('offer_price') }}" placeholder="{{ helperTrans('ingaz.offer_price_placeholder') }}">
+                    </div>
+                    <div class="col-4">
+                        <label for="offer_duration" class="form-label">{{ helperTrans('ingaz.offer_duration') }}</label>
+                        <input type="text" name="offer_duration" id="offer_duration" class="form-control" value="{{ old('offer_duration') }}" placeholder="{{ helperTrans('ingaz.offer_duration_placeholder') }}">
+                    </div>
+                    <div class="col-4">
+                        <label for="offer_starts_at" class="form-label">{{ helperTrans('ingaz.offer_starts_at') }}</label>
+                        <input type="date" name="offer_starts_at" id="offer_starts_at" class="form-control" value="{{ old('offer_starts_at') }}">
+                    </div>
+                    <div class="col-4">
+                        <label for="offer_expires_at" class="form-label">{{ helperTrans('ingaz.offer_expires_at') }}</label>
+                        <input type="date" name="offer_expires_at" id="offer_expires_at" class="form-control" value="{{ old('offer_expires_at') }}">
+                    </div>
+                    <div class="col-12">
+                        <label for="offer_description" class="form-label">{{ helperTrans('ingaz.offer_description') }}</label>
+                        <textarea name="offer_description" id="offer_description" class="form-control" rows="2" placeholder="{{ helperTrans('ingaz.offer_description_placeholder') }}">{{ old('offer_description') }}</textarea>
                     </div>
                     <div class="col-4">
                         <label for="TextInput" class="form-label">
@@ -159,7 +187,7 @@
                         <label for="TextInput" class="form-label">
                             {{helperTrans("ingaz.duration")}}
                         </label>
-                        <input type="text" name="duration" class="form-control">
+                        <input type="text" name="duration" class="form-control" value="{{ old('duration', '24 شهر') }}">
                     </div>
                     <div class="col-4">
                         <label for="TextInput" class="form-label">
@@ -294,7 +322,16 @@
                                     </select>
                                 </td>
                                 <td>
-                                    <input type="text" name="expertises[0][number_of_years]" class="form-control" data-exp-required="true">
+                                    <div class="experience-duration-wrapper">
+                                        <div class="input-group">
+                                            <input type="number" min="0" step="0.1" class="form-control exp-duration-value" placeholder="{{ helperTrans('ingaz.duration_value_placeholder') }}" data-exp-required="true">
+                                            <select class="form-select exp-duration-unit" data-exp-required="true">
+                                                <option value="years">{{ helperTrans('ingaz.years') }}</option>
+                                                <option value="months">{{ helperTrans('ingaz.months') }}</option>
+                                            </select>
+                                        </div>
+                                        <input type="hidden" name="expertises[0][number_of_years]" class="exp-duration-years" data-exp-required="true">
+                                    </div>
                                 </td>
                                 <td>
                                     <select name="expertises[0][job_title_id]" data-placeholder=""
@@ -356,6 +393,78 @@
     <script>
         $(function () {
 
+            const formatYearsValue = function (value, unit) {
+                if (value === '' || value === null || typeof value === 'undefined') {
+                    return '';
+                }
+
+                const numericValue = parseFloat(value);
+                if (Number.isNaN(numericValue)) {
+                    return '';
+                }
+
+                if (unit === 'months') {
+                    return (numericValue / 12).toFixed(2);
+                }
+
+                return numericValue.toFixed(2);
+            };
+
+            window.syncExperienceRow = function ($row) {
+                const $valueInput = $row.find('.exp-duration-value');
+                const $unitSelect = $row.find('.exp-duration-unit');
+                const $hiddenInput = $row.find('.exp-duration-years');
+
+                const rawValue = $valueInput.val();
+                const unit = $unitSelect.val();
+
+                const formattedYears = formatYearsValue(rawValue, unit);
+                $hiddenInput.val(formattedYears);
+            };
+
+            window.initializeExperienceRow = function ($row) {
+                const $valueInput = $row.find('.exp-duration-value');
+                const $unitSelect = $row.find('.exp-duration-unit');
+                const $hiddenInput = $row.find('.exp-duration-years');
+
+                const initialYears = parseFloat($hiddenInput.val());
+
+                if (!Number.isNaN(initialYears) && initialYears > 0) {
+                    if (initialYears < 1) {
+                        $unitSelect.val('months');
+                        const months = (initialYears * 12).toFixed(1);
+                        $valueInput.val(parseFloat(months));
+                    } else {
+                        $unitSelect.val('years');
+                        $valueInput.val(parseFloat(initialYears.toFixed(1)));
+                    }
+                } else {
+                    $unitSelect.val('years');
+                    $valueInput.val('');
+                    $hiddenInput.val('');
+                }
+
+                window.syncExperienceRow($row);
+            };
+
+            window.attachExperienceHandlers = function (context) {
+                const $scope = context ? $(context) : $('#experience_section');
+
+                $scope.find('tr.y-group').each(function () {
+                    const $row = $(this);
+
+                    $row.find('.exp-duration-value').off('.exp').on('input.exp change.exp', function () {
+                        window.syncExperienceRow($row);
+                    });
+
+                    $row.find('.exp-duration-unit').off('.exp').on('change.exp', function () {
+                        window.syncExperienceRow($row);
+                    });
+
+                    window.initializeExperienceRow($row);
+                });
+            };
+
             // إعادة ترقيم أسماء الحقول بعد أي تغيير
             window.reindexRows = function () {
                 $('#json_array tr.y-group').each(function (rowIndex) {
@@ -401,6 +510,9 @@
                 if (typeof window.initExperienceSelects === 'function') {
                     window.initExperienceSelects($clone);
                 }
+                if (typeof window.attachExperienceHandlers === 'function') {
+                    window.attachExperienceHandlers($clone);
+                }
             });
 
             // حذف صف
@@ -418,6 +530,9 @@
                 window.updateRemoveButtons();
                 if (typeof window.initExperienceSelects === 'function') {
                     window.initExperienceSelects();
+                }
+                if (typeof window.attachExperienceHandlers === 'function') {
+                    window.attachExperienceHandlers();
                 }
             });
 
@@ -448,6 +563,7 @@
             }
 
             window.initExperienceSelects();
+            window.attachExperienceHandlers();
 
             // Function to handle fields visibility based on job type
             // هذه الدالة تتحكم في إظهار/إخفاء الحقول بناءً على نوع السيرة المختار
@@ -787,6 +903,13 @@
                         confirmButtonText: 'حسناً'
                     });
                     return false;
+                }
+
+                // تحديث قيم سنوات الخبرة المخزنة قبل الإرسال
+                if (typeof window.syncExperienceRow === 'function') {
+                    $('#json_array tr.y-group').each(function () {
+                        window.syncExperienceRow($(this));
+                    });
                 }
 
                 // إرسال النموذج باستخدام AJAX

@@ -56,6 +56,7 @@ class Maid extends Model
         'cv_preview',
         'office_id',
         'status',
+        'request_type',
         'available',
         'available_at',
         'is_show',
@@ -64,7 +65,12 @@ class Maid extends Model
         'childrens_count',
         'additional_notes',
         'duration',
-        'languages'
+        'languages',
+        'offer_price',
+        'offer_duration',
+        'offer_description',
+        'offer_starts_at',
+        'offer_expires_at'
     ];
 
     protected $casts = [
@@ -79,7 +85,10 @@ class Maid extends Model
         'is_pinned' => 'boolean',
         'available_at' => 'date',
         'birth_date' => 'date',
-        'id_expiry_date' => 'date'
+        'id_expiry_date' => 'date',
+        'offer_price' => 'decimal:2',
+        'offer_starts_at' => 'date',
+        'offer_expires_at' => 'date'
     ];
 
     public $translatedAttributes = ['marital_status', 'languages'];

@@ -96,7 +96,8 @@ class UserController extends Controller
         }
 
         $countries = \App\Models\Country::active()->ordered()->get();
-        return view($this->folderPath . '.create', compact('countries'));
+        $cities = \App\Models\City::active()->ordered()->get();
+        return view($this->folderPath . '.create', compact('countries', 'cities'));
     }
 
     /**

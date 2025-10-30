@@ -141,6 +141,35 @@ class MaidAction extends MainAction
             $data['percentage'] = json_encode([], JSON_UNESCAPED_UNICODE);
         }
 
+        // Normalize request type and offer fields
+        $data['request_type'] = $data['request_type'] ?? 'known';
+
+        $offerPrice = $data['offer_price'] ?? null;
+        $data['offer_price'] = ($offerPrice === '' || $offerPrice === null) ? null : round((float)$offerPrice, 2);
+
+        $data['offer_duration'] = isset($data['offer_duration']) && trim((string)$data['offer_duration']) !== ''
+            ? $data['offer_duration']
+            : null;
+        $data['offer_description'] = isset($data['offer_description']) && trim((string)$data['offer_description']) !== ''
+            ? $data['offer_description']
+            : null;
+
+        if (array_key_exists('offer_starts_at', $data)) {
+            $data['offer_starts_at'] = $data['offer_starts_at']
+                ? date('Y-m-d', strtotime($data['offer_starts_at']))
+                : null;
+        } else {
+            unset($data['offer_starts_at']);
+        }
+
+        if (array_key_exists('offer_expires_at', $data)) {
+            $data['offer_expires_at'] = $data['offer_expires_at']
+                ? date('Y-m-d', strtotime($data['offer_expires_at']))
+                : null;
+        } else {
+            unset($data['offer_expires_at']);
+        }
+
         // Handle birth_date field
         if (isset($data['birth_date']) && !empty($data['birth_date'])) {
             $data['birth_date'] = date('Y-m-d', strtotime($data['birth_date']));
@@ -218,7 +247,13 @@ class MaidAction extends MainAction
             'available' => $data['available'],
             'available_at' => $data['available_at'],
             'is_show' => $data['is_show'],
-            'name' => $data['name']
+            'name' => $data['name'],
+            'request_type' => $data['request_type'],
+            'offer_price' => $data['offer_price'],
+            'offer_duration' => $data['offer_duration'],
+            'offer_description' => $data['offer_description'],
+            'offer_starts_at' => $data['offer_starts_at'],
+            'offer_expires_at' => $data['offer_expires_at']
         ];
 
         \Log::info('Final create data:', $createData);
@@ -487,7 +522,26 @@ class MaidAction extends MainAction
             ]);
         }
 
+        $data['request_type'] = $data['request_type'] ?? $maid->request_type ?? 'known';
 
+        $offerPrice = $data['offer_price'] ?? null;
+        $data['offer_price'] = ($offerPrice === '' || $offerPrice === null) ? null : round((float)$offerPrice, 2);
+
+        $data['offer_duration'] = array_key_exists('offer_duration', $data)
+            ? ((isset($data['offer_duration']) && trim((string)$data['offer_duration']) !== '') ? $data['offer_duration'] : null)
+            : $maid->offer_duration;
+
+        $data['offer_description'] = array_key_exists('offer_description', $data)
+            ? ((isset($data['offer_description']) && trim((string)$data['offer_description']) !== '') ? $data['offer_description'] : null)
+            : $maid->offer_description;
+
+        $data['offer_starts_at'] = isset($data['offer_starts_at']) && $data['offer_starts_at']
+            ? date('Y-m-d', strtotime($data['offer_starts_at']))
+            : null;
+
+        $data['offer_expires_at'] = isset($data['offer_expires_at']) && $data['offer_expires_at']
+            ? date('Y-m-d', strtotime($data['offer_expires_at']))
+            : null;
 
 
         $row = parent::find($id);
