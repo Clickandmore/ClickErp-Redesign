@@ -46,11 +46,8 @@
         </div>
     </section>
     <!-- services -->
-    <section class="hero-services" data-aos="fade-up">
-        <!-- <div class="expertise">
-            {{__('ingaz.experience more than')}}
-            <span> {{isset($settings->years) ? $settings->years : ''}} <small> {{__('ingaz.years')}} </small> </span>
-        </div> -->
+    <!-- <section class="hero-services" data-aos="fade-up">
+       
           <div class="expertise">
           <img src="{{asset('site')}}/assets/images/experience.jpg"
           alt="" />
@@ -92,7 +89,72 @@
                 {{__('ingaz.warning_text')}}
             @endif
         </div>
-    </section>
+    </section> -->
+    <section class="hero-services" data-aos="fade-up">
+  <div class="expertise">
+    <img src="assets/images/experience.jpg" alt="خبرة اكثر من 20 سنه" />
+  </div>
+
+  <div class="services-container">
+     <div class="service-card green">
+      <div class="icon green">
+        <i class="fa-solid fa-user-check"></i>
+      </div>
+      <h4>الاستقدام</h4>
+      <p>خدمة استقدام العمالة المنزلية والمهنية من الخارج للعمل داخل المملكة.</p>
+      <ul>
+        <li>سهولة الاستقدام</li>
+        <li>الجودة</li>
+        <li>نظام تتبع دقيق</li>
+      </ul>
+    </div>
+  <div class="service-card purple">
+      <div class="icon purple">
+        <i class="fa-solid fa-clock"></i>
+      </div>
+      <h4>تأجير العمالة الشهري</h4>
+      <p>خدمة تأجير العمالة للشهر الواحد مع ضمان مرونة وجودة.</p>
+      <ul>
+        <li>مرونة عالية</li>
+        <li>جودة مضمونة</li>
+        <li>تسليم سريع</li>
+      </ul>
+    </div>
+   <div class="service-card blue">
+      <div class="icon blue">
+        <i class="fa-solid fa-truck-fast"></i>
+      </div>
+      <h4>النقل الفوري للعمالة</h4>
+      <p>خدمة نقل العمالة لمشاريعك بسرعة وكفاءة عالية.</p>
+      <ul>
+        <li>النقل السريع</li>
+        <li>التسليم الفوري</li>
+        <li>الجودة</li>
+      </ul>
+    </div>
+    <div class="service-card orange">
+      <div class="icon orange">
+        <i class="fa-solid fa-stopwatch"></i>
+      </div>
+      <h4>التسليم الفوري للعمالة</h4>
+      <p>استلم فوري لعمالتك لتلبية احتياجاتك الفورية بسرعة وجودة.</p>
+      <ul>
+        <li>التسليم السريع</li>
+        <li>جودة العمالة</li>
+        <li>سهولة الإجراءات</li>
+      </ul>
+    </div>
+  </div>
+   <!-- warn -->
+     <div class="warning">
+            {{__('ingaz.warning')}} :
+            @if(isset($settings))
+                {{ app()->getLocale() == 'ar' ? $settings->note_ar : $settings->note_en }}
+            @else
+                {{__('ingaz.warning_text')}}
+            @endif
+        </div>
+</section>
     <!-- about sec  -->
 <section class="about-section" id="about">
   <div class="container">
@@ -581,7 +643,17 @@
                             سداد رسوم تاشيرة العمالة المنزلية الخاصة بك عبر الخدمات الحكومية
                             في البنك او عن طريق القنوات التالية
                         </p>
-
+  <div class="images">
+                            <img src="{{asset('site')}}/assets/images/mc.webp" data-aos="zoom-in" data-aos-delay="200">
+                            <img src="{{asset('site')}}/assets/images/visa.webp" data-aos="zoom-in"
+                                 data-aos-delay="300">
+                            <img src="{{asset('site')}}/assets/images/mada.webp" data-aos="zoom-in"
+                                 data-aos-delay="400">
+                                  <img src="{{asset('site')}}/assets/images/tabby.png" data-aos="zoom-in"
+                                     data-aos-delay="400">
+                                      <img src="{{asset('site')}}/assets/images/tamara.webp" data-aos="zoom-in"
+                                     data-aos-delay="400">
+                        </div>
                     </div>
                     <div class="step" data-aos="fade-up" data-aos-delay="200">
                         <div class="icon">
@@ -606,17 +678,7 @@
                             دفع مبلغ اختياري وتوثيق طلب استقدام العمالة المنزلية المحددة بعد
                             اختيار السيرة الذاتية
                         </p>
-                         <div class="images">
-                            <img src="{{asset('site')}}/assets/images/mc.webp" data-aos="zoom-in" data-aos-delay="200">
-                            <img src="{{asset('site')}}/assets/images/visa.webp" data-aos="zoom-in"
-                                 data-aos-delay="300">
-                            <img src="{{asset('site')}}/assets/images/mada.webp" data-aos="zoom-in"
-                                 data-aos-delay="400">
-                                  <img src="{{asset('site')}}/assets/images/tabby.png" data-aos="zoom-in"
-                                     data-aos-delay="400">
-                                      <img src="{{asset('site')}}/assets/images/tamara.webp" data-aos="zoom-in"
-                                     data-aos-delay="400">
-                        </div>
+                       
                     </div>
                     <div class="step" data-aos="fade-up" data-aos-delay="500">
                         <div class="icon">
