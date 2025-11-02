@@ -913,6 +913,16 @@
                     </a>
                 </li>
                 {{--                @endif--}}
+{{--                @if (@AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW))--}}
+{{--                --}}
+                <li>
+                    <a class="m-link {{ (Route::currentRouteName() == 'what-do.index') ? 'active' : '' }}"
+                       href="{{route('what-do.index')}}">
+                        <i class="fa fa-envelope"></i>
+                        <span class="ms-2"> {{ helperTrans('ingaz.what_do') }}</span>
+                    </a>
+                </li>
+                {{--                @endif--}}
                 @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
                     <li>
                         <a class="m-link {{ (Route::currentRouteName() == 'notifications.index') ? 'active' : '' }}"
@@ -932,32 +942,32 @@
                         </a>
                     </li>
                 @endif
-                @php
-                    $isHr = request()->is('hr*');
-                @endphp
-                <li class="{{ $isHr ? '' : 'collapsed' }}">
-                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#hr" href="#">
-                        <i class="fa fa-file-text"></i>
-                        <span class="ms-2">{{ __('ingaz.hr') }}</span>
-                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
-                    </a>
-                    <ul class="sub-menu collapse {{ $isHr ? 'show' : '' }}" id="hr">
-                        @include('hr::hr')
-                    </ul>
-                </li>
-                @php
-                    $isFinance = request()->is('finance*');
-                @endphp
-                <li class="{{ $isFinance ? '' : 'collapsed' }}">
-                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#finance" href="#">
-                        <i class="fa fa-file-text"></i>
-                        <span class="ms-2">{{ __('ingaz.finance') }}</span>
-                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
-                    </a>
-                    <ul class="sub-menu collapse {{ $isFinance ? 'show' : '' }}" id="finance">
-                        @include('finance::finance')
-                    </ul>
-                </li>
+{{--                @php--}}
+{{--                    $isHr = request()->is('hr*');--}}
+{{--                @endphp--}}
+{{--                <li class="{{ $isHr ? '' : 'collapsed' }}">--}}
+{{--                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#hr" href="#">--}}
+{{--                        <i class="fa fa-file-text"></i>--}}
+{{--                        <span class="ms-2">{{ __('ingaz.hr') }}</span>--}}
+{{--                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>--}}
+{{--                    </a>--}}
+{{--                    <ul class="sub-menu collapse {{ $isHr ? 'show' : '' }}" id="hr">--}}
+{{--                        @include('hr::hr')--}}
+{{--                    </ul>--}}
+{{--                </li>--}}
+{{--                @php--}}
+{{--                    $isFinance = request()->is('finance*');--}}
+{{--                @endphp--}}
+{{--                <li class="{{ $isFinance ? '' : 'collapsed' }}">--}}
+{{--                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#finance" href="#">--}}
+{{--                        <i class="fa fa-file-text"></i>--}}
+{{--                        <span class="ms-2">{{ __('ingaz.finance') }}</span>--}}
+{{--                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>--}}
+{{--                    </a>--}}
+{{--                    <ul class="sub-menu collapse {{ $isFinance ? 'show' : '' }}" id="finance">--}}
+{{--                        @include('finance::finance')--}}
+{{--                    </ul>--}}
+{{--                </li>--}}
 
 
 

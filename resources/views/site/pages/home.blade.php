@@ -47,7 +47,7 @@
     </section>
     <!-- services -->
     <!-- <section class="hero-services" data-aos="fade-up">
-       
+
           <div class="expertise">
           <img src="{{asset('site')}}/assets/images/experience.jpg"
           alt="" />
@@ -678,7 +678,7 @@
                             دفع مبلغ اختياري وتوثيق طلب استقدام العمالة المنزلية المحددة بعد
                             اختيار السيرة الذاتية
                         </p>
-                       
+
                     </div>
                     <div class="step" data-aos="fade-up" data-aos-delay="500">
                         <div class="icon">
