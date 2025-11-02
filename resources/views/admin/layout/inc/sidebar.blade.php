@@ -978,12 +978,9 @@
                         @include('finance::finance')
                     </ul>
                 </li>
-<<<<<<< HEAD
-=======
                 @include('finance::stock')
                 @include('finance::zatca')
                 <!-- Clients Section -->
->>>>>>> 1da444094665821cc99670d86c263e7e4c477f68
             </ul>
         </div>
 
