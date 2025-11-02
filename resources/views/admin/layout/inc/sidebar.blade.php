@@ -981,6 +981,16 @@
                 @include('finance::stock')
                 @include('finance::zatca')
                 <!-- Clients Section -->
+                <li class="{{ $isFinance ? '' : 'collapsed' }}">
+                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#crm" href="#">
+                        <i class="fa fa-file-text"></i>
+                        <span class="ms-2">{{ helperTrans('crm') }}</span>
+                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                    </a>
+                    <ul class="sub-menu collapse {{ $isFinance ? 'show' : '' }}" id="crm">
+                        @include('crm::crm')
+                    </ul>
+                </li>
             </ul>
         </div>
 

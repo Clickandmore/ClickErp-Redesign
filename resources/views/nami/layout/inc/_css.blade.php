@@ -14,6 +14,8 @@
 <link rel="stylesheet" href="{{url('/')}}/admin/assets/cssbundle/dropify.min.css">
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
 <style>
     .cropper-container {
         max-width: 100%;

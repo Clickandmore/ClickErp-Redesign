@@ -76,6 +76,7 @@
                     $isHr = request()->is('hr*');
                     $isFinance = request()->is('finance*');
                     $isZatcka = request()->is('zatca*');
+                    $isCrm = request()->is('crm*');
                 @endphp
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#Operations_Management" href="#">
@@ -979,6 +980,16 @@
                 @include('finance::stock')
                 @include('finance::zatca')
                 <!-- Clients Section -->
+                <li class="{{ $isCrm ? '' : 'collapsed' }}">
+                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#crm" href="#">
+                        <i class="fa-regular fa-file-lines me-2"></i>
+                        <span class="ms-2">{{ helperTrans('crm') }}</span>
+                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                    </a>
+                    <ul class="sub-menu collapse {{ $isCrm ? 'show' : '' }}" id="crm">
+                        @include('crm::crm')
+                    </ul>
+                </li>
             </ul>
         </div>
 
