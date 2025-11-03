@@ -320,5 +320,7 @@ return [
     'view_notifications' => 'View notifications',
     'view_my_orders' => 'View my orders',
     'view_my_contracts' => 'View my contracts',
+    'phone_validation_text' => 'The phone number must be 9 digits long and begin with the number 5.',
+    'account_is_blocked' => 'Your account has been blocked, please contact support.',
 
 ];
