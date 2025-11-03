@@ -345,18 +345,54 @@ class MaidController extends Controller
     public function create(NationalityAction $act, RecruitmentOfficeAction $officeAct, ReligionAction $relAct, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction, SkillAction $skillAction, Request $request)
     {
         if ($request->ajax()) {
-            return $this->createAjaxResponse($act, $officeAct, $relAct, $jobTitleAction, $jobTypesAction, 'create');
+            return $this->createAjaxResponse(
+                $act,
+                $officeAct,
+                $relAct,
+                $jobTitleAction,
+                $jobTypesAction,
+                'create',
+                [
+                    'defaultShelterContract' => '0',
+                    'defaultIsShow' => true,
+                    'isRentalForm' => false,
+                    'formRedirectRoute' => route('maids.index'),
+                    'requireIdFields' => true,
+                ]
+            );
         }
 
         // Handle direct request
         $nationalities = $act->getNationalities();
         $religions = $relAct->getReligions();
         $jobs = $jobTitleAction->getJobsTitles();
-        $types = $jobTypesAction->getJobsTypes();
+        [$types, $defaultTypeId] = $this->prepareJobTypesForForm($jobTypesAction->getJobsTypes());
         $offices = $officeAct->getAllOffices();
         $skills = $skillAction->get();
 
-        return view("{$this->folderPath}.create", compact('nationalities', 'offices', 'religions', 'jobs', 'types', 'skills'));
+        $defaultShelterContract = '0';
+        $defaultIsShow = true;
+        $isRentalForm = false;
+        $formRedirectRoute = route('maids.index');
+        $requireIdFields = true;
+
+        return view(
+            "{$this->folderPath}.create",
+            compact(
+                'nationalities',
+                'offices',
+                'religions',
+                'jobs',
+                'types',
+                'skills',
+                'defaultTypeId',
+                'defaultShelterContract',
+                'defaultIsShow',
+                'isRentalForm',
+                'formRedirectRoute',
+                'requireIdFields'
+            )
+        );
     }
 
     public function store(MaidRequest $request, objAction $action)
@@ -364,7 +400,7 @@ class MaidController extends Controller
         $data = $request->all();
         // logger()->info('Amer', [
         //     'data' => $data,
-        
+
         // ]);
 
         // Set default status in Arabic
@@ -373,7 +409,7 @@ class MaidController extends Controller
         if ($request->ajax()) {
             return jsonSuccess($data);
         }
-        
+
         return response()->json(['code' => 200, 'message' => 'تم إضافة العاملة بنجاح']);
     }
 
@@ -833,15 +869,61 @@ class MaidController extends Controller
 
     private function createAjaxResponse(NationalityAction $act, RecruitmentOfficeAction $officeAction, ReligionAction $relAct, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction, $viewName, $additionalData = [])
     {
+        $extraData = $additionalData;
         $nationalities = $act->getNationalities();
         $religions = $relAct->getReligions();
         $jobs = $jobTitleAction->getJobsTitles();
-        $types = $jobTypesAction->getJobsTypes();
+        $typesSource = $extraData['types'] ?? $jobTypesAction->getJobsTypes();
+
+        if ($viewName === 'create') {
+            [$types, $defaultTypeId] = $this->prepareJobTypesForForm($typesSource);
+
+            if (!isset($extraData['defaultTypeId'])) {
+                $extraData['defaultTypeId'] = $defaultTypeId;
+            }
+        } else {
+            $types = $typesSource;
+        }
         $offices = $officeAction->getAllOffices();
         $skills = app(SkillAction::class)->get();
-        $data = array_merge(compact('nationalities', 'offices', 'religions', 'jobs', 'types', 'skills'), $additionalData);
+
+        unset($extraData['types']);
+
+        $data = array_merge(compact('nationalities', 'offices', 'religions', 'jobs', 'types', 'skills'), $extraData);
         $returnHTML = view("{$this->folderPath}.{$viewName}", $data)->render();
         return jsonSuccess(['html' => $returnHTML]);
+    }
+
+    private function normalizeArabicText(?string $text): string
+    {
+        if ($text === null) {
+            return '';
+        }
+
+        $normalized = mb_strtolower($text, 'UTF-8');
+        $search = ['أ', 'إ', 'آ', 'ى', 'ؤ', 'ئ', 'ة'];
+        $replace = ['ا', 'ا', 'ا', 'ي', 'و', 'ي', 'ه'];
+
+        return trim(str_replace($search, $replace, $normalized));
+    }
+
+    private function prepareJobTypesForForm($types): array
+    {
+        $collection = collect($types);
+
+        $filtered = $collection->filter(function ($type) {
+            $title = $this->normalizeArabicText($type->title ?? '');
+            return !Str::contains($title, ['استلام', 'فوري', 'instant', 'immediate']);
+        })->values();
+
+        $defaultType = $filtered->first(function ($type) {
+            $title = $this->normalizeArabicText($type->title ?? '');
+            return Str::contains($title, ['استقدام', 'recruit']);
+        });
+
+        $defaultTypeId = $defaultType->id ?? ($filtered->first()->id ?? null);
+
+        return [$filtered, $defaultTypeId];
     }
 
     public function applyMaidFilter($request, $rows)
