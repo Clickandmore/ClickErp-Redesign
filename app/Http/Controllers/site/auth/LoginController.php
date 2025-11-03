@@ -5,11 +5,15 @@ namespace App\Http\Controllers\site\auth;
 use App\Http\Actions\site\auth\LoginAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\site\auth\LoginRequest;
+use Illuminate\Support\Facades\Auth;
 
 class LoginController extends Controller
 {
     public function index()
     {
+        if (Auth::guard('web')->check()) {
+            return redirect()->route('site.home.index');
+        }
         return view('site.pages.auth.login');
     }
 
