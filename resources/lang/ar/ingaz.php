@@ -17,6 +17,7 @@
   'skaeeb.SL' => '#',
   'skaeeb.title' => 'الاسم',
   'skaeeb.type' => 'النوع',
+  'what_do' => 'ماذا نقدم',
   'skaeeb.description' => 'الوصف',
   'name' => 'الاسم',
   'email' => 'البريد الإلكتروني',
@@ -1064,7 +1065,7 @@
   'country_image' => 'صورة الدولة',
   'experience more than' => 'خبره اكثر من',
   'contact-us' => 'تواصل معنا',
-  'Statistics' => 'إحصائيات',
+  'Statistics' => 'الإحصائيات',
   'Statistics hint' => 'إليك بعض إحصائيات العملاء الذين تشرفنا بالعمل معهم',
   'request your mid' => 'اطلب عاملتك الآن وسيقوم فريق خدمة العملاء لدينا بالتواصل معك في أقرب وقت ممكن...',
   'Recruitment steps' => 'خطوات الاستقدام',
@@ -1174,7 +1175,7 @@
   'step_create_account' => 'تسجيل حساب جديد',
   'step_verification_note' => 'سوف يتم التحقق من رقم الهوية من خلال (أبشر) خدمات وزارة الداخلية، لذا يجب التأكد من التسجيل بخدمات أبشر مسبقاً وللمزيد من التفاصيل يمكنك زيارة خدمات أبشر موقع وزارة الداخلية',
   'step_basic_info_form' => 'تعبئة نموذج تسجيل المعلومات الأساسية',
-  'basic_info_fields' =>
+  'basic_info_fields' => 
   array (
     'id_number' => 'رقم الهوية الوطنية للمواطنين أو الإقامة للمقيمين',
     'first_last_name' => 'الإسم الأول و اسم العائلة',
@@ -1184,7 +1185,7 @@
   ),
   'activation_code_note' => 'بعد تسجيل المعلومات الأساسية ستصلك رسالة نصية على جوالك تحتوي على رمز تفعيل مساند. أدخل “رمز التفعيل” لتعبئة النموذج لتسجيل حساب في مساند',
   'step_password_info' => 'تأكيد كلمة المرور: إعادة كلمة المرور المختارة',
-  'step_password_mobile_email' =>
+  'step_password_mobile_email' => 
   array (
     'password_confirmation' => 'تأكيد كلمة المرور: إعادة كلمة المرور المختارة',
     'mobile_number_registered' => 'رقم جوال مسجل في أبشر',
@@ -1192,14 +1193,14 @@
   ),
   'password_hint' => 'كلمة المرور: اختر كلمة مرور تحتوي على حروف وأرقام ورموز',
   'requirements_title' => 'قبل البدأ في اصدار التأشيرة يجب التأكد من جاهزية المتطلبات التالية :',
-  'requirements_list' =>
+  'requirements_list' => 
   array (
     'social_insurance' => 'هل أنت مسجل في المؤسسة العامة التأمينات الإجتماعية؟',
     'employment_status' => 'الحالة الوظيفية: حسب الإثبات للمقدرة المالية',
     'financial_proof' => 'نوع إثبات المقدرة المالية: تعريف بالراتب من القطاع الخاص أو الحكومي، أوكشف حساب البنك حسب عدد التأشيرات المسموحة',
   ),
   'payment_step_title' => 'طريقة سداد رسوم التأشيرة عن طريق خدمة سداد',
-  'payment_steps' =>
+  'payment_steps' => 
   array (
     'login_to_bank' => 'الدخول الى موقع او تطبيق البنك او الصراف الالى',
     'choose_payments' => '"اختيار "المدفوعات',
@@ -1214,20 +1215,20 @@
   'payment_note' => 'إصدار الفاتورة لرسوم التأشيرة عن طريق (سداد) ودفع المبلغ خلال يوم واحد ليتم إرسال الطلب',
   'visa_request_title' => 'طلب إصدار التأشيرة',
   'visa_info_step' => 'تعبئة بيانات التأشيرة',
-  'visa_info_fields' =>
+  'visa_info_fields' => 
   array (
     'job_title' => 'المهنة: قم بإختيار المهنة للعمالة المنزلية',
     'nationality' => 'الجنسية: قم بإختيار الجنسية للعمالة المنزلية',
     'arrival_country' => 'جهة القدوم: قم بإختيار جهة القدوم حسب الدولة',
   ),
   'financial_proof_step' => 'إثبات المقدرة المالية',
-  'financial_proof_fields' =>
+  'financial_proof_fields' => 
   array (
     'salary_statement' => 'تعريف الراتب: قم بإدخال القيمة للراتب الشهري من القطاع الخاص أو الحكومي',
     'bank_statement' => 'شهادة بنكية: قم بإدخال القيمة لمتوسط الحساب الشهري من الشهادة البنكية',
   ),
   'upload_documents' => 'رفع الوثائق والمرفقات',
-  0 =>
+  0 => 
   array (
     'financial_proof_doc' => 'إثبات المقدرة المالية',
     'id_or_family_card' => 'صورة سجل الأسرة أو الهوية الوطنية',
@@ -1337,7 +1338,6 @@
   'Selecting a customer service representative' => 'اختيار ممثل خدمة العملاء',
   'To complete the sponsorship transfer application' => 'لإكمال طلب نقل الكفالة',
   'Confirm sponsorship transfer request' => 'تأكيد طلب نقل الكفالة',
-  'Statistics' => 'الإحصائيات',
   'Statistics_text' => 'إليك بعض إحصائيات العملاء الذين تشرفنا بالعمل معهم',
   'Special offer!' => 'عرض خاص!',
   'Take advantage of our new recruitment discounts for a limited time' => 'استفيد من خصومات الاستقدام الجديدة لفترة محدودة.',
@@ -1503,4 +1503,10 @@
   'shelter_attachments' => 'Shelter attachments',
   'display_on_site_hint' => 'Display on site hint',
   'display_on_site' => 'Display on site',
+  'vision' => 'Vision',
+  'items' => 'العناصر',
+  'item_title_placeholder' => 'Item title placeholder',
+  'description_placeholder' => 'Description placeholder',
+  'title_placeholder' => 'Title placeholder',
+  'more_than_20_years_experience' => 'More than 20 years experience',
 );

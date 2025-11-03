@@ -315,7 +315,40 @@
         let parentTr = obj.closest("tr");
         parentTr.remove();
     });
+    function loadJqerySelectors(){
+        $.validate({
+            ignore: 'input[type=hidden]',
+            modules: 'date, security',
+            lang: '{{\App::currentLocale()}}',
+            validateOnEvent: true
+        });
+        if ($('.dropify').length > 0) {
+            $('.dropify').dropify();
+        }
+        if ($('#json_array').length > 0) {
+            $('#json_array').multifield();
+        }
+        if ($('#json_array2').length > 0) {
+            $('#json_array2').multifield();
+        }
+    }
+    function loadOptionsOnAjax() {
+        if ($('.select2').length > 0) {
+            $('.select2').select2({
+                dropdownParent: $('#createModal .modal-body'),
+            });
+        }
+        loadJqerySelectors();
+    }
 
+    function loadOptionsOnAjaxUpModel() {
+        if ($('.select2').length > 0) {
+            $('.select2').select2({
+                dropdownParent: $('#upCreateModal .modal-body'),
+            });
+        }
+        loadJqerySelectors();
+    }
 </script>
 
 
