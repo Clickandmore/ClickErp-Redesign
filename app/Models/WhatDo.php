@@ -13,4 +13,9 @@ class WhatDo extends Model implements TranslatableContract
 
     public $translatedAttributes = ['title', 'description'];
     protected $fillable = ['icon'];
+
+    public function items()
+    {
+        return $this->hasMany(WhatDoItem::class , 'what_do_id');
+    }
 }

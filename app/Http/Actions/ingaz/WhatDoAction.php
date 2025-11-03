@@ -8,7 +8,7 @@ use App\Models\Feature;
 use App\Models\Requirement;
 use App\Models\WhatDo;
 
-class WhartDoAction extends MainAction
+class WhatDoAction extends MainAction
 {
     public function __construct(WhatDo $model)
     {

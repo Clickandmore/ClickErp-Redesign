@@ -827,7 +827,13 @@
                                 </a>
                             </li>
                         @endif
-
+                            <li>
+                                <a class="m-link {{ (Route::currentRouteName() == 'what-do.index') ? 'active' : '' }}"
+                                   href="{{route('what-do.index')}}">
+                                    <i class="fa fa-briefcase"></i>
+                                    <span class="ms-2"> {{ helperTrans('ingaz.what_do') }}</span>
+                                </a>
+                            </li>
                         @if (@AdminGuardHasPerm(\App\PermKeys::STATISTICS_VIEW))
                             <li>
                                 <a class="m-link {{ (Route::currentRouteName() == 'statistics.index') ? 'active' : '' }}"
@@ -915,13 +921,7 @@
                 {{--                @endif--}}
 {{--                @if (@AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW))--}}
 {{--                --}}
-                <li>
-                    <a class="m-link {{ (Route::currentRouteName() == 'what-do.index') ? 'active' : '' }}"
-                       href="{{route('what-do.index')}}">
-                        <i class="fa fa-envelope"></i>
-                        <span class="ms-2"> {{ helperTrans('ingaz.what_do') }}</span>
-                    </a>
-                </li>
+
                 {{--                @endif--}}
                 @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
                     <li>

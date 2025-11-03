@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Enums\ingaz\RequirementEnum;
-use App\Http\Actions\ingaz\WhartDoAction as objAction;
+use App\Http\Actions\ingaz\WhatDoAction as objAction;
+use App\Http\Actions\ingaz\WhatDoItemAction;
 use App\Http\Controllers\Controller;
 use App\Models\WhatDo as objModel;
-use App\Http\Requests\ingaz\FeatureRequest as objRequest;
+use App\Http\Requests\ingaz\WhatDoRequest as objRequest;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -49,8 +50,8 @@ class WhatDoController extends Controller
         }
         $data["createRoute"] = route($this->mainRoute . ".create");
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
-        $data["bladeTitle"] = helperTrans('api.what_do');
-        $data["addButtonText"] = helperTrans('api.what_do');
+        $data["bladeTitle"] = helperTrans('ingaz.what_do');
+        $data["addButtonText"] = helperTrans('ingaz.what_do');
         $data['count'] = objModel::count();
         return view($this->folderPath . '.index', compact('data'));
     }
@@ -66,10 +67,12 @@ class WhatDoController extends Controller
     }
 
 
-    public function store(objRequest $request, objAction $action)
+    public function store(objRequest $request, objAction $action, WhatDoItemAction $whatDoItemAction)
     {
         $data = $request->validated();
-        $data = $action->store($data);
+        unset($data['titles']);
+        $obj = $action->store($data);
+        $whatDoItemAction->storeItems($request->titles, $obj);
         return jsonSuccess($data);
 
     }
@@ -86,10 +89,14 @@ class WhatDoController extends Controller
         }
     }
 
-    public function update(objRequest $request, objAction $action, $id)
+    public function update(objRequest $request, objAction $action, $id, WhatDoItemAction $whatDoItemAction)
     {
         $updatedData = $request->validated();
-        $data = $action->find($id)->update($updatedData);
+        unset($updatedData['titles']);
+        $obj = $action->find($id);
+        $data = $obj->update($updatedData);
+        $obj->items()->delete();
+        $whatDoItemAction->storeItems($request->titles, $obj);
         return jsonSuccess($data);
     }
 

@@ -1,9 +1,9 @@
-<form class="row g-3 from-submit-global" method="post" action="{{route("features.store")}}">
+<form class="row g-3 from-submit-global" method="post" action="{{route("what-do.store")}}">
     @csrf
     <label for="TextInput" class="form-label">
         {{helperTrans("ingaz.icon")}}
     </label>
-    @include('admin.ingaz.statistics.icons')
+    @include('admin.ingaz.what_do.icons')
     @foreach (config('translatable.locales') as $locale)
         <div class="col-6">
             <label for="TextInput" class="form-label">
@@ -43,7 +43,7 @@
             <td></td>
             @foreach (config('translatable.locales') as $locale)
                 <td>
-                    <input type="text" name="titles[{{$locale}}]" class="form-control">
+                    <input type="text" name="titles[0][{{ $locale }}][title]" class="form-control index-plus">
                 </td>
             @endforeach
             <td>
