@@ -400,7 +400,7 @@ main {
     width: min(100% - 24px, 1320px);
     padding: 12px;
     border-radius: 24px;
-    box-shadow: var(--BigShadow);
+    box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.15); 
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
@@ -439,11 +439,11 @@ main {
       }
     }
 
- .services-container {
+.services-container {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  padding: 20px;
+  gap: 25px;
+  padding: 20px 20px;
 
   @media (max-width: 992px) {
     grid-template-columns: repeat(2, 1fr);
@@ -454,107 +454,96 @@ main {
   }
 
   .service-card {
-  background-color: var(--white);
-  border-radius: 15px;
-  padding: 25px;
-  text-align: center;
-  transition: all 0.3s ease;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-  }
-
-  .icon {
-    font-size: 35px;
-    height: 60px;
-    width: 60px;
-    margin-bottom: 15px;
-    padding: 15px;
-    border-radius: 30%;
+    background: #fff;
+    border: 1px solid #eee;
+    border-top: 4px solid var(--mainColor);
+    border-radius: 14px;
+    padding: 30px 25px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-inline: auto; 
+    flex-direction: column;
+    justify-content: flex-start;
+    position: relative;
+    overflow: hidden;
 
-      &.orange {
-        background-color: #ffe7d3;
-        color: #ff8c00;
-      }
-      &.blue {
+    &:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 15px;
+
+      .icon {
+        width: 55px;
+        height: 55px;
+        border-radius: 50%;
         background-color: var(--mainColor10);
         color: var(--mainColor);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        flex-shrink: 0;
+        transition: all 0.3s ease;
+
+        i {
+          transition: transform 0.3s ease;
+        }
       }
-      &.purple {
-        background-color: #ead3ff;
-        color: #7b2cbf;
-      }
-      &.green {
-        background-color: #d3ffd8;
-        color: #28a745;
+
+      h4 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #222;
+        margin: 0;
       }
     }
 
-    h4 {
-      font-size: 18px;
-      margin-bottom: 10px;
-      font-weight: bold;
+    &:hover .icon i {
+      transform: scale(1.1);
     }
 
     p {
       font-size: 14px;
-      color: #666;
-      margin-bottom: 10px;
-      min-height: 40px;
+      color: #555;
+      line-height: 1.7;
+      margin: 10px 0 20px;
+      flex-grow: 1;
+      min-height: 45px;
     }
 
     ul {
-      padding: 0;
       list-style: none;
-      text-align: right;
+      padding: 0;
+      margin: 0;
+      border-top: 1px solid #eee;
+      padding-top: 15px;
 
       li {
-        font-size: 13px;
-        color: #444;
-        margin-bottom: 8px;
+        font-size: 13.5px;
+        color: #333;
+        margin-bottom: 10px;
         display: flex;
         align-items: center;
-        justify-content: flex-start;
         gap: 8px;
 
         &::before {
-          content: "✔";
-          font-size: 11px;
-          font-weight: bold;
-          color: #fff;
-          display: inline-flex;
-          justify-content: center;
-          align-items: center;
-          width: 18px;
-          height: 18px;
+          content: "";
+          width: 6px;
+          height: 6px;
+          background-color: var(--mainColor);
           border-radius: 50%;
+          display: inline-block;
         }
       }
     }
 
-    &.orange ul li::before {
-      background-color: #ff8c00;
-    }
-    &.blue ul li::before {
-      background-color: var(--mainColor);
-    }
-    &.purple ul li::before {
-      background-color: #7b2cbf;
-    }
-    &.green ul li::before {
-      background-color: #28a745;
-    }
+   
   }
 }
 
