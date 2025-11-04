@@ -1009,8 +1009,8 @@ main .hero-services .expertise::after {
 main .hero-services .services-container {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  padding: 20px;
+  gap: 25px;
+  padding: 40px 20px;
 }
 @media (max-width: 992px) {
   main .hero-services .services-container {
@@ -1023,98 +1023,84 @@ main .hero-services .services-container {
   }
 }
 main .hero-services .services-container .service-card {
-  background-color: var(--white);
-  border-radius: 15px;
-  padding: 25px;
-  text-align: center;
+  background: #fff;
+  border: 1px solid #eee;
+  border-top: 4px solid var(--mainColor);
+  border-radius: 14px;
+  padding: 30px 25px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
   transition: all 0.3s ease;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
+  justify-content: flex-start;
+  position: relative;
+  overflow: hidden;
 }
 main .hero-services .services-container .service-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  transform: translateY(-6px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
 }
-main .hero-services .services-container .service-card .icon {
-  font-size: 35px;
-  height: 60px;
-  width: 60px;
-  margin-bottom: 15px;
-  padding: 15px;
-  border-radius: 30%;
+main .hero-services .services-container .service-card .header {
   display: flex;
-  justify-content: center;
   align-items: center;
-  margin-inline: auto;
+  gap: 15px;
+  margin-bottom: 15px;
 }
-main .hero-services .services-container .service-card .icon.orange {
-  background-color: #ffe7d3;
-  color: #ff8c00;
-}
-main .hero-services .services-container .service-card .icon.blue {
+main .hero-services .services-container .service-card .header .icon {
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
   background-color: var(--mainColor10);
   color: var(--mainColor);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
 }
-main .hero-services .services-container .service-card .icon.purple {
-  background-color: #ead3ff;
-  color: #7b2cbf;
+main .hero-services .services-container .service-card .header .icon i {
+  transition: transform 0.3s ease;
 }
-main .hero-services .services-container .service-card .icon.green {
-  background-color: #d3ffd8;
-  color: #28a745;
-}
-main .hero-services .services-container .service-card h4 {
+main .hero-services .services-container .service-card .header h4 {
   font-size: 18px;
-  margin-bottom: 10px;
-  font-weight: bold;
+  font-weight: 700;
+  color: #222;
+  margin: 0;
+}
+main .hero-services .services-container .service-card:hover .icon i {
+  transform: scale(1.1);
 }
 main .hero-services .services-container .service-card p {
   font-size: 14px;
-  color: #666;
-  margin-bottom: 10px;
-  min-height: 40px;
+  color: #555;
+  line-height: 1.7;
+  margin: 10px 0 20px;
+  flex-grow: 1;
+  min-height: 45px;
 }
 main .hero-services .services-container .service-card ul {
-  padding: 0;
   list-style: none;
-  text-align: right;
+  padding: 0;
+  margin: 0;
+  border-top: 1px solid #eee;
+  padding-top: 15px;
 }
 main .hero-services .services-container .service-card ul li {
-  font-size: 13px;
-  color: #444;
-  margin-bottom: 8px;
+  font-size: 13.5px;
+  color: #333;
+  margin-bottom: 10px;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
   gap: 8px;
 }
 main .hero-services .services-container .service-card ul li::before {
-  content: "✔";
-  font-size: 11px;
-  font-weight: bold;
-  color: #fff;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-}
-main .hero-services .services-container .service-card.orange ul li::before {
-  background-color: #ff8c00;
-}
-main .hero-services .services-container .service-card.blue ul li::before {
+  content: "";
+  width: 6px;
+  height: 6px;
   background-color: var(--mainColor);
-}
-main .hero-services .services-container .service-card.purple ul li::before {
-  background-color: #7b2cbf;
-}
-main .hero-services .services-container .service-card.green ul li::before {
-  background-color: #28a745;
+  border-radius: 50%;
+  display: inline-block;
 }
 main .hero-services .warning {
   width: 100%;
@@ -1345,114 +1331,178 @@ main .countries {
   position: relative;
   overflow: hidden;
 }
-main .countries .country-card {
-  background: linear-gradient(180deg, #ffffff, #f8f9ff);
-  border-radius: 20px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  text-align: center;
-  padding: 25px 18px;
-  overflow: hidden;
+main .countries .headTitle {
+  margin-bottom: 50px;
+}
+main .countries .headTitle h2 {
+  font-weight: 800;
+  font-size: 2rem;
+  color: #222;
+}
+main .countries .headTitle p {
+  color: #777;
+  font-size: 1rem;
+}
+main .countries .modern-card {
   position: relative;
-  margin-top: 25px;
-  border: 1px solid #eee;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  text-align: center;
+  transition: all 0.3s ease;
 }
-main .countries .country-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
-  border-color: var(--mainColor);
+main .countries .modern-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.1);
 }
-main .countries .country-card .flag-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 14px;
+main .countries .modern-card .flag-side {
+  position: relative;
+  padding-top: 40px;
 }
-main .countries .country-card .flag-container img {
-  width: 90px;
-  height: 90px;
+main .countries .modern-card .flag-side .flag-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 120px;
+  background: linear-gradient(135deg, var(--mainColor), #00B8DE);
+  clip-path: polygon(0 0, 100% 0, 100% 65%, 50% 100%, 0 65%);
+  z-index: 0;
+}
+main .countries .modern-card .flag-side .flag-wrapper {
+  position: relative;
+  z-index: 2;
+  display: inline-block;
+  margin-top: 10px;
+}
+main .countries .modern-card .flag-side .flag-wrapper .flag-img {
+  width: 95px;
+  height: 95px;
   border-radius: 50%;
+  border: 4px solid #fff;
   -o-object-fit: cover;
      object-fit: cover;
-  border: 4px solid #fff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+  position: relative;
+  z-index: 3;
 }
-main .countries .country-card .flag-container img:hover {
-  transform: scale(1.08);
+main .countries .modern-card .flag-side .flag-wrapper .pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 110px;
+  height: 110px;
+  background: rgba(59, 130, 246, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  animation: pulse 2s infinite;
 }
-main .countries .country-card .country-content h3 {
+main .countries .modern-card .flag-side .country-name {
+  position: relative;
+  z-index: 2;
+  margin-top: 15px;
+  font-size: 1.4rem;
   font-weight: 700;
-  color: var(--black);
-  font-size: 1.25rem;
-  margin-bottom: 6px;
+  color: #222;
 }
-main .countries .country-card .country-content p {
-  color: #666;
-  font-size: 0.9rem;
-  margin-bottom: 16px;
+@keyframes pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
+  }
+  70% {
+    transform: translate(-50%, -50%) scale(1.3);
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
 }
-main .countries .country-card .country-content .country-costs {
-  list-style: none;
-  padding: 0;
-  margin: 0 auto 18px;
-  text-align: start;
-  background: #f9f9fb;
-  border-radius: 10px;
-  padding: 10px 14px;
+main .countries .modern-card .cost-highlight {
+  margin: 25px auto 15px;
+  position: relative;
+  z-index: 2;
+  background: #f7f8fc;
+  border-radius: 14px;
+  padding: 18px 15px;
+  width: 85%;
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
 }
-main .countries .country-card .country-content .country-costs li {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  border-bottom: 1px dashed #ddd;
+main .countries .modern-card .cost-highlight .label {
+  display: block;
   font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 5px;
 }
-main .countries .country-card .country-content .country-costs li:last-child {
-  border-bottom: none;
-}
-main .countries .country-card .country-content .country-costs li span {
-  color: #444;
-}
-main .countries .country-card .country-content .country-costs li strong {
+main .countries .modern-card .cost-highlight .price {
+  font-size: 2rem;
+  font-weight: 800;
   color: var(--mainColor);
-  font-weight: 700;
+  text-decoration: underline;
 }
-main .countries .country-card .country-content .animatedLink {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--white);
+main .countries .modern-card .cost-highlight .price small {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-inline-start: 5px;
+}
+main .countries .modern-card .info-side {
+  position: relative;
+  z-index: 2;
+  padding: 0 25px 25px;
+}
+main .countries .modern-card .info-side .info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-bottom: 20px;
+}
+main .countries .modern-card .info-side .info-grid .info-card {
+  background: #f9f9fb;
+  border-radius: 12px;
+  padding: 14px 10px;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+  text-align: center;
+}
+main .countries .modern-card .info-side .info-grid .info-card i {
+  color: var(--mainColor);
+  font-size: 1.3rem;
+  margin-bottom: 4px;
+}
+main .countries .modern-card .info-side .info-grid .info-card h5 {
+  font-size: 0.9rem;
+  color: #333;
+  margin: 4px 0;
+}
+main .countries .modern-card .info-side .info-grid .info-card p {
+  font-size: 0.9rem;
+  color: #555;
+  margin: 0;
+}
+main .countries .modern-card .info-side .info-grid .info-card:hover {
+  transform: translateY(-3px);
+  background: #eef3ff;
+}
+main .countries .modern-card .info-side .modern-btn {
   background: var(--mainColor);
+  color: #fff;
   padding: 8px 18px;
-  border-radius: 25px;
+  border-radius: 30px;
   font-size: 0.9rem;
   font-weight: 600;
   text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   transition: all 0.3s ease;
 }
-main .countries .country-card .country-content .animatedLink i {
-  margin-right: 6px;
-  transition: transform 0.3s;
-}
-main .countries .country-card .country-content .animatedLink:hover {
-  background: #004aad;
+main .countries .modern-card .info-side .modern-btn:hover {
   transform: translateY(-2px);
 }
-main .countries .country-card .country-content .animatedLink:hover i {
+main .countries .modern-card .info-side .modern-btn:hover i {
   transform: translateX(-4px);
-}
-@media (max-width: 768px) {
-  main .countries {
-    padding: 50px 0;
-  }
-  main .countries .country-card {
-    padding: 20px;
-  }
-  main .countries .country-content h3 {
-    font-size: 1.1rem;
-  }
 }
 main .why-choose-us {
   padding: 50px 0;
