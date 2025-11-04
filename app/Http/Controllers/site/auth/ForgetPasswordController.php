@@ -17,6 +17,7 @@ class ForgetPasswordController extends Controller
     public function store(ForgetPasswordRequest $request, PhoneVerificationAction $phoneVerificationAction)
     {
         $data = $request->validated();
+        unset($data['g-recaptcha-response']);
         $phoneVerificationAction->storeSendCode($data, $request);
         $encryptedPhone = Crypt::encryptString($data['phone']);
         return jsonSuccess(['redirect_url' => route('site.otp.index', ['phone' => $encryptedPhone])], __("ingaz.code_send_successfully"));
