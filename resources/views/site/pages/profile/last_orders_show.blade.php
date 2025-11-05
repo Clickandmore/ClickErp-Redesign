@@ -1577,15 +1577,24 @@
                     <div class="col-lg-10 col-12 p-2">
                         <div class="cv">
                             <div class="cv_details">
-                                <div class="img">
+                                <div class="img text-center">
+                                    @if(isset($order->maid->cv_file) && !empty($order->maid->cv_file))
+                                        <div class="d-flex justify-content-center gap-2">
+                                            {{-- 🔹 زر المشاهدة --}}
+                                            <a href="{{ showFile($order->maid->cv_file) }}" target="_blank" class="btn btn-sm btn-primary">
+                                                <i class="fa-regular fa-eye me-1"></i> {{ __('مشاهدة السيرة') }}
+                                            </a>
 
-                                    <a href="#" class="maidViewData" data-id="{{ @$order->maid->id }}">
-                                        {{-- <a href="{{showFile($order->maid->cv_file)}}" data-fancybox="w1"> --}}
-                                        <img src="{{ showFile($order->maid->cv_file) }}" alt="cv1">
-                                        {{-- </a> --}}
-                                    </a>
-
+                                            {{-- 🔹 زر التحميل --}}
+                                            <a href="{{ showFile($order->maid->cv_file) }}" download class="btn btn-sm btn-success">
+                                                <i class="fa-solid fa-download me-1"></i> {{ __('تحميل السيرة') }}
+                                            </a>
+                                        </div>
+                                    @else
+                                        <p class="text-muted mt-2">{{ __('لا توجد سيرة ذاتية مرفقة') }}</p>
+                                    @endif
                                 </div>
+
                                 <div class="info">
                                     <ul>
                                         <li>

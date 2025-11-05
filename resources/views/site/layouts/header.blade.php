@@ -35,7 +35,7 @@
                             </li>
                             <li>
                                 <a class="dropdown-item"
-                                   href="{{route('site.all-workers.index') }}?type=estqdam"> {{__("ingaz.Labor_transfer_services")}}
+                                   href="{{route('site.all-workers.index') }}?type=transfer"> {{__("ingaz.Labor_transfer_services")}}
                                 </a>
                             </li>
                             <li>

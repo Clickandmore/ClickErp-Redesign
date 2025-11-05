@@ -18,3 +18,5 @@
 <link rel="stylesheet" href="{{asset('admin')}}/assets/vendor/toster/css/jquery.toast.css">
 <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 <link rel="stylesheet" href="{{asset('site')}}/assets/css/back_style.css?v=-{{time()}}"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>

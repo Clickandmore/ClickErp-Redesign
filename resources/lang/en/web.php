@@ -322,5 +322,7 @@ return [
     'view_my_contracts' => 'View my contracts',
     'phone_validation_text' => 'The phone number must be 9 digits long and begin with the number 5.',
     'account_is_blocked' => 'Your account has been blocked, please contact support.',
+    'no_data_found' => 'No data is currently available.',
+    'there_are_order_in_prograss' => 'You have a previous request for this maid that is currently being processed.',
 
 ];

@@ -364,7 +364,7 @@ class MaidController extends Controller
         $data = $request->all();
         // logger()->info('Amer', [
         //     'data' => $data,
-        
+
         // ]);
 
         // Set default status in Arabic
@@ -373,7 +373,7 @@ class MaidController extends Controller
         if ($request->ajax()) {
             return jsonSuccess($data);
         }
-        
+
         return response()->json(['code' => 200, 'message' => 'تم إضافة العاملة بنجاح']);
     }
 
@@ -531,7 +531,6 @@ class MaidController extends Controller
     public function update_cv(Request $request, objAction $action, $id)
     {
         $data = $request->only($this->postData);
-
         $data = $action->updateMaid($id, $data, $request);
         return jsonSuccess($data);
     }
