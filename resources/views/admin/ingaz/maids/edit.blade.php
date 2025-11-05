@@ -233,6 +233,8 @@
                                 متزوج
                             </option>
                         </select>
+                        <input type="hidden" name="marital_status:en" id="marital_status_en"
+                               value="{{ optional($obj->translate('en'))->marital_status }}">
                     </div>
 
                     <!-- رقم الجواز ورقم الهوية وتاريخ انتهاء الهوية -->
@@ -722,6 +724,23 @@
             $('#experience_status').on('change', window.toggleExperienceSection);
             window.toggleExperienceSection();
 
+            var maritalStatusEnField = $('#marital_status_en');
+            var maritalStatusTranslations = {
+                'عازبة': 'single',
+                'أعزب': 'single',
+                'متزوجة': 'married',
+                'متزوج': 'married'
+            };
+
+            function updateMaritalStatusTranslation() {
+                var selectedStatus = $('select[name="marital_status:ar"]').val();
+                if (selectedStatus && maritalStatusTranslations[selectedStatus]) {
+                    maritalStatusEnField.val(maritalStatusTranslations[selectedStatus]);
+                } else {
+                    maritalStatusEnField.val('');
+                }
+            }
+
             // Function to handle fields visibility based on job type
             function toggleFields() {
                 var selectedType = $('select[name="type_id"] option:selected').text();
@@ -737,6 +756,7 @@
                 var languagesField = $('.col-12:has(label:contains("اللغات"))');
                 var priceLabel = $('.price-label');
                 var shelterOption = $('#shelter_option');
+                var shouldUpdateMaritalTranslation = true;
 
                 // Reset all fields to default state
                 idFields.show();
@@ -769,6 +789,8 @@
                     maritalStatusField.hide();
                     officeField.hide();
                     priceLabel.text('تكلفة نقل الخدمات');
+                    maritalStatusEnField.val('');
+                    shouldUpdateMaritalTranslation = false;
 
                     // Remove required attribute from hidden fields
                     $('input[name="id_number"], input[name="id_expiry_date"]').removeAttr('required');
@@ -797,6 +819,8 @@
 
                     // Show shelter option for rental maids
                     shelterOption.show();
+                    maritalStatusEnField.val('');
+                    shouldUpdateMaritalTranslation = false;
 
                     // Remove required attribute from hidden fields
                     $('input[name="height"], input[name="weight"]').removeAttr('required');
@@ -814,16 +838,23 @@
                         }
                     }
                 }
+
+                if (shouldUpdateMaritalTranslation) {
+                    updateMaritalStatusTranslation();
+                }
             }
 
             // Call on page load
             toggleFields();
+            updateMaritalStatusTranslation();
 
             // Call when type changes
             $('select[name="type_id"]').change(function () {
                 console.log('Type changed');
                 toggleFields();
             });
+
+            $('select[name="marital_status:ar"]').on('change', updateMaritalStatusTranslation);
 
             // التحقق من رقم الهوية
             $('#id_number').on('input', function () {

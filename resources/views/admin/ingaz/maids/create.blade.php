@@ -75,7 +75,7 @@
                             <option value="1" {{ $defaultShelterContract === '1' ? 'selected' : '' }}>نعم - تسكين
                                 للإيواء</option>
                         </select>
-                        <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم شركة أسس الانجاز</small>
+                        <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم شركة بلاتنيوم الشرقية</small>
                     </div>
 
                     <!-- الجنسية -->
@@ -116,11 +116,13 @@
                     <div class="col-4">
                         <label for="request_type" class="form-label">{{ helperTrans('ingaz.request_type') }}</label>
                         <select name="request_type" id="request_type" class="form-control">
-                            <option value="known" {{ old('request_type', 'known') === 'known' ? 'selected' : '' }}>
+                            <option value="known" {{ old('request_type', 'custom_spec') === 'known' ? 'selected' : '' }}>
                                 {{ helperTrans('ingaz.request_type_known') }}</option>
-                            <option value="specific" {{ old('request_type') === 'specific' ? 'selected' : '' }}>
+                            <option value="specific"
+                                {{ old('request_type', 'custom_spec') === 'specific' ? 'selected' : '' }}>
                                 {{ helperTrans('ingaz.request_type_specific') }}</option>
-                            <option value="custom_spec" {{ old('request_type') === 'custom_spec' ? 'selected' : '' }}>
+                            <option value="custom_spec"
+                                {{ old('request_type', 'custom_spec') === 'custom_spec' ? 'selected' : '' }}>
                                 {{ helperTrans('ingaz.request_type_custom') }}</option>
                         </select>
                     </div>
@@ -232,12 +234,7 @@
                         <input type="text" name="duration" class="form-control"
                             value="{{ old('duration', '24 شهر') }}">
                     </div>
-                    <div class="col-4">
-                        <label for="TextInput" class="form-label">
-                            {{ helperTrans('ingaz.additional_notes') }}
-                        </label>
-                        <textarea type="text" name="additional_notes" class="form-control"></textarea>
-                    </div>
+
                     <div class="col-4">
                         <label for="TextInput" class="form-label">{{ helperTrans('ingaz.marital status') }} </label>
                         <select name="marital_status:ar" class="form-control" required>
@@ -246,6 +243,7 @@
                             <option value="متزوجة">متزوجة</option>
                             <option value="متزوج">متزوج</option>
                         </select>
+                        <input type="hidden" name="marital_status:en" id="marital_status_en" value="">
                     </div>
 
                     <!-- رقم الجواز ورقم الهوية وتاريخ انتهاء الهوية -->
@@ -284,11 +282,6 @@
                         </select>
                     </div>
                     <div class="col-4">
-                        <label for="TextInput" class="form-label">رابط الفيديو <small
-                                class="text-muted">(اختياري)</small></label>
-                        <input type="url" name="video_link" class="form-control" placeholder="https://...">
-                    </div>
-                    <div class="col-4">
                         <label for="experience_status" class="form-label">
                             حالة الخبرة <small class="text-muted">(مطلوب)</small>
                         </label>
@@ -298,7 +291,18 @@
                             <option value="no_experience">لم يسبق لها العمل</option>
                         </select>
                     </div>
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">رابط الفيديو <small
+                                class="text-muted">(اختياري)</small></label>
+                        <input type="url" name="video_link" class="form-control" placeholder="https://...">
+                    </div>
 
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{ helperTrans('ingaz.additional_notes') }}
+                        </label>
+                        <textarea type="text" name="additional_notes" class="form-control"></textarea>
+                    </div>
                     <!-- اللغات والحالة الاجتماعية -->
                     <div class="col-12">
                         <label for="TextInput" class="form-label">
@@ -613,13 +617,37 @@
             window.initExperienceSelects();
             window.attachExperienceHandlers();
 
+            var maritalStatusEnField = $('#marital_status_en');
+            var maritalStatusTranslations = {
+                'عازبة': 'single',
+                'أعزب': 'single',
+                'متزوجة': 'married',
+                'متزوج': 'married'
+            };
+
+            function updateMaritalStatusTranslation() {
+                var selectedStatus = $('select[name="marital_status:ar"]').val();
+                if (selectedStatus && maritalStatusTranslations[selectedStatus]) {
+                    maritalStatusEnField.val(maritalStatusTranslations[selectedStatus]);
+                } else {
+                    maritalStatusEnField.val('');
+                }
+            }
+
             // Function to handle fields visibility based on job type
             // هذه الدالة تتحكم في إظهار/إخفاء الحقول بناءً على نوع السيرة المختار
             // استقدام: عاملة جديدة من الخارج
             // إستلام فورى: نقل عمالة موجودة من موقع إلى آخر
             // ايجار عمالة: تأجير عمالة لفترة محددة
             function toggleFields() {
-                var selectedType = $('select[name="type_id"] option:selected').text();
+                var selectedTypeOriginal = $('select[name="type_id"] option:selected').text() || '';
+                var selectedType = selectedTypeOriginal.trim();
+                var normalizedArabicType = selectedType
+                    .replace(/[إأآ]/g, 'ا')
+                    .replace(/\u0649/g, 'ي')
+                    .replace(/\s+/g, ' ');
+                var normalizedArabicLower = normalizedArabicType.toLowerCase();
+                var selectedTypeLower = selectedType.toLowerCase();
                 console.log('Selected type:', selectedType);
 
                 // Get all fields that need to be toggled
@@ -631,6 +659,7 @@
                 var jobField = $('select[name="job_id[]"]').closest('.col-4');
                 var languagesField = $('.col-12:has(label:contains("اللغات"))');
                 var priceLabel = $('.price-label');
+                var shouldUpdateMaritalTranslation = true;
 
                 // Reset all fields to default state
                 idFields.show();
@@ -652,11 +681,14 @@
                 $('#price').val('0');
 
                 // Handle specific cases
-                if (selectedType === 'استقدام') {
-                    // Hide ID fields for استقدام
+                if (
+                    normalizedArabicLower.includes('استقدام') ||
+                    selectedTypeLower.includes('recruit')
+                ) {
+                    // Hide ID fields for recruitment flows
                     idFields.hide();
                     $('input[name="id_number"], input[name="id_expiry_date"]').removeAttr('required');
-                } else if (selectedType === 'إستلام فورى') {
+                } else if (normalizedArabicLower === 'استلام فوري') {
                     console.log('Hiding fields for إستلام فورى');
                     // إستلام فورى: خدمة نقل العمالة من موقع إلى آخر بدون استقدام جديد
                     // يتم إخفاء الحقول غير المطلوبة لهذا النوع من الخدمة
@@ -665,6 +697,8 @@
                     maritalStatusField.hide();
                     officeField.hide();
                     priceLabel.text('تكلفة نقل الخدمات');
+                    maritalStatusEnField.val('');
+                    shouldUpdateMaritalTranslation = false;
 
                     // Remove required attribute from hidden fields
                     $('input[name="id_number"], input[name="id_expiry_date"]').removeAttr('required');
@@ -680,7 +714,11 @@
                             $('#price').val(serviceTransferCost);
                         }
                     }
-                } else if (selectedType.trim() === 'ايجار عمالة' || selectedType.trim() === 'تأجير') {
+                } else if (
+                    normalizedArabicLower.includes('ايجار') ||
+                    normalizedArabicLower.includes('تاجير') ||
+                    selectedTypeLower.includes('rent')
+                ) {
                     console.log('Hiding fields for ايجار/تأجير');
                     // Hide fields for ايجار
                     heightWeightFields.hide();
@@ -688,15 +726,15 @@
                     salaryField.hide();
                     officeField.hide();
                     languagesField.hide();
-                    idFields.hide();
                     priceLabel.text('تكلفه الايجار الشهري');
+                    maritalStatusEnField.val('');
+                    shouldUpdateMaritalTranslation = false;
 
                     // Remove required attribute from hidden fields
                     $('input[name="height"], input[name="weight"]').removeAttr('required');
                     $('select[name="marital_status:ar"]').removeAttr('required');
                     $('input[name="salary"]').removeAttr('required');
                     $('select[name="office_id"]').removeAttr('required');
-                    $('input[name="id_number"], input[name="id_expiry_date"]').removeAttr('required');
 
                     // Set rental cost from nationality if selected
                     var selectedNationality = $('#Pnationality_id option:selected');
@@ -707,10 +745,15 @@
                         }
                     }
                 }
+
+                if (shouldUpdateMaritalTranslation) {
+                    updateMaritalStatusTranslation();
+                }
             }
 
             // Call on page load
             toggleFields();
+            updateMaritalStatusTranslation();
 
             // Call when type changes
             $('select[name="type_id"]').change(function() {
@@ -718,6 +761,8 @@
                 toggleFields();
                 toggleShelterOption();
             });
+
+            $('select[name="marital_status:ar"]').on('change', updateMaritalStatusTranslation);
 
             // Function to show/hide shelter option based on type
             function toggleShelterOption() {

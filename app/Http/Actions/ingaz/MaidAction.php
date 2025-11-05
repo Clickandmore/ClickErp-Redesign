@@ -249,11 +249,11 @@ class MaidAction extends MainAction
             'is_show' => $data['is_show'],
             'name' => $data['name'],
             'request_type' => $data['request_type'],
-            'offer_price' => $data['offer_price'],
-            'offer_duration' => $data['offer_duration'],
-            'offer_description' => $data['offer_description'],
-            'offer_starts_at' => $data['offer_starts_at'],
-            'offer_expires_at' => $data['offer_expires_at']
+            'offer_price' => $data['offer_price'] ?? null,
+            'offer_duration' => $data['offer_duration'] ?? null,
+            'offer_description' => $data['offer_description'] ?? null,
+            'offer_starts_at' => $data['offer_starts_at'] ?? null,
+            'offer_expires_at' => $data['offer_expires_at'] ?? null
         ];
 
         \Log::info('Final create data:', $createData);
