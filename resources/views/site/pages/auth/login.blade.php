@@ -46,7 +46,7 @@
                         </div>
                         {{__("ingaz.password")}}
                     </label>
-                    <input type="password"   autocomplete="off" class="form-control" id="password" name="password"/>
+                    <input type="password"   autocomplete="new-password" class="form-control" id="password" name="password"/>
                 </div>
                 <a href="{{route('site.forget-password.index')}}">  {{__("ingaz.password_forget")}}  </a>
                 {!! NoCaptcha::renderJs(app()->getLocale()) !!}
