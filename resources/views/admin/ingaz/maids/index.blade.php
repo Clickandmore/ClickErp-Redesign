@@ -209,15 +209,6 @@
                             </select>
                         </div>
                         <div class="col-xl-2 col-lg-3 col-md-4">
-                            <label class="form-label">{{ helperTrans('ingaz.maid_office_filter') }}</label>
-                            <select id="filter-office" class="form-select filter-trigger">
-                                <option value="">{{ helperTrans('ingaz.all') }}</option>
-                                @foreach($filters['offices'] as $office)
-                                    <option value="{{ $office->id }}">{{ $office->title ?? ($office->translations->first()->title ?? '-') }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-xl-2 col-lg-3 col-md-4">
                             <label class="form-label">{{ helperTrans('ingaz.maid_visibility_filter') }}</label>
                             <select id="filter-visibility" class="form-select filter-trigger">
                                 <option value="">{{ helperTrans('ingaz.all') }}</option>
@@ -275,6 +266,57 @@
                 </div>
             </div>
         </div>
+
+        <div class="modal fade" id="maidOfferModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="maidOfferModalLabel">{{ helperTrans('ingaz.manage_offer') }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="maidOfferForm">
+                        @csrf
+                        <div class="modal-body">
+                            <p class="text-muted small mb-3" id="maidOfferSubtitle"></p>
+                            <div id="offerFormErrors" class="alert alert-danger d-none"></div>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label for="offerPriceInput" class="form-label">{{ helperTrans('ingaz.offer_price_new') }}</label>
+                                    <input type="number" step="0.01" min="0" class="form-control" name="offer_price" id="offerPriceInput" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="offerStartsInput" class="form-label">{{ helperTrans('ingaz.offer_starts_at') }}</label>
+                                    <input type="date" class="form-control" name="offer_starts_at" id="offerStartsInput">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="offerExpiresInput" class="form-label">{{ helperTrans('ingaz.offer_expires_at') }}</label>
+                                    <input type="date" class="form-control" name="offer_expires_at" id="offerExpiresInput">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">{{ helperTrans('ingaz.offer_duration') }}</label>
+                                    <div class="form-control-plaintext px-3 py-2 bg-light border rounded text-muted" id="offerDurationPreview">{{ helperTrans('ingaz.not_specified') }}</div>
+                                </div>
+                                <div class="col-12">
+                                    <label for="offerDescriptionInput" class="form-label">{{ helperTrans('ingaz.offer_description') }}</label>
+                                    <textarea class="form-control" name="offer_description" id="offerDescriptionInput" rows="3" placeholder="{{ helperTrans('ingaz.offer_description_placeholder') }}"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer flex-wrap gap-2">
+                            <button type="button" class="btn btn-outline-danger me-auto d-none" id="removeOfferButton">
+                                <i class="fas fa-trash-alt me-1"></i>{{ helperTrans('ingaz.remove_offer') }}
+                            </button>
+                            <div class="d-flex gap-2 ms-auto">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ helperTrans('ingaz.cancel') }}</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i>{{ helperTrans('ingaz.save') }}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 @else
     @include('components.no_permissions')
@@ -296,7 +338,6 @@
                     d.status = $('#filter-status').val();
                     d.job_type_id = $('#filter-job-type').val();
                     d.nationality_id = $('#filter-nationality').val();
-                    d.office_id = $('#filter-office').val();
                     d.visibility = $('#filter-visibility').val();
                     d.pinned = $('#filter-pinned').val();
                     d.date_from = $('#filter-date-from').val();
@@ -315,6 +356,215 @@
             language: {
                 url: "{{ asset('admin/assets/js/datatable-ar.json') }}"
             }
+        });
+
+        const offerModalEl = document.getElementById('maidOfferModal');
+        const offerModal = offerModalEl ? new bootstrap.Modal(offerModalEl) : null;
+        const offerForm = $('#maidOfferForm');
+        const offerErrors = $('#offerFormErrors');
+        const offerSubtitle = $('#maidOfferSubtitle');
+        const removeOfferBtn = $('#removeOfferButton');
+        const offerDurationPreview = $('#offerDurationPreview');
+        const offerRouteTemplate = "{{ route('maids.offer', ['id' => 'MAID_ID']) }}";
+        const offerSubtitleTemplate = "{{ helperTrans('ingaz.offer_for_maid') }}";
+        const csrfToken = $('meta[name=\"csrf-token\"]').attr('content');
+        const daysLabel = "{{ helperTrans('ingaz.days') }}";
+        const notSpecifiedLabel = "{{ helperTrans('ingaz.not_specified') }}";
+
+        const resetOfferErrors = () => {
+            offerErrors.addClass('d-none').empty();
+        };
+
+        const computeDurationLabel = (start, end, fallback = '') => {
+            if (start && end) {
+                const startDate = new Date(start);
+                const endDate = new Date(end);
+                if (!Number.isNaN(startDate.getTime()) && !Number.isNaN(endDate.getTime()) && endDate >= startDate) {
+                    const diffMs = endDate - startDate;
+                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+                    if (diffDays > 0) {
+                        return diffDays + ' ' + daysLabel;
+                    }
+                }
+            }
+            if (fallback) {
+                const trimmed = String(fallback).trim();
+                if (/^\d+$/.test(trimmed)) {
+                    return trimmed + ' ' + daysLabel;
+                }
+                return trimmed;
+            }
+            return '';
+        };
+
+        const refreshDurationPreview = () => {
+            const startVal = $('#offerStartsInput').val();
+            const endVal = $('#offerExpiresInput').val();
+            const stored = offerForm.data('initialDuration') || '';
+            const label = computeDurationLabel(startVal, endVal, stored);
+            offerDurationPreview.text(label || notSpecifiedLabel);
+        };
+
+        $('#offerStartsInput, #offerExpiresInput').on('change', refreshDurationPreview);
+
+        $(document).on('click', '.manage-offer', function (e) {
+            e.preventDefault();
+            if (!offerModal) {
+                return;
+            }
+
+            const btn = $(this);
+            const maidId = btn.data('id');
+            const maidName = btn.data('name') || '';
+            const offerPrice = btn.data('offerPrice');
+            const offerDuration = btn.data('offerDuration') || '';
+            const offerDescription = btn.data('offerDescription') || '';
+            const offerStart = btn.data('offerStart') || '';
+            const offerExpire = btn.data('offerExpire') || '';
+
+            offerForm[0].reset();
+            offerForm.data('maidId', maidId);
+            offerForm.data('initialDuration', offerDuration ? String(offerDuration) : '');
+            resetOfferErrors();
+
+            if (maidName) {
+                offerSubtitle.text(offerSubtitleTemplate.replace(':name', maidName));
+            } else {
+                offerSubtitle.text('');
+            }
+
+            if (offerPrice !== undefined && offerPrice !== null && offerPrice !== '') {
+                $('#offerPriceInput').val(offerPrice);
+            } else {
+                $('#offerPriceInput').val('');
+            }
+
+            $('#offerDescriptionInput').val(offerDescription);
+            $('#offerStartsInput').val(offerStart);
+            $('#offerExpiresInput').val(offerExpire);
+            refreshDurationPreview();
+
+            const hasExistingOffer = offerPrice !== undefined && offerPrice !== null && offerPrice !== '';
+            removeOfferBtn.toggleClass('d-none', !hasExistingOffer);
+            removeOfferBtn.data('maidId', maidId);
+
+            offerModal.show();
+        });
+
+        offerForm.on('submit', function (e) {
+            e.preventDefault();
+            const maidId = $(this).data('maidId');
+            if (!maidId) {
+                return;
+            }
+
+            const url = offerRouteTemplate.replace('MAID_ID', maidId);
+
+            $.ajax({
+                url: url,
+                method: 'POST',
+                data: offerForm.serialize(),
+                success: function (response) {
+                    resetOfferErrors();
+                    if (offerModal) {
+                        offerModal.hide();
+                    }
+                    Swal.fire({
+                        icon: 'success',
+                        title: response.message || '{{ helperTrans('ingaz.updated_successfully') }}',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    table.ajax.reload(null, false);
+                },
+                error: function (xhr) {
+                    if (xhr.status === 422 && xhr.responseJSON) {
+                        const payload = xhr.responseJSON;
+                        const errors = payload.errors;
+                        let messages = [];
+
+                        if (errors) {
+                            Object.values(errors).forEach(function (item) {
+                                if (Array.isArray(item)) {
+                                    messages = messages.concat(item);
+                                } else {
+                                    messages.push(item);
+                                }
+                            });
+                        } else if (payload.message) {
+                            messages.push(payload.message);
+                        }
+
+                        if (messages.length) {
+                            offerErrors.removeClass('d-none').html(messages.map(function (message) {
+                                return '<div>' + message + '</div>';
+                            }).join(''));
+                        } else {
+                            resetOfferErrors();
+                        }
+                    } else {
+                        resetOfferErrors();
+                        Swal.fire({
+                            icon: 'error',
+                            title: '{{ helperTrans('ingaz.error') }}',
+                            text: xhr.responseJSON?.message || '{{ helperTrans('ingaz.unexpected_error') }}'
+                        });
+                    }
+                }
+            });
+        });
+
+        removeOfferBtn.on('click', function () {
+            const maidId = $(this).data('maidId');
+            if (!maidId) {
+                return;
+            }
+
+            Swal.fire({
+                icon: 'warning',
+                title: '{{ helperTrans('ingaz.remove_offer') }}',
+                text: '{{ helperTrans('ingaz.offer_remove_confirmation') }}',
+                showCancelButton: true,
+                confirmButtonText: '{{ helperTrans('ingaz.confirm') }}',
+                cancelButtonText: '{{ helperTrans('ingaz.cancel') }}'
+            }).then((result) => {
+                if (!result.isConfirmed) {
+                    return;
+                }
+
+                const url = offerRouteTemplate.replace('MAID_ID', maidId);
+
+                $.ajax({
+                    url: url,
+                    method: 'POST',
+                    data: {
+                        _token: csrfToken,
+                        clear_offer: 1
+                    },
+                    success: function (response) {
+                        resetOfferErrors();
+                        offerForm.data('initialDuration', '');
+                        offerDurationPreview.text(notSpecifiedLabel);
+                        if (offerModal) {
+                            offerModal.hide();
+                        }
+                        Swal.fire({
+                            icon: 'success',
+                            title: response.message || '{{ helperTrans('ingaz.offer_cleared_successfully') }}',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        table.ajax.reload(null, false);
+                    },
+                    error: function (xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: '{{ helperTrans('ingaz.error') }}',
+                            text: xhr.responseJSON?.message || '{{ helperTrans('ingaz.unexpected_error') }}'
+                        });
+                    }
+                });
+            });
         });
 
         $('#maidFilters').on('submit', function (e) {

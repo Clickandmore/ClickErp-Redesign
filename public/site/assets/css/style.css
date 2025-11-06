@@ -3539,14 +3539,15 @@ main .allWorkers .workers-list .worker-box h4 {
 }
 main .allWorkers .workers-list .worker-box .workerInfo {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 16px;
   margin-bottom: 12px;
 }
 main .allWorkers .workers-list .worker-box .workerInfo p {
   font-size: 14px;
   color: #333;
   margin: 0;
+  white-space: nowrap;
 }
 main .allWorkers .workers-list .worker-box .worker-salary {
   display: flex;
@@ -3554,6 +3555,8 @@ main .allWorkers .workers-list .worker-box .worker-salary {
   align-items: center;
   border-radius: 12px;
   transition: all 0.3s ease;
+  flex-wrap: wrap;
+  gap: 6px 12px;
 }
 main .allWorkers .workers-list .worker-box .worker-salary:hover {
   background: #f4fdfb;

@@ -43,12 +43,15 @@ class NationalityAction extends MainAction
         return $row->update($data);
     }
 
-    public function getNationalities(){
-        return $this->model->latest()->get();
+    public function getNationalities()
+    {
+        return $this->model->orderByTranslation('sub_title', 'asc')->get();
     }
 
     public function getVisible()
     {
-        return $this->model->where('is_show', true)->latest()->get();
+        return $this->model->where('is_show', true)
+            ->orderByTranslation('sub_title', 'asc')
+            ->get();
     }
 }

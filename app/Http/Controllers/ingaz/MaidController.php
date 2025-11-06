@@ -131,11 +131,46 @@ class MaidController extends Controller
                         ? '<span class="badge bg-teal-100 text-teal">' . $availabilityLabel . '</span>'
                         : '<span class="badge bg-light text-muted border">' . $availabilityLabel . '</span>';
                     $createdAt = $row->created_at?->format('Y-m-d') ?? '-';
+                    $today = Carbon::today();
+
+                    $offerBadge = '';
+                    if ($row->offer_price !== null) {
+                        $startsAt = $row->offer_starts_at;
+                        $expiresAt = $row->offer_expires_at;
+
+                        $state = 'expired';
+                        if ((!$startsAt || $startsAt->lte($today)) && (!$expiresAt || $expiresAt->gte($today))) {
+                            $state = 'active';
+                        } elseif ($startsAt && $startsAt->gt($today)) {
+                            $state = 'scheduled';
+                        }
+
+                        $offerClasses = [
+                            'active' => 'bg-warning-subtle text-warning border border-warning-subtle',
+                            'scheduled' => 'bg-info-subtle text-info border border-info-subtle',
+                            'expired' => 'bg-light text-muted border',
+                        ];
+                        $offerLabels = [
+                            'active' => helperTrans('ingaz.offer_badge_active'),
+                            'scheduled' => helperTrans('ingaz.offer_badge_scheduled'),
+                            'expired' => helperTrans('ingaz.offer_badge_expired'),
+                        ];
+
+                        $offerBadge = '<span class="badge ' . ($offerClasses[$state] ?? 'bg-light text-muted border') . ' d-inline-flex align-items-center gap-1">'
+                            . '<i class="fas fa-tags"></i>' . ($offerLabels[$state] ?? helperTrans('ingaz.offer_badge'))
+                            . '</span>';
+                    }
+
+                    $statusBadge = '<span class="badge ' . $statusMeta['class'] . ' d-inline-flex align-items-center gap-1">'
+                        . '<i class="fas ' . $statusMeta['icon'] . '"></i>' . $statusMeta['label']
+                        . '</span>';
+
+                    $statusLine = $offerBadge
+                        ? '<div class="d-flex flex-wrap gap-1">' . $offerBadge . $statusBadge . '</div>'
+                        : $statusBadge;
 
                     return '<div class="d-flex flex-column gap-2">'
-                        . '<span class="badge ' . $statusMeta['class'] . ' d-inline-flex align-items-center gap-1">'
-                        . '<i class="fas ' . $statusMeta['icon'] . '"></i>' . $statusMeta['label']
-                        . '</span>'
+                        . $statusLine
                         . '<div class="d-flex flex-wrap gap-1">' . $visibilityBadge . $availabilityBadge . '</div>'
                         . '<div class="text-muted small"><i class="fas fa-calendar-day me-1"></i>' . $createdAt . '</div>'
                         . '</div>';
@@ -146,6 +181,48 @@ class MaidController extends Controller
                     $salary = number_format((float) $row->salary, 2);
                     $price = number_format((float) $row->price, 2);
                     $jobTypesLabel = helperTrans('ingaz.job_types');
+                    $offerInfo = '';
+                    $today = Carbon::today();
+
+                    if ($row->offer_price !== null) {
+                        $startsAt = $row->offer_starts_at;
+                        $expiresAt = $row->offer_expires_at;
+
+                        $state = 'expired';
+                        if ((!$startsAt || $startsAt->lte($today)) && (!$expiresAt || $expiresAt->gte($today))) {
+                            $state = 'active';
+                        } elseif ($startsAt && $startsAt->gt($today)) {
+                            $state = 'scheduled';
+                        }
+
+                        $stateClasses = [
+                            'active' => 'bg-warning-subtle text-warning border border-warning-subtle',
+                            'scheduled' => 'bg-info-subtle text-info border border-info-subtle',
+                            'expired' => 'bg-light text-muted border',
+                        ];
+                        $stateIcon = [
+                            'active' => 'fa-bolt',
+                            'scheduled' => 'fa-clock',
+                            'expired' => 'fa-history',
+                        ];
+
+                        $offerPrice = number_format((float) $row->offer_price, 2);
+                        $description = $row->offer_description ? e(Str::limit($row->offer_description, 80)) : null;
+
+                        $offerInfo = '<div class="small rounded-3 px-3 py-2 mt-1 ' . ($stateClasses[$state] ?? 'bg-light text-muted border') . '">'
+                            . '<div class="fw-semibold d-flex align-items-center gap-2">'
+                            . '<i class="fas fa-tags"></i>'
+                            . '<span>' . helperTrans('ingaz.offer_price_new') . ': ' . $offerPrice . ' ' . helperTrans('ingaz.SAR') . '</span>'
+                            . '</div>'
+                            . '<div class="d-flex flex-column gap-1 mt-2">';
+
+                        $offerInfo .= '<span><i class="fas ' . ($stateIcon[$state] ?? 'fa-info-circle') . ' me-1"></i>' . helperTrans('ingaz.offer_state_' . $state) . '</span>';
+                        if ($description) {
+                            $offerInfo .= '<span><i class="fas fa-clipboard-list me-1"></i>' . $description . '</span>';
+                        }
+
+                        $offerInfo .= '</div></div>';
+                    }
 
                     return '<div class="d-flex flex-column gap-2">'
                         . '<div><span class="text-muted small d-block">' . $jobTypesLabel . '</span><span class="fw-semibold">' . $jobTypes . '</span></div>'
@@ -154,6 +231,7 @@ class MaidController extends Controller
                         . '<span class="badge bg-primary-subtle text-primary"><i class="fas fa-hand-holding-usd me-1"></i>' . $salary . '</span>'
                         . '<span class="badge bg-secondary-subtle text-secondary"><i class="fas fa-tag me-1"></i>' . $price . '</span>'
                         . '</div>'
+                        . $offerInfo
                         . '</div>';
                 })
                 ->addColumn('metrics', function (Maid $row) {
@@ -186,6 +264,10 @@ class MaidController extends Controller
                 })
                 ->addColumn('actions', function (Maid $row) {
                     $menuItems = '';
+                    $today = Carbon::today();
+                    $offerActive = $row->offer_price !== null
+                        && (!$row->offer_starts_at || $row->offer_starts_at->lte($today))
+                        && (!$row->offer_expires_at || $row->offer_expires_at->gte($today));
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHOW)) {
                         $menuItems .= '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '"><i class="fas fa-eye text-primary me-2"></i>' . helperTrans('ingaz.view_details') . '</a></li>';
@@ -193,6 +275,9 @@ class MaidController extends Controller
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
                         $menuItems .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.edit', $row->id) . '"><i class="fas fa-edit text-secondary me-2"></i>' . helperTrans('ingaz.edit_maid') . '</a></li>';
+                        if ($row->available && $row->status === 'available') {
+                            $menuItems .= '<li><button type="button" class="dropdown-item manage-offer" data-id="' . $row->id . '" data-name="' . e($row->name ?? '') . '" data-offer-price="' . e($row->offer_price ?? '') . '" data-offer-duration="' . e($row->offer_duration ?? '') . '" data-offer-description="' . e($row->offer_description ?? '') . '" data-offer-start="' . ($row->offer_starts_at ? $row->offer_starts_at->format('Y-m-d') : '') . '" data-offer-expire="' . ($row->offer_expires_at ? $row->offer_expires_at->format('Y-m-d') : '') . '" data-offer-active="' . ($offerActive ? 'true' : 'false') . '"><i class="fas fa-tags text-warning me-2"></i>' . helperTrans('ingaz.manage_offer') . '</button></li>';
+                        }
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_STATUS)) {
@@ -231,9 +316,8 @@ class MaidController extends Controller
         ];
 
         $filters = [
-            'nationalities' => Nationality::orderBy('id')->get(['id']),
-            'offices' => RecruitmentOffices::with('translations')->get(['id']),
-            'job_types' => JobType::with('translations')->get(['id']),
+            'nationalities' => Nationality::orderByTranslation('sub_title', 'asc')->get(['id']),
+            'job_types' => JobType::with('translations')->orderByTranslation('title', 'asc')->get(['id']),
             'statuses' => [
                 'available' => helperTrans('ingaz.maid_status_available'),
                 'reserved' => helperTrans('ingaz.maid_status_reserved'),
@@ -369,9 +453,8 @@ class MaidController extends Controller
         $bladeTitle = "العاملات باك اوت";
 
         // Fetch filter options for dropdowns
-        $filter['nationalities'] = \App\Models\ingaz\Nationality::latest()->get();
-        $filter['offices'] = \App\Models\RecruitmentOffices::latest()->get();
-        $filter['job_types'] = \App\Models\ingaz\JobType::latest()->get();
+        $filter['nationalities'] = \App\Models\ingaz\Nationality::orderByTranslation('sub_title', 'asc')->get();
+        $filter['job_types'] = \App\Models\ingaz\JobType::orderByTranslation('title', 'asc')->get();
 
         // Prepare data for the view
         $data["createRoute"] = route($this->mainRoute . ".create");
@@ -735,6 +818,91 @@ class MaidController extends Controller
         return jsonSuccess($data);
     }
 
+    public function updateOffer($id, Request $request)
+    {
+        if (!@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
+            return response()->json([
+                'success' => false,
+                'message' => helperTrans('ingaz.permission_denied')
+            ], 403);
+        }
+
+        $maid = objModel::findOrFail($id);
+
+        if (!$maid->available || $maid->status !== 'available') {
+            return response()->json([
+                'success' => false,
+                'message' => helperTrans('ingaz.offer_only_available')
+            ], 422);
+        }
+
+        if ($request->boolean('clear_offer')) {
+            $maid->offer_price = null;
+            $maid->offer_duration = null;
+            $maid->offer_description = null;
+            $maid->offer_starts_at = null;
+            $maid->offer_expires_at = null;
+            $maid->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => helperTrans('ingaz.offer_cleared_successfully'),
+            ]);
+        }
+
+        $validated = $request->validate([
+            'offer_price' => ['nullable', 'numeric', 'min:0'],
+            'offer_description' => ['nullable', 'string', 'max:500'],
+            'offer_starts_at' => ['nullable', 'date'],
+            'offer_expires_at' => ['nullable', 'date', 'after_or_equal:offer_starts_at'],
+        ], [], [
+            'offer_price' => helperTrans('ingaz.offer_price_new'),
+            'offer_description' => helperTrans('ingaz.offer_description'),
+            'offer_starts_at' => helperTrans('ingaz.offer_starts_at'),
+            'offer_expires_at' => helperTrans('ingaz.offer_expires_at'),
+        ]);
+
+        if (!array_key_exists('offer_price', $validated) || $validated['offer_price'] === null) {
+            return response()->json([
+                'success' => false,
+                'message' => helperTrans('ingaz.offer_price_required')
+            ], 422);
+        }
+
+        $maid->offer_price = round((float) $validated['offer_price'], 2);
+        $maid->offer_description = isset($validated['offer_description']) && trim($validated['offer_description']) !== ''
+            ? trim($validated['offer_description'])
+            : null;
+        $maid->offer_starts_at = $validated['offer_starts_at'] ?? null;
+        $maid->offer_expires_at = $validated['offer_expires_at'] ?? null;
+
+        if ($maid->offer_starts_at && $maid->offer_expires_at && $maid->offer_expires_at->gte($maid->offer_starts_at)) {
+            $maid->offer_duration = (string) ($maid->offer_starts_at->diffInDays($maid->offer_expires_at) + 1);
+        } else {
+            $maid->offer_duration = null;
+        }
+
+        $maid->save();
+
+        $today = Carbon::today();
+        $isActive = $maid->offer_price !== null
+            && (!$maid->offer_starts_at || $maid->offer_starts_at->lte($today))
+            && (!$maid->offer_expires_at || $maid->offer_expires_at->gte($today));
+
+        return response()->json([
+            'success' => true,
+            'message' => helperTrans('ingaz.offer_saved_successfully'),
+            'offer' => [
+                'price' => $maid->offer_price,
+                'duration' => $maid->offer_duration,
+                'description' => $maid->offer_description,
+                'starts_at' => optional($maid->offer_starts_at)->format('Y-m-d'),
+                'expires_at' => optional($maid->offer_expires_at)->format('Y-m-d'),
+                'is_active' => $isActive,
+            ],
+        ]);
+    }
+
     public function togglePin($id)
     {
         \Log::info('Toggle pin method called for maid ID: ' . $id);
@@ -754,6 +922,14 @@ class MaidController extends Controller
         try {
             $maid = objModel::findOrFail($id);
             \Log::info('Maid found: ' . $maid->name . ', current pin status: ' . ($maid->is_pinned ? 'true' : 'false'));
+
+            if (!$maid->available || $maid->status !== 'available') {
+                \Log::warning('Attempt to pin a maid that is not currently available', ['maid_id' => $maid->id, 'status' => $maid->status, 'available' => $maid->available]);
+                return response()->json([
+                    'success' => false,
+                    'message' => helperTrans('ingaz.offer_only_available')
+                ], 422);
+            }
 
             $maid->is_pinned = !$maid->is_pinned;
             $maid->save();
@@ -1106,9 +1282,6 @@ class MaidController extends Controller
         if ($request->has('nationality_id') && $request->nationality_id != null) {
             $rows->where('nationality_id', $request->nationality_id);
         }
-        if ($request->has('office_id') && $request->office_id != null) {
-            $rows->where('office_id', $request->office_id);
-        }
         if ($request->has('order_by') && $request->order_by != null) {
             if ($request->order_by == 'low_price') {
                 $rows->orderBy('price', 'ASC');
@@ -1215,9 +1388,6 @@ class MaidController extends Controller
         }
         if ($request->has('nationality_id') && $request->nationality_id != null) {
             $rows->where('nationality_id', $request->nationality_id);
-        }
-        if ($request->has('office_id') && $request->office_id != null) {
-            $rows->where('office_id', $request->office_id);
         }
         if ($request->has('order_by') && $request->order_by != null) {
             if ($request->order_by == 'low_price') {

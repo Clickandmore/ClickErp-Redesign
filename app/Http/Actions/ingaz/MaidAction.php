@@ -8,6 +8,7 @@ use App\Models\Contract;
 use App\Models\ContractInfo;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\User as ClientUser;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -148,9 +149,6 @@ class MaidAction extends MainAction
         $offerPrice = $data['offer_price'] ?? null;
         $data['offer_price'] = ($offerPrice === '' || $offerPrice === null) ? null : round((float)$offerPrice, 2);
 
-        $data['offer_duration'] = isset($data['offer_duration']) && trim((string)$data['offer_duration']) !== ''
-            ? $data['offer_duration']
-            : null;
         $data['offer_description'] = isset($data['offer_description']) && trim((string)$data['offer_description']) !== ''
             ? $data['offer_description']
             : null;
@@ -169,6 +167,19 @@ class MaidAction extends MainAction
                 : null;
         } else {
             unset($data['offer_expires_at']);
+        }
+
+        $offerStartsAt = isset($data['offer_starts_at']) && $data['offer_starts_at']
+            ? Carbon::parse($data['offer_starts_at'])
+            : null;
+        $offerExpiresAt = isset($data['offer_expires_at']) && $data['offer_expires_at']
+            ? Carbon::parse($data['offer_expires_at'])
+            : null;
+
+        if ($offerStartsAt && $offerExpiresAt && $offerExpiresAt->gte($offerStartsAt)) {
+            $data['offer_duration'] = (string) ($offerStartsAt->diffInDays($offerExpiresAt) + 1);
+        } else {
+            $data['offer_duration'] = null;
         }
 
         // Handle birth_date field
@@ -565,14 +576,6 @@ class MaidAction extends MainAction
             unset($data['offer_price']);
         }
 
-        if ($offerDurationColumnExists) {
-            $data['offer_duration'] = array_key_exists('offer_duration', $data)
-                ? ((isset($data['offer_duration']) && trim((string)$data['offer_duration']) !== '') ? $data['offer_duration'] : null)
-                : $maid->offer_duration;
-        } else {
-            unset($data['offer_duration']);
-        }
-
         if ($offerDescriptionColumnExists) {
             $data['offer_description'] = array_key_exists('offer_description', $data)
                 ? ((isset($data['offer_description']) && trim((string)$data['offer_description']) !== '') ? $data['offer_description'] : null)
@@ -595,6 +598,23 @@ class MaidAction extends MainAction
                 : null;
         } else {
             unset($data['offer_expires_at']);
+        }
+
+        if ($offerDurationColumnExists) {
+            $offerStartsAt = isset($data['offer_starts_at']) && $data['offer_starts_at']
+                ? Carbon::parse($data['offer_starts_at'])
+                : null;
+            $offerExpiresAt = isset($data['offer_expires_at']) && $data['offer_expires_at']
+                ? Carbon::parse($data['offer_expires_at'])
+                : null;
+
+            if ($offerStartsAt && $offerExpiresAt && $offerExpiresAt->gte($offerStartsAt)) {
+                $data['offer_duration'] = (string) ($offerStartsAt->diffInDays($offerExpiresAt) + 1);
+            } else {
+                $data['offer_duration'] = null;
+            }
+        } else {
+            unset($data['offer_duration']);
         }
 
 
