@@ -144,6 +144,15 @@ $(document).ready(function() {
             cache: true
         }
     });
+    @if(isset($selectedNewSponsorId) && $selectedNewSponsorId && isset($selectedNewSponsor))
+        var presetSponsor = new Option(
+            '{{ $selectedNewSponsor->name }} - {{ $selectedNewSponsor->phone_code . $selectedNewSponsor->phone }}',
+            '{{ $selectedNewSponsorId }}',
+            true,
+            true
+        );
+        $('#new_sponsor_id').append(presetSponsor).trigger('change');
+    @endif
     // تعبئة معلومات العقد والكفيل الحالي عند اختيار العقد
     $('#contract_id').on('change', function() {
         let selectedOption = $(this).find('option:selected');

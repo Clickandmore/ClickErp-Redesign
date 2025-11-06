@@ -51,6 +51,12 @@ class MaidRequest extends MainRequest
             'languages' => 'nullable|array',
             'percentage' => 'nullable|array',
             'expertises' => 'nullable|array',
+            'request_type' => 'nullable|in:known,specific,custom_spec',
+            'offer_price' => 'nullable|numeric|min:0',
+            'offer_duration' => 'nullable|string|max:255',
+            'offer_description' => 'nullable|string',
+            'offer_starts_at' => 'nullable|date',
+            'offer_expires_at' => 'nullable|date|after_or_equal:offer_starts_at',
         ];
     }
 
@@ -78,6 +84,10 @@ class MaidRequest extends MainRequest
             'type_id.required' => helperTrans('web.type_id_is_required'),
             'type_id.exists' => helperTrans('web.invalid_type_id'),
             'office_id.exists' => helperTrans('web.office_id not exist'),
+            'offer_price.numeric' => helperTrans('web.price_must_be_numeric'),
+            'offer_price.min' => helperTrans('web.price_must_be_numeric'),
+            'offer_expires_at.after_or_equal' => 'تاريخ انتهاء العرض يجب أن يكون بعد أو مساوي لتاريخ بداية العرض',
+            'offer_duration.max' => 'مدة العرض يجب ألا تتجاوز 255 حرفاً',
         ];
     }
 }
