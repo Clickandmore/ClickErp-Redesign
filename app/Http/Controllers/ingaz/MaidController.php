@@ -16,6 +16,7 @@ use App\Models\ingaz\Maid;
 use App\Models\ingaz\Maid as objModel;
 use App\Models\ingaz\Nationality;
 use App\Models\RecruitmentOffices;
+use App\Models\ingaz\Skill;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -45,160 +46,210 @@ class MaidController extends Controller
     public function index(Request $request, objAction $Action)
     {
         $query = objModel::query()
-            ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders', 'office']) // Eager load relationships
-            ->select(['id', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at', 'is_pinned', 'status', 'office_id']) // Added office and status field
-            ->orderBy('is_pinned', 'desc')
-            ->orderBy('created_at', 'desc');
+            ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders', 'office'])
+            ->select([
+                'id',
+                'name',
+                'image',
+                'cv_file',
+                'cv_preview',
+                'nationality_id',
+                'religion_id',
+                'passport_num',
+                'price',
+                'salary',
+                'age',
+                'is_show',
+                'available',
+                'available_at',
+                'created_at',
+                'is_pinned',
+                'status',
+                'office_id',
+                'experience_years',
+                'experience_status'
+            ])
+            ->orderByDesc('is_pinned')
+            ->orderByDesc('created_at');
 
         if ($request->ajax()) {
             $this->applyMaidFilter($request, $query);
 
             return DataTables::of($query)
                 ->addIndexColumn()
-                ->orderColumn('id', function ($query, $order) {
-                    $query->orderBy('id', $order);
-                })
-                ->orderColumn('nationality_id', function ($query, $order) {
-                    $query->orderBy('nationality_id', $order);
-                })
-                ->orderColumn('job_type', function ($query, $order) {
-                    $query->orderBy('id', $order);
-                })
-                ->orderColumn('passport_num', function ($query, $order) {
-                    $query->orderBy('passport_num', $order);
-                })
-                ->orderColumn('price', function ($query, $order) {
-                    $query->orderBy('price', $order);
-                })
-                ->orderColumn('salary', function ($query, $order) {
-                    $query->orderBy('salary', $order);
-                })
-                ->orderColumn('religion_id', function ($query, $order) {
-                    $query->orderBy('religion_id', $order);
-                })
-                ->orderColumn('age', function ($query, $order) {
-                    $query->orderBy('age', $order);
-                })
-                ->orderColumn('created_at', function ($query, $order) {
-                    $query->orderBy('created_at', $order);
-                })
-                ->editColumn('is_show', function ($row) {
-                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_STATUS)) {
-                        return $row->is_show == 1 ?
-                            '<button class="btn btn-sm btn-success update-status" data-id="' . $row->id . '" title="انقر لتغيير الحالة إلى مخفي"><i class="fa fa-eye"></i> ظاهر</button>' :
-                            '<button class="btn btn-sm btn-dark update-status" data-id="' . $row->id . '" title="انقر لتغيير الحالة إلى ظاهر"><i class="fa fa-eye-slash"></i> مخفي</button>';
-                    } else {
-                        return $row->is_show == 1 ? '<span class="badge bg-success"><i class="fa fa-eye"></i> ظاهر</span>' : '<span class="badge bg-dark"><i class="fa fa-eye-slash"></i> مخفي</span>';
-                    }
-                })
-                ->editColumn('available', function ($row) {
-                    return $row->available == 1 ?
-                        '<i class ="fa fa-check text-success">' : '<i class ="fa fa-times text-danger">';
-                })
-                ->editColumn('available_at', function ($row) {
-                    return $row->available_at <= date('Y-m-d') ?
-                        '<i class="fa fa-check text-success"></i>' :
-                        $row->available_at;
-                })
-                ->editColumn('cv_file', function ($row) {
+                ->addColumn('profile', function (Maid $row) {
                     $rawPath = $row->image ?: ($row->cv_preview ?: $row->cv_file);
-                    $imageUrl = $rawPath ? showFile($rawPath) : null;
+                    $imageUrl = $rawPath ? showFile($rawPath) : asset('images/no-image.png');
+                    $nationality = e($row->nationality?->sub_title ?? helperTrans('ingaz.not_specified'));
+                    $religion = e($row->religion?->title ?? helperTrans('ingaz.not_specified'));
+                    $name = e($row->name ?? helperTrans('ingaz.not_specified'));
+                    $passport = e($row->passport_num ?? helperTrans('ingaz.not_specified'));
+                    $pinnedBadge = $row->is_pinned
+                        ? '<span class="badge bg-warning-subtle text-warning ms-1"><i class="fas fa-thumbtack"></i> ' . helperTrans('ingaz.pinned') . '</span>'
+                        : '';
 
-                    if (!$imageUrl) {
-                        return '';
-                    }
+                    return '<div class="d-flex align-items-center gap-3">'
+                        . '<a href="#" class="maidViewData" data-id="' . $row->id . '">'
+                        . '<img src="' . $imageUrl . '" alt="maid-avatar" class="rounded-circle border" style="width:64px;height:64px;object-fit:cover;">'
+                        . '</a>'
+                        . '<div class="d-flex flex-column gap-1">'
+                        . '<div class="d-flex align-items-center gap-2 flex-wrap">'
+                        . '<span class="fw-semibold text-dark">' . $name . '</span>'
+                        . $pinnedBadge
+                        . '</div>'
+                        . '<div class="text-muted small"><i class="fas fa-passport me-1"></i>' . $passport . '</div>'
+                        . '<div class="text-muted small">'
+                        . '<i class="fas fa-flag me-1"></i>' . $nationality
+                        . '<span class="mx-1 text-secondary">•</span>'
+                        . '<i class="fas fa-praying-hands me-1"></i>' . $religion
+                        . '</div>'
+                        . '</div>'
+                        . '</div>';
+                })
+                ->addColumn('status_badge', function (Maid $row) {
+                    $labelAvailable = helperTrans('ingaz.maid_status_available');
+                    $labelReserved = helperTrans('ingaz.maid_status_reserved');
+                    $labelContracted = helperTrans('ingaz.maid_status_contracted');
+                    $labelAccommodation = helperTrans('ingaz.maid_status_in_accommodation');
+                    $labelBackout = helperTrans('ingaz.maid_status_backout');
+                    $labelUnknown = helperTrans('ingaz.maid_status_unknown');
+                    $statuses = [
+                        'available' => ['class' => 'bg-success-subtle text-success', 'icon' => 'fa-check-circle', 'label' => $labelAvailable],
+                        'reserved' => ['class' => 'bg-warning-subtle text-warning', 'icon' => 'fa-hand-paper', 'label' => $labelReserved],
+                        'contracted' => ['class' => 'bg-primary-subtle text-primary', 'icon' => 'fa-file-signature', 'label' => $labelContracted],
+                        'in_accommodation' => ['class' => 'bg-info-subtle text-info', 'icon' => 'fa-warehouse', 'label' => $labelAccommodation],
+                        'backout' => ['class' => 'bg-danger-subtle text-danger', 'icon' => 'fa-undo', 'label' => $labelBackout],
+                    ];
 
-                    $imgTag = '<img src="' . $imageUrl . '" alt="cv" style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">';
+                    $statusMeta = $statuses[$row->status] ?? ['class' => 'bg-secondary-subtle text-secondary', 'icon' => 'fa-question-circle', 'label' => $labelUnknown];
+                    $visibilityLabel = $row->is_show ? helperTrans('ingaz.maid_visibility_visible') : helperTrans('ingaz.maid_visibility_hidden');
+                    $availabilityLabel = $row->available ? helperTrans('ingaz.maid_available_now') : helperTrans('ingaz.maid_not_available_now');
+                    $visibilityBadge = $row->is_show
+                        ? '<span class="badge bg-success-subtle text-success">' . $visibilityLabel . '</span>'
+                        : '<span class="badge bg-dark-subtle text-dark">' . $visibilityLabel . '</span>';
+                    $availabilityBadge = $row->available
+                        ? '<span class="badge bg-teal-100 text-teal">' . $availabilityLabel . '</span>'
+                        : '<span class="badge bg-light text-muted border">' . $availabilityLabel . '</span>';
+                    $createdAt = $row->created_at?->format('Y-m-d') ?? '-';
 
-                    return '<a href="#" class="maidViewData" data-id="' . $row->id . '">' . $imgTag . '</a>';
+                    return '<div class="d-flex flex-column gap-2">'
+                        . '<span class="badge ' . $statusMeta['class'] . ' d-inline-flex align-items-center gap-1">'
+                        . '<i class="fas ' . $statusMeta['icon'] . '"></i>' . $statusMeta['label']
+                        . '</span>'
+                        . '<div class="d-flex flex-wrap gap-1">' . $visibilityBadge . $availabilityBadge . '</div>'
+                        . '<div class="text-muted small"><i class="fas fa-calendar-day me-1"></i>' . $createdAt . '</div>'
+                        . '</div>';
                 })
-                ->editColumn('created_at', function ($row) {
-                    return $row->created_at->format('Y-m-d h:i A');
-                })
-                ->editColumn('religion_id', function ($row) {
-                    return $row->religion ? $row->religion->title : '';
-                })
-                ->editColumn('nationality_id', function ($row) {
-                    return $row->nationality ? $row->nationality->sub_title : '';
-                })
-                ->addColumn('maidContractRemaining', function ($row) {
-                    $hasRemainingContracts = ahxMaidContractRemaining($row->id);
-                    return $hasRemainingContracts == 0 ? __('ingaz.none') : $hasRemainingContracts . ' ' . __('ingaz.days');
-                })
-                ->addColumn('job_type', function ($row) {
-                    return $row->jobTypes->pluck('title')->implode(', ');
-                })
-                ->addColumn('cv_status', function ($row) {
-                    // تحديد حالة السيرة الذاتية بناءً على الحقول المتاحة
-                    if ($row->status === 'backout') {
-                        return '<span class="badge bg-danger">باك اوت</span>';
-                    } elseif ($row->available == 0) {
-                        return '<span class="badge bg-warning">محجوزة</span>';
-                    } else {
-                        // التحقق من وجود عقود أو طلبات نشطة
-                        $hasActiveContracts = $row->contracts()->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival'])->exists();
-                        $hasActiveOrders = $row->orders()->whereIn('status', ['new', 'under_process', 'contracted'])->exists();
+                ->addColumn('job_info', function (Maid $row) {
+                    $jobTypes = e($row->jobTypes->pluck('title')->filter()->take(3)->implode(', ') ?: helperTrans('ingaz.not_specified'));
+                    $officeTitle = $row->office?->title ? e(Str::limit($row->office->title, 30)) : helperTrans('ingaz.not_specified');
+                    $salary = number_format((float) $row->salary, 2);
+                    $price = number_format((float) $row->price, 2);
+                    $jobTypesLabel = helperTrans('ingaz.job_types');
 
-                        if ($hasActiveContracts || $hasActiveOrders) {
-                            return '<span class="badge bg-warning">محجوزة</span>';
-                        } else {
-                            return '<span class="badge bg-success">متاحة</span>';
-                        }
-                    }
+                    return '<div class="d-flex flex-column gap-2">'
+                        . '<div><span class="text-muted small d-block">' . $jobTypesLabel . '</span><span class="fw-semibold">' . $jobTypes . '</span></div>'
+                        . '<div class="text-muted small"><i class="fas fa-building me-1"></i>' . $officeTitle . '</div>'
+                        . '<div class="d-flex flex-wrap gap-2">'
+                        . '<span class="badge bg-primary-subtle text-primary"><i class="fas fa-hand-holding-usd me-1"></i>' . $salary . '</span>'
+                        . '<span class="badge bg-secondary-subtle text-secondary"><i class="fas fa-tag me-1"></i>' . $price . '</span>'
+                        . '</div>'
+                        . '</div>';
                 })
-                ->addColumn('office', function ($row) {
-                    $title = optional($row->office)->title ?? '-';
-                    if ($title === '-') {
-                        return '-';
-                    }
-                    $short = Str::limit($title, 20);
-                    return '<span title="' . e($title) . '">' . e($short) . '</span>';
-                })
-                ->addColumn('actions', function ($row) {
-                    $buttons = '';
+                ->addColumn('metrics', function (Maid $row) {
+                    $ordersTotal = $row->orders->count();
+                    $activeOrders = $row->orders->whereIn('status', ['new', 'under_process', 'contracted'])->count();
+                    $contractsTotal = $row->contracts->count();
+                    $activeContracts = $row->contracts->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival'])->count();
+                    $availableAt = $row->available_at ? Carbon::parse($row->available_at)->format('Y-m-d') : helperTrans('ingaz.not_specified');
+                    $experienceYears = $row->experience_status === 'has_experience' ? ($row->experience_years ?? '0') : '0';
+                    $ordersLabel = helperTrans('ingaz.total_orders_count');
+                    $activeOrdersLabel = helperTrans('ingaz.active_orders_count');
+                    $contractsLabel = helperTrans('ingaz.rental_contracts_count');
+                    $activeContractsLabel = helperTrans('ingaz.active_contracts_count');
+                    $availableFromLabel = helperTrans('ingaz.available_from');
+                    $experienceLabel = helperTrans('ingaz.experience_years');
 
-                    // Show CV details
+                    return '<div class="d-flex flex-column gap-2">'
+                        . '<div class="d-flex flex-wrap gap-2">'
+                        . '<span class="badge bg-light text-muted border"><i class="fas fa-clipboard-list me-1"></i>' . $ordersLabel . ': ' . $ordersTotal . '</span>'
+                        . '<span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="fas fa-tasks me-1"></i>' . $activeOrdersLabel . ': ' . $activeOrders . '</span>'
+                        . '</div>'
+                        . '<div class="d-flex flex-wrap gap-2">'
+                        . '<span class="badge bg-info-subtle text-info border border-info-subtle"><i class="fas fa-file-contract me-1"></i>' . $contractsLabel . ': ' . $contractsTotal . '</span>'
+                        . '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle"><i class="fas fa-clipboard-check me-1"></i>' . $activeContractsLabel . ': ' . $activeContracts . '</span>'
+                        . '</div>'
+                        . '<div class="text-muted small"><i class="fas fa-calendar-check me-1"></i>' . $availableFromLabel . ': ' . $availableAt
+                        . '<span class="mx-1 text-secondary">•</span><i class="fas fa-user-graduate me-1"></i>' . $experienceLabel . ': ' . $experienceYears
+                        . '</div>'
+                        . '</div>';
+                })
+                ->addColumn('actions', function (Maid $row) {
+                    $actions = [];
+
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHOW)) {
-                        $buttons .= viewSingleButton(route('showMaidDetails', $row->id));
+                        $actions[] = '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '"><i class="fas fa-eye text-primary me-2"></i>' . helperTrans('ingaz.view_details') . '</a></li>';
                     }
 
-                    // Edit CV
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
-                        $buttons .= ahxEditBtn(route($this->mainRoute . ".edit", $row->id));
+                        $actions[] = '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.edit', $row->id) . '"><i class="fas fa-edit text-secondary me-2"></i>' . helperTrans('ingaz.edit_maid') . '</a></li>';
                     }
 
-                    // Toggle pin status - only for available maids
-                    $hasPinPermission = @AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_PIN);
-                    if ($hasPinPermission && $row->available == 1) {
-                        $buttons .= '<button class="btn btn-sm ' . ($row->is_pinned ? 'btn-warning' : 'btn-secondary') . ' toggle-pin" data-id="' . $row->id . '" data-pinned="' . ($row->is_pinned ? 'true' : 'false') . '" title="' . ($row->is_pinned ? 'إلغاء التثبيت' : 'تثبيت') . '" style="cursor: pointer;">
-                             <i class="fa fa-thumb-tack"></i>
-                        </button>';
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_STATUS)) {
+                        $actions[] = '<li><button class="dropdown-item update-status" data-id="' . $row->id . '"><i class="fas fa-adjust text-muted me-2"></i>' . helperTrans('ingaz.toggle_visibility') . '</button></li>';
                     }
 
-                    // Delete CV
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_PIN) && $row->available == 1) {
+                        $pinLabel = $row->is_pinned ? helperTrans('ingaz.unpin_maid') : helperTrans('ingaz.pin_maid');
+                        $actions[] = '<li><button class="dropdown-item toggle-pin" data-id="' . $row->id . '" data-pinned="' . ($row->is_pinned ? 'true' : 'false') . '"><i class="fas fa-thumbtack text-warning me-2"></i>' . $pinLabel . '</button></li>';
+                    }
+
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_DELETE)) {
-                        $buttons .= deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                        $actions[] = '<li><div class="dropdown-item p-0">' . deleteButton(route($this->mainRoute . ".destroy", $row->id)) . '</div></li>';
                     }
 
-                    return $buttons;
+                    $actionsHtml = implode('', $actions);
+                    $actionsLabel = helperTrans('ingaz.actions_menu');
+
+                    return '<div class="btn-group">'
+                        . '<button class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">'
+                        . '<i class="fas fa-cogs me-1"></i>' . $actionsLabel
+                        . '</button>'
+                        . '<ul class="dropdown-menu dropdown-menu-end shadow">' . $actionsHtml . '</ul>'
+                        . '</div>';
                 })
-                ->rawColumns(['is_show', 'available', 'available_at', 'cv_file', 'cv_status', 'office', 'actions'])
+                ->rawColumns(['profile', 'status_badge', 'job_info', 'metrics', 'actions'])
                 ->make(true);
         }
 
-        // Fetch filter options for dropdowns
-        $filter['nationalities'] = Nationality::latest()->get();
-        $filter['offices'] = RecruitmentOffices::latest()->get();
-        $filter['job_types'] = JobType::latest()->get();
+        $stats = [
+            'total' => objModel::count(),
+            'available' => objModel::where('status', 'available')->count(),
+            'reserved' => objModel::where('status', 'reserved')->count(),
+            'in_accommodation' => objModel::where('status', 'in_accommodation')->count(),
+            'backout' => objModel::where('status', 'backout')->count(),
+            'pinned' => objModel::where('is_pinned', 1)->count(),
+        ];
 
-        // Prepare data for the view
-        $data["createRoute"] = route($this->mainRoute . ".create");
-        $data["dataTableRoute"] = route($this->mainRoute . ".index");
-        $data["bladeTitle"] = helperTrans("ingaz.maids");
-        $data["addButtonText"] = helperTrans("ingaz.maid");
-        $data["modalType"] = "modal-lg";
+        $filters = [
+            'nationalities' => Nationality::orderBy('id')->get(['id']),
+            'offices' => RecruitmentOffices::with('translations')->get(['id']),
+            'job_types' => JobType::with('translations')->get(['id']),
+            'statuses' => [
+                'available' => helperTrans('ingaz.maid_status_available'),
+                'reserved' => helperTrans('ingaz.maid_status_reserved'),
+                'contracted' => helperTrans('ingaz.maid_status_contracted'),
+                'in_accommodation' => helperTrans('ingaz.maid_status_in_accommodation'),
+                'backout' => helperTrans('ingaz.maid_status_backout'),
+            ],
+        ];
 
-        return view($this->folderPath . '.index', $data, compact('filter', 'request'));
+        return view($this->folderPath . '.index', [
+            'stats' => $stats,
+            'filters' => $filters,
+            'dataTableRoute' => route($this->mainRoute . '.index'),
+            'createRoute' => route($this->mainRoute . '.create'),
+        ]);
     }
 
     public function noneAvailableMaids(Request $request, objAction $Action)
@@ -336,27 +387,176 @@ class MaidController extends Controller
 
     public function showMaidDetails($id)
     {
-        // dd($id);
-        $maid = objModel::with('orders', 'contracts')->where('id', $id)->first();
-        // dd($maid->orders);
-        return view($this->folderPath . '.details', compact('maid'));
+        $maid = objModel::with([
+            'nationality',
+            'religion',
+            'jobTypes',
+            'jobTitles',
+            'office',
+            'contracts.info',
+            'contracts.user',
+            'orders.jobType',
+            'orders.user',
+            'orders.contracts',
+            'expertises.country',
+            'expertises.jobTitle',
+        ])->findOrFail($id);
+
+        $skills = [];
+        $skillsRaw = $maid->skills;
+        $decodedSkills = is_string($skillsRaw) ? json_decode($skillsRaw, true) : $skillsRaw;
+
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decodedSkills) && collect($decodedSkills)->every(fn($item) => is_numeric($item) || (is_string($item) && is_numeric($item)))) {
+            $ids = collect($decodedSkills)->map(fn($item) => (int) $item)->values();
+            $skills = Skill::whereIn('id', $ids)->get()->map(fn($skill) => $skill->title)->toArray();
+        } else {
+            $skills = collect($decodedSkills ?: [])
+                ->filter()
+                ->map(function ($value) {
+                    if (is_string($value)) {
+                        $decoded = json_decode($value, true);
+                        if (json_last_error() === JSON_ERROR_NONE) {
+                            $value = $decoded;
+                        } else {
+                            return trim($value);
+                        }
+                    }
+
+                    if (is_numeric($value)) {
+                        return optional(Skill::find($value))->title;
+                    }
+
+                    if ($value instanceof \JsonSerializable) {
+                        $value = $value->jsonSerialize();
+                    }
+
+                    if (is_object($value)) {
+                        $value = json_decode(json_encode($value), true);
+                    }
+
+                    if (is_array($value)) {
+                        if (isset($value['title']) && is_string($value['title'])) {
+                            return $value['title'];
+                        }
+
+                        if (isset($value['translations']) && is_array($value['translations'])) {
+                            $translations = collect($value['translations']);
+                            $locale = app()->getLocale();
+                            $translation = $translations->firstWhere('locale', $locale)
+                                ?? $translations->firstWhere('locale', 'ar')
+                                ?? $translations->first();
+                            return $translation['title'] ?? null;
+                        }
+                    }
+
+                    return null;
+                })
+                ->filter()
+                ->map(fn($name) => trim((string) $name))
+                ->unique()
+                ->values()
+                ->toArray();
+        }
+
+        $languagesRaw = $maid->languages;
+        if (is_string($languagesRaw)) {
+            $languagesRaw = json_decode($languagesRaw, true);
+        }
+        $languages = collect($languagesRaw ?? [])->filter()->values()->map(fn($lang) => is_string($lang) ? $lang : (is_array($lang) && isset($lang['title']) ? $lang['title'] : $lang))->toArray();
+
+        $percentagesRaw = $maid->percentage;
+        if (is_string($percentagesRaw)) {
+            $percentagesRaw = json_decode($percentagesRaw, true);
+        }
+        $languagePercentages = collect($percentagesRaw ?? [])->filter()->toArray();
+
+        $orders = $maid->orders->sortByDesc('created_at');
+        $contracts = $maid->contracts->sortByDesc('created_at');
+
+        $stats = [
+            'orders_total' => $orders->count(),
+            'orders_active' => $orders->whereIn('status', ['new', 'under_process', 'contracted'])->count(),
+            'contracts_total' => $contracts->count(),
+            'contracts_active' => $contracts->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival'])->count(),
+            'experience_years' => $maid->experience_status === 'has_experience' ? ($maid->experience_years ?? 0) : 0,
+        ];
+
+        $availability = [
+            'status' => $maid->status,
+            'is_show' => $maid->is_show,
+            'available' => $maid->available,
+            'available_at' => $maid->available_at,
+            'created_at' => $maid->created_at,
+        ];
+
+        $activities = method_exists($maid, 'activities')
+            ? $maid->activities()->latest()->limit(10)->get()
+            : collect();
+
+        return view($this->folderPath . '.details', compact(
+            'maid',
+            'orders',
+            'contracts',
+            'skills',
+            'languages',
+            'languagePercentages',
+            'stats',
+            'availability',
+            'activities'
+        ));
     }
 
     public function create(NationalityAction $act, RecruitmentOfficeAction $officeAct, ReligionAction $relAct, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction, SkillAction $skillAction, Request $request)
     {
         if ($request->ajax()) {
-            return $this->createAjaxResponse($act, $officeAct, $relAct, $jobTitleAction, $jobTypesAction, 'create');
+            return $this->createAjaxResponse(
+                $act,
+                $officeAct,
+                $relAct,
+                $jobTitleAction,
+                $jobTypesAction,
+                'create',
+                [
+                    'defaultShelterContract' => '0',
+                    'defaultIsShow' => true,
+                    'isRentalForm' => false,
+                    'formRedirectRoute' => route('maids.index'),
+                    'requireIdFields' => true,
+                ]
+            );
         }
 
         // Handle direct request
         $nationalities = $act->getNationalities();
         $religions = $relAct->getReligions();
         $jobs = $jobTitleAction->getJobsTitles();
-        $types = $jobTypesAction->getJobsTypes();
+        [$types, $defaultTypeId] = $this->prepareJobTypesForForm($jobTypesAction->getJobsTypes());
         $offices = $officeAct->getAllOffices();
         $skills = $skillAction->get();
 
-        return view("{$this->folderPath}.create", compact('nationalities', 'offices', 'religions', 'jobs', 'types', 'skills'));
+        $defaultShelterContract = '0';
+        $defaultIsShow = true;
+        $isRentalForm = false;
+        $formRedirectRoute = route('maids.index');
+        $requireIdFields = true;
+
+        return view(
+            "{$this->folderPath}.create",
+            compact(
+                'nationalities',
+                'offices',
+                'religions',
+                'jobs',
+                'types',
+                'skills',
+                'defaultTypeId',
+                'defaultShelterContract',
+                'defaultIsShow',
+                'isRentalForm',
+                'formRedirectRoute',
+                'requireIdFields'
+            )
+        );
     }
 
     public function store(MaidRequest $request, objAction $action)
@@ -832,19 +1032,74 @@ class MaidController extends Controller
 
     private function createAjaxResponse(NationalityAction $act, RecruitmentOfficeAction $officeAction, ReligionAction $relAct, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction, $viewName, $additionalData = [])
     {
+        $extraData = $additionalData;
         $nationalities = $act->getNationalities();
         $religions = $relAct->getReligions();
         $jobs = $jobTitleAction->getJobsTitles();
-        $types = $jobTypesAction->getJobsTypes();
+        $typesSource = $extraData['types'] ?? $jobTypesAction->getJobsTypes();
+
+        if ($viewName === 'create') {
+            [$types, $defaultTypeId] = $this->prepareJobTypesForForm($typesSource);
+
+            if (!isset($extraData['defaultTypeId'])) {
+                $extraData['defaultTypeId'] = $defaultTypeId;
+            }
+        } else {
+            $types = $typesSource;
+        }
         $offices = $officeAction->getAllOffices();
         $skills = app(SkillAction::class)->get();
-        $data = array_merge(compact('nationalities', 'offices', 'religions', 'jobs', 'types', 'skills'), $additionalData);
+
+        unset($extraData['types']);
+
+        $data = array_merge(compact('nationalities', 'offices', 'religions', 'jobs', 'types', 'skills'), $extraData);
         $returnHTML = view("{$this->folderPath}.{$viewName}", $data)->render();
         return jsonSuccess(['html' => $returnHTML]);
     }
 
+    private function normalizeArabicText(?string $text): string
+    {
+        if ($text === null) {
+            return '';
+        }
+
+        $normalized = mb_strtolower($text, 'UTF-8');
+        $search = ['أ', 'إ', 'آ', 'ى', 'ؤ', 'ئ', 'ة'];
+        $replace = ['ا', 'ا', 'ا', 'ي', 'و', 'ي', 'ه'];
+
+        return trim(str_replace($search, $replace, $normalized));
+    }
+
+    private function prepareJobTypesForForm($types): array
+    {
+        $collection = collect($types);
+
+        $filtered = $collection->filter(function ($type) {
+            $title = $this->normalizeArabicText($type->title ?? '');
+            return !Str::contains($title, ['استلام', 'فوري', 'instant', 'immediate']);
+        })->values();
+
+        $defaultType = $filtered->first(function ($type) {
+            $title = $this->normalizeArabicText($type->title ?? '');
+            return Str::contains($title, ['استقدام', 'recruit']);
+        });
+
+        $defaultTypeId = $defaultType->id ?? ($filtered->first()->id ?? null);
+
+        return [$filtered, $defaultTypeId];
+    }
+
     public function applyMaidFilter($request, $rows)
     {
+        if ($request->filled('keyword')) {
+            $keyword = trim($request->keyword);
+            $rows->where(function ($q) use ($keyword) {
+                $q->where('name', 'like', '%' . $keyword . '%')
+                    ->orWhere('passport_num', 'like', '%' . $keyword . '%')
+                    ->orWhere('id_number', 'like', '%' . $keyword . '%');
+            });
+        }
+
         if ($request->has('passport_num') && $request->passport_num != null) {
             $rows->where('passport_num', 'like', '%' . $request->passport_num . '%');
         }
@@ -860,15 +1115,15 @@ class MaidController extends Controller
             } elseif ($request->order_by == 'low_salary') {
                 $rows->orderBy('salary', 'ASC');
             }
-
         }
-        if ($request->has('job_type') && !empty($request->job_type)) {
+
+        $jobTypeFilter = $request->job_type_id ?? $request->job_type ?? null;
+        if (!empty($jobTypeFilter)) {
+            $jobTypeIds = is_array($jobTypeFilter) ? $jobTypeFilter : [$jobTypeFilter];
             $rows->whereHas('jobTypes', function ($subQ) use ($request) {
-                if (is_array($request->job_type)) {
-                    $subQ->whereIn('job_type_id', $request->job_type);
-                } else {
-                    $subQ->where('job_type_id', $request->job_type);
-                }
+                $filter = $request->job_type_id ?? $request->job_type;
+                $ids = is_array($filter) ? $filter : [$filter];
+                $subQ->whereIn('job_type_id', $ids);
             });
         }
         if ($request->has('experience_years') && $request->experience_years != null) {
@@ -883,6 +1138,43 @@ class MaidController extends Controller
                 $startDate = Carbon::parse($dates[0])->startOfDay();
                 $endDate = Carbon::parse($dates[1])->endOfDay();
                 $rows->whereBetween('created_at', [$startDate, $endDate]);
+            }
+        }
+
+        if ($request->filled('date_from')) {
+            $rows->whereDate('created_at', '>=', Carbon::parse($request->date_from)->startOfDay());
+        }
+
+        if ($request->filled('date_to')) {
+            $rows->whereDate('created_at', '<=', Carbon::parse($request->date_to)->endOfDay());
+        }
+
+        if ($request->filled('status')) {
+            $statuses = (array) $request->status;
+            $rows->whereIn('status', $statuses);
+        }
+
+        if ($request->filled('visibility')) {
+            if ($request->visibility === 'visible') {
+                $rows->where('is_show', true);
+            } elseif ($request->visibility === 'hidden') {
+                $rows->where('is_show', false);
+            }
+        }
+
+        if ($request->filled('pinned')) {
+            if ($request->pinned === 'only') {
+                $rows->where('is_pinned', true);
+            } elseif ($request->pinned === 'unpinned') {
+                $rows->where('is_pinned', false);
+            }
+        }
+
+        if ($request->filled('availability')) {
+            if ($request->availability === 'available') {
+                $rows->where('available', true);
+            } elseif ($request->availability === 'unavailable') {
+                $rows->where('available', false);
             }
         }
 
