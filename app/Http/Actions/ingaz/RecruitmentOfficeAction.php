@@ -22,6 +22,6 @@ class RecruitmentOfficeAction extends MainAction
 
     public function getAllOffices()
     {
-        return $this->model->latest()->get();
+        return $this->model->orderByTranslation('title', 'asc')->get();
     }
 }
