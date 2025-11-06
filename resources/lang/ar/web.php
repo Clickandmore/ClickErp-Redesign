@@ -421,6 +421,7 @@
   ),
   'stage_active' => 'حالة جيدة',
   'complaint' => 'شكوى',
+  'type' => 'النوع',
   'experience_status' => 'حالة الخبرة',
   'sponsorship_transfers' => ' طلبات نقل الكفالة',
   'follow_the_status_of_your_sponsorship_transfers' => ' تابع حالة طلبات نقل الكفالة الخاصة بك',

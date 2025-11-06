@@ -83,7 +83,7 @@
 
         <div class="warning">
             {{__('ingaz.warning')}} :
-            @if(isset($settings))
+    @if(isset($settings))
         {{ app()->getLocale() == 'ar' ? $settings->note_ar : $settings->note_en }}
     @else
         {{__('ingaz.warning_text')}}
@@ -101,18 +101,21 @@
 
         <div class="services-container">
             @forelse($whatDos as $whatDo)
-                <div class="service-card green">
-                    <div class="icon green">
-                        <i class="{{$whatDo->icon}}"></i>
+                <a href="{{route('site.all-workers.index')}}?type={{$whatDo->type}}">
+                    <div class="service-card green">
+                        <div class="icon green">
+                            <i class="{{$whatDo->icon}}"></i>
+                        </div>
+                        <h4>{{$whatDo->title}}</h4>
+                        <p>{{$whatDo->description}}</p>
+                        <ul>
+                            @foreach($whatDo->items as $item)
+                                <li>{{$item->title}}</li>
+                            @endforeach
+                        </ul>
                     </div>
-                    <h4>{{$whatDo->title}}</h4>
-                    <p>{{$whatDo->description}}</p>
-                    <ul>
-                        @foreach($whatDo->items as $item)
-                            <li>{{$item->title}}</li>
-                        @endforeach
-                    </ul>
-                </div>
+                </a>
+
             @empty
                 <div class="service-card green">
                     <div class="icon green">

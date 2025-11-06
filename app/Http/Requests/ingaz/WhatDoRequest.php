@@ -30,6 +30,7 @@ class WhatDoRequest extends MainRequest
             'description:ar' => 'string',
             'description:en' => 'string',
             'icon' => 'string',
+            'type' => 'string',
             'titles' => 'array',
             'image' => [$this->isMethod('post') ? 'nullable' : ''],
         ];

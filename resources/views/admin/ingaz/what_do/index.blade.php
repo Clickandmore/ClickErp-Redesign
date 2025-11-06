@@ -5,17 +5,16 @@
     {{helperTrans("ingaz.what_do")}}
 @endsection
 @section('content')
-
-
+    @if($data['count'] < 4)
         {!! addButton(route("what-do.create") ,helperTrans("ingaz.what_do")) !!}
-
+    @endif
     <p></p>
     <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
         <thead>
         <tr>
             <th>#</th>
             <th>{{helperTrans("ingaz.image")}}</th>
-             <th>{{helperTrans("ingaz.title")}}</th>
+            <th>{{helperTrans("ingaz.title")}}</th>
             <th>{{helperTrans("ingaz.actions")}}</th>
 
         </tr>
@@ -24,7 +23,6 @@
 
         </tbody>
     </table>
-
 
 @endsection
 @section('js')
@@ -36,9 +34,9 @@
             let columns = [
                 {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                 {"data": "image", orderable: true, searchable: true},
-                 {"data": "title", orderable: true, searchable: true},
+                {"data": "title", orderable: true, searchable: true},
 
-                 {"data": "actions", orderable: false, searchable: false}
+                {"data": "actions", orderable: false, searchable: false}
             ];
             showDataTable("{{route("what-do.index")}}", columns);
         });
