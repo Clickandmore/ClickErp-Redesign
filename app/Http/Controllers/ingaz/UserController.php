@@ -214,53 +214,59 @@ class UserController extends Controller
                             </div>';
                 })
                 ->addColumn('actions', function ($row) {
-                    $actions = '<div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-cogs me-1"></i>' . helperTrans('ingaz.actions_menu') . '
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow">'; // start menu
+                    $menuItems = '';
+                    $hasManagementDivider = false;
 
                     if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_SHOW)) {
-                        $actions .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.show', $row->id) . '">
+                        $menuItems .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.show', $row->id) . '">
                             <i class="fas fa-eye me-2 text-primary"></i>' . helperTrans('ingaz.view_details') . '
                         </a></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_CREATE_RECRUITMENT)) {
-                        $actions .= '<li><a class="dropdown-item" href="' . route('admin.recruitment.select.maid', ['client_id' => $row->id]) . '">
+                        $menuItems .= '<li><a class="dropdown-item" href="' . route('admin.recruitment.select.maid', ['client_id' => $row->id]) . '">
                             <i class="fas fa-user-plus me-2 text-success"></i>' . helperTrans('ingaz.create_recruitment_request') . '
                         </a></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE)) {
-                        $actions .= '<li><a class="dropdown-item" href="' . route('RentContract.create', ['client_id' => $row->id]) . '">
+                        $menuItems .= '<li><a class="dropdown-item" href="' . route('RentContract.create', ['client_id' => $row->id]) . '">
                             <i class="fas fa-file-contract me-2 text-info"></i>' . helperTrans('ingaz.create_rent_contract') . '
                         </a></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_CREATE)) {
-                        $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.create', ['new_sponsor_id' => $row->id]) . '">
+                        $menuItems .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.create', ['new_sponsor_id' => $row->id]) . '">
                             <i class="fas fa-random me-2 text-warning"></i>' . helperTrans('ingaz.create_transfer_request') . '
                         </a></li>';
                     }
 
-                    if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EDIT) || @AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE)) {
-                        $actions .= '<li><hr class="dropdown-divider"></li>';
-                    }
-
                     if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EDIT)) {
-                        $actions .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.edit', $row->id) . '">
+                        if ($menuItems !== '' && !$hasManagementDivider) {
+                            $menuItems .= '<li><hr class="dropdown-divider"></li>';
+                            $hasManagementDivider = true;
+                        }
+                        $menuItems .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.edit', $row->id) . '">
                             <i class="fas fa-edit me-2 text-secondary"></i>' . helperTrans('ingaz.edit_client') . '
                         </a></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE)) {
-                        $actions .= '<li><div class="dropdown-item p-0">' . deleteButton(route($this->mainRoute . ".destroy", $row->id)) . '</div></li>';
+                        if ($menuItems !== '' && !$hasManagementDivider) {
+                            $menuItems .= '<li><hr class="dropdown-divider"></li>';
+                            $hasManagementDivider = true;
+                        }
+                        $menuItems .= '<li><div class="dropdown-item p-0">' . deleteButton(route($this->mainRoute . ".destroy", $row->id)) . '</div></li>';
                     }
 
-                    $actions .= '</ul></div>';
-
-                    return $actions;
+                    return '<div class="dropdown actions-dropdown">
+                                <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                    <i class="fas fa-cogs me-1"></i>' . helperTrans('ingaz.actions_menu') . '
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-lg">
+                                    ' . $menuItems . '
+                                </ul>
+                            </div>';
                 })
                 ->rawColumns(['name', 'actions', 'is_blocked', 'phone', 'created_at', 'metrics'])
                 ->make(true);

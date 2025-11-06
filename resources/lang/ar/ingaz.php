@@ -463,6 +463,7 @@
   'no_addresses' => 'لا توجد عناوين مسجلة',
   'assigned_to' => 'الموظف المسؤول',
   'last_update' => 'آخر تحديث',
+  'maids_management' => 'إدارة السير الذاتية',
   'pinned' => 'مثبتة',
   'maid_status_available' => 'متاحة',
   'maid_status_reserved' => 'محجوزة',

@@ -185,38 +185,37 @@ class MaidController extends Controller
                         . '</div>';
                 })
                 ->addColumn('actions', function (Maid $row) {
-                    $actions = [];
+                    $menuItems = '';
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHOW)) {
-                        $actions[] = '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '"><i class="fas fa-eye text-primary me-2"></i>' . helperTrans('ingaz.view_details') . '</a></li>';
+                        $menuItems .= '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '"><i class="fas fa-eye text-primary me-2"></i>' . helperTrans('ingaz.view_details') . '</a></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
-                        $actions[] = '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.edit', $row->id) . '"><i class="fas fa-edit text-secondary me-2"></i>' . helperTrans('ingaz.edit_maid') . '</a></li>';
+                        $menuItems .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.edit', $row->id) . '"><i class="fas fa-edit text-secondary me-2"></i>' . helperTrans('ingaz.edit_maid') . '</a></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_STATUS)) {
-                        $actions[] = '<li><button class="dropdown-item update-status" data-id="' . $row->id . '"><i class="fas fa-adjust text-muted me-2"></i>' . helperTrans('ingaz.toggle_visibility') . '</button></li>';
+                        $menuItems .= '<li><button class="dropdown-item update-status" data-id="' . $row->id . '"><i class="fas fa-adjust text-muted me-2"></i>' . helperTrans('ingaz.toggle_visibility') . '</button></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_PIN) && $row->available == 1) {
                         $pinLabel = $row->is_pinned ? helperTrans('ingaz.unpin_maid') : helperTrans('ingaz.pin_maid');
-                        $actions[] = '<li><button class="dropdown-item toggle-pin" data-id="' . $row->id . '" data-pinned="' . ($row->is_pinned ? 'true' : 'false') . '"><i class="fas fa-thumbtack text-warning me-2"></i>' . $pinLabel . '</button></li>';
+                        $menuItems .= '<li><button class="dropdown-item toggle-pin" data-id="' . $row->id . '" data-pinned="' . ($row->is_pinned ? 'true' : 'false') . '"><i class="fas fa-thumbtack text-warning me-2"></i>' . $pinLabel . '</button></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_DELETE)) {
-                        $actions[] = '<li><div class="dropdown-item p-0">' . deleteButton(route($this->mainRoute . ".destroy", $row->id)) . '</div></li>';
+                        $menuItems .= '<li><div class="dropdown-item p-0">' . deleteButton(route($this->mainRoute . ".destroy", $row->id)) . '</div></li>';
                     }
 
-                    $actionsHtml = implode('', $actions);
-                    $actionsLabel = helperTrans('ingaz.actions_menu');
-
-                    return '<div class="btn-group">'
-                        . '<button class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">'
-                        . '<i class="fas fa-cogs me-1"></i>' . $actionsLabel
-                        . '</button>'
-                        . '<ul class="dropdown-menu dropdown-menu-end shadow">' . $actionsHtml . '</ul>'
-                        . '</div>';
+                    return '<div class="dropdown actions-dropdown">
+                                <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                    <i class="fas fa-cogs me-1"></i>' . helperTrans('ingaz.actions_menu') . '
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-lg">
+                                    ' . $menuItems . '
+                                </ul>
+                            </div>';
                 })
                 ->rawColumns(['profile', 'status_badge', 'job_info', 'metrics', 'actions'])
                 ->make(true);

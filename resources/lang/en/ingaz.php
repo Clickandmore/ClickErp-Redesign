@@ -360,6 +360,7 @@
     'new_sponsor' => 'New Sponsor',
     'assigned_to' => 'Assigned To',
     'last_update' => 'Last Update',
+    'maids_management' => 'Maids Management',
     'add_maid' => 'Add Maid',
     'pinned' => 'Pinned',
     'maid_status_available' => 'Available',
