@@ -47,6 +47,15 @@
                                     <p>{{ __('ingaz.cost_with_tax') }} : {{ $maid->salary ?? '' }}
                                         {{ __('ingaz.SAR') }}</p>
                                 </div>
+                                <!-- worker sallery  -->
+                                     <div class="worker-salary">
+                            <p class="old-salary">
+                              قبل الخصم : <span>7000 ريال</span>
+                            </p>
+                            <p class="new-salary">
+                              الآن : <span>6500 ريال</span>
+                            </p>
+                          </div>
                                 <p class="guarantee">
                                     {{ __('ingaz.cv_alert') }}
                                 </p>

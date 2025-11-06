@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\site\AntiTrafickingController;
+use App\Http\Controllers\site\auth\ResendOTPController;
 use App\Http\Controllers\site\EagarRequestController;
 use App\Http\Controllers\site\PackagesController;
 use App\Http\Controllers\site\PoliciesController;
@@ -70,6 +71,7 @@ Route::group(
         Route::resource('change-password', ChangePasswordController::class);
         Route::resource('otp', OtpController::class);
         Route::resource('otp-register', OtpRegisterController::class);
+        Route::resource('resend-otp', ResendOTPController::class);
         Route::resource('all-workers', AllWorkerController::class);
         Route::resource('musaned', MusanedController::class);
         Route::resource('arrival-worker', ArrivalWorkerController::class);
