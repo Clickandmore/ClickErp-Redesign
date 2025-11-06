@@ -5,7 +5,13 @@ namespace App\Http\Controllers\ingaz;
 use App\Http\Actions\ingaz\UserAction as objAction;
 use App\Http\Controllers\Controller;
 use App\Models\ingaz\User as objModel;
+use App\Models\ingaz\Order;
+use App\Models\Country;
+use App\Models\City;
+use App\Models\RentalContract;
+use App\Models\SponsorshipTransfer;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 use Yajra\DataTables\Facades\DataTables;
 use Spatie\Activitylog\Models\Activity;
 use App\Keys;
@@ -33,47 +39,230 @@ class UserController extends Controller
     public function index(Request $request, objAction $Action)
     {
         if ($request->ajax()) {
-            $units = objModel::query()->orderBy("id", "desc");
+            $units = objModel::query()
+                ->with(['nationality'])
+                ->withCount([
+                    'orders as orders_count',
+                    'orders as active_orders_count' => function ($query) {
+                        $query->whereNotIn('status', ['completed', 'done', 'refused', 'return']);
+                    },
+                    'rentalContracts as rental_contracts_count',
+                    'sponsorshipTransfersAsNewSponsor as transfer_requests_count',
+                ])
+                ->addSelect([
+                    'last_order_at' => Order::select('created_at')
+                        ->whereColumn('user_id', 'users.id')
+                        ->latest('created_at')
+                        ->limit(1),
+                    'last_rental_contract_at' => RentalContract::select('created_at')
+                        ->whereColumn('user_id', 'users.id')
+                        ->latest('created_at')
+                        ->limit(1),
+                    'last_transfer_request_at' => SponsorshipTransfer::select('created_at')
+                        ->whereColumn('new_sponsor_id', 'users.id')
+                        ->latest('created_at')
+                        ->limit(1),
+                ])
+                ->orderByDesc('id');
+
+            if ($request->filled('status')) {
+                $status = $request->get('status');
+                if ($status === 'active') {
+                    $units->where('is_blocked', 0);
+                } elseif ($status === 'blocked') {
+                    $units->where('is_blocked', 1);
+                }
+            }
+
+            if ($request->filled('nationality_id')) {
+                $units->where('nationality_id', $request->get('nationality_id'));
+            }
+
+            if ($request->filled('city')) {
+                $units->where('city', $request->get('city'));
+            }
+
+            if ($request->filled('has_orders')) {
+                $hasOrders = $request->get('has_orders');
+                if ($hasOrders === 'with') {
+                    $units->whereHas('orders');
+                } elseif ($hasOrders === 'without') {
+                    $units->doesntHave('orders');
+                }
+            }
+
+            if ($request->filled('date_from')) {
+                $from = Carbon::parse($request->get('date_from'))->startOfDay();
+                $units->whereDate('created_at', '>=', $from);
+            }
+
+            if ($request->filled('date_to')) {
+                $to = Carbon::parse($request->get('date_to'))->endOfDay();
+                $units->whereDate('created_at', '<=', $to);
+            }
+
+            if ($request->filled('keyword')) {
+                $keyword = trim($request->get('keyword'));
+                $units->where(function ($query) use ($keyword) {
+                    $query->where('name', 'like', '%' . $keyword . '%')
+                        ->orWhere('email', 'like', '%' . $keyword . '%')
+                        ->orWhere('phone', 'like', '%' . $keyword . '%')
+                        ->orWhere('phone2', 'like', '%' . $keyword . '%')
+                        ->orWhere('national_num', 'like', '%' . $keyword . '%');
+                });
+            }
 
             return DataTables::of($units)
                 ->addIndexColumn()
+                ->editColumn('name', function ($row) {
+                    $nationality = $row->nationality ? $row->nationality->title : helperTrans('ingaz.not_specified');
+                    $city = $row->city ?: helperTrans('ingaz.not_specified');
+                    $idNumber = $row->national_num ? '<span class="badge bg-light text-dark border me-1"><i class="fas fa-id-card me-1"></i>' . e($row->national_num) . '</span>' : '';
+                    $badge = $row->is_blocked == 0
+                        ? '<span class="badge bg-success-subtle text-success border border-success-subtle">' . helperTrans('ingaz.active') . '</span>'
+                        : '<span class="badge bg-danger-subtle text-danger border border-danger-subtle">' . helperTrans('ingaz.blocked') . '</span>';
+
+                    return '<div class="d-flex flex-column gap-1">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-semibold text-dark">' . e($row->name) . '</span>
+                            ' . $badge . '
+                        </div>
+                        <div class="small text-muted">
+                            <i class="fas fa-flag me-1"></i>' . e($nationality) . '
+                            <span class="mx-2">•</span>
+                            <i class="fas fa-city me-1"></i>' . e($city) . '
+                        </div>
+                        <div>' . $idNumber . '</div>
+                    </div>';
+                })
                 ->editColumn('is_blocked', function ($row) {
-                    return
-                        $row->is_blocked == 0 ? '<span class="badge bg-success">مفعل</span>' :
-                            '<span class="badge bg-danger">محظور</span>';
+                    if ($row->is_blocked == 0) {
+                        return '<span class="badge bg-success rounded-pill px-3">' . helperTrans('ingaz.active') . '</span>';
+                    }
+                    return '<span class="badge bg-danger rounded-pill px-3">' . helperTrans('ingaz.blocked') . '</span>';
                 })
                 ->editColumn('phone', function ($row) {
-                    return getPhoneWithTag($row->phone_code.$row->phone);
+                    $primary = $row->phone
+                        ? '<a href="tel:' . e($row->phone_code . $row->phone) . '" class="text-decoration-none">
+                                <i class="fas fa-phone-alt me-1 text-success"></i>' . e($row->phone_code . $row->phone) . '
+                            </a>'
+                        : '<span class="text-muted">' . helperTrans('ingaz.not_specified') . '</span>';
+
+                    $secondary = $row->phone2
+                        ? '<a href="tel:' . e($row->phone2) . '" class="text-decoration-none">
+                                <i class="fas fa-phone me-1 text-muted"></i>' . e($row->phone2) . '
+                            </a>'
+                        : '';
+
+                    $email = $row->email
+                        ? '<a href="mailto:' . e($row->email) . '" class="text-decoration-none">
+                                <i class="fas fa-envelope me-1 text-primary"></i>' . e($row->email) . '
+                            </a>'
+                        : '';
+
+                    return '<div class="d-flex flex-column gap-1">
+                                <div>' . $primary . '</div>
+                                ' . ($secondary ? '<div>' . $secondary . '</div>' : '') . '
+                                ' . ($email ? '<div>' . $email . '</div>' : '') . '
+                            </div>';
                 })
                 ->editColumn('created_at', function ($row) {
-                    return (isset($row->created_at)) ? $row->created_at->diffForHumans() : '-';
+                    if (!isset($row->created_at)) {
+                        return '-';
+                    }
+
+                    $createdAt = $row->created_at->format('Y-m-d');
+                    $human = $row->created_at->diffForHumans();
+
+                    return '<div class="d-flex flex-column">
+                                <span class="fw-semibold">' . $createdAt . '</span>
+                                <span class="text-muted small">' . $human . '</span>
+                            </div>';
+                })
+                ->addColumn('metrics', function ($row) {
+                    $ordersCount = number_format((int) $row->orders_count);
+                    $activeOrders = number_format((int) $row->active_orders_count);
+                    $rentalCount = number_format((int) $row->rental_contracts_count);
+                    $transferCount = number_format((int) $row->transfer_requests_count);
+
+                    $lastOrder = $row->last_order_at ? Carbon::parse($row->last_order_at)->diffForHumans() : helperTrans('ingaz.not_specified');
+                    $lastRental = $row->last_rental_contract_at ? Carbon::parse($row->last_rental_contract_at)->diffForHumans() : helperTrans('ingaz.not_specified');
+                    $lastTransfer = $row->last_transfer_request_at ? Carbon::parse($row->last_transfer_request_at)->diffForHumans() : helperTrans('ingaz.not_specified');
+
+                    return '<div class="d-flex flex-column gap-2">
+                                <div class="d-flex flex-wrap gap-2">
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                        <i class="fas fa-clipboard-list me-1"></i>' . helperTrans('ingaz.total_orders_count') . ': ' . $ordersCount . '
+                                    </span>
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                                        <i class="fas fa-tasks me-1"></i>' . helperTrans('ingaz.active_orders_count') . ': ' . $activeOrders . '
+                                    </span>
+                                </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                        <i class="fas fa-file-contract me-1"></i>' . helperTrans('ingaz.rental_contracts_count') . ': ' . $rentalCount . '
+                                    </span>
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                        <i class="fas fa-exchange-alt me-1"></i>' . helperTrans('ingaz.transfer_requests_count') . ': ' . $transferCount . '
+                                    </span>
+                                </div>
+                                <div class="small text-muted">
+                                    <div><i class="fas fa-history me-1"></i>' . helperTrans('ingaz.last_order_activity') . ': ' . $lastOrder . '</div>
+                                    <div><i class="fas fa-handshake me-1"></i>' . helperTrans('ingaz.last_rental_activity') . ': ' . $lastRental . '</div>
+                                    <div><i class="fas fa-random me-1"></i>' . helperTrans('ingaz.last_transfer_activity') . ': ' . $lastTransfer . '</div>
+                                </div>
+                            </div>';
                 })
                 ->addColumn('actions', function ($row) {
-                    $buttons = '';
+                    $actions = '<div class="btn-group">
+                        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-cogs me-1"></i>' . helperTrans('ingaz.actions_menu') . '
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow">'; // start menu
 
-                    // Add recruitment request button first
-                    if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_CREATE_RECRUITMENT)) {
-                        $buttons .= '<a href="' . route('admin.recruitment.select.maid', ['client_id' => $row->id]) . '" class="btn btn-sm btn-success me-1">' . __('ingaz.create_recruitment') . '</a> ';
-                    }
-
-                    // Show client details
                     if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_SHOW)) {
-                        $buttons .= '<a href="' . route($this->mainRoute . '.show', $row->id) . '" class="btn btn-sm btn-info me-1" title="عرض التفاصيل وطلبات نقل الكفالة">' . __('ingaz.show') . '</a> ';
+                        $actions .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.show', $row->id) . '">
+                            <i class="fas fa-eye me-2 text-primary"></i>' . helperTrans('ingaz.view_details') . '
+                        </a></li>';
                     }
 
-                    // Edit client
+                    if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_CREATE_RECRUITMENT)) {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('admin.recruitment.select.maid', ['client_id' => $row->id]) . '">
+                            <i class="fas fa-user-plus me-2 text-success"></i>' . helperTrans('ingaz.create_recruitment_request') . '
+                        </a></li>';
+                    }
+
+                    if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE)) {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('RentContract.create', ['client_id' => $row->id]) . '">
+                            <i class="fas fa-file-contract me-2 text-info"></i>' . helperTrans('ingaz.create_rent_contract') . '
+                        </a></li>';
+                    }
+
+                    if (@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_CREATE)) {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.create', ['new_sponsor_id' => $row->id]) . '">
+                            <i class="fas fa-random me-2 text-warning"></i>' . helperTrans('ingaz.create_transfer_request') . '
+                        </a></li>';
+                    }
+
+                    if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EDIT) || @AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE)) {
+                        $actions .= '<li><hr class="dropdown-divider"></li>';
+                    }
+
                     if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EDIT)) {
-                        $buttons .= '<a href="' . route($this->mainRoute . '.edit', $row->id) . '" class="btn btn-sm btn-primary me-1">' . __('ingaz.edit') . '</a> ';
+                        $actions .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.edit', $row->id) . '">
+                            <i class="fas fa-edit me-2 text-secondary"></i>' . helperTrans('ingaz.edit_client') . '
+                        </a></li>';
                     }
 
-                    // Delete client
                     if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE)) {
-                        $buttons .= deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                        $actions .= '<li><div class="dropdown-item p-0">' . deleteButton(route($this->mainRoute . ".destroy", $row->id)) . '</div></li>';
                     }
 
-                    return $buttons;
+                    $actions .= '</ul></div>';
+
+                    return $actions;
                 })
-                ->rawColumns(['actions', 'is_blocked', 'phone'])
+                ->rawColumns(['name', 'actions', 'is_blocked', 'phone', 'created_at', 'metrics'])
                 ->make(true);
         }
         $data["createRoute"] = route($this->mainRoute . ".create");
@@ -81,6 +270,15 @@ class UserController extends Controller
         $data["bladeTitle"] = __("auth.clients");
         $data["addButtonText"] = __("auth.clients");
         $data["modalType"] = "";
+        $data['stats'] = [
+            'total' => objModel::count(),
+            'active' => objModel::where('is_blocked', 0)->count(),
+            'blocked' => objModel::where('is_blocked', 1)->count(),
+            'new_this_month' => objModel::whereBetween('created_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])->count(),
+            'with_orders' => objModel::has('orders')->count(),
+        ];
+        $data['nationalities'] = Country::active()->ordered()->get(['id', 'name_ar', 'name_en']);
+        $data['cities'] = City::active()->ordered()->get(['id', 'name_ar', 'name_en']);
         return view($this->folderPath . '.index', $data);
     }
 
@@ -188,8 +386,38 @@ class UserController extends Controller
             abort(403, 'ليس لديك صلاحية لعرض تفاصيل العميل');
         }
 
-        // Mahmoud Amer's code (Used eager loading)
-        $client = objModel::with(['activities','messages','complaints', 'orders'])->findOrFail($id);
+        $client = objModel::with([
+            'nationality',
+            'addresses.country',
+            'orders' => function ($query) {
+                $query->with([
+                    'maid',
+                    'details.admin',
+                    'package',
+                    'address.country'
+                ])->latest();
+            },
+            'complaints' => function ($query) {
+                $query->with(['assignedTo'])->latest();
+            },
+            'messages' => function ($query) {
+                $query->latest();
+            },
+            'rentalContracts' => function ($query) {
+                $query->with(['maid', 'info'])->latest();
+            }
+        ])->findOrFail($id);
+
+        $activities = $client->activities()->latest()->limit(15)->get()->map(function ($activity) {
+            $activity->causer_name = null;
+            $causerType = $activity->causer_type;
+
+            if ($causerType && class_exists($causerType)) {
+                $activity->causer_name = optional($activity->causer)->name;
+            }
+
+            return $activity;
+        });
 
         // جلب طلبات نقل الكفالة للعميل
         $sponsorshipTransfers = \App\Models\SponsorshipTransfer::with([
@@ -204,15 +432,31 @@ class UserController extends Controller
                   ->orWhere('new_sponsor_id', $client->id);
         })->orderBy('created_at', 'desc')->get();
 
-        // Mahmoud Amer's code
-        // logger()->info('Show Data from DB', [
-        //     'client' => $client ?? 'null',
-        //     'activity_logs' => $client->activities ?? 'null',
-        //     'messages' => $client->messages ?? 'null',
-        //     'complaints' => $client->complaints ?? 'null',
-        //     'orders' => $client->orders ?? 'null',
-        // ]);
-        return view($this->folderPath . '.show', compact('client', 'sponsorshipTransfers'));
+        $stats = [
+            'total_orders' => $client->orders->count(),
+            'active_orders' => $client->orders->whereNotIn('status', ['completed', 'done', 'refused', 'return'])->count(),
+            'completed_orders' => $client->orders->whereIn('status', ['completed', 'done'])->count(),
+            'rental_contracts' => $client->rentalContracts->count(),
+            'transfer_requests' => $sponsorshipTransfers->count(),
+            'complaints' => $client->complaints->count(),
+        ];
+
+        $lastInteractions = collect([
+            optional($client->orders->first())->created_at,
+            optional($client->messages->first())->created_at,
+            optional($client->complaints->first())->created_at,
+            optional($sponsorshipTransfers->first())->created_at,
+        ])->filter()->sortDesc()->values();
+
+        $lastInteractionAt = $lastInteractions->first();
+
+        return view($this->folderPath . '.show', compact(
+            'client',
+            'sponsorshipTransfers',
+            'stats',
+            'activities',
+            'lastInteractionAt'
+        ));
     }
 
     /**

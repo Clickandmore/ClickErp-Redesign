@@ -9,6 +9,7 @@ use App\Models\ContractInfo;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\User as ClientUser;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class MaidAction extends MainAction
 {
@@ -216,6 +217,14 @@ class MaidAction extends MainAction
         // Debug: Log the data being sent to create
         \Log::info('Maid creation data:', $data);
 
+        // Detect optional columns to avoid SQL errors on environments without the migration
+        $requestTypeColumnExists = Schema::hasColumn('maids', 'request_type');
+        $offerPriceColumnExists = Schema::hasColumn('maids', 'offer_price');
+        $offerDurationColumnExists = Schema::hasColumn('maids', 'offer_duration');
+        $offerDescriptionColumnExists = Schema::hasColumn('maids', 'offer_description');
+        $offerStartsColumnExists = Schema::hasColumn('maids', 'offer_starts_at');
+        $offerExpiresColumnExists = Schema::hasColumn('maids', 'offer_expires_at');
+
         // Ensure all required fields are present in the data array
         $createData = [
             'nationality_id' => $data['nationality_id'],
@@ -248,13 +257,27 @@ class MaidAction extends MainAction
             'available_at' => $data['available_at'],
             'is_show' => $data['is_show'],
             'name' => $data['name'],
-            'request_type' => $data['request_type'],
-            'offer_price' => $data['offer_price'] ?? null,
-            'offer_duration' => $data['offer_duration'] ?? null,
-            'offer_description' => $data['offer_description'] ?? null,
-            'offer_starts_at' => $data['offer_starts_at'] ?? null,
-            'offer_expires_at' => $data['offer_expires_at'] ?? null
         ];
+
+        if ($requestTypeColumnExists) {
+            $createData['request_type'] = $data['request_type'] ?? 'known';
+        }
+
+        if ($offerPriceColumnExists) {
+            $createData['offer_price'] = $data['offer_price'] ?? null;
+        }
+        if ($offerDurationColumnExists) {
+            $createData['offer_duration'] = $data['offer_duration'] ?? null;
+        }
+        if ($offerDescriptionColumnExists) {
+            $createData['offer_description'] = $data['offer_description'] ?? null;
+        }
+        if ($offerStartsColumnExists) {
+            $createData['offer_starts_at'] = $data['offer_starts_at'] ?? null;
+        }
+        if ($offerExpiresColumnExists) {
+            $createData['offer_expires_at'] = $data['offer_expires_at'] ?? null;
+        }
 
         \Log::info('Final create data:', $createData);
         \Log::info('About to create maid with data keys: ' . implode(', ', array_keys($createData)));
@@ -413,6 +436,13 @@ class MaidAction extends MainAction
 
         $maid = parent::find($id);
 
+        $requestTypeColumnExists = Schema::hasColumn('maids', 'request_type');
+        $offerPriceColumnExists = Schema::hasColumn('maids', 'offer_price');
+        $offerDurationColumnExists = Schema::hasColumn('maids', 'offer_duration');
+        $offerDescriptionColumnExists = Schema::hasColumn('maids', 'offer_description');
+        $offerStartsColumnExists = Schema::hasColumn('maids', 'offer_starts_at');
+        $offerExpiresColumnExists = Schema::hasColumn('maids', 'offer_expires_at');
+
         $experienceStatusValue = $data['experience_status'] ?? $maid->experience_status ?? 'no_experience';
         unset($data['duration'], $data['additional_notes'], $data['id']);
         if ($experienceStatusValue === 'has_experience') {
@@ -522,26 +552,50 @@ class MaidAction extends MainAction
             ]);
         }
 
-        $data['request_type'] = $data['request_type'] ?? $maid->request_type ?? 'known';
+        if ($requestTypeColumnExists) {
+            $data['request_type'] = $data['request_type'] ?? $maid->request_type ?? 'known';
+        } else {
+            unset($data['request_type']);
+        }
 
-        $offerPrice = $data['offer_price'] ?? null;
-        $data['offer_price'] = ($offerPrice === '' || $offerPrice === null) ? null : round((float)$offerPrice, 2);
+        if ($offerPriceColumnExists) {
+            $offerPrice = $data['offer_price'] ?? null;
+            $data['offer_price'] = ($offerPrice === '' || $offerPrice === null) ? null : round((float)$offerPrice, 2);
+        } else {
+            unset($data['offer_price']);
+        }
 
-        $data['offer_duration'] = array_key_exists('offer_duration', $data)
-            ? ((isset($data['offer_duration']) && trim((string)$data['offer_duration']) !== '') ? $data['offer_duration'] : null)
-            : $maid->offer_duration;
+        if ($offerDurationColumnExists) {
+            $data['offer_duration'] = array_key_exists('offer_duration', $data)
+                ? ((isset($data['offer_duration']) && trim((string)$data['offer_duration']) !== '') ? $data['offer_duration'] : null)
+                : $maid->offer_duration;
+        } else {
+            unset($data['offer_duration']);
+        }
 
-        $data['offer_description'] = array_key_exists('offer_description', $data)
-            ? ((isset($data['offer_description']) && trim((string)$data['offer_description']) !== '') ? $data['offer_description'] : null)
-            : $maid->offer_description;
+        if ($offerDescriptionColumnExists) {
+            $data['offer_description'] = array_key_exists('offer_description', $data)
+                ? ((isset($data['offer_description']) && trim((string)$data['offer_description']) !== '') ? $data['offer_description'] : null)
+                : $maid->offer_description;
+        } else {
+            unset($data['offer_description']);
+        }
 
-        $data['offer_starts_at'] = isset($data['offer_starts_at']) && $data['offer_starts_at']
-            ? date('Y-m-d', strtotime($data['offer_starts_at']))
-            : null;
+        if ($offerStartsColumnExists) {
+            $data['offer_starts_at'] = isset($data['offer_starts_at']) && $data['offer_starts_at']
+                ? date('Y-m-d', strtotime($data['offer_starts_at']))
+                : null;
+        } else {
+            unset($data['offer_starts_at']);
+        }
 
-        $data['offer_expires_at'] = isset($data['offer_expires_at']) && $data['offer_expires_at']
-            ? date('Y-m-d', strtotime($data['offer_expires_at']))
-            : null;
+        if ($offerExpiresColumnExists) {
+            $data['offer_expires_at'] = isset($data['offer_expires_at']) && $data['offer_expires_at']
+                ? date('Y-m-d', strtotime($data['offer_expires_at']))
+                : null;
+        } else {
+            unset($data['offer_expires_at']);
+        }
 
 
         $row = parent::find($id);
