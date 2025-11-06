@@ -33,7 +33,8 @@ class JobTypeAction extends MainAction
         return parent::update($id, $data);
     }
 
-    public function getJobsTypes(){
-        return $this->model->latest()->get();
+    public function getJobsTypes()
+    {
+        return $this->model->orderByTranslation('title', 'asc')->get();
     }
 }

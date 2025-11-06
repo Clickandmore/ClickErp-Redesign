@@ -12,6 +12,8 @@ use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Notifications\Notifiable;
 use App\Models\Message;
 use Spatie\Activitylog\Models\Activity;
+use App\Models\RentalContract;
+use App\Models\SponsorshipTransfer;
 
 class User extends Authenticatable implements JWTSubject
 {
@@ -69,12 +71,27 @@ class User extends Authenticatable implements JWTSubject
     }
 
     // Mahmoud Amer's code
-     public function messages()
+    public function messages()
     {
         return $this->hasMany(Message::class, 'user_id');
     }
     public function activities()
     {
         return $this->hasMany(Activity::class, 'subject_id');
+    }
+
+    public function rentalContracts()
+    {
+        return $this->hasMany(RentalContract::class, 'user_id');
+    }
+
+    public function sponsorshipTransfersAsNewSponsor()
+    {
+        return $this->hasMany(SponsorshipTransfer::class, 'new_sponsor_id');
+    }
+
+    public function sponsorshipTransfersAsOldSponsor()
+    {
+        return $this->hasMany(SponsorshipTransfer::class, 'old_sponsor_id');
     }
 }

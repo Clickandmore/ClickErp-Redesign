@@ -3,6 +3,20 @@
     {{__("ingaz.cv_details")}}
 @endsection
 @section('content')
+    @php
+        $todayDate = now()->toDateString();
+        $offerStarts = optional($maid->offer_starts_at)->format('Y-m-d');
+        $offerExpires = optional($maid->offer_expires_at)->format('Y-m-d');
+        $offerPriceRaw = $maid->offer_price !== null ? (float) $maid->offer_price : null;
+        $salaryRaw = $maid->salary !== null ? (float) $maid->salary : null;
+        $priceRaw = ($maid->price && (float) $maid->price > 0) ? (float) $maid->price : null;
+        $priceDisplay = $priceRaw !== null ? number_format($priceRaw, 2) : null;
+        $salaryDisplay = $salaryRaw !== null ? number_format($salaryRaw, 2) : null;
+        $offerActive = $offerPriceRaw !== null
+            && (empty($offerStarts) || $offerStarts <= $todayDate)
+            && (empty($offerExpires) || $offerExpires >= $todayDate);
+        $offerPriceDisplay = $offerPriceRaw !== null ? number_format($offerPriceRaw, 2) : null;
+    @endphp
     <!-- cv page -->
     <div class="cvPage">
         <div class="shape1"></div>
@@ -35,10 +49,28 @@
                 <img src="{{ showFile($maid->image) }}" alt=""/>
             </div>
             <div class="mainInfo">
-                <div class="sub">
-                    <h5 class="title">{{ __('ingaz.month_salary') }} :</h5>
-                    <p class="dis">{{ $maid->salary ?? '' }} {{ __('ingaz.SAR') }}</p>
-                </div>
+                @if($offerActive && $offerPriceDisplay)
+                    <div class="sub">
+                        <h5 class="title text-warning"><i class="fas fa-tags me-2"></i>{{ __('ingaz.offer_price_new') }}</h5>
+                        <p class="dis fw-bold text-warning">{{ $offerPriceDisplay }} {{ __('ingaz.SAR') }}</p>
+                        @if($priceDisplay && $offerPriceRaw < $priceRaw)
+                            <p class="dis text-muted text-decoration-line-through">{{ $priceDisplay }} {{ __('ingaz.SAR') }}</p>
+                        @endif
+                        <p class="dis text-secondary mb-0">{{ __('ingaz.month_salary') }}: {{ $salaryDisplay ?? '--' }} {{ $salaryDisplay ? __('ingaz.SAR') : '' }}</p>
+                        @if($maid->offer_description)
+                            <p class="dis mt-2">{{ $maid->offer_description }}</p>
+                        @endif
+                    </div>
+                @else
+                    <div class="sub">
+                        <h5 class="title">{{ __('ingaz.cost_with_tax') }} :</h5>
+                        <p class="dis">{{ $priceDisplay ?? '--' }} {{ $priceDisplay ? __('ingaz.SAR') : '' }}</p>
+                    </div>
+                    <div class="sub">
+                        <h5 class="title">{{ __('ingaz.month_salary') }} :</h5>
+                        <p class="dis">{{ $salaryDisplay ?? '--' }} {{ $salaryDisplay ? __('ingaz.SAR') : '' }}</p>
+                    </div>
+                @endif
                 <div class="sub">
                     <h5 class="title">{{ __('ingaz.duration') }} :</h5>
                     <p class="dis">{{ $maid->duration ?? '' }}</p>
