@@ -2,6 +2,10 @@
 @section('title')
     {{__("ingaz.login")}}
 @endsection
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
 @section('content')
     <section class="accountForm">
         <div class="imageBG">
@@ -26,7 +30,7 @@
                     </label>
                     <div class="inputDiv ltr">
                         <span> +966 </span>
-                        <input type="tel" class="form-control" name="phone" id="phoneNum" placeholder="05 000 0000"/>
+                        <input type="tel"  autocomplete="off"  class="form-control" name="phone" id="phoneNum" placeholder="05 000 0000"/>
                     </div>
                 </div>
                 <div class="formGroup">
@@ -42,18 +46,18 @@
                         </div>
                         {{__("ingaz.password")}}
                     </label>
-                    <input type="password" class="form-control" id="password" name="password"/>
+                    <input type="password"   autocomplete="off" class="form-control" id="password" name="password"/>
                 </div>
                 <a href="{{route('site.forget-password.index')}}">  {{__("ingaz.password_forget")}}  </a>
                 {!! NoCaptcha::renderJs(app()->getLocale()) !!}
                 {!! NoCaptcha::display() !!}
-
                 @error('g-recaptcha-response')
                 <span class="text-danger">{{ $message }}</span>
                 @enderror
                 <button type="submit" class="defaultBtn mt-2">{{__("ingaz.login")}}</button>
                 <p class="text-center">
-                    {{__("ingaz.dont_have_account")}}   <a href="{{route('site.register.index')}}"> {{__("ingaz.create_account")}}</a>
+                    {{__("ingaz.dont_have_account")}} <a
+                        href="{{route('site.register.index')}}"> {{__("ingaz.create_account")}}</a>
                 </p>
             </form>
         </div>
@@ -98,11 +102,18 @@
                     },
                     error: function (xhr) {
                         if (xhr.status === 422) {
-                            let errors = xhr.responseJSON.errors;
+                            let res = xhr.responseJSON;
                             let errorMessages = '';
-                            for (let key in errors) {
-                                errorMessages += `<p style="margin: 0 0 5px; color: red; text-align: center;">${errors[key][0]}</p>`;
+
+                            if (res.errors) {
+                                for (let key in res.errors) {
+                                    errorMessages += `<p style="margin: 0 0 5px; color: red; text-align: center;">${res.errors[key][0]}</p>`;
+                                }
+                            } else if (res.message) {
+                                // هنا بنعرض الرسالة القادمة من backend مثل incorrect_password
+                                errorMessages = `<p style="margin: 0; color: red; text-align: center;">${res.message}</p>`;
                             }
+
                             Swal.fire({
                                 icon: 'error',
                                 title: '{{ __("ingaz.error") }}',
@@ -112,6 +123,7 @@
                             Swal.fire('{{ __("ingaz.error") }}', '{{ __("ingaz.error_from_server") }}', 'error');
                         }
                     }
+
 
                 });
             })

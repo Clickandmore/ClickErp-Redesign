@@ -426,5 +426,7 @@
   'follow_the_status_of_your_sponsorship_transfers' => ' تابع حالة طلبات نقل الكفالة الخاصة بك',
   'Contract Refund Requests' => 'طلبات استرداد العقود',
   'transferred' => 'تم النقل',
-  'recruitment_journey' => 'رحلة الاستقدام'
+  'phone_validation_text' => 'رقم الجوال يجب أن يكون 9 أرقام ويبدأ بالرقم 5',
+    'account_is_blocked' => 'تم حظر حسابك، يرجى التواصل مع الدعم.',
+
 );

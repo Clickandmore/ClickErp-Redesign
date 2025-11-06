@@ -178,9 +178,9 @@ return [
         App\Providers\RouteServiceProvider::class,
         App\Providers\GoogleDriveServiceProvider::class,
         App\Providers\SidebarServiceProvider::class,
-        Nami\Finance\FinanceServiceProvider::class,
-
-        Nami\Hr\HrServiceProvider::class,
+//         Nami\Finance\FinanceServiceProvider::class,
+//
+//         Nami\Hr\HrServiceProvider::class,
     ],
 
     /*

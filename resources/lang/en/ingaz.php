@@ -8,6 +8,9 @@
     'add_job_title' => 'Add Job Title',
     'ar' => 'Arabic',
     'en' => 'English',
+    'what_do' => 'What Do',
+    'items' => 'Items',
+
     'job_name' => 'Job Name',
     'site_management' => 'Site management',
     'nationalities' => 'Nationalities',

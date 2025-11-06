@@ -17,6 +17,7 @@
   'skaeeb.SL' => '#',
   'skaeeb.title' => 'الاسم',
   'skaeeb.type' => 'النوع',
+  'what_do' => 'ماذا نقدم',
   'skaeeb.description' => 'الوصف',
   'name' => 'الاسم',
   'email' => 'البريد الإلكتروني',
@@ -1599,4 +1600,10 @@
   'display_on_site' => 'Display on site',
   'addresses' => 'Addresses',
   'visibility' => 'Visibility',
+  'vision' => 'Vision',
+  'items' => 'العناصر',
+  'item_title_placeholder' => 'Item title placeholder',
+  'description_placeholder' => 'Description placeholder',
+  'title_placeholder' => 'Title placeholder',
+  'more_than_20_years_experience' => 'More than 20 years experience',
 );
