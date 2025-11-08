@@ -2,6 +2,7 @@
 
 namespace App\Models\ingaz;
 
+use App\Enums\ingaz\OrderEnum;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -21,6 +22,30 @@ class Order extends Model
         'status_changed_at' => 'datetime',
         'deadline_at' => 'datetime'
     ];
+
+    protected static function booted()
+    {
+        static::creating(function (Order $order) {
+            if (self::shouldTrackDeadline($order->status)) {
+                $order->deadline_at = now()->addHours($order->getDeadlineHours());
+            }
+        });
+
+        static::updating(function (Order $order) {
+            if ($order->isDirty('status')) {
+                if (self::shouldTrackDeadline($order->status)) {
+                    $order->deadline_at = now()->addHours($order->getDeadlineHours());
+                } else {
+                    $order->deadline_at = null;
+                }
+            }
+        });
+    }
+
+    protected static function shouldTrackDeadline(?string $status): bool
+    {
+        return in_array($status, [OrderEnum::New->value, OrderEnum::UnderProcess->value], true);
+    }
 
     public function transfers()
     {
@@ -129,9 +154,9 @@ class Order extends Model
     public function getDeadlineHours()
     {
         switch ($this->status) {
-            case \App\Enums\ingaz\OrderEnum::New->value:
+            case OrderEnum::New->value:
                 return 24; // 24 ساعة للطلبات الجديدة
-            case \App\Enums\ingaz\OrderEnum::UnderProcess->value:
+            case OrderEnum::UnderProcess->value:
                 return 48; // 48 ساعة للطلبات تحت الإجراء
             default:
                 return 0; // لا يوجد موعد نهائي للحالات الأخرى
