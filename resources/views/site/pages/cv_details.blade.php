@@ -8,17 +8,19 @@
         $offerStarts = optional($maid->offer_starts_at)->format('Y-m-d');
         $offerExpires = optional($maid->offer_expires_at)->format('Y-m-d');
         $offerPriceRaw = $maid->offer_price !== null ? (float) $maid->offer_price : null;
-        $salaryRaw = $maid->salary !== null ? (float) $maid->salary : null;
-        $priceRaw = ($maid->price && (float) $maid->price > 0) ? (float) $maid->price : null;
+        $salaryRaw = $maid->resolved_salary !== null ? (float) $maid->resolved_salary : null;
+        $priceRaw = $maid->resolved_price !== null ? (float) $maid->resolved_price : null;
         $priceDisplay = $priceRaw !== null ? number_format($priceRaw, 2) : null;
         $salaryDisplay = $salaryRaw !== null ? number_format($salaryRaw, 2) : null;
         $offerActive = $offerPriceRaw !== null
             && (empty($offerStarts) || $offerStarts <= $todayDate)
             && (empty($offerExpires) || $offerExpires >= $todayDate);
         $offerPriceDisplay = $offerPriceRaw !== null ? number_format($offerPriceRaw, 2) : null;
+        $cvPublicLink = route('site.all-workers.show', $maid->id);
+        $qrImage = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' . urlencode($cvPublicLink);
     @endphp
     <!-- cv page -->
-    <div class="cvPage">
+    <div class="cvPage" id="cv-wrapper">
         <div class="shape1"></div>
         <div class="logo-bg">
             <img src="{{asset('site')}}/assets/images/cv-fav.png" alt=""/>
@@ -56,7 +58,6 @@
                         @if($priceDisplay && $offerPriceRaw < $priceRaw)
                             <p class="dis text-muted text-decoration-line-through">{{ $priceDisplay }} {{ __('ingaz.SAR') }}</p>
                         @endif
-                        <p class="dis text-secondary mb-0">{{ __('ingaz.month_salary') }}: {{ $salaryDisplay ?? '--' }} {{ $salaryDisplay ? __('ingaz.SAR') : '' }}</p>
                         @if($maid->offer_description)
                             <p class="dis mt-2">{{ $maid->offer_description }}</p>
                         @endif
@@ -66,15 +67,7 @@
                         <h5 class="title">{{ __('ingaz.cost_with_tax') }} :</h5>
                         <p class="dis">{{ $priceDisplay ?? '--' }} {{ $priceDisplay ? __('ingaz.SAR') : '' }}</p>
                     </div>
-                    <div class="sub">
-                        <h5 class="title">{{ __('ingaz.month_salary') }} :</h5>
-                        <p class="dis">{{ $salaryDisplay ?? '--' }} {{ $salaryDisplay ? __('ingaz.SAR') : '' }}</p>
-                    </div>
                 @endif
-                <div class="sub">
-                    <h5 class="title">{{ __('ingaz.duration') }} :</h5>
-                    <p class="dis">{{ $maid->duration ?? '' }}</p>
-                </div>
                 <!-- languages -->
                 <div class="languages">
                     <h5 class="title">اللغات :</h5>
@@ -104,17 +97,12 @@
                 <div class="sub special-img">
                     <img src="{{ showFile($maid->image) }}" alt=""/>
                 </div>
-                @if(isset($settings))
-                    <div class="sub special-img bar-code">
-                        <img src="{{showFile($settings->qr_image)}}" alt=""/>
-                        <p class="dis ">مسح للوصول للسيرة الذاتية</p>
-                    </div>
-                @else
-                    <div class="sub special-img bar-code">
-                        <img src="{{asset('site')}}/assets/images/qr1.png" alt=""/>
-                        <p class="dis ">مسح للوصول للسيرة الذاتية</p>
-                    </div>
-                @endif
+                <div class="sub special-img bar-code">
+                    <a href="{{ $cvPublicLink }}" target="_blank" rel="noopener">
+                        <img src="{{ $qrImage }}" alt="QR Code" width="200" height="200"/>
+                    </a>
+                    <p class="dis ">{{ __('ingaz.scan_cv_qr') }}</p>
+                </div>
             </div>
         </div>
         <!-- col -->
@@ -136,12 +124,10 @@
                         <h6 class="innerData">{{ $maid->passport_num ?? '' }}</h6>
                     </div>
                     <div class="data">
-                        <p class="innerTitle">{{ __('ingaz.cv_number') }} :</p>
-                        <div class="passportNumbers">
-                            <span> {{ $maid->office->title ?? '' }} </span>
-                            <span>/</span>
-                            <span> {{ $maid->int_code ?? '' }} </span>
-                        </div>
+                        <p class="innerTitle">{{ __('ingaz.month_salary') }} :</p>
+                        <h6 class="innerData">
+                            {{ $salaryDisplay ? $salaryDisplay . ' ' . __('ingaz.SAR') : '--' }}
+                        </h6>
                     </div>
                 </div>
                 <span class="logo">
@@ -208,6 +194,10 @@
                     <div class="data">
                         <p class="innerTitle">{{ __('ingaz.childrens_count') }}</p>
                         <h6 class="innerData">{{ $maid->childrens_count }}</h6>
+                    </div>
+                    <div class="data">
+                        <p class="innerTitle">{{ __('ingaz.duration') }}</p>
+                        <h6 class="innerData">{{ $maid->duration ?? '-' }}</h6>
                     </div>
                 </div>
             </div>
@@ -381,7 +371,7 @@
         </div>
     </div>
     <div class="cv-actions-fixed">
-        <a href="{{showFile($maid->cv_preview)}}" download class="btn" id="donwload-cv">{{__('ingaz.download_cv')}}</a>
+        <button type="button" class="btn" id="donwload-cv">{{__('ingaz.download_cv')}}</button>
         <form action="{{route('site.customer-service.store')}}" method="POST" style="margin-top: 0 !important ">
             @csrf
             <input type="hidden" name="maid_id" value="{{$maid->id}}">
@@ -398,10 +388,8 @@
     </div>
 @endsection
 @section('js')
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <script src="https://cdn.rawgit.com/hongru/canvas2image/master/canvas2image.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dom-to-image/2.6.0/dom-to-image.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNa5l1c7GCNPvYQW2dw1ZQmHgNsx3Rp3XIanFkFJxuxMxDPZWS9Vyuk3F7S3w7Dnk3a1JpN96My2bRkB8WcA+g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-/Qa1VddOZXS6jttuPAHyBs+K6TfGsDz3jAC5vVsQt1zArhcXd1LSeX776BFqe7i/Dr7guPmyAnbcW2YwiVdcxw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <script>
         function wrapText(element, maxLength) {
@@ -416,88 +404,56 @@
     </script>
     <script>
         $(document).ready(function () {
-            // $('#donwload-cv').on('click', function () {
-            //     var targetDiv = document.getElementById('widget');
+            const downloadBtn = document.getElementById('donwload-cv');
+            const targetDiv = document.getElementById('cv-wrapper');
 
-            //     html2canvas(targetDiv, { useCORS: true }).then(function(canvas) {
-            //         canvas.toBlob(function(blob) {
-            //             if (!blob) {
-            //                 console.error("No blob generated!");
-            //                 return;
-            //             }
+            if (!downloadBtn || !targetDiv) {
+                return;
+            }
 
-            //             var formData = new FormData();
-            //             formData.append('cv', blob, 'myImage.png');
+            const waitForImages = () => {
+                const images = targetDiv.querySelectorAll('img');
+                if (!images.length) {
+                    return Promise.resolve();
+                }
+                return Promise.all(Array.from(images).map((img) => {
+                    if (img.complete) {
+                        return Promise.resolve();
+                    }
+                    return new Promise((resolve) => {
+                        img.addEventListener('load', resolve, { once: true });
+                        img.addEventListener('error', resolve, { once: true });
+                    });
+                }));
+            };
 
-            //             // تنزيل مباشر بدلاً من رفع
-            //             saveAs(blob, "cv.png");
-            //         });
-            //     });
-            // });
+            downloadBtn.addEventListener('click', async function () {
+                const originalHTML = downloadBtn.innerHTML;
+                downloadBtn.classList.add('loading');
+                downloadBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+                downloadBtn.setAttribute('disabled', 'disabled');
 
-            // $('#donwload-cv').on('click', async function () {
-            //     var targetDiv = document.getElementById('widget');
-            //     if (!targetDiv) {
-            //         console.error("❌ targetDiv not found");
-            //         return;
-            //     }
-
-            //     // wait until all images inside #widget are loaded
-            //     function waitForImages() {
-            //         return new Promise((resolve) => {
-            //             const images = targetDiv.querySelectorAll('img');
-            //             let loaded = 0;
-            //             if (images.length === 0) resolve();
-
-            //             images.forEach(img => {
-            //                 if (img.complete) {
-            //                     loaded++;
-            //                     if (loaded === images.length) resolve();
-            //                 } else {
-            //                     img.onload = img.onerror = () => {
-            //                         loaded++;
-            //                         if (loaded === images.length) resolve();
-            //                     };
-            //                 }
-            //             });
-            //         });
-            //     }
-
-            //     try {
-            //         await waitForImages();
-
-            //         // use html2canvas instead of dom-to-image
-            //         html2canvas(targetDiv, { useCORS: true, scale: 2 }).then(function (canvas) {
-            //             canvas.toBlob(function (blob) {
-            //                 if (!blob) {
-            //                     console.error("❌ No blob generated!");
-            //                     return;
-            //                 }
-
-            //                 // download directly as image
-            //                 saveAs(blob, "cv.png");
-
-            //                 // OR prepare for AJAX upload
-            //                 /*
-            //                 var formData = new FormData();
-            //                 formData.append('cv', blob, 'cv.png');
-            //                 $.ajax({
-            //                     url: '/upload-cv',
-            //                     method: 'POST',
-            //                     data: formData,
-            //                     contentType: false,
-            //                     processData: false,
-            //                     success: function (res) { console.log("✅ Uploaded:", res); },
-            //                     error: function (err) { console.error("❌ Upload error:", err); }
-            //                 });
-            //                 */
-            //             });
-            //         });
-            //     } catch (error) {
-            //         console.error("❌ Error:", error);
-            //     }
-            // });
-
+                try {
+                    await waitForImages();
+                    const canvas = await html2canvas(targetDiv, {
+                        useCORS: true,
+                        allowTaint: true,
+                        scale: 2,
+                        scrollY: -window.scrollY,
+                    });
+                    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('p', 'pt', [canvas.width, canvas.height]);
+                    pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+                    pdf.save(`cv-{{ $maid->id }}.pdf`);
+                } catch (error) {
+                    console.error('Error generating CV PDF:', error);
+                } finally {
+                    downloadBtn.classList.remove('loading');
+                    downloadBtn.innerHTML = originalHTML;
+                    downloadBtn.removeAttribute('disabled');
+                }
+            });
         });
     </script>
 @endsection

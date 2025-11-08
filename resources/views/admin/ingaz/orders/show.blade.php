@@ -218,7 +218,10 @@
                                     </div>
                                     <div class="info-row">
                                         <span class="info-label">{{helperTrans("ingaz.recruitment_price")}}:</span>
-                                        <span class="info-value">{{ $data->maid?->price ?? 'N/A' }} {{helperTrans("ingaz.riyal")}}</span>
+                                        <span class="info-value">
+                                            {{ optional($data->maid)->resolved_price !== null ? number_format($data->maid->resolved_price, 2) : 'N/A' }}
+                                            {{ helperTrans("ingaz.riyal") }}
+                                        </span>
                                     </div>
                                     <div class="info-row">
                                         <span class="info-label">{{helperTrans("ingaz.job_titles")}}:</span>
