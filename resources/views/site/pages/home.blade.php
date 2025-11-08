@@ -240,7 +240,7 @@
                     </div>
                 @empty
                     <!-- swiper-slide -->
-                    <div class="swiper-slide" style="background-image: url({{ asset('site') }}/assets/images/s1.webp)">
+                    <div class="swiper-slide" style="background-image: url({{ asset('site') }}/assets/images/s3.webp)">
 
                         <div class="info">
                             <h4 class="hint">
@@ -404,212 +404,212 @@
 
     <!-- ============= countries =============  -->
     <!-- <section class="countries" data-aos="fade-up">
-                                        <div class="container">
-                                            <div class="headTitle text-start" data-aos="fade-up" data-aos-delay="100">
-                                                <h2>{{ __('ingaz.Recruitment countries') }}</h2>
-                                                <p>{{ __('ingaz.countries_desc') }}</p>
-                                            </div>
+                                            <div class="container">
+                                                <div class="headTitle text-start" data-aos="fade-up" data-aos-delay="100">
+                                                    <h2>{{ __('ingaz.Recruitment countries') }}</h2>
+                                                    <p>{{ __('ingaz.countries_desc') }}</p>
+                                                </div>
 
-                                            <div class="allCountries">
-                                                <div class="row justify-content-center">
+                                                <div class="allCountries">
+                                                    <div class="row justify-content-center">
 
-                                                    @forelse($nationalities as $nationality)
+                                                        @forelse($nationalities as $nationality)
     <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="100">
-                                                            <div class="country-card">
-                                                                <div class="flag-container">
-                                                                    <img src="{{ showfile($nationality->logo) }}" alt="{{ $nationality->title }}"
-                                                                         width="100px">
-                                                                </div>
+                                                                <div class="country-card">
+                                                                    <div class="flag-container">
+                                                                        <img src="{{ showfile($nationality->logo) }}" alt="{{ $nationality->title }}"
+                                                                             width="100px">
+                                                                    </div>
 
-                                                                <div class="country-content">
-                                                                    <h3>{{ $nationality->title }}</h3>
-                                                                    @if ($nationality->description)
+                                                                    <div class="country-content">
+                                                                        <h3>{{ $nationality->title }}</h3>
+                                                                        @if ($nationality->description)
     <div class="country-description center">
-                                                                            {!! $nationality->description !!}
-                                                                        </div>
+                                                                                {!! $nationality->description !!}
+                                                                            </div>
     @endif
-                                                                    <ul class="country-costs">
-                                                                        @if ($nationality->price)
+                                                                        <ul class="country-costs">
+                                                                            @if ($nationality->price)
     <li>
-                                                                                <span>{{ __('ingaz.recruitment_cost') }}</span>
-                                                                                <strong>{{ number_format($nationality->price, 0) }} {{ __('ingaz.currency_sar') }}</strong>
-                                                                            </li>
+                                                                                    <span>{{ __('ingaz.recruitment_cost') }}</span>
+                                                                                    <strong>{{ number_format($nationality->price, 0) }} {{ __('ingaz.currency_sar') }}</strong>
+                                                                                </li>
     @endif
-                                                                        @if ($nationality->salary_with_experience)
+                                                                            @if ($nationality->salary_with_experience)
     <li>
-                                                                                <span>{{ __('ingaz.salary_with_experience') }}</span>
-                                                                                <strong>{{ number_format($nationality->salary_with_experience, 0) }} {{ __('ingaz.currency_sar') }}</strong>
-                                                                            </li>
+                                                                                    <span>{{ __('ingaz.salary_with_experience') }}</span>
+                                                                                    <strong>{{ number_format($nationality->salary_with_experience, 0) }} {{ __('ingaz.currency_sar') }}</strong>
+                                                                                </li>
     @endif
-                                                                        @if ($nationality->salary_with_no_experience)
+                                                                            @if ($nationality->salary_with_no_experience)
     <li>
-                                                                                <span>{{ __('ingaz.salary_with_no_experience') }}</span>
-                                                                                <strong>{{ number_format($nationality->salary_with_no_experience, 0) }} {{ __('ingaz.currency_sar') }}</strong>
-                                                                            </li>
+                                                                                    <span>{{ __('ingaz.salary_with_no_experience') }}</span>
+                                                                                    <strong>{{ number_format($nationality->salary_with_no_experience, 0) }} {{ __('ingaz.currency_sar') }}</strong>
+                                                                                </li>
     @endif
 
-                                                                        @if ($nationality->rental_cost)
+                                                                            @if ($nationality->rental_cost)
     <li>
-                                                                                <span>{{ __('ingaz.rental_cost') }}</span>
-                                                                                <strong>{{ number_format($nationality->rental_cost, 0) }} {{ __('ingaz.currency_sar') }}</strong>
-                                                                            </li>
+                                                                                    <span>{{ __('ingaz.rental_cost') }}</span>
+                                                                                    <strong>{{ number_format($nationality->rental_cost, 0) }} {{ __('ingaz.currency_sar') }}</strong>
+                                                                                </li>
     @endif
 
-                                                                        @if ($nationality->service_transportation_cost)
+                                                                            @if ($nationality->service_transportation_cost)
     <li>
-                                                                                <span>{{ __('ingaz.service_transportation_cost') }}</span>
-                                                                                <strong>{{ number_format($nationality->service_transportation_cost, 0) }} {{ __('ingaz.currency_sar') }}</strong>
-                                                                            </li>
+                                                                                    <span>{{ __('ingaz.service_transportation_cost') }}</span>
+                                                                                    <strong>{{ number_format($nationality->service_transportation_cost, 0) }} {{ __('ingaz.currency_sar') }}</strong>
+                                                                                </li>
     @endif
 
-                                                                        @if ($nationality->monthly_salary)
+                                                                            @if ($nationality->monthly_salary)
     <li>
-                                                                                <span>{{ __('ingaz.monthly_salary') }}</span>
-                                                                                <strong>{{ number_format($nationality->monthly_salary, 0) }} {{ __('ingaz.currency_sar') }}</strong>
-                                                                            </li>
+                                                                                    <span>{{ __('ingaz.monthly_salary') }}</span>
+                                                                                    <strong>{{ number_format($nationality->monthly_salary, 0) }} {{ __('ingaz.currency_sar') }}</strong>
+                                                                                </li>
     @endif
-                                                                    </ul>
+                                                                        </ul>
 
 
-                                                                    <a href="{{ route('site.all-workers.index') }}?nationality_id={{ $nationality->id }}"
-                                                                       class="animatedLink">
-                                                                        {{ __('ingaz.request now') }}
-                                                                        <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                                                    </a>
+                                                                        <a href="{{ route('site.all-workers.index') }}?nationality_id={{ $nationality->id }}"
+                                                                           class="animatedLink">
+                                                                            {{ __('ingaz.request now') }}
+                                                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                                                        </a>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
 
                     @empty
-                                                        <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
-                                                            <div class="country-card">
-                                                                <div class="flag-container">
-                                                                    <img src="{{ asset('site/assets/images/countries/1.png') }}" alt="">
-                                                                </div>
-                                                                <div class="country-content">
-                                                                    <h3>أوغندا</h3>
-                                                                    <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
-                                                                    <div class="country-description">
-                                                                        <p>خدمات استقدام متكاملة من أوغندا مع متابعة شاملة لكافة إجراءات العمل.</p>
+                                                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
+                                                                <div class="country-card">
+                                                                    <div class="flag-container">
+                                                                        <img src="{{ asset('site/assets/images/countries/1.png') }}" alt="">
                                                                     </div>
-                                                                    <ul class="country-costs">
-                                                                        <li>
-                                                                            <span>{{ __('ingaz.recruitment_cost') }}</span><strong>8,500 {{ __('ingaz.currency_sar') }}</strong>
-                                                                        </li>
-                                                                        <li>
-                                                                            <span>{{ __('ingaz.rental_cost') }}</span><strong>2,000 {{ __('ingaz.currency_sar') }}</strong>
-                                                                        </li>
+                                                                    <div class="country-content">
+                                                                        <h3>أوغندا</h3>
+                                                                        <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
+                                                                        <div class="country-description">
+                                                                            <p>خدمات استقدام متكاملة من أوغندا مع متابعة شاملة لكافة إجراءات العمل.</p>
+                                                                        </div>
+                                                                        <ul class="country-costs">
+                                                                            <li>
+                                                                                <span>{{ __('ingaz.recruitment_cost') }}</span><strong>8,500 {{ __('ingaz.currency_sar') }}</strong>
+                                                                            </li>
+                                                                            <li>
+                                                                                <span>{{ __('ingaz.rental_cost') }}</span><strong>2,000 {{ __('ingaz.currency_sar') }}</strong>
+                                                                            </li>
 
-                                                                    </ul>
-                                                                    <a href="#" class="animatedLink">
-                                                                        تصفح السير الذاتية
-                                                                        <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                                                    </a>
+                                                                        </ul>
+                                                                        <a href="#" class="animatedLink">
+                                                                            تصفح السير الذاتية
+                                                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                                                        </a>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
 
-                                                        <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
-                                                            <div class="country-card">
-                                                                <div class="flag-container">
-                                                                    <img src="{{ asset('site/assets/images/countries/2.png') }}" alt="">
-                                                                </div>
-                                                                <div class="country-content">
-                                                                    <h3>كينيا</h3>
-                                                                    <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
-                                                                    <a href="#" class="animatedLink">
-                                                                        تصفح السير الذاتية
-                                                                        <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                                                    </a>
+                                                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
+                                                                <div class="country-card">
+                                                                    <div class="flag-container">
+                                                                        <img src="{{ asset('site/assets/images/countries/2.png') }}" alt="">
+                                                                    </div>
+                                                                    <div class="country-content">
+                                                                        <h3>كينيا</h3>
+                                                                        <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
+                                                                        <a href="#" class="animatedLink">
+                                                                            تصفح السير الذاتية
+                                                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                                                        </a>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
 
-                                                        <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
-                                                            <div class="country-card">
-                                                                <div class="flag-container">
-                                                                    <img src="{{ asset('site/assets/images/countries/3.jpeg') }}" alt="">
-                                                                </div>
-                                                                <div class="country-content">
-                                                                    <h3>بنغلادش</h3>
-                                                                    <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
-                                                                    <a href="#" class="animatedLink">
-                                                                        تصفح السير الذاتية
-                                                                        <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                                                    </a>
+                                                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
+                                                                <div class="country-card">
+                                                                    <div class="flag-container">
+                                                                        <img src="{{ asset('site/assets/images/countries/3.jpeg') }}" alt="">
+                                                                    </div>
+                                                                    <div class="country-content">
+                                                                        <h3>بنغلادش</h3>
+                                                                        <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
+                                                                        <a href="#" class="animatedLink">
+                                                                            تصفح السير الذاتية
+                                                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                                                        </a>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
 
-                                                        <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
-                                                            <div class="country-card">
-                                                                <div class="flag-container">
-                                                                    <img src="{{ asset('site/assets/images/countries/4.jpeg') }}" alt="">
-                                                                </div>
-                                                                <div class="country-content">
-                                                                    <h3>الفلبين</h3>
-                                                                    <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
-                                                                    <a href="#" class="animatedLink">
-                                                                        تصفح السير الذاتية
-                                                                        <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                                                    </a>
+                                                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
+                                                                <div class="country-card">
+                                                                    <div class="flag-container">
+                                                                        <img src="{{ asset('site/assets/images/countries/4.jpeg') }}" alt="">
+                                                                    </div>
+                                                                    <div class="country-content">
+                                                                        <h3>الفلبين</h3>
+                                                                        <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
+                                                                        <a href="#" class="animatedLink">
+                                                                            تصفح السير الذاتية
+                                                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                                                        </a>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
 
-                                                        <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
-                                                            <div class="country-card">
-                                                                <div class="flag-container">
-                                                                    <img src="{{ asset('site/assets/images/countries/5.png') }}" alt="">
-                                                                </div>
-                                                                <div class="country-content">
-                                                                    <h3>الهند</h3>
-                                                                    <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
-                                                                    <a href="#" class="animatedLink">
-                                                                        تصفح السير الذاتية
-                                                                        <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                                                    </a>
+                                                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
+                                                                <div class="country-card">
+                                                                    <div class="flag-container">
+                                                                        <img src="{{ asset('site/assets/images/countries/5.png') }}" alt="">
+                                                                    </div>
+                                                                    <div class="country-content">
+                                                                        <h3>الهند</h3>
+                                                                        <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
+                                                                        <a href="#" class="animatedLink">
+                                                                            تصفح السير الذاتية
+                                                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                                                        </a>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
 
-                                                        <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
-                                                            <div class="country-card">
-                                                                <div class="flag-container">
-                                                                    <img src="{{ asset('site/assets/images/countries/6.png') }}" alt="">
-                                                                </div>
-                                                                <div class="country-content">
-                                                                    <h3>موريتانيا</h3>
-                                                                    <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
-                                                                    <a href="#" class="animatedLink">
-                                                                        تصفح السير الذاتية
-                                                                        <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                                                    </a>
+                                                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
+                                                                <div class="country-card">
+                                                                    <div class="flag-container">
+                                                                        <img src="{{ asset('site/assets/images/countries/6.png') }}" alt="">
+                                                                    </div>
+                                                                    <div class="country-content">
+                                                                        <h3>موريتانيا</h3>
+                                                                        <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
+                                                                        <a href="#" class="animatedLink">
+                                                                            تصفح السير الذاتية
+                                                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                                                        </a>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
 
-                                                        <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
-                                                            <div class="country-card">
-                                                                <div class="flag-container">
-                                                                    <img src="{{ asset('site/assets/images/countries/7.png') }}" alt="">
-                                                                </div>
-                                                                <div class="country-content">
-                                                                    <h3>جيبوتي</h3>
-                                                                    <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
-                                                                    <a href="#" class="animatedLink">
-                                                                        تصفح السير الذاتية
-                                                                        <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                                                    </a>
+                                                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
+                                                                <div class="country-card">
+                                                                    <div class="flag-container">
+                                                                        <img src="{{ asset('site/assets/images/countries/7.png') }}" alt="">
+                                                                    </div>
+                                                                    <div class="country-content">
+                                                                        <h3>جيبوتي</h3>
+                                                                        <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
+                                                                        <a href="#" class="animatedLink">
+                                                                            تصفح السير الذاتية
+                                                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
+                                                                        </a>
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
     @endforelse
 
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </section> -->
+                                        </section> -->
     <section class="countries">
         <div class="container">
             <div class="headTitle text-center">
