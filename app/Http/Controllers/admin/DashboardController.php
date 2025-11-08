@@ -47,6 +47,7 @@ class DashboardController extends Controller
             'total' => \App\Models\ingaz\Maid::count(),
             'available' => \App\Models\ingaz\Maid::where('available', true)->count(),
             'booked' => \App\Models\ingaz\Maid::where('available', false)->count(),
+            'newThisWeek' => \App\Models\ingaz\Maid::whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
             'newThisMonth' => \App\Models\ingaz\Maid::whereMonth('created_at', date('m'))->count(),
         ];
 
@@ -54,6 +55,8 @@ class DashboardController extends Controller
         $ordersStats = [
             'total' => \App\Models\ingaz\Order::count(),
             'today' => \App\Models\ingaz\Order::whereDate('created_at', today())->count(),
+            'thisWeek' => \App\Models\ingaz\Order::whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
+            'thisMonth' => \App\Models\ingaz\Order::whereMonth('created_at', date('m'))->whereYear('created_at', date('Y'))->count(),
             'completed' => \App\Models\ingaz\Order::where('status', 'completed')->count(),
             'pending' => \App\Models\ingaz\Order::where('status', 'pending')->count(),
             'processing' => \App\Models\ingaz\Order::where('status', 'processing')->count(),
@@ -63,6 +66,7 @@ class DashboardController extends Controller
         $clientsStats = [
             'total' => \App\Models\ingaz\User::count(),
             'newThisMonth' => \App\Models\ingaz\User::whereMonth('created_at', date('m'))->count(),
+            'newThisWeek' => \App\Models\ingaz\User::whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()])->count(),
             'newToday' => \App\Models\ingaz\User::whereDate('created_at', today())->count(),
             // العملاء النشطون - الذين لديهم عقود
             'active' => \App\Models\Contract::distinct('user_id')->count('user_id'),

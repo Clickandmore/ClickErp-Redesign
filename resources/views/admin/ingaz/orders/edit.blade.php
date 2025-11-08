@@ -101,6 +101,13 @@
                 </div>
             </div>
 
+            <div class="mt-3 d-none" data-refuse-reason>
+                <label class="form-label fw-bold" for="refuse_reason">{{ helperTrans('ingaz.reason') }}</label>
+                <textarea name="refuse_reason" id="refuse_reason" rows="3" class="form-control"
+                          placeholder="{{ helperTrans('ingaz.enter_reason') }}">{{ old('refuse_reason', $obj->refuse_reason) }}</textarea>
+                <small class="text-muted">{{ helperTrans('ingaz.refuse_reason_optional') }}</small>
+            </div>
+
             <!-- Action Buttons -->
             <div class="row mt-3">
                 <div class="col-12">
