@@ -178,8 +178,10 @@ class MaidController extends Controller
                 ->addColumn('job_info', function (Maid $row) {
                     $jobTypes = e($row->jobTypes->pluck('title')->filter()->take(3)->implode(', ') ?: helperTrans('ingaz.not_specified'));
                     $officeTitle = $row->office?->title ? e(Str::limit($row->office->title, 30)) : helperTrans('ingaz.not_specified');
-                    $salary = number_format((float) $row->salary, 2);
-                    $price = number_format((float) $row->price, 2);
+                    $salaryValue = $row->resolved_salary;
+                    $priceValue = $row->resolved_price;
+                    $salary = $salaryValue !== null ? number_format($salaryValue, 2) : helperTrans('ingaz.not_specified');
+                    $price = $priceValue !== null ? number_format($priceValue, 2) : helperTrans('ingaz.not_specified');
                     $jobTypesLabel = helperTrans('ingaz.job_types');
                     $offerInfo = '';
                     $today = Carbon::today();
@@ -1094,8 +1096,8 @@ class MaidController extends Controller
                 <td>' . ($maid->religion->title ?? '') . '</td>
                 <td>' . $maid->age . '</td>
                 <td>' . $maid->experience_years . '</td>
-                <td>' . $maid->salary . '</td>
-                <td>' . $maid->price . '</td>
+                <td>' . ($maid->resolved_salary ?? '0') . '</td>
+                <td>' . ($maid->resolved_price ?? '0') . '</td>
                 <td>' . $jobTypes . '</td>
                 <td>' . $jobTitles . '</td>
                 <td>' . $statusText . '</td>
@@ -1175,8 +1177,8 @@ class MaidController extends Controller
             $sheet->setCellValue('E' . $row, $maid->religion->title ?? '');
             $sheet->setCellValue('F' . $row, $maid->age);
             $sheet->setCellValue('G' . $row, $maid->experience_years);
-            $sheet->setCellValue('H' . $row, $maid->salary);
-            $sheet->setCellValue('I' . $row, $maid->price);
+            $sheet->setCellValue('H' . $row, $maid->resolved_salary ?? 0);
+            $sheet->setCellValue('I' . $row, $maid->resolved_price ?? 0);
             $sheet->setCellValue('J' . $row, $jobTypes);
             $sheet->setCellValue('K' . $row, $jobTitles);
             $sheet->setCellValue('L' . $row, $statusText);
@@ -1475,8 +1477,8 @@ class MaidController extends Controller
             ],
             'job_title' => $jobTypeTitle,
             'occupation' => $jobTypeTitle,
-            'salary' => $maid->salary,
-            'price' => $maid->price,
+            'salary' => $maid->resolved_salary,
+            'price' => $maid->resolved_price,
             'experience_years' => $maid->experience_years,
             'age' => $maid->age,
             'birth_date' => $maid->birth_date,

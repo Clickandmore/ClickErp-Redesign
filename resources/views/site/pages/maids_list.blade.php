@@ -7,8 +7,8 @@
                 $offerStarts = optional($maid->offer_starts_at)->format('Y-m-d');
                 $offerExpires = optional($maid->offer_expires_at)->format('Y-m-d');
                 $offerPriceRaw = $maid->offer_price !== null ? (float) $maid->offer_price : null;
-                $salaryRaw = $maid->salary !== null ? (float) $maid->salary : null;
-                $priceRaw = ($maid->price && (float) $maid->price > 0) ? (float) $maid->price : null;
+                $salaryRaw = $maid->resolved_salary !== null ? (float) $maid->resolved_salary : null;
+                $priceRaw = $maid->resolved_price !== null ? (float) $maid->resolved_price : null;
                 $offerActive = $offerPriceRaw !== null
                     && (empty($offerStarts) || $offerStarts <= $todayDate)
                     && (empty($offerExpires) || $offerExpires >= $todayDate);
@@ -165,7 +165,7 @@
                                         @endif
                                     </p>
                                     <p>{{ __('ingaz.monthly_rental') }}
-                                        : {{ $maid->salary ?? '' }} {{ __('ingaz.SAR') }}
+                                        : {{ $maid->resolved_salary ?? '' }} {{ __('ingaz.SAR') }}
                                     </p>
                                     <p>{{ __('ingaz.contract_duration') }} : {{ $maid->duration ?? '' }}
                                         {{ __('ingaz.month') }}</p>
@@ -230,7 +230,7 @@
                                             - {{ $maid->experience_years }} {{ __('ingaz.year') }}
                                         @endif
                                     </p>
-                                    <p>{{ __('ingaz.cost_with_tax') }} : {{ $maid->salary ?? '' }}
+                                    <p>{{ __('ingaz.cost_with_tax') }} : {{ $maid->resolved_price ?? '' }}
                                         {{ __('ingaz.SAR') }}</p>
                                     <p>{{ __('ingaz.transfer_duration') }} : {{ __('ingaz.through') }}
                                         {{ $maid->duration ?? '' }} {{ __('ingaz.day') }}</p>

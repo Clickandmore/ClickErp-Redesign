@@ -18,6 +18,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ingaz\OrderTransfers;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
+use Illuminate\Validation\Rule;
 use App\Models\ingaz\Order as objModel;
 use Yajra\DataTables\Facades\DataTables;
 use App\Http\Actions\ingaz\OrderAction as objAction;
@@ -191,10 +192,11 @@ class OrderController extends Controller
 
                     // View button
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW)) {
-                        $actions .= '<li><a class="dropdown-item" href="' . route('showSingleOrder', $row->id) . '">
+                        $actions .= '<li><a class="dropdown-item" href="' . route('showSingleOrder', ['orderId' => $row->id]) . '">
                             <i class="fa fa-eye"></i> عرض التفاصيل
                         </a></li>';
                     }
+
 
                     // Edit status button (show for all orders)
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT)) {
@@ -335,40 +337,53 @@ class OrderController extends Controller
     public function update(request $request, objAction $action, $id)
     {
         try {
-            $order = Order::findOrFail($id);
-
-            // Debug: Log the request data
-            \Log::info('Update order request', [
-                'order_id' => $id,
-                'request_data' => $request->all(),
-                'has_status' => $request->has('status'),
-                'status_value' => $request->get('status')
+            $validated = $request->validate([
+                'status' => ['required', Rule::in(array_map(fn ($case) => $case->value, OrderEnum::cases()))],
+                'refuse_reason' => ['nullable', 'string', 'max:500'],
             ]);
 
-            // Update status if provided
-            if ($request->has('status')) {
-                $order->status = $request->status;
-                $order->status_changed_at = now();
+            $order = Order::findOrFail($id);
+            $newStatus = $validated['status'];
 
-                // Set deadline based on new status
-                if ($request->status == OrderEnum::New->value) {
-                    $order->deadline_at = now()->addHours(24);
-                } elseif ($request->status == OrderEnum::UnderProcess->value) {
-                    $order->deadline_at = now()->addHours(48);
-                }
+            \Log::info('Update order request', [
+                'order_id' => $id,
+                'new_status' => $newStatus,
+                'payload' => $validated,
+            ]);
 
-                $order->save();
+            $order->status = $newStatus;
+            $order->status_changed_at = now();
 
-                \Log::info('Order updated successfully', [
-                    'order_id' => $id,
-                    'new_status' => $request->status
-                ]);
-
-                return jsonSuccess(['message' => 'تم تحديث حالة الطلب بنجاح']);
-            } else {
-                \Log::warning('No status provided in request');
-                return jsonError(['message' => 'لم يتم توفير حالة جديدة']);
+            if ($newStatus === OrderEnum::New->value) {
+                $order->deadline_at = now()->addHours(24);
+            } elseif ($newStatus === OrderEnum::UnderProcess->value) {
+                $order->deadline_at = now()->addHours(48);
             }
+
+            if ($this->isRefusalStatus($newStatus)) {
+                $order->refuse_reason = $this->resolveRefuseReason($validated['refuse_reason'] ?? null, $newStatus);
+            } else {
+                $order->refuse_reason = null;
+            }
+
+            $order->save();
+
+            if ($this->isRefusalStatus($newStatus)) {
+                $this->releaseMaid($order);
+            }
+
+            \Log::info('Order updated successfully', [
+                'order_id' => $id,
+                'new_status' => $newStatus
+            ]);
+
+            return jsonSuccess(['message' => 'تم تحديث حالة الطلب بنجاح']);
+        } catch (\Illuminate\Validation\ValidationException $validationException) {
+            $messages = collect($validationException->errors())->flatten();
+            return jsonError([
+                'message' => $messages->first() ?? $validationException->getMessage(),
+                'errors' => $validationException->errors()
+            ], 422);
         } catch (\Exception $e) {
             \Log::error('Error updating order status', [
                 'order_id' => $id,
@@ -412,28 +427,10 @@ class OrderController extends Controller
 
     public function getStatusHtml($status)
     {
-        $colorMap = [
-            'new' => 'primary',
-            'paid' => 'success',
-            'completed' => 'success',
-            'started' => 'success',
-            'done' => 'success',
-            'refused' => 'danger',
-            'msaned' => 'danger',
-            'training' => 'danger',
-            'arrived' => 'danger',
-            'escape' => 'danger',
-            'deportation' => 'danger',
-            'delivered' => 'danger',
-            'under_process' => 'warning',
-            'contracted' => 'info',
-            'contracted_without_contract' => 'info',
-        ];
-
         $arabicTranslation = getEnumValue('orders_statuses', $status);
 
-        if ($arabicTranslation !== "undefined" && isset($colorMap[$status])) {
-            $colorClass = $colorMap[$status];
+        if ($arabicTranslation !== "undefined") {
+            $colorClass = $this->getStatusColor($status);
             return '<span class="badge bg-' . $colorClass . ' status-badge">' . $arabicTranslation . '</span>';
         }
 
@@ -442,44 +439,74 @@ class OrderController extends Controller
 
     public function getTimerHtml($order)
     {
-        $remaining = $order->getRemainingTime();
-
-        if (!$remaining) {
-            return '<span class="text-muted">-</span>';
+        if (!$order instanceof Order) {
+            $order = Order::find($order);
+            if (!$order) {
+                return '<span class="text-muted">-</span>';
+            }
         }
 
-        if ($remaining['is_overdue']) {
-            $overdueText = $remaining['overdue_hours'] . 'س ' . $remaining['overdue_minutes'] . 'د';
-            return '<span class="badge bg-danger timer-badge" title="تجاوز الموعد النهائي">' . $overdueText . '</span>';
-        }
-
-        $remainingText = $remaining['hours'] . 'س ' . $remaining['minutes'] . 'د';
-
-        if ($remaining['hours'] < 2) {
-            return '<span class="badge bg-warning timer-badge" title="وقت محدود">' . $remainingText . '</span>';
-        }
-
-        return '<span class="badge bg-info timer-badge">' . $remainingText . '</span>';
+        return $this->renderTimerChip($order);
     }
 
     public function showDataOfOrder(request $request)
     {
-        $order = Order::find($request->orderId);
+        $request->validate([
+            'orderId' => 'required|integer|exists:orders,id'
+        ]);
 
-        // adjust user data
-        $data['user'] = User::find($order->user_id) ?? null;
-        $address = UserAddress::where('user_id', $order->user_id)->latest()->first();
-        $data['user']['address'] = $address ? $address->address . ' - ' . $address->title : null;
+        $order = Order::with([
+            'user',
+            'maid.nationality',
+            'maid.religion',
+            'maid.jobTitles',
+            'jobType',
+            'details.admin',
+            'address'
+        ])->findOrFail($request->orderId);
 
-        // adjust maid data
-        $data['maid'] = Maid::find($order->maid_id);
-        $data['maid']['nationality'] = Nationality::find($data['maid']->nationality_id)->title;
-        $data['maid']['religion'] = Religion::find($data['maid']->religion_id)->title;
-        $jobsIDS = MaidJobTitles::where('maid_id', $data['maid']->id)->pluck('job_title_id')->toArray();
-        $JobTitles = JobTitle::whereIn('id', $jobsIDS)->latest()->get();
-        foreach ($JobTitles as $job) {
-            $data['maid']['job'] = $data['maid']['job'] . " " . $job->title;
-        }
+        $maid = $order->maid;
+        $user = $order->user;
+        $address = $order->address;
+
+        $maidJobs = $maid?->jobTitles
+            ? $maid->jobTitles->pluck('title')->filter()->unique()->implode('، ')
+            : null;
+
+        $data = [
+            'order' => [
+                'id' => $order->id,
+                'code' => $order->order_code,
+                'status' => $order->status,
+                'status_label' => getEnumValue('orders_statuses', $order->status),
+                'status_color' => $this->getStatusColor($order->status),
+                'job_type' => $order->jobType->title ?? __('ingaz.not_specified'),
+                'created_at' => optional($order->created_at)->format('Y-m-d H:i'),
+                'deadline_at' => $order->deadline_at ? $order->deadline_at->format('Y-m-d H:i') : null,
+                'admin' => optional($order->details->admin)->name,
+                'timer' => $this->buildTimerMeta($order),
+                'timer_html' => $this->renderTimerChip($order),
+            ],
+            'user' => [
+                'name' => $user?->name,
+                'phone' => $user ? getPhoneWithTag($user->phone_code . $user->phone) : null,
+                'raw_phone' => $user ? $user->phone_code . $user->phone : null,
+                'email' => $user?->email,
+                'address' => $address?->address,
+                'city' => $address?->title,
+                'id_number' => $user?->id_number,
+            ],
+            'maid' => [
+                'id' => $maid?->id,
+                'name' => $maid?->name,
+                'passport' => $maid?->passport_num,
+                'nationality' => $maid?->nationality?->title,
+                'religion' => $maid?->religion?->title,
+                'job_titles' => $maidJobs,
+                'status' => $this->translateMaidStatus($maid?->status),
+                'photo' => $this->getMaidPhoto($maid),
+            ],
+        ];
 
         return jsonSuccess(["data" => $data]);
     }
@@ -711,15 +738,209 @@ class OrderController extends Controller
     public function refuseReturn(Request $request, $id)
     {
         try {
+            $validated = $request->validate([
+                'action' => ['required', Rule::in([OrderEnum::Refused->value, OrderEnum::Return->value])],
+                'reason' => ['nullable', 'string', 'max:500'],
+            ]);
+
             $order = Order::findOrFail($id);
-            $order->status = $request->action;
-            $order->refuse_reason = $request->reason;
+            $order->status = $validated['action'];
+            $order->status_changed_at = now();
+            $order->refuse_reason = $this->resolveRefuseReason($validated['reason'] ?? null, $validated['action']);
             $order->save();
+
+            $this->releaseMaid($order);
 
             return jsonSuccess(['message' => 'The order status has been updated successfully']);
         } catch (\Exception $e) {
             return jsonError(['message' => 'An error occurred while updating the order status']);
         }
+    }
+
+    private function isRefusalStatus(string $status): bool
+    {
+        return in_array($status, [OrderEnum::Refused->value, OrderEnum::Return->value], true);
+    }
+
+    private function resolveRefuseReason(?string $reason, string $status): string
+    {
+        $trimmed = trim((string) $reason);
+        if ($trimmed !== '') {
+            return $trimmed;
+        }
+
+        return $status === OrderEnum::Return->value
+            ? __('ingaz.auto_return_reason')
+            : __('ingaz.auto_refuse_reason');
+    }
+
+    private function releaseMaid(Order $order): void
+    {
+        $order->loadMissing('maid');
+
+        if (!$order->maid) {
+            return;
+        }
+
+        $maidId = $order->maid->id;
+
+        $hasOtherActiveOrders = Order::where('maid_id', $maidId)
+            ->where('id', '!=', $order->id)
+            ->whereNotIn('status', [
+                OrderEnum::Completed->value,
+                OrderEnum::Done->value,
+                OrderEnum::Refused->value,
+                OrderEnum::Return->value,
+            ])->exists();
+
+        if ($hasOtherActiveOrders) {
+            \Log::info('Maid not released due to other active orders', [
+                'maid_id' => $maidId,
+                'order_id' => $order->id,
+            ]);
+            return;
+        }
+
+        $order->maid->update([
+            'status' => 'available',
+            'available' => true,
+            'available_at' => now(),
+        ]);
+
+        \Log::info('Maid released after order refusal/return', [
+            'maid_id' => $maidId,
+            'order_id' => $order->id,
+        ]);
+    }
+
+    private function getStatusColor(string $status): string
+    {
+        $colorMap = [
+            'new' => 'primary',
+            'paid' => 'success',
+            'completed' => 'success',
+            'started' => 'success',
+            'done' => 'success',
+            'refused' => 'danger',
+            'msaned' => 'danger',
+            'training' => 'danger',
+            'arrived' => 'danger',
+            'escape' => 'danger',
+            'deportation' => 'danger',
+            'delivered' => 'danger',
+            'under_process' => 'warning',
+            'contracted' => 'info',
+            'contracted_without_contract' => 'info',
+        ];
+
+        return $colorMap[$status] ?? 'secondary';
+    }
+
+    private function buildTimerMeta(Order $order): array
+    {
+        $remaining = $order->getRemainingTime();
+        $state = $order->getTimerStatus();
+        $stateLabels = [
+            'overdue' => __('ingaz.timer_expired'),
+            'urgent' => __('ingaz.timer_urgent'),
+            'normal' => __('ingaz.timer_normal'),
+            'no_deadline' => __('ingaz.no_deadline'),
+        ];
+
+        $deadlineFormatted = $order->deadline_at ? $order->deadline_at->format('Y-m-d H:i') : null;
+        $phaseLabel = $this->getTimerPhaseLabel($order->status);
+
+        if (!$remaining) {
+            return [
+                'has_deadline' => false,
+                'phase_label' => $phaseLabel,
+                'state' => 'no_deadline',
+                'state_label' => $stateLabels['no_deadline'],
+                'remaining_pretty' => __('ingaz.no_deadline'),
+                'deadline_formatted' => $deadlineFormatted,
+            ];
+        }
+
+        $remainingPretty = $remaining['is_overdue']
+            ? '-' . $remaining['overdue_hours'] . 'س ' . $remaining['overdue_minutes'] . 'د'
+            : $remaining['hours'] . 'س ' . str_pad($remaining['minutes'], 2, '0', STR_PAD_LEFT) . 'د';
+
+        return [
+            'has_deadline' => true,
+            'phase_label' => $phaseLabel,
+            'state' => $state,
+            'state_label' => $stateLabels[$state] ?? $stateLabels['normal'],
+            'remaining_pretty' => $remainingPretty,
+            'deadline_formatted' => $deadlineFormatted,
+            'is_overdue' => $remaining['is_overdue'],
+        ];
+    }
+
+    private function renderTimerChip(Order $order): string
+    {
+        $meta = $this->buildTimerMeta($order);
+
+        if (!$meta['has_deadline']) {
+            return '<div class="timer-chip timer-chip--muted"><span class="timer-chip__value">' . e($meta['remaining_pretty']) . '</span></div>';
+        }
+
+        $stateClass = match ($meta['state']) {
+            'overdue' => 'danger',
+            'urgent' => 'warning',
+            'normal' => 'info',
+            default => 'muted',
+        };
+
+        $hintParts = array_filter([$meta['state_label'], $meta['deadline_formatted'] ? __('ingaz.deadline') . ': ' . $meta['deadline_formatted'] : null]);
+        $hintText = implode(' · ', $hintParts);
+
+        return '<div class="timer-chip timer-chip--' . $stateClass . '">
+                    <div class="timer-chip__phase">' . e($meta['phase_label']) . '</div>
+                    <div class="timer-chip__value">' . e($meta['remaining_pretty']) . '</div>
+                    <small class="timer-chip__hint">' . e($hintText) . '</small>
+                </div>';
+    }
+
+    private function getTimerPhaseLabel(?string $status): string
+    {
+        return match ($status) {
+            OrderEnum::New->value => __('ingaz.timer_phase_new'),
+            OrderEnum::UnderProcess->value => __('ingaz.timer_phase_under_process'),
+            default => __('ingaz.timer_phase_default'),
+        };
+    }
+
+    private function translateMaidStatus(?string $status): string
+    {
+        if (!$status) {
+            return __('ingaz.maid_status_unknown');
+        }
+
+        $key = 'ingaz.maid_status_' . $status;
+        $translation = __($key);
+
+        return $translation === $key ? __('ingaz.maid_status_unknown') : $translation;
+    }
+
+    private function getMaidPhoto(?Maid $maid): ?string
+    {
+        if (!$maid) {
+            return null;
+        }
+
+        if ($maid->image) {
+            return showFile($maid->image);
+        }
+
+        if ($maid->cv_preview) {
+            return showFile($maid->cv_preview);
+        }
+
+        if ($maid->cv_file) {
+            return showFile($maid->cv_file);
+        }
+
+        return null;
     }
 
     public function exportPdf()

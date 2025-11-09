@@ -86,7 +86,7 @@
                             @foreach ($nationalities as $nationality)
                                 <option value="{{ $nationality->id }}" data-price="{{ $nationality->price }}"
                                     data-salary="{{ $nationality->monthly_salary }}"
-                                    data-service_transfer_cost="{{ $nationality->service_transfer_cost }}"
+                                    data-service_transportation_cost="{{ $nationality->service_transportation_cost }}"
                                     data-rental_cost="{{ $nationality->rental_cost }}">
                                     {{ $nationality->sub_title }}
                                 </option>
@@ -634,20 +634,62 @@
                 }
             }
 
+            function getTypeContext() {
+                var selectedTypeOriginal = $('select[name="type_id"] option:selected').text() || '';
+                var trimmedType = selectedTypeOriginal.trim();
+                var normalizedArabicType = trimmedType
+                    .replace(/[إأآ]/g, 'ا')
+                    .replace(/\u0649/g, 'ي')
+                    .replace(/\s+/g, ' ');
+                var normalizedArabicLower = normalizedArabicType.toLowerCase();
+                var selectedTypeLower = trimmedType.toLowerCase();
+
+                return {
+                    original: trimmedType,
+                    normalizedArabicLower: normalizedArabicLower,
+                    selectedTypeLower: selectedTypeLower,
+                    isRental: normalizedArabicLower.includes('ايجار') ||
+                        normalizedArabicLower.includes('تاجير') ||
+                        selectedTypeLower.includes('rent'),
+                    isInstantTransfer: normalizedArabicLower === 'استلام فوري' ||
+                        selectedTypeLower.includes('instant'),
+                    isRecruitment: normalizedArabicLower.includes('استقدام') ||
+                        selectedTypeLower.includes('recruit')
+                };
+            }
+
+            function applyPriceFromNationality(typeContext) {
+                var selectedNationality = $('#Pnationality_id option:selected');
+                var context = typeContext || getTypeContext();
+
+                if (!selectedNationality.length) {
+                    $('#price').val('0');
+                    return;
+                }
+
+                var serviceTransferCost = parseFloat(selectedNationality.data('service_transportation_cost')) || 0;
+                var rentalCost = parseFloat(selectedNationality.data('rental_cost')) || 0;
+                var finalPrice = 0;
+
+                if (context.isRental) {
+                    finalPrice = rentalCost || 0;
+                } else if (context.isInstantTransfer) {
+                    finalPrice = serviceTransferCost || 0;
+                }
+
+                $('#price').val(finalPrice.toString());
+            }
+
             // Function to handle fields visibility based on job type
             // هذه الدالة تتحكم في إظهار/إخفاء الحقول بناءً على نوع السيرة المختار
             // استقدام: عاملة جديدة من الخارج
             // إستلام فورى: نقل عمالة موجودة من موقع إلى آخر
             // ايجار عمالة: تأجير عمالة لفترة محددة
             function toggleFields() {
-                var selectedTypeOriginal = $('select[name="type_id"] option:selected').text() || '';
-                var selectedType = selectedTypeOriginal.trim();
-                var normalizedArabicType = selectedType
-                    .replace(/[إأآ]/g, 'ا')
-                    .replace(/\u0649/g, 'ي')
-                    .replace(/\s+/g, ' ');
-                var normalizedArabicLower = normalizedArabicType.toLowerCase();
-                var selectedTypeLower = selectedType.toLowerCase();
+                var typeContext = getTypeContext();
+                var selectedType = typeContext.original;
+                var normalizedArabicLower = typeContext.normalizedArabicLower;
+                var selectedTypeLower = typeContext.selectedTypeLower;
                 console.log('Selected type:', selectedType);
 
                 // Get all fields that need to be toggled
@@ -681,14 +723,11 @@
                 $('#price').val('0');
 
                 // Handle specific cases
-                if (
-                    normalizedArabicLower.includes('استقدام') ||
-                    selectedTypeLower.includes('recruit')
-                ) {
+                if (typeContext.isRecruitment) {
                     // Hide ID fields for recruitment flows
                     idFields.hide();
                     $('input[name="id_number"], input[name="id_expiry_date"]').removeAttr('required');
-                } else if (normalizedArabicLower === 'استلام فوري') {
+                } else if (typeContext.isInstantTransfer) {
                     console.log('Hiding fields for إستلام فورى');
                     // إستلام فورى: خدمة نقل العمالة من موقع إلى آخر بدون استقدام جديد
                     // يتم إخفاء الحقول غير المطلوبة لهذا النوع من الخدمة
@@ -705,20 +744,7 @@
                     $('input[name="height"], input[name="weight"]').removeAttr('required');
                     $('select[name="marital_status:ar"]').removeAttr('required');
                     $('select[name="office_id"]').removeAttr('required');
-
-                    // Set service transfer cost from nationality if selected
-                    var selectedNationality = $('#Pnationality_id option:selected');
-                    if (selectedNationality.length) {
-                        var serviceTransferCost = selectedNationality.data('service_transfer_cost');
-                        if (serviceTransferCost) {
-                            $('#price').val(serviceTransferCost);
-                        }
-                    }
-                } else if (
-                    normalizedArabicLower.includes('ايجار') ||
-                    normalizedArabicLower.includes('تاجير') ||
-                    selectedTypeLower.includes('rent')
-                ) {
+                } else if (typeContext.isRental) {
                     console.log('Hiding fields for ايجار/تأجير');
                     // Hide fields for ايجار
                     heightWeightFields.hide();
@@ -735,20 +761,13 @@
                     $('select[name="marital_status:ar"]').removeAttr('required');
                     $('input[name="salary"]').removeAttr('required');
                     $('select[name="office_id"]').removeAttr('required');
-
-                    // Set rental cost from nationality if selected
-                    var selectedNationality = $('#Pnationality_id option:selected');
-                    if (selectedNationality.length) {
-                        var rentalCost = selectedNationality.data('rental_cost');
-                        if (rentalCost) {
-                            $('#price').val(rentalCost);
-                        }
-                    }
                 }
 
                 if (shouldUpdateMaritalTranslation) {
                     updateMaritalStatusTranslation();
                 }
+
+                applyPriceFromNationality(typeContext);
             }
 
             // Call on page load
@@ -855,7 +874,7 @@
             // Handle nationality change to filter offices and set price/salary
             $('#Pnationality_id').change(function() {
                 var nationalityId = $(this).val();
-                var selectedType = $('select[name="type_id"] option:selected').text().trim();
+                applyPriceFromNationality();
 
                 if (nationalityId) {
                     $.ajax({
@@ -876,31 +895,7 @@
                             });
 
                             // Set default price and salary based on nationality
-                            var selectedOption = $('#Pnationality_id option:selected');
-                            var salary = selectedOption.data('salary');
-                            var rentalCost = selectedOption.data('rental_cost');
-                            var serviceTransferCost = selectedOption.data(
-                                'service_transfer_cost');
-
-                            if (selectedType === 'ايجار عمالة' || selectedType === 'تأجير') {
-                                // Set rental cost for rental types
-                                if (rentalCost) {
-                                    $('#price').val(rentalCost);
-                                }
-                            } else if (selectedType === 'إستلام فورى') {
-                                // إستلام فورى: خدمة نقل العمالة من موقع إلى آخر
-                                // يتم تعيين تكلفة نقل الخدمات تلقائياً
-                                if (serviceTransferCost) {
-                                    $('#price').val(serviceTransferCost);
-                                }
-                            } else {
-                                // Set default price to 0 for other types
-                                $('#price').val('0');
-                            }
-
-                            if (salary) {
-                                $('input[name="salary"]').val(salary);
-                            }
+                            // Keep salary as provided by the admin; do not override automatically
                         },
                         error: function(xhr) {
                             Swal.fire({
