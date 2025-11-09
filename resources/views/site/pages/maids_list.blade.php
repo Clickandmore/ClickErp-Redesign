@@ -22,7 +22,8 @@
                     <a href="{{ route('site.all-workers.show', $maid->id) }}" class="worker-box-link">
                         <div class="worker-box">
                             <div class="worker-media">
-                                <img src="{{ showFile($maid->image) }}" alt="worker"/>
+                            <img src="{{ showFile($maid->image) ?? asset('site/assets/images/worker.webp') }}" alt="worker"
+                                 onerror="this.onerror=null;this.src='{{ asset('site/assets/images/worker.webp') }}';"/>
                             </div>
                             <div class="worker-content">
                                 <div class="worker-header">
@@ -122,7 +123,8 @@
                     <a href="{{ route('site.packages.show', $maid->id ) }}" class="worker-box-link">
                         <div class="worker-box">
                             <div class="worker-media">
-                                <img src="{{ showFile($maid->image) }}" alt="worker"/>
+                                <img src="{{ showFile($maid->image) ?? asset('site/assets/images/worker.webp') }}" alt="worker"
+                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/worker.webp') }}';"/>
                             </div>
                             <div class="worker-content">
                                 <div class="worker-header">
@@ -187,7 +189,8 @@
                     <a href="{{ route('site.immediate-recipts.show', $maid->id) }}" class="worker-box-link">
                         <div class="worker-box">
                             <div class="worker-media">
-                                <img src="{{ showFile($maid->image) }}" alt="worker"/>
+                                <img src="{{ showFile($maid->image) ?? asset('site/assets/images/worker.webp') }}" alt="worker"
+                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/worker.webp') }}';"/>
                             </div>
                             <div class="worker-content">
                                 <div class="worker-header">
