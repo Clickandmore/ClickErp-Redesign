@@ -622,7 +622,7 @@
                         <div class="flag-side">
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
-                                <img src="assets/images/countries/1.png" alt="علم أوغندا" class="flag-img" />
+                                <img src="{{ asset('site/assets/images/countries/1.png') }}" alt="علم أوغندا" class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
                         </div>
@@ -664,7 +664,7 @@
                         <div class="flag-side">
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
-                                <img src="assets/images/countries/2.png" alt="علم كينيا" class="flag-img" />
+                                <img src="{{ asset('site/assets/images/countries/2.png') }}" alt="علم كينيا" class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
                         </div>
@@ -711,7 +711,7 @@
                         <div class="flag-side">
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
-                                <img src="assets/images/countries/3.jpeg" alt="علم بنغلادش" class="flag-img" />
+                                <img src="{{ asset('site/assets/images/countries/3.jpeg') }}" alt="علم بنغلادش" class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
                         </div>
@@ -758,7 +758,7 @@
                         <div class="flag-side">
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
-                                <img src="assets/images/countries/4.jpeg" alt="علم الفلبين" class="flag-img" />
+                                <img src="{{ asset('site/assets/images/countries/4.jpeg') }}" alt="علم الفلبين" class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
                         </div>
@@ -805,7 +805,7 @@
                         <div class="flag-side">
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
-                                <img src="assets/images/countries/5.png" alt="علم الهند" class="flag-img" />
+                                <img src="{{ asset('site/assets/images/countries/5.png') }}" alt="علم الهند" class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
                         </div>
@@ -852,7 +852,7 @@
                         <div class="flag-side">
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
-                                <img src="assets/images/countries/6.png" alt="علم موريتانيا" class="flag-img" />
+                                <img src="{{ asset('site/assets/images/countries/6.png') }}" alt="علم موريتانيا" class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
                         </div>
@@ -899,7 +899,7 @@
                         <div class="flag-side">
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
-                                <img src="assets/images/countries/7.png" alt="علم جيبوتي" class="flag-img" />
+                                <img src="{{ asset('site/assets/images/countries/7.png') }}" alt="علم جيبوتي" class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
                         </div>
