@@ -303,11 +303,15 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="text-muted small">{{ helperTrans('web.salary') }}</div>
-                                    <div class="fw-semibold">{{ number_format((float) $maid->salary, 2) }}</div>
+                                    <div class="fw-semibold">
+                                        {{ $maid->resolved_salary !== null ? number_format($maid->resolved_salary, 2) : helperTrans('ingaz.not_specified') }}
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="text-muted small">{{ helperTrans('ingaz.price') }}</div>
-                                    <div class="fw-semibold">{{ number_format((float) $maid->price, 2) }}</div>
+                                    <div class="fw-semibold">
+                                        {{ $maid->resolved_price !== null ? number_format($maid->resolved_price, 2) : helperTrans('ingaz.not_specified') }}
+                                    </div>
                                 </div>
                                 <div class="col-md-12">
                                     <div class="text-muted small">{{ helperTrans('ingaz.additional_notes') }}</div>

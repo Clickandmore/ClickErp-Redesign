@@ -1132,7 +1132,7 @@
                         <!-- Statistics Cards -->
                         <div class="row mb-4">
                             <!-- Orders Statistics -->
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-3 mb-3">
                                 <div class="dashboard_stat_card">
                                     <div class="stat_header">
                                         <div class="stat_icon orders_icon">
@@ -1150,7 +1150,8 @@
                                         </div>
                                         <div class="stat_item">
                                             <span class="stat_label">{{ helperTrans('web.completed') }}</span>
-                                            <span class="stat_value completed_value">{{ $stats['orders']['completed'] }}</span>
+                                            <span
+                                                class="stat_value completed_value">{{ $stats['orders']['completed'] }}</span>
                                         </div>
                                     </div>
                                     <a href="{{ route('site.last-orders.index') }}" class="stat_link">
@@ -1160,7 +1161,7 @@
                             </div>
 
                             <!-- Contracts Statistics -->
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-3 mb-3">
                                 <div class="dashboard_stat_card">
                                     <div class="stat_header">
                                         <div class="stat_icon contracts_icon">
@@ -1174,11 +1175,13 @@
                                     <div class="stat_footer">
                                         <div class="stat_item">
                                             <span class="stat_label">{{ helperTrans('web.active') }}</span>
-                                            <span class="stat_value active_value">{{ $stats['contracts']['active'] }}</span>
+                                            <span
+                                                class="stat_value active_value">{{ $stats['contracts']['active'] }}</span>
                                         </div>
                                         <div class="stat_item">
                                             <span class="stat_label">{{ helperTrans('web.completed') }}</span>
-                                            <span class="stat_value completed_value">{{ $stats['contracts']['completed'] }}</span>
+                                            <span
+                                                class="stat_value completed_value">{{ $stats['contracts']['completed'] }}</span>
                                         </div>
                                     </div>
                                     <a href="{{ route('site.contracts.index') }}" class="stat_link">
@@ -1202,11 +1205,13 @@
                                     <div class="stat_footer">
                                         <div class="stat_item">
                                             <span class="stat_label">{{ __('ingaz.pending') }}</span>
-                                            <span class="stat_value pending_value">{{ $stats['complaints']['pending'] }}</span>
+                                            <span
+                                                class="stat_value pending_value">{{ $stats['complaints']['pending'] }}</span>
                                         </div>
                                         <div class="stat_item">
                                             <span class="stat_label">{{ __('ingaz.resolved') }}</span>
-                                            <span class="stat_value resolved_value">{{ $stats['complaints']['resolved'] }}</span>
+                                            <span
+                                                class="stat_value resolved_value">{{ $stats['complaints']['resolved'] }}</span>
                                         </div>
                                     </div>
                                     <a href="{{ route('site.complaints.index') }}" class="stat_link">
@@ -1224,17 +1229,19 @@
                                         </div>
                                         <div class="stat_title">
                                             <h4>{{ $stats['sponsorship_transfers']['total'] ?? 0 }}</h4>
-                                            <p>{{__('ingaz.total_sponsorship_transfers')}}</p>
+                                            <p>{{ __('ingaz.total_sponsorship_transfers') }}</p>
                                         </div>
                                     </div>
                                     <div class="stat_footer">
                                         <div class="stat_item">
                                             <span class="stat_label">{{ __('web.pending') }}</span>
-                                            <span class="stat_value pending_value">{{ $stats['sponsorship_transfers']['pending'] ?? 0 }}</span>
+                                            <span
+                                                class="stat_value pending_value">{{ $stats['sponsorship_transfers']['pending'] ?? 0 }}</span>
                                         </div>
                                         <div class="stat_item">
                                             <span class="stat_label">{{ __('ingaz.transferred') }}</span>
-                                            <span class="stat_value completed_value">{{ $stats['sponsorship_transfers']['transferred'] ?? 0 }}</span>
+                                            <span
+                                                class="stat_value completed_value">{{ $stats['sponsorship_transfers']['transferred'] ?? 0 }}</span>
                                         </div>
                                     </div>
                                     <a href="{{ route('site.sponsorship-transfers.index') }}" class="stat_link">
@@ -1294,180 +1301,194 @@
                         <div class="recent_activities">
                             <div class="row">
                                 <!-- Recent Orders -->
-                             @if ($recentOrders->count() > 0)
-                            <div class="col-12 mb-4">
-                                <div class="activity_section">
-                                    <div class="section_header">
-                                        <div class="header_content">
-                                            <h5>{{ helperTrans('web.recent_orders') }}</h5>
-                                            <span class="badge bg-primary">{{ $recentOrders->count() }}</span>
+                                @if ($recentOrders->count() > 0)
+                                    <div class="col-12 mb-4">
+                                        <div class="activity_section">
+                                            <div class="section_header">
+                                                <div class="header_content">
+                                                    <h5>{{ helperTrans('web.recent_orders') }}</h5>
+                                                    <span class="badge bg-primary">{{ $recentOrders->count() }}</span>
+                                                </div>
+                                                <a href="{{ route('site.last-orders.index') }}" class="view_all_btn">
+                                                    {{ helperTrans('web.view_all') }}
+                                                    <i class="fa-light fa-arrow-left"></i>
+                                                </a>
+                                            </div>
+                                            <div class="activity_list">
+                                                @foreach ($recentOrders as $order)
+                                                    <div class="activity_item">
+                                                        <div class="activity_icon">
+                                                            <i class="fa-regular fa-list-check"></i>
+                                                        </div>
+                                                        <div class="activity_content">
+                                                            <h6>{{ helperTrans('web.order') }} #{{ $order->id }}</h6>
+                                                            <p>{{ $order->maid->name ?? helperTrans('web.maid_not_assigned') }}
+                                                                - {{ $order->jobType->title ?? '' }}</p>
+                                                            <small>{{ $order->created_at->diffForHumans() }}</small>
+                                                        </div>
+                                                        <div class="activity_status">
+                                                            <span class="status_badge status_{{ $order->status }}">
+                                                                {{ $order->status }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
                                         </div>
-                                        <a href="{{ route('site.last-orders.index') }}" class="view_all_btn">
-                                            {{ helperTrans('web.view_all') }}
-                                            <i class="fa-light fa-arrow-left"></i>
-                                        </a>
                                     </div>
-                                    <div class="activity_list">
-                                        @foreach ($recentOrders as $order)
-                                        <div class="activity_item">
-                                            <div class="activity_icon">
-                                                <i class="fa-regular fa-list-check"></i>
-                                            </div>
-                                            <div class="activity_content">
-                                                <h6>{{ helperTrans('web.order') }} #{{ $order->id }}</h6>
-                                                <p>{{ $order->maid->name ?? helperTrans('web.maid_not_assigned') }} - {{ $order->jobType->title ?? '' }}</p>
-                                                <small>{{ $order->created_at->diffForHumans() }}</small>
-                                            </div>
-                                            <div class="activity_status">
-                                                <span class="status_badge status_{{ $order->status }}">
-                                                    {{ $order->status }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            </div>
-                            @endif
+                                @endif
 
                                 <!-- Recent Contracts -->
                                 @if ($recentContracts->count() > 0)
-                            <div class="col-12 mb-4">
-                                <div class="activity_section">
-                                    <div class="section_header">
-                                        <div class="header_content">
-                                            <h5>{{ helperTrans('web.recent_contracts') }}</h5>
-                                            <span class="badge bg-success">{{ $recentContracts->count() }}</span>
+                                    <div class="col-12 mb-4">
+                                        <div class="activity_section">
+                                            <div class="section_header">
+                                                <div class="header_content">
+                                                    <h5>{{ helperTrans('web.recent_contracts') }}</h5>
+                                                    <span class="badge bg-success">{{ $recentContracts->count() }}</span>
+                                                </div>
+                                                <a href="{{ route('site.contracts.index') }}" class="view_all_btn">
+                                                    {{ helperTrans('web.view_all') }}
+                                                    <i class="fa-light fa-arrow-left"></i>
+                                                </a>
+                                            </div>
+                                            <div class="activity_list">
+                                                @foreach ($recentContracts as $contract)
+                                                    <div class="activity_item">
+                                                        <div class="activity_icon">
+                                                            <i class="fa-regular fa-file-contract"></i>
+                                                        </div>
+                                                        <div class="activity_content">
+                                                            <h6>{{ helperTrans('web.contract') }} #{{ $contract->id }}
+                                                            </h6>
+                                                            <p>{{ $contract->maid->name ?? helperTrans('web.maid_not_assigned') }}
+                                                            </p>
+                                                            <small>{{ $contract->created_at->diffForHumans() }}</small>
+                                                        </div>
+                                                        <div class="activity_status">
+                                                            <span class="status_badge status_{{ $contract->status }}">
+                                                                {{ $contract->status }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
                                         </div>
-                                        <a href="{{ route('site.contracts.index') }}" class="view_all_btn">
-                                            {{ helperTrans('web.view_all') }}
-                                            <i class="fa-light fa-arrow-left"></i>
-                                        </a>
                                     </div>
-                                    <div class="activity_list">
-                                        @foreach ($recentContracts as $contract)
-                                        <div class="activity_item">
-                                            <div class="activity_icon">
-                                                <i class="fa-regular fa-file-contract"></i>
-                                            </div>
-                                            <div class="activity_content">
-                                                <h6>{{ helperTrans('web.contract') }} #{{ $contract->id }}</h6>
-                                                <p>{{ $contract->maid->name ?? helperTrans('web.maid_not_assigned') }}</p>
-                                                <small>{{ $contract->created_at->diffForHumans() }}</small>
-                                            </div>
-                                            <div class="activity_status">
-                                                <span class="status_badge status_{{ $contract->status }}">
-                                                    {{ $contract->status }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            </div>
-                            @endif
+                                @endif
 
                                 <!-- Recent Complaints -->
                                 @if ($recentComplaints->count() > 0)
-                            <div class="col-12 mb-4">
-                                <div class="activity_section">
-                                    <div class="section_header">
-                                        <div class="header_content">
-                                            <h5>{{ helperTrans('web.recent_complaints') }}</h5>
-                                            <span class="badge bg-warning">{{ $recentComplaints->count() }}</span>
+                                    <div class="col-12 mb-4">
+                                        <div class="activity_section">
+                                            <div class="section_header">
+                                                <div class="header_content">
+                                                    <h5>{{ helperTrans('web.recent_complaints') }}</h5>
+                                                    <span class="badge bg-warning">{{ $recentComplaints->count() }}</span>
+                                                </div>
+                                                <a href="{{ route('site.complaints.index') }}" class="view_all_btn">
+                                                    {{ helperTrans('web.view_all') }}
+                                                    <i class="fa-light fa-arrow-left"></i>
+                                                </a>
+                                            </div>
+                                            <div class="activity_list">
+                                                @foreach ($recentComplaints as $complaint)
+                                                    <div class="activity_item">
+                                                        <div class="activity_icon">
+                                                            <i class="fa-light fa-triangle-exclamation"></i>
+                                                        </div>
+                                                        <div class="activity_content">
+                                                            <h6>{{ $complaint->complaintType->title ?? helperTrans('web.complaint') }}
+                                                            </h6>
+                                                            <p>{{ Str::limit($complaint->message, 50) }}</p>
+                                                            <small>{{ $complaint->created_at->diffForHumans() }}</small>
+                                                        </div>
+                                                        <div class="activity_status">
+                                                            <span class="status_badge status_{{ $complaint->status }}">
+                                                                {{ $complaint->status }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
                                         </div>
-                                        <a href="{{ route('site.complaints.index') }}" class="view_all_btn">
-                                            {{ helperTrans('web.view_all') }}
-                                            <i class="fa-light fa-arrow-left"></i>
-                                        </a>
                                     </div>
-                                    <div class="activity_list">
-                                        @foreach ($recentComplaints as $complaint)
-                                        <div class="activity_item">
-                                            <div class="activity_icon">
-                                                <i class="fa-light fa-triangle-exclamation"></i>
-                                            </div>
-                                            <div class="activity_content">
-                                                <h6>{{ $complaint->complaintType->title ?? helperTrans('web.complaint') }}</h6>
-                                                <p>{{ Str::limit($complaint->message, 50) }}</p>
-                                                <small>{{ $complaint->created_at->diffForHumans() }}</small>
-                                            </div>
-                                            <div class="activity_status">
-                                                <span class="status_badge status_{{ $complaint->status }}">
-                                                    {{ $complaint->status }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            </div>
-                            @endif
+                                @endif
 
                                 <!-- Sponsorship Transfers -->
                                 @if ($sponsorshipTransfers->count() > 0)
-                            <div class="col-12 mb-4">
-                                <div class="activity_section">
-                                    <div class="section_header">
-                                        <div class="header_content">
-                                            <h5>{{ __('ingaz.sponsorship_transfers') }}</h5>
-                                            <span class="badge bg-info">{{ $sponsorshipTransfers->count() }}</span>
+                                    <div class="col-12 mb-4">
+                                        <div class="activity_section">
+                                            <div class="section_header">
+                                                <div class="header_content">
+                                                    <h5>{{ __('ingaz.sponsorship_transfers') }}</h5>
+                                                    <span
+                                                        class="badge bg-info">{{ $sponsorshipTransfers->count() }}</span>
+                                                </div>
+                                                <a href="{{ route('site.sponsorship-transfers.index') }}"
+                                                    class="view_all_btn">
+                                                    {{ helperTrans('web.view_all') }}
+                                                    <i class="fa-light fa-arrow-left"></i>
+                                                </a>
+                                            </div>
+                                            <div class="activity_list">
+                                                @foreach ($sponsorshipTransfers as $transfer)
+                                                    <div class="activity_item">
+                                                        <div class="activity_icon">
+                                                            <i class="fa-regular fa-exchange-alt"></i>
+                                                        </div>
+                                                        <div class="activity_content">
+                                                            <h6>{{ __('ingaz.sponsorship_transfer_request') }}
+                                                                #{{ $transfer->id }}</h6>
+                                                            <p>
+                                                                @if ($transfer->old_sponsor_id == auth()->id())
+                                                                    {{ __('ingaz.former_sponsor') }} →
+                                                                    {{ $transfer->newSponsor ? $transfer->newSponsor->name : __('ingaz.not_specified') }}
+                                                                @else
+                                                                    {{ $transfer->oldSponsor ? $transfer->oldSponsor->name : __('ingaz.not_specified') }}
+                                                                    → {{ __('ingaz.new_sponsor') }}
+                                                                @endif
+                                                            </p>
+                                                            <small>{{ $transfer->created_at->diffForHumans() }}</small>
+                                                            @if ($transfer->trial_days)
+                                                                <br><small class="text-warning">
+                                                                    <i class="fa-regular fa-clock me-1"></i>
+                                                                    {{ __('ingaz.trial_days') }}:
+                                                                    {{ $transfer->trial_days }} {{ __('ingaz.days') }}
+                                                                </small>
+                                                            @endif
+                                                        </div>
+                                                        <div class="activity_status">
+                                                            <span class="status_badge status_{{ $transfer->status }}">
+                                                                {{ $transfer->status_text }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
                                         </div>
-                                        <a href="{{ route('site.sponsorship-transfers.index') }}" class="view_all_btn">
-                                            {{ helperTrans('web.view_all') }}
-                                            <i class="fa-light fa-arrow-left"></i>
-                                        </a>
                                     </div>
-                                    <div class="activity_list">
-                                        @foreach ($sponsorshipTransfers as $transfer)
-                                        <div class="activity_item">
-                                            <div class="activity_icon">
-                                                <i class="fa-regular fa-exchange-alt"></i>
-                                            </div>
-                                            <div class="activity_content">
-                                                <h6>{{ __('ingaz.sponsorship_transfer_request') }} #{{ $transfer->id }}</h6>
-                                                <p>
-                                                    @if ($transfer->old_sponsor_id == auth()->id())
-                                                        {{__("ingaz.former_sponsor")}} → {{ $transfer->newSponsor ? $transfer->newSponsor->name :__("ingaz.not_specified") }}
-                                                    @else
-                                                        {{ $transfer->oldSponsor ? $transfer->oldSponsor->name :__("ingaz.not_specified") }} → {{__("ingaz.new_sponsor")}}
-                                                    @endif
-                                                </p>
-                                                <small>{{ $transfer->created_at->diffForHumans() }}</small>
-                                                @if ($transfer->trial_days)
-                                                    <br><small class="text-warning">
-                                                        <i class="fa-regular fa-clock me-1"></i>
-                                                        {{__("ingaz.trial_days")}}: {{ $transfer->trial_days }} {{__("ingaz.days")}}
-                                                    </small>
-                                                @endif
-                                            </div>
-                                            <div class="activity_status">
-                                                <span class="status_badge status_{{ $transfer->status }}">
-                                                    {{ $transfer->status_text }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            </div>
-                            @endif
+                                @endif
 
-                                @if ($recentOrders->count() == 0 && $recentContracts->count() == 0 && $recentComplaints->count() == 0 && $sponsorshipTransfers->count() == 0)
-                            <div class="col-12">
-                                <div class="no_activities">
-                                    <div class="no_activities_icon">
-                                        <i class="fa-light fa-inbox"></i>
+                                @if (
+                                    $recentOrders->count() == 0 &&
+                                        $recentContracts->count() == 0 &&
+                                        $recentComplaints->count() == 0 &&
+                                        $sponsorshipTransfers->count() == 0)
+                                    <div class="col-12">
+                                        <div class="no_activities">
+                                            <div class="no_activities_icon">
+                                                <i class="fa-light fa-inbox"></i>
+                                            </div>
+                                            <h5>{{ helperTrans('web.no_recent_activities') }}</h5>
+                                            <p>{{ helperTrans('web.start_by_browsing_maids') }}</p>
+                                            <a href="{{ route('site.all-workers.index') }}" class="btn btn-primary">
+                                                <i class="fa-light fa-users me-2"></i>
+                                                {{ helperTrans('web.browse_maids') }}
+                                            </a>
+                                        </div>
                                     </div>
-                                    <h5>{{ helperTrans('web.no_recent_activities') }}</h5>
-                                    <p>{{ helperTrans('web.start_by_browsing_maids') }}</p>
-                                    <a href="{{ route('site.all-workers.index') }}" class="btn btn-primary">
-                                        <i class="fa-light fa-users me-2"></i>
-                                        {{ helperTrans('web.browse_maids') }}
-                                    </a>
-                                </div>
-                            </div>
-                            @endif
+                                @endif
                             </div>
                         </div>
                     </div>
