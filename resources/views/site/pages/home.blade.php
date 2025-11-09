@@ -446,6 +446,73 @@
             </div>
         </div>
         <!-- warn -->
+        <div class="services-container">
+            @forelse($whatDos as $whatDo)
+                <a href="{{route('site.all-workers.index')}}?type={{$whatDo->type}}">
+                    <div class="service-card green">
+                        <div class="icon green">
+                            <i class="{{$whatDo->icon}}"></i>
+                        </div>
+                        <h4>{{$whatDo->title}}</h4>
+                        <p>{{$whatDo->description}}</p>
+                        <ul>
+                            @foreach($whatDo->items as $item)
+                                <li>{{$item->title}}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </a>
+            @empty
+                <div class="service-card green">
+                    <div class="icon green">
+                        <i class="fa-solid fa-user-check"></i>
+                    </div>
+                    <h4>الاستقدام</h4>
+                    <p>خدمة استقدام العمالة المنزلية والمهنية من الخارج للعمل داخل المملكة.</p>
+                    <ul>
+                        <li>سهولة الاستقدام</li>
+                        <li>الجودة</li>
+                        <li>نظام تتبع دقيق</li>
+                    </ul>
+                </div>
+                <div class="service-card purple">
+                    <div class="icon purple">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+                    <h4>تأجير العمالة الشهري</h4>
+                    <p>خدمة تأجير العمالة للشهر الواحد مع ضمان مرونة وجودة.</p>
+                    <ul>
+                        <li>مرونة عالية</li>
+                        <li>جودة مضمونة</li>
+                        <li>تسليم سريع</li>
+                    </ul>
+                </div>
+                <div class="service-card blue">
+                    <div class="icon blue">
+                        <i class="fa-solid fa-truck-fast"></i>
+                    </div>
+                    <h4>النقل الفوري للعمالة</h4>
+                    <p>خدمة نقل العمالة لمشاريعك بسرعة وكفاءة عالية.</p>
+                    <ul>
+                        <li>النقل السريع</li>
+                        <li>التسليم الفوري</li>
+                        <li>الجودة</li>
+                    </ul>
+                </div>
+                <div class="service-card orange">
+                    <div class="icon orange">
+                        <i class="fa-solid fa-stopwatch"></i>
+                    </div>
+                    <h4>التسليم الفوري للعمالة</h4>
+                    <p>استلم فوري لعمالتك لتلبية احتياجاتك الفورية بسرعة وجودة.</p>
+                    <ul>
+                        <li>التسليم السريع</li>
+                        <li>جودة العمالة</li>
+                        <li>سهولة الإجراءات</li>
+                    </ul>
+                </div>
+            @endforelse
+        </div>
 {{--        @empty--}}
 {{--            <div class="service-card">--}}
 {{--                <div class="header">--}}
@@ -587,6 +654,51 @@
                                                     <div class="row justify-content-center">
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+                                                        @forelse($nationalities as $nationality)
+    <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="100">
+                                                                <div class="country-card">
+                                                                    <div class="flag-container">
+                                                                        <img src="{{ showfile($nationality->logo) }}" alt="{{ $nationality->title }}"
+                                                                             width="100px">
+                                                                    </div>
+
+                                                                    <div class="country-content">
+                                                                        <h3>{{ $nationality->title }}</h3>
+                                                                        @if ($nationality->description)
+    <div class="country-description center">
+                                                                                {!! $nationality->description !!}
+                                                                            </div>
+    @endif
+                                                                        <ul class="country-costs">
+                                                                            @if ($nationality->price)
+    <li>
+                                                                                    <span>{{ __('ingaz.recruitment_cost') }}</span>
+                                                                                    <strong>{{ number_format($nationality->price, 0) }} {{ __('ingaz.currency_sar') }}</strong>
+                                                                                </li>
+    @endif
+                                                                            @if ($nationality->salary_with_experience)
+    <li>
+                                                                                    <span>{{ __('ingaz.salary_with_experience') }}</span>
+                                                                                    <strong>{{ number_format($nationality->salary_with_experience, 0) }} {{ __('ingaz.currency_sar') }}</strong>
+                                                                                </li>
+    @endif
+                                                                            @if ($nationality->salary_with_no_experience)
+    <li>
+                                                                                    <span>{{ __('ingaz.salary_with_no_experience') }}</span>
+                                                                                    <strong>{{ number_format($nationality->salary_with_no_experience, 0) }} {{ __('ingaz.currency_sar') }}</strong>
+                                                                                </li>
+    @endif
+
+                                                                            @if ($nationality->rental_cost)
+    <li>
+                                                                                    <span>{{ __('ingaz.rental_cost') }}</span>
+                                                                                    <strong>{{ number_format($nationality->rental_cost, 0) }} {{ __('ingaz.currency_sar') }}</strong>
+                                                                                </li>
+    @endif
+
+>>>>>>> 056434ee4b5e71185a62f829343b5c4c9a3a742e
                     @forelse($nationalities as $nationality)
         <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="100">
             <div class="country-card">
@@ -675,6 +787,7 @@
             <div class="country-card">
                 <div class="flag-container">
                     <img src="{{ asset('site/assets/images/countries/1.png') }}" alt="">
+<<<<<<< HEAD
                                 </div>
                                 <div class="country-content">
                                     <h3>أوغندا</h3>
@@ -731,6 +844,8 @@
                                                                                     <strong>{{ number_format($nationality->rental_cost, 0) }} {{ __('ingaz.currency_sar') }}</strong>
                                                                                 </li>
     @endif
+=======
+>>>>>>> 056434ee4b5e71185a62f829343b5c4c9a3a742e
 
                                                                             @if ($nationality->service_transportation_cost)
     <li>
@@ -776,7 +891,10 @@
                                                                             <li>
                                                                                 <span>{{ __('ingaz.rental_cost') }}</span><strong>2,000 {{ __('ingaz.currency_sar') }}</strong>
                                                                             </li>
+<<<<<<< HEAD
 >>>>>>> a497b7910fc734c8820447a08a1af60e86b47141
+=======
+>>>>>>> 056434ee4b5e71185a62f829343b5c4c9a3a742e
 
                                                                         </ul>
                                                                         <a href="#" class="animatedLink">
@@ -867,6 +985,7 @@
                                                                 </div>
                                                             </div>
 
+<<<<<<< HEAD
 <<<<<<< HEAD
                         <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
                             <div class="country-card">
@@ -968,6 +1087,7 @@
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
                                 <img src="{{ asset('site/assets/images/countries/2.png') }}" alt="علم كينيا" class="flag-img" />
+
                                 <span class="pulse-ring"></span>
                             </div>
                         </div>
@@ -1061,7 +1181,6 @@
                         <div class="flag-side">
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
-
                                 <img src="{{ asset('site/assets/images/countries/4.jpeg') }}" alt="علم الفلبين" class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
@@ -1189,6 +1308,293 @@
                                     <p>موريتانيا</p>
                                 </div>
                             </div>
+                        </div>
+
+
+    @endforelse
+
+    </div>
+</div>
+</div>
+</section> -->
+    <section class="countries">
+        <div class="container">
+            <div class="headTitle text-center">
+                <h2>دول الاستقدام</h2>
+                <p>اختر الدولة التي ترغب بالاستقدام منها</p>
+            </div>
+            <div class="row justify-content-center">
+                <div class="col-12 col-md-6 col-lg-4 p-3">
+                    <div class="modern-card">
+                        <div class="flag-side">
+                            <div class="flag-bg"></div>
+                            <div class="flag-wrapper">
+                                <img
+                                    src="assets/images/countries/1.png"
+                                    alt="علم أوغندا"
+                                    class="flag-img"
+                                />
+                                <span class="pulse-ring"></span>
+                            </div>
+                        </div>
+                        <div class="cost-highlight">
+                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            <h2 class="price">8500 <small>ريال</small></h2>
+                        </div>
+                        <div class="info-side">
+                            <div class="info-grid">
+                                <div class="info-card">
+                                    <i class="fas fa-clock"></i>
+                                    <h5>المدة المتوقعة</h5>
+                                    <p>60 يوم</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-hand-holding-usd"></i>
+                                    <h5>الراتب</h5>
+                                    <p>900 ريال</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-user-check"></i>
+                                    <h5>الخبرة</h5>
+                                    <p>لم يسبق لها العمل</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-flag"></i>
+                                    <h5>دولة الاستقدام</h5>
+                                    <p>أوغندا</p>
+                                </div>
+                            </div>
+                            <a href="all-workers.html" class="modern-btn">
+                                تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-lg-4 p-3">
+                    <div class="modern-card">
+                        <div class="flag-side">
+                            <div class="flag-bg"></div>
+                            <div class="flag-wrapper">
+                                <img src="assets/images/countries/2.png" alt="علم كينيا" class="flag-img"/>
+                                <span class="pulse-ring"></span>
+                            </div>
+                        </div>
+
+                        <div class="cost-highlight">
+                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            <h2 class="price">9500 <small>ريال</small></h2>
+                        </div>
+
+                        <div class="info-side">
+                            <div class="info-grid">
+                                <div class="info-card">
+                                    <i class="fas fa-clock"></i>
+                                    <h5>المدة المتوقعة</h5>
+                                    <p>60 يوم</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-hand-holding-usd"></i>
+                                    <h5>الراتب</h5>
+                                    <p>1000 ريال</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-user-check"></i>
+                                    <h5>الخبرة</h5>
+                                    <p>سبق لها العمل</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-flag"></i>
+                                    <h5>دولة الاستقدام</h5>
+                                    <p>كينيا</p>
+                                </div>
+                            </div>
+
+                            <a href="all-workers.html" class="modern-btn">
+                                تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bangladesh -->
+                <div class="col-12 col-md-6 col-lg-4 p-3">
+                    <div class="modern-card">
+                        <div class="flag-side">
+                            <div class="flag-bg"></div>
+                            <div class="flag-wrapper">
+                                <img src="assets/images/countries/3.jpeg" alt="علم بنغلادش" class="flag-img"/>
+                                <span class="pulse-ring"></span>
+                            </div>
+                        </div>
+
+                        <div class="cost-highlight">
+                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            <h2 class="price">8000 <small>ريال</small></h2>
+                        </div>
+
+                        <div class="info-side">
+                            <div class="info-grid">
+                                <div class="info-card">
+                                    <i class="fas fa-clock"></i>
+                                    <h5>المدة المتوقعة</h5>
+                                    <p>60 يوم</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-hand-holding-usd"></i>
+                                    <h5>الراتب</h5>
+                                    <p>850 ريال</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-user-check"></i>
+                                    <h5>الخبرة</h5>
+                                    <p>لم يسبق لها العمل</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-flag"></i>
+                                    <h5>دولة الاستقدام</h5>
+                                    <p>بنغلادش</p>
+                                </div>
+                            </div>
+
+                            <a href="all-workers.html" class="modern-btn">
+                                تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Philippines -->
+                <div class="col-12 col-md-6 col-lg-4 p-3">
+                    <div class="modern-card">
+                        <div class="flag-side">
+                            <div class="flag-bg"></div>
+                            <div class="flag-wrapper">
+                                <img src="assets/images/countries/4.jpeg" alt="علم الفلبين" class="flag-img"/>
+                                <span class="pulse-ring"></span>
+                            </div>
+                        </div>
+
+                        <div class="cost-highlight">
+                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            <h2 class="price">12000 <small>ريال</small></h2>
+                        </div>
+
+                        <div class="info-side">
+                            <div class="info-grid">
+                                <div class="info-card">
+                                    <i class="fas fa-clock"></i>
+                                    <h5>المدة المتوقعة</h5>
+                                    <p>60 يوم</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-hand-holding-usd"></i>
+                                    <h5>الراتب</h5>
+                                    <p>1500 ريال</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-user-check"></i>
+                                    <h5>الخبرة</h5>
+                                    <p>سبق لها العمل</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-flag"></i>
+                                    <h5>دولة الاستقدام</h5>
+                                    <p>الفلبين</p>
+                                </div>
+                            </div>
+
+                            <a href="all-workers.html" class="modern-btn">
+                                تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- India -->
+                <div class="col-12 col-md-6 col-lg-4 p-3">
+                    <div class="modern-card">
+                        <div class="flag-side">
+                            <div class="flag-bg"></div>
+                            <div class="flag-wrapper">
+                                <img src="assets/images/countries/5.png" alt="علم الهند" class="flag-img"/>
+                                <span class="pulse-ring"></span>
+                            </div>
+                        </div>
+
+                        <div class="cost-highlight">
+                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            <h2 class="price">9000 <small>ريال</small></h2>
+                        </div>
+
+                        <div class="info-side">
+                            <div class="info-grid">
+                                <div class="info-card">
+                                    <i class="fas fa-clock"></i>
+                                    <h5>المدة المتوقعة</h5>
+                                    <p>60 يوم</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-hand-holding-usd"></i>
+                                    <h5>الراتب</h5>
+                                    <p>1000 ريال</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-user-check"></i>
+                                    <h5>الخبرة</h5>
+                                    <p>لم يسبق لها العمل</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-flag"></i>
+                                    <h5>دولة الاستقدام</h5>
+                                    <p>الهند</p>
+                                </div>
+                            </div>
+                            <a href="all-workers.html" class="modern-btn">
+                                تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mauritania -->
+                <div class="col-12 col-md-6 col-lg-4 p-3">
+                    <div class="modern-card">
+                        <div class="flag-side">
+                            <div class="flag-bg"></div>
+                            <div class="flag-wrapper">
+                                <img src="assets/images/countries/6.png" alt="علم موريتانيا" class="flag-img"/>
+                                <span class="pulse-ring"></span>
+                            </div>
+                        </div>
+
+                        <div class="cost-highlight">
+                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            <h2 class="price">8500 <small>ريال</small></h2>
+                        </div>
+
+                        <div class="info-side">
+                            <div class="info-grid">
+                                <div class="info-card">
+                                    <i class="fas fa-clock"></i>
+                                    <h5>المدة المتوقعة</h5>
+                                    <p>60 يوم</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-hand-holding-usd"></i>
+                                    <h5>الراتب</h5>
+                                    <p>950 ريال</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-user-check"></i>
+                                    <h5>الخبرة</h5>
+                                    <p>سبق لها العمل</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-flag"></i>
+                                    <h5>دولة الاستقدام</h5>
+                                    <p>موريتانيا</p>
+                                </div>
+                            </div>
 
                             <a href="all-workers.html" class="modern-btn">
                                 تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
@@ -1237,6 +1643,45 @@
                                 </div>
                             </div>
 
+                <!-- Djibouti -->
+                <div class="col-12 col-md-6 col-lg-4 p-3">
+                    <div class="modern-card">
+                        <div class="flag-side">
+                            <div class="flag-bg"></div>
+                            <div class="flag-wrapper">
+                                <img src="assets/images/countries/7.png" alt="علم جيبوتي" class="flag-img" />
+                                <span class="pulse-ring"></span>
+                            </div>
+                        </div>
+
+                        <div class="cost-highlight">
+                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            <h2 class="price">8800 <small>ريال</small></h2>
+                        </div>
+
+                        <div class="info-side">
+                            <div class="info-grid">
+                                <div class="info-card">
+                                    <i class="fas fa-clock"></i>
+                                    <h5>المدة المتوقعة</h5>
+                                    <p>60 يوم</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-hand-holding-usd"></i>
+                                    <h5>الراتب</h5>
+                                    <p>950 ريال</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-user-check"></i>
+                                    <h5>الخبرة</h5>
+                                    <p>سبق لها العمل</p>
+                                </div>
+                                <div class="info-card">
+                                    <i class="fas fa-flag"></i>
+                                    <h5>دولة الاستقدام</h5>
+                                    <p>جيبوتي</p>
+                                </div>
+                            </div>
                             <a href="all-workers.html" class="modern-btn">
                                 تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
                             </a>
