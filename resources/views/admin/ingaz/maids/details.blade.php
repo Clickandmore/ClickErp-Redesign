@@ -386,7 +386,17 @@
                                                         class="badge bg-light text-muted border">{{ ucfirst($contract->status ?? '-') }}</span>
                                                 </td>
                                                 <td>{{ $contract->user?->name ?? '-' }}</td>
-                                                <td>{{ $contract->contract_date?->format('Y-m-d') ?? '-' }}</td>
+                                                @php
+                                                    $contractDate = $contract->contract_date ?? null;
+                                                    if ($contractDate && ! $contractDate instanceof \Carbon\Carbon) {
+                                                        try {
+                                                            $contractDate = \Carbon\Carbon::parse($contractDate);
+                                                        } catch (\Exception $e) {
+                                                            $contractDate = null;
+                                                        }
+                                                    }
+                                                @endphp
+                                                <td>{{ $contractDate?->format('Y-m-d') ?? '-' }}</td>
                                                 <td>{{ number_format((float) $contract->calculateContractValue(), 2) }}
                                                 </td>
                                             </tr>
