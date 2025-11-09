@@ -37,19 +37,16 @@
                                     @endif
                                 </div>
                                 <h4>{{ $maid->name ?? '' }}</h4>
-                                <<<<<<< HEAD
                                 <div class="top-ribbon">
                                     <img src="{{asset('site')}}/assets/images/ribbon.png" alt="عرض خاص"/>
                                     <span> {{ __('ingaz.sale') }}</span>
                                 </div>
-                                =======
                                 @if($offerActive)
                                     <div class="top-ribbon">
                                         <img src="{{ asset('site') }}/assets/images/ribbon.png" alt="عرض خاص"/>
                                         <span>{{ __('ingaz.sale') }}</span>
                                     </div>
                                 @endif
-                                >>>>>>> c4cb5ca3e0db237a1ccee22969be93fffaed24cf
                                 <div class="workerInfo">
                                     <p>{{ __('ingaz.nationality') }} :
                                         {{ $maid->nationality->sub_title ?? '' }}</p>
@@ -66,7 +63,6 @@
                                         @endif
                                     </p>
                                 </div>
-                                <<<<<<< HEAD
                                 <!-- worker sallery  -->
                                 <div class="worker-salary">
                                     <p class="old-salary">
@@ -75,7 +71,6 @@
                                     <p class="new-salary">
                                         الآن : <span>6500 ريال</span>
                                     </p>
-                                    =======
                                     <div class="worker-salary">
                                         <p class="monthly-salary text-secondary mb-0">
                                             {{ __('ingaz.month_salary') }} :

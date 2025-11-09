@@ -72,31 +72,33 @@
 
             @empty
             <!-- Card 1 -->
-            <div class="feature-card" data-aos="fade-up">
-                <div class="feature-text">
-                    <h3>عمالة مؤهلة</h3>
-                    <p>نوفر عمالة مهنية مؤهلة ومدربة بأعلى المعايير لضمان جودة الأداء والكفاءة في العمل.</p>
+                <!-- Card 1 -->
+                <div class="feature-card" data-aos="fade-up">
+                    <div class="feature-text">
+                        <h3>{{ __('web.qualified_labor.title') }}</h3>
+                        <p>{{ __('web.qualified_labor.description') }}</p>
+                    </div>
+                    <div class="feature-icon"><i class="fas fa-user-check"></i></div>
                 </div>
-                <div class="feature-icon"><i class="fas fa-user-check"></i></div>
-            </div>
 
-            <!-- Card 2 -->
-            <div class="feature-card" data-aos="fade-up">
-                <div class="feature-text">
-                    <h3>توفير الوقت</h3>
-                    <p>إجراءات سريعة ومبسطة لتوفير الوقت والجهد في عملية استقدام العمالة المهنية.</p>
+                <!-- Card 2 -->
+                <div class="feature-card" data-aos="fade-up">
+                    <div class="feature-text">
+                        <h3>{{ __('web.time_saving.title') }}</h3>
+                        <p>{{ __('web.time_saving.description') }}</p>
+                    </div>
+                    <div class="feature-icon"><i class="fas fa-clock"></i></div>
                 </div>
-                <div class="feature-icon"><i class="fas fa-clock"></i></div>
-            </div>
 
-            <!-- Card 3 -->
-            <div class="feature-card" data-aos="fade-up">
-                <div class="feature-text">
-                    <h3>دعم متواصل</h3>
-                    <p>نقدم الدعم والاستشارات المتواصلة قبل وبعد عملية الاستقدام لضمان رضاكم الكامل.</p>
+                <!-- Card 3 -->
+                <div class="feature-card" data-aos="fade-up">
+                    <div class="feature-text">
+                        <h3>{{ __('web.continuous_support.title') }}</h3>
+                        <p>{{ __('web.continuous_support.description') }}</p>
+                    </div>
+                    <div class="feature-icon"><i class="fas fa-headset"></i></div>
                 </div>
-                <div class="feature-icon"><i class="fas fa-headset"></i></div>
-            </div>
+
             @endforelse
         </div>
     </div>
@@ -304,7 +306,7 @@
                         backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
                         stopOnFocus: true
                     }).showToast();
-                    $('#form-daily-lebor-demand')[0].reset();
+                    // $('#form-daily-lebor-demand')[0].reset();
                 },
                 error: function(xhr) {
                     if (xhr.status === 422) {

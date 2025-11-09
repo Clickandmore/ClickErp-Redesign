@@ -341,4 +341,18 @@ return [
         'agreements' => 'Signing new agreements with accredited external recruitment offices',
         'ramadan_support' => 'Special support for families during Ramadan with fast recruitment services',
     ],
+    'qualified_labor' => [
+        'title' => 'Qualified Labor',
+        'description' => 'We provide professionally qualified and well-trained workers to ensure high-quality performance and efficiency.',
+    ],
+
+    'time_saving' => [
+        'title' => 'Time Saving',
+        'description' => 'Fast and simplified procedures to save time and effort in the recruitment process of professional workers.',
+    ],
+
+    'continuous_support' => [
+        'title' => 'Continuous Support',
+        'description' => 'We provide ongoing support and consultations before and after recruitment to ensure your complete satisfaction.',
+    ],
 ];

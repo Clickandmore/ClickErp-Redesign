@@ -117,6 +117,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('login', function ($request) {
             return Limit::perMinute(1)->by($request->phone);
         });
+        RateLimiter::for('daily-lebor-demand', function ($request) {
+            return Limit::perMinute(1)->by($request->phone);
+        });
 
     }
 }
