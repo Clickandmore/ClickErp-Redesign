@@ -41,7 +41,9 @@
                     <div class="inputDiv ltr">
                         <span> +966 </span>
                         <input type="tel" class="form-control" name="phone" id="phoneNum"
-                            placeholder="05 000 0000" />
+                            placeholder="5 000 0000" />
+                        {{-- <input type="tel" class="form-control" name="phone" id="phoneNum" pattern="05[0-9]{7}" minlength="9" maxlength="9"
+                            placeholder="05 000 0000" title="{{__('ingaz.phone_pattern')}}"/> --}}
                     </div>
                 </div>
                 {{-- <div class="formGroup">

@@ -31,7 +31,7 @@
                     <div class="inputDiv ltr">
                         <span> +966 </span>
                         <input type="tel" autocomplete="off" class="form-control" name="phone" id="phoneNum"
-                            placeholder="05 000 0000" />
+                            placeholder="5 000 0000" />
                     </div>
                 </div>
                 <div class="formGroup">

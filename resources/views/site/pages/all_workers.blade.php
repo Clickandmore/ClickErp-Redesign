@@ -154,7 +154,11 @@
                 </div>
                 <div class="col-md-8 col-lg-8 p-0">
                     <div id="maids_list">
-                        @include('site.pages.maids_list', ['maids' => $maids])
+                        @if ($maids->isEmpty())
+                            <div class="no-results">{{ __('ingaz.no_results') }}</div>
+                        @else
+                            @include('site.pages.maids_list', ['maids' => $maids])
+                        @endif
                     </div>
                     <!-- Modal -->
                     <div class="modal fade cvModal" tabindex="-1">
@@ -321,7 +325,7 @@
                 type: "GET",
                 data: params,
                 beforeSend: function () {
-                    $("#maids_list").html("<p>Loading...</p>");
+                    $("#maids_list").html("<div class='loading-text'><div class='spinner-border' role='status'><span class='visually-hidden'>Loading...</span></div></div>");
                 },
                 success: function (response) {
                     $("#maids_list").html(response);

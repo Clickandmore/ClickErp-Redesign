@@ -7,6 +7,7 @@ use App\Http\Actions\ingaz\UserAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\site\auth\ChangePasswordRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 
@@ -23,6 +24,10 @@ class ChangePasswordController extends Controller
         $data = $request->validated();
         $user = $userAction->getWhereFirst(['phone' => $data['phone']]);
         $user->update(['password' => Hash::make($data['password'])]);
+        
+        // logout from other devices
+        Auth::logoutOtherDevices($data['password']);
+
         return jsonSuccess(['redirect_url' => route('site.login.index')], __("ingaz.change_password_successfully"));
     }
 

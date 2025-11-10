@@ -96,6 +96,7 @@ class Maid extends Model
     public $translationModel = MaidTranslation::class;
     protected $with = ['translations'];
     protected $primaryJobTypeInstance;
+    protected static array $officeSerialIndex = [];
 
 
     ####### relations
@@ -181,6 +182,73 @@ class Maid extends Model
             return showFile($this->image);
         }
         return asset('images/no-image.png');
+    }
+
+    public function getCvCodeAttribute(): ?string
+    {
+        $officeName = trim($this->office?->title ?? '');
+        if (!$this->office_id || $officeName === '') {
+            return null;
+        }
+
+        $prefix = $this->buildOfficeCodePrefix($officeName);
+        $serial = $this->resolveOfficeSerialNumber();
+
+        if ($serial === null) {
+            return $prefix;
+        }
+
+        return $prefix . str_pad((string) $serial, 3, '0', STR_PAD_LEFT);
+    }
+
+    protected function buildOfficeCodePrefix(string $officeName): string
+    {
+        $lettersOnly = preg_replace('/[^\p{L}]/u', '', $officeName);
+        $compact = $lettersOnly !== '' ? $lettersOnly : preg_replace('/\s+/u', '', $officeName);
+        $chunk = mb_substr($compact !== '' ? $compact : $officeName, 0, 3, 'UTF-8');
+
+        $prefix = mb_strtoupper($chunk ?: 'OFF', 'UTF-8');
+
+        return $prefix !== '' ? $prefix : 'OFF';
+    }
+
+    protected function resolveOfficeSerialNumber(): ?int
+    {
+        if (!$this->office_id) {
+            return null;
+        }
+
+        $officeId = (int) $this->office_id;
+
+        if (!array_key_exists($officeId, static::$officeSerialIndex)) {
+            $orderedIds = static::query()
+                ->where('office_id', $officeId)
+                ->orderBy('created_at')
+                ->orderBy('id')
+                ->pluck('id')
+                ->all();
+
+            static::$officeSerialIndex[$officeId] = array_flip($orderedIds);
+        }
+
+        $map = static::$officeSerialIndex[$officeId] ?? [];
+
+        if (!array_key_exists($this->id, $map)) {
+            $position = static::query()
+                ->where('office_id', $officeId)
+                ->where('id', '<=', $this->id)
+                ->count();
+
+            if ($position === 0) {
+                return null;
+            }
+
+            static::$officeSerialIndex[$officeId][$this->id] = $position - 1;
+
+            return $position;
+        }
+
+        return $map[$this->id] + 1;
     }
 
     protected function getPrimaryJobType()

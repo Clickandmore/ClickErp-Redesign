@@ -8120,6 +8120,7 @@ main .cvPage .data {
 
 main .cvPage .data .innerTitle {
     color: #777;
+    margin: 0 0 8px;
 }
 
 main .cvPage .data .innerData {
@@ -8128,6 +8129,7 @@ main .cvPage .data .innerData {
     gap: 8px;
     flex-wrap: wrap;
     font-weight: bold;
+    margin: 0 0 8px;
 }
 
 main .cvPage .socialMedia {
@@ -8924,4 +8926,19 @@ main .guidelines-section .country-card .links .btn:hover i {
     color: #000;
 }
 
+
+.no-results {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 40px;
+    font-weight: bold;
+    color: var(--secondColor2);
+}
+.loading-text {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--mainColor);
+}
 /*# sourceMappingURL=style.css.map */

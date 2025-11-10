@@ -33,5 +33,15 @@ class OrderController extends Controller
         return view('site.pages.profile.last_orders_show',$data);
     }
 
+    public function destroy(OrderAction $orderAction,$id){
+        $order = $orderAction->delete($id);
+
+        if(!$order){
+            abort(404);
+        }
+
+        return redirect()-> route('last-orders.index')-> with('success', 'Order deleted successfully');;
+    }
+
 
 }

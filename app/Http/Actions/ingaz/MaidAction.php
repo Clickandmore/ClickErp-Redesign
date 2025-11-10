@@ -201,7 +201,8 @@ class MaidAction extends MainAction
         }
 
         $duration = $data['duration'] ?? null;
-        unset($data['duration'], $data['additional_notes'], $data['id']);
+        // unset($data['duration'], $data['additional_notes'], $data['id']);
+        unset($data['duration'], $data['id']);
 
         // معالجة جميع الحقول التي هي array
         foreach ($data as $key => $value) {
@@ -455,7 +456,8 @@ class MaidAction extends MainAction
         $offerExpiresColumnExists = Schema::hasColumn('maids', 'offer_expires_at');
 
         $experienceStatusValue = $data['experience_status'] ?? $maid->experience_status ?? 'no_experience';
-        unset($data['duration'], $data['additional_notes'], $data['id']);
+        // unset($data['duration'], $data['additional_notes'], $data['id']);
+        unset($data['duration'], $data['id']);
         if ($experienceStatusValue === 'has_experience') {
             $totalYears = 0;
             if (isset($data['expertises']) && is_array($data['expertises'])) {

@@ -34,7 +34,7 @@
                     <div class="inputDiv ltr">
                         <span> +966 </span>
                         <input type="tel" class="form-control" id="phoneNum" name="phone"
-                            placeholder="05 000 0000" />
+                            placeholder="5 000 0000" />
                     </div>
                 </div>
                 {!! NoCaptcha::renderJs(app()->getLocale()) !!}
