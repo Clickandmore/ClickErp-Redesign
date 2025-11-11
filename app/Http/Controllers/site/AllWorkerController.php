@@ -13,6 +13,7 @@ class AllWorkerController extends Controller
     public function index(Request $request,MaidAction $maidAction, JobTitleAction $jobTitleAction, NationalityAction $nationalityAction)
     {
         if($request->ajax()){
+
             $maids = $maidAction->paginate($request);
             $html = view('site.pages.maids_list', ['maids' => $maids])->render();
             return $html;

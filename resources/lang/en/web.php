@@ -355,4 +355,8 @@ return [
         'title' => 'Continuous Support',
         'description' => 'We provide ongoing support and consultations before and after recruitment to ensure your complete satisfaction.',
     ],
+    'project_name' => 'Platinum Al Sharqia Recruitment',
+    'project_desc' => 'Over 20 years of providing highly professional recruitment services',
+    'Platinum Company Services' => 'Platinum Company Services',
+
 ];

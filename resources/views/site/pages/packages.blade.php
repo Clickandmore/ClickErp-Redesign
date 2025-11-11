@@ -2,7 +2,59 @@
 @section('title')
     {{ __('ingaz.cv_details') }}
 @endsection
+<style>
+    .location:hover {
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+    }
 
+    .location:hover .delete-btn,
+    .location:hover .edit-btn {
+        display: block !important;
+    }
+
+    .delete-btn,
+    .edit-btn {
+        display: none;
+        position: absolute;
+        top: 8px;
+        background: #fff;
+        border: none;
+        border-radius: 50%;
+        padding: 6px;
+        cursor: pointer;
+        transition: 0.3s;
+        box-shadow: 0 0 4px rgba(0, 0, 0, 0.15);
+    }
+
+    /* ✅ لو الصفحة RTL (عربية): خلي الأزرار في اليسار */
+    [dir="rtl"] .delete-btn {
+        left: 8px;
+    }
+
+    [dir="rtl"] .edit-btn {
+        left: 45px;
+    }
+
+    /* ✅ لو الصفحة LTR (إنجليزية): خلي الأزرار في اليمين */
+    [dir="ltr"] .delete-btn {
+        right: 8px;
+    }
+
+    [dir="ltr"] .edit-btn {
+        right: 45px;
+    }
+
+    .delete-btn:hover {
+        background: rgba(255, 0, 0, 0.1);
+        transform: scale(1.1);
+    }
+
+    .edit-btn:hover {
+        background: rgba(0, 123, 255, 0.1);
+        transform: scale(1.1);
+    }
+
+</style>
 @section('content')
     <section class="page_header">
         <h1>{{ $type->title }}</h1>
@@ -81,24 +133,35 @@
                                         <div class="row g-3 user_address">
                                             @foreach ($addresses as $address)
                                                 <div class="col-6">
-                                                    <label for="l1{{ $address->id }}"
-                                                           class="location-card w-100"
-                                                           onclick="render_data('address',{{ $address->id }})">
-                                                        <div class="location" id="address-{{ $address->id }}">
+                                                    <label for="l1{{ $address->id }}" class="location-card w-100" style="position: relative; display: block;">
+                                                        <div class="location" id="address-{{ $address->id }}"
+                                                             style="position: relative; border: 1px solid #ddd; border-radius: 10px; padding: 15px; transition: 0.3s;">
                                                             <h6>{{ $address->title }}</h6>
-                                                            <ul>
-                                                                <li><i class="fa-light fa-user"></i>{{ $address->name }}
-                                                                </li>
-                                                                <li>
-                                                                    <i class="fa-light fa-phone"></i>{{ $address->phone }}
-                                                                </li>
-                                                                <li>
-                                                                    <i class="fa-light fa-location-dot"></i>{{ $address->address }}
-                                                                </li>
+                                                            <ul style="list-style: none; padding: 0; margin: 0;">
+                                                                <li><i class="fa-light fa-user"></i> {{ $address->name }}</li>
+                                                                <li><i class="fa-light fa-phone"></i> {{ $address->phone }}</li>
+                                                                <li><i class="fa-light fa-location-dot"></i> {{ $address->address }}</li>
                                                             </ul>
+
+                                                            <!-- 🗑️ حذف -->
+                                                            <button type="button" class="delete-btn" data-id="{{ $address->id }}" title="{{ __('web.delete_address') }}">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="red">
+                                                                    <path d="M9 3v1H4v2h16V4h-5V3H9zm1 5v9h2V8h-2zm4 0v9h2V8h-2zM7 8v9h2V8H7z"/>
+                                                                </svg>
+                                                            </button>
+
+                                                            <!-- ✏️ تعديل -->
+                                                            <button type="button" class="edit-btn"
+                                                                    data-bs-toggle="modal"
+                                                                    data-bs-target="#addLocation"
+                                                                    model-route="{{ route('site.user-addresses.edit', $address->id) }}">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="#007bff">
+                                                                    <path d="M3 17.25V21h3.75l11-11.03-3.75-3.75L3 17.25zm14.71-10.04a1.003 1.003 0 0 0 0-1.42l-1.5-1.5a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                                                                </svg>
+                                                            </button>
                                                         </div>
-                                                        <input type="radio" name="address_id" value="{{ $address->id }}"
-                                                               id="l1{{ $address->id }}">
+
+                                                        <input type="radio" name="address_id" value="{{ $address->id }}" id="l1{{ $address->id }}">
                                                     </label>
                                                 </div>
                                             @endforeach
@@ -109,7 +172,9 @@
                                             <label for="manual_address" onclick="showManualAddressInput()">
                                                 <div class="location" id="manual-address-option"
                                                      style="border: 2px dashed #007bff;">
-                                                    <h6><i class="fa-light fa-edit me-2"></i>{{__("ingaz.Enter the address manually")}}</h6>
+                                                    <h6>
+                                                        <i class="fa-light fa-edit me-2"></i>{{__("ingaz.Enter the address manually")}}
+                                                    </h6>
                                                     <ul>
                                                         <li>
                                                             <i class="fa-light fa-info-circle"></i>{{__("ingaz.Enter the address yourself")}}
@@ -126,7 +191,9 @@
                                             <label for="skip_address" onclick="skipAddress()">
                                                 <div class="location" id="skip-address-option"
                                                      style="border: 2px dashed #6c757d;">
-                                                    <h6><i class="fa-light fa-forward me-2"></i>{{__("ingaz.Skip Address")}}</h6>
+                                                    <h6>
+                                                        <i class="fa-light fa-forward me-2"></i>{{__("ingaz.Skip Address")}}
+                                                    </h6>
                                                     <ul>
                                                         <li>
                                                             <i class="fa-light fa-info-circle"></i>ً{{__("ingaz.I will decide on the title laters")}}
@@ -289,7 +356,7 @@
                                                                  style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">
                                                         @else
                                                             <img
-                                                                src="{{ $maid->cv_preview ? showFile($maid->cv_preview) : showFile($maid->cv_file) }}"
+                                                                src="{{ $maid->cv_file ? showFile($maid->cv_file) : showFile($maid->cv_file) }}"
                                                                 alt="cv1"
                                                                 style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">
                                                         @endif
@@ -969,7 +1036,7 @@
                             "X-CSRF-TOKEN": "{{ csrf_token() }}",
                             "Content-Type": "application/json"
                         },
-                        body: JSON.stringify({ redirect_url: currentUrl })
+                        body: JSON.stringify({redirect_url: currentUrl})
                     }).then(() => {
                         window.location.href = "{{ route('site.login.index') }}";
                     });
@@ -1067,5 +1134,107 @@
             $('input[name="details_list[package_id]"]').val(selectedId);
         });
     </script>
+    <script>
+        $(document).ready(function () {
+            const createAction = "{{ route('web.addresses.store') }}";
+
+            // فتح المودال للتعديل
+            $(document).on('click', '.edit-btn', function () {
+                const route = $(this).attr('model-route');
+                const modal = $('#addLocation');
+
+                modal.find('input, select, textarea').val('');
+                modal.addClass('loading');
+
+                $.ajax({
+                    url: route,
+                    type: 'GET',
+                    success: function (res) {
+                        modal.removeClass('loading');
+                        if (res?.data) {
+                            const address = res.data;
+
+                            modal.find('input[name="title"]').val(address.title);
+                            modal.find('input[name="name"]').val(address.name);
+                            modal.find('input[name="phone"]').val(address.phone);
+                            modal.find('input[name="address"]').val(address.address);
+                            modal.find('textarea[name="notes"]').val(address.notes);
+                            modal.find('select[name="city_id"]').val(address.city_id).change();
+                            modal.find('input[name="id"]').val(address.id);
+
+                            const form = modal.find('form');
+                            form.attr('action', '/user-addresses/' + address.id);
+
+                            if (!form.find('input[name="_method"]').length) {
+                                form.append('<input type="hidden" name="_method" value="PUT">');
+                            }
+
+                            modal.find('.modal-title').text('تعديل العنوان');
+                            modal.modal('show');
+                        }
+                    },
+                    error: function () {
+                        modal.removeClass('loading');
+                        console.error('حدث خطأ أثناء تحميل البيانات');
+                    }
+                });
+            });
+
+            // إعادة الفورم للوضع الأصلي عند غلق المودال
+            $('#addLocation').on('hidden.bs.modal', function () {
+                const form = $(this).find('form');
+                form.attr('action', createAction);
+                form.attr('method', 'POST');
+                form.find('input[name="_method"]').remove();
+                form.find('input, select, textarea').val('');
+                $(this).find('.modal-title').text('إضافة عنوان جديد');
+            });
+
+            // إرسال الفورم ب AJAX
+            $(document).one('submit', '#addLocation form').on('submit', '#addLocation form', function (e) {
+                e.preventDefault();
+                const form = $(this);
+                const url = form.attr('action');
+                const method = form.find('input[name="_method"]').val() || form.attr('method');
+
+                $.ajax({
+                    url: url,
+                    type: method,
+                    data: form.serialize(),
+                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                    success: function (res) {
+                        if (res?.data?.html) {
+                            $('.user_address').html(res.data.html); // إعادة ريندر لجميع العناوين
+                        }
+                        $('#addLocation').modal('hide');
+                    },
+                    error: function () {
+                        console.error('حدث خطأ أثناء الحفظ');
+                    }
+                });
+            });
+
+            // حذف العنوان
+            $(document).on('click', '.delete-btn', function () {
+                const id = $(this).data('id');
+                if (!confirm('هل أنت متأكد من الحذف؟')) return;
+
+                $.ajax({
+                    url: '/user-addresses/' + id,
+                    type: 'DELETE',
+                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                    success: function(res) {
+                        if (res?.data?.html) {
+                            $('.user_address').html(res.data.html); // إعادة ريندر بعد الحذف
+                        }
+                    },
+                    error: function() {
+                        console.error('حدث خطأ أثناء الحذف');
+                    }
+                });
+            });
+        });
+    </script>
+
 
 @endsection
