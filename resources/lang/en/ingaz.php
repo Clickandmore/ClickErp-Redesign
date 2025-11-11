@@ -573,6 +573,7 @@
     'status_update_error' => 'Error occurred while updating status',
     'load_form_error' => 'Error occurred while loading form',
     'delete_order' => 'Delete Order',
+  'phone_address'=> 'Address Phone',
     'back_to_list' => 'Back to List',
     'confirm_delete_order' => 'Are you sure you want to delete this order?',
     'error_deleting_order' => 'Error deleting order',

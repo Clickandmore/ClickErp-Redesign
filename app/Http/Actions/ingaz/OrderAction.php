@@ -37,7 +37,7 @@ class OrderAction extends MainAction
                 OrderEnum::ContractedWithoutContract->value
             ];
         } elseif ($status == 'previous') {
-            $acceptedStatuses = [OrderEnum::Refused->value, OrderEnum::Done->value];
+            $acceptedStatuses = [OrderEnum::Refused->value, OrderEnum::Done->value, OrderEnum::Return->value];
         }
 
         $userId = Auth::user() ? Auth::user()->id : (getGuardedUser() ? getGuardedUser()->id : null);

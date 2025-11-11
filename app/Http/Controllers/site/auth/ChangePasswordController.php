@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
+use Str;
 
 class ChangePasswordController extends Controller
 {
@@ -25,6 +26,10 @@ class ChangePasswordController extends Controller
         $user = $userAction->getWhereFirst(['phone' => $data['phone']]);
         $user->update(['password' => Hash::make($data['password'])]);
         
+        // إبطال الجلسات القديمة
+        $user->setRememberToken(\Illuminate\Support\Str::random(60));
+        $user->save();
+
         // logout from other devices
         Auth::logoutOtherDevices($data['password']);
 

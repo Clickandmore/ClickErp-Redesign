@@ -186,69 +186,20 @@ class Maid extends Model
 
     public function getCvCodeAttribute(): ?string
     {
-        $officeName = trim($this->office?->title ?? '');
-        if (!$this->office_id || $officeName === '') {
+        if (!$this->office_id || !$this->office?->title) {
             return null;
         }
 
-        $prefix = $this->buildOfficeCodePrefix($officeName);
-        $serial = $this->resolveOfficeSerialNumber();
+        // أول 3 أحرف من اسم المكتب
+        $prefix = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $this->office->title), 0, 3));
+        if ($prefix === '') $prefix = 'OFF';
 
-        if ($serial === null) {
-            return $prefix;
-        }
+        // رقم تسلسلي حسب عدد العاملات في نفس المكتب
+        $count = static::where('office_id', $this->office_id)
+            ->where('id', '<=', $this->id)
+            ->count();
 
-        return $prefix . str_pad((string) $serial, 3, '0', STR_PAD_LEFT);
-    }
-
-    protected function buildOfficeCodePrefix(string $officeName): string
-    {
-        $lettersOnly = preg_replace('/[^\p{L}]/u', '', $officeName);
-        $compact = $lettersOnly !== '' ? $lettersOnly : preg_replace('/\s+/u', '', $officeName);
-        $chunk = mb_substr($compact !== '' ? $compact : $officeName, 0, 3, 'UTF-8');
-
-        $prefix = mb_strtoupper($chunk ?: 'OFF', 'UTF-8');
-
-        return $prefix !== '' ? $prefix : 'OFF';
-    }
-
-    protected function resolveOfficeSerialNumber(): ?int
-    {
-        if (!$this->office_id) {
-            return null;
-        }
-
-        $officeId = (int) $this->office_id;
-
-        if (!array_key_exists($officeId, static::$officeSerialIndex)) {
-            $orderedIds = static::query()
-                ->where('office_id', $officeId)
-                ->orderBy('created_at')
-                ->orderBy('id')
-                ->pluck('id')
-                ->all();
-
-            static::$officeSerialIndex[$officeId] = array_flip($orderedIds);
-        }
-
-        $map = static::$officeSerialIndex[$officeId] ?? [];
-
-        if (!array_key_exists($this->id, $map)) {
-            $position = static::query()
-                ->where('office_id', $officeId)
-                ->where('id', '<=', $this->id)
-                ->count();
-
-            if ($position === 0) {
-                return null;
-            }
-
-            static::$officeSerialIndex[$officeId][$this->id] = $position - 1;
-
-            return $position;
-        }
-
-        return $map[$this->id] + 1;
+        return $prefix . str_pad($count, 3, '0', STR_PAD_LEFT);
     }
 
     protected function getPrimaryJobType()

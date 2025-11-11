@@ -291,13 +291,19 @@ class MaidAction extends MainAction
             $createData['offer_expires_at'] = $data['offer_expires_at'] ?? null;
         }
 
+        
         \Log::info('Final create data:', $createData);
         \Log::info('About to create maid with data keys: ' . implode(', ', array_keys($createData)));
         \Log::info('Languages in createData: ' . ($createData['languages'] ?? 'null'));
-        \Log::info('Name in createData: ' . ($createData['name'] ?? 'null'));
+        \Log::info('Name in createData: ' . ($data['name'] ?? 'null'));
+
+        
         try {
             $maid = $this->model->create($createData);
             \Log::info('Maid created successfully with ID: ' . $maid->id);
+
+            \Log::info('Mahmod Amer CV_Code: ' . ($maid->cv_code ?? 'no cv_code'));
+            \Log::info('Mahmod Amer CV_Code: ' . ($maid->cvCode ?? 'no cvCode'));
         } catch (\Exception $e) {
             \Log::error('Error creating maid: ' . $e->getMessage());
             \Log::error('Error trace: ' . $e->getTraceAsString());

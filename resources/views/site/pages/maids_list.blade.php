@@ -20,6 +20,7 @@
                     $salaryDisplay = $salaryRaw !== null ? number_format($salaryRaw, 2) : null;
                     $priceDisplay = $priceRaw !== null ? number_format($priceRaw, 2) : null;
                     $cvFile = $maid->cv_file ?? $maid->cv_preview;
+                    $cv_code = $maid->cvCode ? $maid->cvCode : null;
                 @endphp
                 <!-- كارد مشترك (ايجار + نقل خدمات) -->
                 @if ($jobType && $jobType->id == 1)
@@ -56,6 +57,9 @@
                                         <p>{{ __('ingaz.religion') }} : {{ $maid->religion->title ?? '' }}</p>
                                         @if (!empty($maid->passport_num))
                                             <p>{{ __('ingaz.passport_num') }} : {{ $maid->passport_num }}</p>
+                                        @endif
+                                        @if (!empty($cv_code))
+                                            <p>{{ __('ingaz.cv_code') }} : {{ $cv_code }}</p>
                                         @endif
                                         <p>{{ __('ingaz.job') }} :
                                             {{ $maid->jobTitles->first()->title ?? '' }}</p>
@@ -157,6 +161,9 @@
                                         @if (!empty($maid->passport_num))
                                             <p>{{ __('ingaz.passport_num') }} : {{ $maid->passport_num }}</p>
                                         @endif
+                                        @if (!empty($cv_code))
+                                            <p>{{ __('ingaz.cv_code') }} : {{ $cv_code }}</p>
+                                        @endif
                                         <p>{{ __('ingaz.job') }} :
                                             {{ $maid->jobTitles->first()->title ?? '' }}</p>
                                         <p>{{ __('ingaz.experience') }} :
@@ -168,11 +175,10 @@
                                                 - {{ $maid->experience_years }} {{ __('ingaz.year') }}
                                             @endif
                                         </p>
-                                        <p>{{ __('ingaz.monthly_rental') }}
-                                            : {{ $maid->resolved_salary ?? '' }} {{ __('ingaz.SAR') }}
+                                        {{-- <p>{{ __('ingaz.monthly_rental') }}: {{ $maid->resolved_salary ?? '0.00' }} {{ __('ingaz.SAR') }} --}}
+                                        <p>{{ __('ingaz.monthly_rental') }}: {{ $maid->price ?? '0.00' }} {{ __('ingaz.SAR') }}
                                         </p>
-                                        <p>{{ __('ingaz.contract_duration') }} : {{ $maid->duration ?? '' }}
-                                            {{ __('ingaz.month') }}</p>
+                                        <p>{{ __('ingaz.contract_duration') }} : {{ $maid->duration ?? '' }}</p>
                                     </div>
                                     <p class="guarantee">
                                         {{ __('ingaz.cv_alert') }}
@@ -228,6 +234,9 @@
                                         <p>{{ __('ingaz.religion') }} : {{ $maid->religion->title ?? '' }}</p>
                                         @if (!empty($maid->passport_num))
                                             <p>{{ __('ingaz.passport_num') }} : {{ $maid->passport_num }}</p>
+                                        @endif
+                                        @if (!empty($cv_code))
+                                            <p>{{ __('ingaz.cv_code') }} : {{ $cv_code }}</p>
                                         @endif
                                         <p>{{ __('ingaz.job') }} :
                                             {{ $maid->jobTitles->first()->title ?? '' }}</p>

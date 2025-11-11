@@ -6700,8 +6700,9 @@ main .cvPage .languages {
 
 main .cvPage .languages .Percentages {
     display: flex;
-    gap: 16px;
+    gap: 10px;
     justify-content: space-around;
+    flex-wrap: wrap;
 }
 
 @media (max-width: 768px) {
