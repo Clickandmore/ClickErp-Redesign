@@ -1437,30 +1437,32 @@
                     @forelse($clients as $client)
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img src="{!! showfile($client->image) !!}" alt="">
+                                <img src="{{ showFile($client->image) ?? asset('site/assets/images/musand.svg') }}" alt=""
+                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
                             </div>
                         </div>
                     @empty
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img src="{{ asset('site') }}/assets/images/Ministry-of-Foreign-Affairs-01.svg"
-                                    alt="">
+                                <img src="{{ asset('site/assets/images/Ministry-of-Foreign-Affairs-01.svg') }}" alt=""
+                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
                             </div>
                         </div>
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img src="{{ asset('site') }}/assets/images/Ministry-of-Interior-01.svg" alt="">
+                                <img src="{{ asset('site/assets/images/Ministry-of-Interior-01.svg') }}" alt=""
+                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
                             </div>
                         </div>
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img src="{{ asset('site') }}/assets/images/Ministry-of-Labor-and-Social-Development.svg"
-                                    alt="">
+                                <img src="{{ asset('site/assets/images/Ministry-of-Labor-and-Social-Development.svg') }}" alt=""
+                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
                             </div>
                         </div>
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img src="{{ asset('site') }}/assets/images/musand.svg" alt="">
+                                <img src="{{ asset('site/assets/images/musand.svg') }}" alt="">
                             </div>
                         </div>
                     @endforelse
