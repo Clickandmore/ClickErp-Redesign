@@ -99,7 +99,7 @@
             <div class="report-cards">
                 <div class="report-card">
                     <h3 class="card-title">{{ __('ingaz.unified_number_title') }}</h3>
-                    <p class="card-desc">{{ __('ingaz.unified_number_desc') }}</p>
+                    <p>{{ __('ingaz.unified_number_desc') }}</p>
                     <a href="tel:19911" class="card-link">
                         <span>19911</span>
                         <i class="fa-solid fa-phone"></i>
@@ -108,7 +108,7 @@
 
                 <div class="report-card">
                     <h3 class="card-title">{{ __('ingaz.electronic_app_title') }}</h3>
-                    <p class="card-desc">{{ __('ingaz.electronic_app_desc') }}</p>
+                    <p>{{ __('ingaz.electronic_app_desc') }}</p>
                     <a href="#" class="card-link">
                         <span>{{ __('ingaz.electronic_app_link') }}</span>
                     </a>
@@ -116,7 +116,7 @@
 
                 <div class="report-card">
                     <h3 class="card-title">{{ __('ingaz.email_title') }}</h3>
-                    <p class="card-desc">{{ __('ingaz.email_desc') }}</p>
+                    <p>{{ __('ingaz.email_desc') }}</p>
                     <a href="mailto:info@ncct.gov.sa" class="card-link">
                         <span>info@ncct.gov.sa</span>
                         <i class="fa-solid fa-envelope"></i>

@@ -12,7 +12,7 @@ class WhatDo extends Model implements TranslatableContract
     use Translatable;
 
     public $translatedAttributes = ['title', 'description'];
-    protected $fillable = ['icon'];
+    protected $fillable = ['icon','type'];
 
     public function items()
     {

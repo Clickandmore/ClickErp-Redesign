@@ -13,12 +13,20 @@
                 method="post">
                 @csrf
                 <div class="loginLogo">
-                    {{--                    <button class="back" type="button" onclick="window.history.back()">رجوع</button> --}}
+                    {{--                    <button class="back" type="button" onclick="window.history.back()">رجوع</button>--}}
                     <img src="{{ asset('site') }}/assets/images/logo.svg" alt="img" class="img-fluid" />
                 </div>
+                @if($type == 'register')
+                    <h3 class="text-center fw-bold text-uppercase"> {{__('web.enter_otp_to_complete_register')}}</h3>
+                @else
+                    <h3 class="text-center fw-bold text-uppercase"> {{__('ingaz.password_forget')}}</h3>
+                @endif
+                <label class="formLabel">
+                    {{__('ingaz.Please enter the verification code that was sent to you')}} :
+                    {{--                    <button class="back" type="button" onclick="window.history.back()">رجوع</button> --}}
+{{--                    <img src="{{ asset('site') }}/assets/images/logo.svg" alt="img" class="img-fluid" />--}}
 
                 {{--                <h3 class="text-center fw-bold text-uppercase"> {{__('ingaz.password_forgett')}}</h3> --}}
-
                 <label class="formLabel">
                     {{ __('ingaz.Please enter the verification code that was sent to you') }} :
                     <span> {{ $phone }} 966+</span>

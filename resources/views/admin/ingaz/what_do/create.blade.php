@@ -1,9 +1,22 @@
 <form class="row g-3 from-submit-global" method="post" action="{{route("what-do.store")}}">
     @csrf
-    <label for="TextInput" class="form-label">
-        {{helperTrans("ingaz.icon")}}
-    </label>
-    @include('admin.ingaz.what_do.icons')
+    <div class="col-6">
+        <label for="TextInput" class="form-label">
+            {{helperTrans("web.type")}}
+        </label>
+        <select name="type" class="form-control" data-validation="required">
+            <option value="">{{__("ingaz.choose")}}</option>
+            <option value="estqdam"> {{ __('ingaz.recruitment') }}</option>
+            <option value="egar"> {{ __('ingaz.Labor_rental') }}</option>
+            <option value="transfer"> {{ __('ingaz.transfer_services') }}</option>
+        </select>
+    </div>
+    <div class="col-6">
+        <label for="TextInput" class="form-label">
+            {{helperTrans("ingaz.icon")}}
+        </label>
+        @include('admin.ingaz.what_do.icons')
+    </div>
     @foreach (config('translatable.locales') as $locale)
         <div class="col-6">
             <label for="TextInput" class="form-label">
@@ -23,6 +36,7 @@
                       data-validation="required"></textarea>
         </div>
     @endforeach
+
     <label for="TextInput" class="form-label">
         {{helperTrans("ingaz.items")}}
     </label>

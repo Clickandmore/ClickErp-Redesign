@@ -11,6 +11,8 @@ use App\Models\ingaz\JobType;
 use App\Models\ingaz\Setting;
 use App\Models\ingaz\DevelopSetting;
 use App\Models\ingaz\FastNew;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
@@ -108,5 +110,16 @@ class AppServiceProvider extends ServiceProvider
         $contractsCount['pending_maid_selection'] = Contract::where('status', 'pending_maid_selection')->count();
         $contractsCount['all'] = Contract::count();
         View::share('contractsCount', $contractsCount);
+
+        RateLimiter::for('register', function ($request) {
+            return Limit::perMinute(1)->by($request->phone);
+        });
+        RateLimiter::for('login', function ($request) {
+            return Limit::perMinute(1)->by($request->phone);
+        });
+        RateLimiter::for('daily-lebor-demand', function ($request) {
+            return Limit::perMinute(1)->by($request->phone);
+        });
+
     }
 }

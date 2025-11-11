@@ -24,8 +24,8 @@
                         </div>
                         {{ __('ingaz.full_name') }}
                     </label>
-                    <input type="text" class="form-control" name="name" id="userName"
-                        placeholder=" {{ __('ingaz.enter_full_name') }} " />
+                    <input type="text" class="form-control"  autocomplete="new-name" name="name" id="userName"
+                           placeholder=" {{__('ingaz.enter_full_name')}} "/>
                 </div>
                 <div class="formGroup">
                     <label for="phoneNum">
@@ -40,8 +40,7 @@
                     </label>
                     <div class="inputDiv ltr">
                         <span> +966 </span>
-                        <input type="tel" class="form-control" name="phone" id="phoneNum"
-                            placeholder="05 000 0000" />
+                        <input type="tel" class="form-control" autocomplete="new-phone"  name="phone" id="phoneNum" placeholder="05 000 0000"/>
                     </div>
                 </div>
                 {{-- <div class="formGroup">
@@ -70,8 +69,8 @@
                         </div>
                         {{ __('ingaz.password') }}
                     </label>
-                    <input type="password" class="form-control" name="password" id="password"
-                        placeholder="{{ __('ingaz.enter_password') }}" />
+                    <input type="password" class="form-control"  autocomplete="new-password" name="password" id="password"
+                           placeholder="{{__('ingaz.enter_password')}}"/>
                 </div>
                 <div class="formGroup">
                     <label for="confirmPassword">
@@ -85,8 +84,8 @@
                         </div>
                         {{ __('ingaz.confirm_password') }}
                     </label>
-                    <input type="password" class="form-control" id="confirmPassword" name="password_confirmation"
-                        placeholder="{{ __('ingaz.enter_password') }}" />
+                    <input type="password" class="form-control"  autocomplete="new-password" id="confirmPassword" name="password_confirmation"
+                           placeholder="{{__('ingaz.enter_password')}}"/>
                 </div>
                 {!! NoCaptcha::renderJs(app()->getLocale()) !!}
                 {!! NoCaptcha::display() !!}
