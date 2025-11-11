@@ -1,6 +1,6 @@
 <div class="workers-list" id="workers-list">
     <div class="row">
-        @foreach ($maids as $maid)
+        @forelse ($maids as $maid)
             @php
                 $jobType = $maid->jobTypes->first();
                 $todayDate = now()->toDateString();
@@ -31,16 +31,20 @@
                                         <span>{{ $maid->age ?? '' }}</span>{{ __('ingaz.year') }}
                                     </div>
                                     @if($maid->st_code || $maid->int_code)
-                               <!-- اول تلت حروف من اسم المكتب والرقم حسب عدد السيرة المستلمة من المكتب  -->
+                                        <!-- اول تلت حروف من اسم المكتب والرقم حسب عدد السيرة المستلمة من المكتب  -->
                                         <div class="worker-id">
                                             {{ implode(' / ', array_filter([$maid->st_code ?? null, $maid->int_code ?? null])) }}
                                         </div>
                                     @endif
                                 </div>
                                 <h4>{{ $maid->name ?? '' }}</h4>
+                                <div class="top-ribbon">
+                                    <img src="{{asset('site')}}/assets/images/ribbon.png" alt="عرض خاص"/>
+                                    <span> {{ __('ingaz.sale') }}</span>
+                                </div>
                                 @if($offerActive)
                                     <div class="top-ribbon">
-                                        <img src="{{ asset('site') }}/assets/images/ribbon.png" alt="عرض خاص" />
+                                        <img src="{{ asset('site') }}/assets/images/ribbon.png" alt="عرض خاص"/>
                                         <span>{{ __('ingaz.sale') }}</span>
                                     </div>
                                 @endif
@@ -60,58 +64,70 @@
                                         @endif
                                     </p>
                                 </div>
+                                <!-- worker sallery  -->
                                 <div class="worker-salary">
-                                    <p class="monthly-salary text-secondary mb-0">
-                                        {{ __('ingaz.month_salary') }} :
-                                        <span>{{ $salaryDisplay ?? '--' }} {{ $salaryDisplay ? __('ingaz.SAR') : '' }}</span>
+                                    <p class="old-salary">
+                                        قبل الخصم : <span>7000 ريال</span>
                                     </p>
-                                    <div>
-                                        @if($offerActive && $offerPriceDisplay)
-                                            @if($priceRaw !== null && $offerPriceRaw < $priceRaw && $priceDisplay)
-                                                <p class="old-salary mb-1">
-                                                    {{ __('ingaz.before_discount') }} :
+                                    <p class="new-salary">
+                                        الآن : <span>6500 ريال</span>
+                                    </p>
+                                    <div class="worker-salary">
+                                        <p class="monthly-salary text-secondary mb-0">
+                                            {{ __('ingaz.month_salary') }} :
+                                            <span>{{ $salaryDisplay ?? '--' }} {{ $salaryDisplay ? __('ingaz.SAR') : '' }}</span>
+                                        </p>
+                                        <div>
+                                            @if($offerActive && $offerPriceDisplay)
+                                                @if($priceRaw !== null && $offerPriceRaw < $priceRaw && $priceDisplay)
+                                                    <p class="old-salary mb-1">
+                                                        {{ __('ingaz.before_discount') }} :
+                                                        <span>{{ $priceDisplay }} {{ __('ingaz.SAR') }}</span>
+                                                    </p>
+                                                @endif
+                                                <p class="new-salary mb-0">
+                                                    {{ __('ingaz.now_price') }} :
+                                                    <span>{{ $offerPriceDisplay }} {{ __('ingaz.SAR') }}</span>
+                                                </p>
+                                            @elseif($priceDisplay)
+                                                <p class="new-salary mb-0">
+                                                    {{ __('ingaz.cost_with_tax') }} :
                                                     <span>{{ $priceDisplay }} {{ __('ingaz.SAR') }}</span>
                                                 </p>
                                             @endif
-                                            <p class="new-salary mb-0">
-                                                {{ __('ingaz.now_price') }} :
-                                                <span>{{ $offerPriceDisplay }} {{ __('ingaz.SAR') }}</span>
-                                            </p>
-                                        @elseif($priceDisplay)
-                                            <p class="new-salary mb-0">
-                                                {{ __('ingaz.cost_with_tax') }} :
-                                                <span>{{ $priceDisplay }} {{ __('ingaz.SAR') }}</span>
+                                        </div>
+                                        @if($maid->offer_description)
+                                            <p class="offer-note text-muted small mt-2 w-100">
+                                                <i class="fa-regular fa-comment-dots me-1"></i>{{ $maid->offer_description }}
                                             </p>
                                         @endif
                                     </div>
-                                    @if($maid->offer_description)
-                                        <p class="offer-note text-muted small mt-2 w-100">
-                                            <i class="fa-regular fa-comment-dots me-1"></i>{{ $maid->offer_description }}
-                                        </p>
-                                    @endif
-                                </div>
-                                <p class="guarantee">
-                                    {{ __('ingaz.cv_alert') }}
-                                </p>
-                                <div class="actions">
-                                    <a data-fancybox="cv1" href="{{ showFile($maid->cv_preview) }}" class="icon-btn">
-                                        <i class="fa-regular fa-file-pdf"></i>
-                                    </a>
-                                    @if(!empty($maid->video_link) || (!empty($maid->video) && $maid->video !== '#'))
-                                        @php
-                                            $videoHref = !empty($maid->video_link) ? $maid->video_link : showFile($maid->video);
-                                            $openAsIframe = !empty($maid->video_link);
-                                        @endphp
-                                        <a href="{{ $videoHref }}" class="icon-btn"
-                                           data-fancybox="video{{ $maid->id }}"
-                                           @if($openAsIframe) data-type="iframe" @endif
-                                        >
-                                            <i class="fa-solid fa-video"></i>
+                                    <p class="guarantee">
+                                        {{ __('ingaz.cv_alert') }}
+                                    </p>
+                                    <div class="actions">
+                                        @if(!empty(trim($maid->cv_file ?? '')))
+                                            <a href="{{ showFile($maid->cv_file) }}" class="icon-btn" target="_blank">
+                                                <i class="fa-regular fa-file-pdf"></i>
+                                            </a>
+                                        @endif
+                                        @if(!empty($maid->video_link) || (!empty($maid->video) && $maid->video !== '#'))
+                                            @php
+                                                $videoHref = !empty($maid->video_link) ? $maid->video_link : showFile($maid->video);
+                                                $openAsIframe = !empty($maid->video_link);
+                                            @endphp
+                                            <a href="{{ $videoHref }}" class="icon-btn"
+                                               data-fancybox="video{{ $maid->id }}"
+                                               @if($openAsIframe) data-type="iframe" @endif
+                                            >
+                                                <i class="fa-solid fa-video"></i>
+                                            </a>
+                                        @endif
+                                        <a href="{{ route('site.all-workers.show', $maid->id) }}"
+                                           class="btn action-btn">
+                                            {{ __('ingaz.recruitment_request') }}
                                         </a>
-                                    @endif
-                                    <a href="{{ route('site.all-workers.show', $maid->id) }}" class="btn action-btn">
-                                        {{ __('ingaz.recruitment_request') }}
-                                    </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -230,12 +246,14 @@
                                         <i class="fa-regular fa-file-pdf"></i>
                                     </a>
                                     @if(!empty($maid->video) && $maid->video !== '#')
-                                        <a href="{{ showFile($maid->video) }}" class="icon-btn" data-fancybox="video{{ $maid->id }}">
+                                        <a href="{{ showFile($maid->video) }}" class="icon-btn"
+                                           data-fancybox="video{{ $maid->id }}">
                                             <i class="fa-solid fa-video"></i>
                                         </a>
                                     @endif
 
-                                    <a href="{{ route('site.immediate-recipts.show', $maid->id) }}" class="btn action-btn">
+                                    <a href="{{ route('site.immediate-recipts.show', $maid->id) }}"
+                                       class="btn action-btn">
                                         {{ __('ingaz.Labor_transfer') }}
                                     </a>
                                 </div>
@@ -244,7 +262,14 @@
                     </a>
                 </div>
             @endif
-        @endforeach
+        @empty
+            <div class="card text-center border-0 shadow-sm p-4 mt-3" style="background: #f8f9fa;">
+                <div class="card-body">
+                    <i class="fa-solid fa-box-open fa-2x text-muted mb-2"></i>
+                    <h6 class="text-muted mb-0">{{__("web.no_data_found")}}</h6>
+                </div>
+            </div>
+        @endforelse
     </div>
 </div>
 <div class="pagination-outer" id="pagination">

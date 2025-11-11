@@ -13,6 +13,7 @@ use App\Http\Requests\site\auth\RegisterRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 
 class RegisterController extends Controller
 {
@@ -24,6 +25,7 @@ class RegisterController extends Controller
     public function store(RegisterRequest $request, UserAction $userAction, PhoneVerificationAction $phoneVerificationAction)
     {
         $data = $request->validated();
+        RateLimiter::hit('register:' . $data['phone'], 60);
         $data['password'] = Hash::make($data['password']);
         unset($data['g-recaptcha-response']);
         $userAction->store($data);

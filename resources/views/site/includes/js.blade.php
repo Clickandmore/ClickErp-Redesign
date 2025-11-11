@@ -27,5 +27,32 @@
         document.getElementById('ad-popup').style.display = 'none';
     };
 
+    function checkInternetConnection() {
+        return navigator.onLine;
+    }
+
+    document.querySelector('form').addEventListener('submit', function (e) {
+        if (!checkInternetConnection()) {
+            e.preventDefault();
+            Toastify({
+                text: "{{__("web.you_are_offline")}}",
+                duration: 4000,
+                gravity: "top",
+                position: "right",
+                backgroundColor: "red"
+            }).showToast();
+        }
+    });
+    if (!checkInternetConnection()) {
+        Toastify({
+            text: "{{ __('web.you_are_offline') }}",
+            duration: 4000,
+            gravity: "top",
+            position: "right",
+            backgroundColor: "red"
+        }).showToast();
+
+    }
+
 </script>
 @yield('js')

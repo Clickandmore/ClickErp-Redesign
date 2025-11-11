@@ -1652,5 +1652,8 @@
   'item_title_placeholder' => 'Item title placeholder',
   'description_placeholder' => 'Description placeholder',
   'title_placeholder' => 'Title placeholder',
+  'more_than_20_years_experience' => 'More than 20 years experience',
+  'mission' => 'Mission',
+  'type' => 'Type',
   'more_than_20_years_experience' => 'More than 20 years experience'
 );

@@ -6,6 +6,8 @@ use App\Http\Actions\site\auth\LoginAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\site\auth\LoginRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
 {
@@ -19,6 +21,12 @@ class LoginController extends Controller
 
     public function store(LoginRequest $request, LoginAction $loginAction)
     {
+        if (RateLimiter::tooManyAttempts('login', 1)) {
+            throw ValidationException::withMessages([
+                'phone' => [__('web.wait_before_retry')],
+            ]);
+        }
+        RateLimiter::hit('login');
         $data = $request->validated();
         unset($data['g-recaptcha-response']);
 
