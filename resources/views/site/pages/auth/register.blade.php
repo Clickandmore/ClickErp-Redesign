@@ -5,13 +5,13 @@
 @section('content')
     <section class="accountForm">
         <div class="imageBG">
-            <img src="{{ asset('site') }}/assets/images/s3.webp" alt="" />
+            <img src="{{ asset('site') }}/assets/images/s3.webp" alt=""/>
         </div>
         <div class="cardForm" data-aos="fade-up">
             <form id="form-register" action="{{ route('site.register.store') }}" method="post">
                 @csrf
                 <div class="loginLogo">
-                    <img src="{{ asset('site') }}/assets/images/logo.svg" alt="img" class="img-fluid" />
+                    <img src="{{ asset('site') }}/assets/images/logo.svg" alt="img" class="img-fluid"/>
                 </div>
                 <div class="formGroup">
                     <label for="userName">
@@ -24,7 +24,7 @@
                         </div>
                         {{ __('ingaz.full_name') }}
                     </label>
-                    <input type="text" class="form-control"  autocomplete="new-name" name="name" id="userName"
+                    <input type="text" class="form-control" autocomplete="new-name" name="name" id="userName"
                            placeholder=" {{__('ingaz.enter_full_name')}} "/>
                 </div>
                 <div class="formGroup">
@@ -40,7 +40,8 @@
                     </label>
                     <div class="inputDiv ltr">
                         <span> +966 </span>
-                        <input type="tel" class="form-control" autocomplete="new-phone"  name="phone" id="phoneNum" placeholder="05 000 0000"/>
+                        <input type="tel" class="form-control" autocomplete="new-phone" name="phone" id="phoneNum"
+                               placeholder="05 000 0000"/>
                     </div>
                 </div>
                 {{-- <div class="formGroup">
@@ -69,8 +70,20 @@
                         </div>
                         {{ __('ingaz.password') }}
                     </label>
-                    <input type="password" class="form-control"  autocomplete="new-password" name="password" id="password"
-                           placeholder="{{__('ingaz.enter_password')}}"/>
+
+                    <div class="password-wrapper" style="position: relative;">
+                        <input type="password" class="form-control" autocomplete="new-password"
+                               name="password" id="password"
+                               placeholder="{{ __('ingaz.enter_password') }}"
+                               style="padding-inline-end: 40px;"/>
+                        <button type="button" class="toggle-password" data-target="password" style="background:none;border:none;position:absolute;top:50%;transform:translateY(-50%);padding:0;cursor:pointer;">
+                            <svg class="eye-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+                                <!-- العين المفتوحة -->
+                                <path fill="currentColor"
+                                      d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="formGroup">
                     <label for="confirmPassword">
@@ -84,14 +97,29 @@
                         </div>
                         {{ __('ingaz.confirm_password') }}
                     </label>
-                    <input type="password" class="form-control"  autocomplete="new-password" id="confirmPassword" name="password_confirmation"
-                           placeholder="{{__('ingaz.enter_password')}}"/>
+
+                    <div class="password-wrapper" style="position: relative;">
+                        <input type="password" class="form-control" autocomplete="new-password"
+                               id="confirmPassword" name="password_confirmation"
+                               placeholder="{{ __('ingaz.enter_password') }}"
+                               style="padding-inline-end: 40px;"/>
+                        <button type="button" class="toggle-password" data-target="confirmPassword"
+                                style="background:none;border:none;position:absolute;top:50%;transform:translateY(-50%);padding:0;cursor:pointer;">
+                            <svg class="eye-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+                                <!-- العين المفتوحة -->
+                                <path fill="currentColor"
+                                      d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
+
+
                 {!! NoCaptcha::renderJs(app()->getLocale()) !!}
                 {!! NoCaptcha::display() !!}
 
                 @error('g-recaptcha-response')
-                    <span class="text-danger">{{ $message }}</span>
+                <span class="text-danger">{{ $message }}</span>
                 @enderror
                 <button type="submit" class="defaultBtn mt-2">{{ __('ingaz.create') }}</button>
                 <p class="text-center w-100 mt-3">
@@ -104,8 +132,8 @@
 @endsection
 @section('js')
     <script>
-        $(document).ready(function() {
-            $('#form-register').on('submit', function(e) {
+        $(document).ready(function () {
+            $('#form-register').on('submit', function (e) {
                 e.preventDefault();
                 let formData = new FormData(this);
                 let url = $(this).attr('action');
@@ -115,7 +143,7 @@
                     data: formData,
                     processData: false,
                     contentType: false,
-                    success: function(response) {
+                    success: function (response) {
                         Toastify({
                             text: response.message,
                             duration: 4000,
@@ -124,11 +152,11 @@
                             backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
                             stopOnFocus: true
                         }).showToast();
-                        setTimeout(function() {
+                        setTimeout(function () {
                             window.location.href = response.data.redirect_url;
                         }, 1000);
                     },
-                    error: function(xhr) {
+                    error: function (xhr) {
                         if (xhr.status === 422) {
                             let errors = xhr.responseJSON.errors;
                             let errorMessages = '';
@@ -150,5 +178,31 @@
                 });
             })
         })
+    </script>
+    <script>
+        document.querySelectorAll('.toggle-password').forEach(btn => {
+            const langDir = document.documentElement.getAttribute('dir') || 'ltr';
+            const input = document.getElementById(btn.dataset.target);
+            const svg = btn.querySelector('svg');
+
+            // ضبط مكان العين حسب اللغة
+            if (langDir === 'rtl') {
+                btn.style.left = '10px';
+                btn.style.right = 'auto';
+            } else {
+                btn.style.right = '10px';
+                btn.style.left = 'auto';
+            }
+
+            btn.addEventListener('click', function () {
+                const isPassword = input.type === 'password';
+                input.type = isPassword ? 'text' : 'password';
+
+                // تغيير الأيقونة بين مفتوحة ومقفولة
+                svg.innerHTML = isPassword
+                    ? '<path fill="currentColor" d="M2 5.27L3.28 4 20 20.72 18.73 22l-2.35-2.35A10.91 10.91 0 0 1 12 19c-5 0-8.27-3.11-10-7a11.58 11.58 0 0 1 3.26-4.36L2 5.27zM12 8a4 4 0 0 1 4 4 3.9 3.9 0 0 1-.45 1.82l-1.5-1.5A1.9 1.9 0 0 0 14 12a2 2 0 0 0-2-2 1.9 1.9 0 0 0-.32.05l-1.5-1.5A3.9 3.9 0 0 1 12 8z"/>'
+                    : '<path fill="currentColor" d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/>';
+            });
+        });
     </script>
 @endsection
