@@ -1660,3 +1660,7 @@
   'delete_confirm_text' => 'Delete confirm text',
   'confirm_delete' => 'Confirm delete',
 );
+  'mission' => 'Mission',
+  'type' => 'Type',
+  'more_than_20_years_experience' => 'More than 20 years experience'
+);

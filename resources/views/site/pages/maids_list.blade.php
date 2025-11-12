@@ -260,6 +260,22 @@
                                     <div class="actions">
                                         <a data-fancybox="cv1" href="{{ showFile($cvFile) }}" class="icon-btn">
                                             <i class="fa-regular fa-file-pdf"></i>
+                                    <p>{{ __('ingaz.cost_with_tax') }} : {{ $maid->resolved_price ?? '' }}
+                                        {{ __('ingaz.SAR') }}</p>
+                                    <p>{{ __('ingaz.transfer_duration') }} : {{ __('ingaz.through') }}
+                                        {{ $maid->duration ?? '' }} {{ __('ingaz.day') }}</p>
+                                </div>
+                                <p class="guarantee">
+                                    {{ __('ingaz.cv_alert') }}
+                                </p>
+                                <div class="actions">
+                                    <a data-fancybox="cv2" href="{{ showFile($maid->cv_preview) }}" class="icon-btn">
+                                        <i class="fa-regular fa-file-pdf"></i>
+                                    </a>
+                                    @if(!empty($maid->video) && $maid->video !== '#')
+                                        <a href="{{ showFile($maid->video) }}" class="icon-btn"
+                                           data-fancybox="video{{ $maid->id }}">
+                                            <i class="fa-solid fa-video"></i>
                                         </a>
                                         @if (!empty($maid->video) && $maid->video !== '#')
                                             <a href="{{ showFile($maid->video) }}" class="icon-btn"
@@ -268,18 +284,24 @@
                                             </a>
                                         @endif
 
-                                        <a href="{{ route('site.immediate-recipts.show', $maid->id) }}"
-                                            class="btn action-btn">
-                                            {{ __('ingaz.Labor_transfer') }}
-                                        </a>
-                                    </div>
+                                    <a href="{{ route('site.immediate-recipts.show', $maid->id) }}"
+                                       class="btn action-btn">
+                                        {{ __('ingaz.Labor_transfer') }}
+                                    </a>
                                 </div>
                             </div>
-                        </a>
-                    </div>
-                @endif
-            @endforeach
-        </div>
+                        </div>
+                    </a>
+                </div>
+            @endif
+        @empty
+            <div class="card text-center border-0 shadow-sm p-4 mt-3" style="background: #f8f9fa;">
+                <div class="card-body">
+                    <i class="fa-solid fa-box-open fa-2x text-muted mb-2"></i>
+                    <h6 class="text-muted mb-0">{{__("web.no_data_found")}}</h6>
+                </div>
+            </div>
+        @endforelse
     </div>
     <div class="pagination-outer" id="pagination">
         <div class="pagination-style1">

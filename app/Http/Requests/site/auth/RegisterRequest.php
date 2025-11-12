@@ -3,6 +3,8 @@
 namespace App\Http\Requests\site\auth;
 
 use App\Http\Requests\MainRequest;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
 
 class RegisterRequest extends MainRequest
 {
@@ -21,6 +23,15 @@ class RegisterRequest extends MainRequest
         $this->merge([
             'phone_code' => '+966',
         ]);
+        $phone = $this->input('phone');
+        if ($phone && RateLimiter::tooManyAttempts('register:' . $phone, 1)) {
+            throw ValidationException::withMessages([
+                'phone' => [__('web.wait_before_retry')],
+            ]);
+        }
+        if ($phone) {
+            RateLimiter::hit('register:' . $phone, 60);
+        }
     }
 
     public function rules()
@@ -46,6 +57,7 @@ class RegisterRequest extends MainRequest
             'name.min' => __('ingaz.name_min', ['min' => '3']),
             'name.max' => __('ingaz.name_max', ['max' => '50']),
 
+            'phone.exists' => __('ingaz.phone_exists'),
             // الهاتف
             'phone.required' => __('ingaz.phone_required'),
             'phone.string' => __('ingaz.phone_string'),
@@ -54,7 +66,6 @@ class RegisterRequest extends MainRequest
             'phone.min' => __('ingaz.phone_min', ['min'=> '9']),
             'phone.max' => __('ingaz.phone_max', ['max'=> '9']),
 
-            'g-recaptcha-response.required' => __('ingaz.captcha_required'),
 
             // الايميل
             'email.required' => __('ingaz.email_required'),

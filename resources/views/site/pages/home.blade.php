@@ -265,7 +265,7 @@
             </div>
         </div>
     </section>
-    <!-- services -->
+
     @php
         $heroServices = [
             [
@@ -311,7 +311,6 @@
                 <h3>خدمات شركة بلاتنيوم </h3>
                 <p>{{ __('ingaz.recruitment_request_text') }}</p>
             </div>
-
             <div class="hero-services__cards">
                 @foreach ($heroServices as $service)
                     <a href="{{ $service['url'] }}" class="hero-service-card hero-service-card--{{ $service['theme'] }}">
@@ -401,215 +400,6 @@
             </div>
         </div>
     </section>
-
-    <!-- ============= countries =============  -->
-    <!-- <section class="countries" data-aos="fade-up">
-                                            <div class="container">
-                                                <div class="headTitle text-start" data-aos="fade-up" data-aos-delay="100">
-                                                    <h2>{{ __('ingaz.Recruitment countries') }}</h2>
-                                                    <p>{{ __('ingaz.countries_desc') }}</p>
-                                                </div>
-
-                                                <div class="allCountries">
-                                                    <div class="row justify-content-center">
-
-                                                        @forelse($nationalities as $nationality)
-    <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in" data-aos-delay="100">
-                                                                <div class="country-card">
-                                                                    <div class="flag-container">
-                                                                        <img src="{{ showfile($nationality->logo) }}" alt="{{ $nationality->title }}"
-                                                                             width="100px">
-                                                                    </div>
-
-                                                                    <div class="country-content">
-                                                                        <h3>{{ $nationality->title }}</h3>
-                                                                        @if ($nationality->description)
-    <div class="country-description center">
-                                                                                {!! $nationality->description !!}
-                                                                            </div>
-    @endif
-                                                                        <ul class="country-costs">
-                                                                            @if ($nationality->price)
-    <li>
-                                                                                    <span>{{ __('ingaz.recruitment_cost') }}</span>
-                                                                                    <strong>{{ number_format($nationality->price, 0) }} {{ __('ingaz.currency_sar') }}</strong>
-                                                                                </li>
-    @endif
-                                                                            @if ($nationality->salary_with_experience)
-    <li>
-                                                                                    <span>{{ __('ingaz.salary_with_experience') }}</span>
-                                                                                    <strong>{{ number_format($nationality->salary_with_experience, 0) }} {{ __('ingaz.currency_sar') }}</strong>
-                                                                                </li>
-    @endif
-                                                                            @if ($nationality->salary_with_no_experience)
-    <li>
-                                                                                    <span>{{ __('ingaz.salary_with_no_experience') }}</span>
-                                                                                    <strong>{{ number_format($nationality->salary_with_no_experience, 0) }} {{ __('ingaz.currency_sar') }}</strong>
-                                                                                </li>
-    @endif
-
-                                                                            @if ($nationality->rental_cost)
-    <li>
-                                                                                    <span>{{ __('ingaz.rental_cost') }}</span>
-                                                                                    <strong>{{ number_format($nationality->rental_cost, 0) }} {{ __('ingaz.currency_sar') }}</strong>
-                                                                                </li>
-    @endif
-
-                                                                            @if ($nationality->service_transportation_cost)
-    <li>
-                                                                                    <span>{{ __('ingaz.service_transportation_cost') }}</span>
-                                                                                    <strong>{{ number_format($nationality->service_transportation_cost, 0) }} {{ __('ingaz.currency_sar') }}</strong>
-                                                                                </li>
-    @endif
-
-                                                                            @if ($nationality->monthly_salary)
-    <li>
-                                                                                    <span>{{ __('ingaz.monthly_salary') }}</span>
-                                                                                    <strong>{{ number_format($nationality->monthly_salary, 0) }} {{ __('ingaz.currency_sar') }}</strong>
-                                                                                </li>
-    @endif
-                                                                        </ul>
-
-
-                                                                        <a href="{{ route('site.all-workers.index') }}?nationality_id={{ $nationality->id }}"
-                                                                           class="animatedLink">
-                                                                            {{ __('ingaz.request now') }}
-                                                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                                                        </a>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                    @empty
-                                                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
-                                                                <div class="country-card">
-                                                                    <div class="flag-container">
-                                                                        <img src="{{ asset('site/assets/images/countries/1.png') }}" alt="">
-                                                                    </div>
-                                                                    <div class="country-content">
-                                                                        <h3>أوغندا</h3>
-                                                                        <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
-                                                                        <div class="country-description">
-                                                                            <p>خدمات استقدام متكاملة من أوغندا مع متابعة شاملة لكافة إجراءات العمل.</p>
-                                                                        </div>
-                                                                        <ul class="country-costs">
-                                                                            <li>
-                                                                                <span>{{ __('ingaz.recruitment_cost') }}</span><strong>8,500 {{ __('ingaz.currency_sar') }}</strong>
-                                                                            </li>
-                                                                            <li>
-                                                                                <span>{{ __('ingaz.rental_cost') }}</span><strong>2,000 {{ __('ingaz.currency_sar') }}</strong>
-                                                                            </li>
-
-                                                                        </ul>
-                                                                        <a href="#" class="animatedLink">
-                                                                            تصفح السير الذاتية
-                                                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                                                        </a>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
-                                                                <div class="country-card">
-                                                                    <div class="flag-container">
-                                                                        <img src="{{ asset('site/assets/images/countries/2.png') }}" alt="">
-                                                                    </div>
-                                                                    <div class="country-content">
-                                                                        <h3>كينيا</h3>
-                                                                        <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
-                                                                        <a href="#" class="animatedLink">
-                                                                            تصفح السير الذاتية
-                                                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                                                        </a>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
-                                                                <div class="country-card">
-                                                                    <div class="flag-container">
-                                                                        <img src="{{ asset('site/assets/images/countries/3.jpeg') }}" alt="">
-                                                                    </div>
-                                                                    <div class="country-content">
-                                                                        <h3>بنغلادش</h3>
-                                                                        <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
-                                                                        <a href="#" class="animatedLink">
-                                                                            تصفح السير الذاتية
-                                                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                                                        </a>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
-                                                                <div class="country-card">
-                                                                    <div class="flag-container">
-                                                                        <img src="{{ asset('site/assets/images/countries/4.jpeg') }}" alt="">
-                                                                    </div>
-                                                                    <div class="country-content">
-                                                                        <h3>الفلبين</h3>
-                                                                        <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
-                                                                        <a href="#" class="animatedLink">
-                                                                            تصفح السير الذاتية
-                                                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                                                        </a>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
-                                                                <div class="country-card">
-                                                                    <div class="flag-container">
-                                                                        <img src="{{ asset('site/assets/images/countries/5.png') }}" alt="">
-                                                                    </div>
-                                                                    <div class="country-content">
-                                                                        <h3>الهند</h3>
-                                                                        <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
-                                                                        <a href="#" class="animatedLink">
-                                                                            تصفح السير الذاتية
-                                                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                                                        </a>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
-                                                                <div class="country-card">
-                                                                    <div class="flag-container">
-                                                                        <img src="{{ asset('site/assets/images/countries/6.png') }}" alt="">
-                                                                    </div>
-                                                                    <div class="country-content">
-                                                                        <h3>موريتانيا</h3>
-                                                                        <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
-                                                                        <a href="#" class="animatedLink">
-                                                                            تصفح السير الذاتية
-                                                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                                                        </a>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-
-                                                            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 p-2" data-aos="zoom-in">
-                                                                <div class="country-card">
-                                                                    <div class="flag-container">
-                                                                        <img src="{{ asset('site/assets/images/countries/7.png') }}" alt="">
-                                                                    </div>
-                                                                    <div class="country-content">
-                                                                        <h3>جيبوتي</h3>
-                                                                        <span class="country-subtitle">مدة الاستقدام خلال 60 يوم</span>
-                                                                        <a href="#" class="animatedLink">
-                                                                            تصفح السير الذاتية
-                                                                            <i class="fa-regular fa-left-long ms-2"><span></span></i>
-                                                                        </a>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-    @endforelse
-
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </section> -->
     <section class="countries">
         <div class="container">
             <div class="headTitle text-center">
@@ -622,13 +412,15 @@
                         <div class="flag-side">
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
-                                <img src="{{ asset('site/assets/images/countries/1.png') }}" alt="علم أوغندا" class="flag-img" />
+                                <img src="{{ asset('site/assets/images/countries/1.png') }}" alt="علم أوغندا"
+                                    class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
-                        </div>
-                        <div class="cost-highlight">
-                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            <h2 class="price">8500 <small>ريال</small></h2>
+                            <h4 class="country-name">أوغندا</h4>
+                            <div class="cost-highlight">
+                                <h2 class="price">8500 <small>ريال</small></h2>
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            </div>
                         </div>
                         <div class="info-side">
                             <div class="info-grid">
@@ -664,14 +456,16 @@
                         <div class="flag-side">
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
-                                <img src="{{ asset('site/assets/images/countries/2.png') }}" alt="علم كينيا" class="flag-img" />
+                                <img src="{{ asset('site/assets/images/countries/2.png') }}" alt="علم كينيا"
+                                    class="flag-img" />
+
                                 <span class="pulse-ring"></span>
                             </div>
-                        </div>
-
-                        <div class="cost-highlight">
-                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            <h2 class="price">9500 <small>ريال</small></h2>
+                            <h4 class="country-name">كينيا</h4>
+                            <div class="cost-highlight">
+                                <h2 class="price">9500 <small>ريال</small></h2>
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            </div>
                         </div>
 
                         <div class="info-side">
@@ -711,14 +505,15 @@
                         <div class="flag-side">
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
-                                <img src="{{ asset('site/assets/images/countries/3.jpeg') }}" alt="علم بنغلادش" class="flag-img" />
+                                <img src="{{ asset('site/assets/images/countries/3.jpeg') }}" alt="علم بنغلادش"
+                                    class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
-                        </div>
-
-                        <div class="cost-highlight">
-                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            <h2 class="price">8000 <small>ريال</small></h2>
+                            <h4 class="country-name">بنغلادش</h4>
+                            <div class="cost-highlight">
+                                <h2 class="price">8000 <small>ريال</small></h2>
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            </div>
                         </div>
 
                         <div class="info-side">
@@ -758,14 +553,15 @@
                         <div class="flag-side">
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
-                                <img src="{{ asset('site/assets/images/countries/4.jpeg') }}" alt="علم الفلبين" class="flag-img" />
+                                <img src="{{ asset('site/assets/images/countries/4.jpeg') }}" alt="علم الفلبين"
+                                    class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
-                        </div>
-
-                        <div class="cost-highlight">
-                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            <h2 class="price">12000 <small>ريال</small></h2>
+                            <h4 class="country-name">الفلبين</h4>
+                            <div class="cost-highlight">
+                                <h2 class="price">12000 <small>ريال</small></h2>
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            </div>
                         </div>
 
                         <div class="info-side">
@@ -805,14 +601,15 @@
                         <div class="flag-side">
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
-                                <img src="{{ asset('site/assets/images/countries/5.png') }}" alt="علم الهند" class="flag-img" />
+                                <img src="{{ asset('site/assets/images/countries/5.png') }}" alt="علم الهند"
+                                    class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
-                        </div>
-
-                        <div class="cost-highlight">
-                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            <h2 class="price">9000 <small>ريال</small></h2>
+                            <h4 class="country-name">الهند</h4>
+                            <div class="cost-highlight">
+                                <h2 class="price">9000 <small>ريال</small></h2>
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            </div>
                         </div>
 
                         <div class="info-side">
@@ -852,14 +649,15 @@
                         <div class="flag-side">
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
-                                <img src="{{ asset('site/assets/images/countries/6.png') }}" alt="علم موريتانيا" class="flag-img" />
+                                <img src="{{ asset('site/assets/images/countries/6.png') }}" alt="علم موريتانيا"
+                                    class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
-                        </div>
-
-                        <div class="cost-highlight">
-                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            <h2 class="price">8500 <small>ريال</small></h2>
+                            <h4 class="country-name">موريتانيا</h4>
+                            <div class="cost-highlight">
+                                <h2 class="price">8500 <small>ريال</small></h2>
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            </div>
                         </div>
 
                         <div class="info-side">
@@ -885,64 +683,12 @@
                                     <p>موريتانيا</p>
                                 </div>
                             </div>
-
-                            <a href="all-workers.html" class="modern-btn">
-                                تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Djibouti -->
-                <div class="col-12 col-md-6 col-lg-4 p-3">
-                    <div class="modern-card">
-                        <div class="flag-side">
-                            <div class="flag-bg"></div>
-                            <div class="flag-wrapper">
-                                <img src="{{ asset('site/assets/images/countries/7.png') }}" alt="علم جيبوتي" class="flag-img" />
-                                <span class="pulse-ring"></span>
-                            </div>
-                        </div>
-
-                        <div class="cost-highlight">
-                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            <h2 class="price">8800 <small>ريال</small></h2>
-                        </div>
-
-                        <div class="info-side">
-                            <div class="info-grid">
-                                <div class="info-card">
-                                    <i class="fas fa-clock"></i>
-                                    <h5>المدة المتوقعة</h5>
-                                    <p>60 يوم</p>
-                                </div>
-                                <div class="info-card">
-                                    <i class="fas fa-hand-holding-usd"></i>
-                                    <h5>الراتب</h5>
-                                    <p>950 ريال</p>
-                                </div>
-                                <div class="info-card">
-                                    <i class="fas fa-user-check"></i>
-                                    <h5>الخبرة</h5>
-                                    <p>سبق لها العمل</p>
-                                </div>
-                                <div class="info-card">
-                                    <i class="fas fa-flag"></i>
-                                    <h5>دولة الاستقدام</h5>
-                                    <p>جيبوتي</p>
-                                </div>
-                            </div>
-
-                            <a href="all-workers.html" class="modern-btn">
-                                تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
-                            </a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
-
     <!-- ================ services ================= -->
     <section class="services-sec" id="services">
         <div class="container">
@@ -1347,8 +1093,7 @@
             </h2>
 
             <div class="video-wrapper" data-aos="zoom-in" data-aos-duration="1000">
-                <iframe src="{{ __('ingaz.video_link') }}" title="{{ __('ingaz.video_description') }}"
-                    frameborder="0"
+                <iframe src="{{ __('ingaz.video_link') }}" title="{{ __('ingaz.video_description') }}" frameborder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
             </div>
@@ -1437,30 +1182,38 @@
                     @forelse($clients as $client)
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img src="{!! showfile($client->image) !!}" alt="">
+                                <img src="{{ showFile($client->image) ?? asset('site/assets/images/musand.svg') }}"
+                                    alt=""
+                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
                             </div>
                         </div>
                     @empty
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img src="{{ asset('site') }}/assets/images/Ministry-of-Foreign-Affairs-01.svg"
-                                    alt="">
+
+                                <img src="{{ asset('site/assets/images/Ministry-of-Foreign-Affairs-01.svg') }}"
+                                    alt=""
+                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
+
                             </div>
                         </div>
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img src="{{ asset('site') }}/assets/images/Ministry-of-Interior-01.svg" alt="">
+                                <img src="{{ asset('site/assets/images/Ministry-of-Interior-01.svg') }}" alt=""
+                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
                             </div>
                         </div>
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img src="{{ asset('site') }}/assets/images/Ministry-of-Labor-and-Social-Development.svg"
-                                    alt="">
+                                <img src="{{ asset('site/assets/images/Ministry-of-Labor-and-Social-Development.svg') }}"
+                                    alt=""
+                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
+
                             </div>
                         </div>
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img src="{{ asset('site') }}/assets/images/musand.svg" alt="">
+                                <img src="{{ asset('site/assets/images/musand.svg') }}" alt="">
                             </div>
                         </div>
                     @endforelse
