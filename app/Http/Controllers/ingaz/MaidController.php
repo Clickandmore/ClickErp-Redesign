@@ -84,8 +84,13 @@ class MaidController extends Controller
                     $religion = e($row->religion?->title ?? helperTrans('ingaz.not_specified'));
                     $name = e($row->name ?? helperTrans('ingaz.not_specified'));
                     $passport = e($row->passport_num ?? helperTrans('ingaz.not_specified'));
+                    $cvCode = $row->cv_code ? e($row->cv_code) : null;
                     $pinnedBadge = $row->is_pinned
                         ? '<span class="badge bg-warning-subtle text-warning ms-1"><i class="fas fa-thumbtack"></i> ' . helperTrans('ingaz.pinned') . '</span>'
+                        : '';
+                    $cvCodeLabel = helperTrans('ingaz.cv_code');
+                    $cvCodeLine = $cvCode
+                        ? '<div class="text-muted small"><i class="fas fa-id-card me-1"></i>' . $cvCodeLabel . ': ' . $cvCode . '</div>'
                         : '';
 
                     return '<div class="d-flex align-items-center gap-3">'
@@ -97,6 +102,7 @@ class MaidController extends Controller
                         . '<span class="fw-semibold text-dark">' . $name . '</span>'
                         . $pinnedBadge
                         . '</div>'
+                        . $cvCodeLine
                         . '<div class="text-muted small"><i class="fas fa-passport me-1"></i>' . $passport . '</div>'
                         . '<div class="text-muted small">'
                         . '<i class="fas fa-flag me-1"></i>' . $nationality

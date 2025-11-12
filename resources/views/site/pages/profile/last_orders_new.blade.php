@@ -1424,8 +1424,16 @@
                                                     <h4>{{ $previous_order->jobType->title }}</h4>
                                                     <div class="title">
                                                         <p>#{{ $previous_order->order_code }}</p>
+                                                        {{-- <a href="{{ route('web.orders.show', $previous_order->id) }}">التفاصيل</a> --}}
                                                         <a
-                                                            href="{{ route('web.orders.show', $previous_order->id) }}">التفاصيل</a>
+                                                            href="{{ route('site.last-orders.show', $previous_order->id) }}">التفاصيل</a>
+
+                                                    </div>
+                                                    <div class="pro">
+                                                        <div class="staus">
+                                                            <p class="badge">{{ \App\Helpers\Constant::globalArray['orders_statuses'][$previous_order->status][app()->getLocale()] }}
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                     <span
                                                         class="time">{{ @$previous_order->created_at->translatedFormat('d F , Y h:i a') }}</span>

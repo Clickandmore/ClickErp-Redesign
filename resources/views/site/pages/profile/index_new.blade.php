@@ -1328,7 +1328,8 @@
                                                         </div>
                                                         <div class="activity_status">
                                                             <span class="status_badge status_{{ $order->status }}">
-                                                                {{ $order->status }}
+                                                                {{-- {{ $order->status }} --}}
+                                                                {{ \App\Helpers\Constant::globalArray['orders_statuses'][$order->status][app()->getLocale()] }}
                                                             </span>
                                                         </div>
                                                     </div>
