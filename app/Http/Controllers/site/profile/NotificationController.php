@@ -12,6 +12,8 @@ class NotificationController extends Controller
     public function index(NotificationAction $action)
     {
         $data['notifications'] = objModel::where('user_id',getGuardedUser()->id)->get();
+        // dump(getGuardedUser()->id);
+        // exit;
         return view('site.pages.profile.notifications_new',$data);
 
 //         $notifications = $action->getWhere(['user_id' => auth('web')->id()]);

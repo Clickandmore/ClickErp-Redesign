@@ -17,7 +17,7 @@
                     $salaryDisplay = $salaryRaw !== null ? number_format($salaryRaw, 2) : null;
                     $priceDisplay = $priceRaw !== null ? number_format($priceRaw, 2) : null;
                     $cvFile = $maid->cv_file ?? $maid->cv_preview;
-                    $cv_code = $maid->cvCode ? $maid->cvCode : null;
+                    $cv_code = $maid->cv_code ? $maid->cv_code : null;
                 @endphp
                 <!-- كارد مشترك (ايجار + نقل خدمات) -->
                 @if ($jobType && $jobType->id == 1)
@@ -34,11 +34,14 @@
                                         <div class="worker-age">
                                             <span>{{ $maid->age ?? '' }}</span>{{ __('ingaz.year') }}
                                         </div>
-                                        @if ($maid->st_code || $maid->int_code)
-                                            <!-- اول تلت حروف من اسم المكتب والرقم حسب عدد السيرة المستلمة من المكتب  -->
+                                        <!-- اول تلت حروف من اسم المكتب والرقم حسب عدد السيرة المستلمة من المكتب  -->
+                                        {{-- @if ($maid->st_code || $maid->int_code)
                                             <div class="worker-id">
                                                 {{ implode(' / ', array_filter([$maid->st_code ?? null, $maid->int_code ?? null])) }}
                                             </div>
+                                        @endif --}}
+                                        @if (!empty($cv_code))
+                                            <p class="cv-code">{{ $cv_code }}</p>
                                         @endif
                                     </div>
                                     <h4>{{ $maid->name ?? '' }}</h4>
@@ -144,10 +147,13 @@
                                 <div class="worker-content">
                                     <div class="worker-header">
                                         <span>{{ $maid->age ?? '' }}</span>{{ __('ingaz.year') }}
-                                        @if ($maid->st_code || $maid->int_code)
+                                        {{-- @if ($maid->st_code || $maid->int_code)
                                             <div class="worker-id">
                                                 {{ implode(' / ', array_filter([$maid->st_code ?? null, $maid->int_code ?? null])) }}
                                             </div>
+                                        @endif --}}
+                                        @if (!empty($cv_code))
+                                            <p class="cv-code">{{ $cv_code }}</p>
                                         @endif
                                     </div>
                                     <h4>{{ $maid->name ?? '' }}</h4>
@@ -218,10 +224,13 @@
                                 <div class="worker-content">
                                     <div class="worker-header">
                                         <span>{{ $maid->age ?? '' }}</span>{{ __('ingaz.year') }}
-                                        @if ($maid->st_code || $maid->int_code)
+                                        {{-- @if ($maid->st_code || $maid->int_code)
                                             <div class="worker-id">
                                                 {{ implode(' / ', array_filter([$maid->st_code ?? null, $maid->int_code ?? null])) }}
                                             </div>
+                                        @endif --}}
+                                        @if (!empty($cv_code))
+                                            <p class="cv-code">{{ $cv_code }}</p>
                                         @endif
                                     </div>
                                     <h4>{{ $maid->name ?? '' }}</h4>

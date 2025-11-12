@@ -184,23 +184,23 @@ class Maid extends Model
         return asset('images/no-image.png');
     }
 
-    public function getCvCodeAttribute(): ?string
-    {
-        if (!$this->office_id || !$this->office?->title) {
-            return null;
-        }
+    // public function getCvCodeAttribute(): ?string
+    // {
+    //     if (!$this->office_id || !$this->office?->title) {
+    //         return null;
+    //     }
 
-        // أول 3 أحرف من اسم المكتب
-        $prefix = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $this->office->title), 0, 3));
-        if ($prefix === '') $prefix = 'OFF';
+    //     // أول 3 أحرف من اسم المكتب
+    //     $prefix = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $this->office->title), 0, 3));
+    //     if ($prefix === '') $prefix = 'OFF';
 
-        // رقم تسلسلي حسب عدد العاملات في نفس المكتب
-        $count = static::where('office_id', $this->office_id)
-            ->where('id', '<=', $this->id)
-            ->count();
+    //     // رقم تسلسلي حسب عدد العاملات في نفس المكتب
+    //     $count = static::where('office_id', $this->office_id)
+    //         ->where('id', '<=', $this->id)
+    //         ->count();
 
-        return $prefix . str_pad($count, 3, '0', STR_PAD_LEFT);
-    }
+    //     return $prefix . str_pad($count, 3, '0', STR_PAD_LEFT);
+    // }
 
     protected function getPrimaryJobType()
     {

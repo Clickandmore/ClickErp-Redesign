@@ -8944,4 +8944,14 @@ main .guidelines-section .country-card .links .btn:hover i {
   align-items: center;
   color: var(--mainColor);
 }
+
+.worker-content .worker-header .cv-code{
+    font-family: 'Cairo', sans-serif;
+    background-color: white;
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    letter-spacing: 1px;
+    color: #333;
+}
 /*# sourceMappingURL=style.css.map */

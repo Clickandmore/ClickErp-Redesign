@@ -536,7 +536,7 @@
                             },
                             error: function() {
                                 toastr.error(
-                                '{{ helperTrans('ingaz.delete_error') }}');
+                                    '{{ helperTrans('ingaz.delete_error') }}');
                             }
                         });
                         // deleteOrder(orderId);
@@ -798,11 +798,11 @@
 
             // Old change maid code removed - using new advanced system below
             /*
-                $(document).on('click', '.change-maid', function() {
-                    const orderId = $(this).data('id');
+                    $(document).on('click', '.change-maid', function() {
+                        const orderId = $(this).data('id');
 
-                    // Show modal to select new maid with search
-                    const modal = `
+                        // Show modal to select new maid with search
+                        const modal = `
             <div class="modal fade" id="changeMaidModal" tabindex="-1">
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
@@ -837,142 +837,142 @@
             </div>
         `;
 
-                    $('#changeMaidModal').remove();
-                    $('body').append(modal);
-                    $('#changeMaidModal').modal('show');
+                        $('#changeMaidModal').remove();
+                        $('body').append(modal);
+                        $('#changeMaidModal').modal('show');
 
-                    // Handle modal close for change maid modal
-                    $('#changeMaidModal .btn-close, #changeMaidModal [data-bs-dismiss="modal"]').on('click', function() {
-                        $('#changeMaidModal').modal('hide');
-                        $('.modal-backdrop').remove();
-                        $('body').removeClass('modal-open');
+                        // Handle modal close for change maid modal
+                        $('#changeMaidModal .btn-close, #changeMaidModal [data-bs-dismiss="modal"]').on('click', function() {
+                            $('#changeMaidModal').modal('hide');
+                            $('.modal-backdrop').remove();
+                            $('body').removeClass('modal-open');
+                        });
+
+                        $('#changeMaidModal').on('hidden.bs.modal', function() {
+                            $('.modal-backdrop').remove();
+                            $('body').removeClass('modal-open');
+                        });
+
+                        // Load available maids
+                        loadAvailableMaids();
+
+                        // Handle search
+                        $('#maidSearch').on('input', function() {
+                            const searchTerm = $(this).val();
+                            if (searchTerm.length >= 2) {
+                                searchMaids(searchTerm);
+                            } else {
+                                loadAvailableMaids();
+                            }
+                        });
+
+                        // Handle maid selection
+                        $('#changeMaidForm select[name="maid_id"]').on('change', function() {
+                            const maidId = $(this).val();
+                            if (maidId) {
+                                showMaidInfo(maidId);
+                            } else {
+                                $('#maidInfo').hide();
+                            }
+                        });
+
+                        // Handle save
+                        $('#saveMaid').on('click', function() {
+                            const maidId = $('#changeMaidForm select[name="maid_id"]').val();
+                            if (!maidId) {
+                                toastr.error('{{ helperTrans('ingaz.please_select_maid') }}');
+                                return;
+                            }
+
+                            $.ajax({
+                                url: '/admin/orders/' + orderId + '/change-maid',
+                                type: 'POST',
+                                data: {
+                                    _token: '{{ csrf_token() }}',
+                                    maid_id: maidId
+                                },
+                                success: function(response) {
+                                    if (response.success) {
+                                        $('#changeMaidModal').modal('hide');
+                                        $('.modal-backdrop').remove();
+                                        $('body').removeClass('modal-open');
+                                        dataTable.ajax.reload();
+                                        toastr.success('{{ helperTrans('ingaz.maid_updated') }}');
+                                    } else {
+                                        toastr.error(response.message || '{{ helperTrans('ingaz.update_error') }}');
+                                    }
+                                },
+                                error: function(xhr) {
+                                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                                        toastr.error(xhr.responseJSON.message);
+                                    } else {
+                                        toastr.error('{{ helperTrans('ingaz.update_error') }}');
+                                    }
+                                }
+                            });
+                        });
                     });
 
-                    $('#changeMaidModal').on('hidden.bs.modal', function() {
-                        $('.modal-backdrop').remove();
-                        $('body').removeClass('modal-open');
-                    });
-
-                    // Load available maids
-                    loadAvailableMaids();
-
-                    // Handle search
-                    $('#maidSearch').on('input', function() {
-                        const searchTerm = $(this).val();
-                        if (searchTerm.length >= 2) {
-                            searchMaids(searchTerm);
-                        } else {
-                            loadAvailableMaids();
-                        }
-                    });
-
-                    // Handle maid selection
-                    $('#changeMaidForm select[name="maid_id"]').on('change', function() {
-                        const maidId = $(this).val();
-                        if (maidId) {
-                            showMaidInfo(maidId);
-                        } else {
-                            $('#maidInfo').hide();
-                        }
-                    });
-
-                    // Handle save
-                    $('#saveMaid').on('click', function() {
-                        const maidId = $('#changeMaidForm select[name="maid_id"]').val();
-                        if (!maidId) {
-                            toastr.error('{{ helperTrans('ingaz.please_select_maid') }}');
-                            return;
-                        }
-
+                    // Function to load available maids
+                    function loadAvailableMaids() {
                         $.ajax({
-                            url: '/admin/orders/' + orderId + '/change-maid',
-                            type: 'POST',
-                            data: {
-                                _token: '{{ csrf_token() }}',
-                                maid_id: maidId
-                            },
+                            url: '/admin/maids/available',
+                            type: 'GET',
                             success: function(response) {
                                 if (response.success) {
-                                    $('#changeMaidModal').modal('hide');
-                                    $('.modal-backdrop').remove();
-                                    $('body').removeClass('modal-open');
-                                    dataTable.ajax.reload();
-                                    toastr.success('{{ helperTrans('ingaz.maid_updated') }}');
-                                } else {
-                                    toastr.error(response.message || '{{ helperTrans('ingaz.update_error') }}');
-                                }
-                            },
-                            error: function(xhr) {
-                                if (xhr.responseJSON && xhr.responseJSON.message) {
-                                    toastr.error(xhr.responseJSON.message);
-                                } else {
-                                    toastr.error('{{ helperTrans('ingaz.update_error') }}');
+                                    const select = $('#changeMaidForm select[name="maid_id"]');
+                                    select.empty();
+                                    select.append('<option value="">{{ helperTrans('ingaz.select_maid') }}</option>');
+
+                                    response.maids.forEach(function(maid) {
+                                        select.append(`<option value="${maid.id}">${maid.name} - ${maid.passport_num} - ${maid.nationality}</option>`);
+                                    });
                                 }
                             }
                         });
-                    });
-                });
+                    }
 
-                // Function to load available maids
-                function loadAvailableMaids() {
-                    $.ajax({
-                        url: '/admin/maids/available',
-                        type: 'GET',
-                        success: function(response) {
-                            if (response.success) {
-                                const select = $('#changeMaidForm select[name="maid_id"]');
-                                select.empty();
-                                select.append('<option value="">{{ helperTrans('ingaz.select_maid') }}</option>');
+                    // Function to search maids
+                    function searchMaids(searchTerm) {
+                        $.ajax({
+                            url: '/admin/maids/search',
+                            type: 'GET',
+                            data: { search: searchTerm },
+                            success: function(response) {
+                                if (response.success) {
+                                    const select = $('#changeMaidForm select[name="maid_id"]');
+                                    select.empty();
+                                    select.append('<option value="">{{ helperTrans('ingaz.select_maid') }}</option>');
 
-                                response.maids.forEach(function(maid) {
-                                    select.append(`<option value="${maid.id}">${maid.name} - ${maid.passport_num} - ${maid.nationality}</option>`);
-                                });
+                                    response.maids.forEach(function(maid) {
+                                        select.append(`<option value="${maid.id}">${maid.name} - ${maid.passport_num} - ${maid.nationality}</option>`);
+                                    });
+                                }
                             }
-                        }
-                    });
-                }
+                        });
+                    }
 
-                // Function to search maids
-                function searchMaids(searchTerm) {
-                    $.ajax({
-                        url: '/admin/maids/search',
-                        type: 'GET',
-                        data: { search: searchTerm },
-                        success: function(response) {
-                            if (response.success) {
-                                const select = $('#changeMaidForm select[name="maid_id"]');
-                                select.empty();
-                                select.append('<option value="">{{ helperTrans('ingaz.select_maid') }}</option>');
-
-                                response.maids.forEach(function(maid) {
-                                    select.append(`<option value="${maid.id}">${maid.name} - ${maid.passport_num} - ${maid.nationality}</option>`);
-                                });
-                            }
-                        }
-                    });
-                }
-
-                // Function to show maid info
-                function showMaidInfo(maidId) {
-                    $.ajax({
-                        url: '/admin/maids/' + maidId + '/info',
-                        type: 'GET',
-                        success: function(response) {
-                            if (response.success) {
-                                const maid = response.maid;
-                                $('#maidDetails').html(`
+                    // Function to show maid info
+                    function showMaidInfo(maidId) {
+                        $.ajax({
+                            url: '/admin/maids/' + maidId + '/info',
+                            type: 'GET',
+                            success: function(response) {
+                                if (response.success) {
+                                    const maid = response.maid;
+                                    $('#maidDetails').html(`
                         <p><strong>{{ helperTrans('ingaz.name') }}:</strong> ${maid.name}</p>
                         <p><strong>{{ helperTrans('ingaz.passport_num') }}:</strong> ${maid.passport_num}</p>
                         <p><strong>{{ helperTrans('ingaz.nationality') }}:</strong> ${maid.nationality}</p>
                         <p><strong>{{ helperTrans('ingaz.age') }}:</strong> ${maid.age}</p>
                         <p><strong>{{ helperTrans('ingaz.experience') }}:</strong> ${maid.experience}</p>
                     `);
-                                $('#maidInfo').show();
+                                    $('#maidInfo').show();
+                                }
                             }
-                        }
-                    });
-                }
-                */
+                        });
+                    }
+                    */
 
             // Handle change responsible employee
             $(document).on('click', '.change-responsible', function() {

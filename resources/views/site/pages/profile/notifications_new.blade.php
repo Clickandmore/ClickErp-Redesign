@@ -1277,8 +1277,9 @@
 
                 <div class="col-lg-8 col-12">
                     @forelse($notifications as $notification)
-                     @if($notification->order_id)  <a href="{{route('web.orders.show',$notification->order_id)}}"> @endif
+                     @if($notification->order_id)  <a href="{{route('site.last-orders.show',$notification->order_id)}}"> @endif
                         <div class="notification">
+                            <h5>{{$notification->title}}</h5>
                             <p>{{$notification->description}}</p>
                             <span>{{\Carbon\Carbon::parse($notification->created_at)->diffForHumans()}}</span>
                         </div>

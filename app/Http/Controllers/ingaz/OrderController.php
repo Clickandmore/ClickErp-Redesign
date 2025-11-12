@@ -22,6 +22,7 @@ use Illuminate\Validation\Rule;
 use App\Models\ingaz\Order as objModel;
 use Yajra\DataTables\Facades\DataTables;
 use App\Http\Actions\ingaz\OrderAction as objAction;
+use App\Models\ingaz\Notification;
 
 class OrderController extends Controller
 {
@@ -368,6 +369,15 @@ class OrderController extends Controller
 
             $order->save();
 
+            // Status Notification
+            Notification::create([
+                'title' => __('ingaz.update_order_status'),
+                'description' => __('ingaz.order_status_updated', ['order_id' => $order->id]) . " " . __('ingaz.'. $order->status),
+                'order_id' => $order->id,
+                'user_id' => $order->user_id,
+                'type' => 'order_status',
+            ]);
+
             if ($this->isRefusalStatus($newStatus)) {
                 $this->releaseMaid($order);
             }
@@ -419,6 +429,16 @@ class OrderController extends Controller
         try {
             $order = Order::withTrashed()->findOrFail($id);
             $order->restore();
+
+            // Restore Notification
+            Notification::create([
+                'title' => __('ingaz.update_order_restored'),
+                'description' => __('ingaz.order_restored_msg', ['order_id' => $order->id]),
+                'order_id' => $order->id,
+                'user_id' => $order->user_id,
+                'type' => 'order_status',
+            ]);
+
             return jsonSuccess(['success' => 'تم استعادة الطلب بنجاح']);
         } catch (\Exception $e) {
             return jsonError(['success' => 'حدث خطأ أثناء استعادة الطلب']);
@@ -673,6 +693,15 @@ class OrderController extends Controller
 
                 \DB::commit();
 
+                // Change Maid Notification
+                Notification::create([
+                    'title' => __('ingaz.update_order_change_maid'),
+                    'description' => __('ingaz.order_changed_maid_msg', ['order_id' => $order->id]),
+                    'order_id' => $order->id,
+                    'user_id' => $order->user_id,
+                    'type' => 'order_status',
+                ]);
+
                 return response()->json([
                     'success' => true,
                     'message' => 'تم تغيير العاملة بنجاح',
@@ -729,6 +758,15 @@ class OrderController extends Controller
             $orderDetail->admin_id = $request->admin_id;
             $orderDetail->save();
 
+            // Change Responsible Employee Notification
+            Notification::create([
+                'title' => __('ingaz.update_order_change_responsible'),
+                'description' => __('ingaz.order_changed_responsible_msg', ['order_id' => $order->id]),
+                'order_id' => $order->id,
+                'user_id' => $order->user_id,
+                'type' => 'order_status',
+            ]);
+
             return jsonSuccess(['message' => 'The responsible employee has been updated successfully']);
         } catch (\Exception $e) {
             return jsonError(['message' => 'An error occurred while updating the responsible employee']);
@@ -748,6 +786,15 @@ class OrderController extends Controller
             $order->status_changed_at = now();
             $order->refuse_reason = $this->resolveRefuseReason($validated['reason'] ?? null, $validated['action']);
             $order->save();
+
+            // Refuse/Return Notification
+            Notification::create([
+                'title' => __('ingaz.update_order_status'),
+                'description' => __('ingaz.order_status_updated', ['order_id' => $order->id]) . " " . __('ingaz.'. $order->status),
+                'order_id' => $order->id,
+                'user_id' => $order->user_id,
+                'type' => 'order_status',
+            ]);
 
             $this->releaseMaid($order);
 
