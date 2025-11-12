@@ -1,9 +1,6 @@
-@if ($maids->isEmpty())
-    <div class="no-results">{{ __('ingaz.no_results') }}</div>
-@else
-    <div class="workers-list" id="workers-list">
-        <div class="row">
-            @foreach ($maids as $maid)
+<div class="workers-list" id="workers-list">
+    <div class="row">
+            @forelse ($maids as $maid)
                 @php
                     $jobType = $maid->jobTypes->first();
                     $todayDate = now()->toDateString();
@@ -260,35 +257,25 @@
                                     <div class="actions">
                                         <a data-fancybox="cv1" href="{{ showFile($cvFile) }}" class="icon-btn">
                                             <i class="fa-regular fa-file-pdf"></i>
-                                    <p>{{ __('ingaz.cost_with_tax') }} : {{ $maid->resolved_price ?? '' }}
-                                        {{ __('ingaz.SAR') }}</p>
-                                    <p>{{ __('ingaz.transfer_duration') }} : {{ __('ingaz.through') }}
-                                        {{ $maid->duration ?? '' }} {{ __('ingaz.day') }}</p>
-                                </div>
-                                <p class="guarantee">
-                                    {{ __('ingaz.cv_alert') }}
-                                </p>
-                                <div class="actions">
-                                    <a data-fancybox="cv2" href="{{ showFile($maid->cv_preview) }}" class="icon-btn">
-                                        <i class="fa-regular fa-file-pdf"></i>
-                                    </a>
-                                    @if(!empty($maid->video) && $maid->video !== '#')
-                                        <a href="{{ showFile($maid->video) }}" class="icon-btn"
-                                           data-fancybox="video{{ $maid->id }}">
-                                            <i class="fa-solid fa-video"></i>
                                         </a>
-                                        @if (!empty($maid->video) && $maid->video !== '#')
-                                            <a href="{{ showFile($maid->video) }}" class="icon-btn"
-                                                data-fancybox="video{{ $maid->id }}">
+                                        @if (!empty($maid->video_link) || (!empty($maid->video) && $maid->video !== '#'))
+                                            @php
+                                                $videoHref = !empty($maid->video_link)
+                                                    ? $maid->video_link
+                                                    : showFile($maid->video);
+                                                $openAsIframe = !empty($maid->video_link);
+                                            @endphp
+                                            <a href="{{ $videoHref }}" class="icon-btn"
+                                                data-fancybox="video{{ $maid->id }}"
+                                                @if ($openAsIframe) data-type="iframe" @endif>
                                                 <i class="fa-solid fa-video"></i>
                                             </a>
                                         @endif
-
-                                    <a href="{{ route('site.immediate-recipts.show', $maid->id) }}"
-                                       class="btn action-btn">
-                                        {{ __('ingaz.Labor_transfer') }}
-                                    </a>
-                                </div>
+                                        <a href="{{ route('site.immediate-recipts.show', $maid->id) }}"
+                                            class="btn action-btn">
+                                            {{ __('ingaz.Labor_transfer') }}
+                                        </a>
+                                    </div>
                             </div>
                         </div>
                     </a>
@@ -302,7 +289,9 @@
                 </div>
             </div>
         @endforelse
+        </div>
     </div>
+@if ($maids->isNotEmpty())
     <div class="pagination-outer" id="pagination">
         <div class="pagination-style1">
             {{ $maids->links('vendor.pagination.custom_2') }}
