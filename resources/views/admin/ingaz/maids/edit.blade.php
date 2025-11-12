@@ -197,7 +197,7 @@
                         <label for="TextInput" class="form-label">
                             {{helperTrans("ingaz.childrens_count")}}
                         </label>
-                        <input type="number" name="childrens_count" class="form-control" min="1" step="1"
+                        <input type="number" name="childrens_count" class="form-control" min="0" step="1"
                                value="{{$obj->childrens_count}}">
                     </div>
                     <div class="col-4">

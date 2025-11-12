@@ -141,6 +141,18 @@
                                                                 <li><i class="fa-light fa-user"></i> {{ $address->name }}</li>
                                                                 <li><i class="fa-light fa-phone"></i> {{ $address->phone }}</li>
                                                                 <li><i class="fa-light fa-location-dot"></i> {{ $address->address }}</li>
+                                                            <ul>
+                                                                <li><i class="fa-light fa-user"></i> {{ $address->name }}
+                                                                </li>
+                                                                <li>
+                                                                    <i class="fa-light fa-phone"></i> {{ $address->phone }}
+                                                                </li>
+                                                                <li>
+                                                                    <i class="fa-light fa-location-dot"></i> {{ $address->address }}
+                                                                </li>
+                                                                <li>
+                                                                    <i class="fa-regular fa-note-sticky"></i> {{ $address->notes }}
+                                                                </li>
                                                             </ul>
 
                                                             <!-- 🗑️ حذف -->

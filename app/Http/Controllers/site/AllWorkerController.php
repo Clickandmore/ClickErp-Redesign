@@ -15,11 +15,13 @@ class AllWorkerController extends Controller
         if($request->ajax()){
 
             $maids = $maidAction->paginate($request);
+
             $html = view('site.pages.maids_list', ['maids' => $maids])->render();
             return $html;
         }
 
         $data['maids'] = $maidAction->paginate($request);
+
         $data['type'] = $request->type ?? 'all';
         $data['jobTitles'] = $jobTitleAction->get();
         $data['nationalities'] = $nationalityAction->get();
@@ -43,5 +45,6 @@ class AllWorkerController extends Controller
         }
         return view('site.pages.cv_details', ['maid' => $maid]);
     }
+
 
 }

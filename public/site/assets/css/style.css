@@ -1650,7 +1650,7 @@ main .countries .modern-card .flag-side .country-name {
 }
 
 main .countries .modern-card .cost-highlight {
-    margin: 25px auto 15px;
+    margin: 20px auto 10px;
     position: relative;
     z-index: 2;
     background: #f7f8fc;
@@ -1658,13 +1658,7 @@ main .countries .modern-card .cost-highlight {
     padding: 18px 15px;
     width: 85%;
     box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
-}
-
-main .countries .modern-card .cost-highlight .label {
-    display: block;
-    font-size: 0.9rem;
-    color: #555;
-    margin-bottom: 5px;
+    text-align: center;
 }
 
 main .countries .modern-card .cost-highlight .price {
@@ -1672,6 +1666,14 @@ main .countries .modern-card .cost-highlight .price {
     font-weight: 800;
     color: var(--mainColor);
     text-decoration: underline;
+    margin: 0;
+}
+
+main .countries .modern-card .cost-highlight .label {
+    display: block;
+    font-size: 0.9rem;
+    color: #555;
+    margin: 8px 0 0;
 }
 
 main .countries .modern-card .cost-highlight .price small {
@@ -6700,8 +6702,9 @@ main .cvPage .languages {
 
 main .cvPage .languages .Percentages {
     display: flex;
-    gap: 16px;
+    gap: 10px;
     justify-content: space-around;
+    flex-wrap: wrap;
 }
 
 @media (max-width: 768px) {
@@ -8120,6 +8123,7 @@ main .cvPage .data {
 
 main .cvPage .data .innerTitle {
     color: #777;
+    margin: 0 0 8px;
 }
 
 main .cvPage .data .innerData {
@@ -8128,6 +8132,7 @@ main .cvPage .data .innerData {
     gap: 8px;
     flex-wrap: wrap;
     font-weight: bold;
+    margin: 0 0 8px;
 }
 
 main .cvPage .socialMedia {
@@ -8924,4 +8929,19 @@ main .guidelines-section .country-card .links .btn:hover i {
     color: #000;
 }
 
+
+.no-results {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 40px;
+    font-weight: bold;
+    color: var(--secondColor2);
+}
+.loading-text {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--mainColor);
+}
 /*# sourceMappingURL=style.css.map */

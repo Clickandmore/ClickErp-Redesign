@@ -303,8 +303,7 @@
             </div>
             <div class="hero-services__cards">
                 @foreach ($heroServices as $service)
-                    <a href="{{ $service['url'] }}"
-                       class="hero-service-card hero-service-card--{{ $service['theme'] }}">
+                    <a href="{{ $service['url'] }}" class="hero-service-card hero-service-card--{{ $service['theme'] }}">
                         <div class="hero-service-card__icon">
                             <i class="{{ $service['icon'] }}"></i>
                         </div>
@@ -327,11 +326,11 @@
         </div>
         <!-- warn -->
         <div class="warning">
-            {{__('ingaz.warning')}} :
-            @if(isset($settings))
+            {{ __('ingaz.warning') }} :
+            @if (isset($settings))
                 {{ app()->getLocale() == 'ar' ? $settings->note_ar : $settings->note_en }}
             @else
-                {{__('ingaz.warning_text')}}
+                {{ __('ingaz.warning_text') }}
             @endif
         </div>
     </section>
@@ -350,7 +349,7 @@
                 </div>
 
                 <div class="about-image">
-                    <img src="{{ asset('site/assets/images/about.webp') }}" alt="{{ __('ingaz.about_us') }}"/>
+                    <img src="{{ asset('site/assets/images/about.webp') }}" alt="{{ __('ingaz.about_us') }}" />
                 </div>
             </div>
             <!-- About Cards -->
@@ -404,13 +403,14 @@
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
                                 <img src="{{ asset('site/assets/images/countries/1.png') }}" alt="علم أوغندا"
-                                     class="flag-img"/>
+                                    class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
-                        </div>
-                        <div class="cost-highlight">
-                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            <h2 class="price">8500 <small>ريال</small></h2>
+                            <h4 class="country-name">أوغندا</h4>
+                            <div class="cost-highlight">
+                                <h2 class="price">8500 <small>ريال</small></h2>
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            </div>
                         </div>
                         <div class="info-side">
                             <div class="info-grid">
@@ -447,15 +447,15 @@
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
                                 <img src="{{ asset('site/assets/images/countries/2.png') }}" alt="علم كينيا"
-                                     class="flag-img"/>
+                                    class="flag-img" />
 
                                 <span class="pulse-ring"></span>
                             </div>
-                        </div>
-
-                        <div class="cost-highlight">
-                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            <h2 class="price">9500 <small>ريال</small></h2>
+                            <h4 class="country-name">كينيا</h4>
+                            <div class="cost-highlight">
+                                <h2 class="price">9500 <small>ريال</small></h2>
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            </div>
                         </div>
 
                         <div class="info-side">
@@ -496,14 +496,14 @@
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
                                 <img src="{{ asset('site/assets/images/countries/3.jpeg') }}" alt="علم بنغلادش"
-                                     class="flag-img"/>
+                                    class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
-                        </div>
-
-                        <div class="cost-highlight">
-                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            <h2 class="price">8000 <small>ريال</small></h2>
+                            <h4 class="country-name">بنغلادش</h4>
+                            <div class="cost-highlight">
+                                <h2 class="price">8000 <small>ريال</small></h2>
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            </div>
                         </div>
 
                         <div class="info-side">
@@ -544,14 +544,14 @@
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
                                 <img src="{{ asset('site/assets/images/countries/4.jpeg') }}" alt="علم الفلبين"
-                                     class="flag-img"/>
+                                    class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
-                        </div>
-
-                        <div class="cost-highlight">
-                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            <h2 class="price">12000 <small>ريال</small></h2>
+                            <h4 class="country-name">الفلبين</h4>
+                            <div class="cost-highlight">
+                                <h2 class="price">12000 <small>ريال</small></h2>
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            </div>
                         </div>
 
                         <div class="info-side">
@@ -592,14 +592,14 @@
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
                                 <img src="{{ asset('site/assets/images/countries/5.png') }}" alt="علم الهند"
-                                     class="flag-img"/>
+                                    class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
-                        </div>
-
-                        <div class="cost-highlight">
-                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            <h2 class="price">9000 <small>ريال</small></h2>
+                            <h4 class="country-name">الهند</h4>
+                            <div class="cost-highlight">
+                                <h2 class="price">9000 <small>ريال</small></h2>
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            </div>
                         </div>
 
                         <div class="info-side">
@@ -640,14 +640,14 @@
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
                                 <img src="{{ asset('site/assets/images/countries/6.png') }}" alt="علم موريتانيا"
-                                     class="flag-img"/>
+                                    class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
-                        </div>
-
-                        <div class="cost-highlight">
-                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            <h2 class="price">8500 <small>ريال</small></h2>
+                            <h4 class="country-name">موريتانيا</h4>
+                            <div class="cost-highlight">
+                                <h2 class="price">8500 <small>ريال</small></h2>
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            </div>
                         </div>
 
                         <div class="info-side">
@@ -693,7 +693,7 @@
                     @forelse($services as $service)
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                               style="background: url('{{ showFile($service->image) }}') no-repeat center/cover;">
+                                style="background: url('{{ showFile($service->image) }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-passport"></i>
                                 <h3 class="serviceTitle">{{ $service->title }}</h3>
                                 <h6 class="serviceP">
@@ -704,7 +704,7 @@
                     @empty
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                               style="background: url('{{ asset('site/assets/images/passport-bg.webp') }}') no-repeat center/cover;">
+                                style="background: url('{{ asset('site/assets/images/passport-bg.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-passport"></i>
                                 <h3 class="serviceTitle">إصدار التأشيرة</h3>
                                 <h6 class="serviceP">
@@ -715,7 +715,7 @@
 
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                               style="background: url('{{ asset('site/assets/images/files.webp') }}') no-repeat center/cover;">
+                                style="background: url('{{ asset('site/assets/images/files.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-users-gear"></i>
                                 <h3 class="serviceTitle">اختيار العمالة</h3>
                                 <h6 class="serviceP">
@@ -726,7 +726,7 @@
 
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                               style="background: url('{{ asset('site/assets/images/bg-plane.webp') }}') no-repeat center/cover;">
+                                style="background: url('{{ asset('site/assets/images/bg-plane.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-plane-arrival"></i>
                                 <h3 class="serviceTitle">وصول العمالة</h3>
                                 <h6 class="serviceP">
@@ -737,7 +737,7 @@
 
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                               style="background: url('{{ asset('site/assets/images/hands.webp') }}') no-repeat center/cover;">
+                                style="background: url('{{ asset('site/assets/images/hands.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-file-contract"></i>
                                 <h3 class="serviceTitle">تجديد عقد عاملة</h3>
                                 <h6 class="serviceP">
@@ -756,7 +756,7 @@
             <!--  last card  -->
             <div class="wide-card mt-4" data-aos="fade-up">
                 <a href="#" class="service d-flex flex-column justify-content-center"
-                   style="background: url('{{ asset('site/assets/images/f3.webp') }}') no-repeat center/cover;">
+                    style="background: url('{{ asset('site/assets/images/f3.webp') }}') no-repeat center/cover;">
                     <i class="fa-solid fa-users-gear"></i>
                     <h3 class="serviceTitle">طلب العمالة المهنية</h3>
                     <h6 class="serviceP">
@@ -875,15 +875,15 @@
                         @if ($key == 0)
                             <div class="images">
                                 <img src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in"
-                                     data-aos-delay="200">
+                                    data-aos-delay="200">
                                 <img src="{{ asset('site') }}/assets/images/visa.webp" data-aos="zoom-in"
-                                     data-aos-delay="300">
+                                    data-aos-delay="300">
                                 <img src="{{ asset('site') }}/assets/images/mada.webp" data-aos="zoom-in"
-                                     data-aos-delay="400">
+                                    data-aos-delay="400">
                                 <img src="{{ asset('site') }}/assets/images/tabby.png" data-aos="zoom-in"
-                                     data-aos-delay="400">
+                                    data-aos-delay="400">
                                 <img src="{{ asset('site') }}/assets/images/tamara.webp" data-aos="zoom-in"
-                                     data-aos-delay="400">
+                                    data-aos-delay="400">
                             </div>
                         @endif
                     </div>
@@ -898,15 +898,15 @@
                         </p>
                         <div class="images">
                             <img src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in"
-                                 data-aos-delay="200">
+                                data-aos-delay="200">
                             <img src="{{ asset('site') }}/assets/images/visa.webp" data-aos="zoom-in"
-                                 data-aos-delay="300">
+                                data-aos-delay="300">
                             <img src="{{ asset('site') }}/assets/images/mada.webp" data-aos="zoom-in"
-                                 data-aos-delay="400">
+                                data-aos-delay="400">
                             <img src="{{ asset('site') }}/assets/images/tabby.png" data-aos="zoom-in"
-                                 data-aos-delay="400">
+                                data-aos-delay="400">
                             <img src="{{ asset('site') }}/assets/images/tamara.webp" data-aos="zoom-in"
-                                 data-aos-delay="400">
+                                data-aos-delay="400">
                         </div>
                     </div>
                     <div class="step" data-aos="fade-up" data-aos-delay="200">
@@ -1083,10 +1083,9 @@
             </h2>
 
             <div class="video-wrapper" data-aos="zoom-in" data-aos-duration="1000">
-                <iframe src="{{ __('ingaz.video_link') }}" title="{{ __('ingaz.video_description') }}"
-                        frameborder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                <iframe src="{{ __('ingaz.video_link') }}" title="{{ __('ingaz.video_description') }}" frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
             </div>
         </div>
     </section>
@@ -1115,7 +1114,7 @@
                             <label class="form-label">
                                 <i class="fas fa-user me-2"></i> {{ __('ingaz.full name') }}*
                             </label>
-                            <input type="text" id="name" name="name" class="form-control" required/>
+                            <input type="text" id="name" name="name" class="form-control" required />
                             <div class="invalid-feedback"> {{ __('ingaz.this field is required') }}</div>
                             <div class="valid-feedback">{{ __('ingaz.good') }}</div>
                         </div>
@@ -1123,14 +1122,14 @@
                             <label class="form-label"><i class="fas fa-phone-alt me-2"></i> {{ __('ingaz.phone') }}*
                             </label>
                             <input type="tel" id="phone" name="phone" id="phoneNum" class="form-control"
-                                   required/>
+                                required />
                             <div class="invalid-feedback"> {{ __('ingaz.this field is required') }} </div>
                         </div>
                         <div class="col-md-6 p-2">
                             <label class="form-label">
                                 <i class="fa-solid fa-comment-lines me-2"></i> {{ __('ingaz.subject') }}
                             </label>
-                            <input type="text" id="subject" name="subject" class="form-control"/>
+                            <input type="text" id="subject" name="subject" class="form-control" />
                         </div>
                         <div class="col-md-12 p-2">
                             <label class="form-label">
@@ -1143,7 +1142,7 @@
                         {!! NoCaptcha::display() !!}
 
                         @error('g-recaptcha-response')
-                        <span class="text-danger">{{ $message }}</span>
+                            <span class="text-danger">{{ $message }}</span>
                         @enderror
 
                         <div class="col-md-12 text-center p-2">
@@ -1173,31 +1172,38 @@
                     @forelse($clients as $client)
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img src="{!! showfile($client->image) !!}" alt="">
+                                <img src="{{ showFile($client->image) ?? asset('site/assets/images/musand.svg') }}"
+                                    alt=""
+                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
                             </div>
                         </div>
                     @empty
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img src="{{ asset('site') }}/assets/images/Ministry-of-Foreign-Affairs-01.svg"
-                                     alt="">
+
+                                <img src="{{ asset('site/assets/images/Ministry-of-Foreign-Affairs-01.svg') }}"
+                                    alt=""
+                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
+
                             </div>
                         </div>
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img src="{{ asset('site') }}/assets/images/Ministry-of-Interior-01.svg" alt="">
+                                <img src="{{ asset('site/assets/images/Ministry-of-Interior-01.svg') }}" alt=""
+                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
                             </div>
                         </div>
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img
-                                    src="{{ asset('site') }}/assets/images/Ministry-of-Labor-and-Social-Development.svg"
-                                    alt="">
+                                <img src="{{ asset('site/assets/images/Ministry-of-Labor-and-Social-Development.svg') }}"
+                                    alt=""
+                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
+
                             </div>
                         </div>
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img src="{{ asset('site') }}/assets/images/musand.svg" alt="">
+                                <img src="{{ asset('site/assets/images/musand.svg') }}" alt="">
                             </div>
                         </div>
                     @endforelse
@@ -1230,7 +1236,7 @@
             });
 
             // عند تحريك العلامة (Marker)
-            google.maps.event.addListener(marker, 'dragend', function (event) {
+            google.maps.event.addListener(marker, 'dragend', function(event) {
                 document.getElementById("latitude").value = event.latLng.lat();
                 document.getElementById("longitude").value = event.latLng.lng();
             });
@@ -1241,8 +1247,8 @@
     </script>
 
     <script>
-        $(document).ready(function () {
-            $('#contact-form').on('submit', function (e) {
+        $(document).ready(function() {
+            $('#contact-form').on('submit', function(e) {
                 e.preventDefault();
 
                 $.ajax({
@@ -1259,7 +1265,7 @@
                         'g-recaptcha-response': grecaptcha.getResponse()
 
                     },
-                    success: function (response) {
+                    success: function(response) {
 
                         $('#contact-form')[0].reset();
                         Swal.fire({
@@ -1269,7 +1275,7 @@
                             confirmButtonText: '{{ __('ingaz.ok') }}'
                         });
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         console.error("خطأ في الطلب:", xhr);
                     }
                 });

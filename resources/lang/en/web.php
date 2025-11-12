@@ -23,6 +23,8 @@ return [
     'Our_Business' => 'Our Business',
     'See_All' => 'See All',
     'show_projects' => 'show projects',
+    'age_min' => 'The age must be at least :min.',
+    'age_max' => 'The age must not exceed :max.',
     'Get_in_touch' => 'Get in touch',
     'Our_Partners' => 'OUR PARTNERS',
     'Our' => 'Our',
