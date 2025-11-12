@@ -416,10 +416,11 @@
                                     class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
-                        </div>
-                        <div class="cost-highlight">
-                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            <h2 class="price">8500 <small>ريال</small></h2>
+                            <h4 class="country-name">أوغندا</h4>
+                            <div class="cost-highlight">
+                                <h2 class="price">8500 <small>ريال</small></h2>
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            </div>
                         </div>
                         <div class="info-side">
                             <div class="info-grid">
@@ -460,11 +461,11 @@
 
                                 <span class="pulse-ring"></span>
                             </div>
-                        </div>
-
-                        <div class="cost-highlight">
-                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            <h2 class="price">9500 <small>ريال</small></h2>
+                            <h4 class="country-name">كينيا</h4>
+                            <div class="cost-highlight">
+                                <h2 class="price">9500 <small>ريال</small></h2>
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            </div>
                         </div>
 
                         <div class="info-side">
@@ -508,11 +509,11 @@
                                     class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
-                        </div>
-
-                        <div class="cost-highlight">
-                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            <h2 class="price">8000 <small>ريال</small></h2>
+                            <h4 class="country-name">بنغلادش</h4>
+                            <div class="cost-highlight">
+                                <h2 class="price">8000 <small>ريال</small></h2>
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            </div>
                         </div>
 
                         <div class="info-side">
@@ -556,11 +557,11 @@
                                     class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
-                        </div>
-
-                        <div class="cost-highlight">
-                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            <h2 class="price">12000 <small>ريال</small></h2>
+                            <h4 class="country-name">الفلبين</h4>
+                            <div class="cost-highlight">
+                                <h2 class="price">12000 <small>ريال</small></h2>
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            </div>
                         </div>
 
                         <div class="info-side">
@@ -604,11 +605,11 @@
                                     class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
-                        </div>
-
-                        <div class="cost-highlight">
-                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            <h2 class="price">9000 <small>ريال</small></h2>
+                            <h4 class="country-name">الهند</h4>
+                            <div class="cost-highlight">
+                                <h2 class="price">9000 <small>ريال</small></h2>
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            </div>
                         </div>
 
                         <div class="info-side">
@@ -652,11 +653,11 @@
                                     class="flag-img" />
                                 <span class="pulse-ring"></span>
                             </div>
-                        </div>
-
-                        <div class="cost-highlight">
-                            <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            <h2 class="price">8500 <small>ريال</small></h2>
+                            <h4 class="country-name">موريتانيا</h4>
+                            <div class="cost-highlight">
+                                <h2 class="price">8500 <small>ريال</small></h2>
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                            </div>
                         </div>
 
                         <div class="info-side">

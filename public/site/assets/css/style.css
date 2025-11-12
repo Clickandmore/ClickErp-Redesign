@@ -1650,7 +1650,7 @@ main .countries .modern-card .flag-side .country-name {
 }
 
 main .countries .modern-card .cost-highlight {
-    margin: 25px auto 15px;
+    margin: 20px auto 10px;
     position: relative;
     z-index: 2;
     background: #f7f8fc;
@@ -1658,13 +1658,7 @@ main .countries .modern-card .cost-highlight {
     padding: 18px 15px;
     width: 85%;
     box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
-}
-
-main .countries .modern-card .cost-highlight .label {
-    display: block;
-    font-size: 0.9rem;
-    color: #555;
-    margin-bottom: 5px;
+    text-align: center;
 }
 
 main .countries .modern-card .cost-highlight .price {
@@ -1672,6 +1666,14 @@ main .countries .modern-card .cost-highlight .price {
     font-weight: 800;
     color: var(--mainColor);
     text-decoration: underline;
+    margin: 0;
+}
+
+main .countries .modern-card .cost-highlight .label {
+    display: block;
+    font-size: 0.9rem;
+    color: #555;
+    margin: 8px 0 0;
 }
 
 main .countries .modern-card .cost-highlight .price small {
