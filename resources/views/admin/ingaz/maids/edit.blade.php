@@ -76,7 +76,7 @@
                             <option value="0">لا - لا تسكين</option>
                             <option value="1">نعم - تسكين للإيواء</option>
                         </select>
-                        <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم شركة أسس الانجاز</small>
+                        <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم شركة بلاتنيوم الشرقية</small>
                     </div>
 
                     <!-- الوظائف -->
@@ -88,6 +88,17 @@
                                 <option
                                         value="{{$job->id}}" {{ in_array($job->id, $obj->jobTitles->pluck('id')->toArray()) ? 'selected' : '' }}>{{$job->title}}</option>
                             @endforeach
+                        </select>
+                    </div>
+                    <div class="col-4">
+                        <label for="request_type" class="form-label">{{ helperTrans('ingaz.request_type') }}</label>
+                        @php
+                            $requestType = old('request_type', $obj->request_type ?? 'known');
+                        @endphp
+                        <select name="request_type" id="request_type" class="form-control">
+                            <option value="known" {{ $requestType === 'known' ? 'selected' : '' }}>{{ helperTrans('ingaz.request_type_known') }}</option>
+                            <option value="specific" {{ $requestType === 'specific' ? 'selected' : '' }}>{{ helperTrans('ingaz.request_type_specific') }}</option>
+                            <option value="custom_spec" {{ $requestType === 'custom_spec' ? 'selected' : '' }}>{{ helperTrans('ingaz.request_type_custom') }}</option>
                         </select>
                     </div>
 
@@ -105,6 +116,33 @@
                             {{helperTrans("ingaz.price")}}
                         </label>
                         <input type="number" name="price" id="price" class="form-control" value="{{$obj->price}}">
+                    </div>
+                    <div class="col-4">
+                        <label for="offer_price" class="form-label">{{ helperTrans('ingaz.offer_price_new') }}</label>
+                        <input type="number" step="0.01" name="offer_price" id="offer_price" class="form-control"
+                               value="{{ old('offer_price', $obj->offer_price) }}"
+                               placeholder="{{ helperTrans('ingaz.offer_price_placeholder') }}">
+                    </div>
+                    <div class="col-4">
+                        <label for="offer_duration" class="form-label">{{ helperTrans('ingaz.offer_duration') }}</label>
+                        <input type="text" name="offer_duration" id="offer_duration" class="form-control"
+                               value="{{ old('offer_duration', $obj->offer_duration) }}"
+                               placeholder="{{ helperTrans('ingaz.offer_duration_placeholder') }}">
+                    </div>
+                    <div class="col-4">
+                        <label for="offer_starts_at" class="form-label">{{ helperTrans('ingaz.offer_starts_at') }}</label>
+                        <input type="date" name="offer_starts_at" id="offer_starts_at" class="form-control"
+                               value="{{ old('offer_starts_at', optional($obj->offer_starts_at)->format('Y-m-d')) }}">
+                    </div>
+                    <div class="col-4">
+                        <label for="offer_expires_at" class="form-label">{{ helperTrans('ingaz.offer_expires_at') }}</label>
+                        <input type="date" name="offer_expires_at" id="offer_expires_at" class="form-control"
+                               value="{{ old('offer_expires_at', optional($obj->offer_expires_at)->format('Y-m-d')) }}">
+                    </div>
+                    <div class="col-12">
+                        <label for="offer_description" class="form-label">{{ helperTrans('ingaz.offer_description') }}</label>
+                        <textarea name="offer_description" id="offer_description" class="form-control" rows="2"
+                                  placeholder="{{ helperTrans('ingaz.offer_description_placeholder') }}">{{ old('offer_description', $obj->offer_description) }}</textarea>
                     </div>
                     <div class="col-4">
                         <label for="TextInput" class="form-label">
@@ -159,7 +197,7 @@
                         <label for="TextInput" class="form-label">
                             {{helperTrans("ingaz.childrens_count")}}
                         </label>
-                        <input type="number" name="childrens_count" class="form-control" min="1" step="1"
+                        <input type="number" name="childrens_count" class="form-control" min="0" step="1"
                                value="{{$obj->childrens_count}}">
                     </div>
                     <div class="col-4">
@@ -167,7 +205,7 @@
                             {{helperTrans("ingaz.duration")}}
                         </label>
                         <input type="text" name="duration" class="form-control"
-                               value="{{$obj->duration}}">
+                               value="{{ old('duration', $obj->duration ?: '24 شهر') }}">
                     </div>
                     <div class="col-4">
                         <label for="TextInput" class="form-label">
@@ -195,6 +233,8 @@
                                 متزوج
                             </option>
                         </select>
+                        <input type="hidden" name="marital_status:en" id="marital_status_en"
+                               value="{{ optional($obj->translate('en'))->marital_status }}">
                     </div>
 
                     <!-- رقم الجواز ورقم الهوية وتاريخ انتهاء الهوية -->
@@ -345,13 +385,22 @@
                                             class="form-control select2" data-exp-required="true">
                                         <option value="">{{helperTrans('ingaz.choose')}}</option>
                                         @foreach($countries as $country)
-                                        
+
                                             <option value="{{$country->id}}" {{$expertise->country_id == $country->id ? 'selected' : ''}}>{{$country->name_ar}}</option>
                                         @endforeach
                                     </select>
                                 </td>
                                 <td>
-                                    <input type="text" name="expertises[{{$index}}][number_of_years]" class="form-control" value="{{$expertise->number_of_years}}" data-exp-required="true">
+                                    <div class="experience-duration-wrapper">
+                                        <div class="input-group">
+                                            <input type="number" min="0" step="0.1" class="form-control exp-duration-value" placeholder="{{ helperTrans('ingaz.duration_value_placeholder') }}" data-exp-required="true">
+                                            <select class="form-select exp-duration-unit" data-exp-required="true">
+                                                <option value="years">{{ helperTrans('ingaz.years') }}</option>
+                                                <option value="months">{{ helperTrans('ingaz.months') }}</option>
+                                            </select>
+                                        </div>
+                                        <input type="hidden" name="expertises[{{$index}}][number_of_years]" class="exp-duration-years" value="{{$expertise->number_of_years}}" data-exp-required="true">
+                                    </div>
                                 </td>
                                 <td>
                                     <select name="expertises[{{$index}}][job_title_id]" data-placeholder=""
@@ -383,7 +432,16 @@
                                     </select>
                                 </td>
                                 <td>
-                                    <input type="text" name="expertises[0][number_of_years]" class="form-control" data-exp-required="true">
+                                    <div class="experience-duration-wrapper">
+                                        <div class="input-group">
+                                            <input type="number" min="0" step="0.1" class="form-control exp-duration-value" placeholder="{{ helperTrans('ingaz.duration_value_placeholder') }}" data-exp-required="true">
+                                            <select class="form-select exp-duration-unit" data-exp-required="true">
+                                                <option value="years">{{ helperTrans('ingaz.years') }}</option>
+                                                <option value="months">{{ helperTrans('ingaz.months') }}</option>
+                                            </select>
+                                        </div>
+                                        <input type="hidden" name="expertises[0][number_of_years]" class="exp-duration-years" data-exp-required="true">
+                                    </div>
                                 </td>
                                 <td>
                                     <select name="expertises[0][job_title_id]" data-placeholder=""
@@ -471,6 +529,78 @@
     <script>
         $(function () {
 
+            const formatYearsValue = function (value, unit) {
+                if (value === '' || value === null || typeof value === 'undefined') {
+                    return '';
+                }
+
+                const numericValue = parseFloat(value);
+                if (Number.isNaN(numericValue)) {
+                    return '';
+                }
+
+                if (unit === 'months') {
+                    return (numericValue / 12).toFixed(2);
+                }
+
+                return numericValue.toFixed(2);
+            };
+
+            window.syncExperienceRow = function ($row) {
+                const $valueInput = $row.find('.exp-duration-value');
+                const $unitSelect = $row.find('.exp-duration-unit');
+                const $hiddenInput = $row.find('.exp-duration-years');
+
+                const rawValue = $valueInput.val();
+                const unit = $unitSelect.val();
+
+                const formattedYears = formatYearsValue(rawValue, unit);
+                $hiddenInput.val(formattedYears);
+            };
+
+            window.initializeExperienceRow = function ($row) {
+                const $valueInput = $row.find('.exp-duration-value');
+                const $unitSelect = $row.find('.exp-duration-unit');
+                const $hiddenInput = $row.find('.exp-duration-years');
+
+                const initialYears = parseFloat($hiddenInput.val());
+
+                if (!Number.isNaN(initialYears) && initialYears > 0) {
+                    if (initialYears < 1) {
+                        $unitSelect.val('months');
+                        const months = (initialYears * 12).toFixed(1);
+                        $valueInput.val(parseFloat(months));
+                    } else {
+                        $unitSelect.val('years');
+                        $valueInput.val(parseFloat(initialYears.toFixed(1)));
+                    }
+                } else {
+                    $unitSelect.val('years');
+                    $valueInput.val('');
+                    $hiddenInput.val('');
+                }
+
+                window.syncExperienceRow($row);
+            };
+
+            window.attachExperienceHandlers = function (context) {
+                const $scope = context ? $(context) : $('#experience_section');
+
+                $scope.find('tr.y-group').each(function () {
+                    const $row = $(this);
+
+                    $row.find('.exp-duration-value').off('.exp').on('input.exp change.exp', function () {
+                        window.syncExperienceRow($row);
+                    });
+
+                    $row.find('.exp-duration-unit').off('.exp').on('change.exp', function () {
+                        window.syncExperienceRow($row);
+                    });
+
+                    window.initializeExperienceRow($row);
+                });
+            };
+
             // إعادة ترقيم أسماء الحقول بعد أي تغيير
             window.reindexRows = function () {
                 $('#json_array tr.y-group').each(function (rowIndex) {
@@ -492,30 +622,30 @@
                 }
             }
 
-            // مبدئياً
-            if (typeof window.reindexRows === 'function') {
-                window.reindexRows();
-            }
-            if (typeof window.updateRemoveButtons === 'function') {
-                window.updateRemoveButtons();
-            }
+            window.reindexRows();
+            window.updateRemoveButtons();
+            window.attachExperienceHandlers();
 
             // إضافة صف (ينسخ الصف الحالي ويُفرغ الحقول)
             $(document).on('click', '.btnAdd', function () {
                 const $currentRow = $(this).closest('tr');
                 const $clone = $currentRow.clone();
                 $clone.find('input, textarea').val('');
-                $clone.find('select').prop('selectedIndex', 0);
+                $clone.find('span.select2').remove();
+                $clone.find('select.select2').each(function () {
+                    $(this)
+                        .removeAttr('data-select2-id')
+                        .removeClass('select2-hidden-accessible')
+                        .prop('selectedIndex', 0);
+                });
+                $clone.find('.exp-duration-unit').val('years');
                 $currentRow.after($clone);
-                if (typeof window.reindexRows === 'function') {
-                    window.reindexRows();
+                window.reindexRows();
+                window.updateRemoveButtons();
+                if (typeof window.initExperienceSelects === 'function') {
+                    window.initExperienceSelects($clone);
                 }
-                if (typeof window.updateRemoveButtons === 'function') {
-                    window.updateRemoveButtons();
-                }
-                if (typeof window.toggleExperienceSection === 'function') {
-                    window.toggleExperienceSection();
-                }
+                window.attachExperienceHandlers($clone);
             });
 
             // حذف صف
@@ -524,13 +654,14 @@
                 if ($rows.length <= 1) {
                     return; // لن يحدث شيء؛ الزر مخفي فعلاً لكن هنا كحماية
                 }
-                $(this).closest('tr').remove();
-                if (typeof window.reindexRows === 'function') {
-                    window.reindexRows();
+                const $row = $(this).closest('tr');
+                if ($row.find('select.select2[data-select2-id]').length) {
+                    $row.find('select.select2').select2('destroy');
                 }
-                if (typeof window.updateRemoveButtons === 'function') {
-                    window.updateRemoveButtons();
-                }
+                $row.remove();
+                window.reindexRows();
+                window.updateRemoveButtons();
+                window.attachExperienceHandlers();
             });
 
         });
@@ -540,18 +671,33 @@
             $('.dropify').dropify();
             $('.js-example-basic-multiple').select2();
 
+            window.initExperienceSelects = function (context) {
+                const $context = context ? $(context) : $('#experience_section');
+                $context.find('select.form-control.select2').each(function () {
+                    const $select = $(this);
+                    if ($select.data('select2')) {
+                        $select.select2('destroy');
+                    }
+                    $select.select2({
+                        width: '100%',
+                        dropdownParent: $('#experience_section')
+                    });
+                });
+            };
+
+            window.initExperienceSelects();
+            window.attachExperienceHandlers();
+
             window.clearExperienceSection = function () {
                 $('#json_array tr.y-group').find('input, textarea').val('');
                 $('#json_array tr.y-group').find('select').each(function () {
                     $(this).val('').trigger('change');
                 });
                 $('#json_array tr.y-group').slice(1).remove();
-                if (typeof window.reindexRows === 'function') {
-                    window.reindexRows();
-                }
-                if (typeof window.updateRemoveButtons === 'function') {
-                    window.updateRemoveButtons();
-                }
+                window.reindexRows();
+                window.updateRemoveButtons();
+                window.initExperienceSelects();
+                window.attachExperienceHandlers();
             }
 
             window.toggleExperienceSection = function () {
@@ -564,6 +710,8 @@
                     $fields.each(function () {
                         $(this).attr('required', 'required');
                     });
+                    window.initExperienceSelects();
+                    window.attachExperienceHandlers();
                 } else {
                     $fields.each(function () {
                         $(this).removeAttr('required');
@@ -575,6 +723,23 @@
 
             $('#experience_status').on('change', window.toggleExperienceSection);
             window.toggleExperienceSection();
+
+            var maritalStatusEnField = $('#marital_status_en');
+            var maritalStatusTranslations = {
+                'عازبة': 'single',
+                'أعزب': 'single',
+                'متزوجة': 'married',
+                'متزوج': 'married'
+            };
+
+            function updateMaritalStatusTranslation() {
+                var selectedStatus = $('select[name="marital_status:ar"]').val();
+                if (selectedStatus && maritalStatusTranslations[selectedStatus]) {
+                    maritalStatusEnField.val(maritalStatusTranslations[selectedStatus]);
+                } else {
+                    maritalStatusEnField.val('');
+                }
+            }
 
             // Function to handle fields visibility based on job type
             function toggleFields() {
@@ -591,6 +756,7 @@
                 var languagesField = $('.col-12:has(label:contains("اللغات"))');
                 var priceLabel = $('.price-label');
                 var shelterOption = $('#shelter_option');
+                var shouldUpdateMaritalTranslation = true;
 
                 // Reset all fields to default state
                 idFields.show();
@@ -623,6 +789,8 @@
                     maritalStatusField.hide();
                     officeField.hide();
                     priceLabel.text('تكلفة نقل الخدمات');
+                    maritalStatusEnField.val('');
+                    shouldUpdateMaritalTranslation = false;
 
                     // Remove required attribute from hidden fields
                     $('input[name="id_number"], input[name="id_expiry_date"]').removeAttr('required');
@@ -651,6 +819,8 @@
 
                     // Show shelter option for rental maids
                     shelterOption.show();
+                    maritalStatusEnField.val('');
+                    shouldUpdateMaritalTranslation = false;
 
                     // Remove required attribute from hidden fields
                     $('input[name="height"], input[name="weight"]').removeAttr('required');
@@ -668,16 +838,23 @@
                         }
                     }
                 }
+
+                if (shouldUpdateMaritalTranslation) {
+                    updateMaritalStatusTranslation();
+                }
             }
 
             // Call on page load
             toggleFields();
+            updateMaritalStatusTranslation();
 
             // Call when type changes
             $('select[name="type_id"]').change(function () {
                 console.log('Type changed');
                 toggleFields();
             });
+
+            $('select[name="marital_status:ar"]').on('change', updateMaritalStatusTranslation);
 
             // التحقق من رقم الهوية
             $('#id_number').on('input', function () {
@@ -889,6 +1066,12 @@
                         confirmButtonText: 'حسناً'
                     });
                     return false;
+                }
+
+                if (typeof window.syncExperienceRow === 'function') {
+                    $('#json_array tr.y-group').each(function () {
+                        window.syncExperienceRow($(this));
+                    });
                 }
 
                 // إرسال النموذج باستخدام AJAX

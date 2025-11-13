@@ -78,9 +78,21 @@ class Contract extends Model
         return $this->hasMany(ContractStatusLog::class, "contract_id");
     }
 
+    public function latestShelterLog()
+    {
+        return $this->hasOne(ContractStatusLog::class, 'contract_id')
+            ->where('status', ContractStatusEnum::Shelter->value)
+            ->latestOfMany();
+    }
+
     public function deportationProcedure()
     {
         return $this->hasOne(\App\Models\DeportationProcedure::class, "contract_id");
+    }
+
+    public function travelHistory()
+    {
+        return $this->hasOne(\App\Models\TravelHistory::class, 'order_id', 'id');
     }
 
 
@@ -109,6 +121,28 @@ class Contract extends Model
     public function scopeRentContract($query)
     {
         return $query->whereIn('status', [ContractStatusEnum::Sari->value, ContractStatusEnum::Closed->value]);
+    }
+
+    public function scopeInsideShelter($query)
+    {
+        return $query->where('status', ContractStatusEnum::Shelter->value)
+            ->where(function ($innerQuery) {
+                $innerQuery->whereDoesntHave('info')
+                    ->orWhereHas('info', function ($infoQuery) {
+                        $infoQuery->where(function ($condition) {
+                            $condition->whereNull('is_outside_shelter')
+                                      ->orWhere('is_outside_shelter', false);
+                        });
+                    });
+            });
+    }
+
+    public function scopeOutsideShelter($query)
+    {
+        return $query->where('status', ContractStatusEnum::Shelter->value)
+            ->whereHas('info', function ($infoQuery) {
+                $infoQuery->where('is_outside_shelter', true);
+            });
     }
 
     public function getActivitylogOptions(): LogOptions

@@ -273,6 +273,12 @@ const PARTENR_CONTROL = 'partenr_control';
     const OFFICE_EDIT = 'office_edit';
     const OFFICE_DELETE = 'office_delete';
     const OFFICE_CONTROL = 'office_control';
+    const EXTERNAL_AGENTS_VIEW = 'external_agents_view';
+    const EXTERNAL_AGENTS_CREATE = 'external_agents_create';
+    const EXTERNAL_AGENTS_EDIT = 'external_agents_edit';
+    const EXTERNAL_AGENTS_DELETE = 'external_agents_delete';
+    const EXTERNAL_AGENTS_CONTROL = 'external_agents_control';
+    const EXTERNAL_AGENTS_MANAGE = 'external_agents_manage';
 
     const STEPS_VIEW = 'steps_view';
     const STEPS_CREATE = 'steps_create';

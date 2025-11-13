@@ -178,6 +178,7 @@ return [
         App\Providers\RouteServiceProvider::class,
         App\Providers\GoogleDriveServiceProvider::class,
         App\Providers\SidebarServiceProvider::class,
+
         Nami\Finance\FinanceServiceProvider::class,
         Nami\Crm\CrmServiceProvider::class,
 

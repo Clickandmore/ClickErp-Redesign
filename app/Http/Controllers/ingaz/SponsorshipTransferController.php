@@ -439,6 +439,12 @@ class SponsorshipTransferController extends Controller
             }
         }
 
+        $selectedNewSponsorId = request('new_sponsor_id');
+        $selectedNewSponsor = null;
+        if ($selectedNewSponsorId) {
+            $selectedNewSponsor = User::find($selectedNewSponsorId);
+        }
+
         // جلب العقود المتاحة للنقل (العقود داخل الإيواء مع work_willingness = 'yes')
         $contracts = Contract::with(['maid', 'user', 'info'])
             ->where('status', \App\Enums\ingaz\ContractStatusEnum::Shelter->value)
@@ -448,7 +454,7 @@ class SponsorshipTransferController extends Controller
             ->latest()
             ->get();
 
-        return view($this->folderPath . '.create', compact('contracts', 'selectedContractId', 'selectedOrder'));
+        return view($this->folderPath . '.create', compact('contracts', 'selectedContractId', 'selectedOrder', 'selectedNewSponsorId', 'selectedNewSponsor'));
     }
 
 

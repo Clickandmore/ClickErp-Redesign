@@ -241,6 +241,38 @@
                                value="{{ $settings->note_en ?? '' }}">
                     </fieldset>
                 </div>
+                <div class="row align-items-start">
+                    <div class="col-6">
+                        <label for="there_are_offer" class="form-label"> هناك عرض خاص ؟</label>
+                        <fieldset class="form-icon-group right-icon position-relative">
+                            <select name="there_are_offer" id="there_are_offer" class="form-control">
+                                <option value="">اختر</option>
+                                <option
+                                    value="1" {{ old('there_are_offer', $settings->there_are_offer ?? '') == 1 ? 'selected' : '' }}>
+                                    نعم
+                                </option>
+                                <option
+                                    value="0" {{ old('there_are_offer', $settings->there_are_offer ?? '') == 0 ? 'selected' : '' }}>
+                                    لا
+                                </option>
+                            </select>
+                        </fieldset>
+                    </div>
+
+                    <div class="col-6" id="offer_text" style="display: none;">
+                        <div class="row">
+                            @foreach (config('translatable.locales') as $locale)
+                                <div class="col-6 mb-3">
+                                    <label class="form-label">نص العرض {{ getFieldLanguage($locale) }}</label>
+                                    <fieldset class="form-icon-group right-icon position-relative">
+                                        <textarea name="offer_text:{{ $locale }}"
+                                                  class="form-control">{{ $settings->translate($locale)->offer_text ?? '' }}</textarea>
+                                    </fieldset>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="col-4">
@@ -289,31 +321,40 @@
             </div>
 
             <hr>
-            <div class="col-3">
+            <div class="col-4">
                 <div class="card">
                     <div class="card-body">
-                        <h6>صورة qr الاولي</h6>
+                        <h6>صورة QR </h6>
                         <input type="file" data-default-file="{{ showFile($settings->qr_image) ?? '' }}"
                                name="qr_image" class="dropify">
                     </div>
                 </div>
             </div>
 
-            <div class="col-3">
-                <div class="card">
-                    <div class="card-body">
-                        <h6>صورة qr الثانيه </h6>
-                        <input type="file" data-default-file="{{ showFile($settings->second_qr_image) ?? '' }}"
-                               name="second_qr_image" class="dropify">
-                    </div>
-                </div>
-            </div>
-            <div class="col-3">
+            {{--            <div class="col-3">--}}
+            {{--                <div class="card">--}}
+            {{--                    <div class="card-body">--}}
+            {{--                        <h6>صورة qr الثانيه </h6>--}}
+            {{--                        <input type="file" data-default-file="{{ showFile($settings->second_qr_image) ?? '' }}"--}}
+            {{--                               name="second_qr_image" class="dropify">--}}
+            {{--                    </div>--}}
+            {{--                </div>--}}
+            {{--            </div>--}}
+            <div class="col-4">
                 <div class="card">
                     <div class="card-body">
                         <h6>صورة الخبره</h6>
                         <input type="file" data-default-file="{{ showFile($settings->experience_image) ?? '' }}"
                                name="experience_image" class="dropify">
+                    </div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h6>صورة غلاف صفحة السير الذاتية</h6>
+                        <input type="file" data-default-file="{{ showFile($settings->cover_image) ?? '' }}"
+                               name="cover_image" class="dropify">
                     </div>
                 </div>
             </div>
@@ -425,10 +466,21 @@
             });
         });
     </script>
-    {{-- <script src="{{asset(" admin")}}/assets/js/bundle/summernote.bundle.js"></script>
+    {{--     <script src="{{asset(" admin")}}/assets/js/bundle/summernote.bundle.js"></script>--}}
     <script>
         $(document).ready(function () {
-                $('.summernote').summernote();
+            $('#there_are_offer').on('change', function () {
+                var value = $(this).val();
+                if (value === "1") {
+                    $("#offer_text").show();
+                } else {
+                    $("#offer_text").hide();
+                }
             });
-    </script> --}}
+
+            // تشغيل الحالة أول مرة عند تحميل الصفحة
+            $('#there_are_offer').trigger('change');
+        });
+
+    </script>
 @endsection

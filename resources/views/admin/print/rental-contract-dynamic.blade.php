@@ -353,7 +353,7 @@
         <div class="page-1">
             <div class="header">
                 <div class="logo-container">
-                    <img src="{{ $logoUrl }}" alt="شركة أسس الإنجاز">
+                    <img src="{{ $logoUrl }}" alt="شركة بلاتنيوم الشرقية">
                 </div>
                 <h1>عقد</h1>
             </div>
@@ -364,7 +364,7 @@
 
             <div class="parties-section">
                 <div class="party">
-                    <div class="party-title">1- شركة أسس الإنجاز للاستقدام</div>
+                    <div class="party-title">1- شركة بلاتنيوم الشرقية للاستقدام</div>
                     <div>لاستقدام العمالة المنزلية ترخيص وزارة العمل رقم / {{ $contractSettings['license_number'] ?? '4001772' }} وتاريخ : {{ $contractSettings['license_date'] ?? '2022/10/13' }} م سجل تجاري رقم / {{ $contractSettings['commercial_register'] ?? '1010601958' }}</div>
                     <div>وتاريخ: {{ \Carbon\Carbon::parse($contractSettings['commercial_date'] ?? '1441/03/03')->format('Y/m/d') }} هـ صادر من الرياض</div>
                     <div>وعنوانه الرياض صندوق بريد: الرمز البريدي: مكتب: جوال: البريد الالكتروني</div>
@@ -558,7 +558,7 @@
             <div class="signature-section">
                 <div class="signature-box">
                     <h4>الطرف الأول</h4>
-                    <div class="signature-line">الاسم: شركة أسس الإنجاز</div>
+                    <div class="signature-line">الاسم: شركة بلاتنيوم الشرقية</div>
                     <div class="signature-line">التوقيع: ........................</div>
                     <div class="signature-line">التاريخ: {{ \Carbon\Carbon::now()->format('Y/m/d') }}</div>
                 </div>

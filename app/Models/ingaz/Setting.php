@@ -28,6 +28,7 @@ class Setting extends Model
         'work_times',
         'about_us_app',
         'return_conditions',
+        'offer_text',
     ];
     protected $translationForeignKey = 'setting_id';
     public $translationModel = SettingsTranslation::class;
@@ -40,7 +41,7 @@ class Setting extends Model
 //        $this->translatedAttributes = array_diff($this->fillable, ['setting_id','locale','created_at','updated_at']);
 //    }
 
-    protected $fillable = ['logo_header', 'logo_footer', 'favicon', 'about_image', 'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin', 'youtube', 'whatsapp', 'email', 'phone', 'other_phone', 'map_link'
+    protected $fillable = ['logo_header','cover_image','there_are_offer', 'logo_footer', 'favicon', 'about_image', 'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin', 'youtube', 'whatsapp', 'email', 'phone', 'other_phone', 'map_link'
 ,'qr_image', 'experience_image', 'second_qr_image'
 ];
 

@@ -237,9 +237,9 @@ $(document).ready(function() {
         const clientPhone = $('#previewClientPhone').val() || '0501234567';
         const clientEmail = $('#previewClientEmail').val() || 'client@example.com';
         const contractNumber = $('#previewContractNumber').val() || '12345';
-        const companyName = 'شركة أسس الإنجاز للاستقدام';
+        const companyName = 'شركة بلاتنيوم الشرقية للاستقدام';
         const companyPhone = '0112345678';
-        const companyEmail = 'info@asas-alinjaz.com';
+        const companyEmail = 'info@platinumeastern.com';
 
         let processedMessage = message
             .replace(/{client_name}/g, clientName)

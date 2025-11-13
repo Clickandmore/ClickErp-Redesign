@@ -24,6 +24,8 @@ class NationalityController extends Controller
         "description:ar",
         "description:en",
         "price",
+        "salary_with_no_experience",
+        "salary_with_experience",
         "service_transportation_cost",
         "rental_cost",
         "monthly_salary",
@@ -43,46 +45,127 @@ class NationalityController extends Controller
     public function index(Request $request, objAction $Action)
     {
         if ($request->ajax()) {
-            $rows = objModel::query()->latest();
+            $rows = objModel::query()
+                ->select([
+                    'id',
+                    'logo',
+                    'phone_code',
+                    'price',
+                    'salary_with_experience',
+                    'salary_with_no_experience',
+                    'service_transportation_cost',
+                    'rental_cost',
+                    'monthly_salary',
+                    'is_show',
+                    'created_at',
+                ])
+                ->orderByTranslation('sub_title', 'asc');
+
+            $currency = helperTrans('ingaz.currency_sar');
+
             return DataTables::of($rows)
                 ->addIndexColumn()
-                ->editColumn('is_show', function ($row) {
+                ->addColumn('meta', function (objModel $row) {
+                    $logo = $row->logo ? showFile($row->logo) : asset('images/no-image.png');
+                    $title = e($row->sub_title ?? $row->title ?? helperTrans('ingaz.not_specified'));
+                    $createdAt = $row->created_at ? $row->created_at->format('Y-m-d') : helperTrans('ingaz.not_specified');
+                    $phoneCode = $row->phone_code
+                        ? (Str::startsWith($row->phone_code, '+') ? $row->phone_code : '+' . $row->phone_code)
+                        : helperTrans('ingaz.not_specified');
+                    $description = trim(strip_tags($row->description ?? ''));
+                    $description = $description
+                        ? '<p class="text-muted small mb-0">' . e(Str::limit($description, 160)) . '</p>'
+                        : '';
+
+                    $statusBadge = $row->is_show
+                        ? '<span class="badge bg-success-subtle text-success border border-success-subtle">' . helperTrans('ingaz.maid_visibility_visible') . '</span>'
+                        : '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">' . helperTrans('ingaz.maid_visibility_hidden') . '</span>';
+
+                    return '<div class="d-flex align-items-center gap-3 nationality-card">
+                                <div class="flex-shrink-0">
+                                    <img src="' . $logo . '" alt="' . $title . '" class="nationality-avatar">
+                                </div>
+                                <div class="flex-grow-1 d-flex flex-column gap-2">
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <span class="fw-semibold text-dark">' . $title . '</span>
+                                        ' . $statusBadge . '
+                                    </div>
+                                    <div class="text-muted small d-flex flex-wrap gap-3">
+                                        <span><i class="fas fa-phone-alt me-1"></i>' . e($phoneCode) . '</span>
+                                        <span><i class="fas fa-calendar-day me-1"></i>' . $createdAt . '</span>
+                                    </div>
+                                    ' . $description . '
+                                </div>
+                            </div>';
+                })
+                ->addColumn('financials', function (objModel $row) use ($currency) {
+                    $format = function ($value) use ($currency) {
+                        return $value !== null
+                            ? number_format((float)$value, 0) . ' ' . $currency
+                            : helperTrans('ingaz.not_specified');
+                    };
+
+                    $items = [
+                        ['icon' => 'fa-coins', 'label' => helperTrans('ingaz.recruitment_cost'), 'value' => $row->price],
+                        ['icon' => 'fa-briefcase', 'label' => helperTrans('ingaz.salary_with_experience'), 'value' => $row->salary_with_experience],
+                        ['icon' => 'fa-user', 'label' => helperTrans('ingaz.salary_with_no_experience'), 'value' => $row->salary_with_no_experience],
+                        ['icon' => 'fa-truck', 'label' => helperTrans('ingaz.service_transportation_cost'), 'value' => $row->service_transportation_cost],
+                        ['icon' => 'fa-file-contract', 'label' => helperTrans('ingaz.rental_cost'), 'value' => $row->rental_cost],
+                        ['icon' => 'fa-money-bill-wave', 'label' => helperTrans('ingaz.monthly_salary'), 'value' => $row->monthly_salary],
+                    ];
+
+                    $chips = collect($items)->map(function ($item) use ($format) {
+                        return '<div class="financial-chip">
+                                    <i class="fas ' . $item['icon'] . '"></i>
+                                    <span class="text-muted">' . $item['label'] . '</span>
+                                    <strong>' . $format($item['value']) . '</strong>
+                                </div>';
+                    })->implode('');
+
+                    return '<div class="d-flex flex-column flex-md-row flex-wrap gap-2">' . $chips . '</div>';
+                })
+                ->addColumn('visibility_toggle', function ($row) {
                     $statusLabel = $row->is_show
                         ? helperTrans('ingaz.hide')
                         : helperTrans('ingaz.show');
 
-                    $statusClass = $row->is_show ? 'btn-danger' : 'btn-success';
+                    $statusClass = $row->is_show ? 'btn-outline-danger' : 'btn-outline-success';
 
-                    return '<button class="btn btn-sm ' . $statusClass . ' update-status" data-id="'
-                        . $row->id . '">' . $statusLabel . '</button>';
-                })
-                ->editColumn('logo', function ($row) {
-                    return getImgTag($row->logo);
-                })
-                ->addColumn('description', function ($row) {
-                    return Str::limit(strip_tags($row->description ?? ''), 60);
-                })
-                ->editColumn('price', function ($row) {
-                    return $row->price ?? 'لم يتم توحيد سعر';
+                    return '<button type="button" class="btn btn-sm ' . $statusClass . ' update-status" data-id="'
+                        . $row->id . '"><i class="fas fa-eye' . ($row->is_show ? '-slash' : '') . ' me-1"></i>' . $statusLabel . '</button>';
                 })
                 ->addColumn('actions', function ($row) {
-                    $editButton = '';
-                    $deleteButton = '';
+                    $menu = '';
                     if (@AdminGuardHasPerm(\App\PermKeys::NATIONALITIES_CONTROL)) {
-                        $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->title);
+                        $menu .= editButton(route($this->mainRoute . ".edit", $row->id), $row->title);
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::NATIONALITIES_DELETE)) {
-                        $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                        $menu .= ' ' . deleteButton(route($this->mainRoute . ".destroy", $row->id));
                     }
-                    return $editButton . " " . $deleteButton;
-                })->escapeColumns([])->make(true);
+                    return $menu;
+                })
+                ->addColumn('sub_title_plain', function ($row) {
+                    return $row->sub_title ?? $row->title ?? '';
+                })
+                ->filterColumn('sub_title_plain', function ($query, $keyword) {
+                    $query->whereTranslationLike('sub_title', '%' . $keyword . '%');
+                })
+                ->rawColumns(['meta', 'financials', 'visibility_toggle', 'actions'])
+                ->make(true);
         }
+
         $data["createRoute"] = route($this->mainRoute . ".create");
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = helperTrans('api.nationalities');
         $data["addButtonText"] = helperTrans('api.nationality');
         $data["modalType"] = "modal-lg";
+        $data["stats"] = [
+            'total' => objModel::count(),
+            'visible' => objModel::where('is_show', true)->count(),
+            'hidden' => objModel::where('is_show', false)->count(),
+        ];
+
         return view($this->folderPath . '.index', $data);
 
     }

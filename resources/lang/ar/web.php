@@ -11,6 +11,8 @@
   'See_All' => 'اظهار الكل',
   'show_projects' => 'عرض المشاريع',
   'Get_in_touch' => 'ابقى على تواصل',
+  'age_min'=> 'يجب ألا يقل العمر عن :min',
+  'age_max'=> 'يجب ألا يزيد العمر عن :max',
   'Our_Partners' => 'شركاؤنا',
   'Our' => 'ملكنا',
   'Our_Clients' => 'عملائنا',
@@ -391,7 +393,7 @@
   'under_warranty' => 'تحت الضمان',
   'back' => 'مرتجع',
   'shelter' => 'عقد إيواء',
-  'contract_stages' => 
+  'contract_stages' =>
   array (
     'pending' => 'قيد الانتظار',
     'active' => 'ساري',
@@ -399,7 +401,7 @@
     'cancelled' => 'ملغي',
     'expired' => 'منتهي',
   ),
-  'contract_statuses' => 
+  'contract_statuses' =>
   array (
     'pending' => 'قيد الانتظار',
     'active' => 'ساري',
@@ -421,9 +423,43 @@
   ),
   'stage_active' => 'حالة جيدة',
   'complaint' => 'شكوى',
+  'type' => 'النوع',
   'experience_status' => 'حالة الخبرة',
-  'sponsorship_transfers' => 'Sponsorship transfers',
-  'follow_the_status_of_your_sponsorship_transfers' => 'Follow the status of your sponsorship transfers',
-  'Contract Refund Requests' => 'Contract Refund Requests',
-  'transferred' => 'Transferred',
+  'sponsorship_transfers' => ' طلبات نقل الكفالة',
+  'follow_the_status_of_your_sponsorship_transfers' => ' تابع حالة طلبات نقل الكفالة الخاصة بك',
+  'Contract Refund Requests' => 'طلبات استرداد العقود',
+  'transferred' => 'تم النقل',
+  'wait_before_retry' => 'جاري تنفيذ الطلب يرجي الانتظار',
+    'enter_otp_to_complete_register' => 'ادخل الرمز المرسل لاكمال عملية تسجيل الدخول',
+    'you_are_offline' => 'انت غير متصل بالانترنت ، يرجي تحقق الاتصال',
+
+    'phone_validation_text' => 'رقم الجوال يجب أن يكون 9 أرقام ويبدأ بالرقم 5',
+    'account_is_blocked' => 'تم حظر حسابك، يرجى التواصل مع الدعم.',
+    'no_data_found' => 'لا توجد بيانات متاحة حاليًا',
+    'there_are_order_in_prograss' => 'لديك طلب سابق لهذه العاملة قيد المعالجة',
+    'lastNews' => [
+        'new_packages' => 'إطلاق باقات جديدة لاستقدام العمالة المنزلية',
+        'new_batches' => 'وصول دفعات جديدة من العمالة الماهرة من الفلبين والهند',
+        'new_customers' => 'عروض خاصة للعملاء الجدد بمناسبة افتتاح الفرع الجديد',
+        'medical_staff' => 'توفير كوادر طبية وتمريضية مؤهلة بعقود ميسّرة',
+        'drivers' => 'استقدام سائقين مهنيين بخبرة عالية لجميع أنحاء المملكة',
+        'follow_up' => 'بدء برنامج متابعة وضمان ما بعد الاستقدام',
+        'trained_workers' => 'توفير عاملات منزليات مدرّبات وفق أعلى المعايير',
+        'agreements' => 'توقيع اتفاقيات جديدة مع مكاتب استقدام خارجية معتمدة',
+        'ramadan_support' => 'دعم خاص للعائلات في شهر رمضان بخدمات استقدام سريعة',
+    ],
+    'qualified_labor' => [
+        'title' => 'عمالة مؤهلة',
+        'description' => 'نوفر عمالة مهنية مؤهلة ومدربة بأعلى المعايير لضمان جودة الأداء والكفاءة في العمل.',
+    ],
+
+    'time_saving' => [
+        'title' => 'توفير الوقت',
+        'description' => 'إجراءات سريعة ومبسطة لتوفير الوقت والجهد في عملية استقدام العمالة المهنية.',
+    ],
+
+    'continuous_support' => [
+        'title' => 'دعم متواصل',
+        'description' => 'نقدم الدعم والاستشارات المتواصلة قبل وبعد عملية الاستقدام لضمان رضاكم الكامل.',
+    ],
 );

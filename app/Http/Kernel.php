@@ -4,6 +4,7 @@ namespace App\Http;
 
 use App\Http\Middleware\Admin;
 use App\Http\Middleware\CheckSystemSubscriptionMiddelware;
+use App\Http\Middleware\EnsureCorrectLocaleUrl;
 use App\Http\Middleware\RevalidateBackHistory;
 use App\Http\Middleware\SiteAuthMiddleware;
 use App\Http\Middleware\Web;
@@ -43,6 +44,8 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\PreventBackHistory::class,
+//            EnsureCorrectLocaleUrl::class
         ],
 
         'api' => [

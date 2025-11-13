@@ -1,0 +1,34 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::table('sponsorship_transfers', function (Blueprint $table) {
+            if (!Schema::hasColumn('sponsorship_transfers', 'company_signature')) {
+                $table->string('company_signature')->nullable()->after('signature')->comment('مسار ملف توقيع الشركة');
+            }
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::table('sponsorship_transfers', function (Blueprint $table) {
+            $table->dropColumn('company_signature');
+        });
+    }
+};

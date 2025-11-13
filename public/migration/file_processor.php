@@ -168,6 +168,18 @@ try {
             echo json_encode(getContractsSummary(), JSON_UNESCAPED_UNICODE);
             exit();
             break;
+
+        case 'migrate_contract_infos':
+            ob_clean();
+            echo json_encode(migrateContractInfos(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'contract_infos_summary':
+            ob_clean();
+            echo json_encode(getContractInfosSummary(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
         case 'migrate_accommodation_types':
             ob_clean();
             echo json_encode(migrateAccommodationTypes(), JSON_UNESCAPED_UNICODE);
@@ -930,7 +942,7 @@ function addSystemStatusColumns() {
 function migrateUsersSimple() {
     try {
         // الاتصال بالقاعدة القديمة
-        $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum;charset=utf8mb4", 'root', 'root');
+        $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum_old;charset=utf8mb4", 'root', 'root');
         $newDb = get_db_connection();
 
         // جلب جميع المستخدمين من القاعدة القديمة
@@ -1106,7 +1118,7 @@ function migrateAdminsFromUsers() {
 
 function migrateStaffFromUsers() {
     try {
-        $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum;charset=utf8mb4", 'root', 'root');
+        $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum_old;charset=utf8mb4", 'root', 'root');
         $oldDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $newDb = get_db_connection();
 
@@ -1210,7 +1222,7 @@ function migrateStaffFromUsers() {
 function migrateCustomersSimple() {
     try {
         // الاتصال بالقاعدة القديمة
-        $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum;charset=utf8mb4", 'root', 'root');
+        $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum_old;charset=utf8mb4", 'root', 'root');
         $newDb = get_db_connection();
 
         // جلب جميع Customers من القاعدة القديمة
@@ -2172,7 +2184,7 @@ function processReservationImport($filePath, $db) {
     $data = processCsv($filePath);
     if (empty($data)) return "ملف الحجوزات فارغ";
 
-    $db->exec("CREATE TABLE IF NOT EXISTS reservations (
+    $db->exec("CREATE TABLE IF NOT EXISTS rservations (
         id INT PRIMARY KEY,
         cv_id INT,
         user_id INT,
@@ -2188,7 +2200,7 @@ function processReservationImport($filePath, $db) {
             $row = cleanRowData($row);
             if (empty($row['id'])) continue;
 
-            $stmt = $db->prepare("INSERT IGNORE INTO reservations (id, cv_id, user_id, reservation_date, status, created_at, updated_at)
+            $stmt = $db->prepare("INSERT IGNORE INTO rservations (id, cv_id, user_id, reservation_date, status, created_at, updated_at)
                                  VALUES (?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 (int)$row['id'],
@@ -2532,7 +2544,7 @@ function exportFromOldDatabase() {
         $table = $_POST['export_table'] ?? 'users';
         $oldDbHost = $_POST['old_db_host'] ?? '127.0.0.1';
         $oldDbPort = $_POST['old_db_port'] ?? '8889';
-        $oldDbName = $_POST['old_db_name'] ?? 'platinum';
+        $oldDbName = $_POST['old_db_name'] ?? 'platinum_old';
         $oldDbUser = $_POST['old_db_user'] ?? 'root';
         $oldDbPass = $_POST['old_db_pass'] ?? 'root';
 
@@ -3201,7 +3213,7 @@ function migrateCVComprehensive() {
         // الاتصال بالقواعد
         $oldDbHost = $_POST['old_db_host'] ?? '127.0.0.1';
         $oldDbPort = $_POST['old_db_port'] ?? '8889';
-        $oldDbName = $_POST['old_db_name'] ?? 'platinum';
+        $oldDbName = $_POST['old_db_name'] ?? 'platinum_old';
         $oldDbUser = $_POST['old_db_user'] ?? 'root';
         $oldDbPass = $_POST['old_db_pass'] ?? 'root';
 
@@ -3509,7 +3521,7 @@ function checkSystemStatus() {
         $customersCount = 0;
 
         try {
-            $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum;charset=utf8mb4", 'root', 'root');
+            $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum_old;charset=utf8mb4", 'root', 'root');
             $oldUsersCount = $oldDb->query("SELECT COUNT(*) FROM users")->fetchColumn();
             $customersCount = $oldDb->query("SELECT COUNT(*) FROM customers")->fetchColumn();
         } catch (Exception $e) {
@@ -3651,7 +3663,7 @@ function addMissingColumnsToUsers($db) {
 function scanOldDatabaseColumns() {
     try {
         // الاتصال بالقاعدة القديمة (نفترض أنها platinum أو erp_operations_new)
-        $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum;charset=utf8mb4", 'root', 'root');
+        $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum_old;charset=utf8mb4", 'root', 'root');
         $newDb = get_db_connection();
 
         // الحصول على أعمدة جدول users في القاعدة القديمة
@@ -3728,7 +3740,7 @@ function addAllMissingColumns() {
  */
 function migrateAllDataFromOld() {
     try {
-        $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum;charset=utf8mb4", 'root', 'root');
+        $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum_old;charset=utf8mb4", 'root', 'root');
         $newDb = get_db_connection();
         $newDb->beginTransaction();
 
@@ -3914,7 +3926,7 @@ function migrateContracts() {
 
     try {
         $contracts = $oldDb->query(
-            'SELECT id, attatches, covered_guarantee_date, expired_date, created_at, updated_at, throwback_date, resv_id, throwback_reason, date_contract, contract_visa_num, musand_num, authorization_num, contract_border_num, contract_cost, contract_tex, contract_visa_type, contract_visa_date, contract_late_cost, contract_holiday_day, musand_date, driver_id FROM contracts ORDER BY id'
+            'SELECT id, attatches, covered_guarantee_date, expired_date, contract_from_day, contract_to_day, created_at, updated_at, throwback_date, resv_id, throwback_reason, date_contract, contract_visa_num, musand_num, authorization_num, contract_border_num, contract_cost, contract_tex, contract_visa_type, contract_visa_date, contract_late_cost, contract_holiday_day, musand_date, driver_id FROM contracts ORDER BY id'
         )->fetchAll(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         return [
@@ -3932,6 +3944,29 @@ function migrateContracts() {
             'updated' => 0,
             'unchanged' => 0,
             'skipped' => 0
+        ];
+    }
+
+    $reservationUserMap = [];
+    try {
+        $reservationStmt = $oldDb->query('SELECT id, user_id, cv_id, administrator_id, status FROM rservations');
+        while ($reservationRow = $reservationStmt->fetch(PDO::FETCH_ASSOC)) {
+            $reservationId = isset($reservationRow['id']) ? (int)$reservationRow['id'] : 0;
+            if ($reservationId <= 0) {
+                continue;
+            }
+
+            $reservationUserMap[$reservationId] = [
+                'user_id' => $reservationRow['user_id'] ?? null,
+                'cv_id' => $reservationRow['cv_id'] ?? null,
+                'administrator_id' => $reservationRow['administrator_id'] ?? null,
+                'status' => $reservationRow['status'] ?? null
+            ];
+        }
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في قراءة بيانات الحجوزات: ' . $e->getMessage()
         ];
     }
 
@@ -4055,20 +4090,54 @@ SQL;
         }
 
         try {
+            $status = 'shelter';
+            $warrantyStartDate = normalizeWarrantyTimestamp($row['contract_from_day'] ?? null);
+            $warrantyEndDate = normalizeWarrantyTimestamp($row['contract_to_day'] ?? null);
+            $warrantyStatus = determineWarrantyStatus($row['contract_from_day'] ?? null, $row['contract_to_day'] ?? null);
+
+            $orderId = normalizeContractInt($row['resv_id'] ?? null);
+            $userId = 1673;
+            $maidId = null;
+            $marketerId = normalizeContractInt($row['driver_id'] ?? null);
+
+            if ($orderId !== null && isset($reservationUserMap[$orderId])) {
+                $reservationData = $reservationUserMap[$orderId];
+
+                $mappedUserId = normalizeContractInt($reservationData['user_id'] ?? null);
+                if ($mappedUserId !== null) {
+                    $userId = $mappedUserId;
+                }
+
+                $mappedMaidId = normalizeContractInt($reservationData['cv_id'] ?? null);
+                if ($mappedMaidId !== null) {
+                    $maidId = $mappedMaidId;
+                }
+
+                $mappedMarketerId = normalizeContractInt($reservationData['administrator_id'] ?? null);
+                if ($mappedMarketerId !== null) {
+                    $marketerId = $mappedMarketerId;
+                }
+
+                $mappedStatus = mapReservationStatus($reservationData['status'] ?? null);
+                if ($mappedStatus !== null) {
+                    $status = $mappedStatus;
+                }
+            }
+
             $params = [
                 ':id' => $contractId,
-                ':status' => 'shelter',
-                ':warranty_status' => 'not_applicable',
+                ':status' => $status,
+                ':warranty_status' => $warrantyStatus,
                 ':signature' => normalizeContractValue($row['attatches'] ?? null),
-                ':warranty_start_date' => normalizeContractDateTime($row['covered_guarantee_date'] ?? null),
-                ':warranty_end_date' => normalizeContractDateTime($row['expired_date'] ?? null),
+                ':warranty_start_date' => $warrantyStartDate,
+                ':warranty_end_date' => $warrantyEndDate,
                 ':created_at' => normalizeContractDateTime($row['created_at'] ?? null),
                 ':updated_at' => normalizeContractDateTime($row['updated_at'] ?? null),
                 ':completed_at' => normalizeContractDateTime($row['throwback_date'] ?? null),
-                ':order_id' => normalizeContractInt($row['resv_id'] ?? null),
-                ':user_id' => 1673,
-                ':marketer_id' => normalizeContractInt($row['driver_id'] ?? null),
-                ':maid_id' => null,
+                ':order_id' => $orderId,
+                ':user_id' => $userId,
+                ':marketer_id' => $marketerId,
+                ':maid_id' => $maidId,
                 ':required_maid_nationality_id' => null,
                 ':required_maid_religion_id' => null,
                 ':required_maid_job_title_id' => null,
@@ -4119,6 +4188,198 @@ SQL;
 }
 
 
+function migrateContractInfos() {
+    $oldHost = $_POST['old_db_host'] ?? '127.0.0.1';
+    $oldPort = $_POST['old_db_port'] ?? 8889;
+    $oldDbName = $_POST['old_db_name'] ?? 'platinum_old';
+    $oldUser = $_POST['old_db_user'] ?? 'root';
+    $oldPass = $_POST['old_db_pass'] ?? 'root';
+
+    try {
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في الاتصال بقاعدة البيانات الجديدة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $oldDsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $oldHost, $oldPort, $oldDbName);
+        $oldDb = new PDO($oldDsn, $oldUser, $oldPass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4'
+        ]);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في الاتصال بقاعدة البيانات القديمة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $records = $oldDb->query(
+            'SELECT id, contract_visa_num, contract_visa_Hijri_date, contract_visa_date, contract_cost, contract_count_day, contract_total, date_contract, contract_from_day, contract_to_day, musand_num, authorization_num, created_at, updated_at, throwback_date, throwback_reason, final_visa_date FROM contracts ORDER BY id'
+        )->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في استرجاع بيانات العقود: ' . $e->getMessage()
+        ];
+    }
+
+    if (empty($records)) {
+        return [
+            'success' => true,
+            'message' => 'لا توجد سجلات للعقود في قاعدة البيانات القديمة',
+            'processed' => 0,
+            'inserted' => 0,
+            'updated' => 0,
+            'skipped' => 0
+        ];
+    }
+
+    $insertSql = <<<SQL
+INSERT INTO contract_infos (
+    contract_id,
+    visa_number,
+    visa_hijry_date,
+    visa_milad_date,
+    monthly_cost,
+    contract_duration,
+    contract_value,
+    contract_date,
+    ingaz_from,
+    ingaz_to,
+    msaned_number,
+    tafwed_number,
+    created_at,
+    updated_at,
+    maid_date_back,
+    back_reasons,
+    arrival_date
+)
+VALUES (
+    :contract_id,
+    :visa_number,
+    :visa_hijry_date,
+    :visa_milad_date,
+    :monthly_cost,
+    :contract_duration,
+    :contract_value,
+    :contract_date,
+    :ingaz_from,
+    :ingaz_to,
+    :msaned_number,
+    :tafwed_number,
+    :created_at,
+    :updated_at,
+    :maid_date_back,
+    :back_reasons,
+    :arrival_date
+)
+ON DUPLICATE KEY UPDATE
+    visa_number = VALUES(visa_number),
+    visa_hijry_date = VALUES(visa_hijry_date),
+    visa_milad_date = VALUES(visa_milad_date),
+    monthly_cost = VALUES(monthly_cost),
+    contract_duration = VALUES(contract_duration),
+    contract_value = VALUES(contract_value),
+    contract_date = VALUES(contract_date),
+    ingaz_from = VALUES(ingaz_from),
+    ingaz_to = VALUES(ingaz_to),
+    msaned_number = VALUES(msaned_number),
+    tafwed_number = VALUES(tafwed_number),
+    maid_date_back = VALUES(maid_date_back),
+    back_reasons = VALUES(back_reasons),
+    arrival_date = VALUES(arrival_date),
+    updated_at = VALUES(updated_at),
+    created_at = COALESCE(created_at, VALUES(created_at))
+SQL;
+
+    $insertStmt = $newDb->prepare($insertSql);
+    $newDb->beginTransaction();
+
+    $processed = 0;
+    $inserted = 0;
+    $updated = 0;
+    $skipped = 0;
+
+    foreach ($records as $row) {
+        $processed++;
+
+        $contractId = isset($row['id']) ? (int)$row['id'] : 0;
+        if ($contractId <= 0) {
+            $skipped++;
+            continue;
+        }
+
+        try {
+            $params = [
+                ':contract_id' => $contractId,
+                ':visa_number' => normalizeContractValue($row['contract_visa_num'] ?? null),
+                ':visa_hijry_date' => normalizeHijriAwareDate($row['contract_visa_Hijri_date'] ?? null),
+                ':visa_milad_date' => normalizeHijriAwareDate($row['contract_visa_date'] ?? null),
+                ':monthly_cost' => normalizeContractFloat($row['contract_cost'] ?? null),
+                ':contract_duration' => 2,
+                ':contract_value' => normalizeContractFloat($row['contract_total'] ?? null),
+                ':contract_date' => normalizeHijriAwareDate($row['date_contract'] ?? null),
+                ':ingaz_from' => normalizeHijriAwareDate($row['contract_from_day'] ?? null),
+                ':ingaz_to' => normalizeHijriAwareDate($row['contract_to_day'] ?? null),
+                ':msaned_number' => normalizeContractValue($row['musand_num'] ?? null),
+                ':tafwed_number' => normalizeContractValue($row['authorization_num'] ?? null),
+                ':created_at' => normalizeContractDateTime($row['created_at'] ?? null),
+                ':updated_at' => normalizeContractDateTime($row['updated_at'] ?? null),
+                ':maid_date_back' => normalizeHijriAwareDate($row['throwback_date'] ?? null),
+                ':back_reasons' => normalizeContractValue($row['throwback_reason'] ?? null),
+                ':arrival_date' => normalizeHijriAwareDate($row['final_visa_date'] ?? null)
+            ];
+
+            $insertStmt->execute($params);
+            $affected = $insertStmt->rowCount();
+
+            if ($affected === 1) {
+                $inserted++;
+            } elseif ($affected === 2) {
+                $updated++;
+            }
+        } catch (Exception $e) {
+            $skipped++;
+            error_log('?? ????? ??????? contract_infos ??? #' . $contractId . ': ' . $e->getMessage());
+        }
+    }
+
+    $newDb->commit();
+
+    return [
+        'success' => true,
+        'message' => '?? ??? ???????? ??????? ?????',
+        'processed' => $processed,
+        'inserted' => $inserted,
+        'updated' => $updated,
+        'skipped' => $skipped
+    ];
+}
+
+function getContractInfosSummary() {
+    try {
+        $db = get_db_connection();
+        $infos = $db->query('SELECT COUNT(*) AS total FROM contract_infos')->fetch(PDO::FETCH_ASSOC);
+
+        return [
+            'success' => true,
+            'contract_infos' => (int)($infos['total'] ?? 0),
+            'message' => '?? ??? ???????? ??????? ����???'
+        ];
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => '??? ?? ??? ???????? contract_infos: ' . $e->getMessage()
+        ];
+    }
+}
+
 function getContractsSummary() {
     try {
         $db = get_db_connection();
@@ -4137,6 +4398,77 @@ function getContractsSummary() {
             'message' => 'خطأ في جلب الإحصائيات: ' . $e->getMessage()
         ];
     }
+}
+
+function normalizeWarrantyTimestamp($value) {
+    $date = normalizeHijriAwareDate($value);
+    if ($date === null) {
+        return null;
+    }
+
+    return $date . ' 00:00:00';
+}
+
+function determineWarrantyStatus($startValue, $endValue) {
+    $startDateString = normalizeContractDateTime($startValue);
+    $endDateString = normalizeContractDateTime($endValue);
+
+    if ($startDateString === null || $endDateString === null) {
+        return 'not_applicable';
+    }
+
+    try {
+        $startDate = new DateTime($startDateString);
+        $endDate = new DateTime($endDateString);
+        $days = (int)$startDate->diff($endDate)->format('%a');
+
+        if ($days < 1) {
+            return 'expired';
+        }
+
+        if ($days < 60 && $days > 1) {
+            return 'applicable';
+        }
+
+        return 'not_applicable';
+    } catch (Exception $e) {
+        return 'not_applicable';
+    }
+}
+
+function mapReservationStatus($value) {
+    $statusMap = [
+        7 => 'new',
+        8 => 'msaned',
+        9 => 'tafwed',
+        10 => 'taffez',
+        11 => 'tazker',
+        15 => 'arrival',
+        3 => 'delegate_selected',
+        13 => 'back',
+        12 => 'under_warranty',
+        4 => 'client_contracted',
+        14 => 'in_progress'
+    ];
+
+    $normalizedValue = normalizeContractValue($value);
+    if ($normalizedValue === null) {
+        return null;
+    }
+
+    if (is_numeric($normalizedValue)) {
+        $intStatus = (int)$normalizedValue;
+        if (isset($statusMap[$intStatus])) {
+            return $statusMap[$intStatus];
+        }
+    }
+
+    $lowered = strtolower($normalizedValue);
+    if (in_array($lowered, $statusMap, true)) {
+        return $lowered;
+    }
+
+    return null;
 }
 
 function normalizeContractValue($value) {
@@ -4197,10 +4529,83 @@ function normalizeContractDate($value) {
 }
 
 
+function normalizeHijriAwareDate($value) {
+    $normalizedValue = normalizeContractValue($value);
+    if ($normalizedValue === null) {
+        return null;
+    }
+
+    $asciiValue = normalizeArabicIndicDigits($normalizedValue);
+
+    $parsedDate = normalizeContractDate($asciiValue);
+    if ($parsedDate !== null) {
+        return $parsedDate;
+    }
+
+    return convertHijriStringToDate($asciiValue);
+}
+function convertHijriStringToDate($value) {
+    $normalized = normalizeContractValue($value);
+    if ($normalized === null) {
+        return null;
+    }
+
+    $normalized = normalizeArabicIndicDigits($normalized);
+    $sanitized = preg_replace('/[^\d]+/u', ' ', $normalized);
+    $parts = preg_split('/\s+/', trim($sanitized));
+
+    if (count($parts) < 3) {
+        return null;
+    }
+
+    $numbers = array_map('intval', array_slice($parts, 0, 3));
+
+    $year = null;
+    $month = null;
+    $day = null;
+
+    if ($numbers[0] >= 1200 && $numbers[0] <= 1600) {
+        $year = $numbers[0];
+        $month = $numbers[1] ?? null;
+        $day = $numbers[2] ?? null;
+    } elseif ($numbers[2] >= 1200 && $numbers[2] <= 1600) {
+        $year = $numbers[2];
+        $day = $numbers[0];
+        $month = $numbers[1] ?? null;
+    } elseif ($numbers[1] >= 1200 && $numbers[1] <= 1600) {
+        $year = $numbers[1];
+        $day = $numbers[0];
+        $month = $numbers[2] ?? null;
+    } else {
+        $year = $numbers[2];
+        $day = $numbers[0];
+        $month = $numbers[1] ?? null;
+    }
+
+    if ($month !== null && ($month < 1 || $month > 12) && $day !== null && $day >= 1 && $day <= 12) {
+        [$day, $month] = [$month, $day];
+    }
+
+    if ($year === null || $month === null || $day === null) {
+        return null;
+    }
+
+    $month = max(1, min(12, $month));
+    $day = max(1, min(30, $day));
+
+    return sprintf('%04d-%02d-%02d', $year, $month, $day);
+}
+function normalizeArabicIndicDigits($value) {
+    $arabicIndic = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩','۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
+    $western = ['0','1','2','3','4','5','6','7','8','9','0','1','2','3','4','5','6','7','8','9'];
+
+    return str_replace($arabicIndic, $western, $value);
+}
+
 function migrateAccommodationTypes() {
     $oldHost = $_POST['old_db_host'] ?? '127.0.0.1';
     $oldPort = $_POST['old_db_port'] ?? 8889;
-    $oldDbName = $_POST['old_db_name'] ?? 'platinum';
+    $oldDbName = $_POST['old_db_name'] ?? 'platinum_old';
     $oldUser = $_POST['old_db_user'] ?? 'root';
     $oldPass = $_POST['old_db_pass'] ?? 'root';
 
@@ -4348,7 +4753,7 @@ function getAccommodationTypesSummary() {
 function migrateAirports() {
     $oldHost = $_POST['old_db_host'] ?? '127.0.0.1';
     $oldPort = $_POST['old_db_port'] ?? 8889;
-    $oldDbName = $_POST['old_db_name'] ?? 'platinum';
+    $oldDbName = $_POST['old_db_name'] ?? 'platinum_old';
     $oldUser = $_POST['old_db_user'] ?? 'root';
     $oldPass = $_POST['old_db_pass'] ?? 'root';
 
@@ -4977,4 +5382,7 @@ function getContractLogsSummary() {
 }
 
 ?>
+
+
+
 

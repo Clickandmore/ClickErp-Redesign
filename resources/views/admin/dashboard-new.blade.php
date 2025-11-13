@@ -1,194 +1,432 @@
 @extends('admin.layout.indexs.index')
 
-@section("style")
-
+@section('style')
 <style>
-    /* تصميم احترافي للوحة التحكم */
-    .dashboard-header {
-        background: linear-gradient(135deg, #6699ea 0%, #0c5460 100%);
-        color: white;
-        padding: 30px;
-        border-radius: 15px;
-        margin-bottom: 30px;
+    :root {
+        --surface: #ffffff;
+        --surface-muted: #f7f7fb;
+        --stroke: rgba(15, 23, 42, 0.08);
+        --primary: #5f5bff;
+        --primary-dark: #3936d4;
+        --success: #28c76f;
+        --warning: #ffa726;
+        --danger: #ff4d4f;
+        --text: #0f172a;
+        --muted: #6b7280;
     }
 
-    .dashboard-header h1 {
-        font-size: 32px;
-        font-weight: bold;
-        margin-bottom: 10px;
+    .surface-card {
+        border-radius: 28px;
+        background: var(--surface);
+        box-shadow: 0 25px 60px rgba(15, 23, 42, 0.08);
     }
 
-    .dashboard-header p {
-        font-size: 16px;
-        opacity: 0.9;
-    }
-
-    /* بطاقات الإحصائيات */
-    .stat-card {
-        background: white;
-        border-radius: 15px;
-        padding: 25px;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-        transition: all 0.3s ease;
-        border: none;
+    .dashboard-hero {
+        display: flex;
+        gap: 32px;
+        padding: 32px;
+        background: linear-gradient(135deg, #1f1f39, #353086);
+        color: #fff;
         position: relative;
         overflow: hidden;
     }
 
-    .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-    }
-
-    .stat-card::before {
-        content: '';
+    .dashboard-hero::after {
+        content: "";
         position: absolute;
-        top: 0;
-        left: 0;
-        width: 4px;
-        height: 100%;
-        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+        inset: 0;
+        background: radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.2), transparent 55%);
+        pointer-events: none;
     }
 
-    .stat-card.primary::before { background: linear-gradient(180deg, #4e73df 0%, #224abe 100%); }
-    .stat-card.success::before { background: linear-gradient(180deg, #1cc88a 0%, #13855c 100%); }
-    .stat-card.info::before { background: linear-gradient(180deg, #36b9cc 0%, #258391 100%); }
-    .stat-card.warning::before { background: linear-gradient(180deg, #f6c23e 0%, #dda20a 100%); }
-    .stat-card.danger::before { background: linear-gradient(180deg, #e74a3b 0%, #be2617 100%); }
+    .dashboard-hero > * {
+        position: relative;
+        z-index: 1;
+    }
 
-    .stat-icon {
-        width: 60px;
-        height: 60px;
-        border-radius: 12px;
+    .hero-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .hero-eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        font-size: 13px;
+        opacity: 0.8;
+    }
+
+    .hero-meta {
         display: flex;
         align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        margin-bottom: 15px;
-    }
-
-    .stat-icon.primary { background: rgba(78, 115, 223, 0.1); color: #4e73df; }
-    .stat-icon.success { background: rgba(28, 200, 138, 0.1); color: #1cc88a; }
-    .stat-icon.info { background: rgba(54, 185, 204, 0.1); color: #36b9cc; }
-    .stat-icon.warning { background: rgba(246, 194, 62, 0.1); color: #f6c23e; }
-    .stat-icon.danger { background: rgba(231, 74, 59, 0.1); color: #e74a3b; }
-
-    .stat-value {
-        font-size: 32px;
-        font-weight: bold;
-        color: #2c3e50;
-        margin-bottom: 5px;
-    }
-
-    .stat-label {
+        gap: 12px;
+        flex-wrap: wrap;
         font-size: 14px;
-        color: #858796;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        color: rgba(255, 255, 255, 0.85);
     }
 
-    .stat-change {
-        position: absolute;
-        top: 20px;
-        right: 20px;
+    .live-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 999px;
+        background: rgba(40, 199, 111, 0.2);
+        color: #4ef9a5;
         font-size: 12px;
-        padding: 4px 8px;
-        border-radius: 20px;
     }
 
-    .stat-change.positive {
-        background: rgba(28, 200, 138, 0.1);
-        color: #1cc88a;
+    .live-pill::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #4ef9a5;
+        animation: pulse 2s infinite;
     }
 
-    .stat-change.negative {
-        background: rgba(231, 74, 59, 0.1);
-        color: #e74a3b;
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(78, 249, 165, 0.6); }
+        70% { box-shadow: 0 0 0 10px rgba(78, 249, 165, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(78, 249, 165, 0); }
     }
 
-    /* قسم الرسوم البيانية */
-    .chart-card {
-        background: white;
-        border-radius: 15px;
-        padding: 25px;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-        margin-bottom: 25px;
+    .hero-quick-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
     }
 
-    .chart-header {
+    .hero-quick-actions a {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+        border-radius: 14px;
+        padding: 10px 18px;
+        text-decoration: none;
+        font-size: 14px;
+        transition: background 0.2s ease;
+    }
+
+    .hero-quick-actions a:hover {
+        background: rgba(255, 255, 255, 0.25);
+    }
+
+    .hero-controls {
+        width: min(360px, 100%);
+        border-radius: 24px;
+        background: rgba(7, 10, 28, 0.35);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        backdrop-filter: blur(8px);
+    }
+
+    .range-switch {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .range-btn {
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        background: transparent;
+        color: #fff;
+        border-radius: 12px;
+        padding: 8px 4px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .range-btn.active {
+        background: #fff;
+        color: #1f1f39;
+        border-color: #fff;
+        box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
+    }
+
+    .hero-micro-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        font-size: 14px;
+    }
+
+    .hero-micro-grid div {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 14px;
+        padding: 10px;
+        text-align: center;
+    }
+
+    .hero-micro-grid strong {
+        display: block;
+        font-size: 20px;
+        margin-top: 4px;
+    }
+
+    .insight-grid {
+        margin-top: 32px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 20px;
+    }
+
+    .insight-card {
+        padding: 20px;
+        border-radius: 22px;
+        background: var(--surface);
+        border: 1px solid var(--stroke);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .insight-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 30% 20%, rgba(95, 91, 255, 0.08), transparent 40%);
+        pointer-events: none;
+    }
+
+    .insight-card h4 {
+        font-size: 14px;
+        letter-spacing: 0.5px;
+        color: var(--muted);
+        margin-bottom: 16px;
+    }
+
+    .insight-value {
+        font-size: 36px;
+        font-weight: 600;
+        color: var(--text);
+    }
+
+    .insight-foot {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--muted);
+    }
+
+    .trend-up {
+        color: var(--success);
+        font-weight: 600;
+    }
+
+    .trend-down {
+        color: var(--danger);
+        font-weight: 600;
+    }
+
+    .data-section {
+        margin-top: 32px;
+        padding: 24px;
+        border-radius: 24px;
+        background: var(--surface);
+        border: 1px solid var(--stroke);
+    }
+
+    .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .section-eyebrow {
+        font-size: 13px;
+        color: var(--muted);
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin: 0;
+    }
+
+    .section-toggle {
+        border: 1px solid var(--stroke);
+        background: transparent;
+        border-radius: 12px;
+        padding: 6px 14px;
+        font-size: 13px;
+        color: var(--text);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .section-body {
+        margin-top: 24px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+    }
+
+    .section-body.collapsed {
+        display: none;
+    }
+
+    .metric-card {
+        border: 1px solid var(--stroke);
+        border-radius: 18px;
+        padding: 18px;
+        background: var(--surface-muted);
+    }
+
+    .metric-card h5 {
+        font-size: 14px;
+        color: var(--muted);
+        margin-bottom: 8px;
+    }
+
+    .metric-card strong {
+        font-size: 24px;
+        color: var(--text);
+    }
+
+    .progress-line {
+        margin-top: 12px;
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 0.08);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .progress-line span {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: var(--primary);
+    }
+
+    .progress-line.success span { background: var(--success); }
+    .progress-line.warning span { background: var(--warning); }
+    .progress-line.danger span { background: var(--danger); }
+
+    .panel-card {
+        border-radius: 24px;
+        background: var(--surface);
+        border: 1px solid var(--stroke);
+        padding: 24px;
+        height: 100%;
+    }
+
+    .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+
+    .panel-head small {
+        color: var(--muted);
+    }
+
+    .chart-holder {
+        position: relative;
+        height: 320px;
+    }
+
+    .chart-holder canvas {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    .legend-list {
+        list-style: none;
+        padding: 0;
+        margin: 20px 0 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-height: 180px;
+        overflow-y: auto;
+    }
+
+    .legend-list li {
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
+        font-size: 14px;
+        color: var(--muted);
     }
 
-    .chart-title {
-        font-size: 18px;
-        font-weight: 600;
-        color: #2c3e50;
+    .legend-list strong {
+        color: var(--text);
     }
 
-    /* جدول الأنشطة الأخيرة */
-    .activity-table {
-        background: white;
-        border-radius: 15px;
-        padding: 25px;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-    }
-
-    .activity-item {
+    .activity-feed {
         display: flex;
-        align-items: center;
-        padding: 15px 0;
-        border-bottom: 1px solid #f0f0f0;
+        flex-direction: column;
+        gap: 16px;
+        max-height: 360px;
+        overflow-y: auto;
     }
 
-    .activity-item:last-child {
+    .activity-line {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--stroke);
+    }
+
+    .activity-line:last-child {
         border-bottom: none;
     }
 
     .activity-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: var(--surface-muted);
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-left: 15px;
+        font-size: 18px;
     }
 
-    /* الأزرار السريعة */
-    .quick-action {
-        background: white;
-        border-radius: 10px;
-        padding: 20px;
+    .activity-line small {
+        color: var(--muted);
+    }
+
+    .status-chip {
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 12px;
+        text-transform: capitalize;
+    }
+
+    .status-chip.success { background: rgba(40, 199, 111, 0.12); color: var(--success); }
+    .status-chip.warning { background: rgba(255, 167, 38, 0.12); color: var(--warning); }
+    .status-chip.danger { background: rgba(255, 77, 79, 0.12); color: var(--danger); }
+    .status-chip.info { background: rgba(95, 91, 255, 0.12); color: var(--primary-dark); }
+
+    .calendar-shell {
+        min-height: 400px;
+    }
+
+    .empty-state {
         text-align: center;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-        transition: all 0.3s ease;
-        cursor: pointer;
-        text-decoration: none;
-        color: inherit;
-        display: block;
+        padding: 32px 0;
+        color: var(--muted);
     }
 
-    .quick-action:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 5px 20px rgba(0,0,0,0.15);
-        text-decoration: none;
-        color: inherit;
-    }
+    @media (max-width: 992px) {
+        .dashboard-hero {
+            flex-direction: column;
+        }
 
-    .quick-action i {
-        font-size: 32px;
-        margin-bottom: 10px;
-        color: #667eea;
-    }
-
-    .quick-action-title {
-        font-size: 14px;
-        font-weight: 600;
-        color: #2c3e50;
+        .hero-controls {
+            width: 100%;
+        }
     }
 </style>
 @endsection
@@ -198,485 +436,284 @@
 @endsection
 
 @section('content')
-
-<!-- Header -->
-<div class="dashboard-header">
-    <h1>مرحباً بك، {{ auth()->guard('admin')->user()->name }}</h1>
-    <p>لوحة التحكم الرئيسية - نظرة عامة على جميع الأنشطة</p>
-</div>
-
-<!-- إحصائيات العقود والمراحل -->
-<div class="row mb-4">
-    <div class="col-12">
-        <h4 class="mb-3"><i class="fas fa-file-contract me-2"></i>العقود والمراحل</h4>
-    </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card primary">
-            <div class="stat-icon primary">
-                <i class="fas fa-file-signature"></i>
-            </div>
-            <div class="stat-value">{{ $contractsStats['total'] ?? 0 }}</div>
-            <div class="stat-label">إجمالي العقود</div>
-            <span class="stat-change positive">
-                <i class="fas fa-arrow-up"></i> {{ $contractsStats['thisMonth'] ?? 0 }} هذا الشهر
-            </span>
+<div class="dashboard-hero surface-card">
+    <div class="hero-main">
+        <p class="hero-eyebrow">مؤشرات فورية</p>
+        <h1>مرحباً {{ auth()->guard('admin')->user()->name ?? '' }} 👋</h1>
+        <p>تابع أداء العقود والطلبات والإيرادات لحظة بلحظة مع إمكانية التحكم في الأقسام التي تهمك.</p>
+        <div class="hero-meta">
+            <span class="live-pill">محدث الآن</span>
+            <span>آخر تحديث {{ now()->translatedFormat('d F Y - H:i') }}</span>
+        </div>
+        <div class="hero-quick-actions">
+            <a href="{{ route('RecruitmentContract.create') }}"><i class="fas fa-plus-circle ms-1"></i> عقد جديد</a>
+            <a href="{{ route('orders.index') }}"><i class="fas fa-shopping-basket ms-1"></i> الطلبات المباشرة</a>
+            <a href="{{ route('admins.index') }}"><i class="fas fa-users-cog ms-1"></i> إدارة الفرق</a>
         </div>
     </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card success">
-            <div class="stat-icon success">
-                <i class="fas fa-check-circle"></i>
+    <div class="hero-controls">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <small>اختر الفترة</small>
+                <h5 class="mb-0">تحديث القيم فوراً</h5>
             </div>
-            <div class="stat-value">{{ $contractsStats['completed'] ?? 0 }}</div>
-            <div class="stat-label">عقود مكتملة</div>
+            <i class="fas fa-sliders-h"></i>
         </div>
-    </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card warning">
-            <div class="stat-icon warning">
-                <i class="fas fa-clock"></i>
-            </div>
-            <div class="stat-value">{{ $contractsStats['pending'] ?? 0 }}</div>
-            <div class="stat-label">عقود قيد التنفيذ</div>
+        <div class="range-switch" role="group" aria-label="تصفية الإحصائيات حسب الفترة">
+            <button class="range-btn active" data-range="today">اليوم</button>
+            <button class="range-btn" data-range="week">هذا الأسبوع</button>
+            <button class="range-btn" data-range="month">هذا الشهر</button>
+            <button class="range-btn" data-range="total">الإجمالي</button>
         </div>
-    </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card info">
-            <div class="stat-icon info">
-                <i class="fas fa-shield-alt"></i>
+        <div class="hero-micro-grid">
+            <div>
+                <small>طلبات اليوم</small>
+                <strong>{{ number_format($ordersStats['today'] ?? 0) }}</strong>
             </div>
-            <div class="stat-value">{{ $contractsStats['underWarranty'] ?? 0 }}</div>
-            <div class="stat-label">تحت الضمان</div>
+            <div>
+                <small>عقود قيد المتابعة</small>
+                <strong>{{ number_format($contractsStats['pending'] ?? 0) }}</strong>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- إحصائيات السير الذاتية والطلبات -->
-<div class="row mb-4">
-    <div class="col-12">
-        <h4 class="mb-3"><i class="fas fa-users me-2"></i>السير الذاتية والطلبات</h4>
-    </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card info">
-            <div class="stat-icon info">
-                <i class="fas fa-id-card"></i>
-            </div>
-            <div class="stat-value">{{ $cvStats['total'] ?? 0 }}</div>
-            <div class="stat-label">إجمالي السير الذاتية</div>
-            <span class="stat-change positive">
-                <i class="fas fa-arrow-up"></i> {{ $cvStats['available'] ?? 0 }} متاح
-            </span>
+<div class="insight-grid">
+    <div class="insight-card" data-range-card>
+        <h4>العقود</h4>
+        <div class="insight-value"
+             data-range-value
+             data-range-format="number"
+             data-today="{{ $contractsStats['today'] ?? 0 }}"
+             data-week="{{ $contractsStats['thisWeek'] ?? 0 }}"
+             data-month="{{ $contractsStats['thisMonth'] ?? 0 }}"
+             data-total="{{ $contractsStats['total'] ?? 0 }}">
+            {{ number_format($contractsStats['total'] ?? 0) }}
+        </div>
+        <div class="insight-foot">
+            <span class="trend-up"><i class="fas fa-check-circle ms-1"></i>{{ number_format($contractsStats['completed'] ?? 0) }}</span>
+            <span data-range-label
+                  data-today="عقود منشأة اليوم"
+                  data-week="عقود الأسبوع"
+                  data-month="عقود هذا الشهر"
+                  data-total="إجمالي العقود">إجمالي العقود</span>
         </div>
     </div>
 
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card warning">
-            <div class="stat-icon warning">
-                <i class="fas fa-shopping-cart"></i>
-            </div>
-            <div class="stat-value">{{ $ordersStats['total'] ?? 0 }}</div>
-            <div class="stat-label">إجمالي الطلبات</div>
-            <span class="stat-change positive">
-                <i class="fas fa-arrow-up"></i> {{ $ordersStats['today'] ?? 0 }} اليوم
-            </span>
+    <div class="insight-card" data-range-card>
+        <h4>الطلبات</h4>
+        <div class="insight-value"
+             data-range-value
+             data-range-format="number"
+             data-today="{{ $ordersStats['today'] ?? 0 }}"
+             data-week="{{ $ordersStats['thisWeek'] ?? 0 }}"
+             data-month="{{ $ordersStats['thisMonth'] ?? 0 }}"
+             data-total="{{ $ordersStats['total'] ?? 0 }}">
+            {{ number_format($ordersStats['total'] ?? 0) }}
+        </div>
+        <div class="insight-foot">
+            <span class="trend-up"><i class="fas fa-bolt ms-1"></i>{{ number_format($ordersStats['completed'] ?? 0) }} مكتمل</span>
+            <span data-range-label
+                  data-today="طلبات اليوم"
+                  data-week="طلبات الأسبوع"
+                  data-month="طلبات الشهر"
+                  data-total="إجمالي الطلبات">إجمالي الطلبات</span>
         </div>
     </div>
 
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card success">
-            <div class="stat-icon success">
-                <i class="fas fa-check-double"></i>
-            </div>
-            <div class="stat-value">{{ $ordersStats['completed'] ?? 0 }}</div>
-            <div class="stat-label">طلبات مكتملة</div>
+    <div class="insight-card" data-range-card>
+        <h4>العملاء</h4>
+        <div class="insight-value"
+             data-range-value
+             data-range-format="number"
+             data-today="{{ $clientsStats['newToday'] ?? 0 }}"
+             data-week="{{ $clientsStats['newThisWeek'] ?? 0 }}"
+             data-month="{{ $clientsStats['newThisMonth'] ?? 0 }}"
+             data-total="{{ $clientsStats['total'] ?? 0 }}">
+            {{ number_format($clientsStats['total'] ?? 0) }}
+        </div>
+        <div class="insight-foot">
+            <span class="trend-up">{{ number_format($clientsStats['active'] ?? 0) }} نشط</span>
+            <span data-range-label
+                  data-today="عملاء جدد اليوم"
+                  data-week="جدد خلال الأسبوع"
+                  data-month="جدد خلال الشهر"
+                  data-total="إجمالي العملاء">إجمالي العملاء</span>
         </div>
     </div>
 
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card danger">
-            <div class="stat-icon danger">
-                <i class="fas fa-exclamation-triangle"></i>
-            </div>
-            <div class="stat-value">{{ $ordersStats['pending'] ?? 0 }}</div>
-            <div class="stat-label">طلبات معلقة</div>
+    <div class="insight-card">
+        <h4>الإيرادات</h4>
+        <div class="insight-value" data-range-format="currency">
+            {{ number_format($salesStats['totalRevenue'] ?? 0) }} ر.س
         </div>
-    </div>
-</div>
-
-<!-- إحصائيات العملاء والإيواء -->
-<div class="row mb-4">
-    <div class="col-12">
-        <h4 class="mb-3"><i class="fas fa-user-friends me-2"></i>العملاء والإيواء</h4>
-    </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card primary">
-            <div class="stat-icon primary">
-                <i class="fas fa-users"></i>
-            </div>
-            <div class="stat-value">{{ $clientsStats['total'] ?? 0 }}</div>
-            <div class="stat-label">إجمالي العملاء</div>
-            <span class="stat-change positive">
-                <i class="fas fa-arrow-up"></i> {{ $clientsStats['newThisMonth'] ?? 0 }} جديد
-            </span>
-        </div>
-    </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card info">
-            <div class="stat-icon info">
-                <i class="fas fa-home"></i>
-            </div>
-            <div class="stat-value">{{ $shelterStats['total'] ?? 0 }}</div>
-            <div class="stat-label">إجمالي الإيواء</div>
-        </div>
-    </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card success">
-            <div class="stat-icon success">
-                <i class="fas fa-bed"></i>
-            </div>
-            <div class="stat-value">{{ $shelterStats['occupied'] ?? 0 }}</div>
-            <div class="stat-label">غرف مشغولة</div>
-        </div>
-    </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card warning">
-            <div class="stat-icon warning">
-                <i class="fas fa-door-open"></i>
-            </div>
-            <div class="stat-value">{{ $shelterStats['available'] ?? 0 }}</div>
-            <div class="stat-label">غرف متاحة</div>
+        <div class="insight-foot">
+            <span class="trend-up">+{{ $salesStats['growthPercent'] ?? 0 }}%</span>
+            <span>معدل التحويل {{ $salesStats['conversionRate'] ?? 0 }}%</span>
         </div>
     </div>
 </div>
 
-<!-- إحصائيات المكاتب الخارجية والمبيعات -->
-<div class="row mb-4">
-    <div class="col-12">
-        <h4 class="mb-3"><i class="fas fa-building me-2"></i>المكاتب الخارجية والمبيعات</h4>
-    </div>
+@php
+    $ordersTotal = max($ordersStats['total'] ?? 0, 1);
+    $completedPercent = round((($ordersStats['completed'] ?? 0) / $ordersTotal) * 100);
+    $pendingPercent = round((($ordersStats['pending'] ?? 0) / $ordersTotal) * 100);
+    $processingPercent = round((($ordersStats['processing'] ?? 0) / $ordersTotal) * 100);
 
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card primary">
-            <div class="stat-icon primary">
-                <i class="fas fa-globe"></i>
-            </div>
-            <div class="stat-value">{{ $officesStats['total'] ?? 0 }}</div>
-            <div class="stat-label">المكاتب الخارجية</div>
+    $cvTotal = max($cvStats['total'] ?? 0, 1);
+    $cvAvailablePercent = round((($cvStats['available'] ?? 0) / $cvTotal) * 100);
+
+    $employeesTotal = max($employeesStats['total'] ?? 0, 1);
+    $employeesActivePercent = round((($employeesStats['active'] ?? 0) / $employeesTotal) * 100);
+
+    $shelterTotal = max($shelterStats['total'] ?? 0, 1);
+    $shelterOccupiedPercent = round((($shelterStats['occupied'] ?? 0) / $shelterTotal) * 100);
+@endphp
+
+<div class="data-section" id="operations">
+    <div class="section-head">
+        <div>
+            <p class="section-eyebrow">العمليات</p>
+            <h3 class="mb-0">مؤشرات التشغيل السريعة</h3>
         </div>
+        <button class="section-toggle" data-toggle-section="operations" aria-expanded="true">
+            <i class="fas fa-eye"></i> طي / عرض
+        </button>
     </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card success">
-            <div class="stat-icon success">
-                <i class="fas fa-dollar-sign"></i>
+    <div class="section-body" data-section-body="operations">
+        <div class="metric-card">
+            <h5>مسار الطلبات</h5>
+            <strong>{{ number_format($ordersStats['total'] ?? 0) }}</strong>
+            <div class="d-flex justify-content-between mt-2 small text-muted">
+                <span>مكتمل</span>
+                <span>{{ $completedPercent }}%</span>
             </div>
-            <div class="stat-value">{{ number_format($salesStats['totalRevenue'] ?? 0) }}</div>
-            <div class="stat-label">إجمالي المبيعات</div>
-            <span class="stat-change positive">
-                <i class="fas fa-arrow-up"></i> {{ $salesStats['growthPercent'] ?? 0 }}%
-            </span>
+            <div class="progress-line success"><span style="width: {{ $completedPercent }}%"></span></div>
+            <div class="d-flex justify-content-between mt-2 small text-muted">
+                <span>قيد التنفيذ</span>
+                <span>{{ $processingPercent }}%</span>
+            </div>
+            <div class="progress-line warning"><span style="width: {{ $processingPercent }}%"></span></div>
+            <div class="d-flex justify-content-between mt-2 small text-muted">
+                <span>معلق</span>
+                <span>{{ $pendingPercent }}%</span>
+            </div>
+            <div class="progress-line danger"><span style="width: {{ $pendingPercent }}%"></span></div>
         </div>
-    </div>
 
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card info">
-            <div class="stat-icon info">
-                <i class="fas fa-chart-line"></i>
-            </div>
-            <div class="stat-value">{{ number_format($salesStats['thisMonth'] ?? 0) }}</div>
-            <div class="stat-label">مبيعات الشهر</div>
+        <div class="metric-card">
+            <h5>السير الذاتية</h5>
+            <strong>{{ number_format($cvStats['available'] ?? 0) }}</strong>
+            <small class="d-block text-muted">متاح من أصل {{ number_format($cvStats['total'] ?? 0) }}</small>
+            <div class="progress-line success"><span style="width: {{ $cvAvailablePercent }}%"></span></div>
+            <div class="mt-2 text-muted small">{{ number_format($cvStats['newThisWeek'] ?? 0) }} سيرة جديدة هذا الأسبوع</div>
         </div>
-    </div>
 
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card warning">
-            <div class="stat-icon warning">
-                <i class="fas fa-percentage"></i>
-            </div>
-            <div class="stat-value">{{ $salesStats['conversionRate'] ?? 0 }}%</div>
-            <div class="stat-label">معدل التحويل</div>
+        <div class="metric-card">
+            <h5>فريق العمل</h5>
+            <strong>{{ number_format($employeesStats['active'] ?? 0) }}</strong>
+            <small class="d-block text-muted">من أصل {{ number_format($employeesStats['total'] ?? 0) }}</small>
+            <div class="progress-line"><span style="width: {{ $employeesActivePercent }}%"></span></div>
+            <div class="mt-2 text-muted small">مبيعات: {{ $employeesStats['departments']['sales'] ?? 0 }} | دعم: {{ $employeesStats['departments']['support'] ?? 0 }}</div>
         </div>
-    </div>
-</div>
 
-<!-- إحصائيات الموظفين -->
-<div class="row mb-4">
-    <div class="col-12">
-        <h4 class="mb-3"><i class="fas fa-user-tie me-2"></i>الموظفين</h4>
-    </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card primary">
-            <div class="stat-icon primary">
-                <i class="fas fa-user-tie"></i>
-            </div>
-            <div class="stat-value">{{ $employeesStats['total'] ?? 0 }}</div>
-            <div class="stat-label">إجمالي الموظفين</div>
-        </div>
-    </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card success">
-            <div class="stat-icon success">
-                <i class="fas fa-user-check"></i>
-            </div>
-            <div class="stat-value">{{ $employeesStats['active'] ?? 0 }}</div>
-            <div class="stat-label">موظفين نشطين</div>
-        </div>
-    </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card info">
-            <div class="stat-icon info">
-                <i class="fas fa-circle text-success"></i>
-            </div>
-            <div class="stat-value">{{ $employeesStats['online'] ?? 0 }}</div>
-            <div class="stat-label">متصلين الآن</div>
-        </div>
-    </div>
-
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="stat-card warning">
-            <div class="stat-icon warning">
-                <i class="fas fa-users-cog"></i>
-            </div>
-            <div class="stat-value">
-                <small>مبيعات: {{ $employeesStats['departments']['sales'] ?? 0 }}</small><br>
-                <small>دعم: {{ $employeesStats['departments']['support'] ?? 0 }}</small>
-            </div>
-            <div class="stat-label">الأقسام</div>
+        <div class="metric-card">
+            <h5>الإيواء</h5>
+            <strong>{{ number_format($shelterStats['occupied'] ?? 0) }}</strong>
+            <small class="d-block text-muted">مشغول من أصل {{ number_format($shelterStats['total'] ?? 0) }}</small>
+            <div class="progress-line warning"><span style="width: {{ $shelterOccupiedPercent }}%"></span></div>
+            <div class="mt-2 text-muted small">المتاح: {{ number_format($shelterStats['available'] ?? 0) }}</div>
         </div>
     </div>
 </div>
 
-<!-- الرسوم البيانية -->
-<div class="row mb-4">
-    <!-- رسم بياني للعقود -->
-    <div class="col-xl-8 col-lg-7">
-        <div class="chart-card">
-            <div class="chart-header">
-                <h5 class="chart-title">إحصائيات العقود الشهرية</h5>
-                <div class="d-flex gap-2">
-                    <span class="badge bg-primary">عقود جديدة</span>
-                    <span class="badge bg-success">عقود مكتملة</span>
+<div class="row g-4 mt-1">
+    <div class="col-xxl-8 col-lg-7">
+        <div class="panel-card h-100">
+            <div class="panel-head">
+                <div>
+                    <p class="section-eyebrow">الاتجاه العام</p>
+                    <h4 class="mb-0">أداء العقود لآخر 6 أشهر</h4>
+                </div>
+                <div class="text-end">
+                    <small>إجمالي الفترة</small>
+                    <h5 class="mb-0">{{ number_format(array_sum($newContracts ?? [])) }} عقد</h5>
                 </div>
             </div>
-            <div style="height: 250px; position: relative;">
+            <div class="chart-holder">
                 <canvas id="contractsChart"></canvas>
             </div>
-            <!-- إحصائيات رقمية -->
-            <div class="p-3 border-top bg-light">
-                <div class="row text-center">
-                    <div class="col-4">
-                        <small class="text-muted d-block">إجمالي العقود</small>
-                        <h5 class="mb-0 text-primary">{{ array_sum($newContracts ?? []) }}</h5>
-                    </div>
-                    <div class="col-4">
-                        <small class="text-muted d-block">متوسط شهري</small>
-                        <h5 class="mb-0 text-info">{{ $newContracts ? round(array_sum($newContracts) / count($newContracts)) : 0 }}</h5>
-                    </div>
-                    <div class="col-4">
-                        <small class="text-muted d-block">نسبة الإنجاز</small>
-                        <h5 class="mb-0 text-success">{{ ($newContracts && array_sum($newContracts) > 0) ? round((array_sum($completedContracts ?? []) / array_sum($newContracts)) * 100) : 0 }}%</h5>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
-
-    <!-- توزيع الجنسيات -->
-    <div class="col-xl-4 col-lg-5">
-        <div class="chart-card">
-            <div class="chart-header">
-                <h5 class="chart-title">توزيع الجنسيات</h5>
-                <small class="text-muted">إجمالي: {{ array_sum($nationalityData ?? []) }} عاملة</small>
+    <div class="col-xxl-4 col-lg-5">
+        <div class="panel-card h-100">
+            <div class="panel-head">
+                <div>
+                    <p class="section-eyebrow">التوزيع الجنسي</p>
+                    <h4 class="mb-0">أبرز الجنسيات المتاحة</h4>
+                </div>
+                <small>إجمالي {{ array_sum($nationalityData ?? []) }} عاملة</small>
             </div>
-            <div style="height: 200px; position: relative;">
+            <div class="chart-holder" style="height: 260px;">
                 <canvas id="nationalitiesChart"></canvas>
             </div>
-            <!-- قائمة الجنسيات -->
-            <div class="p-3 border-top bg-light" style="max-height: 150px; overflow-y: auto;">
+            <ul class="legend-list">
                 @if(isset($nationalityLabels) && isset($nationalityData))
                     @foreach($nationalityLabels as $index => $label)
-                    @if(isset($nationalityData[$index]))
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="text-muted">{{ $label }}</span>
-                        <div>
-                            <span class="badge bg-secondary">{{ $nationalityData[$index] }}</span>
-                            <small class="text-muted">({{ array_sum($nationalityData) > 0 ? round(($nationalityData[$index] / array_sum($nationalityData)) * 100) : 0 }}%)</small>
-                        </div>
-                    </div>
-                    @endif
+                        <li>
+                            <span>{{ $label }}</span>
+                            <strong>{{ number_format($nationalityData[$index] ?? 0) }}</strong>
+                        </li>
                     @endforeach
+                @else
+                    <li class="empty-state">لا توجد بيانات متاحة</li>
                 @endif
-            </div>
+            </ul>
         </div>
     </div>
 </div>
 
-<!-- تحليل الأداء الشهري -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-gradient-primary text-white">
-                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>تحليل الأداء</h5>
-            </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <!-- الشهر الحالي -->
-                    <div class="col-md-3">
-                        <div class="text-center p-3 border rounded bg-light">
-                            <i class="fas fa-calendar-check fa-2x text-primary mb-2"></i>
-                            <h6 class="text-muted">الشهر الحالي</h6>
-                            <h3 class="text-primary mb-0">{{ $contractsStats['thisMonth'] ?? 0 }}</h3>
-                            <small class="text-muted">عقد جديد</small>
-                        </div>
-                    </div>
-
-                    <!-- هذا الأسبوع -->
-                    <div class="col-md-3">
-                        <div class="text-center p-3 border rounded bg-light">
-                            <i class="fas fa-calendar-week fa-2x text-success mb-2"></i>
-                            <h6 class="text-muted">هذا الأسبوع</h6>
-                            <h3 class="text-success mb-0">{{ $contractsStats['thisWeek'] ?? 0 }}</h3>
-                            <small class="text-muted">عقد جديد</small>
-                        </div>
-                    </div>
-
-                    <!-- اليوم -->
-                    <div class="col-md-3">
-                        <div class="text-center p-3 border rounded bg-light">
-                            <i class="fas fa-calendar-day fa-2x text-warning mb-2"></i>
-                            <h6 class="text-muted">اليوم</h6>
-                            <h3 class="text-warning mb-0">{{ $contractsStats['today'] ?? 0 }}</h3>
-                            <small class="text-muted">عقد جديد</small>
-                        </div>
-                    </div>
-
-                    <!-- تحت الضمان -->
-                    <div class="col-md-3">
-                        <div class="text-center p-3 border rounded bg-light">
-                            <i class="fas fa-shield-alt fa-2x text-info mb-2"></i>
-                            <h6 class="text-muted">تحت الضمان</h6>
-                            <h3 class="text-info mb-0">{{ $contractsStats['underWarranty'] ?? 0 }}</h3>
-                            <small class="text-muted">عقد نشط</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- الأنشطة الأخيرة والإجراءات السريعة -->
-<div class="row">
-    <!-- الأنشطة الأخيرة -->
-    <div class="col-xl-8 col-lg-7">
-        <div class="activity-table">
-            <h5 class="mb-4">الأنشطة الأخيرة</h5>
-
-            @foreach($recentActivities ?? [] as $activity)
-            <div class="activity-item">
-                <div class="activity-icon bg-primary bg-opacity-10">
-                    <i class="fas fa-{{ $activity['icon'] ?? 'circle' }} text-primary"></i>
-                </div>
-                <div class="flex-grow-1">
-                    <div class="fw-semibold">{{ $activity['title'] }}</div>
-                    <small class="text-muted">{{ $activity['time'] }}</small>
-                </div>
+<div class="row g-4 mt-1">
+    <div class="col-xxl-6">
+        <div class="panel-card h-100">
+            <div class="panel-head">
                 <div>
-                    <span class="badge bg-{{ $activity['type'] ?? 'primary' }} bg-opacity-10 text-{{ $activity['type'] ?? 'primary' }}">
-                        {{ $activity['status'] }}
-                    </span>
+                    <p class="section-eyebrow">التحديثات الفورية</p>
+                    <h4 class="mb-0">آخر الأنشطة</h4>
                 </div>
+                <small>{{ count($recentActivities ?? []) }} عناصر معروضة</small>
             </div>
-            @endforeach
+            <div class="activity-feed">
+                @forelse($recentActivities ?? [] as $activity)
+                    <div class="activity-line">
+                        <div class="activity-icon">
+                            <i class="fas fa-{{ $activity['icon'] ?? 'circle' }} text-primary"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <strong class="d-block">{{ $activity['title'] }}</strong>
+                            <small>{{ $activity['time'] }}</small>
+                        </div>
+                        <span class="status-chip {{ $activity['type'] ?? 'info' }}">{{ $activity['status'] }}</span>
+                    </div>
+                @empty
+                    <div class="empty-state">لا يوجد نشاط حديث</div>
+                @endforelse
+            </div>
         </div>
     </div>
-
-    <!-- الإجراءات السريعة -->
-    <div class="col-xl-4 col-lg-5">
-        <div class="mb-4">
-            <h5 class="mb-4">إجراءات سريعة</h5>
-            <div class="row g-3">
-                <div class="col-6">
-                    <a href="{{ route('RecruitmentContract.create') }}" class="quick-action">
-                        <i class="fas fa-plus-circle"></i>
-                        <div class="quick-action-title">عقد جديد</div>
-                    </a>
+    <div class="col-xxl-6">
+        <div class="panel-card h-100">
+            <div class="panel-head">
+                <div>
+                    <p class="section-eyebrow">الجدول الزمني</p>
+                    <h4 class="mb-0">مواعيد وتذكيرات حرجة</h4>
                 </div>
-                <div class="col-6">
-                    <a href="{{ route('orders.index') }}" class="quick-action">
-                        <i class="fas fa-shopping-basket"></i>
-                        <div class="quick-action-title">الطلبات</div>
-                    </a>
-                </div>
-                <div class="col-6">
-                    <a href="{{ route('clients.create') }}" class="quick-action">
-                        <i class="fas fa-user-plus"></i>
-                        <div class="quick-action-title">عميل جديد</div>
-                    </a>
-                </div>
-                <div class="col-6">
-                    <a href="{{ route('maids.create') }}" class="quick-action">
-                        <i class="fas fa-id-card-alt"></i>
-                        <div class="quick-action-title">سيرة ذاتية</div>
-                    </a>
-                </div>
-                <div class="col-6">
-                    <a href="{{ route('complaints.create') }}" class="quick-action">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <div class="quick-action-title">شكوى جديدة</div>
-                    </a>
-                </div>
-                <div class="col-6">
-                    <a href="#" class="quick-action" onclick="alert('التقارير قيد التطوير'); return false;">
-                        <i class="fas fa-chart-bar"></i>
-                        <div class="quick-action-title">التقارير</div>
-                    </a>
-                </div>
+                <small>{{ count($calendarEvents ?? []) }} موعداً</small>
             </div>
+            <div id="calendar" class="calendar-shell"></div>
         </div>
     </div>
 </div>
-
-<!-- رسم بياني للإيرادات -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="chart-card">
-            <div class="chart-header">
-                <h5 class="chart-title">الإيرادات الشهرية</h5>
-            </div>
-            <div class="chart-body">
-                <canvas id="revenueChart" height="100"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- التقويم -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h4 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>التقويم والمواعيد</h4>
-            </div>
-            <div class="card-body">
-                <div id="calendar"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
 @endsection
 
 @section('js')
@@ -685,7 +722,56 @@
 <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css' rel='stylesheet' />
 <script>
 $(document).ready(function() {
-    // رسم بياني للعقود - محسن
+    const rangeButtons = document.querySelectorAll('.range-btn');
+    const rangeValues = document.querySelectorAll('[data-range-value]');
+    const rangeLabels = document.querySelectorAll('[data-range-label]');
+
+    const numberFormatter = new Intl.NumberFormat('ar-SA');
+
+    function formatValue(value, format) {
+        if (format === 'currency') {
+            return new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR', maximumFractionDigits: 0 }).format(value);
+        }
+        return numberFormatter.format(value);
+    }
+
+    rangeButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            const targetRange = button.dataset.range;
+            rangeButtons.forEach((btn) => btn.classList.toggle('active', btn === button));
+
+            rangeValues.forEach((element) => {
+                const format = element.dataset.rangeFormat || 'number';
+                const datasetValue = element.dataset[targetRange];
+                if (datasetValue === undefined) return;
+                element.textContent = formatValue(Number(datasetValue) || 0, format);
+            });
+
+            rangeLabels.forEach((element) => {
+                const labelText = element.dataset[targetRange];
+                if (labelText) {
+                    element.textContent = labelText;
+                }
+            });
+        });
+    });
+
+    if (rangeButtons.length) {
+        rangeButtons[0].click();
+    }
+
+    document.querySelectorAll('[data-toggle-section]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const sectionName = button.dataset.toggleSection;
+            const target = document.querySelector(`[data-section-body="${sectionName}"]`);
+            if (!target) return;
+            target.classList.toggle('collapsed');
+            button.setAttribute('aria-expanded', !target.classList.contains('collapsed'));
+            button.querySelector('i').classList.toggle('fa-eye-slash');
+        });
+    });
+
+    // عقود
     const contractsCtx = document.getElementById('contractsChart').getContext('2d');
     new Chart(contractsCtx, {
         type: 'bar',
@@ -694,84 +780,45 @@ $(document).ready(function() {
             datasets: [{
                 label: 'عقود جديدة',
                 data: {!! json_encode($newContracts ?? [65, 59, 80, 81, 56, 55]) !!},
-                backgroundColor: 'rgba(78, 115, 223, 0.8)',
-                borderColor: '#4e73df',
+                backgroundColor: 'rgba(95, 91, 255, 0.85)',
+                borderColor: '#5f5bff',
                 borderWidth: 2,
-                borderRadius: 8,
-                barPercentage: 0.7
+                borderRadius: 10,
+                barPercentage: 0.65
             }, {
                 label: 'عقود مكتملة',
                 data: {!! json_encode($completedContracts ?? [28, 48, 40, 19, 86, 27]) !!},
-                backgroundColor: 'rgba(28, 200, 138, 0.8)',
-                borderColor: '#1cc88a',
+                backgroundColor: 'rgba(40, 199, 111, 0.85)',
+                borderColor: '#28c76f',
                 borderWidth: 2,
-                borderRadius: 8,
-                barPercentage: 0.7
+                borderRadius: 10,
+                barPercentage: 0.65
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false,
-            },
             plugins: {
-                legend: {
-                    display: false
-                },
+                legend: { display: false },
                 tooltip: {
-                    backgroundColor: 'rgba(0,0,0,0.9)',
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
                     padding: 12,
-                    titleFont: {
-                        size: 14,
-                        weight: 'bold'
-                    },
-                    bodyFont: {
-                        size: 13
-                    },
                     rtl: true,
-                    textDirection: 'rtl',
-                    callbacks: {
-                        label: function(context) {
-                            return context.dataset.label + ': ' + context.parsed.y + ' عقد';
-                        }
-                    }
+                    textDirection: 'rtl'
                 }
             },
+            interaction: { mode: 'index', intersect: false },
             scales: {
-                x: {
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        font: {
-                            size: 11
-                        }
-                    }
-                },
+                x: { grid: { display: false } },
                 y: {
                     beginAtZero: true,
-                    max: Math.max(...{!! json_encode($newContracts ?? [100]) !!}, ...{!! json_encode($completedContracts ?? [100]) !!}) * 1.2,
-                    grid: {
-                        borderDash: [3, 3],
-                        color: 'rgba(0,0,0,0.05)'
-                    },
-                    ticks: {
-                        font: {
-                            size: 11
-                        },
-                        stepSize: 10,
-                        callback: function(value) {
-                            return value;
-                        }
-                    }
+                    grid: { borderDash: [4, 4], color: 'rgba(15, 23, 42, 0.08)' }
                 }
             }
         }
     });
 
-    // رسم بياني للجنسيات - محسن
+    // الجنسيات
     const nationalitiesCtx = document.getElementById('nationalitiesChart').getContext('2d');
     new Chart(nationalitiesCtx, {
         type: 'doughnut',
@@ -779,122 +826,48 @@ $(document).ready(function() {
             labels: {!! json_encode($nationalityLabels ?? ['الفلبين', 'إندونيسيا', 'بنغلاديش', 'الهند', 'أخرى']) !!},
             datasets: [{
                 data: {!! json_encode($nationalityData ?? [35, 25, 20, 15, 5]) !!},
-                backgroundColor: [
-                    'rgba(78, 115, 223, 0.9)',
-                    'rgba(28, 200, 138, 0.9)',
-                    'rgba(54, 185, 204, 0.9)',
-                    'rgba(246, 194, 62, 0.9)',
-                    'rgba(231, 74, 59, 0.9)'
-                ],
-                borderColor: [
-                    '#4e73df',
-                    '#1cc88a',
-                    '#36b9cc',
-                    '#f6c23e',
-                    '#e74a3b'
-                ],
-                borderWidth: 2,
-                hoverOffset: 10
+                backgroundColor: ['#5f5bff', '#28c76f', '#36b9cc', '#ffa726', '#ff4d4f'],
+                borderColor: '#fff',
+                borderWidth: 3,
+                hoverOffset: 8,
+                cutout: '68%'
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '60%',
             plugins: {
-                legend: {
-                    display: false
-                },
+                legend: { display: false },
                 tooltip: {
-                    backgroundColor: 'rgba(0,0,0,0.9)',
-                    padding: 12,
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)',
                     rtl: true,
-                    textDirection: 'rtl',
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.label || '';
-                            let value = context.parsed;
-                            let sum = context.dataset.data.reduce((a, b) => a + b, 0);
-                            let percentage = ((value / sum) * 100).toFixed(1);
-                            return label + ': ' + value + ' (' + percentage + '%)';
-                        }
-                    }
+                    textDirection: 'rtl'
                 }
             }
         }
     });
 
     // التقويم
-    var calendarEl = document.getElementById('calendar');
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-        locale: 'ar',
-        direction: 'rtl',
-        initialView: 'dayGridMonth',
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
-        },
-        events: {!! json_encode($calendarEvents ?? []) !!},
-        eventClick: function(info) {
-            if (info.event.extendedProps.url) {
-                window.location.href = info.event.extendedProps.url;
-            }
-        },
-        eventColor: function(event) {
-            switch(event.extendedProps.type) {
-                case 'success': return '#1cc88a';
-                case 'warning': return '#f6c23e';
-                case 'danger': return '#e74a3b';
-                default: return '#4e73df';
-            }
-        },
-        height: 600
-    });
-    calendar.render();
-
-    // رسم بياني للإيرادات
-    if (document.getElementById('revenueChart')) {
-        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-        new Chart(revenueCtx, {
-            type: 'bar',
-            data: {
-                labels: {!! json_encode($chartLabels ?? []) !!},
-                datasets: [{
-                    label: 'الإيرادات (ريال)',
-                    data: {!! json_encode($revenue ?? []) !!},
-                    backgroundColor: '#4e73df',
-                    borderColor: '#4e73df',
-                    borderWidth: 1
-                }]
+    const calendarEl = document.getElementById('calendar');
+    if (calendarEl) {
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            locale: 'ar',
+            direction: 'rtl',
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return value.toLocaleString('ar-SA') + ' ريال';
-                            }
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.parsed.y.toLocaleString('ar-SA') + ' ريال';
-                            }
-                        }
-                    }
+            height: 500,
+            events: {!! json_encode($calendarEvents ?? []) !!},
+            eventClick: function(info) {
+                if (info.event.extendedProps.url) {
+                    window.location.href = info.event.extendedProps.url;
                 }
             }
         });
+        calendar.render();
     }
 });
 </script>

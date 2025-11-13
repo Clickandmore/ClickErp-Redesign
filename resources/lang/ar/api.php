@@ -22,4 +22,5 @@
   'arrival_workers' => 'Arrival workers',
   'Fast news' => 'Fast news',
   'Features' => 'Features',
+  'what_do' => 'What do',
 );

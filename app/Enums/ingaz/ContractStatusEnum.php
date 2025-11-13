@@ -16,6 +16,9 @@ enum ContractStatusEnum: string
     case Shelter = 'shelter'; // عقد ايواء
     case PendingMaidSelection = 'pending_maid_selection'; // بانتظار اختيار العاملة
     case Trial = 'trial'; // في فترة التجربة
+    case InProgress = 'in_progress'; // قيد التنفيذ
+    case ClientContracted = 'client_contracted'; // تم التعاقد مع العميل
+    case DelegateSelected = 'delegate_selected'; // تم اختيار المندوب
 
     // الحالات القديمة للتوافق مع البيانات الموجودة
     case UnderWarranty = 'under_warranty'; // تحت الضمان (متروك للتوافق)
@@ -38,6 +41,9 @@ enum ContractStatusEnum: string
             self::Trial => __('ingaz.trial'),
             self::UnderWarranty => __('ingaz.under_warranty'),
             self::Closed => __('ingaz.closed'),
+            self::InProgress => __('ingaz.in_progress'),
+            self::ClientContracted => __('ingaz.client_contracted'),
+            self::DelegateSelected => __('ingaz.delegate_selected'),
         };
     }
 
@@ -58,6 +64,9 @@ enum ContractStatusEnum: string
             self::Trial => 'success',
             self::UnderWarranty => 'info',
             self::Closed => 'danger',
+            self::InProgress => 'warning',
+            self::ClientContracted => 'primary',
+            self::DelegateSelected => 'info',
         };
     }
 }

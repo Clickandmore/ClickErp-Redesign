@@ -39,7 +39,7 @@ class MaidRequest extends MainRequest
             'experience_years' => 'nullable',
             'experience_status' => 'required|in:has_experience,no_experience',
             'religion_id' => 'nullable|exists:religions,id',
-            'age' => 'nullable|numeric',
+            'age' => 'nullable|numeric|min:20|max:50',
             'childrens_count' => 'nullable|numeric',
             'duration' => 'nullable|string',
             'additional_notes' => 'nullable',
@@ -51,6 +51,12 @@ class MaidRequest extends MainRequest
             'languages' => 'nullable|array',
             'percentage' => 'nullable|array',
             'expertises' => 'nullable|array',
+            'request_type' => 'nullable|in:known,specific,custom_spec',
+            'offer_price' => 'nullable|numeric|min:0',
+            'offer_duration' => 'nullable|string|max:255',
+            'offer_description' => 'nullable|string',
+            'offer_starts_at' => 'nullable|date',
+            'offer_expires_at' => 'nullable|date|after_or_equal:offer_starts_at',
         ];
     }
 
@@ -71,6 +77,8 @@ class MaidRequest extends MainRequest
             'religion_id.required' => helperTrans('web.religion_id_is_required'),
             'religion_id.exists' => helperTrans('web.invalid_religion_id'),
             'age.numeric' => helperTrans('web.age_must_be_numeric'),
+            'age.min' => __('web.age_min', ['min'=> '20']),
+            'age.max' => __('web.age_max', ['max'=> '50']),
             'job_id.required' => helperTrans('web.job_id_is_required'),
             'job_id.array' => helperTrans('web.job_id_must_be_an_array'),
             'job_id.*.required' => helperTrans('web.each_job_id_is_required'),
@@ -78,6 +86,10 @@ class MaidRequest extends MainRequest
             'type_id.required' => helperTrans('web.type_id_is_required'),
             'type_id.exists' => helperTrans('web.invalid_type_id'),
             'office_id.exists' => helperTrans('web.office_id not exist'),
+            'offer_price.numeric' => helperTrans('web.price_must_be_numeric'),
+            'offer_price.min' => helperTrans('web.price_must_be_numeric'),
+            'offer_expires_at.after_or_equal' => 'تاريخ انتهاء العرض يجب أن يكون بعد أو مساوي لتاريخ بداية العرض',
+            'offer_duration.max' => 'مدة العرض يجب ألا تتجاوز 255 حرفاً',
         ];
     }
 }

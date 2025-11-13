@@ -440,6 +440,15 @@
             console.log('No selected order found');
             @endif
 
+            @if(isset($selectedClientId) && $selectedClientId)
+            setTimeout(function () {
+                if (!$('#new_existing_client_id').val()) {
+                    $('#new_existing_client_id').val('{{ $selectedClientId }}').trigger('change');
+                    toastr.info('{{ helperTrans("ingaz.client_selected_auto") }}');
+                }
+            }, 600);
+            @endif
+
             // معالج تغيير العميل المحدد
             $('#new_existing_client_id').on('change', function () {
                 const selectedOption = $(this).find('option:selected');

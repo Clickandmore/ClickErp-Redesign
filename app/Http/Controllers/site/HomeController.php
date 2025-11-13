@@ -14,13 +14,14 @@ use App\Http\Actions\ingaz\ServiceAction;
 use App\Http\Actions\ingaz\SliderAction;
 use App\Http\Actions\ingaz\StatisticAction;
 use App\Http\Actions\ingaz\StepAction;
- use App\Http\Controllers\Controller;
+use App\Http\Actions\ingaz\WhatDoAction;
+use App\Http\Controllers\Controller;
 use App\Models\Country;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
-    public function index(Request $request, SliderAction $sliderAction, NationalityAction $nationalityAction,
+    public function index(Request $request, SliderAction $sliderAction, NationalityAction $nationalityAction,WhatDoAction $whatDoAction,
                           StatisticAction $statisticAction , ServiceAction $serviceAction , StepAction $stepAction ,
                           ClientAction $clientAction , RequirementAction $requirement_action , AboutUsAction $about , FeatureAction $feature,
                            )
@@ -30,6 +31,7 @@ class HomeController extends Controller
         $services = $serviceAction->get();
         $steps = $stepAction->get();
         $clients = $clientAction->get();
+        $whatDos = $whatDoAction->get();
         $about = $about->first();
         $features = $feature->get();
         $nationalities = method_exists($nationalityAction, 'getVisible')

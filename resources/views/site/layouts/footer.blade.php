@@ -3,34 +3,35 @@
         @if(isset($settings))
             <!-- الشعار والوصف -->
             <div class="col-lg-4 col-md-6 mb-4 mb-md-0 footer-about">
-                <img src="{{ showFile($settings->logo_footer) }}" alt="Logo" class="footer-logo" />
+                <img src="{{ showFile($settings->logo_footer) }}" alt="Logo" class="footer-logo"/>
                 <p class="footer-desc">
                     {{ $settings->footer_text }}
                 </p>
 
                 <div class="tax-info">
-                    <img src="{{ asset('site/assets/images/zatca-logo.png') }}" alt="شعار هيئة الزكاة والضريبة والجمارك" class="tax-logo" />
+                    <img src="{{ asset('site/assets/images/zatca-logo.png') }}" alt="شعار هيئة الزكاة والضريبة والجمارك"
+                         class="tax-logo"/>
                     <p class="tax-number">
                         الرقم الضريبي: <span>{{ $settings->tax_number ?? '310012345600003' }}</span>
                     </p>
                 </div>
 
-              
+
             </div>
         @else
             <!-- الحالة الافتراضية -->
             <div class="col-lg-4 col-md-6 mb-4 footer-about">
-                <img src="{{ asset('site/assets/images/logo.svg') }}" alt="Logo" class="footer-logo" />
+                <img src="{{ asset('site/assets/images/logo.svg') }}" alt="Logo" class="footer-logo"/>
                 <p class="footer-desc">
                     بلاتينيوم للاستقدام يقدم خدمات استقدام العمالة المنزلية باحترافية وجودة مميزة.
                 </p>
 
                 <div class="tax-info">
-                    <img src="{{ asset('site/assets/images/zatca-logo.png') }}" alt="شعار هيئة الزكاة والضريبة والجمارك" class="tax-logo" />
-                    <p class="tax-number">الرقم الضريبي: <span>310012345600003</span></p>
+                    <img src="{{ asset('site/assets/images/zatca-logo.png') }}" alt="شعار هيئة الزكاة والضريبة والجمارك"
+                         class="tax-logo"/>
+                    <p class="tax-number">الرقم الضريبي: <span>314232024200003</span></p>
                 </div>
 
-               
             </div>
         @endif
 
@@ -38,10 +39,17 @@
         <div class="col-6 col-lg-2 col-md-6 mb-4">
             <h6 class="footer-title">{{ __("ingaz.our_services") }}</h6>
             <ul class="footer-links">
-                <li><a href="{{ route('site.all-workers.index') }}?type=estqdam">{{ __("ingaz.recruitment_request") }}</a></li>
-                <li><a href="{{ route('site.all-workers.index') }}?type=egar">{{ __("ingaz.labor_rental_request") }}</a></li>
-                <li><a href="{{ route('site.daily-lebor-demand.index') }}">{{ __("ingaz.request_professional_labor") }}</a></li>
-                <li><a href="{{ route('site.renew-contract.index') }}">{{ __("ingaz.renewing_employment_contract") }}</a></li>
+                <li>
+                    <a href="{{ route('site.all-workers.index') }}?type=estqdam">{{ __("ingaz.recruitment_request") }}</a>
+                </li>
+                <li><a href="{{ route('site.all-workers.index') }}?type=egar">{{ __("ingaz.labor_rental_request") }}</a>
+                </li>
+                <li>
+                    <a href="{{ route('site.daily-lebor-demand.index') }}">{{ __("ingaz.request_professional_labor") }}</a>
+                </li>
+                <li>
+                    <a href="{{ route('site.renew-contract.index') }}">{{ __("ingaz.renewing_employment_contract") }}</a>
+                </li>
             </ul>
         </div>
 
@@ -82,34 +90,46 @@
             <p>
                 {{ __("ingaz.all_rights_reserved") }} ©
                 <script>document.write(new Date().getFullYear());</script>
-                <a target="_blank" href="http://nami-tec.com">NAMI</a>
+                <a target="_blank" href="http://istqdim.com">عالم الاستقدام </a>
             </p>
-              <ul class="footer-social">
-                    @if($settings->facebook)
-                        <li><a href="{{ $settings->facebook }}"><i class="fab fa-facebook-f"></i></a></li>
-                    @endif
-                    @if($settings->twitter)
-                        <li><a href="{{ $settings->twitter }}"><i class="fab fa-twitter"></i></a></li>
-                    @endif
-                    @if($settings->instagram)
-                        <li><a href="{{ $settings->instagram }}"><i class="fab fa-instagram"></i></a></li>
-                    @endif
-                    @if($settings->snapchat)
-                        <li><a href="{{ $settings->snapchat }}"><i class="fab fa-snapchat-ghost"></i></a></li>
-                    @endif
-                    @if($settings->whatsapp)
-                        <li>
-                            <a href="https://wa.me/{{ ltrim($settings->whatsapp, '+') }}" target="_blank" rel="noopener">
-                                <i class="fab fa-whatsapp"></i>
-                            </a>
-                        </li>
-                    @endif
-                    @if($settings->email)
-                        <li>
-                            <a href="mailto:{{ $settings->email }}"><i class="fas fa-envelope"></i></a>
-                        </li>
-                    @endif
-                </ul>
+            <ul class="footer-social">
+                @if($settings->facebook)
+                    <li><a href="{{ $settings->facebook }}"><i class="fab fa-facebook-f"></i></a></li>
+                @endif
+                @if($settings->twitter)
+                    <li><a href="{{ $settings->twitter }}"><i class="fab fa-twitter"></i></a></li>
+                @endif
+                @if($settings->instagram)
+                    <li><a href="{{ $settings->instagram }}"><i class="fab fa-instagram"></i></a></li>
+                @endif
+                @if($settings->snapchat)
+                    <li><a href="{{ $settings->snapchat }}"><i class="fab fa-snapchat-ghost"></i></a></li>
+                @endif
+                @if($settings->whatsapp)
+                    <li>
+                        <a href="https://wa.me/{{ ltrim($settings->whatsapp, '+') }}" target="_blank" rel="noopener">
+                            <i class="fab fa-whatsapp"></i>
+                        </a>
+                    </li>
+                @endif
+                @if($settings->email)
+                    <li>
+                        <a href="mailto:{{ $settings->email }}"><i class="fas fa-envelope"></i></a>
+                    </li>
+                @endif
+            </ul>
         </div>
     </div>
 </div>
+<script>
+    function toArabicNumbers(num) {
+        const arabicNums = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+        return num.toString().split('').map(d => arabicNums[d] || d).join('');
+    }
+
+    var lang = '{{app()->getLocale()}}';
+    if (lang === 'ar') {
+        const span = document.querySelector('.tax-number span');
+        span.textContent = toArabicNumbers(span.textContent);
+    }
+</script>
