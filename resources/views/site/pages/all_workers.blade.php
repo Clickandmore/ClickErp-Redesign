@@ -62,14 +62,14 @@
                                     data-role="type" data-target="transfer">
                                 {{ __('ingaz.transfer_services') }}
                             </button>
-                            <!-- <button type="button" class="btn toggle-btn {{ $type == 'has_experience' ? 'active' : '' }}"
+                            <button type="button" class="btn toggle-btn {{ $type == 'has_experience' ? 'active' : '' }}"
                                     data-role="type" data-target="has_experience">
                                 {{ __('ingaz.has_experience_label') }}
                             </button>
                             <button type="button" class="btn toggle-btn {{ $type == 'no_experience' ? 'active' : '' }}"
                                     data-role="type" data-target="no_experience">
                                 {{ __('ingaz.no_experience_label') }}
-                            </button> -->
+                            </button>
                         </div>
 
                         @php
