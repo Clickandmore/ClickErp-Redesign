@@ -287,76 +287,181 @@
             // Handle restore order
             $(document).on('click', '.restore-order', function() {
                 const orderId = $(this).data('id');
-                if (confirm('{{ helperTrans('ingaz.restore_confirm') }}')) {
-                    $.ajax({
-                        url: '/admin/orders/' + orderId + '/restore',
-                        type: 'POST',
-                        data: {
-                            _token: '{{ csrf_token() }}'
-                        },
-                        success: function(response) {
-                            if (response.data.success) {
-                                dataTable.ajax.reload();
-                                if (typeof toastr !== 'undefined') {
-                                    toastr.success(
-                                        '{{ helperTrans('ingaz.order_restored') }}');
+                Swal.fire({
+                    title: '{{ helperTrans('buttons.Are You Sure') }}',
+                    text: '{{ helperTrans('buttons.You Can not to rollback') ?? 'This action cannot be undone!' }}',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: '{{ helperTrans('buttons.accept') ?? 'Yes, delete it!' }}',
+                    cancelButtonText: '{{ helperTrans('buttons.cancel') ?? 'Cancel' }}',
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/admin/orders/' + orderId + '/restore',
+                            type: 'POST',
+                            data: {
+                                _token: '{{ csrf_token() }}'
+                            },
+                            success: function(response) {
+                                if (response.data.success) {
+                                    dataTable.ajax.reload();
+                                    if (typeof toastr !== 'undefined') {
+                                        toastr.success(
+                                            '{{ helperTrans('ingaz.order_restored') }}'
+                                            );
+                                    } else {
+                                        toastr.success(
+                                            '{{ helperTrans('ingaz.order_restored') }}'
+                                            );
+                                    }
                                 } else {
-                                    alert('{{ helperTrans('ingaz.order_restored') }}');
+                                    if (typeof toastr !== 'undefined') {
+                                        toastr.error(
+                                            '{{ helperTrans('ingaz.restore_error') }}'
+                                            );
+                                    } else {
+                                        toastr.error(
+                                            '{{ helperTrans('ingaz.restore_error') }}'
+                                            );
+                                    }
                                 }
-                            } else {
+                            },
+                            error: function() {
                                 if (typeof toastr !== 'undefined') {
-                                    toastr.error('{{ helperTrans('ingaz.restore_error') }}');
+                                    toastr.error(
+                                        '{{ helperTrans('ingaz.restore_error') }}');
                                 } else {
-                                    alert('{{ helperTrans('ingaz.restore_error') }}');
+                                    toastr.error(
+                                        '{{ helperTrans('ingaz.restore_error') }}');
                                 }
                             }
-                        },
-                        error: function() {
-                            if (typeof toastr !== 'undefined') {
-                                toastr.error('{{ helperTrans('ingaz.restore_error') }}');
-                            } else {
-                                alert('{{ helperTrans('ingaz.restore_error') }}');
-                            }
-                        }
-                    });
-                }
+                        });
+                    }
+                });
+                // if (confirm('{{ helperTrans('ingaz.restore_confirm') }}')) {
+                //     $.ajax({
+                //         url: '/admin/orders/' + orderId + '/restore',
+                //         type: 'POST',
+                //         data: {
+                //             _token: '{{ csrf_token() }}'
+                //         },
+                //         success: function(response) {
+                //             if (response.data.success) {
+                //                 dataTable.ajax.reload();
+                //                 if (typeof toastr !== 'undefined') {
+                //                     toastr.success(
+                //                         '{{ helperTrans('ingaz.order_restored') }}');
+                //                 } else {
+                //                     alert('{{ helperTrans('ingaz.order_restored') }}');
+                //                 }
+                //             } else {
+                //                 if (typeof toastr !== 'undefined') {
+                //                     toastr.error('{{ helperTrans('ingaz.restore_error') }}');
+                //                 } else {
+                //                     alert('{{ helperTrans('ingaz.restore_error') }}');
+                //                 }
+                //             }
+                //         },
+                //         error: function() {
+                //             if (typeof toastr !== 'undefined') {
+                //                 toastr.error('{{ helperTrans('ingaz.restore_error') }}');
+                //             } else {
+                //                 alert('{{ helperTrans('ingaz.restore_error') }}');
+                //             }
+                //         }
+                //     });
+                // }
             });
 
             // Handle delete order
             $(document).on('click', '.delete-order', function() {
                 const orderId = $(this).data('id');
-                if (confirm('{{ helperTrans('ingaz.delete_confirm') }}')) {
-                    $.ajax({
-                        url: '/admin/orders/' + orderId,
-                        type: 'DELETE',
-                        data: {
-                            _token: '{{ csrf_token() }}'
-                        },
-                        success: function(response) {
-                            if (response.data.success) {
-                                dataTable.ajax.reload();
-                                if (typeof toastr !== 'undefined') {
-                                    toastr.success('{{ helperTrans('ingaz.order_deleted') }}');
+                Swal.fire({
+                    title: '{{ helperTrans('buttons.Are You Sure') }}',
+                    text: '{{ helperTrans('buttons.You Can not to rollback') ?? 'This action cannot be undone!' }}',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: '{{ helperTrans('buttons.accept') ?? 'Yes, delete it!' }}',
+                    cancelButtonText: '{{ helperTrans('buttons.cancel') ?? 'Cancel' }}',
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/admin/orders/' + orderId,
+                            type: 'DELETE',
+                            data: {
+                                _token: '{{ csrf_token() }}'
+                            },
+                            success: function(response) {
+                                if (response.data.success) {
+                                    dataTable.ajax.reload();
+                                    if (typeof toastr !== 'undefined') {
+                                        toastr.success(
+                                            '{{ helperTrans('ingaz.order_deleted') }}'
+                                        );
+                                    } else {
+                                        toastr.success(
+                                            '{{ helperTrans('ingaz.order_deleted') }}'
+                                        );
+                                    }
                                 } else {
-                                    alert('{{ helperTrans('ingaz.order_deleted') }}');
+                                    if (typeof toastr !== 'undefined') {
+                                        toastr.error(
+                                            '{{ helperTrans('ingaz.delete_error') }}'
+                                        );
+                                    } else {
+                                        toastr.error(
+                                            '{{ helperTrans('ingaz.delete_error') }}'
+                                        );
+                                    }
                                 }
-                            } else {
+                            },
+                            error: function() {
                                 if (typeof toastr !== 'undefined') {
-                                    toastr.error('{{ helperTrans('ingaz.delete_error') }}');
+                                    toastr.error(
+                                        '{{ helperTrans('ingaz.delete_error') }}');
                                 } else {
                                     alert('{{ helperTrans('ingaz.delete_error') }}');
                                 }
                             }
-                        },
-                        error: function() {
-                            if (typeof toastr !== 'undefined') {
-                                toastr.error('{{ helperTrans('ingaz.delete_error') }}');
-                            } else {
-                                alert('{{ helperTrans('ingaz.delete_error') }}');
-                            }
-                        }
-                    });
-                }
+                        });
+                    }
+                });
+                // if (confirm('{{ helperTrans('ingaz.delete_confirm') }}')) {
+                //     $.ajax({
+                //         url: '/admin/orders/' + orderId,
+                //         type: 'DELETE',
+                //         data: {
+                //             _token: '{{ csrf_token() }}'
+                //         },
+                //         success: function(response) {
+                //             if (response.data.success) {
+                //                 dataTable.ajax.reload();
+                //                 if (typeof toastr !== 'undefined') {
+                //                     toastr.success('{{ helperTrans('ingaz.order_deleted') }}');
+                //                 } else {
+                //                     alert('{{ helperTrans('ingaz.order_deleted') }}');
+                //                 }
+                //             } else {
+                //                 if (typeof toastr !== 'undefined') {
+                //                     toastr.error('{{ helperTrans('ingaz.delete_error') }}');
+                //                 } else {
+                //                     alert('{{ helperTrans('ingaz.delete_error') }}');
+                //                 }
+                //             }
+                //         },
+                //         error: function() {
+                //             if (typeof toastr !== 'undefined') {
+                //                 toastr.error('{{ helperTrans('ingaz.delete_error') }}');
+                //             } else {
+                //                 alert('{{ helperTrans('ingaz.delete_error') }}');
+                //             }
+                //         }
+                //     });
+                // }
             });
             $(document).on('click', '.force-delete-order', function() {
                 const orderId = $(this).data('id');
@@ -470,7 +575,8 @@
                             }
                         } else {
                             if (typeof toastr !== 'undefined') {
-                                toastr.error('{{ helperTrans('ingaz.status_update_error') }}');
+                                toastr.error(
+                                '{{ helperTrans('ingaz.status_update_error') }}');
                             } else {
                                 alert('{{ helperTrans('ingaz.status_update_error') }}');
                             }

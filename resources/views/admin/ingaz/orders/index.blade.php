@@ -674,6 +674,7 @@
                                     success: function(response) {
                                         console.log('Update response:',
                                             response);
+                                        dataTable.ajax.reload();
                                         if (response.success) {
                                             const modalElement = document
                                                 .getElementById(
@@ -723,11 +724,18 @@
                                                     '{{ helperTrans('ingaz.status_update_error') }}'
                                                 );
                                             } else {
-                                                alert(response.message ||
+                                                toastr.error(response
+                                                    .message ||
                                                     '{{ helperTrans('ingaz.status_update_error') }}'
                                                 );
+                                                // alert(response.message ||
+                                                //     '{{ helperTrans('ingaz.status_update_error') }}'
+                                                // );
                                             }
                                         }
+
+                                        $('#loadingModal').remove();
+                                        $('#editStatusModal').remove();
                                     },
                                     error: function(xhr) {
                                         console.log('Update error:', xhr);
@@ -741,7 +749,7 @@
                                         if (typeof toastr !== 'undefined') {
                                             toastr.error(errorMessage);
                                         } else {
-                                            alert(errorMessage);
+                                            toastr.error(errorMessage);
                                         }
                                     }
                                 });
@@ -769,7 +777,7 @@
                             if (typeof toastr !== 'undefined') {
                                 toastr.error(errorMessage);
                             } else {
-                                alert(errorMessage);
+                                toastr.error(errorMessage);
                             }
                         }
                     },
