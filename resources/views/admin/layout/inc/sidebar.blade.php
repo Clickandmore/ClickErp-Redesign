@@ -65,6 +65,7 @@
                 <li class="divider py-2 lh-sm"><span class="small">{{ helperTrans('ingaz.dashboard') }}</span></li>
                 @if (@AdminGuardHasPerm(\App\PermKeys::DASHBOARD_VIEW))
                     <li>
+                   
                         <a class="m-link {{ Route::currentRouteName() == 'dashboard.index' ? 'active' : '' }}"
                             href="{{ route('dashboard.index') }}">
                             <i class="fa fa-home"></i>
@@ -72,6 +73,54 @@
                         </a>
                     </li>
                 @endif
+
+                @php
+                    $isHr = request()->is('hr*');
+                    $isFinance = request()->is('finance*');
+                    $isZatcka = request()->is('zatca*');
+                @endphp
+             
+                
+                 @php
+                    $isHr = request()->is('hr*');
+                @endphp
+                <li class="{{ $isHr ? '' : 'collapsed' }}">
+                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#hr" href="#">
+                        <i class="fa fa-user-tie me-2"></i>
+                        <span class="ms-2">{{ __('ingaz.hr') }}</span>
+                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                    </a>
+                    <ul class="sub-menu collapse {{ $isHr ? 'show' : '' }}" id="hr">
+                        @include('hr::hr')
+                    </ul>
+                </li>
+                @php
+                    $isFinance = request()->is('finance*');
+                @endphp
+                <li class="{{ $isFinance ? '' : 'collapsed' }}">
+                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#finance" href="#">
+                        <i class="fa fa-dollar-sign me-2"></i>
+                        <span class="ms-2">{{ __('ingaz.finance') }}</span>
+                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                    </a>
+                    <ul class="sub-menu collapse {{ $isFinance ? 'show' : '' }}" id="finance">
+                        @include('finance::finance')
+                    </ul>
+                </li>
+                @include('finance::stock')
+                @include('finance::zatca')
+                <!-- Clients Section -->
+                <li class="{{ $isFinance ? '' : 'collapsed' }}">
+                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#crm" href="#">
+                        <i class="fa fa-file-text"></i>
+                        <span class="ms-2">{{ helperTrans('crm') }}</span>
+                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                    </a>
+                    <ul class="sub-menu collapse {{ $isFinance ? 'show' : '' }}" id="crm">
+                        @include('crm::crm')
+                    </ul>
+                </li>
+
 
                 <!-- Clients Section -->
                 <li>
@@ -977,6 +1026,7 @@
                 {{--                        @include('finance::finance') --}}
                 {{--                    </ul> --}}
                 {{--                </li> --}}
+
 
 
 
