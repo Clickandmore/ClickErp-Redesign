@@ -294,7 +294,6 @@
 @if ($maids->isNotEmpty())
     <div class="pagination-outer" id="pagination">
         <div class="pagination-style1">
-            {{ $maids->links('vendor.pagination.custom_2') }}
-        </div>
+            {{ $maids->appends(request()->query())->links('vendor.pagination.custom_2') }}        </div>
     </div>
 @endif

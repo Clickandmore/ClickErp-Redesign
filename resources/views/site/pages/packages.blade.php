@@ -133,16 +133,14 @@
                                         <div class="row g-3 user_address">
                                             @foreach ($addresses as $address)
                                                 <div class="col-6">
-                                                    <label for="l1{{ $address->id }}" class="location-card w-100" style="position: relative; display: block;">
+                                                    <label for="l1{{ $address->id }}" class="location-card w-100"
+                                                           style="position: relative; display: block;">
                                                         <div class="location" id="address-{{ $address->id }}"
                                                              style="position: relative; border: 1px solid #ddd; border-radius: 10px; padding: 15px; transition: 0.3s;">
                                                             <h6>{{ $address->title }}</h6>
                                                             <ul style="list-style: none; padding: 0; margin: 0;">
-                                                                <li><i class="fa-light fa-user"></i> {{ $address->name }}</li>
-                                                                <li><i class="fa-light fa-phone"></i> {{ $address->phone }}</li>
-                                                                <li><i class="fa-light fa-location-dot"></i> {{ $address->address }}</li>
-                                                            <ul>
-                                                                <li><i class="fa-light fa-user"></i> {{ $address->name }}
+                                                                <li>
+                                                                    <i class="fa-light fa-user"></i> {{ $address->name }}
                                                                 </li>
                                                                 <li>
                                                                     <i class="fa-light fa-phone"></i> {{ $address->phone }}
@@ -150,30 +148,50 @@
                                                                 <li>
                                                                     <i class="fa-light fa-location-dot"></i> {{ $address->address }}
                                                                 </li>
-                                                                <li>
-                                                                    <i class="fa-regular fa-note-sticky"></i> {{ $address->notes }}
-                                                                </li>
+                                                                <ul>
+                                                                    <li>
+                                                                        <i class="fa-light fa-user"></i> {{ $address->name }}
+                                                                    </li>
+                                                                    <li>
+                                                                        <i class="fa-light fa-phone"></i> {{ $address->phone }}
+                                                                    </li>
+                                                                    <li>
+                                                                        <i class="fa-light fa-location-dot"></i> {{ $address->address }}
+                                                                    </li>
+                                                                    <li>
+                                                                        <i class="fa-regular fa-note-sticky"></i> {{ $address->notes }}
+                                                                    </li>
+                                                                </ul>
+                                                                <!-- 🗑️ حذف-->
+                                                                <button type="button" class="delete-btn"
+                                                                        data-id="{{ $address->id }}"
+                                                                        title="{{ __('web.delete_address') }}">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                                         viewBox="0 0 24 24" width="18" height="18"
+                                                                         fill="red">
+                                                                        <path
+                                                                            d="M9 3v1H4v2h16V4h-5V3H9zm1 5v9h2V8h-2zm4 0v9h2V8h-2zM7 8v9h2V8H7z"/>
+                                                                    </svg>
+                                                                </button>
+                                                                <!-- ✏️ تعديل -->
+                                                                <button type="button" class="edit-btn"
+                                                                        data-bs-toggle="modal"
+                                                                        data-bs-target="#addLocation"
+                                                                        model-route="{{ route('site.user-addresses.edit', $address->id) }}">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                                         viewBox="0 0 24 24" width="18" height="18"
+                                                                         fill="#007bff">
+                                                                        <path
+                                                                            d="M3 17.25V21h3.75l11-11.03-3.75-3.75L3 17.25zm14.71-10.04a1.003 1.003 0 0 0 0-1.42l-1.5-1.5a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                                                                    </svg>
+                                                                </button>
                                                             </ul>
-
-                                                            <!-- 🗑️ حذف -->
-                                                            <button type="button" class="delete-btn" data-id="{{ $address->id }}" title="{{ __('web.delete_address') }}">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="red">
-                                                                    <path d="M9 3v1H4v2h16V4h-5V3H9zm1 5v9h2V8h-2zm4 0v9h2V8h-2zM7 8v9h2V8H7z"/>
-                                                                </svg>
-                                                            </button>
-
-                                                            <!-- ✏️ تعديل -->
-                                                            <button type="button" class="edit-btn"
-                                                                    data-bs-toggle="modal"
-                                                                    data-bs-target="#addLocation"
-                                                                    model-route="{{ route('site.user-addresses.edit', $address->id) }}">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="#007bff">
-                                                                    <path d="M3 17.25V21h3.75l11-11.03-3.75-3.75L3 17.25zm14.71-10.04a1.003 1.003 0 0 0 0-1.42l-1.5-1.5a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                                                                </svg>
-                                                            </button>
                                                         </div>
-
-                                                        <input type="radio" name="address_id" value="{{ $address->id }}" id="l1{{ $address->id }}">
+                                                        <input type="radio"
+                                                               name="address_id"
+                                                               value="{{ $address->id }}"
+                                                               id="l1{{ $address->id }}"
+                                                               data-address="{{ $address->id }}">
                                                     </label>
                                                 </div>
                                             @endforeach
@@ -1158,37 +1176,31 @@
                 modal.find('input, select, textarea').val('');
                 modal.addClass('loading');
 
-                $.ajax({
-                    url: route,
-                    type: 'GET',
-                    success: function (res) {
-                        modal.removeClass('loading');
-                        if (res?.data) {
-                            const address = res.data;
+                $.get(route, function(res){
+                    modal.removeClass('loading');
+                    if(res?.data){
+                        const address = res.data;
+                        modal.find('input[name="title"]').val(address.title);
+                        modal.find('input[name="name"]').val(address.name);
+                        modal.find('input[name="phone"]').val(address.phone);
+                        modal.find('input[name="address"]').val(address.address);
+                        modal.find('textarea[name="notes"]').val(address.notes);
+                        modal.find('select[name="city_id"]').val(address.city_id).change();
+                        modal.find('input[name="id"]').val(address.id);
 
-                            modal.find('input[name="title"]').val(address.title);
-                            modal.find('input[name="name"]').val(address.name);
-                            modal.find('input[name="phone"]').val(address.phone);
-                            modal.find('input[name="address"]').val(address.address);
-                            modal.find('textarea[name="notes"]').val(address.notes);
-                            modal.find('select[name="city_id"]').val(address.city_id).change();
-                            modal.find('input[name="id"]').val(address.id);
+                        const form = modal.find('form');
+                        form.attr('action', '/user-addresses/' + address.id);
 
-                            const form = modal.find('form');
-                            form.attr('action', '/user-addresses/' + address.id);
-
-                            if (!form.find('input[name="_method"]').length) {
-                                form.append('<input type="hidden" name="_method" value="PUT">');
-                            }
-
-                            modal.find('.modal-title').text('تعديل العنوان');
-                            modal.modal('show');
+                        if(!form.find('input[name="_method"]').length){
+                            form.append('<input type="hidden" name="_method" value="PUT">');
                         }
-                    },
-                    error: function () {
-                        modal.removeClass('loading');
-                        console.error('حدث خطأ أثناء تحميل البيانات');
+
+                        modal.find('.modal-title').text('تعديل العنوان');
+                        modal.modal('show');
                     }
+                }).fail(function(){
+                    modal.removeClass('loading');
+                    console.error('حدث خطأ أثناء تحميل البيانات');
                 });
             });
 
@@ -1202,48 +1214,56 @@
                 $(this).find('.modal-title').text('إضافة عنوان جديد');
             });
 
-            // إرسال الفورم ب AJAX
-            $(document).one('submit', '#addLocation form').on('submit', '#addLocation form', function (e) {
+            // إضافة أو تعديل
+            $(document).on('submit', '#addLocation form', function(e){
                 e.preventDefault();
                 const form = $(this);
-                const url = form.attr('action');
-                const method = form.find('input[name="_method"]').val() || form.attr('method');
-
                 $.ajax({
-                    url: url,
-                    type: method,
+                    url: form.attr('action'),
+                    type: 'POST',
                     data: form.serialize(),
-                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-                    success: function (res) {
-                        if (res?.data?.html) {
-                            $('.user_address').html(res.data.html); // إعادة ريندر لجميع العناوين
+                    headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+                    success: function(res){
+                        if(res?.data?.html){
+                            $('.user_address').html(res.data.html);
                         }
                         $('#addLocation').modal('hide');
                     },
-                    error: function () {
-                        console.error('حدث خطأ أثناء الحفظ');
+                    error: function(xhr){
+                        console.error('حدث خطأ أثناء الحفظ', xhr.responseText);
                     }
                 });
             });
 
             // حذف العنوان
-            $(document).on('click', '.delete-btn', function () {
+            $(document).on('click', '.delete-btn', function(){
                 const id = $(this).data('id');
-                if (!confirm('هل أنت متأكد من الحذف؟')) return;
+                if(!confirm('هل أنت متأكد من الحذف؟')) return;
 
+                // نرسل POST مع _method=DELETE
                 $.ajax({
                     url: '/user-addresses/' + id,
-                    type: 'DELETE',
-                    headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
-                    success: function(res) {
-                        if (res?.data?.html) {
-                            $('.user_address').html(res.data.html); // إعادة ريندر بعد الحذف
+                    type: 'POST',
+                    data: {_method: 'DELETE'}, // ← مهم
+                    headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+                    success: function(res){
+                        if(res?.data?.html){
+                            $('.user_address').html(res.data.html); // إعادة ريندر
                         }
                     },
-                    error: function() {
-                        console.error('حدث خطأ أثناء الحذف');
+                    error: function(xhr){
+                        console.error('حدث خطأ أثناء الحذف', xhr.responseText);
                     }
                 });
+            });
+
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            $('input[name="select_address"]').on('change', function () {
+                let selectedId = $(this).val();
+                $('#selected_address_id').val(selectedId);
             });
         });
     </script>
