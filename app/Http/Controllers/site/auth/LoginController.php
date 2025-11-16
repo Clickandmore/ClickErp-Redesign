@@ -26,7 +26,7 @@ class LoginController extends Controller
                 'phone' => [__('web.wait_before_retry')],
             ]);
         }
-        RateLimiter::hit('login');
+        RateLimiter::hit('login',10);
         $data = $request->validated();
         unset($data['g-recaptcha-response']);
 

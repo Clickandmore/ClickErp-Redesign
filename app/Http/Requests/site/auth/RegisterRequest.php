@@ -30,7 +30,7 @@ class RegisterRequest extends MainRequest
             ]);
         }
         if ($phone) {
-            RateLimiter::hit('register:' . $phone, 60);
+            RateLimiter::hit('register:' . $phone, 10);
         }
     }
 

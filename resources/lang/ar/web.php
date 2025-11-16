@@ -11,8 +11,8 @@
   'See_All' => 'اظهار الكل',
   'show_projects' => 'عرض المشاريع',
   'Get_in_touch' => 'ابقى على تواصل',
-  'age_min'=> 'يجب ألا يقل العمر عن :min',
-  'age_max'=> 'يجب ألا يزيد العمر عن :max',
+  'age_min'=> 'العمر يجب ان يكون اكبر من :min',
+  'age_max'=> 'العمر يجب ان يكون اقل من :max',
   'Our_Partners' => 'شركاؤنا',
   'Our' => 'ملكنا',
   'Our_Clients' => 'عملائنا',
@@ -424,7 +424,10 @@
   'stage_active' => 'حالة جيدة',
   'complaint' => 'شكوى',
   'type' => 'النوع',
-  'experience_status' => 'حالة الخبرة',
+    'resend_code' => 'اعادة ارسال الكود',
+    'resend_code_successfuly' => 'تم اعادة ارسال الكود بنجاح',
+
+    'experience_status' => 'حالة الخبرة',
   'sponsorship_transfers' => ' طلبات نقل الكفالة',
   'follow_the_status_of_your_sponsorship_transfers' => ' تابع حالة طلبات نقل الكفالة الخاصة بك',
   'Contract Refund Requests' => 'طلبات استرداد العقود',
@@ -462,4 +465,8 @@
         'title' => 'دعم متواصل',
         'description' => 'نقدم الدعم والاستشارات المتواصلة قبل وبعد عملية الاستقدام لضمان رضاكم الكامل.',
     ],
+    'project_name' => 'بلاتينيوم الشرقية للاستقدام',
+    'project_desc' => ' أكثر من 20 سنة من تقديم خدمات الاستقدام باحترافية عالية',
+    'Platinum Company Services' => 'خدمات شركة بلاتنيوم',
+
 );

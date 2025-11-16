@@ -32,6 +32,15 @@ class UserAddressController extends Controller
         }
     }
 
+    public function edit(Request $request, $id, objAction $action)
+    {
+        $obj = $action->find($id);
+        return response()->json([
+            'data' => $obj
+        ]);
+
+    }
+
     /**
      * Store a newly created resource in storage.
      *
@@ -44,6 +53,24 @@ class UserAddressController extends Controller
         $action->storeUserAddress($data);
         $addresses = $action->getWhere(['user_id' => getGuardedUser()->id]);
         $html = view($this->folderPath . ".render_user_address", compact('addresses'))->render();
-        return jsonSuccess(['html' => $html], __("ingaz.user_address_success") , 200);
+        return jsonSuccess(['html' => $html], __("ingaz.user_address_success"), 200);
+    }
+
+    public function update(Request $request, $id, objAction $action)
+    {
+        $data = $request->only($this->postData);
+        $action->update($id, $data);
+        $addresses = $action->getWhere(['user_id' => getGuardedUser()->id]);
+        $html = view($this->folderPath . ".render_user_address", compact('addresses'))->render();
+        return jsonSuccess(['html' => $html], __("ingaz.user_address_success"), 200);
+    }
+
+    public function destroy(objAction $action, $id)
+    {
+        $obj = $action->find($id);
+        $obj->delete();
+        $addresses = $action->getWhere(['user_id' => getGuardedUser()->id]);
+        $html = view($this->folderPath . ".render_user_address", compact('addresses'))->render();
+        return jsonSuccess(['html' => $html], __("ingaz.user_address_success"), 200);
     }
 }

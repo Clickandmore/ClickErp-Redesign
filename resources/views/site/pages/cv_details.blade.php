@@ -20,36 +20,36 @@
         $cvPublicLink = route('site.all-workers.show', $maid->id);
         $qrImage = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' . urlencode($cvPublicLink);
     @endphp
-    <!-- cv page -->
+        <!-- cv page -->
     <div class="cvPage" id="cv-wrapper">
         <div class="shape1"></div>
         <div class="logo-bg">
-            <img src="{{ asset('site') }}/assets/images/cv-fav.png" alt="" />
+            <img src="{{ asset('site') }}/assets/images/cv-fav.png" alt=""/>
         </div>
-        <div class="cv-side">
-            <img src="{{ asset('site') }}/assets/images/cv-side.png" alt="" />
-        </div>
+{{--        <div class="cv-side">--}}
+{{--            <img src="{{ asset('site') }}/assets/images/cv-side.png" alt=""/>--}}
+{{--        </div>--}}
         <div class="cv-footer">
-            <img src="{{ asset('site') }}/assets/images/cvFooter.png" alt="" />
+            <img src="{{ asset('site') }}/assets/images/cvFooter.png" alt=""/>
         </div>
         <div class="header-logo">
             <div class="transparent-logo">
-                <img src="{{ asset('site') }}/assets/images/cv-fav.png" alt="cv-logo" />
-                <img src="{{ asset('site') }}/assets/images/cv-fav.png" alt="cv-logo" />
-                <img src="{{ asset('site') }}/assets/images/cv-fav.png" alt="cv-logo" />
-                <img src="{{ asset('site') }}/assets/images/cv-fav.png" alt="cv-logo" />
-                <img src="{{ asset('site') }}/assets/images/cv-fav.png" alt="cv-logo" />
-                <img src="{{ asset('site') }}/assets/images/cv-fav.png" alt="cv-logo" />
-                <img src="{{ asset('site') }}/assets/images/cv-fav.png" alt="cv-logo" />
+                <img src="{{ asset('site') }}/assets/images/cv-fav.png" alt="cv-logo"/>
+                <img src="{{ asset('site') }}/assets/images/cv-fav.png" alt="cv-logo"/>
+                <img src="{{ asset('site') }}/assets/images/cv-fav.png" alt="cv-logo"/>
+                <img src="{{ asset('site') }}/assets/images/cv-fav.png" alt="cv-logo"/>
+                <img src="{{ asset('site') }}/assets/images/cv-fav.png" alt="cv-logo"/>
+                <img src="{{ asset('site') }}/assets/images/cv-fav.png" alt="cv-logo"/>
+                <img src="{{ asset('site') }}/assets/images/cv-fav.png" alt="cv-logo"/>
             </div>
             <div class="logo">
-                <img src="{{ asset('site') }}/assets/images/cv-logo.png" alt="cv-logo" />
+                <img src="{{ asset('site') }}/assets/images/cv-logo.png" alt="cv-logo"/>
             </div>
         </div>
         <!-- col -->
         <div class="imageCol">
             <div class="image">
-                <img src="{{ showFile($maid->image) }}" alt="" />
+                <img src="{{ showFile($maid->image) }}" alt=""/>
             </div>
             <div class="mainInfo">
                 @if ($offerActive && $offerPriceDisplay)
@@ -76,26 +76,28 @@
                     <h5 class="title">{{ __('ingaz.languages') }} :</h5>
                     <div class="Percentages">
                         @php
-                            $percentages = is_string($maid->percentage) 
-                                ? json_decode($maid->percentage, true) 
+                            $percentages = is_string($maid->percentage)
+                                ? json_decode($maid->percentage, true)
                                 : $maid->percentage;
                         @endphp
-                        @forelse ($percentages as $key => $percentage)
-                            @if ($percentage)
-                                <div class="percentDiv">
-                                    <div class="percent p{{ $percentage }}">
-                                        <p class="percentNum">{{ $percentage }} <span> % </span></p>
-                                        <div class="slice">
-                                            <div class="bar"></div>
-                                            <div class="fill"></div>
+                        @if(isset($percentages))
+                            @forelse ($percentages as $key => $percentage)
+                                @if ($percentage)
+                                    <div class="percentDiv">
+                                        <div class="percent p{{ $percentage }}">
+                                            <p class="percentNum">{{ $percentage }} <span> % </span></p>
+                                            <div class="slice">
+                                                <div class="bar"></div>
+                                                <div class="fill"></div>
+                                            </div>
                                         </div>
+                                        <h5>{{ __('ingaz.' . $key) }}</h5>
                                     </div>
-                                    <h5>{{ __('ingaz.' . $key) }}</h5>
-                                </div>
-                            @endif
-                        @empty
-                            <div>لا توجد لغات لعرضها.</div>
-                        @endforelse
+                                @endif
+                            @empty
+                                <div>لا توجد لغات لعرضها.</div>
+                            @endforelse
+                        @endif
                     </div>
 
                     {{-- <div class="Percentages">
@@ -122,11 +124,11 @@
                     </div> --}}
                 </div>
                 <div class="sub special-img">
-                    <img src="{{ showFile($maid->image) }}" alt="" />
+                    <img src="{{ showFile($maid->image) }}" alt=""/>
                 </div>
                 <div class="sub special-img bar-code">
                     <a href="{{ $cvPublicLink }}" target="_blank" rel="noopener">
-                        <img src="{{ $qrImage }}" alt="QR Code" width="200" height="200" />
+                        <img src="{{ $qrImage }}" alt="QR Code" width="200" height="200"/>
                     </a>
                     <p class="dis ">{{ __('ingaz.scan_cv_qr') }}</p>
                 </div>
@@ -158,7 +160,7 @@
                     </div>
                 </div>
                 <span class="logo">
-                    <img src="{{ asset('site') }}/assets/images/fav.svg" alt="" />
+                    <img src="{{ asset('site') }}/assets/images/fav.svg" alt=""/>
                     <h4 class="experiance">
                         <svg width="24" height="24" viewBox="0 0 511.999 511.999">
                             <g>
@@ -196,7 +198,7 @@
                     <div class="data">
                         <p class="innerTitle">{{ __('ingaz.education') }}</p>
                         <h6 class="innerData">
-                            {{ App\Enums\Office\EducationEnum::tryFrom($maid->education)?->lang() ?? $maid->education }}
+                        {{ App\Enums\Office\EducationEnum::tryFrom($maid->education)?->lang() ?? $maid->education }}
                     </div>
                     <div class="data">
                         <p class="innerTitle">{{ __('ingaz.religion') }}</p>
@@ -256,9 +258,9 @@
                                                 <g transform="matrix(1.13,0,0,1.13,-33.8,-33.8)">
                                                     <g>
                                                         <circle cx="208.52" cy="288.5" r="176.52" fill="#eeaa2c"
-                                                            opacity=".2"></circle>
+                                                                opacity=".2"></circle>
                                                         <path fill="#eeaa2c"
-                                                            d="m210.516 424.937-2.239-3.815c-34.2-58.27-125.082-181.928-126-183.17l-1.311-1.781 30.963-30.6 98.012 68.439c61.711-80.079 119.283-135.081 156.837-167.2C407.859 71.675 434.6 55.5 434.87 55.345l.608-.364H488l-5.017 4.468C353.954 174.375 214.1 418.639 212.707 421.093z">
+                                                              d="m210.516 424.937-2.239-3.815c-34.2-58.27-125.082-181.928-126-183.17l-1.311-1.781 30.963-30.6 98.012 68.439c61.711-80.079 119.283-135.081 156.837-167.2C407.859 71.675 434.6 55.5 434.87 55.345l.608-.364H488l-5.017 4.468C353.954 174.375 214.1 418.639 212.707 421.093z">
                                                         </path>
                                                     </g>
                                                 </g>
@@ -267,10 +269,10 @@
                                             <svg width="24" height="24" viewBox="0 0 512 512">
                                                 <circle cx="256" cy="256" r="240" fill="#B0B0B0"></circle>
                                                 <path fill="#7F7F7F"
-                                                    d="M495.941 260.673c-2.462 128.835-106.433 232.806-235.268 235.268-40.768-40.767-81.645-81.444-122.407-122.206-10.666-10.666-10.667-28.119-.001-38.786L217.214 256l-78.949-78.949c-10.666-10.666-10.666-28.119 0-38.785s28.119-10.667 38.786-.001L256 217.214l78.949-78.949c10.666-10.666 28.119-10.666 38.786 0 40.762 40.762 81.438 81.64 122.206 122.408z">
+                                                      d="M495.941 260.673c-2.462 128.835-106.433 232.806-235.268 235.268-40.768-40.767-81.645-81.444-122.407-122.206-10.666-10.666-10.667-28.119-.001-38.786L217.214 256l-78.949-78.949c-10.666-10.666-10.666-28.119 0-38.785s28.119-10.667 38.786-.001L256 217.214l78.949-78.949c10.666-10.666 28.119-10.666 38.786 0 40.762 40.762 81.438 81.64 122.206 122.408z">
                                                 </path>
                                                 <path fill="#fff"
-                                                    d="M138.265 373.735c10.666 10.666 28.12 10.666 38.786 0L256 294.786l78.949 78.949c10.666 10.666 28.119 10.666 38.785 0 10.666-10.666 10.666-28.119 0-38.786L294.786 256l78.949-78.949c10.666-10.666 10.666-28.119 0-38.785-10.666-10.666-28.119-10.666-38.786 0L256 217.214l-78.949-78.949c-10.666-10.666-28.119-10.666-38.785 0-10.666 10.666-10.666 28.119 0 38.785L217.214 256l-78.949 78.949c-10.666 10.666-10.666 28.12 0 38.786z">
+                                                      d="M138.265 373.735c10.666 10.666 28.12 10.666 38.786 0L256 294.786l78.949 78.949c10.666 10.666 28.119 10.666 38.785 0 10.666-10.666 10.666-28.119 0-38.786L294.786 256l78.949-78.949c10.666-10.666 10.666-28.119 0-38.785-10.666-10.666-28.119-10.666-38.786 0L256 217.214l-78.949-78.949c-10.666-10.666-28.119-10.666-38.785 0-10.666 10.666-10.666 28.119 0 38.785L217.214 256l-78.949 78.949c-10.666 10.666-10.666 28.12 0 38.786z">
                                                 </path>
                                             </svg>
                                         @endif
@@ -387,7 +389,7 @@
                             <!-- <img src="assets/images/qr2.png" alt="" /> -->
                             <!-- <div class="experienceYears"><span> 20 </span> سنه خبرة</div> -->
                             <img style="margin-right: auto" src="{{ showFile($settings->experience_image) }}"
-                                alt="" />
+                                 alt=""/>
                         </div>
                     @else
                         <div class="info_social">
@@ -395,7 +397,7 @@
                             <!-- <img src="assets/images/qr2.png" alt="" /> -->
                             <!-- <div class="experienceYears"><span> 20 </span> سنه خبرة</div> -->
                             <img style="margin-right: auto" src="{{ asset('site') }}/assets/images/experience.svg"
-                                alt="" />
+                                 alt=""/>
                         </div>
                     @endif
 
@@ -413,7 +415,7 @@
         </form>
         @if (!empty($maid->video) && $maid->video !== '#')
             <a data-fancybox="video2" href="{{ showFile($maid->video) }}" type="button" class="btn video-btn"
-                title="مشاهدة الفيديو">
+               title="مشاهدة الفيديو">
                 <i class="fa-solid fa-video"></i>
                 <!-- <span>مشاهدة الفيديو</span> -->
             </a>
@@ -422,9 +424,9 @@
 @endsection
 @section('js')
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
-        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <script>
         function wrapText(element, maxLength) {
@@ -433,12 +435,13 @@
                 element.innerText = text.slice(0, maxLength) + '...';
             }
         }
+
         document.querySelectorAll('.passportNumbers span').forEach(span => {
             wrapText(span, 20); // تحديد الحد الأقصى لعدد الحروف
         });
     </script>
     <script>
-        $(document).ready(function() {
+        $(document).ready(function () {
             const downloadBtn = document.getElementById('donwload-cv');
             const targetDiv = document.getElementById('cv-wrapper');
 
@@ -466,7 +469,7 @@
                 }));
             };
 
-            downloadBtn.addEventListener('click', async function() {
+            downloadBtn.addEventListener('click', async function () {
                 // Loader
                 const originalHTML = downloadBtn.innerHTML;
                 downloadBtn.classList.add('loading');

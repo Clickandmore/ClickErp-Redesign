@@ -244,20 +244,10 @@
 
                         <div class="info">
                             <h4 class="hint">
-                                بلاتينيوم الشرقية للاستقدام
+                                {{__("web.project_name")}}
                             </h4>
                             <h1 class="sliderTitle">
-                                أكثر من 20 سنة من تقديم خدمات الاستقدام باحترافية عالية
-                            </h1>
-                        </div>
-                    </div>
-                    <!-- swiper-slide -->
-                    <div class="swiper-slide" style="background-image: url({{ asset('site') }}/assets/images/s2.webp)">
-                        <div class="info">
-                            <h4 class="hint"> سهولة الاستخدام</h4>
-                            <h1 class="sliderTitle">
-                                ابدأ حجزك واتمم دفعك من خلال الموقع الالكتروني او التواصل معنا
-                                بوقت وجيز وبخطوات مختصرة
+                                {{__("web.project_desc")}}
                             </h1>
                         </div>
                     </div>
@@ -308,7 +298,7 @@
                 <span class="hero-services__label">
                     <i class="fa-solid fa-grid-2"></i>{{ __('ingaz.our_services') }}
                 </span>
-                <h3>خدمات شركة بلاتنيوم </h3>
+                <h3>{{__("web.Platinum Company Services")}} </h3>
                 <p>{{ __('ingaz.recruitment_request_text') }}</p>
             </div>
             <div class="hero-services__cards">
