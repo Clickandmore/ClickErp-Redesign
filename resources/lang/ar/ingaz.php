@@ -982,7 +982,7 @@
   'request_professional_labor' => 'طلب عمالة مهنية',
   'renewing_employment_contract' => 'تجديد عقد عمالة',
   'support' => 'مركز المساعدة',
-  'our_services' => 'خدماتنا',
+  'our_services' => 'خدمات اخري',
   'all_rights_reserved' => 'جميع الحقوق محفوظة',
   'login' => 'تسجيل دخول',
   'name_required' => 'الاسم مطلوب.',
