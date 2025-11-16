@@ -292,48 +292,156 @@
             ],
         ];
     @endphp
+
+
+    {{--    <section class="hero-services" data-aos="fade-up">--}}
+    {{--        <div class="hero-services__content">--}}
+    {{--            <div class="hero-services__header">--}}
+    {{--                <span class="hero-services__label">--}}
+    {{--                    <i class="fa-solid fa-grid-2"></i>{{ __('ingaz.our_services') }}--}}
+    {{--                </span>--}}
+    {{--                <h3>{{__("web.Platinum Company Services")}} </h3>--}}
+    {{--                <p>{{ __('ingaz.recruitment_request_text') }}</p>--}}
+    {{--            </div>--}}
+    {{--            <div class="hero-services__cards">--}}
+    {{--                @foreach ($heroServices as $service)--}}
+    {{--                    <a href="{{ $service['url'] }}" class="hero-service-card hero-service-card--{{ $service['theme'] }}">--}}
+    {{--                        <div class="hero-service-card__icon">--}}
+    {{--                            <i class="{{ $service['icon'] }}"></i>--}}
+    {{--                        </div>--}}
+    {{--                        <div class="hero-service-card__body">--}}
+    {{--                            <span class="hero-service-card__badge">--}}
+    {{--                                <i class="fa-solid fa-circle fa-2xs"></i>{{ $service['badge'] }}--}}
+    {{--                            </span>--}}
+    {{--                            <div class="text">--}}
+    {{--                                <h4>{{ $service['title'] }}</h4>--}}
+    {{--                                <p>{{ $service['description'] }}</p>--}}
+    {{--                            </div>--}}
+    {{--                        </div>--}}
+    {{--                        <span class="hero-service-card__cta">--}}
+    {{--                            {{ __('ingaz.request now') }}--}}
+    {{--                            <i class="fa-solid fa-arrow-left-long"></i>--}}
+    {{--                        </span>--}}
+    {{--                    </a>--}}
+    {{--                @endforeach--}}
+    {{--            </div>--}}
+    {{--        </div>--}}
+    {{--        <!-- warn -->--}}
+    {{--        <div class="warning">--}}
+    {{--            {{ __('ingaz.warning') }} :--}}
+    {{--            @if (isset($settings))--}}
+    {{--                {{ app()->getLocale() == 'ar' ? $settings->note_ar : $settings->note_en }}--}}
+    {{--            @else--}}
+    {{--                {{ __('ingaz.warning_text') }}--}}
+    {{--            @endif--}}
+    {{--        </div>--}}
+    {{--    </section>--}}
     <section class="hero-services" data-aos="fade-up">
-        <div class="hero-services__content">
-            <div class="hero-services__header">
-                <span class="hero-services__label">
-                    <i class="fa-solid fa-grid-2"></i>{{ __('ingaz.our_services') }}
-                </span>
-                <h3>{{__("web.Platinum Company Services")}} </h3>
-                <p>{{ __('ingaz.recruitment_request_text') }}</p>
-            </div>
-            <div class="hero-services__cards">
-                @foreach ($heroServices as $service)
-                    <a href="{{ $service['url'] }}" class="hero-service-card hero-service-card--{{ $service['theme'] }}">
-                        <div class="hero-service-card__icon">
-                            <i class="{{ $service['icon'] }}"></i>
-                        </div>
-                        <div class="hero-service-card__body">
-                            <span class="hero-service-card__badge">
-                                <i class="fa-solid fa-circle fa-2xs"></i>{{ $service['badge'] }}
-                            </span>
-                            <div class="text">
-                                <h4>{{ $service['title'] }}</h4>
-                                <p>{{ $service['description'] }}</p>
+        <div class="expertise">
+            @if(isset($settings) && isset($settings->experience_image))
+                <img src="{{showFile($settings->experience_image)}}" alt="خبرة اكثر من 20 سنه"/>
+            @else
+                <img src="{{asset('site')}}/assets/images/experience.jpg" alt="خبرة اكثر من 20 سنه"/>
+            @endif
+        </div>
+
+        <div class="services-container">
+            @forelse($whatDos as $whatDo)
+                <a href="{{route('site.all-workers.index')}}?type={{$whatDo->type}}">
+                    <div class="service-card ">
+                        <div class="header">
+                            <div class="icon">
+                                <i class="{{$whatDo->icon}}"></i>
                             </div>
+                            <h4>{{$whatDo->title}}</h4>
                         </div>
-                        <span class="hero-service-card__cta">
-                            {{ __('ingaz.request now') }}
-                            <i class="fa-solid fa-arrow-left-long"></i>
-                        </span>
-                    </a>
-                @endforeach
-            </div>
+                        <p>{{$whatDo->description}}</p>
+                        <ul>
+                            @foreach($whatDo->items as $item)
+                                <li>{{$item->title}}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </a>
+            @empty
+                <a href="{{route('site.all-workers.index')}}?type=estqdam">
+                    <div class="service-card">
+                        <div class="header">
+                            <div class="icon">
+                                <i class="fa-solid fa-user-check"></i>
+                            </div>
+                            <h4>الاستقدام</h4>
+                        </div>
+                        <p>خدمة استقدام العمالة المنزلية والمهنية من الخارج للعمل داخل المملكة.</p>
+                        <ul>
+                            <li>سهولة الاستقدام</li>
+                            <li>الجودة</li>
+                            <li>نظام تتبع دقيق</li>
+                        </ul>
+                    </div>
+                </a>
+                <a href="{{route('site.all-workers.index')}}?type=egar">
+                    <div class="service-card">
+                        <div class="header">
+                            <div class="icon">
+                                <i class="fa-solid fa-clock"></i>
+                            </div>
+                            <h4>تأجير العمالة الشهري</h4>
+                        </div>
+                        <p>خدمة تأجير العمالة للشهر الواحد مع ضمان مرونة وجودة.</p>
+                        <ul>
+                            <li>مرونة عالية</li>
+                            <li>جودة مضمونة</li>
+                            <li>تسليم سريع</li>
+                        </ul>
+                    </div>
+                </a>
+                <a href="{{route('site.all-workers.index')}}?type=transfer">
+                    <div class="service-card">
+                        <div class="header">
+                            <div class="icon">
+                                <i class="fa-solid fa-truck-fast"></i>
+                            </div>
+                            <h4>النقل الفوري للعمالة</h4>
+                        </div>
+                        <p>خدمة نقل العمالة لمشاريعك بسرعة وكفاءة عالية.</p>
+                        <ul>
+                            <li>النقل السريع</li>
+                            <li>التسليم الفوري</li>
+                            <li>الجودة</li>
+                        </ul>
+                    </div>
+                </a>
+                <a href="{{route('site.all-workers.index')}}?type=transfer">
+                    <div class="service-card">
+                        <div class="header">
+                            <div class="icon">
+                                <i class="fa-solid fa-stopwatch"></i>
+                            </div>
+                            <h4>التسليم الفوري للعمالة</h4>
+                        </div>
+                        <p>استلم فوري لعمالتك لتلبية احتياجاتك الفورية بسرعة وجودة.</p>
+                        <ul>
+                            <li>التسليم السريع</li>
+                            <li>جودة العمالة</li>
+                            <li>سهولة الإجراءات</li>
+                        </ul>
+                    </div>
+                </a>
+
+            @endforelse
         </div>
         <!-- warn -->
         <div class="warning">
-            {{ __('ingaz.warning') }} :
-            @if (isset($settings))
+            {{__('ingaz.warning')}} :
+            @if(isset($settings))
                 {{ app()->getLocale() == 'ar' ? $settings->note_ar : $settings->note_en }}
             @else
-                {{ __('ingaz.warning_text') }}
+                {{__('ingaz.warning_text')}}
             @endif
         </div>
     </section>
+
     <!-- about sec  -->
     <section class="about-section" id="about">
         <div class="container">
@@ -349,7 +457,7 @@
                 </div>
 
                 <div class="about-image">
-                    <img src="{{ asset('site/assets/images/about.webp') }}" alt="{{ __('ingaz.about_us') }}" />
+                    <img src="{{ asset('site/assets/images/about.webp') }}" alt="{{ __('ingaz.about_us') }}"/>
                 </div>
             </div>
             <!-- About Cards -->
@@ -403,7 +511,7 @@
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
                                 <img src="{{ asset('site/assets/images/countries/1.png') }}" alt="علم أوغندا"
-                                    class="flag-img" />
+                                     class="flag-img"/>
                                 <span class="pulse-ring"></span>
                             </div>
                             <h4 class="country-name">أوغندا</h4>
@@ -421,7 +529,7 @@
                                 </div>
                                 <div class="info-card">
                                     <i class="fas fa-hand-holding-usd"></i>
-                                    <h5>الراتب</h5>
+                                    <h5>الراتب يبدء من</h5>
                                     <p>900 ريال</p>
                                 </div>
                                 <div class="info-card">
@@ -447,7 +555,7 @@
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
                                 <img src="{{ asset('site/assets/images/countries/2.png') }}" alt="علم كينيا"
-                                    class="flag-img" />
+                                     class="flag-img"/>
 
                                 <span class="pulse-ring"></span>
                             </div>
@@ -467,7 +575,7 @@
                                 </div>
                                 <div class="info-card">
                                     <i class="fas fa-hand-holding-usd"></i>
-                                    <h5>الراتب</h5>
+                                    <h5>الراتب يبدء من</h5>
                                     <p>1000 ريال</p>
                                 </div>
                                 <div class="info-card">
@@ -496,7 +604,7 @@
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
                                 <img src="{{ asset('site/assets/images/countries/3.jpeg') }}" alt="علم بنغلادش"
-                                    class="flag-img" />
+                                     class="flag-img"/>
                                 <span class="pulse-ring"></span>
                             </div>
                             <h4 class="country-name">بنغلادش</h4>
@@ -515,7 +623,7 @@
                                 </div>
                                 <div class="info-card">
                                     <i class="fas fa-hand-holding-usd"></i>
-                                    <h5>الراتب</h5>
+                                    <h5>الراتب يبدء من</h5>
                                     <p>850 ريال</p>
                                 </div>
                                 <div class="info-card">
@@ -544,7 +652,7 @@
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
                                 <img src="{{ asset('site/assets/images/countries/4.jpeg') }}" alt="علم الفلبين"
-                                    class="flag-img" />
+                                     class="flag-img"/>
                                 <span class="pulse-ring"></span>
                             </div>
                             <h4 class="country-name">الفلبين</h4>
@@ -563,7 +671,7 @@
                                 </div>
                                 <div class="info-card">
                                     <i class="fas fa-hand-holding-usd"></i>
-                                    <h5>الراتب</h5>
+                                    <h5>الراتب يبدء من</h5>
                                     <p>1500 ريال</p>
                                 </div>
                                 <div class="info-card">
@@ -592,7 +700,7 @@
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
                                 <img src="{{ asset('site/assets/images/countries/5.png') }}" alt="علم الهند"
-                                    class="flag-img" />
+                                     class="flag-img"/>
                                 <span class="pulse-ring"></span>
                             </div>
                             <h4 class="country-name">الهند</h4>
@@ -611,7 +719,7 @@
                                 </div>
                                 <div class="info-card">
                                     <i class="fas fa-hand-holding-usd"></i>
-                                    <h5>الراتب</h5>
+                                    <h5>الراتب يبدء من</h5>
                                     <p>1000 ريال</p>
                                 </div>
                                 <div class="info-card">
@@ -640,7 +748,7 @@
                             <div class="flag-bg"></div>
                             <div class="flag-wrapper">
                                 <img src="{{ asset('site/assets/images/countries/6.png') }}" alt="علم موريتانيا"
-                                    class="flag-img" />
+                                     class="flag-img"/>
                                 <span class="pulse-ring"></span>
                             </div>
                             <h4 class="country-name">موريتانيا</h4>
@@ -659,7 +767,7 @@
                                 </div>
                                 <div class="info-card">
                                     <i class="fas fa-hand-holding-usd"></i>
-                                    <h5>الراتب</h5>
+                                    <h5>الراتب يبدء من</h5>
                                     <p>950 ريال</p>
                                 </div>
                                 <div class="info-card">
@@ -693,7 +801,7 @@
                     @forelse($services as $service)
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                                style="background: url('{{ showFile($service->image) }}') no-repeat center/cover;">
+                               style="background: url('{{ showFile($service->image) }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-passport"></i>
                                 <h3 class="serviceTitle">{{ $service->title }}</h3>
                                 <h6 class="serviceP">
@@ -704,7 +812,7 @@
                     @empty
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                                style="background: url('{{ asset('site/assets/images/passport-bg.webp') }}') no-repeat center/cover;">
+                               style="background: url('{{ asset('site/assets/images/passport-bg.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-passport"></i>
                                 <h3 class="serviceTitle">إصدار التأشيرة</h3>
                                 <h6 class="serviceP">
@@ -715,7 +823,7 @@
 
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                                style="background: url('{{ asset('site/assets/images/files.webp') }}') no-repeat center/cover;">
+                               style="background: url('{{ asset('site/assets/images/files.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-users-gear"></i>
                                 <h3 class="serviceTitle">اختيار العمالة</h3>
                                 <h6 class="serviceP">
@@ -726,7 +834,7 @@
 
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                                style="background: url('{{ asset('site/assets/images/bg-plane.webp') }}') no-repeat center/cover;">
+                               style="background: url('{{ asset('site/assets/images/bg-plane.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-plane-arrival"></i>
                                 <h3 class="serviceTitle">وصول العمالة</h3>
                                 <h6 class="serviceP">
@@ -737,7 +845,7 @@
 
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                                style="background: url('{{ asset('site/assets/images/hands.webp') }}') no-repeat center/cover;">
+                               style="background: url('{{ asset('site/assets/images/hands.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-file-contract"></i>
                                 <h3 class="serviceTitle">تجديد عقد عاملة</h3>
                                 <h6 class="serviceP">
@@ -756,7 +864,7 @@
             <!--  last card  -->
             <div class="wide-card mt-4" data-aos="fade-up">
                 <a href="#" class="service d-flex flex-column justify-content-center"
-                    style="background: url('{{ asset('site/assets/images/f3.webp') }}') no-repeat center/cover;">
+                   style="background: url('{{ asset('site/assets/images/f3.webp') }}') no-repeat center/cover;">
                     <i class="fa-solid fa-users-gear"></i>
                     <h3 class="serviceTitle">طلب العمالة المهنية</h3>
                     <h6 class="serviceP">
@@ -852,7 +960,7 @@
 
 
     <!-- steps sec  -->
-    <section class="steps" id="steps">
+    <section class="steps" id="steps" style="position: relative">
         <div class="container">
             <!-- Section Title -->
             <div class="SectionTitle">
@@ -872,20 +980,21 @@
                         <p>
                             {{ $step->title }}
                         </p>
-                        @if ($key == 0)
-                            <div class="images">
-                                <img src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in"
-                                    data-aos-delay="200">
-                                <img src="{{ asset('site') }}/assets/images/visa.webp" data-aos="zoom-in"
-                                    data-aos-delay="300">
-                                <img src="{{ asset('site') }}/assets/images/mada.webp" data-aos="zoom-in"
-                                    data-aos-delay="400">
-                                <img src="{{ asset('site') }}/assets/images/tabby.png" data-aos="zoom-in"
-                                    data-aos-delay="400">
-                                <img src="{{ asset('site') }}/assets/images/tamara.webp" data-aos="zoom-in"
-                                    data-aos-delay="400">
-                            </div>
-                        @endif
+                        {{--                        @if ($key == 0)--}}
+                        {{--                           --}}
+                        {{--                        @endif--}}
+                    </div>
+                    <div class="images" style="position: absolute ;bottom: 0 ; right: 0">
+                        <img src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in"
+                             data-aos-delay="200">
+                        <img src="{{ asset('site') }}/assets/images/visa.webp" data-aos="zoom-in"
+                             data-aos-delay="300">
+                        <img src="{{ asset('site') }}/assets/images/mada.webp" data-aos="zoom-in"
+                             data-aos-delay="400">
+                        <img src="{{ asset('site') }}/assets/images/tabby.png" data-aos="zoom-in"
+                             data-aos-delay="400">
+                        <img src="{{ asset('site') }}/assets/images/tamara.webp" data-aos="zoom-in"
+                             data-aos-delay="400">
                     </div>
                 @empty
                     <div class="step" data-aos="fade-up" data-aos-delay="100">
@@ -896,18 +1005,6 @@
                             سداد رسوم تاشيرة العمالة المنزلية الخاصة بك عبر الخدمات الحكومية
                             في البنك او عن طريق القنوات التالية
                         </p>
-                        <div class="images">
-                            <img src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in"
-                                data-aos-delay="200">
-                            <img src="{{ asset('site') }}/assets/images/visa.webp" data-aos="zoom-in"
-                                data-aos-delay="300">
-                            <img src="{{ asset('site') }}/assets/images/mada.webp" data-aos="zoom-in"
-                                data-aos-delay="400">
-                            <img src="{{ asset('site') }}/assets/images/tabby.png" data-aos="zoom-in"
-                                data-aos-delay="400">
-                            <img src="{{ asset('site') }}/assets/images/tamara.webp" data-aos="zoom-in"
-                                data-aos-delay="400">
-                        </div>
                     </div>
                     <div class="step" data-aos="fade-up" data-aos-delay="200">
                         <div class="icon">
@@ -952,7 +1049,25 @@
                         </div>
                         <p>نضمن لك العمالة لمدة 3 شهور</p>
                     </div>
+
                 @endforelse
+            </div>
+        </div>
+        <div class="images"
+             style="position: absolute ;bottom: 0 ; right: 0 ;width: 100px ;height: 100px; display: flex; ">
+            <div>
+                <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in"
+                     data-aos-delay="200">
+                <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/visa.webp" data-aos="zoom-in"
+                     data-aos-delay="300">
+                <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/mada.webp" data-aos="zoom-in"
+                     data-aos-delay="400">
+            </div>
+            <div>
+                <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/tabby.png" data-aos="zoom-in"
+                     data-aos-delay="400">
+                <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/tamara.webp" data-aos="zoom-in"
+                     data-aos-delay="400">
             </div>
         </div>
     </section>
@@ -999,7 +1114,7 @@
                                     <div class="icon">
                                         <i class="fa-regular fa-building-columns"></i>
                                     </div>
-                                    <p> تعريف بالراتب من جهة العمل أو كشف حساب البنك </p>
+                                    <p> تعريف بالراتب يبدء من من جهة العمل أو كشف حساب البنك </p>
                                 </li>
                                 <li data-aos="fade-up">
                                     <div class="icon">
@@ -1054,7 +1169,7 @@
                                     <div class="icon">
                                         <i class="fa-regular fa-building-columns"></i>
                                     </div>
-                                    <p> تعريف بالراتب من جهة العمل أو كشف حساب البنك </p>
+                                    <p> تعريف بالراتب يبدء من من جهة العمل أو كشف حساب البنك </p>
                                 </li>
                                 <li data-aos="fade-up">
                                     <div class="icon">
@@ -1084,8 +1199,8 @@
 
             <div class="video-wrapper" data-aos="zoom-in" data-aos-duration="1000">
                 <iframe src="{{ __('ingaz.video_link') }}" title="{{ __('ingaz.video_description') }}" frameborder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
             </div>
         </div>
     </section>
@@ -1114,7 +1229,7 @@
                             <label class="form-label">
                                 <i class="fas fa-user me-2"></i> {{ __('ingaz.full name') }}*
                             </label>
-                            <input type="text" id="name" name="name" class="form-control" required />
+                            <input type="text" id="name" name="name" class="form-control" required/>
                             <div class="invalid-feedback"> {{ __('ingaz.this field is required') }}</div>
                             <div class="valid-feedback">{{ __('ingaz.good') }}</div>
                         </div>
@@ -1122,14 +1237,14 @@
                             <label class="form-label"><i class="fas fa-phone-alt me-2"></i> {{ __('ingaz.phone') }}*
                             </label>
                             <input type="tel" id="phone" name="phone" id="phoneNum" class="form-control"
-                                required />
+                                   required/>
                             <div class="invalid-feedback"> {{ __('ingaz.this field is required') }} </div>
                         </div>
                         <div class="col-md-6 p-2">
                             <label class="form-label">
                                 <i class="fa-solid fa-comment-lines me-2"></i> {{ __('ingaz.subject') }}
                             </label>
-                            <input type="text" id="subject" name="subject" class="form-control" />
+                            <input type="text" id="subject" name="subject" class="form-control"/>
                         </div>
                         <div class="col-md-12 p-2">
                             <label class="form-label">
@@ -1142,7 +1257,7 @@
                         {!! NoCaptcha::display() !!}
 
                         @error('g-recaptcha-response')
-                            <span class="text-danger">{{ $message }}</span>
+                        <span class="text-danger">{{ $message }}</span>
                         @enderror
 
                         <div class="col-md-12 text-center p-2">
@@ -1173,8 +1288,8 @@
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
                                 <img src="{{ showFile($client->image) ?? asset('site/assets/images/musand.svg') }}"
-                                    alt=""
-                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
+                                     alt=""
+                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
                             </div>
                         </div>
                     @empty
@@ -1182,20 +1297,21 @@
                             <div class="referenceLogo">
 
                                 <img src="{{ asset('site/assets/images/Ministry-of-Foreign-Affairs-01.svg') }}"
-                                    alt=""
-                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
+                                     alt=""
+                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
 
                             </div>
                         </div>
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
                                 <img src="{{ asset('site/assets/images/Ministry-of-Interior-01.svg') }}" alt=""
-                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
+                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
                             </div>
                         </div>
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img src="{{ asset('site/assets/images/Ministry-of-Labor-and-Social-Development.svg') }}"
+                                <img
+                                    src="{{ asset('site/assets/images/Ministry-of-Labor-and-Social-Development.svg') }}"
                                     alt=""
                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
 
@@ -1236,7 +1352,7 @@
             });
 
             // عند تحريك العلامة (Marker)
-            google.maps.event.addListener(marker, 'dragend', function(event) {
+            google.maps.event.addListener(marker, 'dragend', function (event) {
                 document.getElementById("latitude").value = event.latLng.lat();
                 document.getElementById("longitude").value = event.latLng.lng();
             });
@@ -1247,8 +1363,8 @@
     </script>
 
     <script>
-        $(document).ready(function() {
-            $('#contact-form').on('submit', function(e) {
+        $(document).ready(function () {
+            $('#contact-form').on('submit', function (e) {
                 e.preventDefault();
 
                 $.ajax({
@@ -1265,7 +1381,7 @@
                         'g-recaptcha-response': grecaptcha.getResponse()
 
                     },
-                    success: function(response) {
+                    success: function (response) {
 
                         $('#contact-form')[0].reset();
                         Swal.fire({
@@ -1275,7 +1391,7 @@
                             confirmButtonText: '{{ __('ingaz.ok') }}'
                         });
                     },
-                    error: function(xhr) {
+                    error: function (xhr) {
                         console.error("خطأ في الطلب:", xhr);
                     }
                 });

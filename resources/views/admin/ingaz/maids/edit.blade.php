@@ -467,48 +467,48 @@
                 </div>
 
                 <!-- اللغات والحالة الاجتماعية -->
-                <div class="col-12">
-                        <label for="TextInput" class="form-label">{{helperTrans("ingaz.languages")}} <small
-                                class="text-muted">(اختياري)</small></label>
-                        @php
-                            $langs = is_array($obj->languages)
-                                ? $obj->languages
-                                : (json_decode($obj->languages, true) ?? []);
-                            $percentages = is_array($obj->percentage)
-                                ? $obj->percentage
-                                : (json_decode($obj->percentage, true) ?? []);
-                        @endphp
+{{--                <div class="col-12">--}}
+{{--                        <label for="TextInput" class="form-label">{{helperTrans("ingaz.languages")}} <small--}}
+{{--                                class="text-muted">(اختياري)</small></label>--}}
+{{--                        @php--}}
+{{--                            $langs = is_array($obj->languages)--}}
+{{--                                ? $obj->languages--}}
+{{--                                : (json_decode($obj->languages, true) ?? []);--}}
+{{--                            $percentages = is_array($obj->percentage)--}}
+{{--                                ? $obj->percentage--}}
+{{--                                : (json_decode($obj->percentage, true) ?? []);--}}
+{{--                        @endphp--}}
 
-                        <div class="row">
-                            @foreach (['arabic'=>'اللغة العربية',
-                                       'english'=>'اللغة الإنجليزية',
-                                       'amharic'=>'اللغة الأمهرية',
-                                       'mother'=>'اللغة الأم'] as $key => $label)
+{{--                        <div class="row">--}}
+{{--                            @foreach (['arabic'=>'اللغة العربية',--}}
+{{--                                       'english'=>'اللغة الإنجليزية',--}}
+{{--                                       'amharic'=>'اللغة الأمهرية',--}}
+{{--                                       'mother'=>'اللغة الأم'] as $key => $label)--}}
 
-                                <div class="col-md-3">
-                                    <div class="form-check">
-                                        <input class="form-check-input lang-check"
-                                               type="checkbox"
-                                               name="languages[{{ $key }}]"
-                                               id="{{ $key }}"
-                                               value="{{ $key }}"
-                                            {{ in_array($key, $langs) ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="{{ $key }}">{{ $label }}</label>
-                                    </div>
+{{--                                <div class="col-md-3">--}}
+{{--                                    <div class="form-check">--}}
+{{--                                        <input class="form-check-input lang-check"--}}
+{{--                                               type="checkbox"--}}
+{{--                                               name="languages[{{ $key }}]"--}}
+{{--                                               id="{{ $key }}"--}}
+{{--                                               value="{{ $key }}"--}}
+{{--                                            {{ in_array($key, $langs) ? 'checked' : '' }}>--}}
+{{--                                        <label class="form-check-label" for="{{ $key }}">{{ $label }}</label>--}}
+{{--                                    </div>--}}
 
-                                    <div class="lang-extra mt-2"
-                                         style="{{ in_array($key,$langs) ? '' : 'display:none;' }}">
-                                        <input type="number" min="0" max="100"
-                                               class="form-control"
-                                               placeholder="النسبة %"
-                                               name="percentage[{{ $key }}]"
-                                               value="{{ $percentages[$key] ?? '' }}">
-                                    </div>
-                                </div>
+{{--                                    <div class="lang-extra mt-2"--}}
+{{--                                         style="{{ in_array($key,$langs) ? '' : 'display:none;' }}">--}}
+{{--                                        <input type="number" min="0" max="100"--}}
+{{--                                               class="form-control"--}}
+{{--                                               placeholder="النسبة %"--}}
+{{--                                               name="percentage[{{ $key }}]"--}}
+{{--                                               value="{{ $percentages[$key] ?? '' }}">--}}
+{{--                                    </div>--}}
+{{--                                </div>--}}
 
-                            @endforeach
-                        </div>
-                    </div>
+{{--                            @endforeach--}}
+{{--                        </div>--}}
+{{--                    </div>--}}
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit">{{__("buttons.save")}}</button>
                         <a href="{{ route('maids.index') }}"
