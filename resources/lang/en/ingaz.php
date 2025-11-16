@@ -1754,13 +1754,10 @@
     'post_arrival_support' => 'Post-Arrival Support:',
     'post_arrival_support_text' => 'rate of follow-up and support after arrival',
     'video_title' => 'Watch the introductory video of the Musaned platform',
-<<<<<<< HEAD
-'video_description' => 'Musaned - The National Platform for Domestic Labor Services',
-'video_link' => 'https://www.youtube.com/embed/I3L7Ft6W0-s',
+     'video_description' => 'Musaned - The National Platform for Domestic Labor Services',
+     'video_link' => 'https://www.youtube.com/embed/I3L7Ft6W0-s',
     'Operations_Management' => 'Operations Management',
-
-=======
-    'video_description' => 'Musaned - The National Platform for Domestic Labor Services',
+        'video_description' => 'Musaned - The National Platform for Domestic Labor Services',
     'video_link' => 'https://www.youtube.com/embed/I3L7Ft6W0-s',
     'hr' => 'Hr Management',
     'finance' => 'Finance Management',
@@ -1768,5 +1765,5 @@
 
     'salary_with_no_experience' => 'Salary with no experience',
     'salary_with_experience' => 'Salary with experience',
->>>>>>> main
+
 );
