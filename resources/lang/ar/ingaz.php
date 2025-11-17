@@ -1666,5 +1666,6 @@
   'confirm_delete' => 'Confirm delete',
   'mission' => 'Mission',
   'type' => 'Type',
-  'more_than_20_years_experience' => 'More than 20 years experience'
+  'more_than_20_years_experience' => 'More than 20 years experience',
+  'no_additional_notes' => 'No Additional Notes',
 );

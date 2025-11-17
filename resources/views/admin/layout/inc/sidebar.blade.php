@@ -65,7 +65,7 @@
                 <li class="divider py-2 lh-sm"><span class="small">{{ helperTrans('ingaz.dashboard') }}</span></li>
                 @if (@AdminGuardHasPerm(\App\PermKeys::DASHBOARD_VIEW))
                     <li>
-                   
+
                         <a class="m-link {{ Route::currentRouteName() == 'dashboard.index' ? 'active' : '' }}"
                             href="{{ route('dashboard.index') }}">
                             <i class="fa fa-home"></i>
@@ -79,9 +79,9 @@
                     $isFinance = request()->is('finance*');
                     $isZatcka = request()->is('zatca*');
                 @endphp
-             
-                
-                 @php
+
+
+                @php
                     $isHr = request()->is('hr*');
                 @endphp
                 <li class="{{ $isHr ? '' : 'collapsed' }}">
@@ -612,7 +612,7 @@
                 </li>
 
 
-                <!-- طلبات استرجاع العقود -->
+                {{-- <!-- طلبات استرجاع العقود -->
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#returnRequestsMenu" href="#">
                         <i class="fa fa-undo"></i>
@@ -629,7 +629,7 @@
                             </a>
                         </li>
                     </ul>
-                </li>
+                </li> --}}
 
                 <!-- Additional Services Section -->
 
