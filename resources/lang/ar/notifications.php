@@ -12,7 +12,7 @@
 */
 
 return [
-    'Asus Al Injaz' => 'أسس الانجاز',
+    'Asus Al Injaz' => 'بلاتنيوم الشرقية',
     'update_order_status' => ' تم تغيير حالة الطلب ',
     'There is a new order' => ' يوجد طلب جديد رقم',
     'Store saved' => ' تم حفظ المتجر رقم ',

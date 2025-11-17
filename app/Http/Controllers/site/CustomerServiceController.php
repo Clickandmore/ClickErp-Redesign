@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\site;
 
 use App\Enums\auth\AdminTypes;
+use App\Enums\ingaz\OrderEnum;
 use App\Http\Actions\auth\AdminAction;
 use App\Http\Actions\ingaz\MaidAction;
 use App\Http\Actions\ingaz\SettingAction;
@@ -13,6 +14,11 @@ use Illuminate\Http\Request;
 
 class CustomerServiceController extends Controller
 {
+    public function index()
+    {
+        return redirect(route('site.all-workers.index'));
+    }
+
     public function update($id, CustomerServiceRequest $request, AdminAction $adminAction)
     {
         $dataInserted = $request->validated();
@@ -34,12 +40,27 @@ class CustomerServiceController extends Controller
         if (!isset($jobType)) {
             return jsonError(null, __("ingaz.job_type_not_found"));
         }
+        $sameOrder = RecruitmentRequest::where('maid_id', $request->maid_id)
+            ->where('user_id', auth()->user()->id)
+            ->whereIn('status', [OrderEnum::New->value, OrderEnum::Contracted->value, OrderEnum::UnderProcess->value, OrderEnum::ContractedWithoutContract->value])
+            ->first();
+        if ($sameOrder) {
+            return back()->with('error', __("web.there_are_order_in_prograss"));
+        }
         $order = RecruitmentRequest::create([
             'user_id' => auth()->user()->id,
             'maid_id' => $maid->id,
             'job_type_id' => $jobType->id
         ]);
+
         $customer_services = $adminAction->getWhere(['admin_type' => AdminTypes::CustomerService->value]);
         return view('site.pages.customer_sevices', get_defined_vars());
     }
+
+    public function show($id)
+    {
+        $maid_id = RecruitmentRequest::find($id)->maid_id;
+        return redirect(route('site.all-workers.show', $maid_id));
+    }
+
 }

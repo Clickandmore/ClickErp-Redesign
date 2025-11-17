@@ -180,7 +180,7 @@
                 <div class="row">
                     <div class="col-md-6 p-2 mb-5 mb-md-0 wow fadeInUp">
                         <div class="headTitle text-start">
-                            <h2> {{__('ingaz.contact')}}</h2>
+                            <h2> {{__('ingaz.contact-us')}}</h2>
                             <p>
                                 {{__('ingaz.request your mid')}}
                             </p>
@@ -233,7 +233,7 @@
                     <div class="col-md-6 p-2 wow fadeInUp">
                         <section class="googleMap">
                             <iframe
-                                src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d57946.84623396069!2d46.75688!3d24.806481!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0xc74fdd6f15256594!2z2YXZg9iq2Kgg2LHZiNin2YHYryDZhtis2K8g2YTZhNil2LPYqtmC2K_Yp9mF!5e0!3m2!1sar!2ssa!4v1650724949947!5m2!1sar!2ssa"
+                           src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d57144.98454618672!2d50.12401500000001!3d26.469859!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e49fbc320200d1b%3A0x1abc87f1ffdb75d5!2z2KjZhNin2KrZitmG2YrZiNmFINin2YTYtNix2YLZitipINmE2YTYpdiz2KrZgtiv2KfZhQ!5e0!3m2!1sar!2ssa!4v1761469557614!5m2!1sar!2ssa"
                                 frameborder="0"
                                 style="border: 0"
                                 allowfullscreen=""

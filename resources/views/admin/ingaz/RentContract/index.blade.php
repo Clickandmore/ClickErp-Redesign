@@ -261,7 +261,7 @@
             </h6>
         </div>
         <div class="card-body">
-                        
+
                 <table class="table table-bordered" id="dataTableObject" width="100%" cellspacing="0">
                     <thead>
                         <tr>
@@ -404,7 +404,7 @@
                                             <small class="text-muted">الكفيل القديم</small>
                                         </div>
                                         <div class="card-body">
-                                            <h6 class="mb-1">شركة أسس الإنجاز للاستقدام</h6>
+                                            <h6 class="mb-1">شركة بلاتنيوم الشرقية للاستقدام</h6>
                                             <small class="text-muted">عقد إيجار</small>
                                         </div>
                                     </div>

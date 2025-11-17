@@ -56,6 +56,7 @@ class Maid extends Model
         'cv_preview',
         'office_id',
         'status',
+        'request_type',
         'available',
         'available_at',
         'is_show',
@@ -64,7 +65,12 @@ class Maid extends Model
         'childrens_count',
         'additional_notes',
         'duration',
-        'languages'
+        'languages',
+        'offer_price',
+        'offer_duration',
+        'offer_description',
+        'offer_starts_at',
+        'offer_expires_at'
     ];
 
     protected $casts = [
@@ -79,13 +85,18 @@ class Maid extends Model
         'is_pinned' => 'boolean',
         'available_at' => 'date',
         'birth_date' => 'date',
-        'id_expiry_date' => 'date'
+        'id_expiry_date' => 'date',
+        'offer_price' => 'decimal:2',
+        'offer_starts_at' => 'date',
+        'offer_expires_at' => 'date'
     ];
 
     public $translatedAttributes = ['marital_status', 'languages'];
     protected $translationForeignKey = 'maid_id';
     public $translationModel = MaidTranslation::class;
     protected $with = ['translations'];
+    protected $primaryJobTypeInstance;
+    protected static array $officeSerialIndex = [];
 
 
     ####### relations
@@ -175,5 +186,112 @@ class Maid extends Model
             return showFile($this->image);
         }
         return asset('images/no-image.png');
+    }
+
+    public function getCvCodeAttribute(): ?string
+    {
+        if (!$this->office_id || !$this->office?->title) {
+            return null;
+        }
+
+        // أول 3 أحرف من اسم المكتب
+        $prefix = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $this->office->title), 0, 3));
+        if ($prefix === '') $prefix = 'OFF';
+
+        // رقم تسلسلي حسب عدد العاملات في نفس المكتب
+        $count = static::where('office_id', $this->office_id)
+            ->where('id', '<=', $this->id)
+            ->count();
+
+        return $prefix . str_pad($count, 3, '0', STR_PAD_LEFT);
+    }
+
+    protected function getPrimaryJobType()
+    {
+        if ($this->relationLoaded('jobTypes')) {
+            return $this->jobTypes->first();
+        }
+
+        if ($this->primaryJobTypeInstance === null) {
+            $this->primaryJobTypeInstance = $this->jobTypes()->first();
+        }
+
+        return $this->primaryJobTypeInstance;
+    }
+
+    protected function normalizeJobTypeTitle(?string $title): string
+    {
+        if (!$title) {
+            return '';
+        }
+
+        $normalized = mb_strtolower(trim($title));
+        $normalized = str_replace(['أ', 'إ', 'آ'], 'ا', $normalized);
+
+        return preg_replace('/\s+/', ' ', $normalized);
+    }
+
+    protected function detectJobCategory(): string
+    {
+        $jobType = $this->getPrimaryJobType();
+        $title = $this->normalizeJobTypeTitle($jobType?->title);
+
+        if ($title === '') {
+            return 'recruitment';
+        }
+
+        if (str_contains($title, 'ايجار') || str_contains($title, 'تاجير') || str_contains($title, 'rent')) {
+            return 'rental';
+        }
+
+        if (str_contains($title, 'استلام') || str_contains($title, 'instant')) {
+            return 'transfer';
+        }
+
+        return 'recruitment';
+    }
+
+    public function getResolvedPriceAttribute(): ?float
+    {
+        if ($this->price !== null && (float) $this->price > 0) {
+            return (float) $this->price;
+        }
+
+        $nationality = $this->nationality;
+        if (!$nationality) {
+            return null;
+        }
+
+        $category = $this->detectJobCategory();
+
+        $candidate = match ($category) {
+            'rental' => $nationality->rental_cost,
+            'transfer' => $nationality->service_transportation_cost,
+            default => $nationality->price,
+        };
+
+        return ($candidate !== null && (float) $candidate > 0) ? (float) $candidate : null;
+    }
+
+    public function getResolvedSalaryAttribute(): ?float
+    {
+        if ($this->salary !== null && (float) $this->salary > 0) {
+            return (float) $this->salary;
+        }
+
+        $nationality = $this->nationality;
+        if (!$nationality) {
+            return null;
+        }
+
+        if ($this->experience_status === 'has_experience' && $nationality->salary_with_experience) {
+            return (float) $nationality->salary_with_experience;
+        }
+
+        if ($this->experience_status !== 'has_experience' && $nationality->salary_with_no_experience) {
+            return (float) $nationality->salary_with_no_experience;
+        }
+
+        return $nationality->monthly_salary ? (float) $nationality->monthly_salary : null;
     }
 }

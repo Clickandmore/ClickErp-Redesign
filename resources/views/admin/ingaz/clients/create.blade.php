@@ -43,10 +43,10 @@
                         <div class="col-6">
                             <div class="form-group">
                                 <label class="form-label">{{ helperTrans('ingaz.nationality') }}</label>
-                                <select name="nationality_id" class="form-control">
+                                <select name="nationality_id" id="nationalitySelect" class="form-control select2">
                                     <option value="">{{ helperTrans('ingaz.choose') }}</option>
                                     @foreach($countries as $country)
-                                        <option value="{{ $country->id }}">{{ $country->name_ar }}</option>
+                                        <option value="{{ $country->id }}">{{ $country->title }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -78,7 +78,12 @@
                         <div class="col-6">
                             <div class="form-group">
                                 <label class="form-label">{{ helperTrans('ingaz.city') }}</label>
-                                <input type="text" name="city" class="form-control">
+                                <select name="city" id="citySelect" class="form-control select2">
+                                    <option value="">{{ helperTrans('ingaz.choose') }}</option>
+                                    @foreach($cities as $city)
+                                        <option value="{{ $city->name }}" data-country-id="{{ $city->country_id }}">{{ $city->name }}</option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
                         <div class="col-6">
@@ -121,6 +126,60 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function () {
+            const chooseText = "{{ helperTrans('ingaz.choose') }}";
+            const $nationalitySelect = $('#nationalitySelect');
+            const $citySelect = $('#citySelect');
+
+            if ($nationalitySelect.length) {
+                $nationalitySelect.select2({
+                    placeholder: chooseText,
+                    allowClear: true,
+                    width: '100%'
+                });
+            }
+
+            if ($citySelect.length) {
+                const citiesData = $citySelect.find('option').not('[value=\"\"]').map(function () {
+                    const $option = $(this);
+                    const countryId = $option.data('countryId');
+
+                    return {
+                        value: $option.val(),
+                        text: $option.text(),
+                        countryId: countryId !== undefined && countryId !== null ? String(countryId) : ''
+                    };
+                }).get();
+
+                const filterCities = function (countryId) {
+                    const targetCountry = countryId ? String(countryId) : '';
+
+                    $citySelect.find('option').not('[value=\"\"]').remove();
+
+                    citiesData.forEach(function (city) {
+                        if (!targetCountry || city.countryId === targetCountry) {
+                            const option = new Option(city.text, city.value, false, false);
+                            option.setAttribute('data-country-id', city.countryId);
+                            $citySelect.append(option);
+                        }
+                    });
+                };
+
+                filterCities($nationalitySelect.val());
+
+                $citySelect.select2({
+                    placeholder: chooseText,
+                    allowClear: true,
+                    width: '100%'
+                });
+
+                $citySelect.val('').trigger('change');
+
+                $nationalitySelect.on('change', function () {
+                    filterCities($(this).val());
+                    $citySelect.val('').trigger('change');
+                });
+            }
+
             $('#addForm').on('submit', function (e) {
                 e.preventDefault();
 

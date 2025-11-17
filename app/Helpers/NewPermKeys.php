@@ -386,6 +386,11 @@ class NewPermKeys
     const OFFICES_CREATE = 'offices_create';
     const OFFICES_EDIT = 'offices_edit';
     const OFFICES_DELETE = 'offices_delete';
+    const EXTERNAL_AGENTS_VIEW = 'external_agents_view';
+    const EXTERNAL_AGENTS_CREATE = 'external_agents_create';
+    const EXTERNAL_AGENTS_EDIT = 'external_agents_edit';
+    const EXTERNAL_AGENTS_DELETE = 'external_agents_delete';
+    const EXTERNAL_AGENTS_MANAGE = 'external_agents_manage';
 
     // ========================================
     // التقارير والإحصائيات (Reports & Statistics)
@@ -516,6 +521,7 @@ class NewPermKeys
             self::SHELTER_WORKERS_VIEW,
             self::SHELTER_PLACES_VIEW,
             self::REC_OFFICES_VIEW,
+            self::EXTERNAL_AGENTS_VIEW,
             self::TRAVEL_VIEW,
             self::SPONSOR_TRANSFER_VIEW,
             self::CUSTOMER_SERVICE_VIEW,
@@ -562,6 +568,7 @@ class NewPermKeys
             self::SHELTER_WORKERS_MANAGE,
             self::SHELTER_PLACES_MANAGE,
             self::REC_OFFICES_MANAGE,
+            self::EXTERNAL_AGENTS_MANAGE,
             self::TRAVEL_MANAGE,
             self::SPONSOR_TRANSFER_MANAGE,
             self::CUSTOMER_SERVICE_MANAGE,

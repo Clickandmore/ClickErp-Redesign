@@ -17,7 +17,7 @@ return [
     'save' => 'حفظ',
     'edit' => 'تعديل',
     'Are You Sure' => 'هل أنت متأكد من إتمام  هذا الإجراء؟',
-    'You Can not to rollback' => 'لا يمكنك التراجع بعد ذلك؟',
+    'You Can not to rollback' => 'لا يمكنك التراجع بعد ذلك',
     'accept' => 'موافق',
     'cancel' => 'الغاء',
     'Deleted successfully' => 'تم الحذف بنجاح',

@@ -1,4 +1,4 @@
-[2025-10-16 12:02:50] local.ERROR: Please provide a valid cache path. {"exception":"[object] (InvalidArgumentException(code: 0): Please provide a valid cache path. at /mnt/Data/Erp-Rec-Operation/vendor/laravel/framework/src/Illuminate/View/Compilers/Compiler.php:36)
+[2025-11-02 15:43:16] local.ERROR: Please provide a valid cache path. {"exception":"[object] (InvalidArgumentException(code: 0): Please provide a valid cache path. at /mnt/Data/Erp-Rec-Operation/vendor/laravel/framework/src/Illuminate/View/Compilers/Compiler.php:36)
 [stacktrace]
 #0 /mnt/Data/Erp-Rec-Operation/vendor/laravel/framework/src/Illuminate/View/ViewServiceProvider.php(88): Illuminate\\View\\Compilers\\Compiler->__construct()
 #1 /mnt/Data/Erp-Rec-Operation/vendor/laravel/framework/src/Illuminate/Container/Container.php(873): Illuminate\\View\\ViewServiceProvider->Illuminate\\View\\{closure}()

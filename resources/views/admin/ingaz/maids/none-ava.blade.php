@@ -305,14 +305,6 @@
                         </select>
                     </div>
                     <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
-                        <select class="form-control" name="office_id" id="office_id">
-                            <option value="" selected>مكتب الاستقدام</option>
-                            @foreach($filter['offices'] as $office)
-                                <option value="{{$office->id}}" {{ ($request->office_id == $office->id) ? 'selected' : '' }}>{{$office->title}}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                         <select class="form-control" name="job_type" id="type">
                             <option value="" selected>نوع السيرة الذاتية</option>
                         @foreach($filter['job_types'] as $jobtype)
@@ -485,7 +477,6 @@
                 let filters = {
                     passport_num: $('#passport_num').val(),
                     nationality_id: $('#nationality_id').val(),
-                    office_id: $('#office_id').val(),
                     job_type: $('#type').val(),
                     experience_years: $('input[name="experience_years"]').val(),
                     datefilter: $('input[name="daterange"]').val()

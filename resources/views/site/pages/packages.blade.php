@@ -2,7 +2,59 @@
 @section('title')
     {{ __('ingaz.cv_details') }}
 @endsection
+<style>
+    .location:hover {
+        box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+    }
 
+    .location:hover .delete-btn,
+    .location:hover .edit-btn {
+        display: block !important;
+    }
+
+    .delete-btn,
+    .edit-btn {
+        display: none;
+        position: absolute;
+        top: 8px;
+        background: #fff;
+        border: none;
+        border-radius: 50%;
+        padding: 6px;
+        cursor: pointer;
+        transition: 0.3s;
+        box-shadow: 0 0 4px rgba(0, 0, 0, 0.15);
+    }
+
+    /* ✅ لو الصفحة RTL (عربية): خلي الأزرار في اليسار */
+    [dir="rtl"] .delete-btn {
+        left: 8px;
+    }
+
+    [dir="rtl"] .edit-btn {
+        left: 45px;
+    }
+
+    /* ✅ لو الصفحة LTR (إنجليزية): خلي الأزرار في اليمين */
+    [dir="ltr"] .delete-btn {
+        right: 8px;
+    }
+
+    [dir="ltr"] .edit-btn {
+        right: 45px;
+    }
+
+    .delete-btn:hover {
+        background: rgba(255, 0, 0, 0.1);
+        transform: scale(1.1);
+    }
+
+    .edit-btn:hover {
+        background: rgba(0, 123, 255, 0.1);
+        transform: scale(1.1);
+    }
+
+</style>
 @section('content')
     <section class="page_header">
         <h1>{{ $type->title }}</h1>
@@ -81,24 +133,51 @@
                                         <div class="row g-3 user_address">
                                             @foreach ($addresses as $address)
                                                 <div class="col-6">
-                                                    <label for="l1{{ $address->id }}"
-                                                           class="location-card w-100"
-                                                           onclick="render_data('address',{{ $address->id }})">
-                                                        <div class="location" id="address-{{ $address->id }}">
+                                                    <label for="l1{{ $address->id }}" class="location-card w-100"
+                                                           style="position: relative; display: block;">
+                                                        <div class="location" id="address-{{ $address->id }}"
+                                                             style="position: relative; border: 1px solid #ddd; border-radius: 10px; padding: 15px; transition: 0.3s;">
                                                             <h6>{{ $address->title }}</h6>
-                                                            <ul>
-                                                                <li><i class="fa-light fa-user"></i>{{ $address->name }}
+                                                            <ul style="list-style: none; padding: 0; margin: 0;">
+                                                                <li>
+                                                                    <i class="fa-light fa-user"></i> {{ $address->name }}
                                                                 </li>
                                                                 <li>
-                                                                    <i class="fa-light fa-phone"></i>{{ $address->phone }}
+                                                                    <i class="fa-light fa-phone"></i> {{ $address->phone }}
                                                                 </li>
                                                                 <li>
-                                                                    <i class="fa-light fa-location-dot"></i>{{ $address->address }}
+                                                                    <i class="fa-light fa-location-dot"></i> {{ $address->address }}
                                                                 </li>
+                                                                <!-- 🗑️ حذف-->
+                                                                <button type="button" class="delete-btn"
+                                                                        data-id="{{ $address->id }}"
+                                                                        title="{{ __('web.delete_address') }}">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                                         viewBox="0 0 24 24" width="18" height="18"
+                                                                         fill="red">
+                                                                        <path
+                                                                            d="M9 3v1H4v2h16V4h-5V3H9zm1 5v9h2V8h-2zm4 0v9h2V8h-2zM7 8v9h2V8H7z"/>
+                                                                    </svg>
+                                                                </button>
+                                                                <!-- ✏️ تعديل -->
+                                                                <button type="button" class="edit-btn"
+                                                                        data-bs-toggle="modal"
+                                                                        data-bs-target="#addLocation"
+                                                                        model-route="{{ route('site.user-addresses.edit', $address->id) }}">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                                                         viewBox="0 0 24 24" width="18" height="18"
+                                                                         fill="#007bff">
+                                                                        <path
+                                                                            d="M3 17.25V21h3.75l11-11.03-3.75-3.75L3 17.25zm14.71-10.04a1.003 1.003 0 0 0 0-1.42l-1.5-1.5a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                                                                    </svg>
+                                                                </button>
                                                             </ul>
                                                         </div>
-                                                        <input type="radio" name="address_id" value="{{ $address->id }}"
-                                                               id="l1{{ $address->id }}">
+                                                        <input type="radio"
+                                                               name="address_id"
+                                                               value="{{ $address->id }}"
+                                                               id="l1{{ $address->id }}"
+                                                               data-address="{{ $address->id }}">
                                                     </label>
                                                 </div>
                                             @endforeach
@@ -109,7 +188,9 @@
                                             <label for="manual_address" onclick="showManualAddressInput()">
                                                 <div class="location" id="manual-address-option"
                                                      style="border: 2px dashed #007bff;">
-                                                    <h6><i class="fa-light fa-edit me-2"></i>{{__("ingaz.Enter the address manually")}}</h6>
+                                                    <h6>
+                                                        <i class="fa-light fa-edit me-2"></i>{{__("ingaz.Enter the address manually")}}
+                                                    </h6>
                                                     <ul>
                                                         <li>
                                                             <i class="fa-light fa-info-circle"></i>{{__("ingaz.Enter the address yourself")}}
@@ -126,7 +207,9 @@
                                             <label for="skip_address" onclick="skipAddress()">
                                                 <div class="location" id="skip-address-option"
                                                      style="border: 2px dashed #6c757d;">
-                                                    <h6><i class="fa-light fa-forward me-2"></i>{{__("ingaz.Skip Address")}}</h6>
+                                                    <h6>
+                                                        <i class="fa-light fa-forward me-2"></i>{{__("ingaz.Skip Address")}}
+                                                    </h6>
                                                     <ul>
                                                         <li>
                                                             <i class="fa-light fa-info-circle"></i>ً{{__("ingaz.I will decide on the title laters")}}
@@ -138,63 +221,6 @@
                                             </label>
                                         </div>
                                     </div>
-
-                                    <!-- حقل إدخال العنوان يدوياً (مخفي) -->
-                                    {{--                                    <div id="manual_address_input" class="row mt-3" >--}}
-                                    {{--                                        <div class="col-12">--}}
-                                    {{--                                            <div class="card">--}}
-                                    {{--                                                <div class="card-header">--}}
-                                    {{--                                                    <h6><i class="fa-light fa-edit me-2"></i>إدخال العنوان يدوياً</h6>--}}
-                                    {{--                                                </div>--}}
-                                    {{--                                                <div class="card-body">--}}
-                                    {{--                                                    <form id="form-of-user-address" method="post"--}}
-                                    {{--                                                          action="{{route('site.user-addresses.store')}}">--}}
-                                    {{--                                                        @csrf--}}
-                                    {{--                                                        <div class="row">--}}
-                                    {{--                                                            <div class="col-md-6 mb-3">--}}
-                                    {{--                                                                <label class="form-label">المدينة <span--}}
-                                    {{--                                                                        class="text-danger">*</span></label>--}}
-                                    {{--                                                                <select class="form-control" id="manual_city"--}}
-                                    {{--                                                                        name="country_id">--}}
-                                    {{--                                                                    <option value="">اختر المدينة</option>--}}
-                                    {{--                                                                    @foreach($countries as $country)--}}
-                                    {{--                                                                        <option--}}
-                                    {{--                                                                            value="{{$country->id}}">{{app()->getLocale()=='ar' ? $country->name_ar : $country->name_en}}</option>--}}
-                                    {{--                                                                    @endforeach--}}
-                                    {{--                                                                </select>--}}
-                                    {{--                                                            </div>--}}
-                                    {{--                                                            <div class="col-md-6 mb-3">--}}
-                                    {{--                                                                <label class="form-label">العنوان التفصيلي <span--}}
-                                    {{--                                                                        class="text-danger">*</span></label>--}}
-                                    {{--                                                                <textarea class="form-control" id="manual_address_text"--}}
-                                    {{--                                                                          name="address" rows="3"--}}
-                                    {{--                                                                          placeholder="أدخل العنوان التفصيلي..."></textarea>--}}
-                                    {{--                                                            </div>--}}
-                                    {{--                                                            <div class="col-md-6 mb-3">--}}
-                                    {{--                                                                <label class="form-label">رقم الجوال</label>--}}
-                                    {{--                                                                <input type="tel" class="form-control" id="manual_phone"--}}
-                                    {{--                                                                       name="phone" placeholder="رقم الجوال للتواصل">--}}
-                                    {{--                                                            </div>--}}
-                                    {{--                                                            <div class="col-md-6 mb-3">--}}
-                                    {{--                                                                <label class="form-label">اسم المستلم</label>--}}
-                                    {{--                                                                <input type="text" class="form-control" id="manual_name"--}}
-                                    {{--                                                                       name="name" placeholder="اسم المستلم">--}}
-                                    {{--                                                            </div>--}}
-                                    {{--                                                        </div>--}}
-                                    {{--                                                        <div class="text-end">--}}
-                                    {{--                                                            <button type="button" class="btn btn-secondary"--}}
-                                    {{--                                                                    onclick="hideManualAddressInput()">--}}
-                                    {{--                                                                <i class="fa-light fa-times me-2"></i>إلغاء--}}
-                                    {{--                                                            </button>--}}
-                                    {{--                                                            <button type="submit" class="btn btn-primary">--}}
-                                    {{--                                                                <i class="fa-light fa-check me-2"></i>تأكيد العنوان--}}
-                                    {{--                                                            </button>--}}
-                                    {{--                                                        </div>--}}
-                                    {{--                                                    </form>--}}
-                                    {{--                                                </div>--}}
-                                    {{--                                            </div>--}}
-                                    {{--                                        </div>--}}
-                                    {{--                                    </div>--}}
                                     <div class="col-12 d-flex justify-content-end mt-4 p-2">
                                         <button class="btn btn-label-secondary btn-prev">
                                             <span
@@ -289,7 +315,7 @@
                                                                  style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">
                                                         @else
                                                             <img
-                                                                src="{{ $maid->cv_preview ? showFile($maid->cv_preview) : showFile($maid->cv_file) }}"
+                                                                src="{{ $maid->cv_file ? showFile($maid->cv_file) : showFile($maid->cv_file) }}"
                                                                 alt="cv1"
                                                                 style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">
                                                         @endif
@@ -711,77 +737,7 @@
             $('.alert-danger').remove();
         }
 
-        // دالة تأكيد العنوان اليدوي
-        // function confirmManualAddress() {
-        //     let city = $('#manual_city').val();
-        //     let address = $('#manual_address_text').val();
-        //     let phone = $('#manual_phone').val();
-        //     let name = $('#manual_name').val();
-        //
-        //     if (!city) {
-        //         Swal.fire({icon: 'warning', text: 'يرجى إدخال المدينة'});
-        //         return;
-        //     }
-        //
-        //     // عرض العنوان
-        //     let manualAddressHtml = `
-        //             <div class="alert alert-success">
-        //                 <h6><i class="fa-light fa-edit me-2"></i>العنوان اليدوي</h6>
-        //                 <ul class="mb-0">
-        //                     <li><i class="fa-light fa-user"></i>${name || 'غير محدد'}</li>
-        //                     <li><i class="fa-light fa-phone"></i>${phone || 'غير محدد'}</li>
-        //                     <li><i class="fa-light fa-location-dot"></i>${city} - ${address}</li>
-        //                 </ul>
-        //             </div>`;
-        //     $('#llocation-l').html(manualAddressHtml);
-        //
-        //     let form = $('#form-of-user-address');
-        //     let formData = new FormData(form[0]);
-        //     let url = form.attr('action');
-        //     let method = form.attr('method');
-        //     console.log(url)
-        //     console.log(method)
-        //
-        //     $.ajax({
-        //         url: url,
-        //         type: method,
-        //         data: formData,
-        //         processData: false,
-        //         contentType: false,
-        //         success: function (response) {
-        //             Toastify({
-        //                 text: response.message,
-        //                 duration: 4000,
-        //                 gravity: "top",
-        //                 position: "right",
-        //                 backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
-        //                 stopOnFocus: true
-        //             }).showToast();
-        //             form[0].reset();
-        //             hideManualAddressInput();
-        //         },
-        //         error: function (xhr) {
-        //             if (xhr.status === 422) {
-        //                 let errors = xhr.responseJSON.errors;
-        //                 let errorMessages = '';
-        //                 for (let key in errors) {
-        //                     errorMessages += `<p style="margin:0 0 5px;color:red;text-align:center;">${errors[key][0]}</p>`;
-        //                 }
-        //                 Swal.fire({
-        //                     icon: 'error',
-        //                     title: 'خطأ في الإدخال',
-        //                     html: `<div>${errorMessages}</div>`,
-        //                 });
-        //             } else {
-        //                 Swal.fire({
-        //                     icon: 'error',
-        //                     title: 'خطأ',
-        //                     text: 'حدث خطأ من الخادم'
-        //                 });
-        //             }
-        //         }
-        //     });
-        // }
+
 
         // إضافة مستمع لراديو العناوين
         $('input[name="address_id"]').change(function () {
@@ -969,7 +925,7 @@
                             "X-CSRF-TOKEN": "{{ csrf_token() }}",
                             "Content-Type": "application/json"
                         },
-                        body: JSON.stringify({ redirect_url: currentUrl })
+                        body: JSON.stringify({redirect_url: currentUrl})
                     }).then(() => {
                         window.location.href = "{{ route('site.login.index') }}";
                     });
@@ -1067,5 +1023,144 @@
             $('input[name="details_list[package_id]"]').val(selectedId);
         });
     </script>
+    <script>
+        $(document).ready(function () {
+            const createAction = "{{ route('web.addresses.store') }}";
+
+// فتح المودال للتعديل
+            $(document).on('click', '.edit-btn', function () {
+                const route = $(this).attr('model-route');
+                const modal = $('#addLocation');
+                const form  = modal.find('form');
+
+                modal.find('input, select, textarea').val('');
+                modal.addClass('loading');
+
+                $.get(route, function(res){
+                    modal.removeClass('loading');
+                    if(res?.data){
+                        const address = res.data;
+
+                        // تعبئة البيانات
+                        modal.find('input[name="title"]').val(address.title);
+                        modal.find('input[name="name"]').val(address.name);
+                        modal.find('input[name="phone"]').val(address.phone);
+                        modal.find('input[name="address"]').val(address.address);
+                        modal.find('textarea[name="notes"]').val(address.notes);
+                        modal.find('select[name="city_id"]').val(address.city_id).change();
+                        modal.find('input[name="id"]').val(address.id);
+
+                        // تجهيز الفورم للتعديل
+                        form.attr('action', '/user-addresses/' + address.id);
+
+                        if(!form.find('input[name="_method"]').length){
+                            form.append('<input type="hidden" name="_method" value="PUT">');
+                        }
+
+                        modal.find('.modal-title').text('تعديل العنوان');
+
+                        // إزالة أي listener سابق ثم إضافة listener التعديل
+                        form.off('submit').on('submit', function(e){
+                            e.preventDefault();
+                            $.ajax({
+                                url: form.attr('action'),
+                                type: 'POST',
+                                data: form.serialize(),
+                                headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+                                success: function(res){
+                                    if(res?.data?.html){
+                                        $('.user_address').html(res.data.html);
+                                    }
+                                    $('#addLocation').modal('hide');
+                                },
+                                error: function(xhr){
+                                    console.error('حدث خطأ أثناء التعديل', xhr.responseText);
+                                }
+                            });
+                        });
+
+                        modal.modal('show');
+                    }
+                }).fail(function(){
+                    modal.removeClass('loading');
+                    console.error('حدث خطأ أثناء تحميل البيانات');
+                });
+            });
+
+
+// إعادة الفورم للوضع الأصلي عند غلق المودال
+            $('#addLocation').on('hidden.bs.modal', function () {
+                const modal = $(this);
+                const form  = modal.find('form');
+
+                form.attr('action', createAction);
+                form.attr('method', 'POST');
+                form.find('input[name="_method"]').remove();
+                modal.find('input, select, textarea').val('');
+                modal.find('.modal-title').text('إضافة عنوان جديد');
+
+                // إزالة submit القديم ثم إعداد submit الإضافة
+                form.off('submit').on('submit', function(e){
+                    e.preventDefault();
+                    $.ajax({
+                        url: form.attr('action'),
+                        type: 'POST',
+                        data: form.serialize(),
+                        headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+                        success: function(res){
+                            if(res?.data?.html){
+                                $('.user_address').html(res.data.html);
+                            }
+                            $('#addLocation').modal('hide');
+                        },
+                        error: function(xhr){
+                            console.error('حدث خطأ أثناء الإضافة', xhr.responseText);
+                        }
+                    });
+                });
+            });
+
+
+            // حذف العنوان
+            $(document).on('click', '.delete-btn', function(){
+                const id = $(this).data('id');
+                if(!confirm('هل أنت متأكد من الحذف؟')) return;
+
+                // نرسل POST مع _method=DELETE
+                $.ajax({
+                    url: '/user-addresses/' + id,
+                    type: 'POST',
+                    data: {_method: 'DELETE'}, // ← مهم
+                    headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
+                    success: function(res){
+                        if(res?.data?.html){
+                            $('.user_address').html(res.data.html);
+                        } else {
+                            // لو مفيش HTML يعني مفيش عناوين بعد الحذف
+                            $('.user_address').html(`
+                                <div class="no-address text-center p-3">
+                                    <p>لا توجد عناوين مضافة حتى الآن</p>
+                                </div>
+                            `);
+                        }
+                    }
+                    ,
+                    error: function(xhr){
+                        console.error('حدث خطأ أثناء الحذف', xhr.responseText);
+                    }
+                });
+            });
+
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            $('input[name="select_address"]').on('change', function () {
+                let selectedId = $(this).val();
+                $('#selected_address_id').val(selectedId);
+            });
+        });
+    </script>
+
 
 @endsection

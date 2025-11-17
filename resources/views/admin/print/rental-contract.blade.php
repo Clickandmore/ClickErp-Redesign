@@ -411,7 +411,7 @@
             <div class="header">
                 <!-- Logo في أعلى الصفحة -->
                 <div class="logo-container">
-                    <img src="{{ $logoUrl }}" alt="شركة أسس الإنجاز">
+                    <img src="{{ $logoUrl }}" alt="شركة بلاتنيوم الشرقية">
                 </div>
                 <h1>عقد</h1>
             </div>
@@ -422,7 +422,7 @@
 
             <div class="parties-section">
                 <div class="party">
-                    <div class="party-title">1- شركة أسس الإنجاز للاستقدام</div>
+                    <div class="party-title">1- شركة بلاتنيوم الشرقية للاستقدام</div>
                     <div>لاستقدام العمالة المنزلية ترخيص وزارة العمل رقم / {{ $contractSettings['license_number'] ?? '4001772' }} وتاريخ : {{ $contractSettings['license_date'] ?? '2022/10/13' }} م سجل تجاري رقم / {{ $contractSettings['commercial_register'] ?? '1010601958' }}</div>
                     <div>وتاريخ: {{ \Carbon\Carbon::parse($contractSettings['commercial_date'] ?? '1441/03/03')->format('Y/m/d') }} هـ صادر من الرياض</div>
                     <div>وعنوانه الرياض صندوق بريد: الرمز البريدي: مكتب: جوال: البريد الالكتروني</div>
@@ -642,7 +642,7 @@
             <!-- قسم التوقيعات مع ميزة التوقيع -->
             <div class="signatures-section">
                 <div style="margin-top: 40px;">
-                    <div>اسم الطرف الأول: شركة أسس الإنجاز للاستقدام</div>
+                    <div>اسم الطرف الأول: شركة بلاتنيوم الشرقية للاستقدام</div>
                     <div>اسم الطرف الثاني: {{ $contract->user->name ?? 'Maram omar alzahrani' }}</div>
 
                     <!-- قسم التوقيع -->

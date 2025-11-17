@@ -81,7 +81,7 @@ class ComplaintFeedbackController extends Controller
         $message .= "نود معرفة رأيك في جودة الخدمة المقدمة.\n";
         $message .= "للتقييم: " . $feedback->feedback_url . "\n";
         $message .= "شكراً لثقتك بنا.\n";
-        $message .= "أسس الإنجاز للاستقدام";
+        $message .= "بلاتنيوم الشرقية للاستقدام";
 
         // إرسال الرسالة عبر بوابة SMS
         self::sendSMS($complaint->complainant_phone, $message);
