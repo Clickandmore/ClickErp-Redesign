@@ -23,6 +23,8 @@ return [
     'Our_Business' => 'Our Business',
     'See_All' => 'See All',
     'show_projects' => 'show projects',
+    'age_min' => 'The age must be at least :min.',
+    'age_max' => 'The age must not exceed :max.',
     'Get_in_touch' => 'Get in touch',
     'Our_Partners' => 'OUR PARTNERS',
     'Our' => 'Our',
@@ -319,8 +321,45 @@ return [
     'return_request_processed_at' => 'at',
     'view_notifications' => 'View notifications',
     'view_my_orders' => 'View my orders',
+    'resend_code' => 'Resend Code',
+    'type' => 'Type',
+    'resend_code_successfuly' => 'The code has been resent successfully',
     'view_my_contracts' => 'View my contracts',
+    'wait_before_retry' => 'Your register is being processed,Please wait.',
+    'enter_otp_to_complete_register' => 'Enter Otp To Complete Register',
+    'you_are_offline' => 'You are offline, please check your connection.',
+
     'phone_validation_text' => 'The phone number must be 9 digits long and begin with the number 5.',
     'account_is_blocked' => 'Your account has been blocked, please contact support.',
+    'no_data_found' => 'No data is currently available.',
+    'there_are_order_in_prograss' => 'You have a previous request for this maid that is currently being processed.',
+    'lastNews' => [
+        'new_packages' => 'Launching new domestic worker packages',
+        'new_batches' => 'New skilled worker batches arriving from the Philippines and India',
+        'new_customers' => 'Special offers for new customers on the occasion of the new branch opening',
+        'medical_staff' => 'Providing qualified medical and nursing staff with flexible contracts',
+        'drivers' => 'Recruiting professional drivers with high experience across the Kingdom',
+        'follow_up' => 'Starting a post-recruitment follow-up and guarantee program',
+        'trained_workers' => 'Providing trained domestic workers according to the highest standards',
+        'agreements' => 'Signing new agreements with accredited external recruitment offices',
+        'ramadan_support' => 'Special support for families during Ramadan with fast recruitment services',
+    ],
+    'qualified_labor' => [
+        'title' => 'Qualified Labor',
+        'description' => 'We provide professionally qualified and well-trained workers to ensure high-quality performance and efficiency.',
+    ],
+
+    'time_saving' => [
+        'title' => 'Time Saving',
+        'description' => 'Fast and simplified procedures to save time and effort in the recruitment process of professional workers.',
+    ],
+
+    'continuous_support' => [
+        'title' => 'Continuous Support',
+        'description' => 'We provide ongoing support and consultations before and after recruitment to ensure your complete satisfaction.',
+    ],
+    'project_name' => 'Platinum Al Sharqia Recruitment',
+    'project_desc' => 'Over 20 years of providing highly professional recruitment services',
+    'Platinum Company Services' => 'Platinum Company Services',
 
 ];

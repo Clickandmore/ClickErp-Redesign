@@ -35,7 +35,7 @@
                             </li>
                             <li>
                                 <a class="dropdown-item"
-                                   href="{{route('site.all-workers.index') }}?type=estqdam"> {{__("ingaz.Labor_transfer_services")}}
+                                   href="{{route('site.all-workers.index') }}?type=transfer"> {{__("ingaz.Labor_transfer_services")}}
                                 </a>
                             </li>
                             <li>
@@ -218,15 +218,12 @@
             <span>|</span>
             {{ $fastnew->title }}
         @empty
-            : إطلاق باقات جديدة لاستقدام العمالة المنزلية
-            <span>|</span> وصول دفعات جديدة من العمالة الماهرة من الفلبين والهند
-            <span>|</span> عروض خاصة للعملاء الجدد بمناسبة افتتاح الفرع الجديد
-            <span>|</span> توفير كوادر طبية وتمريضية مؤهلة بعقود ميسّرة
-            <span>|</span> استقدام سائقين مهنيين بخبرة عالية لجميع أنحاء المملكة
-            <span>|</span> بدء برنامج متابعة وضمان ما بعد الاستقدام
-            <span>|</span> توفير عاملات منزليات مدرّبات وفق أعلى المعايير
-            <span>|</span> توقيع اتفاقيات جديدة مع مكاتب استقدام خارجية معتمدة
-            <span>|</span> دعم خاص للعائلات في شهر رمضان بخدمات استقدام سريعة
+            @foreach(__('web.lastNews') as $index => $item)
+                <span>{{ $item }}</span>
+                @if($index < count(__('web.lastNews')) - 1)
+                    <span> | </span>
+                @endif
+            @endforeach
         @endforelse
 
     </marquee>

@@ -298,6 +298,7 @@ class RentContractController extends Controller
             'existing_clients_count' => $existing_clients->count()
         ]);
 
+        $selectedClientId = $request->get('client_id');
         return view($this->folderPath . '.create', compact(
             'endedOrders',
             'availableRentalMaids',
@@ -307,7 +308,8 @@ class RentContractController extends Controller
             'offices',
             'hasEndedOrders',
             'countries',
-            'selectedOrder'
+            'selectedOrder',
+            'selectedClientId'
         ));
     }
 

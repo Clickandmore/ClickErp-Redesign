@@ -37,7 +37,8 @@ class JobTitleAction extends MainAction
 
     }
 
-    public function getJobsTitles(){
-        return $this->model->latest()->get();
+    public function getJobsTitles()
+    {
+        return $this->model->orderByTranslation('title', 'asc')->get();
     }
 }

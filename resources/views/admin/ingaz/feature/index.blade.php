@@ -5,19 +5,19 @@
     {{helperTrans("ingaz.features")}}
 @endsection
 @section('content')
- 
-    
-        {!! addButton(route("features.create") ,helperTrans("ingaz.features")) !!}
 
+    @if(count($features) < 3)
+        {!! addButton(route("features.create") ,helperTrans("ingaz.features")) !!}
+    @endif
     <p></p>
     <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
         <thead>
         <tr>
             <th>#</th>
             <th>{{helperTrans("ingaz.image")}}</th>
-             <th>{{helperTrans("ingaz.title")}}</th>
+            <th>{{helperTrans("ingaz.title")}}</th>
             <th>{{helperTrans("ingaz.actions")}}</th>
- 
+
         </tr>
         </thead>
         <tbody>
@@ -25,7 +25,6 @@
         </tbody>
     </table>
 
- 
 @endsection
 @section('js')
 
@@ -36,9 +35,9 @@
             let columns = [
                 {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                 {"data": "image", orderable: true, searchable: true},
-                 {"data": "title", orderable: true, searchable: true},
+                {"data": "title", orderable: true, searchable: true},
 
-                 {"data": "actions", orderable: false, searchable: false}
+                {"data": "actions", orderable: false, searchable: false}
             ];
             showDataTable("{{route("features.index")}}", columns);
         });

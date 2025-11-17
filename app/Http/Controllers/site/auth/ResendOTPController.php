@@ -14,8 +14,6 @@ class ResendOTPController extends Controller
     {
         $data = $request->validated();
         $phoneVerificationAction->storeSendCode($data, $request);
-        $encryptedPhone = Crypt::encryptString($data['phone']);
-        dd('dsd');
-        return jsonSuccess(['redirect_url' => route('site.otp.index', ['phone' => $encryptedPhone])], __("ingaz.code_send_successfully"));
+        return jsonSuccess(null, null, __("web.resend_code_successfuly"));
     }
 }

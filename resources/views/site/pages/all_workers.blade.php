@@ -64,11 +64,11 @@
                             </button>
                             <!-- <button type="button" class="btn toggle-btn {{ $type == 'has_experience' ? 'active' : '' }}"
                                     data-role="type" data-target="has_experience">
-                                {{ __('ingaz.has_experience_label') }}
+{{--                                {{ __('ingaz.has_experience_label') }}--}}
                             </button>
                             <button type="button" class="btn toggle-btn {{ $type == 'no_experience' ? 'active' : '' }}"
                                     data-role="type" data-target="no_experience">
-                                {{ __('ingaz.no_experience_label') }}
+{{--                                {{ __('ingaz.no_experience_label') }}--}}
                             </button> -->
                         </div>
 
@@ -76,8 +76,8 @@
                             $currentExperienceStatus = request()->experience_status ?? '';
                         @endphp
                         <form action="" class="row" id="maids_filter">
-                            <input type="hidden" name="experience_status" id="experience_status_input"
-                                   value="{{ $currentExperienceStatus }}">
+{{--                            <input type="hidden" name="experience_status" id="experience_status_input"--}}
+{{--                                   value="{{ $currentExperienceStatus }}">--}}
                             <!-- Experience Status -->
                             <!-- <div class="py-3 col col-md-12">
 
@@ -132,9 +132,9 @@
                                 <label for="workExperience">
                                     <i class="fa-duotone fa-briefcase me-1"></i>{{__('ingaz.experience')}}
                                 </label>
-                                <select id="workExperience" class="select2">
-                                    <option value="worked"> {{ __('ingaz.has_experience_label') }}</option>
-                                    <option value="not-worked"> {{ __('ingaz.no_experience_label') }}</option>
+                                <select id="experience_status_input" class="select2" name="experience_status">
+                                    <option value="has_experience"> {{ __('ingaz.has_experience_label') }}</option>
+                                    <option value="no_experience"> {{ __('ingaz.no_experience_label') }}</option>
                                 </select>
                             </div>
 
@@ -154,7 +154,11 @@
                 </div>
                 <div class="col-md-8 col-lg-8 p-0">
                     <div id="maids_list">
-                        @include('site.pages.maids_list', ['maids' => $maids])
+                        @if ($maids->isEmpty())
+                            <div class="no-results">{{ __('ingaz.no_results') }}</div>
+                        @else
+                            @include('site.pages.maids_list', ['maids' => $maids])
+                        @endif
                     </div>
                     <!-- Modal -->
                     <div class="modal fade cvModal" tabindex="-1">
@@ -321,7 +325,7 @@
                 type: "GET",
                 data: params,
                 beforeSend: function () {
-                    $("#maids_list").html("<p>Loading...</p>");
+                    $("#maids_list").html("<div class='loading-text'><div class='spinner-border' role='status'><span class='visually-hidden'>Loading...</span></div></div>");
                 },
                 success: function (response) {
                     $("#maids_list").html(response);

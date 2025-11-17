@@ -210,7 +210,7 @@ class RentalOrderController extends Controller
 
                     // View button
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW)) {
-                        $actions .= '<li><a class="dropdown-item" href="' . route('showSingleOrder', $row->id) . '">
+                        $actions .= '<li><a class="dropdown-item" href="' . route('showSingleOrder', ['orderId' => $row->id]) . '">
                             <i class="fa fa-eye"></i> عرض التفاصيل
                         </a></li>';
                     }

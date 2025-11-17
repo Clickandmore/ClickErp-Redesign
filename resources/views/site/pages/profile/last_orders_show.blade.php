@@ -1403,6 +1403,7 @@
             background: #c4e7c0;
             color: #139d03;
         }
+
         .complain {
             outline: none;
             background: none;
@@ -1411,12 +1412,34 @@
             padding: 4px 16px;
             border-radius: 8px;
         }
+
+        .refuse-reason {
+            /* background-color: #0000003b; */
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 8px 0 0 0;
+        }
+
+        .refuse-reason h5 {
+            border-bottom: 1px solid;
+            padding-bottom: 5px;
+        }
+
+        .refuse-reason p {
+            color: #ffe9e9;
+            font-size: 14px;
+        }
+        .btn-delete-order{
+            padding: 10px 20px !important;
+        }
+
     </style>
 @endsection
 
 @section('content')
     <main>
-
         <!-- *** pages header *** -->
         <section class="page_header" style="background-image: url({{ asset('site/assets/images/bg-pattern-1.png') }})">
             <h1>{{ helperTrans('web.my_profile') }}</h1>
@@ -1480,6 +1503,7 @@
                                         {{ __('ingaz.Within 24 hours so that the CV reservation is not cancelled') }}
                                     </p>
                                     <div class="btns">
+                                        {{-- @dd(@$order->details->admin->phone_code . @$order->details->admin->phone) --}}
                                         <a href="https://wa.me/{{ @$order->details->admin->phone_code . @$order->details->admin->phone }}"
                                             class="whatsapp" target="_blank">
                                             <i class="fa-brands fa-whatsapp"></i>
@@ -1491,6 +1515,22 @@
                                     </div>
                                 </div>
                             @endif
+
+                            @if ($order->refuse_reason)
+                                <div class="refuse-reason">
+                                    <h5>{{ helperTrans('ingaz.reason') }} : </h5>
+                                    <p>
+                                        {{ $order->refuse_reason }}
+                                    </p>
+                                </div>
+                            @endif
+
+                            <form action="{{ route('site.last-orders.destroy', $order->id) }}" method="POST"
+                                class="m-0">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-danger btn-delete-order">{{ __('ingaz.delete_order') }}</button>
+                            </form>
                         </div>
                     </div>
                     <div class="col-lg-10 col-12 mb-4 d-flex justify-content-end">
@@ -1577,15 +1617,24 @@
                     <div class="col-lg-10 col-12 p-2">
                         <div class="cv">
                             <div class="cv_details">
-                                <div class="img">
+                                <div class="img text-center">
+                                    @if(isset($order->maid->cv_file) && !empty($order->maid->cv_file))
+                                        <div class="d-flex justify-content-center gap-2">
+                                            {{-- 🔹 زر المشاهدة --}}
+                                            <a href="{{ showFile($order->maid->cv_file) }}" target="_blank" class="btn btn-sm btn-primary">
+                                                <i class="fa-regular fa-eye me-1"></i> {{ __('مشاهدة السيرة') }}
+                                            </a>
 
-                                    <a href="#" class="maidViewData" data-id="{{ @$order->maid->id }}">
-                                        {{-- <a href="{{showFile($order->maid->cv_file)}}" data-fancybox="w1"> --}}
-                                        <img src="{{ showFile($order->maid->cv_file) }}" alt="cv1">
-                                        {{-- </a> --}}
-                                    </a>
-
+                                            {{-- 🔹 زر التحميل --}}
+                                            <a href="{{ showFile($order->maid->cv_file) }}" download class="btn btn-sm btn-success">
+                                                <i class="fa-solid fa-download me-1"></i> {{ __('تحميل السيرة') }}
+                                            </a>
+                                        </div>
+                                    @else
+                                        <p class="text-muted mt-2">{{ __('لا توجد سيرة ذاتية مرفقة') }}</p>
+                                    @endif
                                 </div>
+
                                 <div class="info">
                                     <ul>
                                         <li>
@@ -1633,6 +1682,9 @@
                                     </li>
                                     <li>
                                         <i class="fa-light fa-location-dot"></i> {{ $order->details->address->address }}
+                                    </li>
+                                    <li>
+                                        <i class="fa-regular fa-note-sticky"></i> {{ $order->details->address->notes }}
                                     </li>
                                     <hr>
                                     <li>

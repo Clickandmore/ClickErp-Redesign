@@ -3,7 +3,21 @@
     @method('PUT')
 
     {{-- 🧩 أيقونة العداد --}}
-    <div class="col-12 mb-3">
+
+    <div class="col-6">
+        <label for="TextInput" class="form-label">
+            {{helperTrans("web.type")}}
+        </label>
+        <select name="type" class="form-control" data-validation="required">
+            <option value="">{{__("ingaz.choose")}}</option>
+            <option
+                value="estqdam" {{$obj->type == 'estqdam' ? 'selected' : ''}}> {{ __('ingaz.recruitment') }}</option>
+            <option value="egar"{{$obj->type == 'egar' ? 'selected' : ''}}> {{ __('ingaz.Labor_rental') }}</option>
+            <option
+                value="transfer" {{$obj->type == 'transfer' ? 'selected' : ''}}> {{ __('ingaz.transfer_services') }}</option>
+        </select>
+    </div>
+    <div class="col-6">
         <label class="form-label fw-bold">
             {{ helperTrans('ingaz.icon') }}
         </label>
@@ -60,11 +74,13 @@
                     <td class="text-center">{{ $loop->iteration }}</td>
                     @foreach (config('translatable.locales') as $locale)
                         <td>
-                            <input type="text" name="titles[{{ $key }}][{{ $locale }}][title]" value="{{ $item->translate($locale)->title }}" class="form-control index-plus">
+                            <input type="text" name="titles[{{ $key }}][{{ $locale }}][title]"
+                                   value="{{ $item->translate($locale)->title }}" class="form-control index-plus">
                         </td>
                     @endforeach
                     <td class="text-center">
-                        <i class="fa fa-plus-circle text-success me-2 cursor-pointer" id="btnAdd-2" title="{{ __('Add') }}"></i>
+                        <i class="fa fa-plus-circle text-success me-2 cursor-pointer" id="btnAdd-2"
+                           title="{{ __('Add') }}"></i>
                         <i class="fa fa-trash-o text-danger btnRemove cursor-pointer" title="{{ __('Remove') }}"></i>
                     </td>
                 </tr>

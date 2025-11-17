@@ -106,7 +106,7 @@ class ReturnRequestController extends Controller
                     // View button
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW)) {
                         if (!isset($row->deleted_at)) {
-                            $actions .= '<a href="' . route('showSingleOrder', $row->id) . '" class="btn btn-info" title="عرض التفاصيل">
+                            $actions .= '<a href="' . route('showSingleOrder', ['orderId' => $row->id]) . '" class="btn btn-info" title="عرض التفاصيل">
                             <i class="fa fa-eye"></i>
                         </a>';
                         }

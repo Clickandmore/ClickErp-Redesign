@@ -30,4 +30,9 @@ class RecruitmentOffices extends Model
             ->logOnly(['*'])
             ->logOnlyDirty();
     }
+
+    public function maids()
+    {
+        return $this->hasMany(\App\Models\ingaz\Maid::class, 'office_id');
+    }
 }

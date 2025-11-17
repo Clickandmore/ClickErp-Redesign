@@ -1,6 +1,6 @@
 @extends('admin.layout.indexs.index')
-@section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/custom/table-actions.css">
+@section('style')
+    <link rel="stylesheet" href="{{ asset('admin') }}/custom/table-actions.css">
     <style>
         .table-responsive {
             border-radius: 8px;
@@ -102,20 +102,19 @@
     </style>
 @endsection
 @section('page-title')
-    {{helperTrans("ingaz.cancelled_orders")}}
+    {{ helperTrans('ingaz.cancelled_orders') }}
 @endsection
 
 @section('content')
     @if (@AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_VIEW))
-
         <!-- Export Buttons -->
         <div class="export-buttons mb-3">
             @if (@AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_EXPORT))
                 <a href="{{ route('return_requests.export.pdf') }}" class="btn btn-outline-danger" target="_blank">
-                    <i class="fa fa-file-pdf"></i> {{helperTrans("ingaz.export_pdf")}}
+                    <i class="fa fa-file-pdf"></i> {{ helperTrans('ingaz.export_pdf') }}
                 </a>
                 <a href="{{ route('return_requests.export.excel') }}" class="btn btn-outline-success">
-                    <i class="fa fa-file-excel"></i> {{helperTrans("ingaz.export_excel")}}
+                    <i class="fa fa-file-excel"></i> {{ helperTrans('ingaz.export_excel') }}
                 </a>
             @endif
         </div>
@@ -125,81 +124,117 @@
             <div class="card-body">
                 <form id="filterForm" class="row g-3">
                     <div class="col-md-2">
-                        <label class="form-label">{{helperTrans("ingaz.status")}}</label>
+                        <label class="form-label">{{ helperTrans('ingaz.status') }}</label>
                         <select class="form-select" name="status" id="status">
-                            <option value="">{{helperTrans("ingaz.all")}}</option>
-                            <option value="refused">{{helperTrans("ingaz.refused")}}</option>
-                            <option value="return">{{helperTrans("ingaz.return")}}</option>
-                            <option value="deleted">{{helperTrans("ingaz.deleted")}}</option>
+                            <option value="">{{ helperTrans('ingaz.all') }}</option>
+                            <option value="refused">{{ helperTrans('ingaz.refused') }}</option>
+                            <option value="return">{{ helperTrans('ingaz.return') }}</option>
+                            <option value="deleted">{{ helperTrans('ingaz.deleted') }}</option>
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">{{helperTrans("ingaz.from_date")}}</label>
+                        <label class="form-label">{{ helperTrans('ingaz.from_date') }}</label>
                         <input type="date" class="form-control" name="from_date" id="from_date">
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">{{helperTrans("ingaz.to_date")}}</label>
+                        <label class="form-label">{{ helperTrans('ingaz.to_date') }}</label>
                         <input type="date" class="form-control" name="to_date" id="to_date">
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">{{helperTrans("ingaz.client_name")}}</label>
+                        <label class="form-label">{{ helperTrans('ingaz.client_name') }}</label>
                         <input type="text" class="form-control" name="client_name" id="client_name"
-                               placeholder="{{helperTrans('ingaz.search_by_client_name')}}">
+                            placeholder="{{ helperTrans('ingaz.search_by_client_name') }}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">&nbsp;</label>
                         <div class="d-flex gap-2">
                             <button type="submit" class="btn btn-filter flex-fill">
-                                <i class="fa fa-filter"></i> {{helperTrans("ingaz.filter")}}
+                                <i class="fa fa-filter"></i> {{ helperTrans('ingaz.filter') }}
                             </button>
                             <button type="button" class="btn btn-reset" id="resetFilter">
-                                <i class="fa fa-refresh"></i> {{helperTrans("ingaz.reset")}}
+                                <i class="fa fa-refresh"></i> {{ helperTrans('ingaz.reset') }}
                             </button>
                         </div>
                     </div>
                 </form>
             </div>
         </div>
-                 <div class="card shadow">
+        <div class="card shadow">
             <div class="card-body">
-            <table id="dataTableObject" class="table table-hover" style="width:100%">
-                <thead>
-                <tr>
-                    <th>#</th>
-                    <th>{{helperTrans("ingaz.order_code")}}</th>
-                    <th>{{helperTrans("ingaz.client")}}</th>
-                    <th>{{helperTrans("ingaz.phone")}}</th>
-                    <th>{{helperTrans("ingaz.maid")}}</th>
-                    <th>{{helperTrans("ingaz.status")}}</th>
-                    <th>{{helperTrans("ingaz.order_date")}}</th>
-                    <th>{{helperTrans("ingaz.responsible_employee")}}</th>
-                    <th class="actions-column">{{helperTrans("ingaz.actions")}}</th>
-                </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
-</div>
-                 </div>
+                <table id="dataTableObject" class="table table-hover" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>{{ helperTrans('ingaz.order_code') }}</th>
+                            <th>{{ helperTrans('ingaz.client') }}</th>
+                            <th>{{ helperTrans('ingaz.phone') }}</th>
+                            <th>{{ helperTrans('ingaz.maid') }}</th>
+                            <th>{{ helperTrans('ingaz.status') }}</th>
+                            <th>{{ helperTrans('ingaz.order_date') }}</th>
+                            <th>{{ helperTrans('ingaz.responsible_employee') }}</th>
+                            <th class="actions-column">{{ helperTrans('ingaz.actions') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     @else
         @include('components.no_permissions')
     @endif
 
 @endsection
 @section('js')
-
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        $(document).ready(function () {
-            let columns = [
-                {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
-                {"data": "order_code", orderable: true, searchable: true},
-                {"data": "user_id", orderable: true, searchable: true},
-                {"data": "phone", orderable: true, searchable: true},
-                {"data": "maid_id", orderable: false, searchable: false},
-                {"data": "status", orderable: true, searchable: true},
-                {"data": "created_at", orderable: true, searchable: true},
-                {"data": "admin_name", orderable: true, searchable: true},
-                {"data": "actions", orderable: false, searchable: false},
+        $(document).ready(function() {
+            let columns = [{
+                    "data": 'DT_RowIndex',
+                    name: 'DT_RowIndex',
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "order_code",
+                    orderable: true,
+                    searchable: true
+                },
+                {
+                    "data": "user_id",
+                    orderable: true,
+                    searchable: true
+                },
+                {
+                    "data": "phone",
+                    orderable: true,
+                    searchable: true
+                },
+                {
+                    "data": "maid_id",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "status",
+                    orderable: true,
+                    searchable: true
+                },
+                {
+                    "data": "created_at",
+                    orderable: true,
+                    searchable: true
+                },
+                {
+                    "data": "admin_name",
+                    orderable: true,
+                    searchable: true
+                },
+                {
+                    "data": "actions",
+                    orderable: false,
+                    searchable: false
+                },
             ];
 
             let dataTable = $('#dataTableObject').DataTable({
@@ -207,13 +242,13 @@
                 serverSide: true,
                 ajax: {
                     url: "{{ route('return_requests.index') }}",
-                    data: function (d) {
+                    data: function(d) {
                         d.status = $('#status').val();
                         d.from_date = $('#from_date').val();
                         d.to_date = $('#to_date').val();
                         d.client_name = $('#client_name').val();
                     },
-                    error: function (xhr, error, thrown) {
+                    error: function(xhr, error, thrown) {
                         console.error('DataTables AJAX Error:', error);
                         console.error('XHR:', xhr);
                         console.error('Thrown:', thrown);
@@ -222,64 +257,65 @@
                 columns: columns,
                 language: {
                     url: "{{ asset('admin/assets/js/dataTables.arabic.json') }}",
-                    search: "{{helperTrans('ingaz.search')}}",
-                    lengthMenu: "{{helperTrans('ingaz.show')}} _MENU_ {{helperTrans('ingaz.records')}}",
-                    info: "{{helperTrans('ingaz.showing')}} _START_ {{helperTrans('ingaz.to')}} _END_ {{helperTrans('ingaz.of')}} _TOTAL_ {{helperTrans('ingaz.records')}}",
-                    infoEmpty: "{{helperTrans('ingaz.no_records')}}",
-                    infoFiltered: "({{helperTrans('ingaz.filtered_from')}} _MAX_ {{helperTrans('ingaz.records')}})",
-                    zeroRecords: "{{helperTrans('ingaz.no_matching_records')}}",
+                    search: "{{ helperTrans('ingaz.search') }}",
+                    lengthMenu: "{{ helperTrans('ingaz.show') }} _MENU_ {{ helperTrans('ingaz.records') }}",
+                    info: "{{ helperTrans('ingaz.showing') }} _START_ {{ helperTrans('ingaz.to') }} _END_ {{ helperTrans('ingaz.of') }} _TOTAL_ {{ helperTrans('ingaz.records') }}",
+                    infoEmpty: "{{ helperTrans('ingaz.no_records') }}",
+                    infoFiltered: "({{ helperTrans('ingaz.filtered_from') }} _MAX_ {{ helperTrans('ingaz.records') }})",
+                    zeroRecords: "{{ helperTrans('ingaz.no_matching_records') }}",
                     paginate: {
-                        first: "{{helperTrans('ingaz.first')}}",
-                        last: "{{helperTrans('ingaz.last')}}",
-                        next: "{{helperTrans('ingaz.next')}}",
-                        previous: "{{helperTrans('ingaz.previous')}}"
+                        first: "{{ helperTrans('ingaz.first') }}",
+                        last: "{{ helperTrans('ingaz.last') }}",
+                        next: "{{ helperTrans('ingaz.next') }}",
+                        previous: "{{ helperTrans('ingaz.previous') }}"
                     }
                 }
             });
 
             // Handle filter form submission
-            $('#filterForm').on('submit', function (e) {
+            $('#filterForm').on('submit', function(e) {
                 e.preventDefault();
                 dataTable.ajax.reload();
             });
 
             // Handle reset button
-            $('#resetFilter').on('click', function () {
+            $('#resetFilter').on('click', function() {
                 $('#filterForm')[0].reset();
                 dataTable.ajax.reload();
             });
 
             // Handle restore order
-            $(document).on('click', '.restore-order', function () {
+            $(document).on('click', '.restore-order', function() {
                 const orderId = $(this).data('id');
-                if (confirm('{{helperTrans("ingaz.restore_confirm")}}')) {
+                if (confirm('{{ helperTrans('ingaz.restore_confirm') }}')) {
                     $.ajax({
                         url: '/admin/orders/' + orderId + '/restore',
                         type: 'POST',
                         data: {
                             _token: '{{ csrf_token() }}'
                         },
-                        success: function (response) {
+                        success: function(response) {
                             if (response.data.success) {
                                 dataTable.ajax.reload();
                                 if (typeof toastr !== 'undefined') {
-                                    toastr.success('{{helperTrans("ingaz.order_restored")}}');
+                                    toastr.success(
+                                        '{{ helperTrans('ingaz.order_restored') }}');
                                 } else {
-                                    alert('{{helperTrans("ingaz.order_restored")}}');
+                                    alert('{{ helperTrans('ingaz.order_restored') }}');
                                 }
                             } else {
                                 if (typeof toastr !== 'undefined') {
-                                    toastr.error('{{helperTrans("ingaz.restore_error")}}');
+                                    toastr.error('{{ helperTrans('ingaz.restore_error') }}');
                                 } else {
-                                    alert('{{helperTrans("ingaz.restore_error")}}');
+                                    alert('{{ helperTrans('ingaz.restore_error') }}');
                                 }
                             }
                         },
-                        error: function () {
+                        error: function() {
                             if (typeof toastr !== 'undefined') {
-                                toastr.error('{{helperTrans("ingaz.restore_error")}}');
+                                toastr.error('{{ helperTrans('ingaz.restore_error') }}');
                             } else {
-                                alert('{{helperTrans("ingaz.restore_error")}}');
+                                alert('{{ helperTrans('ingaz.restore_error') }}');
                             }
                         }
                     });
@@ -287,79 +323,133 @@
             });
 
             // Handle delete order
-            $(document).on('click', '.delete-order', function () {
+            $(document).on('click', '.delete-order', function() {
                 const orderId = $(this).data('id');
-                if (confirm('{{helperTrans("ingaz.delete_confirm")}}')) {
+                if (confirm('{{ helperTrans('ingaz.delete_confirm') }}')) {
                     $.ajax({
                         url: '/admin/orders/' + orderId,
                         type: 'DELETE',
                         data: {
                             _token: '{{ csrf_token() }}'
                         },
-                        success: function (response) {
+                        success: function(response) {
                             if (response.data.success) {
                                 dataTable.ajax.reload();
                                 if (typeof toastr !== 'undefined') {
-                                    toastr.success('{{helperTrans("ingaz.order_deleted")}}');
+                                    toastr.success('{{ helperTrans('ingaz.order_deleted') }}');
                                 } else {
-                                    alert('{{helperTrans("ingaz.order_deleted")}}');
+                                    alert('{{ helperTrans('ingaz.order_deleted') }}');
                                 }
                             } else {
                                 if (typeof toastr !== 'undefined') {
-                                    toastr.error('{{helperTrans("ingaz.delete_error")}}');
+                                    toastr.error('{{ helperTrans('ingaz.delete_error') }}');
                                 } else {
-                                    alert('{{helperTrans("ingaz.delete_error")}}');
+                                    alert('{{ helperTrans('ingaz.delete_error') }}');
                                 }
                             }
                         },
-                        error: function () {
+                        error: function() {
                             if (typeof toastr !== 'undefined') {
-                                toastr.error('{{helperTrans("ingaz.delete_error")}}');
+                                toastr.error('{{ helperTrans('ingaz.delete_error') }}');
                             } else {
-                                alert('{{helperTrans("ingaz.delete_error")}}');
+                                alert('{{ helperTrans('ingaz.delete_error') }}');
                             }
                         }
                     });
                 }
             });
-            $(document).on('click', '.force-delete-order', function () {
+            $(document).on('click', '.force-delete-order', function() {
                 const orderId = $(this).data('id');
-                if (confirm('{{helperTrans("ingaz.delete_confirm")}}')) {
-                    $.ajax({
-                        url: '/admin/orders/' + orderId,
-                        type: 'DELETE',
-                        data: {
-                            _token: '{{ csrf_token() }}'
-                        },
-                        success: function (response) {
-                            if (response.data.success) {
-                                dataTable.ajax.reload();
-                                if (typeof toastr !== 'undefined') {
-                                    toastr.success('{{helperTrans("ingaz.order_deleted")}}');
+                Swal.fire({
+                    title: '{{ helperTrans('buttons.Are You Sure') }}',
+                    text: '{{ helperTrans('buttons.You Can not to rollback') ?? 'This action cannot be undone!' }}',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: '{{ helperTrans('buttons.accept') ?? 'Yes, delete it!' }}',
+                    cancelButtonText: '{{ helperTrans('buttons.cancel') ?? 'Cancel' }}',
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '/admin/orders/' + orderId,
+                            type: 'DELETE',
+                            data: {
+                                _token: '{{ csrf_token() }}'
+                            },
+                            success: function(response) {
+                                if (response.data.success) {
+                                    dataTable.ajax.reload();
+                                    if (typeof toastr !== 'undefined') {
+                                        toastr.success(
+                                            '{{ helperTrans('ingaz.order_deleted') }}'
+                                        );
+                                    } else {
+                                        dataTable.ajax.reload();
+                                        toastr.success(
+                                            '{{ helperTrans('ingaz.order_deleted') }}'
+                                        );
+                                    }
                                 } else {
-                                    alert('{{helperTrans("ingaz.order_deleted")}}');
+                                    if (typeof toastr !== 'undefined') {
+                                        toastr.error(
+                                            '{{ helperTrans('ingaz.delete_error') }}'
+                                        );
+                                    } else {
+                                        toastr.error(
+                                            '{{ helperTrans('ingaz.delete_error') }}'
+                                        );
+                                    }
                                 }
-                            } else {
+                            },
+                            error: function() {
                                 if (typeof toastr !== 'undefined') {
-                                    toastr.error('{{helperTrans("ingaz.delete_error")}}');
+                                    toastr.error(
+                                        '{{ helperTrans('ingaz.delete_error') }}');
                                 } else {
-                                    alert('{{helperTrans("ingaz.delete_error")}}');
+                                    toastr.error(
+                                        '{{ helperTrans('ingaz.delete_error') }}');
                                 }
                             }
-                        },
-                        error: function () {
-                            if (typeof toastr !== 'undefined') {
-                                toastr.error('{{helperTrans("ingaz.delete_error")}}');
-                            } else {
-                                alert('{{helperTrans("ingaz.delete_error")}}');
-                            }
-                        }
-                    });
-                }
+                        });
+                    }
+                });
+                // if (confirm('{{ helperTrans('ingaz.delete_confirm') }}')) {
+                //     $.ajax({
+                //         url: '/admin/orders/' + orderId,
+                //         type: 'DELETE',
+                //         data: {
+                //             _token: '{{ csrf_token() }}'
+                //         },
+                //         success: function(response) {
+                //             if (response.data.success) {
+                //                 dataTable.ajax.reload();
+                //                 if (typeof toastr !== 'undefined') {
+                //                     toastr.success('{{ helperTrans('ingaz.order_deleted') }}');
+                //                 } else {
+                //                     alert('{{ helperTrans('ingaz.order_deleted') }}');
+                //                 }
+                //             } else {
+                //                 if (typeof toastr !== 'undefined') {
+                //                     toastr.error('{{ helperTrans('ingaz.delete_error') }}');
+                //                 } else {
+                //                     alert('{{ helperTrans('ingaz.delete_error') }}');
+                //                 }
+                //             }
+                //         },
+                //         error: function() {
+                //             if (typeof toastr !== 'undefined') {
+                //                 toastr.error('{{ helperTrans('ingaz.delete_error') }}');
+                //             } else {
+                //                 alert('{{ helperTrans('ingaz.delete_error') }}');
+                //             }
+                //         }
+                //     });
+                // }
             });
 
             // Handle status update
-            $(document).on('click', '.update-status', function (event) {
+            $(document).on('click', '.update-status', function(event) {
                 var rowId = $(this).data('id');
                 var status = $(this).data('value');
                 var url = "{{ route('return_requests.show', ':id') }}";
@@ -367,28 +457,30 @@
                 $.ajax({
                     type: 'Get',
                     url: url,
-                    data: {status: status},
-                    success: function (data) {
+                    data: {
+                        status: status
+                    },
+                    success: function(data) {
                         if (data.success) {
                             dataTable.ajax.reload();
                             if (typeof toastr !== 'undefined') {
-                                toastr.success('{{helperTrans("ingaz.status_updated")}}');
+                                toastr.success('{{ helperTrans('ingaz.status_updated') }}');
                             } else {
-                                alert('{{helperTrans("ingaz.status_updated")}}');
+                                alert('{{ helperTrans('ingaz.status_updated') }}');
                             }
                         } else {
                             if (typeof toastr !== 'undefined') {
-                                toastr.error('{{helperTrans("ingaz.status_update_error")}}');
+                                toastr.error('{{ helperTrans('ingaz.status_update_error') }}');
                             } else {
-                                alert('{{helperTrans("ingaz.status_update_error")}}');
+                                alert('{{ helperTrans('ingaz.status_update_error') }}');
                             }
                         }
                     },
-                    error: function () {
+                    error: function() {
                         if (typeof toastr !== 'undefined') {
-                            toastr.error('{{helperTrans("ingaz.status_update_error")}}');
+                            toastr.error('{{ helperTrans('ingaz.status_update_error') }}');
                         } else {
-                            alert('{{helperTrans("ingaz.status_update_error")}}');
+                            alert('{{ helperTrans('ingaz.status_update_error') }}');
                         }
                     }
                 });
@@ -396,17 +488,19 @@
 
             // Initialize tooltips
             function initTooltips() {
-                $('[data-tooltip]').each(function () {
+                $('[data-tooltip]').each(function() {
                     $(this).hover(
-                        function () {
-                            const tooltip = $('<div class="custom-tooltip">' + $(this).attr('data-tooltip') + '</div>');
+                        function() {
+                            const tooltip = $('<div class="custom-tooltip">' + $(this).attr(
+                                'data-tooltip') + '</div>');
                             $('body').append(tooltip);
 
                             const offset = $(this).offset();
                             tooltip.css({
                                 position: 'absolute',
                                 top: offset.top - tooltip.outerHeight() - 10,
-                                left: offset.left + ($(this).outerWidth() / 2) - (tooltip.outerWidth() / 2),
+                                left: offset.left + ($(this).outerWidth() / 2) - (tooltip
+                                    .outerWidth() / 2),
                                 zIndex: 9999,
                                 backgroundColor: '#333',
                                 color: 'white',
@@ -417,7 +511,7 @@
                                 boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                             });
                         },
-                        function () {
+                        function() {
                             $('.custom-tooltip').remove();
                         }
                     );
@@ -425,11 +519,11 @@
             }
 
             // Initialize tooltips after DataTable loads
-            dataTable.on('draw', function () {
+            dataTable.on('draw', function() {
                 initTooltips();
 
                 // Clean up dropdown text
-                $('.dropdown-item').each(function () {
+                $('.dropdown-item').each(function() {
                     let text = $(this).text();
                     // Remove any repeated text
                     text = text.replace(/\s+/g, ' ').trim();
@@ -448,7 +542,7 @@
             initTooltips();
 
             // Handle dropdown toggle properly
-            $(document).on('click', '.dropdown-toggle', function (e) {
+            $(document).on('click', '.dropdown-toggle', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
 
@@ -465,13 +559,12 @@
             });
 
             // Close dropdowns when clicking outside
-            $(document).on('click', function (e) {
+            $(document).on('click', function(e) {
                 if (!$(e.target).closest('.dropdown').length) {
                     $('.dropdown').removeClass('show');
                     $('.dropdown-menu').hide();
                 }
             });
         });
-
     </script>
 @endsection
