@@ -61,6 +61,7 @@
                     <img src="{{ asset('site') }}/assets/images/logo.svg" alt="img" class="img-fluid"/>
                 </div>
 
+{{--                <h3 class="text-center fw-bold text-uppercase"> {{__('ingaz.password_forgett')}}</h3>--}}
                 @if($type == 'register')
                     <h3 class="text-center fw-bold text-uppercase">{{ __('web.enter_otp_to_complete_register') }}</h3>
                 @else
