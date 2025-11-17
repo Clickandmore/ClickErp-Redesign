@@ -124,7 +124,7 @@
   'jobs' => 'الوظائف',
   'available_for' => 'متوفر في',
   'job_types' => 'أنواع العمل',
-  'packages' => 'باقات',
+  'packages' => 'باقات التاجير',
   'original_price' => 'السعر الأصلي',
   'price_after_discount' => 'السعر بعد الخصم',
   'price_with_tax' => 'السعر مع الضريبة',
