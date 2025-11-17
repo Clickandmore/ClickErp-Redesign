@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Admin\ContractReturnRequestController;
 use App\Http\Controllers\ingaz\ArrivalWorkerController;
+use App\Http\Controllers\ingaz\CountryPoliceController;
+use App\Http\Controllers\ingaz\PoliceSettingController;
 use App\Http\Controllers\ingaz\SelectWorkerController;
 use App\Http\Controllers\ingaz\SelectWorkerSettingsController;
 use App\Http\Controllers\ingaz\ShelterPlaces;
@@ -158,6 +160,8 @@ Route::group(
             Route::resource('questions', QuestionController::class);
             Route::resource('contact', ContactController::class);
             Route::resource('services', ServiceController::class);
+            Route::resource('country-polices', CountryPoliceController::class);
+            Route::resource('police-settings', PoliceSettingController::class);
             Route::resource('about-us', AboutUsController::class);
             Route::resource('clients', UserController::class);
             Route::resource('skills', SkillController::class);

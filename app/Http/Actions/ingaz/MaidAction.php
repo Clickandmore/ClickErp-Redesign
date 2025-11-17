@@ -291,13 +291,13 @@ class MaidAction extends MainAction
             $createData['offer_expires_at'] = $data['offer_expires_at'] ?? null;
         }
 
-        
+
         \Log::info('Final create data:', $createData);
         \Log::info('About to create maid with data keys: ' . implode(', ', array_keys($createData)));
         \Log::info('Languages in createData: ' . ($createData['languages'] ?? 'null'));
         \Log::info('Name in createData: ' . ($data['name'] ?? 'null'));
 
-        
+
         try {
             $maid = $this->model->create($createData);
             \Log::info('Maid created successfully with ID: ' . $maid->id);
@@ -538,7 +538,7 @@ class MaidAction extends MainAction
         }
 
         // استخرج القيم الحالية
-        $currentLanguages  = is_array($maid->languages) ? $maid->languages : (json_decode($maid->languages, true) ?? []);
+        $currentLanguages = is_array($maid->languages) ? $maid->languages : (json_decode($maid->languages, true) ?? []);
         $currentPercentage = is_array($maid->percentage) ? $maid->percentage : (json_decode($maid->percentage, true) ?? []);
 
 // لو المستخدم أرسل لغات جديدة

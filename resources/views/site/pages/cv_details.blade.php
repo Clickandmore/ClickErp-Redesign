@@ -153,6 +153,12 @@
                         <h6 class="innerData">{{ $maid->passport_num ?? '' }}</h6>
                     </div>
                     <div class="data">
+                        <p class="innerTitle">{{ __('ingaz.cv_number') }} :</p>
+                        <div class="passportNumbers">
+                            <span>{{ optional($maid->recruitmentOffice?->maids)->count() ?? 0 }}</span>
+                            <span>/</span>
+                            <span>{{ mb_substr(optional($maid->recruitmentOffice)->title ?? '', 0, 3) }}</span>
+                        </div>
                         <p class="innerTitle">{{ __('ingaz.month_salary') }} :</p>
                         <h6 class="innerData">
                             {{ $salaryDisplay ? $salaryDisplay . ' ' . __('ingaz.SAR') : '--' }}

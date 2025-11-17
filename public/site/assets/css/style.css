@@ -8939,9 +8939,9 @@ main .guidelines-section .country-card .links .btn:hover i {
     color: var(--secondColor2);
 }
 .loading-text {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: var(--mainColor);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--mainColor);
 }
 /*# sourceMappingURL=style.css.map */

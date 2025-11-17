@@ -10,10 +10,10 @@ class AboutUsAction extends MainAction
     public function __construct(AboutUs $model)
     {
         $this->model = $model;
-        $this->files = [''];
+        $this->files = ['image', 'image_vision', 'image_message', 'image_value'];
         $this->fileFolder = 'images/AboutU/';
     }
-   
+
 
     public function updateSetting($id, $data)
     {
@@ -36,7 +36,18 @@ class AboutUsAction extends MainAction
                 $mainData[$key] = $value;
             }
         }
-
+        if (isset($data['image'])) {
+            $mainData['image'] = uploadFile($data['image'], 'images/abouts/', 1);
+        }
+        if (isset($data['image_vision'])) {
+            $mainData['image_vision'] = uploadFile($data['image_vision'], 'images/abouts/', 1);
+        }
+        if (isset($data['image_message'])) {
+            $mainData['image_message'] = uploadFile($data['image_message'], 'images/abouts/', 1);
+        }
+        if (isset($data['image_value'])) {
+            $mainData['image_value'] = uploadFile($data['image_value'], 'images/abouts/', 1);
+        }
         // Update main data
         if (!empty($mainData)) {
             $about->update($mainData);

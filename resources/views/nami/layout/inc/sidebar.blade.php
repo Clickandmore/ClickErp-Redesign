@@ -964,6 +964,16 @@
                         @include('hr::hr')
                     </ul>
                 </li>
+                <li class="{{ $isCrm ? '' : 'collapsed' }}">
+                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#crm" href="#">
+                        <i class="fa-regular fa-file-lines me-2"></i>
+                        <span class="ms-2">{{ helperTrans('crm') }}</span>
+                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                    </a>
+                    <ul class="sub-menu collapse {{ $isCrm ? 'show' : '' }}" id="crm">
+                        @include('crm::crm')
+                    </ul>
+                </li>
                 @php
                     $isFinance = request()->is('finance*');
                 @endphp
@@ -977,19 +987,10 @@
                         @include('finance::finance')
                     </ul>
                 </li>
-                @include('finance::stock')
+{{--                @include('finance::stock')--}}
                 @include('finance::zatca')
                 <!-- Clients Section -->
-                <li class="{{ $isCrm ? '' : 'collapsed' }}">
-                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#crm" href="#">
-                        <i class="fa-regular fa-file-lines me-2"></i>
-                        <span class="ms-2">{{ helperTrans('crm') }}</span>
-                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
-                    </a>
-                    <ul class="sub-menu collapse {{ $isCrm ? 'show' : '' }}" id="crm">
-                        @include('crm::crm')
-                    </ul>
-                </li>
+
             </ul>
         </div>
 

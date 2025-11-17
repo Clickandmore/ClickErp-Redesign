@@ -5,6 +5,8 @@ namespace App\Providers;
 
 use App\Models\Contract;
 use App\Models\Country;
+use App\Models\Feature;
+use App\Models\ingaz\AboutUs;
 use App\Models\ingaz\Skill;
 use App\Models\NewSettings;
 use App\Models\ingaz\JobType;
@@ -87,6 +89,16 @@ class AppServiceProvider extends ServiceProvider
         View::composer('*', function ($view) {
             $countries = Country::all(); // Assuming you have a row of settings with ID 1
             $view->with('countries', $countries);
+        });
+
+        View::composer('*', function ($view) {
+            $features = Feature::all(); // Assuming you have a row of settings with ID 1
+            $view->with('features', $features);
+        });
+
+        View::composer('*', function ($view) {
+            $abouts = AboutUs::first(); // Assuming you have a row of settings with ID 1
+            $view->with('abouts', $abouts);
         });
 
 
