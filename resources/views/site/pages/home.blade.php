@@ -772,7 +772,7 @@
         </div>
     </section>
     <!-- ================ services ================= -->
-    <section class="services-sec" id="services">
+    <section class="services-sec" style="height: fit-content" id="services">
         <div class="container">
             <div class="headTitle" data-aos="fade-up">
                 <h2>{{ __('ingaz.our_services') }}</h2>
@@ -835,9 +835,19 @@
                         </div>
                     @endforelse
                 </div>
-                <!--  nav btns -->
                 <div class="swiper-button-next custom-swiper-btn"></div>
                 <div class="swiper-button-prev custom-swiper-btn"></div>
+            </div>
+            <div class="wide-card mt-4" data-aos="fade-up">
+                <a href="#" class="service d-flex flex-column justify-content-center"
+                   style="background: url('{{ asset('site/assets/images/f3.webp') }}') no-repeat center/cover;">
+                    <i class="fa-solid fa-users-gear"></i>
+                    <h3 class="serviceTitle">طلب العمالة المهنية</h3>
+                    <h6 class="serviceP">
+                        نحن قادرون على جلب أفضل أنواع العمالة المهنية من مختلف التخصصات
+                        لتلبية احتياجاتك بأعلى جودة وكفاءة
+                    </h6>
+                </a>
             </div>
         </div>
     </section>
@@ -1245,7 +1255,7 @@
         </div>
     </section>
     <!-- ================ references ================= -->
-    <section class="references" data-aos="fade-up">
+    <section class="references" style="height: fit-content" data-aos="fade-up">
         <div class="container">
             <div class="swiper referencesSlider">
                 <div class="swiper-wrapper">
