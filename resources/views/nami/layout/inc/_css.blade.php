@@ -144,4 +144,8 @@
         height: 16px;
         width: 16px;
     }
+    tbody tr , tbody td{
+        position: relative;
+        z-index: unset !important;
+    }
 </style>

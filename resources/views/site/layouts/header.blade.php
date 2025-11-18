@@ -26,7 +26,7 @@
                     <!-- خدماتنا -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#"
-                           data-bs-toggle="dropdown">{{__("ingaz.our_services")}}</a>
+                           data-bs-toggle="dropdown">{{__("web.our_services")}}</a>
                         <ul class="dropdown-menu">
                             <li>
                                 <a class="dropdown-item"

@@ -2889,22 +2889,22 @@ main .steps .allSteps .step::before {
     }
 }
 
-main .steps .allSteps .step .images {
+main .steps .images {
     display: flex;
     flex-wrap: wrap;
     margin-top: 70px;
 }
 
-main .steps .allSteps .step .images img {
-    -o-object-fit: contain;
-    object-fit: contain;
+main .steps .images img {
+    /*-o-object-fit: contain;*/
+    object-fit:contain;
     height: 40px;
     width: 60px;
     border-radius: 8px;
 }
 
 @media (max-width: 678px) {
-    main .steps .allSteps .step .images img {
+    main .steps .images img {
         margin: 2px;
     }
 }
