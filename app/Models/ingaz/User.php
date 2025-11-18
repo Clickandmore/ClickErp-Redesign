@@ -14,6 +14,7 @@ use App\Models\Message;
 use Spatie\Activitylog\Models\Activity;
 use App\Models\RentalContract;
 use App\Models\SponsorshipTransfer;
+use App\Models\Contract;
 
 class User extends Authenticatable implements JWTSubject
 {
@@ -83,6 +84,11 @@ class User extends Authenticatable implements JWTSubject
     public function rentalContracts()
     {
         return $this->hasMany(RentalContract::class, 'user_id');
+    }
+
+    public function contracts()
+    {
+        return $this->hasMany(Contract::class, 'user_id');
     }
 
     public function sponsorshipTransfersAsNewSponsor()

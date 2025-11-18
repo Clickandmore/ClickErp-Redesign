@@ -11,7 +11,10 @@ use Illuminate\Support\Facades\App;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Models\auth\Admin as objModel;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use App\Http\Actions\auth\AdminAction as ObjAction;
 use App\Http\Requests\auth\profile\StoreAdminRequest as StoreRequest;
 use App\Http\Requests\auth\profile\UpdateAdminRequest as UpdateRequest;
@@ -21,8 +24,9 @@ use App\Http\Requests\auth\profile\UpdateAdminRequest as UpdateRequest;
 class AdminController extends Controller
 {
     public $folderPath = "admin.auth.admin";
-    public $postData = ["name", "phone", "email", 'whatsapp', "password", "admin_type", 'sex_type', 'role_id', 'sort'];
+    public $postData = ["name", "phone", "email", 'whatsapp', "password", "admin_type", 'sex_type', 'role_id', 'sort', 'status', 'note'];
     public $mainRoute = "admins";
+    public $suspensionReasons = ['violation', 'manual_review', 'fraud_suspect', 'other'];
 
 
     function __construct()
@@ -38,13 +42,26 @@ class AdminController extends Controller
     {
         if ($request->ajax()) {
             $dataTable = ObjModel::query()->latest();
+
+            // Filters
+            if ($request->filled('admin_type')) {
+                $dataTable->where('admin_type', $request->admin_type);
+            }
+            if ($request->filled('sex_type')) {
+                $dataTable->where('sex_type', $request->sex_type);
+            }
+            if ($request->boolean('suspended')) {
+                $dataTable->where('status', 'suspended');
+            }
+
             return DataTables::of($dataTable)
                 ->addIndexColumn()
                 ->editColumn('name', function ($row) {
                     return $row->name;
                 })
                 ->addColumn('admin_type', function ($row) {
-                    return Constant::globalArray['admin_typeis'][$row->admin_type][app::getLocale()];
+                    $key = $row->admin_type;
+                    return Arr::get(Constant::globalArray['admin_typeis'], "{$key}." . App::getLocale(), __('admin.not_specified'));
                 })
                 ->editColumn('phone', function ($row) {
                     return $row->phone;
@@ -55,13 +72,18 @@ class AdminController extends Controller
                 ->editColumn('email', function ($row) {
                     return $row->email;
                 })
-                /* ->addColumn('actions', function ($row) {
-                    return editButton(route($this->mainRoute . ".edit", $row->id), $row->name) . " " .
-                        deleteButton(route($this->mainRoute . ".destroy", $row->id));
-                }) */
+                ->addColumn('note', function ($row) {
+                    return $row->note ? e(Str::limit($row->note, 80)) : '-';
+                })
+                ->addColumn('status', function ($row) {
+                    return $row->status === 'suspended'
+                        ? '<span class="badge bg-danger"> ' . __('admin.suspended') . ' </span>'
+                        : '<span class="badge bg-success"> ' . __('admin.active') . ' </span>';
+                })
                 ->addColumn('actions', function ($row) {
                     $editButton = '';
                     $deleteButton = '';
+                    $suspendAction = '';
 
                     if (Auth::guard('admin')->user()->can('users_edit')) {
                         $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
@@ -73,14 +95,58 @@ class AdminController extends Controller
                         }
                     }
 
-                    return $editButton . " " . $deleteButton;
+                    if (Auth::guard('admin')->user()->can('users_edit')) {
+                        $suspendAction = '<a href="' . route("admins.toggle-status", $row->id) . '" class="btn btn-sm ' .
+                            ($row->status === 'suspended' ? 'btn-success' : 'btn-warning') .
+                            ' toggle-status" data-id="' . $row->id . '">' .
+                            ($row->status === 'suspended' ? __('admin.activate') : __('admin.suspend')) .
+                            '</a>';
+                    }
+
+                    return $editButton . " " . $deleteButton . " " . $suspendAction;
                 })->escapeColumns([])->make(true);
         }
         $data["createRoute"] = route($this->mainRoute . ".create");
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = __("auth.admins");
         $data["addButtonText"] = __("auth.admin");
+        $data["filters"] = [
+            'admin_type' => Constant::globalArray['admin_typeis'],
+            'sex_type' => [
+                0 => ['ar' => 'ذكر', 'en' => 'Male'],
+                1 => ['ar' => 'أنثى', 'en' => 'Female']
+            ],
+            'status' => [
+                'active' => ['ar' => 'نشط', 'en' => 'Active'],
+                'suspended' => ['ar' => 'معلق', 'en' => 'Suspended'],
+            ],
+            'suspension' => true
+        ];
         return view($this->folderPath . '.index', $data);
+    }
+
+    public function toggleStatus($id, Request $request)
+    {
+        $admin = ObjModel::findOrFail($id);
+
+        $validator = Validator::make($request->all(), [
+            'note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => $validator->errors()->first()], 422);
+        }
+
+        $newStatus = $admin->status === 'suspended' ? 'active' : 'suspended';
+        $admin->update([
+            'status' => $newStatus,
+            'note' => $request->note ?? $admin->note,
+        ]);
+
+        return response()->json([
+            'message' => __('admin.updated'),
+            'status' => $newStatus,
+        ]);
     }
 
 

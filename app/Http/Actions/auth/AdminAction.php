@@ -34,6 +34,8 @@ class AdminAction extends MainAction
             'sex_type' => $data['sex_type'],
             'role_id' => $data['role_id'],
             'sort' => $data['sort'] ?? 999,
+            'status' => $data['status'] ?? 'active',
+            'note' => $data['note'] ?? null,
             'password' => bcrypt($data['password'])
         ]);
 
