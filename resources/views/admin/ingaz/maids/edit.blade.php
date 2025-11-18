@@ -23,7 +23,7 @@
 
                     <div class="col-6">
                         <label for="TextInput" class="form-label">صورة شخصية </label>
-                        <input type="file" data-default-file="{{showFile($obj->image)}}" name="image" class="dropify" required>
+                        <input type="file" data-default-file="{{showFile($obj->image)}}" name="image" class="dropify" >
                     </div>
                     <div class="col-6">
                         <label for="TextInput" class="form-label">صورة كاملة </label>
