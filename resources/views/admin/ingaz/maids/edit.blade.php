@@ -20,16 +20,15 @@
                     @method('Put')
 
                     <!-- الملفات -->
-                    <div class="col-6">
-                        <label for="TextInput" class="form-label">{{helperTrans("ingaz.cv_file")}} </label>
-                        <input type="file" data-default-file="{{showFile($obj->cv_file)}}" name="cv_file"
-                               class="dropify">
-                    </div>
-                    <div class="col-6">
-                        <label for="TextInput" class="form-label">صورة العامله </label>
-                        <input type="file" data-default-file="{{showFile($obj->image)}}" name="image" class="dropify">
-                    </div>
 
+                    <div class="col-6">
+                        <label for="TextInput" class="form-label">صورة شخصية </label>
+                        <input type="file" data-default-file="{{showFile($obj->image)}}" name="image" class="dropify" required>
+                    </div>
+                    <div class="col-6">
+                        <label for="TextInput" class="form-label">صورة كاملة </label>
+                        <input type="file" data-default-file="{{showFile($obj->cv_file)}}" name="cv_file" class="dropify">
+                    </div>
                     <!-- أنواع الوظائف -->
                     <div class="col-4">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.job_types_2")}} </label>
@@ -117,33 +116,33 @@
                         </label>
                         <input type="number" name="price" id="price" class="form-control" value="{{$obj->price}}">
                     </div>
-                    <div class="col-4">
-                        <label for="offer_price" class="form-label">{{ helperTrans('ingaz.offer_price_new') }}</label>
-                        <input type="number" step="0.01" name="offer_price" id="offer_price" class="form-control"
-                               value="{{ old('offer_price', $obj->offer_price) }}"
-                               placeholder="{{ helperTrans('ingaz.offer_price_placeholder') }}">
-                    </div>
-                    <div class="col-4">
-                        <label for="offer_duration" class="form-label">{{ helperTrans('ingaz.offer_duration') }}</label>
-                        <input type="text" name="offer_duration" id="offer_duration" class="form-control"
-                               value="{{ old('offer_duration', $obj->offer_duration) }}"
-                               placeholder="{{ helperTrans('ingaz.offer_duration_placeholder') }}">
-                    </div>
-                    <div class="col-4">
-                        <label for="offer_starts_at" class="form-label">{{ helperTrans('ingaz.offer_starts_at') }}</label>
-                        <input type="date" name="offer_starts_at" id="offer_starts_at" class="form-control"
-                               value="{{ old('offer_starts_at', optional($obj->offer_starts_at)->format('Y-m-d')) }}">
-                    </div>
-                    <div class="col-4">
-                        <label for="offer_expires_at" class="form-label">{{ helperTrans('ingaz.offer_expires_at') }}</label>
-                        <input type="date" name="offer_expires_at" id="offer_expires_at" class="form-control"
-                               value="{{ old('offer_expires_at', optional($obj->offer_expires_at)->format('Y-m-d')) }}">
-                    </div>
-                    <div class="col-12">
-                        <label for="offer_description" class="form-label">{{ helperTrans('ingaz.offer_description') }}</label>
-                        <textarea name="offer_description" id="offer_description" class="form-control" rows="2"
-                                  placeholder="{{ helperTrans('ingaz.offer_description_placeholder') }}">{{ old('offer_description', $obj->offer_description) }}</textarea>
-                    </div>
+{{--                    <div class="col-4">--}}
+{{--                        <label for="offer_price" class="form-label">{{ helperTrans('ingaz.offer_price_new') }}</label>--}}
+{{--                        <input type="number" step="0.01" name="offer_price" id="offer_price" class="form-control"--}}
+{{--                               value="{{ old('offer_price', $obj->offer_price) }}"--}}
+{{--                               placeholder="{{ helperTrans('ingaz.offer_price_placeholder') }}">--}}
+{{--                    </div>--}}
+{{--                    <div class="col-4">--}}
+{{--                        <label for="offer_duration" class="form-label">{{ helperTrans('ingaz.offer_duration') }}</label>--}}
+{{--                        <input type="text" name="offer_duration" id="offer_duration" class="form-control"--}}
+{{--                               value="{{ old('offer_duration', $obj->offer_duration) }}"--}}
+{{--                               placeholder="{{ helperTrans('ingaz.offer_duration_placeholder') }}">--}}
+{{--                    </div>--}}
+{{--                    <div class="col-4">--}}
+{{--                        <label for="offer_starts_at" class="form-label">{{ helperTrans('ingaz.offer_starts_at') }}</label>--}}
+{{--                        <input type="date" name="offer_starts_at" id="offer_starts_at" class="form-control"--}}
+{{--                               value="{{ old('offer_starts_at', optional($obj->offer_starts_at)->format('Y-m-d')) }}">--}}
+{{--                    </div>--}}
+{{--                    <div class="col-4">--}}
+{{--                        <label for="offer_expires_at" class="form-label">{{ helperTrans('ingaz.offer_expires_at') }}</label>--}}
+{{--                        <input type="date" name="offer_expires_at" id="offer_expires_at" class="form-control"--}}
+{{--                               value="{{ old('offer_expires_at', optional($obj->offer_expires_at)->format('Y-m-d')) }}">--}}
+{{--                    </div>--}}
+{{--                    <div class="col-12">--}}
+{{--                        <label for="offer_description" class="form-label">{{ helperTrans('ingaz.offer_description') }}</label>--}}
+{{--                        <textarea name="offer_description" id="offer_description" class="form-control" rows="2"--}}
+{{--                                  placeholder="{{ helperTrans('ingaz.offer_description_placeholder') }}">{{ old('offer_description', $obj->offer_description) }}</textarea>--}}
+{{--                    </div>--}}
                     <div class="col-4">
                         <label for="TextInput" class="form-label">
                             {{helperTrans("ingaz.salary")}}

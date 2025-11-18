@@ -104,11 +104,19 @@
             width: 300px;
         }
 
-       
+
     }
      table {
 
             box-shadow: none !important;
             overflow: unset !important;
         }
+    tbody tr ,  tbody tr:hover , tbody tr:not(:hover) {
+        position: relative !important;
+        z-index: unset !important;
+    }
+    tbody tr:hover td{
+        position: relative !important;
+        z-index: unset !important;
+    }
 </style>
