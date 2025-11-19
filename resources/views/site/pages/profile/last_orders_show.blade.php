@@ -1431,10 +1431,10 @@
             color: #ffe9e9;
             font-size: 14px;
         }
-        .btn-delete-order{
+
+        .btn-delete-order {
             padding: 10px 20px !important;
         }
-
     </style>
 @endsection
 
@@ -1529,7 +1529,8 @@
                                 class="m-0">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-danger btn-delete-order">{{ __('ingaz.delete_order') }}</button>
+                                <button type="button"
+                                    class="btn btn-danger btn-delete-order">{{ __('ingaz.delete_order') }}</button>
                             </form>
                         </div>
                     </div>
@@ -1618,15 +1619,17 @@
                         <div class="cv">
                             <div class="cv_details">
                                 <div class="img text-center">
-                                    @if(isset($order->maid->cv_file) && !empty($order->maid->cv_file))
+                                    @if (isset($order->maid->cv_file) && !empty($order->maid->cv_file))
                                         <div class="d-flex justify-content-center gap-2">
                                             {{-- 🔹 زر المشاهدة --}}
-                                            <a href="{{ showFile($order->maid->cv_file) }}" target="_blank" class="btn btn-sm btn-primary">
+                                            <a href="{{ showFile($order->maid->cv_file) }}" target="_blank"
+                                                class="btn btn-sm btn-primary">
                                                 <i class="fa-regular fa-eye me-1"></i> {{ __('مشاهدة السيرة') }}
                                             </a>
 
                                             {{-- 🔹 زر التحميل --}}
-                                            <a href="{{ showFile($order->maid->cv_file) }}" download class="btn btn-sm btn-success">
+                                            <a href="{{ showFile($order->maid->cv_file) }}" download
+                                                class="btn btn-sm btn-success">
                                                 <i class="fa-solid fa-download me-1"></i> {{ __('تحميل السيرة') }}
                                             </a>
                                         </div>
@@ -1737,4 +1740,23 @@
 @endsection
 
 @section('scripts')
+    <script>
+        $(document).ready(function() {
+            $('.btn-delete-order').on('click', function(e) {
+                e.preventDefault();
+                var form = $(this).closest('form');
+                Swal.fire({
+                    icon: 'question',
+                    title: '{{ __('ingaz.delete_confirm') }}',
+                    showCancelButton: true,
+                    confirmButtonText: '{{ __('ingaz.confirm') }}',
+                    cancelButtonText: '{{ __('ingaz.cancel') }}'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        });
+    </script>
 @endsection

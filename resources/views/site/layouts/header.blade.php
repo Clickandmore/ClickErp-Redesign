@@ -29,8 +29,11 @@
                            data-bs-toggle="dropdown">{{__("web.our_services")}}</a>
                         <ul class="dropdown-menu">
                             <li>
-                                <a class="dropdown-item"
+                                {{-- <a class="dropdown-item"
                                    href="{{route('site.all-workers.index') }}?type=estqdam"> {{__("ingaz.recruitment_request_title")}}
+                                </a> --}}
+                                <a class="dropdown-item"
+                                   href="{{route('site.all-workers.index') }}"> {{__("ingaz.recruitment_request_title")}}
                                 </a>
                             </li>
                             <li>

@@ -34,6 +34,9 @@ class AllWorkerController extends Controller
             'no_experience_label' => __('ingaz.no_experience_label'),
             default => __('ingaz.recruitment_request')
         };
+
+        // dd($request->all());
+        
         return view('site.pages.all_workers', $data);
     }
 

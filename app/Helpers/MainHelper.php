@@ -134,7 +134,7 @@ if (!function_exists('deleteButton')) {
     function deleteButton($route)
     {
         return '<button type="button" class="btn btn-sm btn-danger btn-delete deleteButton" delete-route="' . $route . '" title="حذف">
-                      <i class="fa fa-trash-o"></i>
+                      <i class="fa fa-trash-o"></i> ' . __('ingaz.delete') . '
                 </button>';
     }
 }

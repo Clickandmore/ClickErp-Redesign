@@ -4315,8 +4315,8 @@ main .allWorkers .workers-list .worker-box .worker-header .worker-id {
 }
 
 main .allWorkers .workers-list .worker-box h4 {
-    font-size: 18px;
-    font-weight: 700;
+    font-size: 22px;
+    font-weight: 600;
     margin-bottom: 12px;
     color: #17171d;
     margin: 50px 0 12px 0;
@@ -4334,17 +4334,41 @@ main .allWorkers .workers-list .worker-box .workerInfo p {
     color: #333;
     margin: 0;
     white-space: nowrap;
+    font-weight: 700;
 }
 
-main .allWorkers .workers-list .worker-box .worker-salary {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-radius: 12px;
-    transition: all 0.3s ease;
-    flex-wrap: wrap;
-    gap: 6px 12px;
+main .allWorkers .workers-list .worker-box .workerInfo p span {
+    font-weight: 500;
 }
+
+main .allWorkers .workers-list .worker-box .workerInfo p.service-type span {
+    background: var(--mainColor30);
+    padding: 1px 10px;
+    border-radius: 6px;
+    color: white;
+}
+
+
+
+main .allWorkers .workers-list .worker-box .worker-salary {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(180px, 1fr));
+    gap: 8px 16px;
+    margin-bottom: 12px;
+}
+
+main .allWorkers .workers-list .worker-box .worker-salary p {
+    font-size: 14px;
+    color: #333;
+    margin: 0;
+    white-space: nowrap;
+    font-weight: 700;
+}
+main .allWorkers .workers-list .worker-box .worker-salary p span {
+    font-weight: 500;
+}
+
+
 
 main .allWorkers .workers-list .worker-box .worker-salary:hover {
     background: #f4fdfb;
@@ -4353,25 +4377,25 @@ main .allWorkers .workers-list .worker-box .worker-salary:hover {
 
 main .allWorkers .workers-list .worker-box .worker-salary .old-salary {
     font-size: 15px;
-    color: #999;
-    font-weight: 500;
+    /* color: #999; */
+    /* font-weight: 500; */
 }
 
 main .allWorkers .workers-list .worker-box .worker-salary .old-salary span {
     text-decoration: line-through;
     color: #c0392b;
-    font-weight: 600;
+    font-weight: 500;
 }
 
 main .allWorkers .workers-list .worker-box .worker-salary .new-salary {
     font-size: 15px;
-    color: #999;
-    font-weight: 600;
+    /* color: #999; */
+    /* font-weight: 600; */
 }
 
 main .allWorkers .workers-list .worker-box .worker-salary .new-salary span {
     color: var(--mainColor);
-    font-weight: 800;
+    font-weight: 500;
 }
 
 main .allWorkers .workers-list .worker-box .guarantee {
