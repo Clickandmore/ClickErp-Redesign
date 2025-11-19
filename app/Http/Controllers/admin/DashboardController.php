@@ -53,26 +53,32 @@ class DashboardController extends Controller
             'today' => Contract::whereDate('created_at', today())->count(),
         ];
 
+        $todayDate = today();
+
         $contractsPipeline = [
             'pre_arrival' => Contract::whereIn('status', [
                 ContractStatusEnum::New->value,
                 ContractStatusEnum::Msaned->value,
                 ContractStatusEnum::Tafwed->value,
                 ContractStatusEnum::Taffez->value,
-                ContractStatusEnum::Tazker->value,
                 ContractStatusEnum::PendingMaidSelection->value,
             ])->count(),
-            'arrival_stage' => Contract::where('status', ContractStatusEnum::Arrival->value)->count(),
+            'arrival_stage' => Contract::whereIn('status', [
+                ContractStatusEnum::Tazker->value,
+                ContractStatusEnum::Arrival->value,
+            ])->whereHas('travelHistory', function ($query) use ($todayDate) {
+                $query->whereDate('arrival_date', $todayDate);
+            })->count(),
             'under_warranty' => Contract::where('warranty_status', 'active')->count(),
             'completed' => Contract::where('status', ContractStatusEnum::Completed->value)->count(),
             'delayed_arrival' => Contract::whereIn('status', [
+                ContractStatusEnum::New->value,
                 ContractStatusEnum::Msaned->value,
                 ContractStatusEnum::Tafwed->value,
                 ContractStatusEnum::Taffez->value,
-                ContractStatusEnum::Tazker->value,
-                ContractStatusEnum::Arrival->value,
-            ])->where('created_at', '<', $now->copy()->subDays(60))->count(),
-            'expired_over_2y' => Contract::where('created_at', '<', $now->copy()->subYears(2))->count(),
+                ContractStatusEnum::PendingMaidSelection->value,
+            ])->where('created_at', '<', now()->copy()->subDays(60))->count(),
+            'expired_over_2y' => Contract::where('created_at', '<', now()->copy()->subYears(2))->count(),
         ];
 
         $contractsByMonthCurrent = [];
@@ -268,6 +274,28 @@ class DashboardController extends Controller
             ->pluck('total', 'status')
             ->toArray();
 
+        $arrivalTodayCount = $contractsPipeline['arrival_stage'] ?? 0;
+
+        $delayedCutoff = now()->copy()->subDays(60);
+
+        $delayedWithoutTickets = Contract::whereIn('status', [
+            ContractStatusEnum::New->value,
+            ContractStatusEnum::Msaned->value,
+            ContractStatusEnum::Tafwed->value,
+            ContractStatusEnum::Taffez->value,
+            ContractStatusEnum::PendingMaidSelection->value,
+        ])->where('created_at', '<', $delayedCutoff)->count();
+
+        $operationsInsights = [
+            'arrival_today' => $arrivalTodayCount,
+            'delayed_no_tickets' => $delayedWithoutTickets,
+            'expired_over_2y' => $contractsPipeline['expired_over_2y'],
+            'warranty_active' => $contractsStats['underWarranty'],
+            'tickets_ready' => $contractStatusBreakdown[ContractStatusEnum::Tazker->value] ?? 0,
+            'returned' => $contractStatusBreakdown[ContractStatusEnum::Back->value] ?? 0,
+            'completed' => $contractsStats['completed'] ?? 0,
+        ];
+
         $ordersStatusBreakdown = Order::select('status')
             ->selectRaw('count(*) as total')
             ->groupBy('status')
@@ -311,7 +339,8 @@ class DashboardController extends Controller
             'contractStatusBreakdown',
             'ordersStatusBreakdown',
             'clientsGrowth',
-            'maidAvailability'
+            'maidAvailability',
+            'operationsInsights'
         ));
     }
 
