@@ -13,12 +13,13 @@ class ContactUsController extends Controller
     {
         return view('site.pages.contact_us');
     }
-     public function store(ContactRequest  $request , ContactController $service)
+
+    public function store(ContactRequest $request, ContactController $service)
     {
-         $data = $request->validated();
-         unset($data['g-recaptcha-response']);
+        $data = $request->validated();
+        unset($data['g-recaptcha-response']);
         Contact::create($data);
-        return jsonSuccess();
+        return jsonSuccess(null, null, 201);
     }
 
 

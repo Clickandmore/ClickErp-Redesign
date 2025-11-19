@@ -200,7 +200,7 @@
                             <div class="col-md-6 p-2">
                                 <label class="form-label"><i class="fas fa-phone-alt me-2"></i> {{__('ingaz.phone')}}*
                                 </label>
-                                <input type="tel" id="phone" name="phone" id="phoneNum" class="form-control" />
+                                <input type="tel" id="phone" name="phone" id="phoneNum" class="form-control"/>
                                 <div class="invalid-feedback"> {{__('ingaz.this field is required')}} </div>
                             </div>
                             <div class="col-md-6 p-2">
@@ -213,7 +213,7 @@
                                 <label class="form-label">
                                     <i class="fas fa-feather-alt me-2"></i>{{__('ingaz.Write your message')}}*
                                 </label>
-                                <textarea class="form-control" id="message" name="message" rows="5" ></textarea>
+                                <textarea class="form-control" id="message" name="message" rows="5"></textarea>
                                 <div class="invalid-feedback"> {{__('ingaz.this field is required')}} </div>
                             </div>
                             {!! NoCaptcha::renderJs(app()->getLocale()) !!}
@@ -233,7 +233,7 @@
                     <div class="col-md-6 p-2 wow fadeInUp">
                         <section class="googleMap">
                             <iframe
-                           src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d57144.98454618672!2d50.12401500000001!3d26.469859!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e49fbc320200d1b%3A0x1abc87f1ffdb75d5!2z2KjZhNin2KrZitmG2YrZiNmFINin2YTYtNix2YLZitipINmE2YTYpdiz2KrZgtiv2KfZhQ!5e0!3m2!1sar!2ssa!4v1761469557614!5m2!1sar!2ssa"
+                                src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d57144.98454618672!2d50.12401500000001!3d26.469859!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e49fbc320200d1b%3A0x1abc87f1ffdb75d5!2z2KjZhNin2KrZitmG2YrZiNmFINin2YTYtNix2YLZitipINmE2YTYpdiz2KrZgtiv2KfZhQ!5e0!3m2!1sar!2ssa!4v1761469557614!5m2!1sar!2ssa"
                                 frameborder="0"
                                 style="border: 0"
                                 allowfullscreen=""
@@ -301,6 +301,9 @@
                             stopOnFocus: true
                         }).showToast();
                         $('#contact-form')[0].reset();
+                        setTimeout(function () {
+                            location.reload();
+                        }, 500);
                     },
                     error: function (xhr) {
                         if (xhr.status === 422) {

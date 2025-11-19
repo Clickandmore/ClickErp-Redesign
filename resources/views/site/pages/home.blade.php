@@ -15,7 +15,40 @@
         display: flex;
         gap: 12px;
         flex-wrap: wrap;
+.section-header{
+    width: 100%;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    margin: 0 auto 20px;
+    .badge{
 
+        align-items: center;
+        gap: 8px;
+        background-color: var(--mainColor10);
+        color: var(--mainColor);
+        padding: 8px 18px;
+        font-size: 14px;
+        font-weight: 600;
+        margin: 10px 0;
+        border-radius: 30px;
+        i{
+            color: var(--mainColor);
+            font-size: 16px;
+        }
+    }
+    .section-title{
+        font-size: 22px;
+        font-weight: 700;
+        color: black;
+        margin-bottom: 10px;
+    }
+    p{
+        color: #727272;
+    }
+}
         .expertise {
             position: absolute;
             left: 50%;
@@ -55,7 +88,9 @@
             grid-template-columns: repeat(4, 1fr);
             gap: 20px;
             padding: 20px;
-
+a{
+    color: black;
+}
             @media (max-width: 992px) {
                 grid-template-columns: repeat(2, 1fr);
             }
@@ -288,13 +323,23 @@
         ];
     @endphp
     <section class="hero-services" data-aos="fade-up">
-        <div class="expertise">
-            @if(isset($settings) && isset($settings->experience_image))
-                <img src="{{showFile($settings->experience_image)}}" alt="خبرة اكثر من 20 سنه"/>
-            @else
-                <img src="{{asset('site')}}/assets/images/experience.jpg" alt="خبرة اكثر من 20 سنه"/>
-            @endif
+        <div class="section-header">
+            <div class="badge">
+                <i class="fa-solid fa-briefcase">
+                    خدماتنا
+                </i>
+
+            </div>
+            <h2 class="section-title">خدمات شركه بلاتينيوم</h2>
+            <p> خدماتنا مرخصه من وزاره الموارد البشريه والتنميه الاجتماعية لضمان راحتك وراحه اسرتك</p>
         </div>
+{{--        <div class="expertise">--}}
+{{--            @if(isset($settings) && isset($settings->experience_image))--}}
+{{--                <img src="{{showFile($settings->experience_image)}}" alt="خبرة اكثر من 20 سنه"/>--}}
+{{--            @else--}}
+{{--                <img src="{{asset('site')}}/assets/images/experience.jpg" alt="خبرة اكثر من 20 سنه"/>--}}
+{{--            @endif--}}
+{{--        </div>--}}
         <div class="services-container">
             <a href="{{route('site.all-workers.index')}}?type=estqdam">
                 <div class="service-card green">
@@ -1365,6 +1410,9 @@
                             text: '{{ __('ingaz.success') }}',
                             confirmButtonText: '{{ __('ingaz.ok') }}'
                         });
+                        setTimeout(function () {
+                            location.reload();
+                        }, 500);
                     },
                     error: function (xhr) {
                         console.error("خطأ في الطلب:", xhr);
