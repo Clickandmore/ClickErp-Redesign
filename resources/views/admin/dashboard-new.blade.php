@@ -1,479 +1,7 @@
 @extends('admin.layout.indexs.index')
 
 @section('style')
-    <style>
-        :root {
-            --surface: #ffffff;
-            --surface-muted: #f7f7fb;
-            --stroke: rgba(15, 23, 42, 0.08);
-            --primary: #5f5bff;
-            --primary-dark: #3936d4;
-            --success: #28c76f;
-            --warning: #ffa726;
-            --danger: #ff4d4f;
-            --text: #0f172a;
-            --muted: #6b7280;
-        }
-
-        .surface-card {
-            border-radius: 28px;
-            background: var(--surface);
-            box-shadow: 0 25px 60px rgba(15, 23, 42, 0.08);
-        }
-
-        .dashboard-hero {
-            display: flex;
-            gap: 32px;
-            padding: 32px;
-            background: linear-gradient(135deg, #1f1f39, #353086);
-            color: #fff;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .dashboard-hero::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.2), transparent 55%);
-            pointer-events: none;
-        }
-
-        .dashboard-hero>* {
-            position: relative;
-            z-index: 1;
-        }
-
-        .hero-main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .hero-eyebrow {
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-size: 13px;
-            opacity: 0.8;
-        }
-
-        .hero-meta {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.85);
-        }
-
-        .live-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 12px;
-            border-radius: 999px;
-            background: rgba(40, 199, 111, 0.2);
-            color: #4ef9a5;
-            font-size: 12px;
-        }
-
-        .live-pill::before {
-            content: "";
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #4ef9a5;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 0 0 rgba(78, 249, 165, 0.6);
-            }
-
-            70% {
-                box-shadow: 0 0 0 10px rgba(78, 249, 165, 0);
-            }
-
-            100% {
-                box-shadow: 0 0 0 0 rgba(78, 249, 165, 0);
-            }
-        }
-
-        .hero-quick-actions {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .hero-quick-actions a {
-            background: rgba(255, 255, 255, 0.12);
-            color: #fff;
-            border-radius: 14px;
-            padding: 10px 18px;
-            text-decoration: none;
-            font-size: 14px;
-            transition: background 0.2s ease;
-        }
-
-        .hero-quick-actions a:hover {
-            background: rgba(255, 255, 255, 0.25);
-        }
-
-        .hero-controls {
-            width: min(360px, 100%);
-            border-radius: 24px;
-            background: rgba(7, 10, 28, 0.35);
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            backdrop-filter: blur(8px);
-        }
-
-        .range-switch {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 8px;
-        }
-
-        .range-btn {
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            background: transparent;
-            color: #fff;
-            border-radius: 12px;
-            padding: 8px 4px;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .range-btn.active {
-            background: #fff;
-            color: #1f1f39;
-            border-color: #fff;
-            box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
-        }
-
-        .hero-micro-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 12px;
-            font-size: 14px;
-        }
-
-        .hero-micro-grid div {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 14px;
-            padding: 10px;
-            text-align: center;
-        }
-
-        .hero-micro-grid strong {
-            display: block;
-            font-size: 20px;
-            margin-top: 4px;
-        }
-
-        .insight-grid {
-            margin-top: 32px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-        }
-
-        .stat-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 16px;
-            margin-top: 24px;
-        }
-
-        .stat-card {
-            border-radius: 18px;
-            padding: 18px;
-            color: #fff;
-            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
-        }
-
-        .insight-card {
-            padding: 20px;
-            border-radius: 22px;
-            background: var(--surface);
-            border: 1px solid var(--stroke);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .insight-card::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: radial-gradient(circle at 30% 20%, rgba(95, 91, 255, 0.08), transparent 40%);
-            pointer-events: none;
-        }
-
-        .insight-card h4 {
-            font-size: 14px;
-            letter-spacing: 0.5px;
-            color: var(--muted);
-            margin-bottom: 16px;
-        }
-
-        .insight-value {
-            font-size: 36px;
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        .insight-foot {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            color: var(--muted);
-        }
-
-        .trend-up {
-            color: var(--success);
-            font-weight: 600;
-        }
-
-        .trend-down {
-            color: var(--danger);
-            font-weight: 600;
-        }
-
-        .data-section {
-            margin-top: 32px;
-            padding: 24px;
-            border-radius: 24px;
-            background: var(--surface);
-            border: 1px solid var(--stroke);
-        }
-
-        .section-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-
-        .section-eyebrow {
-            font-size: 13px;
-            color: var(--muted);
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            margin: 0;
-        }
-
-        .section-toggle {
-            border: 1px solid var(--stroke);
-            background: transparent;
-            border-radius: 12px;
-            padding: 6px 14px;
-            font-size: 13px;
-            color: var(--text);
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .section-body {
-            margin-top: 24px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 16px;
-        }
-
-        .section-body.collapsed {
-            display: none;
-        }
-
-        .metric-card {
-            border: 1px solid var(--stroke);
-            border-radius: 18px;
-            padding: 18px;
-            background: var(--surface-muted);
-        }
-
-        .metric-card h5 {
-            font-size: 14px;
-            color: var(--muted);
-            margin-bottom: 8px;
-        }
-
-        .metric-card strong {
-            font-size: 24px;
-            color: var(--text);
-        }
-
-        .progress-line {
-            margin-top: 12px;
-            height: 8px;
-            border-radius: 999px;
-            background: rgba(15, 23, 42, 0.08);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .progress-line span {
-            position: absolute;
-            inset: 0;
-            border-radius: 999px;
-            background: var(--primary);
-        }
-
-        .progress-line.success span {
-            background: var(--success);
-        }
-
-        .progress-line.warning span {
-            background: var(--warning);
-        }
-
-        .progress-line.danger span {
-            background: var(--danger);
-        }
-
-        .panel-card {
-            border-radius: 24px;
-            background: var(--surface);
-            border: 1px solid var(--stroke);
-            padding: 24px;
-            height: 100%;
-        }
-
-        .panel-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .panel-head small {
-            color: var(--muted);
-        }
-
-        .chart-holder {
-            position: relative;
-            height: 320px;
-        }
-
-        .chart-holder canvas {
-            width: 100% !important;
-            height: 100% !important;
-        }
-
-        .legend-list {
-            list-style: none;
-            padding: 0;
-            margin: 20px 0 0;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-height: 180px;
-            overflow-y: auto;
-        }
-
-        .legend-list li {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-            color: var(--muted);
-        }
-
-        .legend-list strong {
-            color: var(--text);
-        }
-
-        .activity-feed {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            max-height: 360px;
-            overflow-y: auto;
-        }
-
-        .activity-line {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--stroke);
-        }
-
-        .activity-line:last-child {
-            border-bottom: none;
-        }
-
-        .activity-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 14px;
-            background: var(--surface-muted);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-        }
-
-        .activity-line small {
-            color: var(--muted);
-        }
-
-        .status-chip {
-            border-radius: 999px;
-            padding: 4px 12px;
-            font-size: 12px;
-            text-transform: capitalize;
-        }
-
-        .status-chip.success {
-            background: rgba(40, 199, 111, 0.12);
-            color: var(--success);
-        }
-
-        .status-chip.warning {
-            background: rgba(255, 167, 38, 0.12);
-            color: var(--warning);
-        }
-
-        .status-chip.danger {
-            background: rgba(255, 77, 79, 0.12);
-            color: var(--danger);
-        }
-
-        .status-chip.info {
-            background: rgba(95, 91, 255, 0.12);
-            color: var(--primary-dark);
-        }
-
-        .calendar-shell {
-            min-height: 400px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 32px 0;
-            color: var(--muted);
-        }
-
-        @media (max-width: 992px) {
-            .dashboard-hero {
-                flex-direction: column;
-            }
-
-            .hero-controls {
-                width: 100%;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}">
 @endsection
 
 @section('page-title')
@@ -604,19 +132,114 @@
     </div>
 
     @php
-        $ordersTotal = max($ordersStats['total'] ?? 0, 1);
-        $completedPercent = round((($ordersStats['completed'] ?? 0) / $ordersTotal) * 100);
-        $pendingPercent = round((($ordersStats['pending'] ?? 0) / $ordersTotal) * 100);
-        $processingPercent = round((($ordersStats['processing'] ?? 0) / $ordersTotal) * 100);
 
-        $cvTotal = max($cvStats['total'] ?? 0, 1);
-        $cvAvailablePercent = round((($cvStats['available'] ?? 0) / $cvTotal) * 100);
+        $statusCounts = $contractStatusBreakdown ?? [];
+        $insights = $operationsInsights ?? [];
 
-        $employeesTotal = max($employeesStats['total'] ?? 0, 1);
-        $employeesActivePercent = round((($employeesStats['active'] ?? 0) / $employeesTotal) * 100);
+        $arrivalTodayCount = $insights['arrival_today'] ?? ($contractsPipeline['arrival_stage'] ?? 0);
+        $delayedWithoutTickets = $insights['delayed_no_tickets'] ?? ($contractsPipeline['delayed_arrival'] ?? 0);
+        $expiredLongTerm = $insights['expired_over_2y'] ?? ($contractsPipeline['expired_over_2y'] ?? 0);
+        $warrantyActive = $insights['warranty_active'] ?? ($contractsStats['underWarranty'] ?? 0);
+        $ticketsReady = $insights['tickets_ready'] ?? ($statusCounts[\App\Enums\ingaz\ContractStatusEnum::Tazker->value] ?? 0);
+        $returnedContracts = $insights['returned'] ?? ($statusCounts[\App\Enums\ingaz\ContractStatusEnum::Back->value] ?? 0);
+        $completedContracts = $insights['completed'] ?? ($contractsStats['completed'] ?? 0);
 
-        $shelterTotal = max($shelterStats['total'] ?? 0, 1);
-        $shelterOccupiedPercent = round((($shelterStats['occupied'] ?? 0) / $shelterTotal) * 100);
+        $operationsHighlights = [
+            [
+                'title' => 'اعتماد العقود',
+                'subtitle' => 'بانتظار الاعتماد',
+                'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::New->value] ?? 0,
+                'meta' => 'اليوم: ' . number_format($contractsStats['today'] ?? 0),
+                'video' => asset('admin/assets/img/new-dashboard/contracted.webm'),
+                'bg' => 'linear-gradient(145deg,#fdf4ff,#eef2ff)'
+            ],
+            [
+                'title' => 'حركة وصول اليوم',
+                'subtitle' => 'تذاكر مؤكدة وموعودة بالوصول',
+                'value' => $arrivalTodayCount,
+                'meta' => 'تذاكر جاهزة: ' . number_format($ticketsReady),
+                'video' => asset('admin/assets/img/new-dashboard/daily-arraivel.webm'),
+                'bg' => 'linear-gradient(145deg,#e0f7ff,#edf6ff)'
+            ],
+            [
+                'title' => 'المتأخرة بالوصول',
+                'subtitle' => 'تجاوزت 60 يوماً بدون تذاكر',
+                'value' => $delayedWithoutTickets,
+                'meta' => 'مطلوب متابعة عاجلة',
+                'video' => asset('admin/assets/img/new-dashboard/ezgif.com-resize.webm'),
+                'bg' => 'linear-gradient(145deg,#fff1e1,#ffe7f0)'
+            ],
+            [
+                'title' => 'عقود منتهية',
+                'subtitle' => 'أقدم من عامين',
+                'value' => $expiredLongTerm,
+                'meta' => 'ضمان ' . number_format($warrantyActive) . ' | مكتملة ' . number_format($completedContracts) . ' | مرتجع ' . number_format($returnedContracts),
+                'video' => asset('admin/assets/img/new-dashboard/ended-contracted.webm'),
+                'bg' => 'linear-gradient(145deg,#eafbea,#dcfce7)'
+            ]
+        ];
+
+        $operationsLeft = [
+            [
+                'title' => 'عقود جديدة',
+                'subtitle' => __('ingaz.new'),
+                'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::New->value] ?? 0,
+                'icon' => 'fas fa-file-signature',
+                'color' => '#0ea5e9'
+            ],
+            [
+                'title' => __('ingaz.msaned'),
+                'subtitle' => 'بعد الاعتماد',
+                'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::Msaned->value] ?? 0,
+                'icon' => 'fas fa-folder-open',
+                'color' => '#06b6d4'
+            ],
+            [
+                'title' => __('ingaz.tafwed'),
+                'subtitle' => 'إجراءات التفويض',
+                'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::Tafwed->value] ?? 0,
+                'icon' => 'fas fa-key',
+                'color' => '#2563eb'
+            ],
+            [
+                'title' => __('ingaz.taffez'),
+                'subtitle' => 'التفييز والتجهيز',
+                'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::Taffez->value] ?? 0,
+                'icon' => 'fas fa-check-double',
+                'color' => '#8b5cf6'
+            ],
+        ];
+
+        $operationsRight = [
+            [
+                'title' => __('ingaz.tazker'),
+                'subtitle' => 'تذاكر معتمدة',
+                'value' => $ticketsReady,
+                'icon' => 'fas fa-ticket-alt',
+                'color' => '#f97316'
+            ],
+            [
+                'title' => 'تحت الضمان',
+                'subtitle' => 'آخر 90 يوماً',
+                'value' => $warrantyActive,
+                'icon' => 'fas fa-shield-alt',
+                'color' => '#facc15'
+            ],
+            [
+                'title' => 'عقود مكتملة',
+                'subtitle' => 'محصلة نهائية',
+                'value' => $completedContracts,
+                'icon' => 'fas fa-check-circle',
+                'color' => '#22c55e'
+            ],
+            [
+                'title' => 'عقود مرتجعة',
+                'subtitle' => 'تحت إعادة المعالجة',
+                'value' => $returnedContracts,
+                'icon' => 'fas fa-undo-alt',
+                'color' => '#ef4444'
+            ],
+        ];
     @endphp
 
     <div class="data-section" id="operations">
@@ -629,51 +252,52 @@
                 <i class="fas fa-eye"></i> طي / عرض
             </button>
         </div>
-        <div class="section-body" data-section-body="operations">
-            <div class="metric-card">
-                <h5>مسار الطلبات</h5>
-                <strong>{{ number_format($ordersStats['total'] ?? 0) }}</strong>
-                <div class="d-flex justify-content-between mt-2 small text-muted">
-                    <span>مكتمل</span>
-                    <span>{{ $completedPercent }}%</span>
-                </div>
-                <div class="progress-line success"><span style="width: {{ $completedPercent }}%"></span></div>
-                <div class="d-flex justify-content-between mt-2 small text-muted">
-                    <span>قيد التنفيذ</span>
-                    <span>{{ $processingPercent }}%</span>
-                </div>
-                <div class="progress-line warning"><span style="width: {{ $processingPercent }}%"></span></div>
-                <div class="d-flex justify-content-between mt-2 small text-muted">
-                    <span>معلق</span>
-                    <span>{{ $pendingPercent }}%</span>
-                </div>
-                <div class="progress-line danger"><span style="width: {{ $pendingPercent }}%"></span></div>
+        <div class="section-body operations-showcase" data-section-body="operations">
+            <div class="operations-highlight-grid">
+                @foreach ($operationsHighlights as $highlight)
+                    <div class="operation-tile" style="background: {{ $highlight['bg'] }};">
+                        <div class="operation-icon">
+                            <video src="{{ $highlight['video'] }}" autoplay muted loop playsinline></video>
+                        </div>
+                        <p class="operation-subtitle">{{ $highlight['subtitle'] }}</p>
+                        <p class="operation-value">{{ number_format($highlight['value']) }}</p>
+                        <div class="operation-foot">
+                            <span>{{ $highlight['title'] }}</span>
+                            <span>{{ $highlight['meta'] }}</span>
+                        </div>
+                    </div>
+                @endforeach
             </div>
 
-            <div class="metric-card">
-                <h5>السير الذاتية</h5>
-                <strong>{{ number_format($cvStats['available'] ?? 0) }}</strong>
-                <small class="d-block text-muted">متاح من أصل {{ number_format($cvStats['total'] ?? 0) }}</small>
-                <div class="progress-line success"><span style="width: {{ $cvAvailablePercent }}%"></span></div>
-                <div class="mt-2 text-muted small">{{ number_format($cvStats['newThisWeek'] ?? 0) }} سيرة جديدة هذا
-                    الأسبوع</div>
-            </div>
-
-            <div class="metric-card">
-                <h5>فريق العمل</h5>
-                <strong>{{ number_format($employeesStats['active'] ?? 0) }}</strong>
-                <small class="d-block text-muted">من أصل {{ number_format($employeesStats['total'] ?? 0) }}</small>
-                <div class="progress-line"><span style="width: {{ $employeesActivePercent }}%"></span></div>
-                <div class="mt-2 text-muted small">مبيعات: {{ $employeesStats['departments']['sales'] ?? 0 }} | دعم:
-                    {{ $employeesStats['departments']['support'] ?? 0 }}</div>
-            </div>
-
-            <div class="metric-card">
-                <h5>الإيواء</h5>
-                <strong>{{ number_format($shelterStats['occupied'] ?? 0) }}</strong>
-                <small class="d-block text-muted">مشغول من أصل {{ number_format($shelterStats['total'] ?? 0) }}</small>
-                <div class="progress-line warning"><span style="width: {{ $shelterOccupiedPercent }}%"></span></div>
-                <div class="mt-2 text-muted small">المتاح: {{ number_format($shelterStats['available'] ?? 0) }}</div>
+            <div class="operations-detail-grid">
+                <div class="operations-column">
+                    @foreach ($operationsLeft as $card)
+                        <div class="mini-operation-card">
+                            <span class="mini-operation-icon" style="background: {{ $card['color'] }};">
+                                <i class="{{ $card['icon'] }}"></i>
+                            </span>
+                            <div class="mini-operation-text">
+                                <strong>{{ $card['title'] }}</strong>
+                                <small>{{ $card['subtitle'] }}</small>
+                            </div>
+                            <span class="mini-operation-value">{{ number_format($card['value']) }}</span>
+                        </div>
+                    @endforeach
+                </div>
+                <div class="operations-column">
+                    @foreach ($operationsRight as $card)
+                        <div class="mini-operation-card">
+                            <span class="mini-operation-icon" style="background: {{ $card['color'] }};">
+                                <i class="{{ $card['icon'] }}"></i>
+                            </span>
+                            <div class="mini-operation-text">
+                                <strong>{{ $card['title'] }}</strong>
+                                <small>{{ $card['subtitle'] }}</small>
+                            </div>
+                            <span class="mini-operation-value">{{ number_format($card['value']) }}</span>
+                        </div>
+                    @endforeach
+                </div>
             </div>
         </div>
     </div>
@@ -733,35 +357,77 @@
                     </div>
                 </div>
                 <div class="col-lg-4">
+                    @php
+                        $contractStageRows = [
+                            [
+                                'label' => 'بانتظار الاعتماد',
+                                'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::New->value] ?? ($contractsPipeline['pre_arrival'] ?? 0),
+                                'meta' => 'قبل الوصول',
+                                'color' => '#5f5bff'
+                            ],
+                            [
+                                'label' => 'مرحلة الوصول اليوم',
+                                'value' => $contractsPipeline['arrival_stage'] ?? 0,
+                                'meta' => 'تذاكر مؤكدة في الطريق',
+                                'color' => '#0ea5e9'
+                            ],
+                            [
+                                'label' => 'تحت الضمان',
+                                'value' => $contractsPipeline['under_warranty'] ?? 0,
+                                'meta' => 'آخر 90 يوماً',
+                                'color' => '#facc15'
+                            ],
+                            [
+                                'label' => 'مكتمل',
+                                'value' => $contractsPipeline['completed'] ?? 0,
+                                'meta' => 'تم إغلاقه',
+                                'color' => '#22c55e'
+                            ],
+                            [
+                                'label' => 'متأخر بالوصول',
+                                'value' => $contractsPipeline['delayed_arrival'] ?? 0,
+                                'meta' => 'تجاوز 60 يوماً بلا تذكرة',
+                                'color' => '#f97316'
+                            ],
+                            [
+                                'label' => 'عقود منتهية (> سنتين)',
+                                'value' => $contractsPipeline['expired_over_2y'] ?? 0,
+                                'meta' => 'مراجعة أرشيفية',
+                                'color' => '#ef4444'
+                            ],
+                        ];
+                        $contractStagesTotal = max(
+                            1,
+                            array_reduce($contractStageRows, function ($carry, $row) {
+                                return $carry + ($row['value'] ?? 0);
+                            }, 0)
+                        );
+                    @endphp
                     <div class="p-3 border rounded-3 h-100 d-flex flex-column">
                         <div class="d-flex justify-content-between align-items-center">
                             <strong>مراحل العقود</strong>
                             <a href="{{ url('dashboard/contracts') }}" class="small text-primary">عرض</a>
                         </div>
-                        <div class="mt-3 d-grid gap-2 flex-grow-1">
-                            <div class="d-flex justify-content-between">
-                                <span>قبل
-                                    الوصول</span><strong>{{ number_format($contractsPipeline['pre_arrival'] ?? 0) }}</strong>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span>مرحلة
-                                    الوصول</span><strong>{{ number_format($contractsPipeline['arrival_stage'] ?? 0) }}</strong>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span>تحت
-                                    الضمان</span><strong>{{ number_format($contractsPipeline['under_warranty'] ?? 0) }}</strong>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <span>مكتمل</span><strong>{{ number_format($contractsPipeline['completed'] ?? 0) }}</strong>
-                            </div>
-                            <div class="d-flex justify-content-between text-warning">
-                                <span>متأخر (>60
-                                    يوم)</span><strong>{{ number_format($contractsPipeline['delayed_arrival'] ?? 0) }}</strong>
-                            </div>
-                            <div class="d-flex justify-content-between text-danger">
-                                <span>منتهي
-                                    (>سنتين)</span><strong>{{ number_format($contractsPipeline['expired_over_2y'] ?? 0) }}</strong>
-                            </div>
+                        <div class="contract-stages mt-3 flex-grow-1">
+                            @foreach ($contractStageRows as $stage)
+                                @php
+                                    $stageWidth = $contractStagesTotal ? round(($stage['value'] / $contractStagesTotal) * 100) : 0;
+                                @endphp
+                                <div class="contract-stage-row">
+                                    <header>
+                                        <strong>{{ $stage['label'] }}</strong>
+                                        <span>{{ number_format($stage['value']) }}</span>
+                                    </header>
+                                    @if (!empty($stage['meta']))
+                                        <small>{{ $stage['meta'] }} • {{ $stageWidth }}%</small>
+                                    @else
+                                        <small>{{ $stageWidth }}%</small>
+                                    @endif
+                                    <div class="stage-progress">
+                                        <span style="width: {{ $stageWidth }}%; background: {{ $stage['color'] }};"></span>
+                                    </div>
+                                </div>
+                            @endforeach
                         </div>
                     </div>
                 </div>
