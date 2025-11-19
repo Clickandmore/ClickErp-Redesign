@@ -55,7 +55,7 @@ class MaidAction extends MainAction
                     $totalYears += (float)($expertise['number_of_years'] ?? 0);
                 }
             } elseif (isset($data['experience_years']) && $data['experience_years'] !== '') {
-                $totalYears = (float)$data['experience_years'];
+                $totalYears = (int)$data['experience_years'];
             }
             $data['experience_years'] = (string)$totalYears;
         } else {
@@ -312,7 +312,7 @@ class MaidAction extends MainAction
                 $count = $this->model->where('office_id', $maid->office_id)
                     ->where('id', '<=', $maid->id)
                     ->count();
-                
+
                 $length = strlen((string) $count);
                 $cvCode = $prefix . "/" . str_pad($count, max(3, $length), '0', STR_PAD_LEFT);
 
@@ -488,9 +488,9 @@ class MaidAction extends MainAction
                     $totalYears += (float)($expertise['number_of_years'] ?? 0);
                 }
             } elseif (isset($data['experience_years']) && $data['experience_years'] !== '') {
-                $totalYears = (float)$data['experience_years'];
+                $totalYears = (int)$data['experience_years'];
             } else {
-                $totalYears = (float)($maid->experience_years ?? 0);
+                $totalYears = (int)($maid->experience_years ?? 0);
             }
             $data['experience_years'] = (string)$totalYears;
         } else {
