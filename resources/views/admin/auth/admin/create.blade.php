@@ -44,6 +44,14 @@
         </div>
 
         <div class="col-4">
+            <label for="status" class="form-label"> {{ __('admin.status') }} </label>
+            <select name="status" id="status" class="form-control">
+                <option value="active">{{ __('admin.active') }}</option>
+                <option value="suspended">{{ __('admin.suspended') }}</option>
+            </select>
+        </div>
+
+        <div class="col-4">
             <label for="TextInput" class="form-label"> {{ __('admin.role_id') }} </label>
             <select name="role_id" id="role_id" class="form-control show-tick ms">
                 <option value="" disabled>{{ __('admin.choose') }}</option>
@@ -72,13 +80,18 @@
             <label for="TextInput" class="form-label mt-3"> الجنس </label>
             <div class="sex-option col-6">
                 <input type="radio" id="male" name="sex_type" value="0">
-                <label for="male"><img src="{{getFile('images/male.png')}}" alt="ذكر"> ذكر </label>
+                <label for="male"><img src="{{ asset('site/assets/images/user1.webp') }}" alt="ذكر"> ذكر </label>
             </div>
 
             <div class="sex-option col-6">
                 <input type="radio" id="female" name="sex_type" value="1">
-                <label for="female"><img src="{{getFile('images/female.avif')}}" alt="انثي"> انثي </label>
+                <label for="female"><img src="{{ asset('site/assets/images/user2.webp') }}" alt="انثى"> انثى </label>
             </div>
+        </div>
+
+        <div class="col-12">
+            <label for="note" class="form-label">{{ __('admin.note') }}</label>
+            <textarea name="note" id="note" class="form-control" rows="3" placeholder="{{ __('admin.note') }}"></textarea>
         </div>
 
 

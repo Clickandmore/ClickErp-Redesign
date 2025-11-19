@@ -321,8 +321,9 @@ return [
     'return_request_processed_at' => 'at',
     'view_notifications' => 'View notifications',
     'view_my_orders' => 'View my orders',
+    'resend_code' => 'Resend Code',
     'type' => 'Type',
-
+    'resend_code_successfuly' => 'The code has been resent successfully',
     'view_my_contracts' => 'View my contracts',
     'wait_before_retry' => 'Your register is being processed,Please wait.',
     'enter_otp_to_complete_register' => 'Enter Otp To Complete Register',
@@ -357,4 +358,8 @@ return [
         'title' => 'Continuous Support',
         'description' => 'We provide ongoing support and consultations before and after recruitment to ensure your complete satisfaction.',
     ],
+    'project_name' => 'Platinum Al Sharqia Recruitment',
+    'project_desc' => 'Over 20 years of providing highly professional recruitment services',
+    'Platinum Company Services' => 'Platinum Company Services',
+
 ];

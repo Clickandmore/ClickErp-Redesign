@@ -44,12 +44,11 @@ Route::get('dashboard-old', 'admin\\DashboardController@indexOld')->name('dashbo
                 Route::resource('profile', 'ProfileController');
                 Route::resource('change-password', 'ChangePasswordController');
                 Route::resource('admins', 'AdminController');
+                Route::post('admins/{id}/toggle-status', 'AdminController@toggleStatus')->name('admins.toggle-status');
             });
 
         });
     });
         //--------------------------------------------------------
 });
-
-
 

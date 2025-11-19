@@ -36,6 +36,22 @@ API Routes: If you are working with APIs, check the routes/api.php file for the 
 Documentation: If you are working in a team, it's essential to have documentation explaining the custom commands, routes, and any specific workflow followed in your Laravel project.
 
 
+## Ingaz dashboard demo data
+
+- Run `php artisan ingaz:refresh-demo-data` to drop the schema, execute the default DatabaseSeeder, and fill the system with rich demo clients, maids, orders, contracts, shelter logs, and complaints. The command refuses to run in production and asks for confirmation before wiping data.
+- Need to regenerate fake data without touching the schema? Use `php artisan ingaz:refresh-demo-data --seed-only`.
+- Every generated client account uses the password `password`, so you can log in instantly for demos.
+- You can also trigger the seeder manually via `php artisan db:seed --class=IngazDemoSeeder` if you need to combine it with other workflows.
+
+## Quick non-destructive dashboard data
+
+- Use `php artisan ingaz:seed-sample-data` when you only need a handful of demo countries, users, CVs, instant orders, shelter contracts, and rental contracts. This command never truncates tables; it simply inserts (or updates) deterministic "DEMO-SEED" records.
+- Generated users are tagged with `register_from = demo_seed` and use the password `password`. Orders use codes like `DEMO-SEED-ORD-001`, so you can filter or remove them later if needed.
+
+## Anonymize remaining production-like rows
+
+- If you kept a small subset of real users/maids and need to mask them in-place, run `php artisan ingaz:anonymize-data --users=200 --maids=200`. It rewrites names, phones, IDs, passports, and media paths to dummy values without deleting rows; add `--dry-run` to see the impact first.
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400"></a></p>
 
 <p align="center">

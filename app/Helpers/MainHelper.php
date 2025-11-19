@@ -218,11 +218,11 @@ if (!function_exists('getEnumData')) {
 
 function getSexType($value)
 {
-    if ($value == 0) {
-        return getImgTag('images/male.png', '60px', "50px");
-    } else if ($value == 1) {
-        return getImgTag('images/female.avif', '60px', "50px");
-    }
+    $iconPath = $value == 1
+        ? asset('site/assets/images/user2.webp') // females
+        : asset('site/assets/images/user1.webp'); // males/default
+
+    return '<img src="' . $iconPath . '" alt="gender-icon" style="height:50px;width:50px;" class="avatar rounded-circle bg-light p-1">';
 }
 
 if (!function_exists('getEnumValue')) {

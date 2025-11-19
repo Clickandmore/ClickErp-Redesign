@@ -30,6 +30,14 @@
             <input type="text" name="email" value="{{ $obj->email }}" class="form-control">
         </div>
 
+        <div class="col-4">
+            <label for="status" class="form-label"> {{ __('admin.status') }} </label>
+            <select name="status" id="status" class="form-control">
+                <option value="active" @selected($obj->status === 'active')>{{ __('admin.active') }}</option>
+                <option value="suspended" @selected($obj->status === 'suspended')>{{ __('admin.suspended') }}</option>
+            </select>
+        </div>
+
         {{-- sort --}}
         <div class="col-4">
             <label for="sort" class="form-label"> {{ __('admin.sort') }} </label>
@@ -78,13 +86,18 @@
             <label for="TextInput" class="form-label mt-3"> الجنس </label>
             <div class="sex-option col-6">
                 <input type="radio" id="male" name="sex_type" value="0" {{($obj->sex_type == 0) ? 'checked' : ''}}>
-                <label for="male"><img src="{{getFile('images/male.png')}}" alt="ذكر"> ذكر </label>
+                <label for="male"><img src="{{ asset('site/assets/images/user1.webp') }}" alt="ذكر"> ذكر </label>
             </div>
 
             <div class="sex-option col-6">
                 <input type="radio" id="female" name="sex_type" value="1" {{($obj->sex_type == 1) ? 'checked' : ''}}>
-                <label for="female"><img src="{{getFile('images/female.avif')}}" alt="انثي"> انثي </label>
+                <label for="female"><img src="{{ asset('site/assets/images/user2.webp') }}" alt="انثى"> انثى </label>
             </div>
+        </div>
+
+        <div class="col-12">
+            <label for="note" class="form-label">{{ __('admin.note') }}</label>
+            <textarea name="note" id="note" class="form-control" rows="3" placeholder="{{ __('admin.note') }}">{{ $obj->note }}</textarea>
         </div>
 
 

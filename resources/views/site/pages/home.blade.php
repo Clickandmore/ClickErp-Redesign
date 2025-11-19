@@ -2,199 +2,194 @@
 @section('title')
     {{ __('ingaz.home') }}
 @endsection
-@section('content')
-    <style>
-        .hero-services {
-            margin-top: -90px;
-            padding: 40px 28px 32px;
-            border-radius: 40px;
-            background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.16), transparent 45%), #ffffff;
-            box-shadow: 0 45px 90px rgba(15, 23, 42, 0.12);
-            position: relative;
-            z-index: 2;
-        }
+<style>
+    .hero-services {
+        position: relative;
+        z-index: 2;
+        margin: -80px auto 0;
+        background: #f9f9f9;
+        width: min(100% - 24px, 1320px);
+        padding: 12px;
+        border-radius: 24px;
+        box-shadow: var(--BigShadow);
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
 
-        .hero-services__content {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .hero-services__header {
-            text-align: center;
-            margin-bottom: 28px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .hero-services__label {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 18px;
-            border-radius: 999px;
-            font-size: 0.78rem;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            background: rgba(79, 70, 229, 0.08);
-            color: #312e81;
-            margin: 0 auto;
-        }
-
-        .hero-services__label i {
-            color: inherit;
-            font-size: 0.9rem;
-        }
-
-        .hero-services__header h3 {
-            margin: 14px 0 6px;
-            font-size: clamp(1.35rem, 4vw, 2.1rem);
-            color: #0f172a;
-        }
-
-        .hero-services__header p {
-            color: #475569;
-            max-width: 620px;
-            margin: 0 auto;
-        }
-
-        .hero-services__cards {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 18px;
-            justify-content: center;
-        }
-
-        .hero-service-card {
-            position: relative;
-            border-radius: 26px;
-            padding: 28px 24px 26px;
-            background: linear-gradient(145deg, rgba(248, 250, 252, 0.92), rgba(255, 255, 255, 0.95));
-            border: 1px solid rgba(226, 232, 240, 0.9);
-            text-decoration: none;
-            color: inherit;
-            overflow: hidden;
-            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-            width: 260px;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            min-height: 320px;
-        }
-
-        .hero-service-card::after {
-            content: '';
+        .expertise {
             position: absolute;
-            inset: 16px;
-            border-radius: 20px;
-            border: 1px dashed rgba(148, 163, 184, 0.35);
-            opacity: 0.7;
-            pointer-events: none;
-        }
-
-        .hero-service-card:hover {
-            transform: translateY(-8px);
-            border-color: rgba(99, 102, 241, 0.35);
-            box-shadow: 0 35px 70px rgba(79, 70, 229, 0.14);
-        }
-
-        .hero-service-card__icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 18px;
+            left: 50%;
+            top: -120px;
+            transform: translateX(-50%);
+            width: 220px;
+            aspect-ratio: 1;
+            z-index: -1;
+            background: #f9f9f9;
+            border-radius: 50%;
+            padding: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.25rem;
-            color: #fff;
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-        }
+            overflow: hidden;
 
-        .hero-service-card__badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 14px;
-            border-radius: 999px;
-            font-size: 0.72rem;
-            background: rgba(15, 23, 42, 0.04);
-            color: #0f172a;
-        }
-
-        .hero-service-card__body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .hero-service-card__body .text {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .hero-service-card__body h4 {
-            margin: 0;
-            font-size: 1.1rem;
-            color: #0f172a;
-        }
-
-        .hero-service-card__body p {
-            margin: 0;
-            color: #5f6b7b;
-            line-height: 1.7;
-            min-height: 72px;
-        }
-
-        .hero-service-card__cta {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: #fff;
-            font-weight: 600;
-            margin-top: auto;
-            font-size: 0.92rem;
-            padding: 10px 20px;
-            border-radius: 999px;
-            background: linear-gradient(135deg, #005CA9, #005CA9);
-            box-shadow: 0 15px 30px rgba(79, 70, 229, 0.25);
-        }
-
-        .hero-service-card__cta i {
-            color: inherit;
-        }
-
-        .hero-service-card--emerald .hero-service-card__icon {
-            background: linear-gradient(135deg, #10b981, #0f766e);
-        }
-
-        .hero-service-card--blue .hero-service-card__icon {
-            background: linear-gradient(135deg, #6366f1, #4f46e5);
-        }
-
-        .hero-service-card--orange .hero-service-card__icon {
-            background: linear-gradient(135deg, #f97316, #ea580c);
-        }
-
-        .hero-service-card--violet .hero-service-card__icon {
-            background: linear-gradient(135deg, #a855f7, #7c3aed);
-        }
-
-        @media (max-width: 767.98px) {
-            .hero-services {
-                padding: 32px 20px 24px;
-                border-radius: 30px;
-                margin-top: -50px;
+            img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                border-radius: 50%;
             }
 
-            .hero-services__cards {
-                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            &::after {
+                content: "";
+                position: absolute;
+                top: 55%;
+                left: 0;
+                width: 100%;
+                height: 50%;
+                background: #f9f9f9;
             }
         }
-    </style>
+
+        .services-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            padding: 20px;
+
+            @media (max-width: 992px) {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            @media (max-width: 576px) {
+                grid-template-columns: 1fr;
+            }
+
+            .service-card {
+                background-color: var(--white);
+                border-radius: 15px;
+                padding: 25px;
+                text-align: center;
+                transition: all 0.3s ease;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+
+                &:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+                }
+
+                .icon {
+                    font-size: 35px;
+                    height: 60px;
+                    width: 60px;
+                    margin-bottom: 15px;
+                    padding: 15px;
+                    border-radius: 30%;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    margin-inline: auto;
+
+                    &.orange {
+                        background-color: #ffe7d3;
+                        color: #ff8c00;
+                    }
+
+                    &.blue {
+                        background-color: var(--mainColor10);
+                        color: var(--mainColor);
+                    }
+
+                    &.purple {
+                        background-color: #ead3ff;
+                        color: #7b2cbf;
+                    }
+
+                    &.green {
+                        background-color: #d3ffd8;
+                        color: #28a745;
+                    }
+                }
+
+                h4 {
+                    font-size: 18px;
+                    margin-bottom: 10px;
+                    font-weight: bold;
+                }
+
+                p {
+                    font-size: 14px;
+                    color: #666;
+                    margin-bottom: 10px;
+                    min-height: 40px;
+                }
+
+                ul {
+                    padding: 0;
+                    list-style: none;
+                    text-align: right;
+
+                    li {
+                        font-size: 13px;
+                        color: #444;
+                        margin-bottom: 8px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: flex-start;
+                        gap: 8px;
+
+                        &::before {
+                            content: "✔";
+                            font-size: 11px;
+                            font-weight: bold;
+                            color: #fff;
+                            display: inline-flex;
+                            justify-content: center;
+                            align-items: center;
+                            width: 18px;
+                            height: 18px;
+                            border-radius: 50%;
+                        }
+                    }
+                }
+
+                &.orange ul li::before {
+                    background-color: #ff8c00;
+                }
+
+                &.blue ul li::before {
+                    background-color: var(--mainColor);
+                }
+
+                &.purple ul li::before {
+                    background-color: #7b2cbf;
+                }
+
+                &.green ul li::before {
+                    background-color: #28a745;
+                }
+            }
+        }
+
+
+        .warning {
+            width: 100%;
+            background-color: #c10e0e;
+            color: var(--white);
+            text-align: center;
+            padding: 12px;
+            border-radius: 12px;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+    }
+</style>
+
+@section('content')
     @php
         $socials = [
             ['url' => $settings->twitter ?? null, 'icon' => 'fab fa-twitter', 'title' => 'twitter page'],
@@ -244,20 +239,10 @@
 
                         <div class="info">
                             <h4 class="hint">
-                                بلاتينيوم الشرقية للاستقدام
+                                {{__("web.project_name")}}
                             </h4>
                             <h1 class="sliderTitle">
-                                أكثر من 20 سنة من تقديم خدمات الاستقدام باحترافية عالية
-                            </h1>
-                        </div>
-                    </div>
-                    <!-- swiper-slide -->
-                    <div class="swiper-slide" style="background-image: url({{ asset('site') }}/assets/images/s2.webp)">
-                        <div class="info">
-                            <h4 class="hint"> سهولة الاستخدام</h4>
-                            <h1 class="sliderTitle">
-                                ابدأ حجزك واتمم دفعك من خلال الموقع الالكتروني او التواصل معنا
-                                بوقت وجيز وبخطوات مختصرة
+                                {{__("web.project_desc")}}
                             </h1>
                         </div>
                     </div>
@@ -303,47 +288,85 @@
         ];
     @endphp
     <section class="hero-services" data-aos="fade-up">
-        <div class="hero-services__content">
-            <div class="hero-services__header">
-                <span class="hero-services__label">
-                    <i class="fa-solid fa-grid-2"></i>{{ __('ingaz.our_services') }}
-                </span>
-                <h3>خدمات شركة بلاتنيوم </h3>
-                <p>{{ __('ingaz.recruitment_request_text') }}</p>
-            </div>
-            <div class="hero-services__cards">
-                @foreach ($heroServices as $service)
-                    <a href="{{ $service['url'] }}" class="hero-service-card hero-service-card--{{ $service['theme'] }}">
-                        <div class="hero-service-card__icon">
-                            <i class="{{ $service['icon'] }}"></i>
-                        </div>
-                        <div class="hero-service-card__body">
-                            <span class="hero-service-card__badge">
-                                <i class="fa-solid fa-circle fa-2xs"></i>{{ $service['badge'] }}
-                            </span>
-                            <div class="text">
-                                <h4>{{ $service['title'] }}</h4>
-                                <p>{{ $service['description'] }}</p>
-                            </div>
-                        </div>
-                        <span class="hero-service-card__cta">
-                            {{ __('ingaz.request now') }}
-                            <i class="fa-solid fa-arrow-left-long"></i>
-                        </span>
-                    </a>
-                @endforeach
-            </div>
+        <div class="expertise">
+            @if(isset($settings) && isset($settings->experience_image))
+                <img src="{{showFile($settings->experience_image)}}" alt="خبرة اكثر من 20 سنه"/>
+            @else
+                <img src="{{asset('site')}}/assets/images/experience.jpg" alt="خبرة اكثر من 20 سنه"/>
+            @endif
         </div>
-        <!-- warn -->
+        <div class="services-container">
+            <a href="{{route('site.all-workers.index')}}?type=estqdam">
+                <div class="service-card green">
+                    <div class="icon green">
+                        <i class="fa-solid fa-user-check"></i>
+                    </div>
+                    <h4>الاستقدام</h4>
+                    <p>
+                        خدمة استقدام العمالة المنزلية والمهنية من الخارج للعمل داخل
+                        المملكة.
+                    </p>
+                    <ul>
+                        <li>سهولة الاستقدام</li>
+                        <li>الجودة</li>
+                        <li>نظام تتبع دقيق</li>
+                    </ul>
+                </div>
+            </a>
+            <a href="{{route('site.all-workers.index')}}?type=egar">
+                <div class="service-card purple">
+                    <div class="icon purple">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+                    <h4>تأجير العمالة الشهري</h4>
+                    <p>خدمة تأجير العمالة للشهر الواحد مع ضمان مرونة وجودة.</p>
+                    <ul>
+                        <li>مرونة عالية</li>
+                        <li>جودة مضمونة</li>
+                        <li>تسليم سريع</li>
+                    </ul>
+                </div>
+            </a>
+            <a href="{{route('site.all-workers.index')}}?type=transfer">
+                <div class="service-card blue">
+                    <div class="icon blue">
+                        <i class="fa-solid fa-truck-fast"></i>
+                    </div>
+                    <h4>النقل الفوري للعمالة</h4>
+                    <p>خدمة نقل العمالة لمشاريعك بسرعة وكفاءة عالية.</p>
+                    <ul>
+                        <li>النقل السريع</li>
+                        <li>التسليم الفوري</li>
+                        <li>الجودة</li>
+                    </ul>
+                </div>
+            </a>
+            <a href="{{route('site.all-workers.index')}}?type=transfer">
+                <div class="service-card orange">
+                    <div class="icon orange">
+                        <i class="fa-solid fa-stopwatch"></i>
+                    </div>
+                    <h4>التسليم الفوري للعمالة</h4>
+                    <p>استلم فوري لعمالتك لتلبية احتياجاتك الفورية بسرعة وجودة.</p>
+                    <ul>
+                        <li>التسليم السريع</li>
+                        <li>جودة العمالة</li>
+                        <li>سهولة الإجراءات</li>
+                    </ul>
+                </div>
+            </a>
+        </div>
+        <!-- التحذير -->
         <div class="warning">
-            {{ __('ingaz.warning') }} :
-            @if (isset($settings))
+            {{__('ingaz.warning')}} :
+            @if(isset($settings))
                 {{ app()->getLocale() == 'ar' ? $settings->note_ar : $settings->note_en }}
             @else
-                {{ __('ingaz.warning_text') }}
+                {{('ingaz.warning_text')}}
             @endif
         </div>
     </section>
+
     <!-- about sec  -->
     <section class="about-section" id="about">
         <div class="container">
@@ -359,7 +382,7 @@
                 </div>
 
                 <div class="about-image">
-                    <img src="{{ asset('site/assets/images/about.webp') }}" alt="{{ __('ingaz.about_us') }}" />
+                    <img src="{{ asset('site/assets/images/about.webp') }}" alt="{{ __('ingaz.about_us') }}"/>
                 </div>
             </div>
             <!-- About Cards -->
@@ -400,6 +423,7 @@
             </div>
         </div>
     </section>
+
     <section class="countries">
         <div class="container">
             <div class="headTitle text-center">
@@ -407,303 +431,360 @@
                 <p>اختر الدولة التي ترغب بالاستقدام منها</p>
             </div>
             <div class="row justify-content-center">
-                <div class="col-12 col-md-6 col-lg-4 p-3">
-                    <div class="modern-card">
-                        <div class="flag-side">
-                            <div class="flag-bg"></div>
-                            <div class="flag-wrapper">
-                                <img src="{{ asset('site/assets/images/countries/1.png') }}" alt="علم أوغندا"
-                                    class="flag-img" />
-                                <span class="pulse-ring"></span>
+                @forelse($nationalities as $nationalty)
+                    <div class="col-12 col-md-6 col-lg-4 p-3">
+                        <div class="modern-card">
+                            <div class="flag-side">
+                                <div class="flag-bg"></div>
+                                <div class="flag-wrapper">
+                                    <img
+                                        src="{{showFile($nationalty->logo)}}"
+                                        alt="{{$nationalty->title}}"
+                                        class="flag-img"
+                                    />
+                                    <span class="pulse-ring"></span>
+                                </div>
                             </div>
-                            <h4 class="country-name">أوغندا</h4>
                             <div class="cost-highlight">
-                                <h2 class="price">8500 <small>ريال</small></h2>
+                                <span class="label">{{$nationalty->title}}</span>
+                                <h2 class="price">{{$nationalty->price}} <small>ريال</small></h2>
                                 <span class="label">تكلفة الاستقدام شامل الضريبة</span>
                             </div>
-                        </div>
-                        <div class="info-side">
-                            <div class="info-grid">
-                                <div class="info-card">
-                                    <i class="fas fa-clock"></i>
-                                    <h5>المدة المتوقعة</h5>
-                                    <p>60 يوم</p>
+                            <div class="info-side">
+                                <div class="info-grid">
+                                    <div class="info-card">
+                                        <i class="fas fa-clock"></i>
+                                        <h5>المدة المتوقعة</h5>
+                                        <p>60 يوم</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-hand-holding-usd"></i>
+                                        <h5>الراتب يبدء من</h5>
+                                        <p>{{$nationalty->monthly_salary}} ريال</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-user-check"></i>
+                                        <h5>الخبرة</h5>
+                                        <p>لم يسبق لها العمل</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-flag"></i>
+                                        <h5>دولة الاستقدام</h5>
+                                        <p>{{$nationalty->title}}</p>
+                                    </div>
                                 </div>
-                                <div class="info-card">
-                                    <i class="fas fa-hand-holding-usd"></i>
-                                    <h5>الراتب</h5>
-                                    <p>900 ريال</p>
-                                </div>
-                                <div class="info-card">
-                                    <i class="fas fa-user-check"></i>
-                                    <h5>الخبرة</h5>
-                                    <p>لم يسبق لها العمل</p>
-                                </div>
-                                <div class="info-card">
-                                    <i class="fas fa-flag"></i>
-                                    <h5>دولة الاستقدام</h5>
-                                    <p>أوغندا</p>
-                                </div>
+                                <a href="{{ route('site.all-workers.index') }}?nationality_id={{ $nationalty->id }}"
+                                   class="modern-btn">
+                                    تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
+                                </a>
                             </div>
-                            <a href="all-workers.html" class="modern-btn">
-                                تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
-                            </a>
                         </div>
                     </div>
-                </div>
-                <div class="col-12 col-md-6 col-lg-4 p-3">
-                    <div class="modern-card">
-                        <div class="flag-side">
-                            <div class="flag-bg"></div>
-                            <div class="flag-wrapper">
-                                <img src="{{ asset('site/assets/images/countries/2.png') }}" alt="علم كينيا"
-                                    class="flag-img" />
-
-                                <span class="pulse-ring"></span>
+                @empty
+                    <div class="col-12 col-md-6 col-lg-4 p-3">
+                        <div class="modern-card">
+                            <div class="flag-side">
+                                <div class="flag-bg"></div>
+                                <div class="flag-wrapper">
+                                    <img src="{{asset('site')}}/assets/images/countries/2.png" alt="علم كينيا"
+                                         class="flag-img"/>
+                                    <span class="pulse-ring"></span>
+                                </div>
                             </div>
-                            <h4 class="country-name">كينيا</h4>
+
                             <div class="cost-highlight">
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
                                 <h2 class="price">9500 <small>ريال</small></h2>
-                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            </div>
-                        </div>
-
-                        <div class="info-side">
-                            <div class="info-grid">
-                                <div class="info-card">
-                                    <i class="fas fa-clock"></i>
-                                    <h5>المدة المتوقعة</h5>
-                                    <p>60 يوم</p>
-                                </div>
-                                <div class="info-card">
-                                    <i class="fas fa-hand-holding-usd"></i>
-                                    <h5>الراتب</h5>
-                                    <p>1000 ريال</p>
-                                </div>
-                                <div class="info-card">
-                                    <i class="fas fa-user-check"></i>
-                                    <h5>الخبرة</h5>
-                                    <p>سبق لها العمل</p>
-                                </div>
-                                <div class="info-card">
-                                    <i class="fas fa-flag"></i>
-                                    <h5>دولة الاستقدام</h5>
-                                    <p>كينيا</p>
-                                </div>
                             </div>
 
-                            <a href="all-workers.html" class="modern-btn">
-                                تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
-                            </a>
+                            <div class="info-side">
+                                <div class="info-grid">
+                                    <div class="info-card">
+                                        <i class="fas fa-clock"></i>
+                                        <h5>المدة المتوقعة</h5>
+                                        <p>60 يوم</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-hand-holding-usd"></i>
+                                        <h5>الراتب</h5>
+                                        <p>1000 ريال</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-user-check"></i>
+                                        <h5>الخبرة</h5>
+                                        <p>سبق لها العمل</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-flag"></i>
+                                        <h5>دولة الاستقدام</h5>
+                                        <p>كينيا</p>
+                                    </div>
+                                </div>
+
+                                <a href="all-workers.html" class="modern-btn">
+                                    تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
+                                </a>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Bangladesh -->
-                <div class="col-12 col-md-6 col-lg-4 p-3">
-                    <div class="modern-card">
-                        <div class="flag-side">
-                            <div class="flag-bg"></div>
-                            <div class="flag-wrapper">
-                                <img src="{{ asset('site/assets/images/countries/3.jpeg') }}" alt="علم بنغلادش"
-                                    class="flag-img" />
-                                <span class="pulse-ring"></span>
+                    <!-- Bangladesh -->
+                    <div class="col-12 col-md-6 col-lg-4 p-3">
+                        <div class="modern-card">
+                            <div class="flag-side">
+                                <div class="flag-bg"></div>
+                                <div class="flag-wrapper">
+                                    <img src="{{asset('site')}}/assets/images/countries/3.jpeg" alt="علم بنغلادش"
+                                         class="flag-img"/>
+                                    <span class="pulse-ring"></span>
+                                </div>
                             </div>
-                            <h4 class="country-name">بنغلادش</h4>
+
                             <div class="cost-highlight">
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
                                 <h2 class="price">8000 <small>ريال</small></h2>
-                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            </div>
-                        </div>
-
-                        <div class="info-side">
-                            <div class="info-grid">
-                                <div class="info-card">
-                                    <i class="fas fa-clock"></i>
-                                    <h5>المدة المتوقعة</h5>
-                                    <p>60 يوم</p>
-                                </div>
-                                <div class="info-card">
-                                    <i class="fas fa-hand-holding-usd"></i>
-                                    <h5>الراتب</h5>
-                                    <p>850 ريال</p>
-                                </div>
-                                <div class="info-card">
-                                    <i class="fas fa-user-check"></i>
-                                    <h5>الخبرة</h5>
-                                    <p>لم يسبق لها العمل</p>
-                                </div>
-                                <div class="info-card">
-                                    <i class="fas fa-flag"></i>
-                                    <h5>دولة الاستقدام</h5>
-                                    <p>بنغلادش</p>
-                                </div>
                             </div>
 
-                            <a href="all-workers.html" class="modern-btn">
-                                تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
-                            </a>
+                            <div class="info-side">
+                                <div class="info-grid">
+                                    <div class="info-card">
+                                        <i class="fas fa-clock"></i>
+                                        <h5>المدة المتوقعة</h5>
+                                        <p>60 يوم</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-hand-holding-usd"></i>
+                                        <h5>الراتب</h5>
+                                        <p>850 ريال</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-user-check"></i>
+                                        <h5>الخبرة</h5>
+                                        <p>لم يسبق لها العمل</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-flag"></i>
+                                        <h5>دولة الاستقدام</h5>
+                                        <p>بنغلادش</p>
+                                    </div>
+                                </div>
+
+                                <a href="all-workers.html" class="modern-btn">
+                                    تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
+                                </a>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Philippines -->
-                <div class="col-12 col-md-6 col-lg-4 p-3">
-                    <div class="modern-card">
-                        <div class="flag-side">
-                            <div class="flag-bg"></div>
-                            <div class="flag-wrapper">
-                                <img src="{{ asset('site/assets/images/countries/4.jpeg') }}" alt="علم الفلبين"
-                                    class="flag-img" />
-                                <span class="pulse-ring"></span>
+                    <!-- Philippines -->
+                    <div class="col-12 col-md-6 col-lg-4 p-3">
+                        <div class="modern-card">
+                            <div class="flag-side">
+                                <div class="flag-bg"></div>
+                                <div class="flag-wrapper">
+                                    <img src="{{asset('site')}}/assets/images/countries/4.jpeg" alt="علم الفلبين"
+                                         class="flag-img"/>
+                                    <span class="pulse-ring"></span>
+                                </div>
                             </div>
-                            <h4 class="country-name">الفلبين</h4>
+
                             <div class="cost-highlight">
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
                                 <h2 class="price">12000 <small>ريال</small></h2>
-                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            </div>
-                        </div>
-
-                        <div class="info-side">
-                            <div class="info-grid">
-                                <div class="info-card">
-                                    <i class="fas fa-clock"></i>
-                                    <h5>المدة المتوقعة</h5>
-                                    <p>60 يوم</p>
-                                </div>
-                                <div class="info-card">
-                                    <i class="fas fa-hand-holding-usd"></i>
-                                    <h5>الراتب</h5>
-                                    <p>1500 ريال</p>
-                                </div>
-                                <div class="info-card">
-                                    <i class="fas fa-user-check"></i>
-                                    <h5>الخبرة</h5>
-                                    <p>سبق لها العمل</p>
-                                </div>
-                                <div class="info-card">
-                                    <i class="fas fa-flag"></i>
-                                    <h5>دولة الاستقدام</h5>
-                                    <p>الفلبين</p>
-                                </div>
                             </div>
 
-                            <a href="all-workers.html" class="modern-btn">
-                                تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
-                            </a>
+                            <div class="info-side">
+                                <div class="info-grid">
+                                    <div class="info-card">
+                                        <i class="fas fa-clock"></i>
+                                        <h5>المدة المتوقعة</h5>
+                                        <p>60 يوم</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-hand-holding-usd"></i>
+                                        <h5>الراتب</h5>
+                                        <p>1500 ريال</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-user-check"></i>
+                                        <h5>الخبرة</h5>
+                                        <p>سبق لها العمل</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-flag"></i>
+                                        <h5>دولة الاستقدام</h5>
+                                        <p>الفلبين</p>
+                                    </div>
+                                </div>
+
+                                <a href="all-workers.html" class="modern-btn">
+                                    تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
+                                </a>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- India -->
-                <div class="col-12 col-md-6 col-lg-4 p-3">
-                    <div class="modern-card">
-                        <div class="flag-side">
-                            <div class="flag-bg"></div>
-                            <div class="flag-wrapper">
-                                <img src="{{ asset('site/assets/images/countries/5.png') }}" alt="علم الهند"
-                                    class="flag-img" />
-                                <span class="pulse-ring"></span>
+                    <!-- India -->
+                    <div class="col-12 col-md-6 col-lg-4 p-3">
+                        <div class="modern-card">
+                            <div class="flag-side">
+                                <div class="flag-bg"></div>
+                                <div class="flag-wrapper">
+                                    <img src="{{asset('site')}}/assets/images/countries/5.png" alt="علم الهند"
+                                         class="flag-img"/>
+                                    <span class="pulse-ring"></span>
+                                </div>
                             </div>
-                            <h4 class="country-name">الهند</h4>
+
                             <div class="cost-highlight">
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
                                 <h2 class="price">9000 <small>ريال</small></h2>
-                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                            </div>
-                        </div>
-
-                        <div class="info-side">
-                            <div class="info-grid">
-                                <div class="info-card">
-                                    <i class="fas fa-clock"></i>
-                                    <h5>المدة المتوقعة</h5>
-                                    <p>60 يوم</p>
-                                </div>
-                                <div class="info-card">
-                                    <i class="fas fa-hand-holding-usd"></i>
-                                    <h5>الراتب</h5>
-                                    <p>1000 ريال</p>
-                                </div>
-                                <div class="info-card">
-                                    <i class="fas fa-user-check"></i>
-                                    <h5>الخبرة</h5>
-                                    <p>لم يسبق لها العمل</p>
-                                </div>
-                                <div class="info-card">
-                                    <i class="fas fa-flag"></i>
-                                    <h5>دولة الاستقدام</h5>
-                                    <p>الهند</p>
-                                </div>
                             </div>
 
-                            <a href="all-workers.html" class="modern-btn">
-                                تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
-                            </a>
+                            <div class="info-side">
+                                <div class="info-grid">
+                                    <div class="info-card">
+                                        <i class="fas fa-clock"></i>
+                                        <h5>المدة المتوقعة</h5>
+                                        <p>60 يوم</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-hand-holding-usd"></i>
+                                        <h5>الراتب</h5>
+                                        <p>1000 ريال</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-user-check"></i>
+                                        <h5>الخبرة</h5>
+                                        <p>لم يسبق لها العمل</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-flag"></i>
+                                        <h5>دولة الاستقدام</h5>
+                                        <p>الهند</p>
+                                    </div>
+                                </div>
+
+                                <a href="all-workers.html" class="modern-btn">
+                                    تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
+                                </a>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Mauritania -->
-                <div class="col-12 col-md-6 col-lg-4 p-3">
-                    <div class="modern-card">
-                        <div class="flag-side">
-                            <div class="flag-bg"></div>
-                            <div class="flag-wrapper">
-                                <img src="{{ asset('site/assets/images/countries/6.png') }}" alt="علم موريتانيا"
-                                    class="flag-img" />
-                                <span class="pulse-ring"></span>
+                    <!-- Mauritania -->
+                    <div class="col-12 col-md-6 col-lg-4 p-3">
+                        <div class="modern-card">
+                            <div class="flag-side">
+                                <div class="flag-bg"></div>
+                                <div class="flag-wrapper">
+                                    <img src="{{asset('site')}}/assets/images/countries/6.png" alt="علم موريتانيا"
+                                         class="flag-img"/>
+                                    <span class="pulse-ring"></span>
+                                </div>
                             </div>
-                            <h4 class="country-name">موريتانيا</h4>
+
                             <div class="cost-highlight">
-                                <h2 class="price">8500 <small>ريال</small></h2>
                                 <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                                <h2 class="price">8500 <small>ريال</small></h2>
                             </div>
-                        </div>
 
-                        <div class="info-side">
-                            <div class="info-grid">
-                                <div class="info-card">
-                                    <i class="fas fa-clock"></i>
-                                    <h5>المدة المتوقعة</h5>
-                                    <p>60 يوم</p>
+                            <div class="info-side">
+                                <div class="info-grid">
+                                    <div class="info-card">
+                                        <i class="fas fa-clock"></i>
+                                        <h5>المدة المتوقعة</h5>
+                                        <p>60 يوم</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-hand-holding-usd"></i>
+                                        <h5>الراتب</h5>
+                                        <p>950 ريال</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-user-check"></i>
+                                        <h5>الخبرة</h5>
+                                        <p>سبق لها العمل</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-flag"></i>
+                                        <h5>دولة الاستقدام</h5>
+                                        <p>موريتانيا</p>
+                                    </div>
                                 </div>
-                                <div class="info-card">
-                                    <i class="fas fa-hand-holding-usd"></i>
-                                    <h5>الراتب</h5>
-                                    <p>950 ريال</p>
-                                </div>
-                                <div class="info-card">
-                                    <i class="fas fa-user-check"></i>
-                                    <h5>الخبرة</h5>
-                                    <p>سبق لها العمل</p>
-                                </div>
-                                <div class="info-card">
-                                    <i class="fas fa-flag"></i>
-                                    <h5>دولة الاستقدام</h5>
-                                    <p>موريتانيا</p>
-                                </div>
+
+                                <a href="all-workers.html" class="modern-btn">
+                                    تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
+                                </a>
                             </div>
                         </div>
                     </div>
-                </div>
+
+                    <!-- Djibouti -->
+                    <div class="col-12 col-md-6 col-lg-4 p-3">
+                        <div class="modern-card">
+                            <div class="flag-side">
+                                <div class="flag-bg"></div>
+                                <div class="flag-wrapper">
+                                    <img src="{{asset('site')}}/assets/images/countries/7.png" alt="علم جيبوتي"
+                                         class="flag-img"/>
+                                    <span class="pulse-ring"></span>
+                                </div>
+                            </div>
+
+                            <div class="cost-highlight">
+                                <span class="label">تكلفة الاستقدام شامل الضريبة</span>
+                                <h2 class="price">8800 <small>ريال</small></h2>
+                            </div>
+
+                            <div class="info-side">
+                                <div class="info-grid">
+                                    <div class="info-card">
+                                        <i class="fas fa-clock"></i>
+                                        <h5>المدة المتوقعة</h5>
+                                        <p>60 يوم</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-hand-holding-usd"></i>
+                                        <h5>الراتب</h5>
+                                        <p>950 ريال</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-user-check"></i>
+                                        <h5>الخبرة</h5>
+                                        <p>سبق لها العمل</p>
+                                    </div>
+                                    <div class="info-card">
+                                        <i class="fas fa-flag"></i>
+                                        <h5>دولة الاستقدام</h5>
+                                        <p>جيبوتي</p>
+                                    </div>
+                                </div>
+
+                                <a href="all-workers.html" class="modern-btn">
+                                    تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                @endforelse
             </div>
         </div>
     </section>
     <!-- ================ services ================= -->
-    <section class="services-sec" id="services">
+    <section class="services-sec" style="height: fit-content" id="services">
         <div class="container">
             <div class="headTitle" data-aos="fade-up">
                 <h2>{{ __('ingaz.our_services') }}</h2>
                 <p>{{ __('ingaz.our_services_desc') }}</p>
             </div>
-
             <!-- السلايدر -->
             <div class="services-slider swiper" data-aos="fade-up">
                 <div class="swiper-wrapper">
                     @forelse($services as $service)
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                                style="background: url('{{ showFile($service->image) }}') no-repeat center/cover;">
+                               style="background: url('{{ showFile($service->image) }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-passport"></i>
                                 <h3 class="serviceTitle">{{ $service->title }}</h3>
                                 <h6 class="serviceP">
@@ -714,7 +795,7 @@
                     @empty
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                                style="background: url('{{ asset('site/assets/images/passport-bg.webp') }}') no-repeat center/cover;">
+                               style="background: url('{{ asset('site/assets/images/passport-bg.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-passport"></i>
                                 <h3 class="serviceTitle">إصدار التأشيرة</h3>
                                 <h6 class="serviceP">
@@ -722,10 +803,9 @@
                                 </h6>
                             </a>
                         </div>
-
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                                style="background: url('{{ asset('site/assets/images/files.webp') }}') no-repeat center/cover;">
+                               style="background: url('{{ asset('site/assets/images/files.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-users-gear"></i>
                                 <h3 class="serviceTitle">اختيار العمالة</h3>
                                 <h6 class="serviceP">
@@ -733,10 +813,9 @@
                                 </h6>
                             </a>
                         </div>
-
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                                style="background: url('{{ asset('site/assets/images/bg-plane.webp') }}') no-repeat center/cover;">
+                               style="background: url('{{ asset('site/assets/images/bg-plane.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-plane-arrival"></i>
                                 <h3 class="serviceTitle">وصول العمالة</h3>
                                 <h6 class="serviceP">
@@ -744,10 +823,9 @@
                                 </h6>
                             </a>
                         </div>
-
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                                style="background: url('{{ asset('site/assets/images/hands.webp') }}') no-repeat center/cover;">
+                               style="background: url('{{ asset('site/assets/images/hands.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-file-contract"></i>
                                 <h3 class="serviceTitle">تجديد عقد عاملة</h3>
                                 <h6 class="serviceP">
@@ -757,16 +835,12 @@
                         </div>
                     @endforelse
                 </div>
-
-                <!--  nav btns -->
                 <div class="swiper-button-next custom-swiper-btn"></div>
                 <div class="swiper-button-prev custom-swiper-btn"></div>
             </div>
-
-            <!--  last card  -->
             <div class="wide-card mt-4" data-aos="fade-up">
                 <a href="#" class="service d-flex flex-column justify-content-center"
-                    style="background: url('{{ asset('site/assets/images/f3.webp') }}') no-repeat center/cover;">
+                   style="background: url('{{ asset('site/assets/images/f3.webp') }}') no-repeat center/cover;">
                     <i class="fa-solid fa-users-gear"></i>
                     <h3 class="serviceTitle">طلب العمالة المهنية</h3>
                     <h6 class="serviceP">
@@ -777,7 +851,6 @@
             </div>
         </div>
     </section>
-
     <!-- statistics sec  -->
     <section class="statistics" id="statistics">
         <div class="container">
@@ -860,9 +933,8 @@
         </div>
     </section>
 
-
     <!-- steps sec  -->
-    <section class="steps" id="steps">
+    <section class="steps" id="steps" style="position: relative">
         <div class="container">
             <!-- Section Title -->
             <div class="SectionTitle">
@@ -871,7 +943,6 @@
                     {{ __('ingaz.Recruitment steps hint') }}
                 </h6>
             </div>
-
             <!-- steps -->
             <div class="allSteps">
                 @forelse($steps as $key=>$step)
@@ -882,20 +953,21 @@
                         <p>
                             {{ $step->title }}
                         </p>
-                        @if ($key == 0)
-                            <div class="images">
-                                <img src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in"
-                                    data-aos-delay="200">
-                                <img src="{{ asset('site') }}/assets/images/visa.webp" data-aos="zoom-in"
-                                    data-aos-delay="300">
-                                <img src="{{ asset('site') }}/assets/images/mada.webp" data-aos="zoom-in"
-                                    data-aos-delay="400">
-                                <img src="{{ asset('site') }}/assets/images/tabby.png" data-aos="zoom-in"
-                                    data-aos-delay="400">
-                                <img src="{{ asset('site') }}/assets/images/tamara.webp" data-aos="zoom-in"
-                                    data-aos-delay="400">
-                            </div>
-                        @endif
+                        {{--                        @if ($key == 0)--}}
+                        {{--                           --}}
+                        {{--                        @endif--}}
+                    </div>
+                    <div class="images" style="position: absolute ;bottom: 0 ; right: 0">
+                        <img src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in"
+                             data-aos-delay="200">
+                        <img src="{{ asset('site') }}/assets/images/visa.webp" data-aos="zoom-in"
+                             data-aos-delay="300">
+                        <img src="{{ asset('site') }}/assets/images/mada.webp" data-aos="zoom-in"
+                             data-aos-delay="400">
+                        <img src="{{ asset('site') }}/assets/images/tabby.png" data-aos="zoom-in"
+                             data-aos-delay="400">
+                        <img src="{{ asset('site') }}/assets/images/tamara.webp" data-aos="zoom-in"
+                             data-aos-delay="400">
                     </div>
                 @empty
                     <div class="step" data-aos="fade-up" data-aos-delay="100">
@@ -906,18 +978,6 @@
                             سداد رسوم تاشيرة العمالة المنزلية الخاصة بك عبر الخدمات الحكومية
                             في البنك او عن طريق القنوات التالية
                         </p>
-                        <div class="images">
-                            <img src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in"
-                                data-aos-delay="200">
-                            <img src="{{ asset('site') }}/assets/images/visa.webp" data-aos="zoom-in"
-                                data-aos-delay="300">
-                            <img src="{{ asset('site') }}/assets/images/mada.webp" data-aos="zoom-in"
-                                data-aos-delay="400">
-                            <img src="{{ asset('site') }}/assets/images/tabby.png" data-aos="zoom-in"
-                                data-aos-delay="400">
-                            <img src="{{ asset('site') }}/assets/images/tamara.webp" data-aos="zoom-in"
-                                data-aos-delay="400">
-                        </div>
                     </div>
                     <div class="step" data-aos="fade-up" data-aos-delay="200">
                         <div class="icon">
@@ -962,7 +1022,26 @@
                         </div>
                         <p>نضمن لك العمالة لمدة 3 شهور</p>
                     </div>
+
                 @endforelse
+            </div>
+        </div>
+        <div class="images">
+{{--             style="position: absolute ;bottom: 0 ; right: 0 ;width: 100px ;height: 100px; display: flex; object-fit:cover;">--}}
+            <div>
+                <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in"
+                     data-aos-delay="200">
+                <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/visa.webp" data-aos="zoom-in"
+                     data-aos-delay="300">
+                <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/mada.webp" data-aos="zoom-in"
+                     data-aos-delay="400">
+            </div>
+            <div>
+                <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/tabby.png" data-aos="zoom-in"
+                     data-aos-delay="400">
+                <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/tamara.webp"
+                     data-aos="zoom-in"
+                     data-aos-delay="400">
             </div>
         </div>
     </section>
@@ -1009,7 +1088,7 @@
                                     <div class="icon">
                                         <i class="fa-regular fa-building-columns"></i>
                                     </div>
-                                    <p> تعريف بالراتب من جهة العمل أو كشف حساب البنك </p>
+                                    <p> تعريف بالراتب يبدء من من جهة العمل أو كشف حساب البنك </p>
                                 </li>
                                 <li data-aos="fade-up">
                                     <div class="icon">
@@ -1064,7 +1143,7 @@
                                     <div class="icon">
                                         <i class="fa-regular fa-building-columns"></i>
                                     </div>
-                                    <p> تعريف بالراتب من جهة العمل أو كشف حساب البنك </p>
+                                    <p> تعريف بالراتب يبدء من من جهة العمل أو كشف حساب البنك </p>
                                 </li>
                                 <li data-aos="fade-up">
                                     <div class="icon">
@@ -1093,9 +1172,10 @@
             </h2>
 
             <div class="video-wrapper" data-aos="zoom-in" data-aos-duration="1000">
-                <iframe src="{{ __('ingaz.video_link') }}" title="{{ __('ingaz.video_description') }}" frameborder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                <iframe src="{{ __('ingaz.video_link') }}" title="{{ __('ingaz.video_description') }}"
+                        frameborder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
             </div>
         </div>
     </section>
@@ -1124,7 +1204,7 @@
                             <label class="form-label">
                                 <i class="fas fa-user me-2"></i> {{ __('ingaz.full name') }}*
                             </label>
-                            <input type="text" id="name" name="name" class="form-control" required />
+                            <input type="text" id="name" name="name" class="form-control" required/>
                             <div class="invalid-feedback"> {{ __('ingaz.this field is required') }}</div>
                             <div class="valid-feedback">{{ __('ingaz.good') }}</div>
                         </div>
@@ -1132,14 +1212,14 @@
                             <label class="form-label"><i class="fas fa-phone-alt me-2"></i> {{ __('ingaz.phone') }}*
                             </label>
                             <input type="tel" id="phone" name="phone" id="phoneNum" class="form-control"
-                                required />
+                                   required/>
                             <div class="invalid-feedback"> {{ __('ingaz.this field is required') }} </div>
                         </div>
                         <div class="col-md-6 p-2">
                             <label class="form-label">
                                 <i class="fa-solid fa-comment-lines me-2"></i> {{ __('ingaz.subject') }}
                             </label>
-                            <input type="text" id="subject" name="subject" class="form-control" />
+                            <input type="text" id="subject" name="subject" class="form-control"/>
                         </div>
                         <div class="col-md-12 p-2">
                             <label class="form-label">
@@ -1152,7 +1232,7 @@
                         {!! NoCaptcha::display() !!}
 
                         @error('g-recaptcha-response')
-                            <span class="text-danger">{{ $message }}</span>
+                        <span class="text-danger">{{ $message }}</span>
                         @enderror
 
                         <div class="col-md-12 text-center p-2">
@@ -1175,7 +1255,7 @@
         </div>
     </section>
     <!-- ================ references ================= -->
-    <section class="references" data-aos="fade-up">
+    <section class="references" style="height: fit-content" data-aos="fade-up">
         <div class="container">
             <div class="swiper referencesSlider">
                 <div class="swiper-wrapper">
@@ -1183,8 +1263,8 @@
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
                                 <img src="{{ showFile($client->image) ?? asset('site/assets/images/musand.svg') }}"
-                                    alt=""
-                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
+                                     alt=""
+                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
                             </div>
                         </div>
                     @empty
@@ -1192,20 +1272,21 @@
                             <div class="referenceLogo">
 
                                 <img src="{{ asset('site/assets/images/Ministry-of-Foreign-Affairs-01.svg') }}"
-                                    alt=""
-                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
+                                     alt=""
+                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
 
                             </div>
                         </div>
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
                                 <img src="{{ asset('site/assets/images/Ministry-of-Interior-01.svg') }}" alt=""
-                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
+                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
                             </div>
                         </div>
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img src="{{ asset('site/assets/images/Ministry-of-Labor-and-Social-Development.svg') }}"
+                                <img
+                                    src="{{ asset('site/assets/images/Ministry-of-Labor-and-Social-Development.svg') }}"
                                     alt=""
                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
 
@@ -1246,7 +1327,7 @@
             });
 
             // عند تحريك العلامة (Marker)
-            google.maps.event.addListener(marker, 'dragend', function(event) {
+            google.maps.event.addListener(marker, 'dragend', function (event) {
                 document.getElementById("latitude").value = event.latLng.lat();
                 document.getElementById("longitude").value = event.latLng.lng();
             });
@@ -1257,8 +1338,8 @@
     </script>
 
     <script>
-        $(document).ready(function() {
-            $('#contact-form').on('submit', function(e) {
+        $(document).ready(function () {
+            $('#contact-form').on('submit', function (e) {
                 e.preventDefault();
 
                 $.ajax({
@@ -1275,7 +1356,7 @@
                         'g-recaptcha-response': grecaptcha.getResponse()
 
                     },
-                    success: function(response) {
+                    success: function (response) {
 
                         $('#contact-form')[0].reset();
                         Swal.fire({
@@ -1285,7 +1366,7 @@
                             confirmButtonText: '{{ __('ingaz.ok') }}'
                         });
                     },
-                    error: function(xhr) {
+                    error: function (xhr) {
                         console.error("خطأ في الطلب:", xhr);
                     }
                 });

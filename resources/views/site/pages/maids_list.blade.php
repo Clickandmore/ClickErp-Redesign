@@ -267,19 +267,18 @@
                                         <a data-fancybox="cv1" href="{{ showFile($cvFile) }}" class="icon-btn">
                                             <i class="fa-regular fa-file-pdf"></i>
                                         </a>
-                                        @if (!empty($maid->video_link) || (!empty($maid->video) && $maid->video !== '#'))
+                                        @if (!empty($maid->video_link) || !empty($maid->video))
                                             @php
                                                 $videoHref = !empty($maid->video_link)
                                                     ? $maid->video_link
                                                     : showFile($maid->video);
-                                                $openAsIframe = !empty($maid->video_link);
                                             @endphp
-                                            <a href="{{ $videoHref }}" class="icon-btn"
-                                                data-fancybox="video{{ $maid->id }}"
-                                                @if ($openAsIframe) data-type="iframe" @endif>
+
+                                            <a href="{{ $videoHref }}" class="icon-btn" data-fancybox="video{{ $maid->id }}">
                                                 <i class="fa-solid fa-video"></i>
                                             </a>
                                         @endif
+
                                         <a href="{{ route('site.immediate-recipts.show', $maid->id) }}"
                                             class="btn action-btn">
                                             {{ __('ingaz.Labor_transfer') }}
@@ -303,7 +302,6 @@
 @if ($maids->isNotEmpty())
     <div class="pagination-outer" id="pagination">
         <div class="pagination-style1">
-            {{ $maids->links('vendor.pagination.custom_2') }}
-        </div>
+            {{ $maids->appends(request()->query())->links('vendor.pagination.custom_2') }}        </div>
     </div>
 @endif
