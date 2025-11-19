@@ -17,7 +17,7 @@ class OrderController extends Controller
 
         $current = $orderAction->getIndex('current');
         $previous = $orderAction->getIndex('previous') ;
-        $order_progressbar = ['refused'=> 0,'new'=>20,'paid'=>40,'completed'=>60,'started'=>80,'done'=>100];
+        $order_progressbar = ['refused'=> 0,'new'=>20,'paid'=>40,'under_process'=>60,'started'=>80,'done'=>100, 'completed'=>100];
         return view('site.pages.profile.last_orders_new', get_defined_vars());
     }
 

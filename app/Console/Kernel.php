@@ -124,6 +124,12 @@ class Kernel extends ConsoleKernel
           ->at('04:00')
           ->name('optimize-database')
           ->withoutOverlapping();
+
+        
+        $schedule->command('orders:cancel-expired')
+             ->hourly()
+             ->withoutOverlapping()
+             ->runInBackground();
     }
 
     /**

@@ -3738,7 +3738,7 @@ main .policies-accordion .accordion .accordion-item .accordion-header.active+.ac
 main .report-section {
     margin: 40px auto;
     padding: 60px 30px;
-    background: var(--mainColor20);
+    background: var(--mainColor10);
     position: relative;
     overflow: hidden;
 }
@@ -3816,40 +3816,51 @@ main .report-section .report-cards .report-card .card-link {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    color: var(--gary);
+    /* color: var(--gary); */
+     color: #e60000;
     text-decoration: none;
     font-weight: 600;
     margin-top: 10px;
     transition: all 0.2s ease;
     padding: 8px 15px;
     border-radius: 30px;
-    background: var(--mainColor10);
+    /* background: var(--mainColor10); */
+    background: rgb(255 124 124 / 11%);
 }
 
 main .report-section .report-cards .report-card .card-link:hover {
-    background: var(--mainColor10);
-    color: var(--mainColor);
+    /* background: var(--mainColor10);
+    color: var(--mainColor); */
+    background: rgb(255 70 70 / 11%);
+    color: red;
     transform: scale(1.02);
 }
 
 main .report-section .report-cards .report-card .card-link i {
     font-size: 14px;
-    color: var(--mainColor);
+    /* color: var(--mainColor); */
+    color: #e60000;
+}
+main .report-section .report-cards .report-card .card-link:hover i {
+    color: red;
 }
 
 main .report-section .report-note {
     text-align: center;
     margin-top: 50px;
     padding: 20px;
-    background: rgba(13, 59, 102, 0.05);
+    /* background: rgba(13, 59, 102, 0.05); */
+    background: rgb(255 0 0 / 11%);
     border-radius: 12px;
-    border-right: 4px solid var(--mainColor);
+    /* border-right: 4px solid var(--mainColor); */
+    border-right: 4px solid #dc3545;
 }
 
 main .report-section .report-note p {
-    color: var(--black);
-    font-weight: 500;
+    color: red;
+    font-weight: 600;
     margin: 0;
+    font-size: 20px;
 }
 
 @media (max-width: 768px) {
@@ -4618,7 +4629,7 @@ main .allWorkers .customOrder {
     position: sticky;
     bottom: 0;
     color: var(--white);
-    z-index: 3;
+    z-index: 6;
     margin-bottom: 30px;
     border-top: 2px solid var(--black);
     text-align: center;
@@ -9117,5 +9128,15 @@ main .guidelines-section .country-card .links .btn:hover i {
     justify-content: center;
     align-items: center;
     color: var(--mainColor);
+}
+
+.worker-content .worker-header .cv-code{
+    font-family: 'Cairo', sans-serif;
+    background-color: white;
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    letter-spacing: 1px;
+    color: #333;
 }
 /*# sourceMappingURL=style.css.map */

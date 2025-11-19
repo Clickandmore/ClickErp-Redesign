@@ -13,6 +13,8 @@ enum OrderEnum: string
     case Contracted = 'contracted'; // تم التعاقد
     case ContractedWithoutContract = 'contracted_without_contract'; // تم التعاقد بدون عقد
 
+    case CanceledBySystem = 'canceled_by_system';
+
 
     // case Paid = 'paid';  // مدفوع
     // case Refused = 'refused'; // ملغي

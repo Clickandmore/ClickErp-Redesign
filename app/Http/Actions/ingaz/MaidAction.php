@@ -302,8 +302,25 @@ class MaidAction extends MainAction
             $maid = $this->model->create($createData);
             \Log::info('Maid created successfully with ID: ' . $maid->id);
 
-            \Log::info('Mahmod Amer CV_Code: ' . ($maid->cv_code ?? 'no cv_code'));
-            \Log::info('Mahmod Amer CV_Code: ' . ($maid->cvCode ?? 'no cvCode'));
+            // توليد cv_code بناءً على المكتب
+            if ($maid->office_id || $maid->office?->title) {
+                // أول 3 أحرف من اسم المكتب
+                $prefix = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $maid->office->title), 0, 3));
+                if ($prefix === '') $prefix = 'OFF';
+
+                // رقم تسلسلي حسب عدد العاملات في نفس المكتب
+                $count = $this->model->where('office_id', $maid->office_id)
+                    ->where('id', '<=', $maid->id)
+                    ->count();
+                
+                $length = strlen((string) $count);
+                $cvCode = $prefix . "/" . str_pad($count, max(3, $length), '0', STR_PAD_LEFT);
+
+                $maid->cv_code = $cvCode;
+                $maid->save();
+
+                \Log::info('Mahmod Amer $cvCode: ' . ($cvCode ?? 'no cv_code'));
+            }
         } catch (\Exception $e) {
             \Log::error('Error creating maid: ' . $e->getMessage());
             \Log::error('Error trace: ' . $e->getTraceAsString());

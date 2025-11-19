@@ -50,6 +50,7 @@ class MaidController extends Controller
             ->select([
                 'id',
                 'name',
+                'cv_code',
                 'image',
                 'cv_file',
                 'cv_preview',
@@ -347,7 +348,7 @@ class MaidController extends Controller
     {
         $rows = objModel::latest()
             ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders', 'unavailableRecords']) // Added unavailableRecords
-            ->select(['id', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at', 'is_pinned', 'status']) // Added status field
+            ->select(['id','cv_code', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at', 'is_pinned', 'status']) // Added status field
             ->where('status', 'backout')
             ->where('available', false);
 
@@ -652,10 +653,6 @@ class MaidController extends Controller
     public function store(MaidRequest $request, objAction $action)
     {
         $data = $request->all();
-        // logger()->info('Amer', [
-        //     'data' => $data,
-
-        // ]);
 
         // Set default status in Arabic
         $data['status'] = 'available';
