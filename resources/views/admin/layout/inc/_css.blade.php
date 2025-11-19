@@ -105,7 +105,7 @@
         padding: 4px 16px !important;
     }
 
-    table tr:first-child .dropdown-menu.dropdown-menu-end {
+    table.orders-table tr:first-child .dropdown-menu.dropdown-menu-end {
         top: -60px !important;
         right: -90px !important;
     }
