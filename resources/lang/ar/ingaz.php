@@ -37,8 +37,8 @@
   'update' => 'تحديث',
   'delete' => 'حذف',
   'skaeeb' => 'سكايب',
-   'hr' => 'إدارة الموارد البشرية',
-   'crm' => 'إدارة العملاء (CRM)',
+  'hr' => 'إدارة الموارد البشرية',
+  'crm' => 'إدارة العملاء (CRM)',
   'finance' => 'إدارة الماليات',
   'clients' => 'جميع العملاء',
   'client' => 'العميل',
@@ -313,7 +313,7 @@
   'paid_amount' => 'المبلغ المدفوع',
   'remaining_amount' => 'المبلغ المتبقي',
   'additional_notes' => 'ملاحظات إضافية',
-  'phone_address'=> 'رقم الهاتف',
+  'phone_address' => 'رقم الهاتف',
   'save_transfer_request' => 'حفظ طلب نقل الكفالة',
   'transfer_request_saved' => 'تم حفظ طلب نقل الكفالة بنجاح',
   'contract_not_found' => 'العقد غير موجود',
@@ -327,13 +327,13 @@
   'completed_requests' => 'الطلبات المكتملة',
   'filters' => 'الفلاتر',
   'update_order_status' => 'تحديث حالة الطلب',
-  'order_status_updated' => "تم تحديث حالة طلبك رقم :order_id إلى",
-  "update_order_restored"=> "استرجاع الطلب",
-  "order_restored_msg"=> "تم استرجاع طلبك رقم :order_id",
-  "update_order_change_maid"=> "تغيير العاملة",
-  "order_changed_maid_msg"=> "تم تغيير العاملة في طلبك رقم :order_id",
-  "update_order_change_responsible"=> "تغيير المسؤول",
-  "order_changed_responsible_msg"=> "تم تغيير المسؤول في طلبك رقم :order_id",
+  'order_status_updated' => 'تم تحديث حالة طلبك رقم :order_id إلى',
+  'update_order_restored' => 'استرجاع الطلب',
+  'order_restored_msg' => 'تم استرجاع طلبك رقم :order_id',
+  'update_order_change_maid' => 'تغيير العاملة',
+  'order_changed_maid_msg' => 'تم تغيير العاملة في طلبك رقم :order_id',
+  'update_order_change_responsible' => 'تغيير المسؤول',
+  'order_changed_responsible_msg' => 'تم تغيير المسؤول في طلبك رقم :order_id',
   'all_statuses' => 'جميع الحالات',
   'pending' => 'في الانتظار',
   'approved' => 'موافق عليه',
@@ -1303,7 +1303,7 @@
   'step_create_account' => 'تسجيل حساب جديد',
   'step_verification_note' => 'سوف يتم التحقق من رقم الهوية من خلال (أبشر) خدمات وزارة الداخلية، لذا يجب التأكد من التسجيل بخدمات أبشر مسبقاً وللمزيد من التفاصيل يمكنك زيارة خدمات أبشر موقع وزارة الداخلية',
   'step_basic_info_form' => 'تعبئة نموذج تسجيل المعلومات الأساسية',
-  'basic_info_fields' =>
+  'basic_info_fields' => 
   array (
     'id_number' => 'رقم الهوية الوطنية للمواطنين أو الإقامة للمقيمين',
     'first_last_name' => 'الإسم الأول و اسم العائلة',
@@ -1313,7 +1313,7 @@
   ),
   'activation_code_note' => 'بعد تسجيل المعلومات الأساسية ستصلك رسالة نصية على جوالك تحتوي على رمز تفعيل مساند. أدخل “رمز التفعيل” لتعبئة النموذج لتسجيل حساب في مساند',
   'step_password_info' => 'تأكيد كلمة المرور: إعادة كلمة المرور المختارة',
-  'step_password_mobile_email' =>
+  'step_password_mobile_email' => 
   array (
     'password_confirmation' => 'تأكيد كلمة المرور: إعادة كلمة المرور المختارة',
     'mobile_number_registered' => 'رقم جوال مسجل في أبشر',
@@ -1321,14 +1321,14 @@
   ),
   'password_hint' => 'كلمة المرور: اختر كلمة مرور تحتوي على حروف وأرقام ورموز',
   'requirements_title' => 'قبل البدأ في اصدار التأشيرة يجب التأكد من جاهزية المتطلبات التالية :',
-  'requirements_list' =>
+  'requirements_list' => 
   array (
     'social_insurance' => 'هل أنت مسجل في المؤسسة العامة التأمينات الإجتماعية؟',
     'employment_status' => 'الحالة الوظيفية: حسب الإثبات للمقدرة المالية',
     'financial_proof' => 'نوع إثبات المقدرة المالية: تعريف بالراتب من القطاع الخاص أو الحكومي، أوكشف حساب البنك حسب عدد التأشيرات المسموحة',
   ),
   'payment_step_title' => 'طريقة سداد رسوم التأشيرة عن طريق خدمة سداد',
-  'payment_steps' =>
+  'payment_steps' => 
   array (
     'login_to_bank' => 'الدخول الى موقع او تطبيق البنك او الصراف الالى',
     'choose_payments' => '"اختيار "المدفوعات',
@@ -1343,20 +1343,20 @@
   'payment_note' => 'إصدار الفاتورة لرسوم التأشيرة عن طريق (سداد) ودفع المبلغ خلال يوم واحد ليتم إرسال الطلب',
   'visa_request_title' => 'طلب إصدار التأشيرة',
   'visa_info_step' => 'تعبئة بيانات التأشيرة',
-  'visa_info_fields' =>
+  'visa_info_fields' => 
   array (
     'job_title' => 'المهنة: قم بإختيار المهنة للعمالة المنزلية',
     'nationality' => 'الجنسية: قم بإختيار الجنسية للعمالة المنزلية',
     'arrival_country' => 'جهة القدوم: قم بإختيار جهة القدوم حسب الدولة',
   ),
   'financial_proof_step' => 'إثبات المقدرة المالية',
-  'financial_proof_fields' =>
+  'financial_proof_fields' => 
   array (
     'salary_statement' => 'تعريف الراتب: قم بإدخال القيمة للراتب الشهري من القطاع الخاص أو الحكومي',
     'bank_statement' => 'شهادة بنكية: قم بإدخال القيمة لمتوسط الحساب الشهري من الشهادة البنكية',
   ),
   'upload_documents' => 'رفع الوثائق والمرفقات',
-  0 =>
+  0 => 
   array (
     'financial_proof_doc' => 'إثبات المقدرة المالية',
     'id_or_family_card' => 'صورة سجل الأسرة أو الهوية الوطنية',
@@ -1611,8 +1611,6 @@
   'event' => 'الحدث',
   'time' => 'الوقت',
   'by' => 'بواسطة',
-  'finance' => 'ادارة المالية',
-  'hr' => 'ادارة الموارد البشرية',
   'bank_name' => 'اسم البنك',
   'manager_name' => 'اسم المدير',
   'manager_phone' => 'رقم المدير',
@@ -1653,11 +1651,8 @@
   'video_title' => 'شاهد الفيديو التعريفي لمنصة مساند',
   'video_description' => 'مساند - المنصة الوطنية لتقديم خدمات العمالة المنزلية',
   'video_link' => 'https://www.youtube.com/embed/I3L7Ft6W0-s',
-  'about_us' => 'عنا',
   'about_us' => 'About us',
-    'Operations_Management' => 'إدارة التشغيل للعمليات ',
-  'hr' => 'إدارة الموارد البشرية',
-  'finance' => 'إدارة الماليات',
+  'Operations_Management' => 'إدارة التشغيل للعمليات ',
   'salary_with_no_experience' => 'راتب العاملة لم يسبق لها العمل',
   'salary_with_experience' => 'راتب العاملة  سبق لها العمل',
   'shelter_attachments_hint' => 'Shelter attachments hint',
@@ -1679,15 +1674,13 @@
   'file_1' => 'الملف الاول',
   'file_2' => 'الملف الثاني',
   'police_settings' => 'اعدادات سياسات الدول',
-    'title_1' => 'العنوان الأول',
-    'title_2' => 'العنوان الثاني',
-    'description_1' => 'الوصف الأول',
-    'description_2' => 'الوصف الثاني',
-    'file_workers_rights' => 'حقوق وواجبات صاحب العمل',
-    'file_employee_rights' => 'حقوق وواجبات العاملة المنزلية',
-
+  'title_1' => 'العنوان الأول',
+  'title_2' => 'العنوان الثاني',
+  'description_1' => 'الوصف الأول',
+  'description_2' => 'الوصف الثاني',
+  'file_workers_rights' => 'حقوق وواجبات صاحب العمل',
+  'file_employee_rights' => 'حقوق وواجبات العاملة المنزلية',
   'addresses' => 'Addresses',
-  'vision' => 'Vision',
   'items' => 'العناصر',
   'item_title_placeholder' => 'Item title placeholder',
   'description_placeholder' => 'Description placeholder',
@@ -1696,8 +1689,7 @@
   'delete_confirm_title' => 'Delete confirm title',
   'delete_confirm_text' => 'Delete confirm text',
   'confirm_delete' => 'Confirm delete',
-  'mission' => 'Mission',
   'type' => 'Type',
-  'more_than_20_years_experience' => 'More than 20 years experience',
   'no_additional_notes' => 'No Additional Notes',
+  'fast_news' => 'Fast news',
 );

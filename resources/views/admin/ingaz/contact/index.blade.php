@@ -2,14 +2,14 @@
 @section("style")
 @endsection
 @section('page-title')
-{{helperTrans("ingaz.contact")}}
+    {{helperTrans("ingaz.contact")}}
 @endsection
 
 @section('content')
-@if (@AdminGuardHasPerm(\App\PermKeys::CONTACT_VIEW))
+    @if (@AdminGuardHasPerm(\App\PermKeys::CONTACT_VIEW))
 
-    <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
-        <thead>
+        <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
+            <thead>
             <tr>
                 <th>#</th>
                 <th>{{helperTrans("ingaz.name")}}</th>
@@ -17,16 +17,17 @@
                 <th>{{helperTrans("ingaz.email")}}</th>
                 <th>{{helperTrans("ingaz.subject")}}</th>
                 <th>{{helperTrans("ingaz.message")}}</th>
+                <th>{{helperTrans("web.is_contacted")}}</th>
                 <th>{{helperTrans("ingaz.actions")}}</th>
             </tr>
-        </thead>
-        <tbody>
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
 
-@else
-    @include('components.no_permissions')
-@endif
+    @else
+        @include('components.no_permissions')
+    @endif
 @endsection
 
 @section('js')
@@ -39,9 +40,29 @@
                 {"data": "email", orderable: true, searchable: true},
                 {"data": "subject", orderable: true, searchable: true},
                 {"data": "message", orderable: true, searchable: true},
+                {"data": "is_contacted", orderable: true, searchable: true},
                 {"data": "actions", orderable: false, searchable: false}
             ];
             showDataTable("{{route("contact.index")}}", columns);
         });
+        $(document).on('click', '.confirm_contacted', function () {
+
+            var rowId = $(this).data('id');
+            var url = "{{ route('contact.update', ':id') }}".replace(':id', rowId);
+
+            $.ajax({
+                url: url,
+                type: "Put",
+                data: {
+                    _token: "{{ csrf_token() }}"
+                },
+                success: function (response) {
+                    reloadDataTable()
+                }
+            });
+
+        });
+
+
     </script>
 @endsection

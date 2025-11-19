@@ -34,6 +34,12 @@ class ContactController extends Controller
                 ->addIndexColumn()
                 ->editColumn('phone', function ($rows) {
                     return getPhoneWithTag($rows->phone);
+                })->editColumn('is_contacted', function ($rows) {
+                    if ($rows->is_contacted == 1) {
+                        return '<span class="text-success">' . __('web.yes') . '</span>';
+                    } else {
+                        return '<button class="btn btn-danger confirm_contacted" data-id="' . $rows->id . '">' . __('web.confirm_contacted') . '</button>';
+                    }
                 })
                 ->editColumn('email', function ($rows) {
                     return getEmailWithTag($rows->email);
@@ -53,6 +59,13 @@ class ContactController extends Controller
     public function destroy($id, ContactAction $action)
     {
         $action->delete($id);
+        return jsonSuccess();
+    }
+
+    public function update(Request $request, $id, ContactAction $action)
+    {
+        $row = $action->find($id);
+        $row->update(['is_contacted' => 1]);
         return jsonSuccess();
     }
 }

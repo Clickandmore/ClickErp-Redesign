@@ -322,7 +322,13 @@ return [
     'view_notifications' => 'View notifications',
     'view_my_orders' => 'View my orders',
     'resend_code' => 'Resend Code',
+    'fast_news' => 'Fast News',
+    'what_do' => 'What Do',
+    'is_contacted' => 'Is Contacted',
+    'confirm_contacted' => 'Confirm Contacted',
+
     'type' => 'Type',
+    'home_settings' => 'Home Settings',
     'resend_code_successfuly' => 'The code has been resent successfully',
     'view_my_contracts' => 'View my contracts',
     'wait_before_retry' => 'Your register is being processed,Please wait.',
