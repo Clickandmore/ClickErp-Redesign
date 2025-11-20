@@ -938,47 +938,46 @@
 
             {{-- الإحصائيات الرئيسية --}}
             <div class="stats-container">
-                @forelse($statics as $static)
-                    <div class="stat-card" data-aos="zoom-in" data-aos-delay="100">
-                        <div class="icon-wrapper">
-                            <i class="fa-solid fa-{{ $static->image }}"></i>
-                        </div>
-                        <span class="counter" data-target="{{ $static->counter_num }}">0</span>
-                        <h6>{{ $static->title }}</h6>
+                {{--                @forelse($statics as $static)--}}
+                {{--                    <div class="stat-card" data-aos="zoom-in" data-aos-delay="100">--}}
+                {{--                        <div class="icon-wrapper">--}}
+                {{--                            <i class="fa-solid fa-{{ $static->image }}"></i>--}}
+                {{--                        </div>--}}
+                {{--                        <span class="counter" data-target="{{ $static->counter_num }}">0</span>--}}
+                {{--                        <h6>{{ $static->title }}</h6>--}}
+                {{--                    </div>--}}
+                {{--                @empty--}}
+                <div class="stat-card" data-aos="zoom-in" data-aos-delay="100">
+                    <div class="icon-wrapper">
+                        <i class="fa-solid fa-user-plus"></i>
                     </div>
-                @empty
-                    <div class="stat-card" data-aos="zoom-in" data-aos-delay="100">
-                        <div class="icon-wrapper">
-                            <i class="fa-solid fa-users"></i>
-                        </div>
-                        <span class="counter" data-target="794">0</span>
-                        <h6>عملاؤنا</h6>
-                    </div>
+                    <span class="counter" data-target="{{$counts['number_recruitment_requests']}}">
+                          {{$counts['number_recruitment_requests']}}
+                    </span>
+                    <h6>طلبات الاستقدام</h6>
+                </div>
 
-                    <div class="stat-card" data-aos="zoom-in" data-aos-delay="200">
-                        <div class="icon-wrapper">
-                            <i class="fa-solid fa-building"></i>
-                        </div>
-                        <span class="counter" data-target="812">0</span>
-                        <h6>زوارنا</h6>
+                <div class="stat-card" data-aos="zoom-in" data-aos-delay="200">
+                    <div class="icon-wrapper">
+                        <i class="fa-solid fa-file-contract"></i>
                     </div>
+                    <span class="counter" data-target="{{$counts['number_contracts_requests']}}">
+                         {{$counts['number_contracts_requests']}}
+                    </span>
+                    <h6>عقود تمت بنجاح</h6>
+                </div>
 
-                    <div class="stat-card" data-aos="zoom-in" data-aos-delay="300">
-                        <div class="icon-wrapper">
-                            <i class="fa-solid fa-headset"></i>
-                        </div>
-                        <span class="counter" data-target="793">0</span>
-                        <h6>خدمة العملاء</h6>
+                <div class="stat-card" data-aos="zoom-in" data-aos-delay="300">
+                    <div class="icon-wrapper">
+                        <i class="fa-solid fa-face-smile"></i>
                     </div>
+                    <span class="counter" data-target="{{$counts['clients']}}">
+                         {{$counts['clients']}}
+                     </span>
+                    <h6>عميل راضي عن الخدمة</h6>
+                </div>
 
-                    <div class="stat-card" data-aos="zoom-in" data-aos-delay="400">
-                        <div class="icon-wrapper">
-                            <i class="fa-solid fa-briefcase"></i>
-                        </div>
-                        <span class="counter" data-target="710">0</span>
-                        <h6>عامل وعاملة</h6>
-                    </div>
-                @endforelse
+                {{--                @endforelse--}}
             </div>
 
             {{-- الإحصائيات الإضافية --}}
@@ -1099,11 +1098,6 @@
             </div>
         </div>
         <div class="images">
-            <<<<<<< HEAD
-            {{--             style="position: absolute ;bottom: 0 ; right: 0 ;width: 100px ;height: 100px; display: flex; object-fit:cover;">--}}
-            =======
-            {{--             style="position: absolute ;bottom: 0 ; right: 0 ;width: 100px ;height: 100px; display: flex; object-fit:cover;"> --}}
-            >>>>>>> dae1519009abba60dea66936be4098dc7ffd2be8
             <div>
                 <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in"
                      data-aos-delay="200">
@@ -1319,11 +1313,26 @@
                 </div>
                 <div class="col-md-6 p-2 wow fadeInUp">
                     <section class="googleMap">
-                        <iframe
-                            src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d57144.98454618672!2d50.12401500000001!3d26.469859!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e49fbc320200d1b%3A0x1abc87f1ffdb75d5!2z2KjZhNin2KrZitmG2YrZiNmFINin2YTYtNix2YLZitipINmE2YTYpdiz2KrZgtiv2KfZhQ!5e0!3m2!1sar!2ssa!4v1761469557614!5m2!1sar!2ssa"
-                            frameborder="0" style="border: 0" allowfullscreen="" aria-hidden="false"
-                            tabindex="0"></iframe>
+                        @if(isset($settings))
+                            <iframe
+                                src="{{$settings->map_link}}"
+                                frameborder="0"
+                                style="border: 0"
+                                allowfullscreen=""
+                                aria-hidden="false"
+                                tabindex="0"></iframe>
+                        @else
+                            <iframe
+                                src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d57144.98454618672!2d50.12401500000001!3d26.469859!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e49fbc320200d1b%3A0x1abc87f1ffdb75d5!2z2KjZhNin2KrZitmG2YrZiNmFINin2YTYtNix2YLZitipINmE2YTYpdiz2KrZgtiv2KfZhQ!5e0!3m2!1sar!2ssa!4v1761469557614!5m2!1sar!2ssa"
+                                frameborder="0"
+                                style="border: 0"
+                                allowfullscreen=""
+                                aria-hidden="false"
+                                tabindex="0"></iframe>
+                        @endif
+
                     </section>
+
                 </div>
             </div>
         </div>

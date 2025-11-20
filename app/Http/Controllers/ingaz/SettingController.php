@@ -14,6 +14,8 @@ class SettingController extends Controller
     public $folderPath = "admin.ingaz.settings";
     public $postData = [
         'logo_header',
+        'tax_number',
+        'zatch_logo',
         'light_image',
         'cover_image',
         'experience_image',

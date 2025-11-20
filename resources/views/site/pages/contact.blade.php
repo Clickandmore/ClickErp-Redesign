@@ -134,7 +134,12 @@
                                 <p class="ms-3">
                                     عنوان مقرنا :
                                     <a href="#!">
-                                        طريق الدمام الفرعي، غرناطة، الرياض 13242
+                                        @if(isset($settings))
+                                            {{$settings->location}}
+                                        @else
+                                            طريق الدمام الفرعي، غرناطة، الرياض 13242
+                                        @endif
+
                                     </a>
                                 </p>
                             </li>
@@ -142,24 +147,38 @@
                                 <span><i class="fa-solid fa-phone"></i></span>
                                 <p class="ms-3">
                                     المبيعات :
-                                    <a href="tel:0550061304"> 0550061304 </a>
-                                    <a href="tel:0550078902"> 0550078902 </a>
+                                    @if(isset($settings))
+                                        <a href="tel:{{$settings->phone}}"> {{$settings->phone}} </a>
+                                    @else
+                                        <a href="tel:0550061304"> 0550061304 </a>
+                                    @endif
                                 </p>
                             </li>
                             <li class="wow fadeInUp">
                                 <span><i class="fa-solid fa-message-question"></i></span>
                                 <p class="ms-3">
                                     الشكاوي والاقتراحات :
-                                    <a href="tel:0552333182"> 0552333182 </a>
+                                    @if(isset($settings))
+                                        <a href="tel:{{$settings->other_phone}}"> {{$settings->other_phone}} </a>
+                                    @else
+                                        <a href="tel:0552333182"> 0552333182 </a>
+                                    @endif
                                 </p>
                             </li>
                             <li class="wow fadeInUp">
                                 <span><i class="fas fa-envelope"></i></span>
                                 <p class="ms-3">
                                     البريد الالكتروني :
-                                    <a href="mailto:info@rawafd-najd.com "
-                                    >info@rawafd-najd.com
-                                    </a>
+
+                                    @if(isset($settings))
+                                        <a href="mailto:{{$settings->email}} ">
+                                            {{$settings->email}}
+                                        </a>
+                                    @else
+                                        <a href="mailto:info@rawafd-najd.com ">
+                                            info@rawafd-najd.com
+                                        </a>
+                                    @endif
                                 </p>
                             </li>
                         </ul>

@@ -124,8 +124,8 @@
                                     <p class="ms-3">
                                         {{__('ingaz.address')}} :
                                         <a href="#!">
-                                            @if(isset($setting->location))
-                                                {{ $setting->location }}
+                                            @if(isset($settings->location))
+                                                {{ $settings->location }}
                                             @else
                                                 طريق الدمام الفرعي، غرناطة، الرياض 13242
                                             @endif
@@ -136,8 +136,8 @@
                                     <span><i class="fa-solid fa-phone"></i></span>
                                     <p class="ms-3">
                                         {{__('ingaz.contactUs')}} :
-                                        @if(isset($setting->phone))
-                                            <a href="tel:0550061304"> {{ $setting->phone }} </a>
+                                        @if(isset($settings->phone))
+                                            <a href="tel:{{ $settings->phone }}"> {{ $settings->phone }} </a>
                                         @else
                                             <a href="tel:0550061304"> 0550061304 </a>
                                             <a href="tel:0550078902"> 0550078902 </a>
@@ -148,8 +148,8 @@
                                     <span><i class="fa-solid fa-message-question"></i></span>
                                     <p class="ms-3">
                                         {{__('ingaz.Complaints and suggestions')}} :
-                                        @if(isset($setting->other_phone))
-                                            <a href="tel:0552333182"> {{ $setting->other_phone }} </a>
+                                        @if(isset($settings->other_phone))
+                                            <a href="tel:{{ $settings->other_phone }}"> {{ $settings->other_phone }} </a>
                                         @else
                                             <a href="tel:0552333182"> 0552333182 </a>
                                         @endif
@@ -159,8 +159,8 @@
                                     <span><i class="fas fa-envelope"></i></span>
                                     <p class="ms-3">
                                         {{__('ingaz.email')}} :
-                                        @if(isset($setting->email))
-                                            <a href="mailto:{{ $setting->email }}"> {{ $setting->email }} </a>
+                                        @if(isset($settings->email))
+                                            <a href="mailto:{{ $settings->email }}"> {{ $settings->email }} </a>
                                         @else
                                             <a href="mailto:info@rawafd-najd.com ">info@rawafd-najd.com
                                             </a>
@@ -232,13 +232,24 @@
                     </div>
                     <div class="col-md-6 p-2 wow fadeInUp">
                         <section class="googleMap">
-                            <iframe
-                                src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d57144.98454618672!2d50.12401500000001!3d26.469859!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e49fbc320200d1b%3A0x1abc87f1ffdb75d5!2z2KjZhNin2KrZitmG2YrZiNmFINin2YTYtNix2YLZitipINmE2YTYpdiz2KrZgtiv2KfZhQ!5e0!3m2!1sar!2ssa!4v1761469557614!5m2!1sar!2ssa"
-                                frameborder="0"
-                                style="border: 0"
-                                allowfullscreen=""
-                                aria-hidden="false"
-                                tabindex="0"></iframe>
+                            @if(isset($settings))
+                                <iframe
+                                    src="{{$settings->map_link}}"
+                                    frameborder="0"
+                                    style="border: 0"
+                                    allowfullscreen=""
+                                    aria-hidden="false"
+                                    tabindex="0"></iframe>
+                            @else
+                                <iframe
+                                    src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d57144.98454618672!2d50.12401500000001!3d26.469859!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e49fbc320200d1b%3A0x1abc87f1ffdb75d5!2z2KjZhNin2KrZitmG2YrZiNmFINin2YTYtNix2YLZitipINmE2YTYpdiz2KrZgtiv2KfZhQ!5e0!3m2!1sar!2ssa!4v1761469557614!5m2!1sar!2ssa"
+                                    frameborder="0"
+                                    style="border: 0"
+                                    allowfullscreen=""
+                                    aria-hidden="false"
+                                    tabindex="0"></iframe>
+                            @endif
+
                         </section>
                     </div>
                 </div>
