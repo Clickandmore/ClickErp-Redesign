@@ -1683,6 +1683,7 @@
 
   'addresses' => 'العناوين',
   'vision' => 'الرؤية',
+  'Labor_transfer'=> 'استلام فوري',
   'items' => 'العناصر',
   'item_title_placeholder' => 'عنوان العنصر',
   'description_placeholder' => 'وصف',
@@ -1699,4 +1700,6 @@
     'labor_hire'=> 'ايجار عمالة',
     'immediate_delivery'=> 'استلام الفوري',
     'order_deleted_successfully'=> 'تم حذف الطلب بنجاح',
+    'shelter_contract_stored' => 'تم حفظ العقد داخل الإيواء بنجاح',
+    'shelter_contract_updated'=> 'تم تحديث العقد داخل الإيواء بنجاح',
 );

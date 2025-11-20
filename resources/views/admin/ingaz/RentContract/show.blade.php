@@ -539,7 +539,7 @@
             @endif
 
             @if ($contract->status !== 'completed' && @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL))
-                <button type="button" class="btn-icon btn-complete" onclick="completeContract()" title="إنهاء العقد">
+                <button type="button" class="btn-icon btn-complete" title="إنهاء العقد">
                     <i class="fas fa-check"></i>
                 </button>
             @endif
@@ -549,7 +549,7 @@
             </a>
 
             @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_DELETE))
-                <button type="button" class="btn-icon btn-delete" onclick="deleteContract()" title="حذف العقد">
+                <button type="button" class="btn-icon btn-delete" title="حذف العقد">
                     <i class="fas fa-trash"></i>
                 </button>
             @endif
@@ -560,7 +560,7 @@
 
 @endsection
 
-@section('script')
+@section('js')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
@@ -569,7 +569,14 @@
                 window.print();
             }
 
-            function completeContract() {
+            $(document).on('click', '.btn-print', function() {
+                console.log('print');
+                window.print();
+                
+            });
+
+            $(document).on('click', '.btn-complete', function() {
+                console.log('completeContract');
                 Swal.fire({
                     title: 'تأكيد إنهاء العقد',
                     text: 'هل أنت متأكد من إنهاء هذا العقد؟',
@@ -614,9 +621,11 @@
                         });
                     }
                 });
-            }
+                
+            });
 
-            function deleteContract() {
+            $(document).on('click', '.btn-delete', function() {
+                console.log('deleteContract');
                 Swal.fire({
                     title: 'تأكيد الحذف',
                     text: 'هل أنت متأكد من حذف هذا العقد؟ لا يمكن التراجع عن هذا الإجراء.',
@@ -646,7 +655,9 @@
                         form.submit();
                     }
                 });
-            }
+                
+            });
+
         });
 
         // Helper functions for status text (these would be methods in the controller)
