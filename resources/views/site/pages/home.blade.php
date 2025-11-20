@@ -505,22 +505,22 @@
                                     <div class="info-card">
                                         <i class="fas fa-clock"></i>
                                         <h5>المدة المتوقعة</h5>
-                                        <p>60 يوم</p>
+                                        <p>{{ $nationalty->period }}</p>
                                     </div>
                                     <div class="info-card">
                                         <i class="fas fa-hand-holding-usd"></i>
                                         <h5>الراتب يبدء من</h5>
-                                        <p>{{ $nationalty->monthly_salary }} ريال</p>
+                                        <p>{{ $nationalty->salary_with_no_experience }} ريال</p>
                                     </div>
                                     <div class="info-card">
                                         <i class="fas fa-user-check"></i>
-                                        <h5>الخبرة</h5>
-                                        <p>لم يسبق لها العمل</p>
+                                        <h5>راتب الخبرة</h5>
+                                        <p>{{ $nationalty->salary_with_experience }}ريال</p>
                                     </div>
                                     <div class="info-card">
                                         <i class="fas fa-flag"></i>
-                                        <h5>دولة الاستقدام</h5>
-                                        <p>{{ $nationalty->title }}</p>
+                                        <h5> تكلفة التاجير</h5>
+                                        <p>{{ $nationalty->rental_cost }}ريال</p>
                                     </div>
                                 </div>
                                 <a href="{{ route('site.all-workers.index') }}?nationality_id={{ $nationalty->id }}"
