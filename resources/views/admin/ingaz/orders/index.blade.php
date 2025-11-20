@@ -104,8 +104,31 @@
             border: 1px solid #e8ecf4;
         }
 
+        /* .table-responsive {
+                    border-radius: 0 0 24px 24px;
+                } */
+
+        .orders-table th {
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            background-color: #f8f9fc;
+            letter-spacing: 0.06em;
+        }
+        /* .orders-table .dropdown-menu .dropdown-menu-end {
+            top: 0px !important;
+        } */
+
+        .badge {
+            border-radius: 999px;
+        }
+
+        .dataTables_wrapper .table-responsive,
         .table-responsive {
-            border-radius: 0 0 24px 24px;
+            overflow: visible !important;
+        }
+
+        .dataTables_wrapper {
+            overflow: visible;
         }
     </style>
 @endsection
@@ -253,44 +276,45 @@
                                 </form>
                             </div>
                         </div>
+                    </div>
+                </div> <!-- end row -->
 
-                        <!-- Data Table -->
-                        <div class="card shadow table-card">
-                            <div class="card-header bg-primary text-white">
+                <!-- Data Table -->
+                <div class="card shadow-sm border-0">
+                    {{-- <div class="card-header bg-primary text-white">
                                 <h5 class="card-title mb-0">
                                     <i class="fa fa-list"></i> قائمة طلبات الاستقدام
                                 </h5>
-                            </div>
-                            <div class="card-body">
-
-                                <table id="dataTableObject" class="table table-hover align-middle mb-0"
-                                    style="width:100%">
-                                    <thead>
-                                        <tr>
-                                            <th>ID</th>
-                                            <th>{{ helperTrans('ingaz.order_code') }}</th>
-                                            <th>{{ helperTrans('ingaz.client') }}</th>
-                                            <th>{{ helperTrans('ingaz.phone') }}</th>
-                                            <th>{{ helperTrans('ingaz.nationality') }}</th>
-                                            <th>{{ helperTrans('ingaz.passport_num') }}</th>
-                                            {{-- <th>{{helperTrans("ingaz.maid")}}</th> --}}
-                                            {{-- <th>{{helperTrans("ingaz.deliver_status")}}</th> --}}
-                                            <th>{{ helperTrans('ingaz.order_job_type') }}</th>
-                                            <th>{{ helperTrans('ingaz.status') }}</th>
-                                            <th>{{ helperTrans('ingaz.timer') }}</th>
-                                            <th>{{ helperTrans('ingaz.contract_status') }}</th>
-                                            <th>{{ helperTrans('ingaz.order_date') }}</th>
-                                            <th>{{ helperTrans('ingaz.responsible_employee') }}</th>
-                                            <th class="text-center">{{ helperTrans('ingaz.actions') }}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                    </tbody>
-                                </table>
-                            </div>
+                            </div> --}}
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="dataTableObject" class="table table-hover align-middle orders-table"
+                                style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>{{ helperTrans('ingaz.order_code') }}</th>
+                                        <th>{{ helperTrans('ingaz.client') }}</th>
+                                        <th>{{ helperTrans('ingaz.phone') }}</th>
+                                        <th>{{ helperTrans('ingaz.nationality') }}</th>
+                                        <th>{{ helperTrans('ingaz.passport_num') }}</th>
+                                        {{-- <th>{{helperTrans("ingaz.maid")}}</th> --}}
+                                        {{-- <th>{{helperTrans("ingaz.deliver_status")}}</th> --}}
+                                        <th>{{ helperTrans('ingaz.order_job_type') }}</th>
+                                        <th>{{ helperTrans('ingaz.status') }}</th>
+                                        <th>{{ helperTrans('ingaz.timer') }}</th>
+                                        <th>{{ helperTrans('ingaz.contract_status') }}</th>
+                                        <th>{{ helperTrans('ingaz.order_date') }}</th>
+                                        <th>{{ helperTrans('ingaz.responsible_employee') }}</th>
+                                        <th class="text-center">{{ helperTrans('ingaz.actions') }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                </div> <!-- end row -->
+                </div>
             </div> <!-- end container -->
         </div> <!-- end page body -->
     @else
@@ -524,19 +548,23 @@
                                 _token: '{{ csrf_token() }}'
                             },
                             success: function(response) {
-                                if (response.success) {
+                                if (response.data.success) {
                                     dataTable.ajax.reload();
-                                    toastr.success(
-                                        '{{ helperTrans('ingaz.order_deleted') }}');
+                                    // toastr.success(
+                                    //     '{{ helperTrans('ingaz.order_deleted') }}');
+                                     Swal.fire('نجح!', response.message || '{{ helperTrans('ingaz.order_deleted_successfully') }}',
+                                    'success');
                                 } else {
                                     dataTable.ajax.reload();
-                                    toastr.error(
-                                        '{{ helperTrans('ingaz.delete_error') }}');
+                                    // toastr.error(
+                                    //     '{{ helperTrans('ingaz.delete_error') }}');
+                                     Swal.fire('خطأ!', '{{ helperTrans('ingaz.delete_error') }}', 'error');
                                 }
                             },
                             error: function() {
-                                toastr.error(
-                                    '{{ helperTrans('ingaz.delete_error') }}');
+                                // toastr.error(
+                                //     '{{ helperTrans('ingaz.delete_error') }}');
+                                    Swal.fire('خطأ!', '{{ helperTrans('ingaz.delete_error') }}', 'error');
                             }
                         });
                         // deleteOrder(orderId);
@@ -806,11 +834,11 @@
 
             // Old change maid code removed - using new advanced system below
             /*
-                    $(document).on('click', '.change-maid', function() {
-                        const orderId = $(this).data('id');
+                                $(document).on('click', '.change-maid', function() {
+                                    const orderId = $(this).data('id');
 
-                        // Show modal to select new maid with search
-                        const modal = `
+                                    // Show modal to select new maid with search
+                                    const modal = `
             <div class="modal fade" id="changeMaidModal" tabindex="-1">
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
@@ -845,142 +873,142 @@
             </div>
         `;
 
-                        $('#changeMaidModal').remove();
-                        $('body').append(modal);
-                        $('#changeMaidModal').modal('show');
+                                    $('#changeMaidModal').remove();
+                                    $('body').append(modal);
+                                    $('#changeMaidModal').modal('show');
 
-                        // Handle modal close for change maid modal
-                        $('#changeMaidModal .btn-close, #changeMaidModal [data-bs-dismiss="modal"]').on('click', function() {
-                            $('#changeMaidModal').modal('hide');
-                            $('.modal-backdrop').remove();
-                            $('body').removeClass('modal-open');
-                        });
-
-                        $('#changeMaidModal').on('hidden.bs.modal', function() {
-                            $('.modal-backdrop').remove();
-                            $('body').removeClass('modal-open');
-                        });
-
-                        // Load available maids
-                        loadAvailableMaids();
-
-                        // Handle search
-                        $('#maidSearch').on('input', function() {
-                            const searchTerm = $(this).val();
-                            if (searchTerm.length >= 2) {
-                                searchMaids(searchTerm);
-                            } else {
-                                loadAvailableMaids();
-                            }
-                        });
-
-                        // Handle maid selection
-                        $('#changeMaidForm select[name="maid_id"]').on('change', function() {
-                            const maidId = $(this).val();
-                            if (maidId) {
-                                showMaidInfo(maidId);
-                            } else {
-                                $('#maidInfo').hide();
-                            }
-                        });
-
-                        // Handle save
-                        $('#saveMaid').on('click', function() {
-                            const maidId = $('#changeMaidForm select[name="maid_id"]').val();
-                            if (!maidId) {
-                                toastr.error('{{ helperTrans('ingaz.please_select_maid') }}');
-                                return;
-                            }
-
-                            $.ajax({
-                                url: '/admin/orders/' + orderId + '/change-maid',
-                                type: 'POST',
-                                data: {
-                                    _token: '{{ csrf_token() }}',
-                                    maid_id: maidId
-                                },
-                                success: function(response) {
-                                    if (response.success) {
+                                    // Handle modal close for change maid modal
+                                    $('#changeMaidModal .btn-close, #changeMaidModal [data-bs-dismiss="modal"]').on('click', function() {
                                         $('#changeMaidModal').modal('hide');
                                         $('.modal-backdrop').remove();
                                         $('body').removeClass('modal-open');
-                                        dataTable.ajax.reload();
-                                        toastr.success('{{ helperTrans('ingaz.maid_updated') }}');
-                                    } else {
-                                        toastr.error(response.message || '{{ helperTrans('ingaz.update_error') }}');
-                                    }
-                                },
-                                error: function(xhr) {
-                                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                                        toastr.error(xhr.responseJSON.message);
-                                    } else {
-                                        toastr.error('{{ helperTrans('ingaz.update_error') }}');
-                                    }
-                                }
-                            });
-                        });
-                    });
+                                    });
 
-                    // Function to load available maids
-                    function loadAvailableMaids() {
-                        $.ajax({
-                            url: '/admin/maids/available',
-                            type: 'GET',
-                            success: function(response) {
-                                if (response.success) {
-                                    const select = $('#changeMaidForm select[name="maid_id"]');
-                                    select.empty();
-                                    select.append('<option value="">{{ helperTrans('ingaz.select_maid') }}</option>');
+                                    $('#changeMaidModal').on('hidden.bs.modal', function() {
+                                        $('.modal-backdrop').remove();
+                                        $('body').removeClass('modal-open');
+                                    });
 
-                                    response.maids.forEach(function(maid) {
-                                        select.append(`<option value="${maid.id}">${maid.name} - ${maid.passport_num} - ${maid.nationality}</option>`);
+                                    // Load available maids
+                                    loadAvailableMaids();
+
+                                    // Handle search
+                                    $('#maidSearch').on('input', function() {
+                                        const searchTerm = $(this).val();
+                                        if (searchTerm.length >= 2) {
+                                            searchMaids(searchTerm);
+                                        } else {
+                                            loadAvailableMaids();
+                                        }
+                                    });
+
+                                    // Handle maid selection
+                                    $('#changeMaidForm select[name="maid_id"]').on('change', function() {
+                                        const maidId = $(this).val();
+                                        if (maidId) {
+                                            showMaidInfo(maidId);
+                                        } else {
+                                            $('#maidInfo').hide();
+                                        }
+                                    });
+
+                                    // Handle save
+                                    $('#saveMaid').on('click', function() {
+                                        const maidId = $('#changeMaidForm select[name="maid_id"]').val();
+                                        if (!maidId) {
+                                            toastr.error('{{ helperTrans('ingaz.please_select_maid') }}');
+                                            return;
+                                        }
+
+                                        $.ajax({
+                                            url: '/admin/orders/' + orderId + '/change-maid',
+                                            type: 'POST',
+                                            data: {
+                                                _token: '{{ csrf_token() }}',
+                                                maid_id: maidId
+                                            },
+                                            success: function(response) {
+                                                if (response.success) {
+                                                    $('#changeMaidModal').modal('hide');
+                                                    $('.modal-backdrop').remove();
+                                                    $('body').removeClass('modal-open');
+                                                    dataTable.ajax.reload();
+                                                    toastr.success('{{ helperTrans('ingaz.maid_updated') }}');
+                                                } else {
+                                                    toastr.error(response.message || '{{ helperTrans('ingaz.update_error') }}');
+                                                }
+                                            },
+                                            error: function(xhr) {
+                                                if (xhr.responseJSON && xhr.responseJSON.message) {
+                                                    toastr.error(xhr.responseJSON.message);
+                                                } else {
+                                                    toastr.error('{{ helperTrans('ingaz.update_error') }}');
+                                                }
+                                            }
+                                        });
+                                    });
+                                });
+
+                                // Function to load available maids
+                                function loadAvailableMaids() {
+                                    $.ajax({
+                                        url: '/admin/maids/available',
+                                        type: 'GET',
+                                        success: function(response) {
+                                            if (response.success) {
+                                                const select = $('#changeMaidForm select[name="maid_id"]');
+                                                select.empty();
+                                                select.append('<option value="">{{ helperTrans('ingaz.select_maid') }}</option>');
+
+                                                response.maids.forEach(function(maid) {
+                                                    select.append(`<option value="${maid.id}">${maid.name} - ${maid.passport_num} - ${maid.nationality}</option>`);
+                                                });
+                                            }
+                                        }
                                     });
                                 }
-                            }
-                        });
-                    }
 
-                    // Function to search maids
-                    function searchMaids(searchTerm) {
-                        $.ajax({
-                            url: '/admin/maids/search',
-                            type: 'GET',
-                            data: { search: searchTerm },
-                            success: function(response) {
-                                if (response.success) {
-                                    const select = $('#changeMaidForm select[name="maid_id"]');
-                                    select.empty();
-                                    select.append('<option value="">{{ helperTrans('ingaz.select_maid') }}</option>');
+                                // Function to search maids
+                                function searchMaids(searchTerm) {
+                                    $.ajax({
+                                        url: '/admin/maids/search',
+                                        type: 'GET',
+                                        data: { search: searchTerm },
+                                        success: function(response) {
+                                            if (response.success) {
+                                                const select = $('#changeMaidForm select[name="maid_id"]');
+                                                select.empty();
+                                                select.append('<option value="">{{ helperTrans('ingaz.select_maid') }}</option>');
 
-                                    response.maids.forEach(function(maid) {
-                                        select.append(`<option value="${maid.id}">${maid.name} - ${maid.passport_num} - ${maid.nationality}</option>`);
+                                                response.maids.forEach(function(maid) {
+                                                    select.append(`<option value="${maid.id}">${maid.name} - ${maid.passport_num} - ${maid.nationality}</option>`);
+                                                });
+                                            }
+                                        }
                                     });
                                 }
-                            }
-                        });
-                    }
 
-                    // Function to show maid info
-                    function showMaidInfo(maidId) {
-                        $.ajax({
-                            url: '/admin/maids/' + maidId + '/info',
-                            type: 'GET',
-                            success: function(response) {
-                                if (response.success) {
-                                    const maid = response.maid;
-                                    $('#maidDetails').html(`
+                                // Function to show maid info
+                                function showMaidInfo(maidId) {
+                                    $.ajax({
+                                        url: '/admin/maids/' + maidId + '/info',
+                                        type: 'GET',
+                                        success: function(response) {
+                                            if (response.success) {
+                                                const maid = response.maid;
+                                                $('#maidDetails').html(`
                         <p><strong>{{ helperTrans('ingaz.name') }}:</strong> ${maid.name}</p>
                         <p><strong>{{ helperTrans('ingaz.passport_num') }}:</strong> ${maid.passport_num}</p>
                         <p><strong>{{ helperTrans('ingaz.nationality') }}:</strong> ${maid.nationality}</p>
                         <p><strong>{{ helperTrans('ingaz.age') }}:</strong> ${maid.age}</p>
                         <p><strong>{{ helperTrans('ingaz.experience') }}:</strong> ${maid.experience}</p>
                     `);
-                                    $('#maidInfo').show();
+                                                $('#maidInfo').show();
+                                            }
+                                        }
+                                    });
                                 }
-                            }
-                        });
-                    }
-                    */
+                                */
 
             // Handle change responsible employee
             $(document).on('click', '.change-responsible', function() {
@@ -1038,7 +1066,8 @@
                 $('#saveResponsible').on('click', function() {
                     const adminId = $('#changeResponsibleForm select[name="admin_id"]').val();
                     if (!adminId) {
-                        toastr.error('{{ helperTrans('ingaz.please_select_employee') }}');
+                        // toastr.error('{{ helperTrans('ingaz.please_select_employee') }}');
+                            Swal.fire('خطأ!', '{{ helperTrans('ingaz.please_select_employee') }}', 'error');
                         return;
                     }
 
@@ -1050,21 +1079,25 @@
                             admin_id: adminId
                         },
                         success: function(response) {
-                            if (response.success) {
+                            if (response.data.success) {
                                 $('#changeResponsibleModal').modal('hide');
                                 $('.modal-backdrop').remove();
                                 $('body').removeClass('modal-open');
                                 dataTable.ajax.reload();
-                                toastr.success(
-                                    '{{ helperTrans('ingaz.responsible_updated') }}'
-                                );
+                                // toastr.success(
+                                //     '{{ helperTrans('ingaz.responsible_updated') }}'
+                                // );
+                                 Swal.fire('نجح!', response.message || '{{ helperTrans('ingaz.responsible_updated') }}',
+                                    'success');
                             } else {
-                                toastr.error(response.message ||
-                                    '{{ helperTrans('ingaz.update_error') }}');
+                                // toastr.error(response.message ||
+                                //     '{{ helperTrans('ingaz.update_error') }}');
+                                 Swal.fire('خطأ!', response.message || '{{ helperTrans('ingaz.update_error') }}', 'error');
                             }
                         },
                         error: function() {
-                            toastr.error('{{ helperTrans('ingaz.update_error') }}');
+                            // toastr.error('{{ helperTrans('ingaz.update_error') }}');
+                             Swal.fire('خطأ!', '{{ helperTrans('ingaz.update_error') }}', 'error');
                         }
                     });
                 });
@@ -1150,23 +1183,27 @@
                             reason: reason
                         },
                         success: function(response) {
-                            if (response.success) {
+                            if (response.data.success) {
                                 dataTable.ajax.reload();
                                 $('#refuseOrderModal').modal('hide');
                                 $('#refuseOrderModal').remove();
                                 $('.modal-backdrop').remove();
                                 $('body').removeClass('modal-open');
                                 dataTable.ajax.reload();
-                                toastr.success(
-                                    '{{ helperTrans('ingaz.order_updated') }}');
+                                // toastr.success(
+                                //     '{{ helperTrans('ingaz.order_updated') }}');
+                                Swal.fire('نجح!', response.message || '{{ helperTrans('ingaz.order_updated') }}',
+                                    'success');
                             } else {
                                 dataTable.ajax.reload();
-                                toastr.error(
-                                    '{{ helperTrans('ingaz.update_error') }}');
+                                // toastr.error(
+                                //     '{{ helperTrans('ingaz.update_error') }}');
+                                Swal.fire('خطأ!', response.message || '{{ helperTrans('ingaz.update_error') }}', 'error');
                             }
                         },
                         error: function() {
-                            toastr.error('{{ helperTrans('ingaz.update_error') }}');
+                            // toastr.error('{{ helperTrans('ingaz.update_error') }}');
+                                Swal.fire('خطأ!', '{{ helperTrans('ingaz.update_error') }}', 'error');
                         }
                     });
                 });

@@ -1062,6 +1062,9 @@
                     headers: {
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                     },
+                    beforeSend: function() {
+                        $('#maidForm button[type="submit"]').html('<div class="spinner-border text-light spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div>');
+                    },
                     success: function(response) {
                         if (response.code == 203) {
                             var cvConvertShowRoute = "{{ route('cv-convert.show', ':id') }}";
@@ -1112,6 +1115,9 @@
                             text: errorMessage,
                             confirmButtonText: 'حسناً'
                         });
+                    },
+                    complete: function() {
+                        $('#maidForm button[type="submit"]').html('{{ __('ingaz.create') }}');
                     }
                 });
             });

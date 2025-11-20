@@ -1123,6 +1123,7 @@ main .mainSlider .swiper-slide-active .customBtn {
         transform: translateZ(0);
     }
 }
+
 /*main .hero-services {*/
 /*    position: relative;*/
 /*    z-index: 2;*/
@@ -1732,187 +1733,216 @@ main .countries .modern-card .info-side .modern-btn {
     gap: 6px;
     transition: all 0.3s ease;
 }
+
 main .countries {
-  padding: 80px 0;
-  background: linear-gradient(45deg, rgba(243, 243, 249, 0.9098039216), rgba(243, 243, 249, 0.9607843137)), url(../images/countries.webp);
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-position: bottom;
-  position: relative;
-  overflow: hidden;
+    padding: 80px 0;
+    background: linear-gradient(45deg, rgba(243, 243, 249, 0.9098039216), rgba(243, 243, 249, 0.9607843137)), url(../images/countries.webp);
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: bottom;
+    position: relative;
+    overflow: hidden;
 }
+
 main .countries .headTitle {
-  margin-bottom: 50px;
+    margin-bottom: 50px;
 }
+
 main .countries .headTitle h2 {
-  font-weight: 800;
-  font-size: 2rem;
-  color: #222;
+    font-weight: 800;
+    font-size: 2rem;
+    color: #222;
 }
+
 main .countries .headTitle p {
-  color: #777;
-  font-size: 1rem;
+    color: #777;
+    font-size: 1rem;
 }
+
 main .countries .modern-card {
-  position: relative;
-  background: #fff;
-  border-radius: 20px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
-  overflow: hidden;
-  text-align: center;
-  transition: all 0.3s ease;
+    position: relative;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    text-align: center;
+    transition: all 0.3s ease;
 }
+
 main .countries .modern-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.1);
+    transform: translateY(-6px);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.1);
 }
+
 main .countries .modern-card .flag-side {
-  position: relative;
-  padding-top: 40px;
+    position: relative;
+    padding-top: 40px;
 }
+
 main .countries .modern-card .flag-side .flag-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 120px;
-  background: linear-gradient(135deg, var(--mainColor), #00B8DE);
-  clip-path: polygon(0 0, 100% 0, 100% 65%, 50% 100%, 0 65%);
-  z-index: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 120px;
+    background: linear-gradient(135deg, var(--mainColor), #00B8DE);
+    clip-path: polygon(0 0, 100% 0, 100% 65%, 50% 100%, 0 65%);
+    z-index: 0;
 }
+
 main .countries .modern-card .flag-side .flag-wrapper {
-  position: relative;
-  z-index: 2;
-  display: inline-block;
-  margin-top: 10px;
+    position: relative;
+    z-index: 2;
+    display: inline-block;
+    margin-top: 10px;
 }
+
 main .countries .modern-card .flag-side .flag-wrapper .flag-img {
-  width: 95px;
-  height: 95px;
-  border-radius: 50%;
-  border: 4px solid #fff;
-  -o-object-fit: cover;
-     object-fit: cover;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
-  position: relative;
-  z-index: 3;
+    width: 95px;
+    height: 95px;
+    border-radius: 50%;
+    border: 4px solid #fff;
+    -o-object-fit: cover;
+    object-fit: cover;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    position: relative;
+    z-index: 3;
 }
+
 main .countries .modern-card .flag-side .flag-wrapper .pulse-ring {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 110px;
-  height: 110px;
-  background: rgba(59, 130, 246, 0.2);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1;
-  animation: pulse 2s infinite;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 110px;
+    height: 110px;
+    background: rgba(59, 130, 246, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    animation: pulse 2s infinite;
 }
+
 main .countries .modern-card .flag-side .country-name {
-  position: relative;
-  z-index: 2;
-  margin-top: 15px;
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #222;
+    position: relative;
+    z-index: 2;
+    margin-top: 15px;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #222;
 }
+
 @keyframes pulse {
-  0% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0.8;
-  }
-  70% {
-    transform: translate(-50%, -50%) scale(1.3);
-    opacity: 0;
-  }
-  100% {
-    opacity: 0;
-  }
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.8;
+    }
+
+    70% {
+        transform: translate(-50%, -50%) scale(1.3);
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 0;
+    }
 }
+
 main .countries .modern-card .cost-highlight {
-  margin: 25px auto 15px;
-  position: relative;
-  z-index: 2;
-  background: #f7f8fc;
-  border-radius: 14px;
-  padding: 18px 15px;
-  width: 85%;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
+    margin: 25px auto 15px;
+    position: relative;
+    z-index: 2;
+    background: #f7f8fc;
+    border-radius: 14px;
+    padding: 18px 15px;
+    width: 85%;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
 }
+
 main .countries .modern-card .cost-highlight .label {
-  display: block;
-  font-size: 0.9rem;
-  color: #555;
-  margin-bottom: 5px;
+    display: block;
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 5px;
 }
+
 main .countries .modern-card .cost-highlight .price {
-  font-size: 2rem;
-  font-weight: 800;
-  color: var(--mainColor);
-  text-decoration: underline;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--mainColor);
+    text-decoration: underline;
 }
+
 main .countries .modern-card .cost-highlight .price small {
-  font-size: 1.1rem;
-  font-weight: 500;
-  margin-inline-start: 5px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-inline-start: 5px;
 }
+
 main .countries .modern-card .info-side {
-  position: relative;
-  z-index: 2;
-  padding: 0 25px 25px;
+    position: relative;
+    z-index: 2;
+    padding: 0 25px 25px;
 }
+
 main .countries .modern-card .info-side .info-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
-  margin-bottom: 20px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
 }
+
 main .countries .modern-card .info-side .info-grid .info-card {
-  background: #f9f9fb;
-  border-radius: 12px;
-  padding: 14px 10px;
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.04);
-  transition: all 0.3s ease;
-  text-align: center;
+    background: #f9f9fb;
+    border-radius: 12px;
+    padding: 14px 10px;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.04);
+    transition: all 0.3s ease;
+    text-align: center;
 }
+
 main .countries .modern-card .info-side .info-grid .info-card i {
-  color: var(--mainColor);
-  font-size: 1.3rem;
-  margin-bottom: 4px;
+    color: var(--mainColor);
+    font-size: 1.3rem;
+    margin-bottom: 4px;
 }
+
 main .countries .modern-card .info-side .info-grid .info-card h5 {
-  font-size: 0.9rem;
-  color: #333;
-  margin: 4px 0;
+    font-size: 0.9rem;
+    color: #333;
+    margin: 4px 0;
 }
+
 main .countries .modern-card .info-side .info-grid .info-card p {
-  font-size: 0.9rem;
-  color: #555;
-  margin: 0;
+    font-size: 0.9rem;
+    color: #555;
+    margin: 0;
 }
+
 main .countries .modern-card .info-side .info-grid .info-card:hover {
-  transform: translateY(-3px);
-  background: #eef3ff;
+    transform: translateY(-3px);
+    background: #eef3ff;
 }
+
 main .countries .modern-card .info-side .modern-btn {
-  background: var(--mainColor);
-  color: #fff;
-  padding: 8px 18px;
-  border-radius: 30px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.3s ease;
+    background: var(--mainColor);
+    color: #fff;
+    padding: 8px 18px;
+    border-radius: 30px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s ease;
 }
+
 main .countries .modern-card .info-side .modern-btn:hover {
-  transform: translateY(-2px);
+    transform: translateY(-2px);
 }
+
 main .countries .modern-card .info-side .modern-btn:hover i {
-  transform: translateX(-4px);
+    transform: translateX(-4px);
 }
 
 main .countries .modern-card .info-side .modern-btn:hover {
@@ -2185,6 +2215,8 @@ main .section-header p {
     max-width: 700px;
     margin: 0 auto;
 }
+
+
 
 main .content-wrapper {
     display: flex;
@@ -2897,7 +2929,7 @@ main .steps .images {
 
 main .steps .images img {
     /*-o-object-fit: contain;*/
-    object-fit:contain;
+    object-fit: contain;
     height: 40px;
     width: 60px;
     border-radius: 8px;
@@ -3817,7 +3849,7 @@ main .report-section .report-cards .report-card .card-link {
     align-items: center;
     gap: 8px;
     /* color: var(--gary); */
-     color: #e60000;
+    color: #e60000;
     text-decoration: none;
     font-weight: 600;
     margin-top: 10px;
@@ -3841,6 +3873,7 @@ main .report-section .report-cards .report-card .card-link i {
     /* color: var(--mainColor); */
     color: #e60000;
 }
+
 main .report-section .report-cards .report-card .card-link:hover i {
     color: red;
 }
@@ -4315,8 +4348,8 @@ main .allWorkers .workers-list .worker-box .worker-header .worker-id {
 }
 
 main .allWorkers .workers-list .worker-box h4 {
-    font-size: 18px;
-    font-weight: 700;
+    font-size: 22px;
+    font-weight: 600;
     margin-bottom: 12px;
     color: #17171d;
     margin: 50px 0 12px 0;
@@ -4334,17 +4367,42 @@ main .allWorkers .workers-list .worker-box .workerInfo p {
     color: #333;
     margin: 0;
     white-space: nowrap;
+    font-weight: 700;
 }
 
-main .allWorkers .workers-list .worker-box .worker-salary {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-radius: 12px;
-    transition: all 0.3s ease;
-    flex-wrap: wrap;
-    gap: 6px 12px;
+main .allWorkers .workers-list .worker-box .workerInfo p span {
+    font-weight: 500;
 }
+
+main .allWorkers .workers-list .worker-box .workerInfo p.service-type span {
+    background: var(--mainColor30);
+    padding: 1px 10px;
+    border-radius: 6px;
+    color: white;
+}
+
+
+
+main .allWorkers .workers-list .worker-box .worker-salary {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(180px, 1fr));
+    gap: 8px 16px;
+    margin-bottom: 12px;
+}
+
+main .allWorkers .workers-list .worker-box .worker-salary p {
+    font-size: 14px;
+    color: #333;
+    margin: 0;
+    white-space: nowrap;
+    font-weight: 700;
+}
+
+main .allWorkers .workers-list .worker-box .worker-salary p span {
+    font-weight: 500;
+}
+
+
 
 main .allWorkers .workers-list .worker-box .worker-salary:hover {
     background: #f4fdfb;
@@ -4353,25 +4411,25 @@ main .allWorkers .workers-list .worker-box .worker-salary:hover {
 
 main .allWorkers .workers-list .worker-box .worker-salary .old-salary {
     font-size: 15px;
-    color: #999;
-    font-weight: 500;
+    /* color: #999; */
+    /* font-weight: 500; */
 }
 
 main .allWorkers .workers-list .worker-box .worker-salary .old-salary span {
     text-decoration: line-through;
     color: #c0392b;
-    font-weight: 600;
+    font-weight: 500;
 }
 
 main .allWorkers .workers-list .worker-box .worker-salary .new-salary {
     font-size: 15px;
-    color: #999;
-    font-weight: 600;
+    /* color: #999; */
+    /* font-weight: 600; */
 }
 
 main .allWorkers .workers-list .worker-box .worker-salary .new-salary span {
     color: var(--mainColor);
-    font-weight: 800;
+    font-weight: 500;
 }
 
 main .allWorkers .workers-list .worker-box .guarantee {
@@ -9123,6 +9181,7 @@ main .guidelines-section .country-card .links .btn:hover i {
     font-weight: bold;
     color: var(--secondColor2);
 }
+
 .loading-text {
     display: flex;
     justify-content: center;
@@ -9130,7 +9189,7 @@ main .guidelines-section .country-card .links .btn:hover i {
     color: var(--mainColor);
 }
 
-.worker-content .worker-header .cv-code{
+.worker-content .worker-header .cv-code {
     font-family: 'Cairo', sans-serif;
     background-color: white;
     padding: 4px 8px;
@@ -9139,4 +9198,5 @@ main .guidelines-section .country-card .links .btn:hover i {
     letter-spacing: 1px;
     color: #333;
 }
+
 /*# sourceMappingURL=style.css.map */

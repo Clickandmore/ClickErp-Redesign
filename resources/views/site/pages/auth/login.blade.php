@@ -9,13 +9,13 @@
 @section('content')
     <section class="accountForm">
         <div class="imageBG">
-            <img src="{{ asset('site') }}/assets/images/s3.webp" alt=""/>
+            <img src="{{ asset('site') }}/assets/images/s3.webp" alt="" />
         </div>
         <div class="cardForm" data-aos="fade-up">
             <form id="form-login" action="{{ route('site.login.store') }}" method="post">
                 @csrf
                 <div class="loginLogo">
-                    <img src="{{ asset('site') }}/assets/images/logo.svg" alt="img" class="img-fluid"/>
+                    <img src="{{ asset('site') }}/assets/images/logo.svg" alt="img" class="img-fluid" />
                 </div>
                 <div class="formGroup">
                     <label for="phoneNum">
@@ -47,13 +47,12 @@
                         {{ __('ingaz.password') }}
                     </label>
                     <input type="password" autocomplete="new-password" class="form-control" id="password"
-                           name="password"/>
-                    <span id="togglePassword"
-                          style="position: absolute; left: 10px; top: 38px; cursor: pointer;">
-                        <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg"
-                             viewBox="0 0 24 24" width="20" height="20">
+                        name="password" />
+                    <span id="togglePassword" style="position: absolute; left: 10px; top: 38px; cursor: pointer;">
+                        <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20"
+                            height="20">
                             <path fill="currentColor"
-                                  d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/>
+                                d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z" />
                         </svg>
                     </span>
                 </div>
@@ -62,9 +61,11 @@
                 {!! NoCaptcha::renderJs(app()->getLocale()) !!}
                 {!! NoCaptcha::display() !!}
                 @error('g-recaptcha-response')
-                <span class="text-danger">{{ $message }}</span>
+                    <span class="text-danger">{{ $message }}</span>
                 @enderror
-                <button type="submit" class="defaultBtn mt-2">{{ __('ingaz.login') }}</button>
+                <button type="submit" class="defaultBtn mt-2">
+                    {{ __('ingaz.login') }}
+                </button>
                 <p class="text-center">
                     {{ __('ingaz.dont_have_account') }} <a href="{{ route('site.register.index') }}">
                         {{ __('ingaz.create_account') }}</a>
@@ -75,8 +76,8 @@
 @endsection
 @section('js')
     <script>
-        $(document).ready(function () {
-            $('#form-login').on('submit', function (e) {
+        $(document).ready(function() {
+            $('#form-login').on('submit', function(e) {
                 e.preventDefault();
                 let formData = new FormData(this);
                 let url = $(this).attr('action');
@@ -86,7 +87,10 @@
                     data: formData,
                     processData: false,
                     contentType: false,
-                    success: function (response) {
+                    beforeSend: function() {
+                        $('#form-login button[type="submit"]').html('<div class="spinner-border text-light" role="status"><span class="visually-hidden">Loading...</span></div>');
+                    },
+                    success: function(response) {
                         if (!response.success) {
                             Toastify({
                                 text: response.message,
@@ -104,13 +108,13 @@
                                 backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)"
                             }).showToast();
 
-                            setTimeout(function () {
+                            setTimeout(function() {
                                 let target = response.result || '/'; // fallback
                                 window.location.href = target;
                             }, 1000);
                         }
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         if (xhr.status === 422) {
                             let res = xhr.responseJSON;
                             let errorMessages = '';
@@ -135,9 +139,10 @@
                             Swal.fire('{{ __('ingaz.error') }}',
                                 '{{ __('ingaz.error_from_server') }}', 'error');
                         }
+                    },
+                    complete: function() {
+                        $('#form-login button[type="submit"]').html('{{ __('ingaz.login') }}');
                     }
-
-
                 });
             })
         })
@@ -147,14 +152,14 @@
         const togglePassword = document.getElementById("togglePassword");
         const eyeIcon = document.getElementById("eyeIcon");
 
-        togglePassword.addEventListener("click", function () {
+        togglePassword.addEventListener("click", function() {
             const type = passwordInput.getAttribute("type") === "password" ? "text" : "password";
             passwordInput.setAttribute("type", type);
 
             // تغيير شكل الأيقونة حسب الحالة
-            eyeIcon.innerHTML = type === "password"
-                ? '<path fill="currentColor" d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/>'
-                : '<path fill="currentColor" d="M2 5.27 3.28 4 20 20.72 18.73 22 15.94 19.21A10.6 10.6 0 0 1 12 20c-7 0-10-7-10-7a18.1 18.1 0 0 1 3.34-4.37L2 5.27zM12 8a4 4 0 0 1 4 4 3.9 3.9 0 0 1-.45 1.82l-1.5-1.5A1.9 1.9 0 0 0 14 12a2 2 0 0 0-2-2 1.9 1.9 0 0 0-.32.05l-1.5-1.5A3.9 3.9 0 0 1 12 8z"/>';
+            eyeIcon.innerHTML = type === "password" ?
+                '<path fill="currentColor" d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10z"/>' :
+                '<path fill="currentColor" d="M2 5.27 3.28 4 20 20.72 18.73 22 15.94 19.21A10.6 10.6 0 0 1 12 20c-7 0-10-7-10-7a18.1 18.1 0 0 1 3.34-4.37L2 5.27zM12 8a4 4 0 0 1 4 4 3.9 3.9 0 0 1-.45 1.82l-1.5-1.5A1.9 1.9 0 0 0 14 12a2 2 0 0 0-2-2 1.9 1.9 0 0 0-.32.05l-1.5-1.5A3.9 3.9 0 0 1 12 8z"/>';
         });
     </script>
 @endsection

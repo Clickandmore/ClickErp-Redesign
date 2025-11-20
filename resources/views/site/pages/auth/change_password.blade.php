@@ -92,6 +92,9 @@
                     data: formData,
                     processData: false,
                     contentType: false,
+                    beforeSend: function() {
+                        $('#change-password-form button[type="submit"]').html('<div class="spinner-border text-light" role="status"><span class="visually-hidden">Loading...</span></div>');
+                    },
                     success: function(response) {
                         Toastify({
                             text: response.message,
@@ -122,6 +125,9 @@
                             Swal.fire('{{ __('ingaz.error') }}',
                                 '{{ __('ingaz.error_from_server') }}', 'error');
                         }
+                    },
+                    complete: function() {
+                        $('#change-password-form button[type="submit"]').html('{{ __('ingaz.send') }}');
                     }
 
                 });

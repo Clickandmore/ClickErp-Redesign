@@ -21,11 +21,22 @@
         display: none !important;
     }
 
-    .toggle-pin,
+    /* .toggle-pin,
     .btn-edit,
     .btn-view,
     .editButton,
     .deleteButton {
+        width: 32px !important;
+        height: 32px !important;
+        padding: 0 !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    } */
+
+    .btn-edit,
+    .btn-view,
+    .editButton {
         width: 32px !important;
         height: 32px !important;
         padding: 0 !important;
@@ -83,10 +94,20 @@
         right: 50% !important;
         left: unset !important;
         transform: translateX(50%) !important;
-        top: 0 !important;
+        /* top: 0 !important; */
+        top: -125px !important;
         position: absolute !important;
         z-index: 99999 !important;
         min-width: 150px !important;
+    }
+
+    .dropdown-menu.dropdown-menu-end .toggle-pin {
+        padding: 4px 16px !important;
+    }
+
+    table.orders-table tr:first-child .dropdown-menu.dropdown-menu-end {
+        top: -60px !important;
+        right: -90px !important;
     }
 
     tr.child.active-dropdown-row {

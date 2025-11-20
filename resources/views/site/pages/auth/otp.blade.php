@@ -139,6 +139,9 @@
                     data: formData,
                     processData: false,
                     contentType: false,
+                    beforeSend: function() {
+                        $('#otp-form button[type="submit"]').html('<div class="spinner-border text-light" role="status"><span class="visually-hidden">Loading...</span></div>');
+                    },
                     success: function (response) {
                         // لو الكود غلط (إحنا مرجعينه بكود 422 داخل jsonSuccess)
                         if (response.code === 422) {
@@ -198,6 +201,9 @@
                                 'error'
                             );
                         }
+                    },
+                    complete: function() {
+                        $('#otp-form button[type="submit"]').html('{{ __('ingaz.send') }}');
                     }
                 });
             });

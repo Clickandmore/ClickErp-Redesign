@@ -189,7 +189,7 @@ class OrderController extends Controller
                                     <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
                                         <i class="fas fa-cogs me-1"></i> الإجراءات
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
+                        <ul class="dropdown-menu dropdown-menu-end shadow-lg top-0">';
 
                     // View button
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW)) {
@@ -387,7 +387,7 @@ class OrderController extends Controller
                 'new_status' => $newStatus
             ]);
 
-            return jsonSuccess(['message' => 'تم تحديث حالة الطلب بنجاح']);
+            return jsonSuccess(['success' => true], __('ingaz.order_updated'), 200);
         } catch (\Illuminate\Validation\ValidationException $validationException) {
             $messages = collect($validationException->errors())->flatten();
             return jsonError([
@@ -400,7 +400,7 @@ class OrderController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return jsonError(['message' => 'حدث خطأ أثناء تحديث حالة الطلب: ' . $e->getMessage()]);
+            return jsonError(['success' => false], __('ingaz.update_error'), 200);
         }
     }
 
@@ -414,14 +414,14 @@ class OrderController extends Controller
     {
         $order = Order::withTrashed()->findOrFail($id);
         if (!$order) {
-            return jsonError(['error' => __('index.order_not_found')], 404);
+            return jsonError(__('index.order_not_found'), 404);
         }
         if ($order->trashed()) {
             $order->forceDelete();
         } else {
             $order->delete();
         }
-        return jsonSuccess(['success' => __("index.order_deleted_successfuly")]);
+        return jsonSuccess(['success' => true], __("index.order_deleted_successfully"), 200);
     }
 
     public function restore($id)
@@ -767,7 +767,7 @@ class OrderController extends Controller
                 'type' => 'order_status',
             ]);
 
-            return jsonSuccess(['message' => 'The responsible employee has been updated successfully']);
+            return jsonSuccess(['success' => true], __('ingaz.responsible_updated'), 200);
         } catch (\Exception $e) {
             return jsonError(['message' => 'An error occurred while updating the responsible employee']);
         }
@@ -798,7 +798,7 @@ class OrderController extends Controller
 
             $this->releaseMaid($order);
 
-            return jsonSuccess(['message' => 'The order status has been updated successfully']);
+            return jsonSuccess(['success'=> true], __('ingaz.status_updated'),200);
         } catch (\Exception $e) {
             return jsonError(['message' => 'An error occurred while updating the order status']);
         }

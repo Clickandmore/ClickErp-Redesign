@@ -282,10 +282,10 @@
 
                         <div class="info">
                             <h4 class="hint">
-                                {{__("web.project_name")}}
+                                {{ __('web.project_name') }}
                             </h4>
                             <h1 class="sliderTitle">
-                                {{__("web.project_desc")}}
+                                {{ __('web.project_desc') }}
                             </h1>
                         </div>
                     </div>
@@ -333,8 +333,8 @@
     <section class="hero-services" data-aos="fade-up">
         <div class="section-header">
             <div class="badge">
-                <i class="fa-solid fa-briefcase">
-                    {{__("web.our_serivces")}}
+                <i class="fa-solid fa-briefcase" style="font-weight: bold;">
+                    {{ __('web.our_services') }}
                 </i>
             </div>
             <h2 class="section-title">{{isset($whatDoSetting) ? $whatDoSetting->title : 'خدمات شركه بلاتينيوم'}}</h2>
@@ -365,7 +365,7 @@
                     </div>
                 </a>
             @empty
-                <a href="{{route('site.all-workers.index')}}?type=estqdam">
+                <a href="{{ route('site.all-workers.index') }}?type=estqdam">
                     <div class="service-card green">
                         <div class="icon green">
                             <i class="fa-solid fa-user-check"></i>
@@ -382,7 +382,7 @@
                         </ul>
                     </div>
                 </a>
-                <a href="{{route('site.all-workers.index')}}?type=egar">
+                <a href="{{ route('site.all-workers.index') }}?type=egar">
                     <div class="service-card purple">
                         <div class="icon purple">
                             <i class="fa-solid fa-clock"></i>
@@ -396,7 +396,7 @@
                         </ul>
                     </div>
                 </a>
-                <a href="{{route('site.all-workers.index')}}?type=transfer">
+                <a href="{{ route('site.all-workers.index') }}?type=transfer">
                     <div class="service-card blue">
                         <div class="icon blue">
                             <i class="fa-solid fa-truck-fast"></i>
@@ -410,29 +410,22 @@
                         </ul>
                     </div>
                 </a>
-                <a href="{{route('site.all-workers.index')}}?type=transfer">
+                <a href="{{ route('site.all-workers.index') }}?type=transfer">
                     <div class="service-card orange">
                         <div class="icon orange">
                             <i class="fa-solid fa-stopwatch"></i>
                         </div>
-                        <h4>التسليم الفوري للعمالة</h4>
-                        <p>استلم فوري لعمالتك لتلبية احتياجاتك الفورية بسرعة وجودة.</p>
-                        <ul>
-                            <li>التسليم السريع</li>
-                            <li>جودة العمالة</li>
-                            <li>سهولة الإجراءات</li>
-                        </ul>
                     </div>
                 </a>
             @endforelse
         </div>
         <!-- التحذير -->
         <div class="warning">
-            {{__('ingaz.warning')}} :
-            @if(isset($settings))
+            {{ __('ingaz.warning') }} :
+            @if (isset($settings))
                 {{ app()->getLocale() == 'ar' ? $settings->note_ar : $settings->note_en }}
             @else
-                {{('ingaz.warning_text')}}
+                {{ 'ingaz.warning_text' }}
             @endif
         </div>
     </section>
@@ -461,7 +454,6 @@
                             {{ __('ingaz.about_description') }}
                         </p>
                     @endif
-
                 </div>
                 @if(isset($abouts))
                     <div class="about-image">
@@ -472,8 +464,8 @@
                         <img src="{{ asset('site/assets/images/about.webp') }}" alt="{{ __('ingaz.about_us') }}"/>
                     </div>
                 @endif
+                <!-- About Cards -->
             </div>
-            <!-- About Cards -->
             <div class="about-cards">
                 @forelse($features as $feature)
                     <div class="service">
@@ -525,17 +517,14 @@
                             <div class="flag-side">
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
-                                    <img
-                                        src="{{showFile($nationalty->logo)}}"
-                                        alt="{{$nationalty->title}}"
-                                        class="flag-img"
-                                    />
+                                    <img src="{{ showFile($nationalty->logo) }}" alt="{{ $nationalty->title }}"
+                                         class="flag-img"/>
                                     <span class="pulse-ring"></span>
                                 </div>
                             </div>
                             <div class="cost-highlight">
-                                <span class="label">{{$nationalty->title}}</span>
-                                <h2 class="price">{{$nationalty->price}} <small>ريال</small></h2>
+                                <span class="label">{{ $nationalty->title }}</span>
+                                <h2 class="price">{{ $nationalty->price }} <small>ريال</small></h2>
                                 <span class="label">تكلفة الاستقدام شامل الضريبة</span>
                             </div>
                             <div class="info-side">
@@ -543,22 +532,22 @@
                                     <div class="info-card">
                                         <i class="fas fa-clock"></i>
                                         <h5>المدة المتوقعة</h5>
-                                        <p>60 يوم</p>
+                                        <p>{{ $nationalty->period }}</p>
                                     </div>
                                     <div class="info-card">
                                         <i class="fas fa-hand-holding-usd"></i>
                                         <h5>الراتب يبدء من</h5>
-                                        <p>{{$nationalty->monthly_salary}} ريال</p>
+                                        <p>{{ $nationalty->salary_with_no_experience }} ريال</p>
                                     </div>
                                     <div class="info-card">
                                         <i class="fas fa-user-check"></i>
-                                        <h5>الخبرة</h5>
-                                        <p>لم يسبق لها العمل</p>
+                                        <h5>راتب الخبرة</h5>
+                                        <p>{{ $nationalty->salary_with_experience }}ريال</p>
                                     </div>
                                     <div class="info-card">
                                         <i class="fas fa-flag"></i>
-                                        <h5>دولة الاستقدام</h5>
-                                        <p>{{$nationalty->title}}</p>
+                                        <h5> تكلفة التاجير</h5>
+                                        <p>{{ $nationalty->rental_cost }}ريال</p>
                                     </div>
                                 </div>
                                 <a href="{{ route('site.all-workers.index') }}?nationality_id={{ $nationalty->id }}"
@@ -574,7 +563,7 @@
                             <div class="flag-side">
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
-                                    <img src="{{asset('site')}}/assets/images/countries/2.png" alt="علم كينيا"
+                                    <img src="{{ asset('site') }}/assets/images/countries/2.png" alt="علم كينيا"
                                          class="flag-img"/>
                                     <span class="pulse-ring"></span>
                                 </div>
@@ -622,7 +611,7 @@
                             <div class="flag-side">
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
-                                    <img src="{{asset('site')}}/assets/images/countries/3.jpeg" alt="علم بنغلادش"
+                                    <img src="{{ asset('site') }}/assets/images/countries/3.jpeg" alt="علم بنغلادش"
                                          class="flag-img"/>
                                     <span class="pulse-ring"></span>
                                 </div>
@@ -670,7 +659,7 @@
                             <div class="flag-side">
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
-                                    <img src="{{asset('site')}}/assets/images/countries/4.jpeg" alt="علم الفلبين"
+                                    <img src="{{ asset('site') }}/assets/images/countries/4.jpeg" alt="علم الفلبين"
                                          class="flag-img"/>
                                     <span class="pulse-ring"></span>
                                 </div>
@@ -718,7 +707,7 @@
                             <div class="flag-side">
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
-                                    <img src="{{asset('site')}}/assets/images/countries/5.png" alt="علم الهند"
+                                    <img src="{{ asset('site') }}/assets/images/countries/5.png" alt="علم الهند"
                                          class="flag-img"/>
                                     <span class="pulse-ring"></span>
                                 </div>
@@ -766,7 +755,7 @@
                             <div class="flag-side">
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
-                                    <img src="{{asset('site')}}/assets/images/countries/6.png" alt="علم موريتانيا"
+                                    <img src="{{ asset('site') }}/assets/images/countries/6.png" alt="علم موريتانيا"
                                          class="flag-img"/>
                                     <span class="pulse-ring"></span>
                                 </div>
@@ -814,7 +803,7 @@
                             <div class="flag-side">
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
-                                    <img src="{{asset('site')}}/assets/images/countries/7.png" alt="علم جيبوتي"
+                                    <img src="{{ asset('site') }}/assets/images/countries/7.png" alt="علم جيبوتي"
                                          class="flag-img"/>
                                     <span class="pulse-ring"></span>
                                 </div>
@@ -1041,19 +1030,15 @@
                         <p>
                             {{ $step->title }}
                         </p>
-                        {{--                        @if ($key == 0)--}}
+                        {{--                        @if ($key == 0) --}}
                         {{--                           --}}
-                        {{--                        @endif--}}
+                        {{--                        @endif --}}
                     </div>
                     <div class="images" style="position: absolute ;bottom: 0 ; right: 0">
-                        <img src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in"
-                             data-aos-delay="200">
-                        <img src="{{ asset('site') }}/assets/images/visa.webp" data-aos="zoom-in"
-                             data-aos-delay="300">
-                        <img src="{{ asset('site') }}/assets/images/mada.webp" data-aos="zoom-in"
-                             data-aos-delay="400">
-                        <img src="{{ asset('site') }}/assets/images/tabby.png" data-aos="zoom-in"
-                             data-aos-delay="400">
+                        <img src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in" data-aos-delay="200">
+                        <img src="{{ asset('site') }}/assets/images/visa.webp" data-aos="zoom-in" data-aos-delay="300">
+                        <img src="{{ asset('site') }}/assets/images/mada.webp" data-aos="zoom-in" data-aos-delay="400">
+                        <img src="{{ asset('site') }}/assets/images/tabby.png" data-aos="zoom-in" data-aos-delay="400">
                         <img src="{{ asset('site') }}/assets/images/tamara.webp" data-aos="zoom-in"
                              data-aos-delay="400">
                     </div>
@@ -1110,12 +1095,15 @@
                         </div>
                         <p>نضمن لك العمالة لمدة 3 شهور</p>
                     </div>
-
                 @endforelse
             </div>
         </div>
         <div class="images">
+            <<<<<<< HEAD
             {{--             style="position: absolute ;bottom: 0 ; right: 0 ;width: 100px ;height: 100px; display: flex; object-fit:cover;">--}}
+            =======
+            {{--             style="position: absolute ;bottom: 0 ; right: 0 ;width: 100px ;height: 100px; display: flex; object-fit:cover;"> --}}
+            >>>>>>> dae1519009abba60dea66936be4098dc7ffd2be8
             <div>
                 <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in"
                      data-aos-delay="200">
@@ -1128,8 +1116,7 @@
                 <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/tabby.png" data-aos="zoom-in"
                      data-aos-delay="400">
                 <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/tamara.webp"
-                     data-aos="zoom-in"
-                     data-aos-delay="400">
+                     data-aos="zoom-in" data-aos-delay="400">
             </div>
         </div>
     </section>
@@ -1260,8 +1247,7 @@
             </h2>
 
             <div class="video-wrapper" data-aos="zoom-in" data-aos-duration="1000">
-                <iframe src="{{ __('ingaz.video_link') }}" title="{{ __('ingaz.video_description') }}"
-                        frameborder="0"
+                <iframe src="{{ __('ingaz.video_link') }}" title="{{ __('ingaz.video_description') }}" frameborder="0"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                         referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
             </div>

@@ -299,7 +299,7 @@ class MaidController extends Controller
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_DELETE)) {
-                        $menuItems .= '<li><div class="dropdown-item p-0">' . deleteButton(route($this->mainRoute . ".destroy", $row->id)) . '</div></li>';
+                        $menuItems .= '<li><div class="dropdown-item" style="padding: 4px 16px !important;">' . deleteButton(route($this->mainRoute . ".destroy", $row->id)) . '</div></li>';
                     }
 
                     return '<div class="dropdown actions-dropdown">

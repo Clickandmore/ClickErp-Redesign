@@ -1784,5 +1784,10 @@
     'description_2' => 'Second Description',
     'file_workers_rights' => 'Employer rights and duties',
     'file_employee_rights' => 'Rights and duties of domestic workers',
-
+    'service_type'=> 'Service Type',
+    'recruitment'=> 'Recruitment',
+    'labor_hire'=> 'Labor Hire',
+    'immediate_delivery'=> 'Immediate Delivery',
+    'order_deleted_successfully'=> 'Order deleted successfully',
+    'responsible_updated'=> 'The responsible employee has been updated successfully',
 );
