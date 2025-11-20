@@ -250,9 +250,9 @@
                         <label for="TextInput" class="form-label">
                             {{helperTrans("ingaz.id_number")}}
                         </label>
-                        <input type="text" name="id_number" id="id_number" class="form-control" maxlength="10"
-                               pattern="\d{10}" required value="{{$obj->id_number}}">
-                        <small class="text-muted">يجب أن يتكون رقم الهوية من 10 أرقام</small>
+                        <input type="text" name="id_number" id="id_number" class="form-control" maxlength="30"
+                               required value="{{$obj->id_number}}">
+                        <small class="text-muted">يمكن إدخال أرقام أو حروف أو شرطة (-) بحد أقصى 30 خانة</small>
                     </div>
 
                     <div class="col-4">
@@ -348,13 +348,11 @@
                                         <label class="form-check-label" for="{{ $key }}">{{ $label }}</label>
                                     </div>
 
-                                    <div class="lang-extra mt-2"
-                                         style="{{ in_array($key,$langs) ? '' : 'display:none;' }}">
-                                        <input type="number" min="0" max="100"
-                                               class="form-control"
-                                               placeholder="النسبة %"
-                                               name="percentage[{{ $key }}]"
-                                               value="{{ $percentages[$key] ?? '' }}">
+                                    <div class="lang-extra mt-2 {{ in_array($key, $langs) ? '' : 'd-none' }}">
+                                        @if (in_array($key, $langs))
+                                            <input type="number" min="0" max="100" class="form-control" placeholder="النسبة %"
+                                                name="percentage[{{ $key }}]" value="{{ $percentages[$key] ?? '' }}">
+                                        @endif
                                     </div>
                                 </div>
 
@@ -858,8 +856,8 @@
             // التحقق من رقم الهوية
             $('#id_number').on('input', function () {
                 var idNumber = $(this).val();
-                // إزالة أي حروف غير رقمية
-                idNumber = idNumber.replace(/[^0-9]/g, '');
+                // السماح فقط بالأحرف والأرقام والشرطة
+                idNumber = idNumber.replace(/[^0-9a-zA-Z-]/g, '');
                 $(this).val(idNumber);
             });
 
@@ -996,9 +994,10 @@
 
                 // التحقق من رقم الهوية فقط إذا لم يكن نوع السيرة "استقدام" أو "إستلام فورى" أو "ايجار عمالة" أو "تأجير"
                 if (selectedType !== 'استقدام' && selectedType !== 'إستلام فورى' && selectedType !== 'ايجار عمالة' && selectedType !== 'تأجير') {
-                    var idNumber = $('#id_number').val();
-                    if (!idNumber || idNumber.length !== 10 || !/^\d{10}$/.test(idNumber)) {
-                        errors.push('يجب أن يتكون رقم الهوية من 10 أرقام');
+                    var idNumber = $('#id_number').val().trim();
+                    var idPattern = /^[0-9a-zA-Z-]{5,30}$/;
+                    if (!idNumber || !idPattern.test(idNumber)) {
+                        errors.push('يجب إدخال رقم هوية صالح (5-30 خانة من الأرقام أو الحروف أو الشرطة)');
                         isValid = false;
                     }
                 }
@@ -1209,14 +1208,16 @@
                 const $wrapper = $(this).closest('.form-check').siblings('.lang-extra');
                 const val = $(this).val();
                 if ($(this).is(':checked')) {
-                    $wrapper.html(
-                        `<input type="number" class="form-control mt-2"
+                    $wrapper
+                        .removeClass('d-none')
+                        .html(
+                            `<input type="number" class="form-control mt-2"
                 name="percentage[${val}]"
                 placeholder="{{ __("ingaz.Percentage") }}"
                 min="0" max="100" />`
-                    );
+                        );
                 } else {
-                    $wrapper.empty();
+                    $wrapper.addClass('d-none').empty();
                 }
             });
         });

@@ -44,6 +44,9 @@ class ContactController extends Controller
                 ->editColumn('email', function ($rows) {
                     return getEmailWithTag($rows->email);
                 })
+                ->editColumn('created_at', function ($rows) {
+                    return optional($rows->created_at)->format('Y-m-d H:i');
+                })
                 ->addColumn('actions', function ($row) {
                     $deleteButton = '';
                     if (@AdminGuardHasPerm(\App\PermKeys::CONTACT_DELETE)) {

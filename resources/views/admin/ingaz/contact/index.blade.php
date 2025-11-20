@@ -18,6 +18,7 @@
                 <th>{{helperTrans("ingaz.subject")}}</th>
                 <th>{{helperTrans("ingaz.message")}}</th>
                 <th>{{helperTrans("web.is_contacted")}}</th>
+                <th>{{ helperTrans('ingaz.created_at') }}</th>
                 <th>{{helperTrans("ingaz.actions")}}</th>
             </tr>
             </thead>
@@ -41,6 +42,7 @@
                 {"data": "subject", orderable: true, searchable: true},
                 {"data": "message", orderable: true, searchable: true},
                 {"data": "is_contacted", orderable: true, searchable: true},
+                {"data": "created_at", orderable: true, searchable: true},
                 {"data": "actions", orderable: false, searchable: false}
             ];
             showDataTable("{{route("contact.index")}}", columns);
