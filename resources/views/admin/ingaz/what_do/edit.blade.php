@@ -74,7 +74,7 @@
                     <td class="text-center">{{ $loop->iteration }}</td>
                     @foreach (config('translatable.locales') as $locale)
                         <td>
-                            <input type="text" name="titles[{{ $key }}][{{ $locale }}][title]"
+                            <input type="text" name="titles[{{ $key }}][{{ $locale }}][title]" data-validation="required"
                                    value="{{ $item->translate($locale)->title }}" class="form-control index-plus">
                         </td>
                     @endforeach

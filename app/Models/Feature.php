@@ -8,15 +8,16 @@ use Illuminate\Database\Eloquent\Model;
 class Feature extends Model
 {
     use Translatable;
- 
+
     protected $fillable = [
         'image'
     ];
 
     public $translatedAttributes = [
         'title',
+        'description',
     ];
 
 
-     
+
 }

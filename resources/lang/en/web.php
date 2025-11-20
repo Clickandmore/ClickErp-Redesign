@@ -323,6 +323,8 @@ return [
     'view_my_orders' => 'View my orders',
     'resend_code' => 'Resend Code',
     'fast_news' => 'Fast News',
+    'our_serivces' => 'Our  Services',
+
     'what_do' => 'What Do',
     'is_contacted' => 'Is Contacted',
     'confirm_contacted' => 'Confirm Contacted',

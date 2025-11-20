@@ -57,7 +57,7 @@
             <td></td>
             @foreach (config('translatable.locales') as $locale)
                 <td>
-                    <input type="text" name="titles[0][{{ $locale }}][title]" class="form-control index-plus">
+                    <input type="text" name="titles[0][{{ $locale }}][title]" class="form-control index-plus" data-validation="required">
                 </td>
             @endforeach
             <td>
