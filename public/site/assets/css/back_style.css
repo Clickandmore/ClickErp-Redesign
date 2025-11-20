@@ -115,7 +115,7 @@
 
     .rentingWorkers .cv {
         box-shadow: none;
-        background: #edf4fa;
+        /* background: #edf4fa; */
     }
 
     .rentingWorkers .accept {
