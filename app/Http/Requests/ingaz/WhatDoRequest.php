@@ -31,7 +31,9 @@ class WhatDoRequest extends MainRequest
             'description:en' => 'string',
             'icon' => 'string',
             'type' => 'string',
-            'titles' => 'array',
+            'titles' => 'required|array',
+            'titles.*' => 'array',
+            'titles.*.*.title' => 'required|string|max:255',
             'image' => [$this->isMethod('post') ? 'nullable' : ''],
         ];
 

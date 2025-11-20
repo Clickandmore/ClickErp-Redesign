@@ -6,10 +6,11 @@ namespace App\Models;
 
 class FeatureTranslation extends Model
 {
- 
+
     protected $fillable = [
         'title',
+        'description',
      ];
 
-     
+
 }

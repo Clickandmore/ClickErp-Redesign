@@ -336,78 +336,88 @@
                 <i class="fa-solid fa-briefcase" style="font-weight: bold;">
                     {{ __('web.our_services') }}
                 </i>
-
             </div>
-            <h2 class="section-title">خدمات شركه بلاتينيوم</h2>
-            <p> خدماتنا مرخصه من وزاره الموارد البشريه والتنميه الاجتماعية لضمان راحتك وراحه اسرتك</p>
+            <h2 class="section-title">{{isset($whatDoSetting) ? $whatDoSetting->title : 'خدمات شركه بلاتينيوم'}}</h2>
+            <p>{{isset($whatDoSetting) ? $whatDoSetting->description : ' خدماتنا مرخصه من وزاره الموارد البشريه والتنميه الاجتماعية لضمان راحتك وراحه اسرتك'}}</p>
         </div>
-        {{--        <div class="expertise"> --}}
-        {{--            @if (isset($settings) && isset($settings->experience_image)) --}}
-        {{--                <img src="{{showFile($settings->experience_image)}}" alt="خبرة اكثر من 20 سنه"/> --}}
-        {{--            @else --}}
-        {{--                <img src="{{asset('site')}}/assets/images/experience.jpg" alt="خبرة اكثر من 20 سنه"/> --}}
-        {{--            @endif --}}
-        {{--        </div> --}}
         <div class="services-container">
-            <a href="{{ route('site.all-workers.index') }}?type=estqdam">
-                <div class="service-card green">
-                    <div class="icon green">
-                        <i class="fa-solid fa-user-check"></i>
+            @php
+                $colors = ['green', 'blue', 'red', 'orange', 'purple', 'teal'];
+            @endphp
+            @forelse($whatDos as $whatDo)
+                @php
+                    $color = $colors[array_rand($colors)];
+                @endphp
+                <a href="{{route('site.all-workers.index')}}?type={{$whatDo->type}}">
+                    <div class="service-card {{ $color }}">
+                        <div class="icon {{ $color }}">
+                            <i class="{{$whatDo->icon}}"></i>
+                        </div>
+                        <h4>{{$whatDo->title}}</h4>
+                        <p>
+                            {{$whatDo->description}}
+                        </p>
+                        <ul>
+                            @foreach($whatDo->items as $item)
+                                <li>{{$item->title}}</li>
+                            @endforeach
+                        </ul>
                     </div>
-                    <h4>الاستقدام</h4>
-                    <p>
-                        خدمة استقدام العمالة المنزلية والمهنية من الخارج للعمل داخل
-                        المملكة.
-                    </p>
-                    <ul>
-                        <li>سهولة الاستقدام</li>
-                        <li>الجودة</li>
-                        <li>نظام تتبع دقيق</li>
-                    </ul>
-                </div>
-            </a>
-            <a href="{{ route('site.all-workers.index') }}?type=egar">
-                <div class="service-card purple">
-                    <div class="icon purple">
-                        <i class="fa-solid fa-clock"></i>
+                </a>
+            @empty
+                <a href="{{ route('site.all-workers.index') }}?type=estqdam">
+                    <div class="service-card green">
+                        <div class="icon green">
+                            <i class="fa-solid fa-user-check"></i>
+                        </div>
+                        <h4>الاستقدام</h4>
+                        <p>
+                            خدمة استقدام العمالة المنزلية والمهنية من الخارج للعمل داخل
+                            المملكة.
+                        </p>
+                        <ul>
+                            <li>سهولة الاستقدام</li>
+                            <li>الجودة</li>
+                            <li>نظام تتبع دقيق</li>
+                        </ul>
                     </div>
-                    <h4>تأجير العمالة الشهري</h4>
-                    <p>خدمة تأجير العمالة للشهر الواحد مع ضمان مرونة وجودة.</p>
-                    <ul>
-                        <li>مرونة عالية</li>
-                        <li>جودة مضمونة</li>
-                        <li>تسليم سريع</li>
-                    </ul>
-                </div>
-            </a>
-            <a href="{{ route('site.all-workers.index') }}?type=transfer">
-                <div class="service-card blue">
-                    <div class="icon blue">
-                        <i class="fa-solid fa-truck-fast"></i>
+                </a>
+                <a href="{{ route('site.all-workers.index') }}?type=egar">
+                    <div class="service-card purple">
+                        <div class="icon purple">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                        <h4>تأجير العمالة الشهري</h4>
+                        <p>خدمة تأجير العمالة للشهر الواحد مع ضمان مرونة وجودة.</p>
+                        <ul>
+                            <li>مرونة عالية</li>
+                            <li>جودة مضمونة</li>
+                            <li>تسليم سريع</li>
+                        </ul>
                     </div>
-                    <h4>النقل الفوري للعمالة</h4>
-                    <p>خدمة نقل العمالة لمشاريعك بسرعة وكفاءة عالية.</p>
-                    <ul>
-                        <li>النقل السريع</li>
-                        <li>التسليم الفوري</li>
-                        <li>الجودة</li>
-                    </ul>
-                </div>
-            </a>
-            <a href="{{ route('site.all-workers.index') }}?type=transfer">
-                <div class="service-card orange">
-                    <div class="icon orange">
-                        <i class="fa-solid fa-stopwatch"></i>
+                </a>
+                <a href="{{ route('site.all-workers.index') }}?type=transfer">
+                    <div class="service-card blue">
+                        <div class="icon blue">
+                            <i class="fa-solid fa-truck-fast"></i>
+                        </div>
+                        <h4>النقل الفوري للعمالة</h4>
+                        <p>خدمة نقل العمالة لمشاريعك بسرعة وكفاءة عالية.</p>
+                        <ul>
+                            <li>النقل السريع</li>
+                            <li>التسليم الفوري</li>
+                            <li>الجودة</li>
+                        </ul>
                     </div>
-                    <h4>التسليم الفوري للعمالة</h4>
-                    <p>استلم فوري لعمالتك لتلبية احتياجاتك الفورية بسرعة وجودة.</p>
-                    <ul>
-                        <li>التسليم السريع</li>
-                        <li>جودة العمالة</li>
-                        <li>سهولة الإجراءات</li>
-                    </ul>
-                </div>
-            </a>
+                </a>
+                <a href="{{ route('site.all-workers.index') }}?type=transfer">
+                    <div class="service-card orange">
+                        <div class="icon orange">
+                            <i class="fa-solid fa-stopwatch"></i>
+                        </div>
+                    </div>
+                </a>
+            @endforelse
         </div>
         <!-- التحذير -->
         <div class="warning">
@@ -426,19 +436,36 @@
             <!-- About Content -->
             <div class="about-content">
                 <div class="about-text">
-                    <h2>
-                        {{ __('ingaz.about-us') }}
-                    </h2>
-                    <p>
-                        {{ __('ingaz.about_description') }}
-                    </p>
+                    @if(isset($abouts))
+                        <h2>
+                            {{ $abouts->title }}
+                        </h2>
+                    @else
+                        <h2>
+                            {{ __('ingaz.about-us') }}
+                        </h2>
+                    @endif
+                    @if(isset($abouts))
+                        <h2>
+                            {!! $abouts->description  !!}
+                        </h2>
+                    @else
+                        <p>
+                            {{ __('ingaz.about_description') }}
+                        </p>
+                    @endif
                 </div>
-
-                <div class="about-image">
-                    <img src="{{ asset('site/assets/images/about.webp') }}" alt="{{ __('ingaz.about_us') }}" />
-                </div>
+                @if(isset($abouts))
+                    <div class="about-image">
+                        <img src="{{ showFile($abouts->image) }}" alt="{{ __('ingaz.about_us') }}"/>
+                    </div>
+                @else
+                    <div class="about-image">
+                        <img src="{{ asset('site/assets/images/about.webp') }}" alt="{{ __('ingaz.about_us') }}"/>
+                    </div>
+                @endif
+                <!-- About Cards -->
             </div>
-            <!-- About Cards -->
             <div class="about-cards">
                 @forelse($features as $feature)
                     <div class="service">
@@ -491,7 +518,7 @@
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
                                     <img src="{{ showFile($nationalty->logo) }}" alt="{{ $nationalty->title }}"
-                                        class="flag-img" />
+                                         class="flag-img"/>
                                     <span class="pulse-ring"></span>
                                 </div>
                             </div>
@@ -524,7 +551,7 @@
                                     </div>
                                 </div>
                                 <a href="{{ route('site.all-workers.index') }}?nationality_id={{ $nationalty->id }}"
-                                    class="modern-btn">
+                                   class="modern-btn">
                                     تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
                                 </a>
                             </div>
@@ -537,7 +564,7 @@
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
                                     <img src="{{ asset('site') }}/assets/images/countries/2.png" alt="علم كينيا"
-                                        class="flag-img" />
+                                         class="flag-img"/>
                                     <span class="pulse-ring"></span>
                                 </div>
                             </div>
@@ -585,7 +612,7 @@
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
                                     <img src="{{ asset('site') }}/assets/images/countries/3.jpeg" alt="علم بنغلادش"
-                                        class="flag-img" />
+                                         class="flag-img"/>
                                     <span class="pulse-ring"></span>
                                 </div>
                             </div>
@@ -633,7 +660,7 @@
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
                                     <img src="{{ asset('site') }}/assets/images/countries/4.jpeg" alt="علم الفلبين"
-                                        class="flag-img" />
+                                         class="flag-img"/>
                                     <span class="pulse-ring"></span>
                                 </div>
                             </div>
@@ -681,7 +708,7 @@
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
                                     <img src="{{ asset('site') }}/assets/images/countries/5.png" alt="علم الهند"
-                                        class="flag-img" />
+                                         class="flag-img"/>
                                     <span class="pulse-ring"></span>
                                 </div>
                             </div>
@@ -729,7 +756,7 @@
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
                                     <img src="{{ asset('site') }}/assets/images/countries/6.png" alt="علم موريتانيا"
-                                        class="flag-img" />
+                                         class="flag-img"/>
                                     <span class="pulse-ring"></span>
                                 </div>
                             </div>
@@ -777,7 +804,7 @@
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
                                     <img src="{{ asset('site') }}/assets/images/countries/7.png" alt="علم جيبوتي"
-                                        class="flag-img" />
+                                         class="flag-img"/>
                                     <span class="pulse-ring"></span>
                                 </div>
                             </div>
@@ -834,7 +861,7 @@
                     @forelse($services as $service)
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                                style="background: url('{{ showFile($service->image) }}') no-repeat center/cover;">
+                               style="background: url('{{ showFile($service->image) }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-passport"></i>
                                 <h3 class="serviceTitle">{{ $service->title }}</h3>
                                 <h6 class="serviceP">
@@ -845,7 +872,7 @@
                     @empty
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                                style="background: url('{{ asset('site/assets/images/passport-bg.webp') }}') no-repeat center/cover;">
+                               style="background: url('{{ asset('site/assets/images/passport-bg.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-passport"></i>
                                 <h3 class="serviceTitle">إصدار التأشيرة</h3>
                                 <h6 class="serviceP">
@@ -855,7 +882,7 @@
                         </div>
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                                style="background: url('{{ asset('site/assets/images/files.webp') }}') no-repeat center/cover;">
+                               style="background: url('{{ asset('site/assets/images/files.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-users-gear"></i>
                                 <h3 class="serviceTitle">اختيار العمالة</h3>
                                 <h6 class="serviceP">
@@ -865,7 +892,7 @@
                         </div>
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                                style="background: url('{{ asset('site/assets/images/bg-plane.webp') }}') no-repeat center/cover;">
+                               style="background: url('{{ asset('site/assets/images/bg-plane.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-plane-arrival"></i>
                                 <h3 class="serviceTitle">وصول العمالة</h3>
                                 <h6 class="serviceP">
@@ -875,7 +902,7 @@
                         </div>
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                                style="background: url('{{ asset('site/assets/images/hands.webp') }}') no-repeat center/cover;">
+                               style="background: url('{{ asset('site/assets/images/hands.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-file-contract"></i>
                                 <h3 class="serviceTitle">تجديد عقد عاملة</h3>
                                 <h6 class="serviceP">
@@ -890,7 +917,7 @@
             </div>
             <div class="wide-card mt-4" data-aos="fade-up">
                 <a href="#" class="service d-flex flex-column justify-content-center"
-                    style="background: url('{{ asset('site/assets/images/f3.webp') }}') no-repeat center/cover;">
+                   style="background: url('{{ asset('site/assets/images/f3.webp') }}') no-repeat center/cover;">
                     <i class="fa-solid fa-users-gear"></i>
                     <h3 class="serviceTitle">طلب العمالة المهنية</h3>
                     <h6 class="serviceP">
@@ -1013,7 +1040,7 @@
                         <img src="{{ asset('site') }}/assets/images/mada.webp" data-aos="zoom-in" data-aos-delay="400">
                         <img src="{{ asset('site') }}/assets/images/tabby.png" data-aos="zoom-in" data-aos-delay="400">
                         <img src="{{ asset('site') }}/assets/images/tamara.webp" data-aos="zoom-in"
-                            data-aos-delay="400">
+                             data-aos-delay="400">
                     </div>
                 @empty
                     <div class="step" data-aos="fade-up" data-aos-delay="100">
@@ -1072,20 +1099,24 @@
             </div>
         </div>
         <div class="images">
+            <<<<<<< HEAD
+            {{--             style="position: absolute ;bottom: 0 ; right: 0 ;width: 100px ;height: 100px; display: flex; object-fit:cover;">--}}
+            =======
             {{--             style="position: absolute ;bottom: 0 ; right: 0 ;width: 100px ;height: 100px; display: flex; object-fit:cover;"> --}}
+            >>>>>>> dae1519009abba60dea66936be4098dc7ffd2be8
             <div>
                 <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in"
-                    data-aos-delay="200">
+                     data-aos-delay="200">
                 <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/visa.webp" data-aos="zoom-in"
-                    data-aos-delay="300">
+                     data-aos-delay="300">
                 <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/mada.webp" data-aos="zoom-in"
-                    data-aos-delay="400">
+                     data-aos-delay="400">
             </div>
             <div>
                 <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/tabby.png" data-aos="zoom-in"
-                    data-aos-delay="400">
+                     data-aos-delay="400">
                 <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/tamara.webp"
-                    data-aos="zoom-in" data-aos-delay="400">
+                     data-aos="zoom-in" data-aos-delay="400">
             </div>
         </div>
     </section>
@@ -1217,8 +1248,8 @@
 
             <div class="video-wrapper" data-aos="zoom-in" data-aos-duration="1000">
                 <iframe src="{{ __('ingaz.video_link') }}" title="{{ __('ingaz.video_description') }}" frameborder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
             </div>
         </div>
     </section>
@@ -1247,7 +1278,7 @@
                             <label class="form-label">
                                 <i class="fas fa-user me-2"></i> {{ __('ingaz.full name') }}*
                             </label>
-                            <input type="text" id="name" name="name" class="form-control" required />
+                            <input type="text" id="name" name="name" class="form-control" required/>
                             <div class="invalid-feedback"> {{ __('ingaz.this field is required') }}</div>
                             <div class="valid-feedback">{{ __('ingaz.good') }}</div>
                         </div>
@@ -1255,14 +1286,14 @@
                             <label class="form-label"><i class="fas fa-phone-alt me-2"></i> {{ __('ingaz.phone') }}*
                             </label>
                             <input type="tel" id="phone" name="phone" id="phoneNum" class="form-control"
-                                required />
+                                   required/>
                             <div class="invalid-feedback"> {{ __('ingaz.this field is required') }} </div>
                         </div>
                         <div class="col-md-6 p-2">
                             <label class="form-label">
                                 <i class="fa-solid fa-comment-lines me-2"></i> {{ __('ingaz.subject') }}
                             </label>
-                            <input type="text" id="subject" name="subject" class="form-control" />
+                            <input type="text" id="subject" name="subject" class="form-control"/>
                         </div>
                         <div class="col-md-12 p-2">
                             <label class="form-label">
@@ -1275,7 +1306,7 @@
                         {!! NoCaptcha::display() !!}
 
                         @error('g-recaptcha-response')
-                            <span class="text-danger">{{ $message }}</span>
+                        <span class="text-danger">{{ $message }}</span>
                         @enderror
 
                         <div class="col-md-12 text-center p-2">
@@ -1306,8 +1337,8 @@
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
                                 <img src="{{ showFile($client->image) ?? asset('site/assets/images/musand.svg') }}"
-                                    alt=""
-                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
+                                     alt=""
+                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
                             </div>
                         </div>
                     @empty
@@ -1315,20 +1346,21 @@
                             <div class="referenceLogo">
 
                                 <img src="{{ asset('site/assets/images/Ministry-of-Foreign-Affairs-01.svg') }}"
-                                    alt=""
-                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
+                                     alt=""
+                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
 
                             </div>
                         </div>
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
                                 <img src="{{ asset('site/assets/images/Ministry-of-Interior-01.svg') }}" alt=""
-                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
+                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
                             </div>
                         </div>
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img src="{{ asset('site/assets/images/Ministry-of-Labor-and-Social-Development.svg') }}"
+                                <img
+                                    src="{{ asset('site/assets/images/Ministry-of-Labor-and-Social-Development.svg') }}"
                                     alt=""
                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
 
@@ -1369,7 +1401,7 @@
             });
 
             // عند تحريك العلامة (Marker)
-            google.maps.event.addListener(marker, 'dragend', function(event) {
+            google.maps.event.addListener(marker, 'dragend', function (event) {
                 document.getElementById("latitude").value = event.latLng.lat();
                 document.getElementById("longitude").value = event.latLng.lng();
             });
@@ -1380,8 +1412,8 @@
     </script>
 
     <script>
-        $(document).ready(function() {
-            $('#contact-form').on('submit', function(e) {
+        $(document).ready(function () {
+            $('#contact-form').on('submit', function (e) {
                 e.preventDefault();
 
                 $.ajax({
@@ -1398,7 +1430,7 @@
                         'g-recaptcha-response': grecaptcha.getResponse()
 
                     },
-                    success: function(response) {
+                    success: function (response) {
 
                         $('#contact-form')[0].reset();
                         Swal.fire({
@@ -1407,11 +1439,11 @@
                             text: '{{ __('ingaz.success') }}',
                             confirmButtonText: '{{ __('ingaz.ok') }}'
                         });
-                        setTimeout(function() {
+                        setTimeout(function () {
                             location.reload();
                         }, 500);
                     },
-                    error: function(xhr) {
+                    error: function (xhr) {
                         console.error("خطأ في الطلب:", xhr);
                     }
                 });

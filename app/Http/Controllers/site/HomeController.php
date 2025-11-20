@@ -15,16 +15,17 @@ use App\Http\Actions\ingaz\SliderAction;
 use App\Http\Actions\ingaz\StatisticAction;
 use App\Http\Actions\ingaz\StepAction;
 use App\Http\Actions\ingaz\WhatDoAction;
+use App\Http\Actions\ingaz\WhatDoSettingAction;
 use App\Http\Controllers\Controller;
 use App\Models\Country;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
-    public function index(Request $request, SliderAction $sliderAction, NationalityAction $nationalityAction,WhatDoAction $whatDoAction,
-                          StatisticAction $statisticAction , ServiceAction $serviceAction , StepAction $stepAction ,
-                          ClientAction $clientAction , RequirementAction $requirement_action , AboutUsAction $about , FeatureAction $feature,
-                           )
+    public function index(Request         $request, SliderAction $sliderAction, WhatDoSettingAction $whatDoSettingAction, NationalityAction $nationalityAction, WhatDoAction $whatDoAction,
+                          StatisticAction $statisticAction, ServiceAction $serviceAction, StepAction $stepAction,
+                          ClientAction    $clientAction, RequirementAction $requirement_action, AboutUsAction $about, FeatureAction $feature,
+    )
     {
         $sliders = $sliderAction->get();
         $statics = $statisticAction->get();
@@ -32,16 +33,17 @@ class HomeController extends Controller
         $steps = $stepAction->get();
         $clients = $clientAction->get();
         $whatDos = $whatDoAction->get();
+        $whatDoSetting = $whatDoSettingAction->first();
         $about = $about->first();
         $features = $feature->get();
         $nationalities = method_exists($nationalityAction, 'getVisible')
             ? $nationalityAction->getVisible()
             : $nationalityAction->get();
         $requirments = $requirement_action->get();
-        $Visa = $requirments->where('type',RequirementEnum::VisaIssuance->value);
-        $Domestic = $requirments->where('type',RequirementEnum::RecruitDomestic->value);
+        $Visa = $requirments->where('type', RequirementEnum::VisaIssuance->value);
+        $Domestic = $requirments->where('type', RequirementEnum::RecruitDomestic->value);
 
-         return view('site.pages.home', get_defined_vars());
+        return view('site.pages.home', get_defined_vars());
     }
 
 }

@@ -10,4 +10,5 @@ class WhatDoTranslation extends Model
     use HasFactory;
 
     public $timestamps = false;
-    protected $fillable = ['title', 'description'];}
+    protected $fillable = ['title', 'description'];
+}
