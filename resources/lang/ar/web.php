@@ -41,7 +41,7 @@
     'login' => 'تسجيل الدخول',
     'important_links' => 'روابط مفيده',
     'services' => 'خدمات',
-    'our_services' => 'خدمتنا',
+    'our_services' => 'خدماتنا ',
     'profile' => 'حسابى',
     'my_account' => 'حسابي',
     'dashboard' => 'لوحة التحكم',
