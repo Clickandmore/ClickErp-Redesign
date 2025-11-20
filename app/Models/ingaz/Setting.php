@@ -42,7 +42,7 @@ class Setting extends Model
 //    }
 
     protected $fillable = ['logo_header', 'light_image', 'cover_image', 'there_are_offer', 'logo_footer', 'favicon', 'about_image', 'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin', 'youtube', 'whatsapp', 'email', 'phone', 'other_phone', 'map_link'
-        , 'qr_image', 'experience_image', 'second_qr_image'
+        , 'qr_image', 'experience_image', 'second_qr_image', 'tax_number', 'zatch_logo'
     ];
 
     public static function getValue($key, $default = null)

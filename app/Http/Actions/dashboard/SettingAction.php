@@ -28,6 +28,10 @@ class SettingAction extends MainAction
             $image = $data['qr_image'];
             $data['qr_image'] = uploadFile($image, $this->fileFolder, 1);
         }
+        if ($request->hasFile('zatch_logo')) {
+            $image = $data['zatch_logo'];
+            $data['zatch_logo'] = uploadFile($image, $this->fileFolder, 1);
+        }
         if ($request->hasFile('cover_image')) {
             $image = $data['cover_image'];
             $data['cover_image'] = uploadFile($image, $this->fileFolder, 1);
@@ -75,6 +79,11 @@ class SettingAction extends MainAction
             deleteFile($setting->qr_image);
             $image = $data['qr_image'];
             $data['qr_image'] = uploadFile($image, $this->fileFolder, 1);
+        }
+        if (isset($data['zatch_logo']) && $data['zatch_logo'] instanceof \Illuminate\Http\UploadedFile) {
+            deleteFile($setting->zatch_logo);
+            $image = $data['zatch_logo'];
+            $data['zatch_logo'] = uploadFile($image, $this->fileFolder, 1);
         }
         if (isset($data['cover_image']) && $data['cover_image'] instanceof \Illuminate\Http\UploadedFile) {
             deleteFile($setting->cover_image);

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\site;
 
+use App\Enums\ingaz\ContractStatusEnum;
+use App\Enums\ingaz\OrderEnum;
 use App\Enums\ingaz\RequirementEnum;
 use App\Enums\Office\OfficesStatusEnum;
 use App\Http\Actions\ingaz\AboutUsAction;
@@ -19,6 +21,7 @@ use App\Http\Actions\ingaz\WhatDoSettingAction;
 use App\Http\Controllers\Controller;
 use App\Models\Country;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class HomeController extends Controller
 {
@@ -42,6 +45,9 @@ class HomeController extends Controller
         $requirments = $requirement_action->get();
         $Visa = $requirments->where('type', RequirementEnum::VisaIssuance->value);
         $Domestic = $requirments->where('type', RequirementEnum::RecruitDomestic->value);
+        $counts['number_recruitment_requests'] = DB::table('recruitment_requests')->where('status', OrderEnum::Contracted->value)->count();
+        $counts['number_contracts_requests'] = DB::table('istiqdam_contracts')->where('status', ContractStatusEnum::ClientContracted->value)->count();
+        $counts['clients'] = DB::table('users')->count();
 
         return view('site.pages.home', get_defined_vars());
     }

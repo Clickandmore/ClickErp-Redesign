@@ -25,12 +25,23 @@
                 <p class="footer-desc">
                     بلاتينيوم للاستقدام يقدم خدمات استقدام العمالة المنزلية باحترافية وجودة مميزة.
                 </p>
+                @if(isset($settings))
 
-                <div class="tax-info">
-                    <img src="{{ asset('site/assets/images/zatca-logo.png') }}" alt="شعار هيئة الزكاة والضريبة والجمارك"
-                         class="tax-logo"/>
-                    <p class="tax-number">الرقم الضريبي: <span>314232024200003</span></p>
-                </div>
+                    <div class="tax-info">
+                        <img src="{{ showFile($settings->zatch_logo) }}"
+                             alt="شعار هيئة الزكاة والضريبة والجمارك"
+                             class="tax-logo"/>
+                        <p class="tax-number">الرقم الضريبي: <span>{{$settings->tax_number}}</span></p>
+                    </div>
+                @else
+
+                    <div class="tax-info">
+                        <img src="{{ asset('site/assets/images/zatca-logo.png') }}"
+                             alt="شعار هيئة الزكاة والضريبة والجمارك"
+                             class="tax-logo"/>
+                        <p class="tax-number">الرقم الضريبي: <span>314232024200003</span></p>
+                    </div>
+                @endif
 
             </div>
         @endif

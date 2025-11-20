@@ -51,7 +51,7 @@
             @endforeach
 
             <hr>
-            <div class="col-4">
+            <div class="col-3">
                 <label for="TextInput" class="form-label">البريد الالكتروني </label>
                 <fieldset class="form-icon-group right-icon position-relative">
                     <div class="form-icon position-absolute">
@@ -62,7 +62,7 @@
                 </fieldset>
             </div>
 
-            <div class="col-4">
+            <div class="col-3">
                 <label for="TextInput" class="form-label">رقم الهاتف </label>
 
                 <fieldset class="form-icon-group right-icon position-relative">
@@ -73,7 +73,7 @@
                 </fieldset>
             </div>
 
-            <div class="col-4">
+            <div class="col-3">
                 <label for="TextInput" class="form-label">رقم هاتف اخر </label>
                 <fieldset class="form-icon-group right-icon position-relative">
                     <div class="form-icon position-absolute">
@@ -81,6 +81,16 @@
                     </div>
                     <input type="text" name="other_phone" class="form-control"
                            value="{{ $settings->other_phone ?? '' }}">
+                </fieldset>
+            </div>
+            <div class="col-3">
+                <label for="TextInput" class="form-label">الرقم الضريبي </label>
+                <fieldset class="form-icon-group right-icon position-relative">
+                    <div class="form-icon position-absolute">
+                        <i class="fa fa-number"></i>
+                    </div>
+                    <input type="text" name="tax_number" class="form-control"
+                           value="{{ $settings->tax_number ?? '' }}">
                 </fieldset>
             </div>
 
@@ -332,7 +342,7 @@
             </div>
 
             <hr>
-            <div class="col-4">
+            <div class="col-3">
                 <div class="card">
                     <div class="card-body">
                         <h6>صورة QR </h6>
@@ -351,7 +361,7 @@
             {{--                    </div>--}}
             {{--                </div>--}}
             {{--            </div>--}}
-            <div class="col-4">
+            <div class="col-3">
                 <div class="card">
                     <div class="card-body">
                         <h6>صورة الخبره</h6>
@@ -360,12 +370,21 @@
                     </div>
                 </div>
             </div>
-            <div class="col-4">
+            <div class="col-3">
                 <div class="card">
                     <div class="card-body">
                         <h6>صورة غلاف صفحة السير الذاتية</h6>
                         <input type="file" data-default-file="{{ showFile($settings->cover_image) ?? '' }}"
                                name="cover_image" class="dropify">
+                    </div>
+                </div>
+            </div>
+            <div class="col-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h6>لوجو هيئية الزكاة</h6>
+                        <input type="file" data-default-file="{{ showFile($settings->zatch_logo) ?? '' }}"
+                               name="zatch_logo" class="dropify">
                     </div>
                 </div>
             </div>

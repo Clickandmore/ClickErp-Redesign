@@ -27,6 +27,8 @@ class SettingRequest extends MainRequest
             'second_qr_image' => 'nullable',
             'experience_image' => 'nullable',
             'qr_image' => 'nullable',
+            'zatch_logo' => 'nullable',
+            'tax_number' => 'nullable',
              'cover_image' => 'nullable',
             'logo_header' => 'nullable',
             'logo_footer' => 'nullable',
