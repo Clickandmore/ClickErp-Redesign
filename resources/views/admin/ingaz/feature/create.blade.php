@@ -15,6 +15,17 @@
         </div>
 
     @endforeach
+    @foreach (config('translatable.locales') as $locale)
+        <div class="col-6">
+            <label for="TextInput" class="form-label">
+                {{helperTrans("ingaz.description")}}
+                ({{helperTrans('ingaz.'.$locale)}})
+            </label>
+            <textarea type="text" name="description:{{ $locale }}" class="form-control"
+                      data-validation="required"></textarea>
+        </div>
+
+    @endforeach
 
 
     <div class="col-12 modal-footer">

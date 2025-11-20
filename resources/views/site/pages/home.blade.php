@@ -15,40 +15,46 @@
         display: flex;
         gap: 12px;
         flex-wrap: wrap;
-.section-header{
-    width: 100%;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    margin: 0 auto 20px;
-    .badge{
 
-        align-items: center;
-        gap: 8px;
-        background-color: var(--mainColor10);
-        color: var(--mainColor);
-        padding: 8px 18px;
-        font-size: 14px;
-        font-weight: 600;
-        margin: 10px 0;
-        border-radius: 30px;
-        i{
-            color: var(--mainColor);
-            font-size: 16px;
+        .section-header {
+            width: 100%;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            margin: 0 auto 20px;
+
+            .badge {
+
+                align-items: center;
+                gap: 8px;
+                background-color: var(--mainColor10);
+                color: var(--mainColor);
+                padding: 8px 18px;
+                font-size: 14px;
+                font-weight: 600;
+                margin: 10px 0;
+                border-radius: 30px;
+
+                i {
+                    color: var(--mainColor);
+                    font-size: 16px;
+                }
+            }
+
+            .section-title {
+                font-size: 22px;
+                font-weight: 700;
+                color: black;
+                margin-bottom: 10px;
+            }
+
+            p {
+                color: #727272;
+            }
         }
-    }
-    .section-title{
-        font-size: 22px;
-        font-weight: 700;
-        color: black;
-        margin-bottom: 10px;
-    }
-    p{
-        color: #727272;
-    }
-}
+
         .expertise {
             position: absolute;
             left: 50%;
@@ -88,9 +94,11 @@
             grid-template-columns: repeat(4, 1fr);
             gap: 20px;
             padding: 20px;
-a{
-    color: black;
-}
+
+            a {
+                color: black;
+            }
+
             @media (max-width: 992px) {
                 grid-template-columns: repeat(2, 1fr);
             }
@@ -326,80 +334,97 @@ a{
         <div class="section-header">
             <div class="badge">
                 <i class="fa-solid fa-briefcase">
-                    خدماتنا
+                    {{__("web.our_serivces")}}
                 </i>
-
             </div>
-            <h2 class="section-title">خدمات شركه بلاتينيوم</h2>
-            <p> خدماتنا مرخصه من وزاره الموارد البشريه والتنميه الاجتماعية لضمان راحتك وراحه اسرتك</p>
+            <h2 class="section-title">{{isset($whatDoSetting) ? $whatDoSetting->title : 'خدمات شركه بلاتينيوم'}}</h2>
+            <p>{{isset($whatDoSetting) ? $whatDoSetting->description : ' خدماتنا مرخصه من وزاره الموارد البشريه والتنميه الاجتماعية لضمان راحتك وراحه اسرتك'}}</p>
         </div>
-{{--        <div class="expertise">--}}
-{{--            @if(isset($settings) && isset($settings->experience_image))--}}
-{{--                <img src="{{showFile($settings->experience_image)}}" alt="خبرة اكثر من 20 سنه"/>--}}
-{{--            @else--}}
-{{--                <img src="{{asset('site')}}/assets/images/experience.jpg" alt="خبرة اكثر من 20 سنه"/>--}}
-{{--            @endif--}}
-{{--        </div>--}}
         <div class="services-container">
-            <a href="{{route('site.all-workers.index')}}?type=estqdam">
-                <div class="service-card green">
-                    <div class="icon green">
-                        <i class="fa-solid fa-user-check"></i>
+            @php
+                $colors = ['green', 'blue', 'red', 'orange', 'purple', 'teal'];
+            @endphp
+            @forelse($whatDos as $whatDo)
+                @php
+                    $color = $colors[array_rand($colors)];
+                @endphp
+                <a href="{{route('site.all-workers.index')}}?type={{$whatDo->type}}">
+                    <div class="service-card {{ $color }}">
+                        <div class="icon {{ $color }}">
+                            <i class="{{$whatDo->icon}}"></i>
+                        </div>
+                        <h4>{{$whatDo->title}}</h4>
+                        <p>
+                            {{$whatDo->description}}
+                        </p>
+                        <ul>
+                            @foreach($whatDo->items as $item)
+                                <li>{{$item->title}}</li>
+                            @endforeach
+                        </ul>
                     </div>
-                    <h4>الاستقدام</h4>
-                    <p>
-                        خدمة استقدام العمالة المنزلية والمهنية من الخارج للعمل داخل
-                        المملكة.
-                    </p>
-                    <ul>
-                        <li>سهولة الاستقدام</li>
-                        <li>الجودة</li>
-                        <li>نظام تتبع دقيق</li>
-                    </ul>
-                </div>
-            </a>
-            <a href="{{route('site.all-workers.index')}}?type=egar">
-                <div class="service-card purple">
-                    <div class="icon purple">
-                        <i class="fa-solid fa-clock"></i>
+                </a>
+            @empty
+                <a href="{{route('site.all-workers.index')}}?type=estqdam">
+                    <div class="service-card green">
+                        <div class="icon green">
+                            <i class="fa-solid fa-user-check"></i>
+                        </div>
+                        <h4>الاستقدام</h4>
+                        <p>
+                            خدمة استقدام العمالة المنزلية والمهنية من الخارج للعمل داخل
+                            المملكة.
+                        </p>
+                        <ul>
+                            <li>سهولة الاستقدام</li>
+                            <li>الجودة</li>
+                            <li>نظام تتبع دقيق</li>
+                        </ul>
                     </div>
-                    <h4>تأجير العمالة الشهري</h4>
-                    <p>خدمة تأجير العمالة للشهر الواحد مع ضمان مرونة وجودة.</p>
-                    <ul>
-                        <li>مرونة عالية</li>
-                        <li>جودة مضمونة</li>
-                        <li>تسليم سريع</li>
-                    </ul>
-                </div>
-            </a>
-            <a href="{{route('site.all-workers.index')}}?type=transfer">
-                <div class="service-card blue">
-                    <div class="icon blue">
-                        <i class="fa-solid fa-truck-fast"></i>
+                </a>
+                <a href="{{route('site.all-workers.index')}}?type=egar">
+                    <div class="service-card purple">
+                        <div class="icon purple">
+                            <i class="fa-solid fa-clock"></i>
+                        </div>
+                        <h4>تأجير العمالة الشهري</h4>
+                        <p>خدمة تأجير العمالة للشهر الواحد مع ضمان مرونة وجودة.</p>
+                        <ul>
+                            <li>مرونة عالية</li>
+                            <li>جودة مضمونة</li>
+                            <li>تسليم سريع</li>
+                        </ul>
                     </div>
-                    <h4>النقل الفوري للعمالة</h4>
-                    <p>خدمة نقل العمالة لمشاريعك بسرعة وكفاءة عالية.</p>
-                    <ul>
-                        <li>النقل السريع</li>
-                        <li>التسليم الفوري</li>
-                        <li>الجودة</li>
-                    </ul>
-                </div>
-            </a>
-            <a href="{{route('site.all-workers.index')}}?type=transfer">
-                <div class="service-card orange">
-                    <div class="icon orange">
-                        <i class="fa-solid fa-stopwatch"></i>
+                </a>
+                <a href="{{route('site.all-workers.index')}}?type=transfer">
+                    <div class="service-card blue">
+                        <div class="icon blue">
+                            <i class="fa-solid fa-truck-fast"></i>
+                        </div>
+                        <h4>النقل الفوري للعمالة</h4>
+                        <p>خدمة نقل العمالة لمشاريعك بسرعة وكفاءة عالية.</p>
+                        <ul>
+                            <li>النقل السريع</li>
+                            <li>التسليم الفوري</li>
+                            <li>الجودة</li>
+                        </ul>
                     </div>
-                    <h4>التسليم الفوري للعمالة</h4>
-                    <p>استلم فوري لعمالتك لتلبية احتياجاتك الفورية بسرعة وجودة.</p>
-                    <ul>
-                        <li>التسليم السريع</li>
-                        <li>جودة العمالة</li>
-                        <li>سهولة الإجراءات</li>
-                    </ul>
-                </div>
-            </a>
+                </a>
+                <a href="{{route('site.all-workers.index')}}?type=transfer">
+                    <div class="service-card orange">
+                        <div class="icon orange">
+                            <i class="fa-solid fa-stopwatch"></i>
+                        </div>
+                        <h4>التسليم الفوري للعمالة</h4>
+                        <p>استلم فوري لعمالتك لتلبية احتياجاتك الفورية بسرعة وجودة.</p>
+                        <ul>
+                            <li>التسليم السريع</li>
+                            <li>جودة العمالة</li>
+                            <li>سهولة الإجراءات</li>
+                        </ul>
+                    </div>
+                </a>
+            @endforelse
         </div>
         <!-- التحذير -->
         <div class="warning">
@@ -418,17 +443,35 @@ a{
             <!-- About Content -->
             <div class="about-content">
                 <div class="about-text">
-                    <h2>
-                        {{ __('ingaz.about-us') }}
-                    </h2>
-                    <p>
-                        {{ __('ingaz.about_description') }}
-                    </p>
-                </div>
+                    @if(isset($abouts))
+                        <h2>
+                            {{ $abouts->title }}
+                        </h2>
+                    @else
+                        <h2>
+                            {{ __('ingaz.about-us') }}
+                        </h2>
+                    @endif
+                    @if(isset($abouts))
+                        <h2>
+                            {!! $abouts->description  !!}
+                        </h2>
+                    @else
+                        <p>
+                            {{ __('ingaz.about_description') }}
+                        </p>
+                    @endif
 
-                <div class="about-image">
-                    <img src="{{ asset('site/assets/images/about.webp') }}" alt="{{ __('ingaz.about_us') }}"/>
                 </div>
+                @if(isset($abouts))
+                    <div class="about-image">
+                        <img src="{{ showFile($abouts->image) }}" alt="{{ __('ingaz.about_us') }}"/>
+                    </div>
+                @else
+                    <div class="about-image">
+                        <img src="{{ asset('site/assets/images/about.webp') }}" alt="{{ __('ingaz.about_us') }}"/>
+                    </div>
+                @endif
             </div>
             <!-- About Cards -->
             <div class="about-cards">
@@ -1072,7 +1115,7 @@ a{
             </div>
         </div>
         <div class="images">
-{{--             style="position: absolute ;bottom: 0 ; right: 0 ;width: 100px ;height: 100px; display: flex; object-fit:cover;">--}}
+            {{--             style="position: absolute ;bottom: 0 ; right: 0 ;width: 100px ;height: 100px; display: flex; object-fit:cover;">--}}
             <div>
                 <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in"
                      data-aos-delay="200">

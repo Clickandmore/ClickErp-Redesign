@@ -8,6 +8,8 @@
     @if($data['count'] < 4)
         {!! addButton(route("what-do.create") ,helperTrans("ingaz.what_do")) !!}
     @endif
+    {!! addButton(route("what-do-setting.create") ,helperTrans("ingaz.settings")) !!}
+
     <p></p>
     <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
         <thead>
@@ -16,7 +18,6 @@
             <th>{{helperTrans("ingaz.image")}}</th>
             <th>{{helperTrans("ingaz.title")}}</th>
             <th>{{helperTrans("ingaz.actions")}}</th>
-
         </tr>
         </thead>
         <tbody>

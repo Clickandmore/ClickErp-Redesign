@@ -31,6 +31,8 @@ class FeatureRequest extends MainRequest
         $rules = [
             'title:ar' => 'string',
             'title:en' => 'string',
+            'description:ar' => 'string',
+            'description:en' => 'string',
             'image' => [$this->isMethod('post') ? 'nullable' : ''],
         ];
 

@@ -9,6 +9,7 @@ use App\Http\Controllers\ingaz\SelectWorkerSettingsController;
 use App\Http\Controllers\ingaz\ShelterPlaces;
 use App\Http\Controllers\ingaz\TestimonialController;
 use App\Http\Controllers\ingaz\WhatDoController;
+use App\Http\Controllers\ingaz\WhatDoSettingController;
 use App\Http\Controllers\ingaz\WhyUsController;
 use App\Http\Controllers\office\OfficeController;
 use Illuminate\Support\Facades\Route;
@@ -99,6 +100,7 @@ Route::group(
             Route::resource('fast-news', FastNewController::class);
             Route::resource('features', FeatureController::class);
             Route::resource('what-do', WhatDoController::class);
+            Route::resource('what-do-setting', WhatDoSettingController::class);
             Route::resource('renew-contracts', RenewContractController::class);
             Route::resource('professional_application', ProfessionalApplicationController::class);
             Route::resource('recruitment_requests', RecruitmentRequestController::class);

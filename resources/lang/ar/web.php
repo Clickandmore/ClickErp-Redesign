@@ -319,6 +319,7 @@
     'none' => 'لا يوجد',
     'weight' => 'الوزن',
     'info' => 'البيانات',
+    'our_serivces' => 'خدماتنا',
     'not muslim' => 'غير مسلم',
     'not_muslim' => 'غير مسلم',
     'muslim' => 'مسلم',
