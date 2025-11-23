@@ -105,9 +105,28 @@
         padding: 4px 16px !important;
     }
 
-    table.orders-table tr:first-child .dropdown-menu.dropdown-menu-end {
+    table.custom-table tr:first-child .dropdown-menu.dropdown-menu-end {
         top: -60px !important;
         right: -90px !important;
+    }
+
+    table.rental-table .dropdown-menu.dropdown-menu-end {
+        right: -64% !important;
+        left: unset !important;
+        transform: translateX(50%) !important;
+        top: 0 !important;
+        position: absolute !important;
+        z-index: 99999 !important;
+        min-width: 150px !important;
+    }
+    table.rental-table tr:first-child .dropdown-menu.dropdown-menu-end {
+        right: -90px !important;
+        left: unset !important;
+        transform: translateX(50%) !important;
+        top: -20px !important;
+        position: absolute !important;
+        z-index: 99999 !important;
+        min-width: 150px !important;
     }
 
     tr.child.active-dropdown-row {

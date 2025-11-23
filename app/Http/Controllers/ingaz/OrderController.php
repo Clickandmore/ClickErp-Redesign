@@ -421,7 +421,7 @@ class OrderController extends Controller
         } else {
             $order->delete();
         }
-        return jsonSuccess(['success' => true], __("index.order_deleted_successfully"), 200);
+        return jsonSuccess(['success' => true], __("ingaz.order_deleted_successfully"), 200);
     }
 
     public function restore($id)

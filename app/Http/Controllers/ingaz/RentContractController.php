@@ -564,8 +564,7 @@ class RentContractController extends Controller
 
             DB::commit();
 
-            return redirect()->route($this->mainRoute . '.index')
-                           ->with('success', 'تم تحديث عقد التأجير بنجاح');
+            return redirect()->route($this->mainRoute . '.index')->with('success', 'تم تحديث عقد التأجير بنجاح');
 
         } catch (\Exception $e) {
             DB::rollBack();

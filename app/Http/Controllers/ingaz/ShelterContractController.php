@@ -8,6 +8,7 @@ use App\Http\Requests\ingaz\ShelterContactStore;
 use App\Models\Contract;
 use App\Models\ContractInfo;
 use App\Models\ingaz\JobType;
+use App\Models\ingaz\MaidJob;
 use Illuminate\Support\Facades\DB;
 use App\Models\RecruitmentOffices;
 use App\Models\ingaz\Nationality;
@@ -16,6 +17,7 @@ use App\NewPermKeys;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
+use App\Models\ingaz\Maid;
 
 class ShelterContractController extends Controller
 {
@@ -389,9 +391,12 @@ class ShelterContractController extends Controller
             'status' => ContractStatusEnum::Shelter->value,
         ]);
 
+        // dd($contract->maid->id);
+        // $maid = Maid::find($contract->maid->id);
+
         $this->syncMaidInstantDisplay($contract, $displayOnSite);
 
-        return jsonSuccess();
+        return jsonSuccess(['success' => true], __('ingaz.shelter_contract_stored'), 200);
     }
 
 
@@ -481,7 +486,7 @@ class ShelterContractController extends Controller
 
         $this->syncMaidInstantDisplay($contract, $displayOnSite);
 
-        return jsonSuccess(['message' => 'تم تحديث العقد داخل الإيواء بنجاح']);
+        return jsonSuccess(['success' => true], __('ingaz.shelter_contract_updated'), 200);
     }
 
 
@@ -521,23 +526,32 @@ class ShelterContractController extends Controller
             return;
         }
 
+        $maidJob = $maid->job_types()->latest('id')->first();
+        if (!$maidJob) {
+            return;
+        }
+
         if ($displayOnSite) {
-            $maid->jobTypes()->syncWithoutDetaching([$instantJobTypeId]);
+            $this->updateMaidJobType($maidJob, $instantJobTypeId);
             $maid->is_show = true;
             $maid->status = 'in_accommodation';
             $maid->available = 0;
-            $maid->save();
         } else {
-            $maid->jobTypes()->detach($instantJobTypeId);
-            if ($maid->jobTypes()->count() === 0) {
+            $fallbackJobTypeId = $this->getContractJobTypeId($contract);
+            if ($fallbackJobTypeId) {
+                $this->updateMaidJobType($maidJob, $fallbackJobTypeId);
+            }
+
+            if (!$fallbackJobTypeId) {
                 $maid->is_show = false;
                 if ($maid->status === 'in_accommodation') {
                     $maid->status = 'available';
                 }
                 $maid->available = 1;
             }
-            $maid->save();
         }
+
+        $maid->save();
     }
 
     private function getInstantJobTypeId(): ?int
@@ -560,6 +574,20 @@ class ShelterContractController extends Controller
         $this->instantJobTypeId = $jobType?->id;
 
         return $this->instantJobTypeId;
+    }
+
+    private function getContractJobTypeId(Contract $contract): ?int
+    {
+        return optional($contract->order)->job_type_id;
+    }
+
+    private function updateMaidJobType(MaidJob $maidJob, int $jobTypeId): void
+    {
+        if ($maidJob->job_type_id === $jobTypeId) {
+            return;
+        }
+
+        $maidJob->update(['job_type_id' => $jobTypeId]);
     }
 
     /**

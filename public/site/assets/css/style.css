@@ -6606,10 +6606,13 @@ main .cvPage .sub .dis {
 main .cvPage .special-img {
     background-color: var(--mainColor20);
     border-bottom: none;
+    overflow: hidden;
 }
 
 main .cvPage .special-img img {
-    padding: 10px;
+    padding: 5px;
+    width: 100%;
+    height: auto;
 }
 
 main .cvPage .bar-code {
@@ -6663,7 +6666,7 @@ main .cvPage .imageCol .mainInfo {
     flex-direction: column;
     text-align: center;
     gap: 12px;
-    padding: 92px 24px 24px;
+    padding: 92px 12px 24px;
 }
 
 main .cvPage .imageCol .image {

@@ -1,5 +1,6 @@
 <div class="workers-list" id="workers-list">
     <div class="row">
+        {{-- @dd($maids[1]->job_types) --}}
         @forelse ($maids as $maid)
             @php
                 $jobType = $maid->jobTypes->first();

@@ -1790,4 +1790,6 @@
     'immediate_delivery'=> 'Immediate Delivery',
     'order_deleted_successfully'=> 'Order deleted successfully',
     'responsible_updated'=> 'The responsible employee has been updated successfully',
+    'shelter_contract_stored'=> ' Shelter contract has been stored successfully',
+    'shelter_contract_updated'=> ' Shelter contract has been updated successfully',
 );
