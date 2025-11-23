@@ -240,14 +240,24 @@ class SponsorshipTransferController extends Controller
                     }
 
                     // تأكيد النقل (فقط إذا كان في فترة التجربة)
-                    if ($transfer->status == 'trial') {
+                    // if ($transfer->status == 'trial') {
+                    //     $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="confirm-transfer" data-id="' . $transfer->id . '" data-text="تأكيد نقل الكفالة">
+                    //                     <i class="fas fa-check-circle"></i> تأكيد النقل
+                    //                 </a></li>';
+                    // }
+                    if ($transfer->status == 'trial_started') {
                         $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="confirm-transfer" data-id="' . $transfer->id . '" data-text="تأكيد نقل الكفالة">
                                         <i class="fas fa-check-circle"></i> تأكيد النقل
                                     </a></li>';
                     }
 
                     // إلغاء النقل (فقط إذا كان في فترة التجربة)
-                    if ($transfer->status == 'trial') {
+                    // if ($transfer->status == 'trial') {
+                    //     $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="cancel-transfer" data-id="' . $transfer->id . '" data-text="إلغاء النقل وإعادة العقد إلى الإيواء">
+                    //                     <i class="fas fa-times-circle"></i> إلغاء النقل
+                    //                 </a></li>';
+                    // }
+                    if ($transfer->status == 'trial_started') {
                         $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="cancel-transfer" data-id="' . $transfer->id . '" data-text="إلغاء النقل وإعادة العقد إلى الإيواء">
                                         <i class="fas fa-times-circle"></i> إلغاء النقل
                                     </a></li>';
@@ -799,7 +809,13 @@ class SponsorshipTransferController extends Controller
         try {
             $transfer = SponsorshipTransfer::findOrFail($id);
 
-            if ($transfer->status !== 'trial') {
+            // if ($transfer->status !== 'trial') {
+            //     return response()->json([
+            //         'success' => false,
+            //         'message' => 'لا يمكن تأكيد النقل لهذا الطلب'
+            //     ], 400);
+            // }
+            if ($transfer->status !== 'trial_started') {
                 return response()->json([
                     'success' => false,
                     'message' => 'لا يمكن تأكيد النقل لهذا الطلب'
@@ -841,7 +857,13 @@ class SponsorshipTransferController extends Controller
         try {
             $transfer = SponsorshipTransfer::findOrFail($id);
 
-            if ($transfer->status !== 'trial') {
+            // if ($transfer->status !== 'trial') {
+            //     return response()->json([
+            //         'success' => false,
+            //         'message' => 'لا يمكن إلغاء النقل لهذا الطلب'
+            //     ], 400);
+            // }
+            if ($transfer->status !== 'trial_started') {
                 return response()->json([
                     'success' => false,
                     'message' => 'لا يمكن إلغاء النقل لهذا الطلب'

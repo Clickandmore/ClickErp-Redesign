@@ -526,32 +526,23 @@ class ShelterContractController extends Controller
             return;
         }
 
-        $maidJob = $maid->job_types()->latest('id')->first();
-        if (!$maidJob) {
-            return;
-        }
-
         if ($displayOnSite) {
-            $this->updateMaidJobType($maidJob, $instantJobTypeId);
+            $maid->jobTypes()->syncWithoutDetaching([$instantJobTypeId]);
             $maid->is_show = true;
             $maid->status = 'in_accommodation';
             $maid->available = 0;
+            $maid->save();
         } else {
-            $fallbackJobTypeId = $this->getContractJobTypeId($contract);
-            if ($fallbackJobTypeId) {
-                $this->updateMaidJobType($maidJob, $fallbackJobTypeId);
-            }
-
-            if (!$fallbackJobTypeId) {
+            $maid->jobTypes()->detach($instantJobTypeId);
+            if ($maid->jobTypes()->count() === 0) {
                 $maid->is_show = false;
                 if ($maid->status === 'in_accommodation') {
                     $maid->status = 'available';
                 }
                 $maid->available = 1;
             }
+            $maid->save();
         }
-
-        $maid->save();
     }
 
     private function getInstantJobTypeId(): ?int
@@ -576,19 +567,6 @@ class ShelterContractController extends Controller
         return $this->instantJobTypeId;
     }
 
-    private function getContractJobTypeId(Contract $contract): ?int
-    {
-        return optional($contract->order)->job_type_id;
-    }
-
-    private function updateMaidJobType(MaidJob $maidJob, int $jobTypeId): void
-    {
-        if ($maidJob->job_type_id === $jobTypeId) {
-            return;
-        }
-
-        $maidJob->update(['job_type_id' => $jobTypeId]);
-    }
 
     /**
      * Get shelter places
