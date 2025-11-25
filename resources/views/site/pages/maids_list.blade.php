@@ -1,8 +1,16 @@
 <div class="workers-list" id="workers-list">
     <div class="row">
+        {{-- @dd($maids[1]->job_types) --}}
+        {{-- @dd($maids) --}}
         @forelse ($maids as $maid)
             @php
-                $jobType = $maid->jobTypes->first();
+                $currentType = request('type') ?? 'all';
+                $typeToJobTypeId = [
+                    'estqdam' => 1,
+                    'egar' => 2,
+                    'transfer' => 3,
+                ];
+                $targetJobTypeId = $typeToJobTypeId[$currentType] ?? null;
                 $todayDate = now()->toDateString();
                 $offerStarts = optional($maid->offer_starts_at)->format('Y-m-d');
                 $offerExpires = optional($maid->offer_expires_at)->format('Y-m-d');
@@ -20,7 +28,11 @@
                 $cv_code = $maid->cv_code ? $maid->cv_code : null;
             @endphp
             <!-- كارد مشترك (ايجار + نقل خدمات) -->
-            @if ($jobType && $jobType->id == 1)
+            @foreach ($maid->jobTypes as $jobType)
+                @if ($currentType !== 'all' && $targetJobTypeId && $jobType->id !== $targetJobTypeId)
+                    @continue
+                @endif
+                @if ($jobType->id == 1)
                 <div class="col-12 col-md-6 p-2 mb-5" data-type="estqdam">
                     <a href="{{ route('site.all-workers.show', $maid->id) }}" class="worker-box-link">
                         <div class="worker-box">
@@ -136,7 +148,7 @@
                         </div>
                     </a>
                 </div>
-            @elseif ($jobType && $jobType->id == 2)
+                @elseif ($jobType->id == 2)
                 <!-- كارد خاص بالإيجار -->
                 <div class="col-12 col-md-6 p-2 mb-5" data-type="egar">
                     <a href="{{ route('site.packages.show', $maid->id) }}" class="worker-box-link">
@@ -222,7 +234,7 @@
                         </div>
                     </a>
                 </div>
-            @elseif ($jobType && $jobType->id == 3)
+                @elseif ($jobType->id == 3)
                 <!-- كارد خاص بالنقل -->
                 <div class="col-12 col-md-6 p-2 mb-5" data-type="transfer">
                     <a href="{{ route('site.immediate-recipts.show', $maid->id) }}" class="worker-box-link">
@@ -314,6 +326,7 @@
                     </a>
                 </div>
             @endif
+            @endforeach
         @empty
             <div class="card text-center border-0 shadow-sm p-4 mt-3" style="background: #f8f9fa;">
                 <div class="card-body">

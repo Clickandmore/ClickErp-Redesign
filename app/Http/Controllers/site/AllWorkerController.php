@@ -12,6 +12,7 @@ class AllWorkerController extends Controller
 {
     public function index(Request $request,MaidAction $maidAction, JobTitleAction $jobTitleAction, NationalityAction $nationalityAction)
     {
+    // dd(request()->all());
         if($request->ajax()){
 
             $maids = $maidAction->paginate($request);

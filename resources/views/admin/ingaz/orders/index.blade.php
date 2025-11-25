@@ -288,7 +288,7 @@
                             </div> --}}
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table id="dataTableObject" class="table table-hover align-middle orders-table"
+                            <table id="dataTableObject" class="table table-hover align-middle custom-table"
                                 style="width:100%">
                                 <thead>
                                     <tr>

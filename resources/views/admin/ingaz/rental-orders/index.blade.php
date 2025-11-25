@@ -124,14 +124,14 @@
 
                 <!-- Data Table -->
                 <div class="card shadow">
-                    <div class="card-header bg-primary text-white">
+                    {{-- <div class="card-header bg-primary text-white">
                         <h5 class="card-title mb-0">
                             <i class="fa fa-list"></i> قائمة طلبات الإيجار
                         </h5>
-                    </div>
+                    </div> --}}
                     <div class="card-body">
 
-                        <table id="dataTableObject" class="table table-hover align-middle mb-0" style="width:100%">
+                        <table id="dataTableObject" class="table table-hover align-middle rental-table" style="width:100%">
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -380,19 +380,22 @@
                                 _token: '{{ csrf_token() }}'
                             },
                             success: function(response) {
-                                if (response.success) {
+                                if (response.data.success) {
                                     dataTable.ajax.reload();
-                                    toastr.success(
-                                        '{{ helperTrans('ingaz.order_deleted') }}');
+                                    // toastr.success(
+                                    //     response.message || '{{ helperTrans('ingaz.order_deleted') }}');
+                                    Swal.fire('نجاح', response.message || '{{ helperTrans('ingaz.order_deleted') }}', 'success');
                                 } else {
-                                    toastr.error(
-                                        '{{ helperTrans('ingaz.delete_error') }}');
+                                    // toastr.error(
+                                    //     '{{ helperTrans('ingaz.delete_error') }}');
+                                    Swal.fire('خطأ', response.message || '{{ helperTrans('ingaz.delete_error') }}', 'error');
                                 }
                                 dataTable.ajax.reload();
                             },
                             error: function() {
-                                toastr.error(
-                                '{{ helperTrans('ingaz.delete_error') }}');
+                                // toastr.error(
+                                // '{{ helperTrans('ingaz.delete_error') }}');
+                                Swal.fire('خطأ', '{{ helperTrans('ingaz.delete_error') }}', 'error');
                             }
                         });
                     }
@@ -953,13 +956,13 @@
                             reason: reason
                         },
                         success: function(response) {
-                            if (response.success) {
+                            if (response.data.success) {
                                 $('#refuseOrderModal').modal('hide');
                                 $('.modal-backdrop').remove();
                                 $('body').removeClass('modal-open');
                                 dataTable.ajax.reload();
                                 toastr.success(
-                                    '{{ helperTrans('ingaz.order_updated') }}');
+                                    response.message || '{{ helperTrans('ingaz.order_updated') }}');
                             } else {
                                 toastr.error(
                                     '{{ helperTrans('ingaz.update_error') }}');
@@ -1175,25 +1178,25 @@
                 }
             });
 
-            $(document).on('click', '.refuse-order', function(e) {
-                e.preventDefault();
-                var orderId = $(this).data('id');
+            // $(document).on('click', '.refuse-order', function(e) {
+            //     e.preventDefault();
+            //     var orderId = $(this).data('id');
 
-                Swal.fire({
-                    title: 'تأكيد رفض الطلب',
-                    text: 'هل أنت متأكد من رفض هذا الطلب؟',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'نعم، ارفض الطلب',
-                    cancelButtonText: 'إلغاء'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        refuseOrder(orderId);
-                    }
-                });
-            });
+            //     Swal.fire({
+            //         title: 'تأكيد رفض الطلب',
+            //         text: 'هل أنت متأكد من رفض هذا الطلب؟',
+            //         icon: 'warning',
+            //         showCancelButton: true,
+            //         confirmButtonColor: '#d33',
+            //         cancelButtonColor: '#6c757d',
+            //         confirmButtonText: 'نعم، ارفض الطلب',
+            //         cancelButtonText: 'إلغاء'
+            //     }).then((result) => {
+            //         if (result.isConfirmed) {
+            //             refuseOrder(orderId);
+            //         }
+            //     });
+            // });
 
             // Handle approve order
             $(document).on('click', '.approve-order', function() {

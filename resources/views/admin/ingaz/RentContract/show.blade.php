@@ -127,6 +127,19 @@
             transition: all 0.3s ease;
         }
 
+        .btn-icon.btn-edit {
+            width: 50px !important;
+            height: 50px !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            color: white !important;
+            text-decoration: none !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+            transition: all 0.3s ease !important;
+        }
+
         .btn-icon:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
@@ -201,18 +214,18 @@
                     رقم العقد: {{ $contract->contract_number ?? $contract->id }}
                 </div>
                 <div class="contract-status">
-                    الحالة: {{ $contract->status}}
+                    الحالة: {{ $contract->status }}
                 </div>
             </div>
 
             <!-- Financial Summary -->
-            @if($contract->info)
+            @if ($contract->info)
                 <div class="financial-summary">
                     <div class="row">
                         <div class="col-md-3">
                             <div class="financial-item">
-                                <div
-                                    class="financial-amount">{{ number_format($contract->info->monthly_cost ?? 0, 2) }}</div>
+                                <div class="financial-amount">{{ number_format($contract->info->monthly_cost ?? 0, 2) }}
+                                </div>
                                 <div class="financial-label">التكلفة الشهرية (ريال)</div>
                             </div>
                         </div>
@@ -224,8 +237,8 @@
                         </div>
                         <div class="col-md-3">
                             <div class="financial-item">
-                                <div
-                                    class="financial-amount">{{ number_format($contract->info->contract_value ?? 0, 2) }}</div>
+                                <div class="financial-amount">{{ number_format($contract->info->contract_value ?? 0, 2) }}
+                                </div>
                                 <div class="financial-label">قيمة العقد الإجمالية (ريال)</div>
                             </div>
                         </div>
@@ -247,7 +260,7 @@
                             <i class="fas fa-user text-primary"></i>
                             معلومات العميل
                         </div>
-                        @if($contract->user)
+                        @if ($contract->user)
                             <div class="info-row">
                                 <span class="info-label">الاسم:</span>
                                 <span class="info-value highlight">{{ $contract->user->name }}</span>
@@ -312,10 +325,10 @@
                             <i class="fas fa-female text-warning"></i>
                             معلومات العاملة
                         </div>
-                        @if($contract->maid)
+                        @if ($contract->maid)
                             <div class="text-center mb-3">
-                                <img src="{{ $contract->maid->photo_url }}" alt="صورة العاملة"
-                                     class="img-thumbnail" style="width: 100px; height: 120px; object-fit: cover;">
+                                <img src="{{ $contract->maid->photo_url }}" alt="صورة العاملة" class="img-thumbnail"
+                                    style="width: 100px; height: 120px; object-fit: cover;">
                             </div>
                             <div class="info-row">
                                 <span class="info-label">الاسم:</span>
@@ -333,7 +346,7 @@
                             <div class="info-row">
                                 <span class="info-label">الديانة:</span>
                                 <span
-                                    class="info-value">{{ $contract->maid && $contract->maid->religion ? ($contract->maid->religion->title ?? $contract->maid->religion->first()->title ?? 'غير محدد') : 'غير محدد' }}</span>
+                                    class="info-value">{{ $contract->maid && $contract->maid->religion ? $contract->maid->religion->title ?? ($contract->maid->religion->first()->title ?? 'غير محدد') : 'غير محدد' }}</span>
                             </div>
                             <div class="info-row">
                                 <span class="info-label">العمر:</span>
@@ -359,7 +372,7 @@
             </div>
 
             <!-- معلومات المسوق -->
-            @if($contract->marketer)
+            @if ($contract->marketer)
                 <div class="row">
                     <div class="col-md-6 mb-4">
                         <div class="info-card">
@@ -385,7 +398,7 @@
             @endif
 
             <!-- معلومات العقد -->
-            @if($contract->info)
+            @if ($contract->info)
                 <div class="row">
                     <div class="col-12 mb-4">
                         <div class="info-card contract-info">
@@ -402,38 +415,48 @@
                                     </div>
                                     <div class="info-row">
                                         <span class="info-label">ساعات العمل يومياً:</span>
-                                        <span
-                                            class="info-value">{{ $contract->info->working_hours_per_day }} ساعة</span>
+                                        <span class="info-value">{{ $contract->info->working_hours_per_day }} ساعة</span>
                                     </div>
                                     <div class="info-row">
                                         <span class="info-label">أجرة الساعة:</span>
-                                        <span class="info-value">{{ number_format($contract->info->hourly_rate, 2) }} ريال</span>
+                                        <span class="info-value">{{ number_format($contract->info->hourly_rate, 2) }}
+                                            ريال</span>
                                     </div>
                                     <div class="info-row">
                                         <span class="info-label">الراتب الشهري:</span>
-                                        <span class="info-value">{{ number_format($contract->info->monthly_salary, 2) }} ريال</span>
+                                        <span class="info-value">{{ number_format($contract->info->monthly_salary, 2) }}
+                                            ريال</span>
                                     </div>
                                     <div class="info-row">
                                         <span class="info-label">مبلغ نقل الكفالة:</span>
-                                        <span class="info-value">{{ number_format($contract->info->sponsorship_transfer_amount, 2) }} ريال</span>
+                                        <span
+                                            class="info-value">{{ number_format($contract->info->sponsorship_transfer_amount, 2) }}
+                                            ريال</span>
                                     </div>
                                     <div class="info-row">
                                         <span class="info-label">الراتب بعد نقل الكفالة:</span>
-                                        <span class="info-value">{{ number_format($contract->info->salary_after_sponsorship, 2) }} ريال</span>
+                                        <span
+                                            class="info-value">{{ number_format($contract->info->salary_after_sponsorship, 2) }}
+                                            ريال</span>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="info-row">
                                         <span class="info-label">التكلفة الشهرية:</span>
-                                        <span class="info-value highlight">{{ number_format($contract->info->monthly_cost, 2) }} ريال</span>
+                                        <span
+                                            class="info-value highlight">{{ number_format($contract->info->monthly_cost, 2) }}
+                                            ريال</span>
                                     </div>
                                     <div class="info-row">
                                         <span class="info-label">مدة العقد:</span>
-                                        <span class="info-value">{{ $contract->info->contract_duration_months }} شهر ({{ $contract->info->contract_duration_days }} يوم)</span>
+                                        <span class="info-value">{{ $contract->info->contract_duration_months }} شهر
+                                            ({{ $contract->info->contract_duration_days }} يوم)</span>
                                     </div>
                                     <div class="info-row">
                                         <span class="info-label">قيمة العقد الإجمالية:</span>
-                                        <span class="info-value highlight">{{ number_format($contract->info->contract_value, 2) }} ريال</span>
+                                        <span
+                                            class="info-value highlight">{{ number_format($contract->info->contract_value, 2) }}
+                                            ريال</span>
                                     </div>
                                     <div class="info-row">
                                         <span class="info-label">الإنجاز من:</span>
@@ -451,7 +474,7 @@
                                     </div>
                                 </div>
                             </div>
-                            @if($contract->info->notes)
+                            @if ($contract->info->notes)
                                 <div class="mt-3">
                                     <strong>ملاحظات:</strong>
                                     <p class="mt-2 p-3 bg-light rounded">{{ $contract->info->notes }}</p>
@@ -482,14 +505,14 @@
                                 </div>
                             </div>
                             <div class="col-md-6">
-                                @if($contract->warranty_start_date)
+                                @if ($contract->warranty_start_date)
                                     <div class="info-row">
                                         <span class="info-label">بداية الضمان:</span>
                                         <span
                                             class="info-value">{{ $contract->warranty_start_date->format('Y-m-d') }}</span>
                                     </div>
                                 @endif
-                                @if($contract->warranty_end_date)
+                                @if ($contract->warranty_end_date)
                                     <div class="info-row">
                                         <span class="info-label">انتهاء الضمان:</span>
                                         <span
@@ -509,14 +532,14 @@
                 <i class="fas fa-print"></i>
             </button>
 
-            @if(@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_EDIT))
+            @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_EDIT))
                 <a href="{{ route('RentContract.edit', $contract->id) }}" class="btn-icon btn-edit" title="تعديل العقد">
                     <i class="fas fa-edit"></i>
                 </a>
             @endif
 
-            @if($contract->status !== 'completed' && @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL))
-                <button type="button" class="btn-icon btn-complete" onclick="completeContract()" title="إنهاء العقد">
+            @if ($contract->status !== 'completed' && @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL))
+                <button type="button" class="btn-icon btn-complete" title="إنهاء العقد">
                     <i class="fas fa-check"></i>
                 </button>
             @endif
@@ -525,105 +548,117 @@
                 <i class="fas fa-arrow-right"></i>
             </a>
 
-            @if(@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_DELETE))
-                <button type="button" class="btn-icon btn-delete" onclick="deleteContract()" title="حذف العقد">
+            @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_DELETE))
+                <button type="button" class="btn-icon btn-delete" title="حذف العقد">
                     <i class="fas fa-trash"></i>
                 </button>
             @endif
         </div>
-
     @else
         @include('components.no_permissions')
     @endif
 
 @endsection
 
-@section('script')
+@section('js')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        function printContract() {
-            window.print();
-        }
+        $(document).ready(function() {
+            function printContract() {
+                window.print();
+            }
 
-        function completeContract() {
-            Swal.fire({
-                title: 'تأكيد إنهاء العقد',
-                text: 'هل أنت متأكد من إنهاء هذا العقد؟',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#dc3545',
-                confirmButtonText: 'نعم، إنهاء العقد',
-                cancelButtonText: 'إلغاء'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: "{{ route('RentContract.complete', $contract->id) }}",
-                        method: 'POST',
-                        data: {
-                            _token: '{{ csrf_token() }}'
-                        },
-                        success: function (response) {
-                            if (response.success) {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'تم بنجاح',
-                                    text: response.message
-                                }).then(() => {
-                                    location.reload();
-                                });
-                            } else {
+            $(document).on('click', '.btn-print', function() {
+                console.log('print');
+                window.print();
+                
+            });
+
+            $(document).on('click', '.btn-complete', function() {
+                console.log('completeContract');
+                Swal.fire({
+                    title: 'تأكيد إنهاء العقد',
+                    text: 'هل أنت متأكد من إنهاء هذا العقد؟',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#dc3545',
+                    confirmButtonText: 'نعم، إنهاء العقد',
+                    cancelButtonText: 'إلغاء'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: "{{ route('RentContract.complete', $contract->id) }}",
+                            method: 'POST',
+                            data: {
+                                _token: '{{ csrf_token() }}'
+                            },
+                            success: function(response) {
+                                if (response.success) {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'تم بنجاح',
+                                        text: response.message
+                                    }).then(() => {
+                                        location.reload();
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'خطأ',
+                                        text: response.message
+                                    });
+                                }
+                            },
+                            error: function(xhr) {
                                 Swal.fire({
                                     icon: 'error',
                                     title: 'خطأ',
-                                    text: response.message
+                                    text: 'حدث خطأ أثناء إنهاء العقد'
                                 });
                             }
-                        },
-                        error: function (xhr) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'خطأ',
-                                text: 'حدث خطأ أثناء إنهاء العقد'
-                            });
-                        }
-                    });
-                }
+                        });
+                    }
+                });
+                
             });
-        }
 
-        function deleteContract() {
-            Swal.fire({
-                title: 'تأكيد الحذف',
-                text: 'هل أنت متأكد من حذف هذا العقد؟ لا يمكن التراجع عن هذا الإجراء.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'نعم، احذف العقد',
-                cancelButtonText: 'إلغاء'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    let form = $('<form>', {
-                        'method': 'POST',
-                        'action': "{{ route('RentContract.destroy', $contract->id) }}"
-                    });
-                    form.append($('<input>', {
-                        'type': 'hidden',
-                        'name': '_token',
-                        'value': '{{ csrf_token() }}'
-                    }));
-                    form.append($('<input>', {
-                        'type': 'hidden',
-                        'name': '_method',
-                        'value': 'DELETE'
-                    }));
-                    $('body').append(form);
-                    form.submit();
-                }
+            $(document).on('click', '.btn-delete', function() {
+                console.log('deleteContract');
+                Swal.fire({
+                    title: 'تأكيد الحذف',
+                    text: 'هل أنت متأكد من حذف هذا العقد؟ لا يمكن التراجع عن هذا الإجراء.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'نعم، احذف العقد',
+                    cancelButtonText: 'إلغاء'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let form = $('<form>', {
+                            'method': 'POST',
+                            'action': "{{ route('RentContract.destroy', $contract->id) }}"
+                        });
+                        form.append($('<input>', {
+                            'type': 'hidden',
+                            'name': '_token',
+                            'value': '{{ csrf_token() }}'
+                        }));
+                        form.append($('<input>', {
+                            'type': 'hidden',
+                            'name': '_method',
+                            'value': 'DELETE'
+                        }));
+                        $('body').append(form);
+                        form.submit();
+                    }
+                });
+                
             });
-        }
+
+        });
 
         // Helper functions for status text (these would be methods in the controller)
         @php
@@ -642,6 +677,6 @@
             ];
         @endphp
 
-// Add these as methods to the controller or pass them to the view
-</script>
+        // Add these as methods to the controller or pass them to the view
+    </script>
 @endsection

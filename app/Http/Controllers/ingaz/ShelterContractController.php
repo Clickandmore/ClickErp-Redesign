@@ -8,6 +8,7 @@ use App\Http\Requests\ingaz\ShelterContactStore;
 use App\Models\Contract;
 use App\Models\ContractInfo;
 use App\Models\ingaz\JobType;
+use App\Models\ingaz\MaidJob;
 use Illuminate\Support\Facades\DB;
 use App\Models\RecruitmentOffices;
 use App\Models\ingaz\Nationality;
@@ -16,6 +17,7 @@ use App\NewPermKeys;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
+use App\Models\ingaz\Maid;
 
 class ShelterContractController extends Controller
 {
@@ -389,9 +391,12 @@ class ShelterContractController extends Controller
             'status' => ContractStatusEnum::Shelter->value,
         ]);
 
+        // dd($contract->maid->id);
+        // $maid = Maid::find($contract->maid->id);
+
         $this->syncMaidInstantDisplay($contract, $displayOnSite);
 
-        return jsonSuccess();
+        return jsonSuccess(['success' => true], __('ingaz.shelter_contract_stored'), 200);
     }
 
 
@@ -481,7 +486,7 @@ class ShelterContractController extends Controller
 
         $this->syncMaidInstantDisplay($contract, $displayOnSite);
 
-        return jsonSuccess(['message' => 'تم تحديث العقد داخل الإيواء بنجاح']);
+        return jsonSuccess(['success' => true], __('ingaz.shelter_contract_updated'), 200);
     }
 
 
@@ -561,6 +566,7 @@ class ShelterContractController extends Controller
 
         return $this->instantJobTypeId;
     }
+
 
     /**
      * Get shelter places

@@ -54,6 +54,60 @@
         transform: scale(1.1);
     }
 
+    /*  */
+    .cv_details {
+        background: linear-gradient(to bottom, #ffffff, #fdfdfd);
+        border-radius: 25px;
+        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
+        padding-bottom: 15px;
+        text-align: center;
+        border: 1px solid rgba(0, 0, 0, 0.02);
+    }
+
+    .cv_details .p-5 {
+        background: radial-gradient(circle at center, #eef2f3 0%, #fff 70%);
+        padding: 2rem !important;
+        border-radius: 25px 25px 0 0;
+    }
+
+    .info ul {
+        list-style: none;
+        padding: 10px 15px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .info li {
+        background: #fff;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03);
+        border-radius: 15px;
+        padding: 10px 20px;
+        flex: 1 1 40%;
+        min-width: 120px;
+        border: 1px solid #f5f5f5;
+    }
+
+    .info li span {
+        display: block;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #999;
+        margin-bottom: 4px;
+    }
+
+    .info li h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        color: #4a4a4a;
+        font-weight: 800;
+    }
+
+    .llocation ul li{
+        margin-block: 8px;
+    }
 </style>
 @section('content')
     <section class="page_header">
@@ -99,8 +153,7 @@
                                     <img src="{{ asset('site') }}\assets/images/confirm.png" alt="confirm">
                                 </span>
                                 <span class="bs-stepper-label">
-                                    <span
-                                        class="bs-stepper-title">{{ helperTrans('web.confirm_rental_request') }}</span>
+                                    <span class="bs-stepper-title">{{ helperTrans('web.confirm_rental_request') }}</span>
                                     <span class="bs-stepper-subtitle">
                                         {{ helperTrans('web.confirm_and_pay') }}
                                     </span>
@@ -110,8 +163,7 @@
                     </div>
                     <div class="bs-stepper-content">
                         <form id="wizard-property-listing-form" method="post"
-                              action="{{route('site.eagar-request.store')}}"
-                              class="TypeTwoForm" onSubmit="return false">
+                            action="{{ route('site.eagar-request.store') }}" class="TypeTwoForm" onSubmit="return false">
                             @csrf
                             <input type="hidden" name="job_type_id" value="2">
                             <input type="hidden" name="payment_method" value="none">
@@ -124,9 +176,9 @@
                                 <div class="row">
                                     <div class="col-12 p-2 d-flex justify-content-end">
                                         <button class="addLoation addButton" data-bs-toggle="modal"
-                                                data-bs-target="#addLocation" model-name-id="addLocation"
-                                                model-route="{{ route('web.addresses.create') }}"
-                                                model-title="{{ helperTrans('web.add_address') }}">{{ helperTrans('web.add_address') }}
+                                            data-bs-target="#addLocation" model-name-id="addLocation"
+                                            model-route="{{ route('web.addresses.create') }}"
+                                            model-title="{{ helperTrans('web.add_address') }}">{{ helperTrans('web.add_address') }}
                                         </button>
                                     </div>
                                     <div class="addresses_div row">
@@ -134,9 +186,10 @@
                                             @foreach ($addresses as $address)
                                                 <div class="col-6">
                                                     <label for="l1{{ $address->id }}" class="location-card w-100"
-                                                           style="position: relative; display: block;">
+                                                        style="position: relative; display: block;"
+                                                        onclick="render_data('address',{{ $address->id }})">
                                                         <div class="location" id="address-{{ $address->id }}"
-                                                             style="position: relative; border: 1px solid #ddd; border-radius: 10px; padding: 15px; transition: 0.3s;">
+                                                            style="position: relative; border: 1px solid #ddd; border-radius: 10px; padding: 15px; transition: 0.3s;">
                                                             <h6>{{ $address->title }}</h6>
                                                             <ul style="list-style: none; padding: 0; margin: 0;">
                                                                 <li>
@@ -146,38 +199,36 @@
                                                                     <i class="fa-light fa-phone"></i> {{ $address->phone }}
                                                                 </li>
                                                                 <li>
-                                                                    <i class="fa-light fa-location-dot"></i> {{ $address->address }}
+                                                                    <i class="fa-light fa-location-dot"></i>
+                                                                    {{ $address->address }}
                                                                 </li>
                                                                 <!-- 🗑️ حذف-->
                                                                 <button type="button" class="delete-btn"
-                                                                        data-id="{{ $address->id }}"
-                                                                        title="{{ __('web.delete_address') }}">
+                                                                    data-id="{{ $address->id }}"
+                                                                    title="{{ __('web.delete_address') }}">
                                                                     <svg xmlns="http://www.w3.org/2000/svg"
-                                                                         viewBox="0 0 24 24" width="18" height="18"
-                                                                         fill="red">
+                                                                        viewBox="0 0 24 24" width="18" height="18"
+                                                                        fill="red">
                                                                         <path
-                                                                            d="M9 3v1H4v2h16V4h-5V3H9zm1 5v9h2V8h-2zm4 0v9h2V8h-2zM7 8v9h2V8H7z"/>
+                                                                            d="M9 3v1H4v2h16V4h-5V3H9zm1 5v9h2V8h-2zm4 0v9h2V8h-2zM7 8v9h2V8H7z" />
                                                                     </svg>
                                                                 </button>
                                                                 <!-- ✏️ تعديل -->
                                                                 <button type="button" class="edit-btn"
-                                                                        data-bs-toggle="modal"
-                                                                        data-bs-target="#addLocation"
-                                                                        model-route="{{ route('site.user-addresses.edit', $address->id) }}">
+                                                                    data-bs-toggle="modal" data-bs-target="#addLocation"
+                                                                    model-route="{{ route('site.user-addresses.edit', $address->id) }}">
                                                                     <svg xmlns="http://www.w3.org/2000/svg"
-                                                                         viewBox="0 0 24 24" width="18" height="18"
-                                                                         fill="#007bff">
+                                                                        viewBox="0 0 24 24" width="18" height="18"
+                                                                        fill="#007bff">
                                                                         <path
-                                                                            d="M3 17.25V21h3.75l11-11.03-3.75-3.75L3 17.25zm14.71-10.04a1.003 1.003 0 0 0 0-1.42l-1.5-1.5a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                                                                            d="M3 17.25V21h3.75l11-11.03-3.75-3.75L3 17.25zm14.71-10.04a1.003 1.003 0 0 0 0-1.42l-1.5-1.5a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
                                                                     </svg>
                                                                 </button>
                                                             </ul>
                                                         </div>
-                                                        <input type="radio"
-                                                               name="address_id"
-                                                               value="{{ $address->id }}"
-                                                               id="l1{{ $address->id }}"
-                                                               data-address="{{ $address->id }}">
+                                                        <input type="radio" name="address_id"
+                                                            value="{{ $address->id }}" id="l1{{ $address->id }}"
+                                                            data-address="{{ $address->id }}">
                                                     </label>
                                                 </div>
                                             @endforeach
@@ -187,18 +238,20 @@
                                         <div class="col-lg-6 col-12 p-2">
                                             <label for="manual_address" onclick="showManualAddressInput()">
                                                 <div class="location" id="manual-address-option"
-                                                     style="border: 2px dashed #007bff;">
+                                                    style="border: 2px dashed #007bff;">
                                                     <h6>
-                                                        <i class="fa-light fa-edit me-2"></i>{{__("ingaz.Enter the address manually")}}
+                                                        <i
+                                                            class="fa-light fa-edit me-2"></i>{{ __('ingaz.Enter the address manually') }}
                                                     </h6>
                                                     <ul>
                                                         <li>
-                                                            <i class="fa-light fa-info-circle"></i>{{__("ingaz.Enter the address yourself")}}
+                                                            <i
+                                                                class="fa-light fa-info-circle"></i>{{ __('ingaz.Enter the address yourself') }}
                                                         </li>
                                                     </ul>
                                                 </div>
                                                 <input type="radio" name="address_id" value="manual"
-                                                       id="manual_address">
+                                                    id="manual_address">
                                             </label>
                                         </div>
 
@@ -206,18 +259,20 @@
                                         <div class="col-lg-6 col-12 p-2">
                                             <label for="skip_address" onclick="skipAddress()">
                                                 <div class="location" id="skip-address-option"
-                                                     style="border: 2px dashed #6c757d;">
+                                                    style="border: 2px dashed #6c757d;">
                                                     <h6>
-                                                        <i class="fa-light fa-forward me-2"></i>{{__("ingaz.Skip Address")}}
+                                                        <i
+                                                            class="fa-light fa-forward me-2"></i>{{ __('ingaz.Skip Address') }}
                                                     </h6>
                                                     <ul>
                                                         <li>
-                                                            <i class="fa-light fa-info-circle"></i>ً{{__("ingaz.I will decide on the title laters")}}
+                                                            <i
+                                                                class="fa-light fa-info-circle"></i>ً{{ __('ingaz.I will decide on the title laters') }}
                                                         </li>
                                                     </ul>
                                                 </div>
                                                 <input type="radio" name="address_id" value="skip"
-                                                       id="skip_address">
+                                                    id="skip_address">
                                             </label>
                                         </div>
                                     </div>
@@ -239,7 +294,7 @@
                                     @forelse ($packages as $package)
                                         <div class="col-lg-6 col-12 p-2">
                                             <label for="p1{{ $package->id }}"
-                                                   onclick="render_data('package',{{ $package->id }})">
+                                                onclick="render_data('package',{{ $package->id }})">
                                                 <div class="location" id="package-{{ $package->id }}">
                                                     <h6>{{ helperTrans('web.package') }}
                                                         <span>{{ $package->days_count }}</span>
@@ -249,7 +304,8 @@
                                                         <li class="d-flex align-items-center justify-content-between">
                                                             <p>{{ helperTrans('web.package_price_before_discount') }}
                                                             </p>
-                                                            <span>{{ $package->original_price }} {{ helperTrans('ingaz.r_s') }}</span>
+                                                            <span>{{ $package->original_price }}
+                                                                {{ helperTrans('ingaz.r_s') }}</span>
                                                         </li>
                                                         <li class="d-flex align-items-center justify-content-between">
                                                             <p>{{ helperTrans('web.discount_value') }}</p>
@@ -259,22 +315,24 @@
                                                         <li class="d-flex align-items-center justify-content-between">
                                                             <p>{{ helperTrans('web.package_price_after_discount') }}
                                                             </p>
-                                                            <span>{{ $package->price_after_discount }} {{ helperTrans('ingaz.r_s') }}</span>
+                                                            <span>{{ $package->price_after_discount }}
+                                                                {{ helperTrans('ingaz.r_s') }}</span>
                                                         </li>
                                                         <li class="d-flex align-items-center justify-content-between">
                                                             <p>{{ helperTrans('web.total_with_tax') }}</p>
-                                                            <span>{{ $package->price_with_tax }} {{ helperTrans('ingaz.r_s') }}</span>
+                                                            <span>{{ $package->price_with_tax }}
+                                                                {{ helperTrans('ingaz.r_s') }}</span>
                                                         </li>
                                                     </ul>
 
                                                 </div>
                                                 <input type="radio" name="package_id" value="{{ $package->id }}"
-                                                       id="p1{{ $package->id }}">
+                                                    id="p1{{ $package->id }}">
                                             </label>
                                         </div>
                                     @empty
                                         <div class="col-lg-6 col-12 p-2">
-                                            {{__("ingaz.No_packages_to_show")}}
+                                            {{ __('ingaz.No_packages_to_show') }}
                                         </div>
                                     @endforelse
                                     <div class="col-12 d-flex justify-content-between mt-4 p-2">
@@ -283,18 +341,19 @@
                                         class="align-middle d-sm-inline-block d-none">{{helperTrans('web.previous')}}</span>
                                     --}}
                                         {{-- </button> --}}
-                                        @if(isset($package) )
+                                        @if (isset($package))
                                             <div class="d-flex p-2"
-                                                 style="border: 2px solid #92beff7c; border-radius: 2px">
-                                                <input class="" type="checkbox" name="deliver_maid" id="deliver_maid">
+                                                style="border: 2px solid #92beff7c; border-radius: 2px">
+                                                <input class="" type="checkbox" name="deliver_maid"
+                                                    id="deliver_maid">
                                                 <label class="" for="deliver_maid">
                                                     <span>{{ __('web.i_want_maid_delivered') }}</span>
                                                 </label>
                                             </div>
 
                                             <button class="btn btn-primary btn-next">
-                                            <span
-                                                class="align-middle d-sm-inline-block d-none me-sm-1">{{ helperTrans('web.next') }}</span>
+                                                <span
+                                                    class="align-middle d-sm-inline-block d-none me-sm-1">{{ helperTrans('web.next') }}</span>
                                             </button>
                                         @endif
                                     </div>
@@ -308,14 +367,13 @@
                                             <div class="cv_details">
                                                 <div class="p-5 justify-content-center align-content-center">
                                                     <a href="#"
-                                                       class="maidViewData justify-content-center align-content-center"
-                                                       data-id="{{ @$maid->id }}">
+                                                        class="maidViewData justify-content-center align-content-center"
+                                                        data-id="{{ @$maid->id }}">
                                                         @if ($maid->image != null)
                                                             <img src="{{ showFile($maid->image) }}" alt="cv1"
-                                                                 style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">
+                                                                style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">
                                                         @else
-                                                            <img
-                                                                src="{{ $maid->cv_file ? showFile($maid->cv_file) : showFile($maid->cv_file) }}"
+                                                            <img src="{{ $maid->cv_file ? showFile($maid->cv_file) : showFile($maid->cv_file) }}"
                                                                 alt="cv1"
                                                                 style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">
                                                         @endif
@@ -325,7 +383,7 @@
                                                     <ul>
                                                         <li>
                                                             <span>{{ helperTrans('web.nationality') }}</span>
-                                                            <h3>{{ $maid->nationality->title  ?? '-'}}</h3>
+                                                            <h3>{{ $maid->nationality->title ?? '-' }}</h3>
                                                         </li>
                                                         <li>
                                                             <span>{{ helperTrans('web.salary') }}</span>
@@ -337,7 +395,7 @@
                                                         </li>
                                                         <li>
                                                             <span>{{ helperTrans('web.religion') }} </span>
-                                                            <h3>{{ $maid->religion->title  ?? '-'}}</h3>
+                                                            <h3>{{ $maid->religion->title ?? '-' }}</h3>
                                                         </li>
                                                         {{-- <li>
                                                     <span>{{ helperTrans('web.recruitment_price') }}م</span>
@@ -365,7 +423,7 @@
                                     </div>
                                     <div class="col-12 p-2 d-flex gap-1">
                                         <input type="checkbox" class="check" required="required" name="accept"
-                                               id="acceptCheckbox">
+                                            id="acceptCheckbox">
                                         <label for="accept" class="accept">{{ helperTrans('web.approve') }}
                                             <a
                                                 href="{{ route('web.privacyPolicy') }}">{{ helperTrans('web.privacyPolicy') }}</a>
@@ -378,9 +436,8 @@
                                         </button>
                                         @auth
                                             <button disabled title="برجاء الموافقة على الشروط والأحكام" type="submit"
-                                                    class="btn btn-primary btn-next" id="myButtonsave"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#payModal">
+                                                class="btn btn-primary btn-next" id="myButtonsave" data-bs-toggle="modal"
+                                                data-bs-target="#payModal">
                                                 <span class="align-middle d-sm-inline-block d-none me-sm-1">
                                                     {{-- {{ helperTrans('web.payment_and_confirm') }} --}}
                                                     {{ helperTrans('web.confirmation') }}
@@ -389,7 +446,7 @@
                                         @endauth
                                         @guest
                                             <a href="#" class="btns save-order-and-login"
-                                               style="
+                                                style="
                                                                                         display: block;
                                                                                         text-align: center;
                                                                                         width: 100%;
@@ -415,7 +472,7 @@
         </section>
     </div>
     <div class="modal fade add_location" id="addLocation" tabindex="-1" aria-labelledby="addLocationLabel"
-         aria-hidden="true">
+        aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
@@ -423,7 +480,7 @@
                 </div>
                 <div class="modal-body">
                     <form class="form-wrap form-add-new-address" action="{{ route('site.user-addresses.store') }}"
-                          method="post">
+                        method="post">
                         @csrf
                         <div class="row">
                             <div class="col-lg-6 col-12 p-2">
@@ -433,7 +490,7 @@
                                         {{ helperTrans('web.address_name') }}
                                     </label>
                                     <input id="locationName" name="title" type="text"
-                                           placeholder="{{ helperTrans('web.house_example') }}">
+                                        placeholder="{{ helperTrans('web.house_example') }}">
                                 </div>
                             </div>
                             <div class="col-lg-6 col-12 p-2">
@@ -443,7 +500,7 @@
                                         {{ helperTrans('web.recipient_name') }}
                                     </label>
                                     <input id="reciever" name="name" type="text"
-                                           placeholder="{{ helperTrans('web.write_full_name') }}">
+                                        placeholder="{{ helperTrans('web.write_full_name') }}">
                                 </div>
                             </div>
                             <div class="col-lg-6 col-12 p-2">
@@ -463,7 +520,7 @@
                                         {{ helperTrans('web.address') }}
                                     </label>
                                     <input id="address" name="address" type="text"
-                                           placeholder="{{ helperTrans('web.example_city_name') }}">
+                                        placeholder="{{ helperTrans('web.example_city_name') }}">
                                 </div>
                             </div>
                             <div class="col-lg-12 p-2">
@@ -472,8 +529,7 @@
                                         <i class="fa-regular fa-comment-dots"></i>
                                         {{ helperTrans('web.additional_details') }}
                                     </label>
-                                    <textarea name="notes" id="details"
-                                              placeholder="{{ helperTrans('web.write_additional_details') }}"></textarea>
+                                    <textarea name="notes" id="details" placeholder="{{ helperTrans('web.write_additional_details') }}"></textarea>
                                 </div>
                             </div>
                             <div class="col-lg-12 p-2">
@@ -491,18 +547,16 @@
     </div>
 @endsection
 @section('scripts')
-    <script
-        src="https://code.jquery.com/jquery-3.7.1.min.js"
-        integrity="sha256-3gJwYpM9hJpO3VKF6FmCw3taOQGEEQWQl86p3Hc48P0="
-        crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+        integrity="sha256-3gJwYpM9hJpO3VKF6FmCw3taOQGEEQWQl86p3Hc48P0=" crossorigin="anonymous"></script>
     <script>
-        $(document).ready(function () {
+        $(document).ready(function() {
 
             console.log("ahmed")
             console.log($('#form-of-user-address'))
             console.log("ahmed")
 
-            $('.form-add-new-address').on('submit', function (e) {
+            $('.form-add-new-address').on('submit', function(e) {
                 e.preventDefault();
                 let formData = new FormData(this);
                 let url = $(this).attr('action');
@@ -512,7 +566,7 @@
                     data: formData,
                     processData: false,
                     contentType: false,
-                    success: function (response) {
+                    success: function(response) {
                         Toastify({
                             text: response.message,
                             duration: 4000,
@@ -526,7 +580,7 @@
                         $('#addLocation').modal('hide');
 
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         if (xhr.status === 422) {
                             let errors = xhr.responseJSON.errors;
                             let errorMessages = '';
@@ -542,8 +596,8 @@
                         } else {
                             Swal.fire({
                                 icon: 'error',
-                                title: '{{ __("ingaz.error") }}',
-                                text: '{{ __("ingaz.error_from_server") }}'
+                                title: '{{ __('ingaz.error') }}',
+                                text: '{{ __('ingaz.error_from_server') }}'
                             });
 
                         }
@@ -551,7 +605,7 @@
 
                 });
             })
-            $('#wizard-property-listing-form').on('submit', function (e) {
+            $('#wizard-property-listing-form').on('submit', function(e) {
                 e.preventDefault();
                 let formData = new FormData(this);
                 let url = $(this).attr('action');
@@ -561,7 +615,7 @@
                     data: formData,
                     processData: false,
                     contentType: false,
-                    success: function (response) {
+                    success: function(response) {
                         Toastify({
                             text: response.message,
                             duration: 4000,
@@ -570,12 +624,12 @@
                             backgroundColor: "linear-gradient(to right, #00b09b, #96c93d)",
                             stopOnFocus: true
                         }).showToast();
-                        setTimeout(function () {
+                        setTimeout(function() {
                             location.href = response.data.redirect;
                         }, 500);
 
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         if (xhr.status === 422) {
                             let errors = xhr.responseJSON.errors;
                             let errorMessages = '';
@@ -591,8 +645,8 @@
                         } else {
                             Swal.fire({
                                 icon: 'error',
-                                title: '{{ __("ingaz.error") }}',
-                                text: '{{ __("ingaz.error_from_server") }}'
+                                title: '{{ __('ingaz.error') }}',
+                                text: '{{ __('ingaz.error_from_server') }}'
                             });
 
                         }
@@ -603,7 +657,7 @@
         })
 
 
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             console.log("Type 2 order page loaded (simple solution)");
 
             // حفظ URL الحالي في localStorage
@@ -616,7 +670,7 @@
             if (saveButton) {
                 console.log('Save button found');
 
-                saveButton.addEventListener('click', function (e) {
+                saveButton.addEventListener('click', function(e) {
                     e.preventDefault();
                     console.log('Save order button clicked');
 
@@ -667,7 +721,7 @@
         console.log('Maid ID input exists:', $('input[name="maid_id"]').length);
 
         // حفظ بيانات الطلب قبل التوجيه إلى تسجيل الدخول
-        $('.save-order-and-login').on('click', function (e) {
+        $('.save-order-and-login').on('click', function(e) {
             e.preventDefault();
             console.log('Save order button clicked (Type 2)');
 
@@ -740,7 +794,7 @@
 
 
         // إضافة مستمع لراديو العناوين
-        $('input[name="address_id"]').change(function () {
+        $('input[name="address_id"]').change(function() {
             var value = $(this).val();
 
             if (value === 'manual') {
@@ -753,56 +807,57 @@
 
                 // تعيين العنوان المحدد
                 $('#details_list_address_id').val(value);
+
             }
         });
     </script>
     <script>
-        $('#closeMod').click(function () {
+        $('#closeMod').click(function() {
             window.location = '/';
         });
 
 
-        $(document).ready(function () {
+        $(document).ready(function() {
             // استعادة بيانات الطلب المحفوظة
             @if (session('restore_order_data'))
-            var restoreData = @json(session('restore_order_data'));
-            console.log('Restoring order data:', restoreData);
+                var restoreData = @json(session('restore_order_data'));
+                console.log('Restoring order data:', restoreData);
 
-            // استعادة البيانات في النموذج
-            if (restoreData.maid_id) {
-                $("input[name='maid_id']").val(restoreData.maid_id);
-            }
-            if (restoreData.job_type_id) {
-                $("input[name='job_type_id']").val(restoreData.job_type_id);
-            }
-            if (restoreData.order_type) {
-                $("input[name='order_type']").val(restoreData.order_type);
-            }
-            if (restoreData.payment_method) {
-                $("input[name='payment_method']").val(restoreData.payment_method);
-            }
-            if (restoreData.admin_id) {
-                $("input[name='details_list[admin_id]'][value='" + restoreData.admin_id + "']").prop('checked',
-                    true);
-            }
-            if (restoreData.address_id) {
-                $("input[name='details_list[address_id]']").val(restoreData.address_id);
-            }
-            if (restoreData.package_id) {
-                $("input[name='details_list[package_id]']").val(restoreData.package_id);
-            }
+                // استعادة البيانات في النموذج
+                if (restoreData.maid_id) {
+                    $("input[name='maid_id']").val(restoreData.maid_id);
+                }
+                if (restoreData.job_type_id) {
+                    $("input[name='job_type_id']").val(restoreData.job_type_id);
+                }
+                if (restoreData.order_type) {
+                    $("input[name='order_type']").val(restoreData.order_type);
+                }
+                if (restoreData.payment_method) {
+                    $("input[name='payment_method']").val(restoreData.payment_method);
+                }
+                if (restoreData.admin_id) {
+                    $("input[name='details_list[admin_id]'][value='" + restoreData.admin_id + "']").prop('checked',
+                        true);
+                }
+                if (restoreData.address_id) {
+                    $("input[name='details_list[address_id]']").val(restoreData.address_id);
+                }
+                if (restoreData.package_id) {
+                    $("input[name='details_list[package_id]']").val(restoreData.package_id);
+                }
 
-            // إظهار رسالة للمستخدم
-            Swal.fire({
-                title: 'تم استعادة بيانات الطلب',
-                text: 'تم استعادة بيانات الطلب المحفوظة مسبقاً',
-                icon: 'success',
-                timer: 3000,
-                showConfirmButton: false
-            });
+                // إظهار رسالة للمستخدم
+                Swal.fire({
+                    title: 'تم استعادة بيانات الطلب',
+                    text: 'تم استعادة بيانات الطلب المحفوظة مسبقاً',
+                    icon: 'success',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
             @endif
 
-            $('.newPayFormClass').off('submit').on('submit', function (event) {
+            $('.newPayFormClass').off('submit').on('submit', function(event) {
                 event.preventDefault();
                 var formData = $(this).serialize(); // Serialize the form data
                 let submitButton = $(event.originalEvent.submitter);
@@ -842,16 +897,16 @@
                     type: 'post',
                     url: '{{ route('web.orders.store') }}',
                     data: formData,
-                    beforeSend: function () {
+                    beforeSend: function() {
                         submitButton.html(
                             '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' +
                             buttonText);
                     },
-                    complete: function () {
+                    complete: function() {
                         submitButton.html("{{ helperTrans('web.confirmation') }}");
                         submitButton.prop('disabled', false); // Re-enable the button
                     },
-                    success: function (response) {
+                    success: function(response) {
                         console.log('Response:', response);
                         var data = response.data;
 
@@ -874,13 +929,13 @@
                             if (data && data.order && data.order.id) {
                                 window.location =
                                     "{{ route('web.orders.show', ['order' => ':orderId']) }}"
-                                        .replace(':orderId', data.order.id);
+                                    .replace(':orderId', data.order.id);
                             } else {
                                 window.location = "{{ route('web.orders.index') }}";
                             }
                         });
                     },
-                    error: function (xhr, status, error) {
+                    error: function(xhr, status, error) {
                         console.error('Error:', xhr.responseText);
 
                         // إعادة تفعيل الزر
@@ -913,10 +968,10 @@
         var secondPage = null;
         var currentStep = 1;
 
-        $(document).ready(function () {
+        $(document).ready(function() {
             const isLoggedIn = @json(auth()->check());
             var stepper = new Stepper($('.bs-stepper')[0]);
-            $('.btn-next').on('click', function () {
+            $('.btn-next').on('click', function() {
                 if (!isLoggedIn) {
                     const currentUrl = window.location.href;
                     fetch("{{ route('site.store.intended.url') }}", {
@@ -925,7 +980,9 @@
                             "X-CSRF-TOKEN": "{{ csrf_token() }}",
                             "Content-Type": "application/json"
                         },
-                        body: JSON.stringify({redirect_url: currentUrl})
+                        body: JSON.stringify({
+                            redirect_url: currentUrl
+                        })
                     }).then(() => {
                         window.location.href = "{{ route('site.login.index') }}";
                     });
@@ -935,8 +992,9 @@
 
                 if (stepper._currentIndex === 1) {
                     if ((firstPage == null || firstPage === '' || firstPage === undefined) && $(
-                        'input[name="address_id"]:checked').val() !== 'skip' && $(
-                        'input[name="address_id"]:checked').val() !== 'manual') {
+                            'input[name="address_id"]:checked').val() !== 'skip' && $(
+                            'input[name="address_id"]:checked').val() !== 'manual' && $(
+                            'input[name="address_id"]:checked').val() == '') {
                         infoToster('{{ helperTrans('auth.an error occurred') }}',
                             "{{ helperTrans('web.address_required') }}");
                         return true;
@@ -952,12 +1010,13 @@
                 console.log(stepper._steps);
                 stepper.next();
                 currentStep++;
+
                 if (stepper._currentIndex === 2 && currentStep == 3) {
                     infoToster('', "{{ helperTrans('web.terms_required') }}");
                 }
 
             });
-            $('.btn-prev').on('click', function () {
+            $('.btn-prev').on('click', function() {
                 currentStep--;
                 stepper.previous();
             });
@@ -966,6 +1025,8 @@
         });
 
         function render_data(type, id) {
+            console.log($('input[name="address_id"]').val());
+
             var elementId = type == 'package' ? 'package-' + id : 'address-' + id;
             var myElementHtml = document.getElementById('' + elementId).innerHTML;
             if (type == 'package') {
@@ -1012,33 +1073,33 @@
         var myButton = document.getElementById('myButtonsave');
 
         // Attach event listener to the checkbox
-        myCheckbox.addEventListener('change', function () {
+        myCheckbox.addEventListener('change', function() {
             // Enable or disable the button based on the checkbox state
             myButton.disabled = !this.checked;
         });
     </script>
     <script>
-        $(document).on('change', 'input[name="package_id"]', function () {
+        $(document).on('change', 'input[name="package_id"]', function() {
             var selectedId = $(this).val();
             $('input[name="details_list[package_id]"]').val(selectedId);
         });
     </script>
     <script>
-        $(document).ready(function () {
+        $(document).ready(function() {
             const createAction = "{{ route('web.addresses.store') }}";
 
-// فتح المودال للتعديل
-            $(document).on('click', '.edit-btn', function () {
+            // فتح المودال للتعديل
+            $(document).on('click', '.edit-btn', function() {
                 const route = $(this).attr('model-route');
                 const modal = $('#addLocation');
-                const form  = modal.find('form');
+                const form = modal.find('form');
 
                 modal.find('input, select, textarea').val('');
                 modal.addClass('loading');
 
-                $.get(route, function(res){
+                $.get(route, function(res) {
                     modal.removeClass('loading');
-                    if(res?.data){
+                    if (res?.data) {
                         const address = res.data;
 
                         // تعبئة البيانات
@@ -1053,45 +1114,49 @@
                         // تجهيز الفورم للتعديل
                         form.attr('action', '/user-addresses/' + address.id);
 
-                        if(!form.find('input[name="_method"]').length){
+                        if (!form.find('input[name="_method"]').length) {
                             form.append('<input type="hidden" name="_method" value="PUT">');
                         }
 
                         modal.find('.modal-title').text('تعديل العنوان');
 
                         // إزالة أي listener سابق ثم إضافة listener التعديل
-                        form.off('submit').on('submit', function(e){
+                        form.off('submit').on('submit', function(e) {
                             e.preventDefault();
                             $.ajax({
                                 url: form.attr('action'),
                                 type: 'POST',
                                 data: form.serialize(),
-                                headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
-                                success: function(res){
-                                    if(res?.data?.html){
+                                headers: {
+                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]')
+                                        .attr('content')
+                                },
+                                success: function(res) {
+                                    if (res?.data?.html) {
                                         $('.user_address').html(res.data.html);
                                     }
                                     $('#addLocation').modal('hide');
                                 },
-                                error: function(xhr){
-                                    console.error('حدث خطأ أثناء التعديل', xhr.responseText);
+                                error: function(xhr) {
+                                    console.error('حدث خطأ أثناء التعديل', xhr
+                                        .responseText);
                                 }
                             });
                         });
 
                         modal.modal('show');
                     }
-                }).fail(function(){
+                }).fail(function() {
                     modal.removeClass('loading');
                     console.error('حدث خطأ أثناء تحميل البيانات');
                 });
             });
 
 
-// إعادة الفورم للوضع الأصلي عند غلق المودال
-            $('#addLocation').on('hidden.bs.modal', function () {
+            // إعادة الفورم للوضع الأصلي عند غلق المودال
+            $('#addLocation').on('hidden.bs.modal', function() {
                 const modal = $(this);
-                const form  = modal.find('form');
+                const form = modal.find('form');
 
                 form.attr('action', createAction);
                 form.attr('method', 'POST');
@@ -1100,20 +1165,22 @@
                 modal.find('.modal-title').text('إضافة عنوان جديد');
 
                 // إزالة submit القديم ثم إعداد submit الإضافة
-                form.off('submit').on('submit', function(e){
+                form.off('submit').on('submit', function(e) {
                     e.preventDefault();
                     $.ajax({
                         url: form.attr('action'),
                         type: 'POST',
                         data: form.serialize(),
-                        headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
-                        success: function(res){
-                            if(res?.data?.html){
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(res) {
+                            if (res?.data?.html) {
                                 $('.user_address').html(res.data.html);
                             }
                             $('#addLocation').modal('hide');
                         },
-                        error: function(xhr){
+                        error: function(xhr) {
                             console.error('حدث خطأ أثناء الإضافة', xhr.responseText);
                         }
                     });
@@ -1122,18 +1189,22 @@
 
 
             // حذف العنوان
-            $(document).on('click', '.delete-btn', function(){
+            $(document).on('click', '.delete-btn', function() {
                 const id = $(this).data('id');
-                if(!confirm('هل أنت متأكد من الحذف؟')) return;
+                if (!confirm('هل أنت متأكد من الحذف؟')) return;
 
                 // نرسل POST مع _method=DELETE
                 $.ajax({
                     url: '/user-addresses/' + id,
                     type: 'POST',
-                    data: {_method: 'DELETE'}, // ← مهم
-                    headers: {'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')},
-                    success: function(res){
-                        if(res?.data?.html){
+                    data: {
+                        _method: 'DELETE'
+                    }, // ← مهم
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function(res) {
+                        if (res?.data?.html) {
                             $('.user_address').html(res.data.html);
                         } else {
                             // لو مفيش HTML يعني مفيش عناوين بعد الحذف
@@ -1143,9 +1214,8 @@
                                 </div>
                             `);
                         }
-                    }
-                    ,
-                    error: function(xhr){
+                    },
+                    error: function(xhr) {
                         console.error('حدث خطأ أثناء الحذف', xhr.responseText);
                     }
                 });
@@ -1154,13 +1224,15 @@
         });
     </script>
     <script>
-        $(document).ready(function () {
-            $('input[name="select_address"]').on('change', function () {
+        $(document).ready(function() {
+            $('input[name="select_address"]').on('change', function() {
                 let selectedId = $(this).val();
                 $('#selected_address_id').val(selectedId);
             });
+            // $(document).on('change', 'input[name="package_id"]', function() {
+            //     var selectedId = $(this).val();
+            //     $('input[name="details_list[package_id]"]').val(selectedId);
+            // });
         });
     </script>
-
-
 @endsection

@@ -632,6 +632,8 @@
                         $('#availableContracts').text(data.available || 0);
                         $('#transferredContracts').text(data.transferred || 0);
                         $('#totalValue').text((data.totalValue || 0).toLocaleString() + ' ريال');
+
+                        dataTable.ajax.reload();
                     },
                     error: function() {
                         console.log('Error loading statistics');
@@ -696,6 +698,8 @@
                                 text: response.message || 'حدث خطأ أثناء جلب بيانات العقد'
                             });
                         }
+
+                        dataTable.ajax.reload();
                     },
                     error: function() {
                         Swal.fire({
@@ -743,6 +747,8 @@
                                         text: response.message || 'حدث خطأ أثناء إغلاق العقد'
                                     });
                                 }
+
+                                dataTable.ajax.reload();
                             },
                             error: function() {
                                 Swal.fire({
@@ -908,15 +914,15 @@
                     _token: '{{ csrf_token() }}'
                 },
                 success: function(response) {
+                    dataTable.ajax.reload();
+
                     if (response.success) {
                         Swal.fire({
                             icon: 'success',
                             title: 'تم بنجاح!',
                             text: response.message || successMessage,
                             confirmButtonText: 'موافق'
-                        }).then(() => {
-                            dataTable.ajax.reload();
-                        });
+                        })
                     } else {
                         Swal.fire({
                             icon: 'error',
