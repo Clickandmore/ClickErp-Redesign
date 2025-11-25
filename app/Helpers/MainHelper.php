@@ -10,7 +10,6 @@ use App\Models\ShelterWorkers;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Intervention\Image\ImageManagerStatic as Image;
 
@@ -326,48 +325,6 @@ if (!function_exists('deleteFile')) {
 //       }
 //  }
 
-if (!function_exists('normalizeStorageAssetUrl')) {
-    function normalizeStorageAssetUrl(?string $url): ?string
-    {
-        if (!$url) {
-            return $url;
-        }
-
-        $needsOverride = Str::contains($url, ['127.0.0.1', 'localhost']);
-        if (!$needsOverride) {
-            return $url;
-        }
-
-        $path = parse_url($url, PHP_URL_PATH) ?? '';
-        $query = parse_url($url, PHP_URL_QUERY);
-        $fragment = parse_url($url, PHP_URL_FRAGMENT);
-
-        if (!$path) {
-            $path = '/' . ltrim($url, '/');
-        }
-
-        $suffix = $path;
-        if ($query) {
-            $suffix .= '?' . $query;
-        }
-        if ($fragment) {
-            $suffix .= '#' . $fragment;
-        }
-
-        $request = app()->runningInConsole() ? null : request();
-        if ($request && $request->getSchemeAndHttpHost()) {
-            return rtrim($request->getSchemeAndHttpHost(), '/') . $suffix;
-        }
-
-        $base = config('app.asset_url') ?: config('app.url');
-        if ($base) {
-            return rtrim($base, '/') . $suffix;
-        }
-
-        return $url;
-    }
-}
-
 if (!function_exists('showFile')) {
     function showFile($fileFullPath)
     {
@@ -375,51 +332,34 @@ if (!function_exists('showFile')) {
             return null;
         }
 
-        $normalizedPath = ltrim($fileFullPath, '/');
-        $publicDisk = Storage::disk('public');
-
-        if ($publicDisk->exists($normalizedPath)) {
-            return normalizeStorageAssetUrl($publicDisk->url($normalizedPath));
+        // التحقق من وجود الملف
+        $fullPath = public_path('storage/' . $fileFullPath);
+        if (file_exists($fullPath)) {
+            return asset('/storage/' . $fileFullPath);
         }
 
-        $symlinkedPath = public_path('storage/' . $normalizedPath);
-        if (file_exists($symlinkedPath)) {
-            return normalizeStorageAssetUrl(asset('storage/' . $normalizedPath));
-        }
-
-        return normalizeStorageAssetUrl(asset('storage/' . $normalizedPath));
+        // إذا لم يكن الملف موجود، ارجع null
+        return null;
     }
 }
 
 if (!function_exists('imageOrNull')) {
     function imageOrNull($fileFullPath)
     {
-        if (!$fileFullPath || $fileFullPath === 'null' || $fileFullPath === '') {
-            return '';
+        if ($fileFullPath && file_exists(public_path('/storage/' . $fileFullPath))) {
+            return asset('/storage/' . $fileFullPath);
         }
-
-        $normalizedPath = ltrim($fileFullPath, '/');
-        $publicDisk = Storage::disk('public');
-
-        if ($publicDisk->exists($normalizedPath) || file_exists(public_path('storage/' . $normalizedPath))) {
-            return normalizeStorageAssetUrl($publicDisk->url($normalizedPath));
-        }
-
-        return '';
+        return "";
     }
 }
 
 function getFile($fileFullPath)
 {
-    if ($fileFullPath && $fileFullPath !== 'null') {
-        $normalizedPath = ltrim($fileFullPath, '/');
-        $publicDisk = Storage::disk('public');
-        if ($publicDisk->exists($normalizedPath) || file_exists(public_path('storage/' . $normalizedPath))) {
-            return normalizeStorageAssetUrl($publicDisk->url($normalizedPath));
-        }
+    if ($fileFullPath && file_exists(public_path('/storage/' . $fileFullPath))) {
+        return asset('/storage/' . $fileFullPath);
     }
 
-    return normalizeStorageAssetUrl(asset('/storage/uploads/noImage.gif'));
+    return asset('/storage/uploads/noImage.gif');
 }
 
 if (!function_exists('getAuthUser')) {
