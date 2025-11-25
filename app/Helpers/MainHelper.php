@@ -10,6 +10,7 @@ use App\Models\ShelterWorkers;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Intervention\Image\ImageManagerStatic as Image;
 
@@ -332,31 +333,45 @@ if (!function_exists('showFile')) {
             return null;
         }
 
-        // التحقق من وجود الملف
-        $fullPath = public_path('storage/' . $fileFullPath);
-        if (file_exists($fullPath)) {
-            return asset('/storage/' . $fileFullPath);
+        $normalizedPath = ltrim($fileFullPath, '/');
+        $publicDisk = Storage::disk('public');
+
+        if ($publicDisk->exists($normalizedPath)) {
+            return $publicDisk->url($normalizedPath);
         }
 
-        // إذا لم يكن الملف موجود، ارجع null
-        return null;
+        $symlinkedPath = public_path('storage/' . $normalizedPath);
+        if (file_exists($symlinkedPath)) {
+            return asset('storage/' . $normalizedPath);
+        }
+
+        return asset('storage/' . $normalizedPath);
     }
 }
 
 if (!function_exists('imageOrNull')) {
     function imageOrNull($fileFullPath)
     {
-        if ($fileFullPath && file_exists(public_path('/storage/' . $fileFullPath))) {
-            return asset('/storage/' . $fileFullPath);
+        if (!$fileFullPath || $fileFullPath === 'null' || $fileFullPath === '') {
+            return '';
         }
-        return "";
+
+        $normalizedPath = ltrim($fileFullPath, '/');
+        if (Storage::disk('public')->exists($normalizedPath) || file_exists(public_path('storage/' . $normalizedPath))) {
+            return Storage::disk('public')->url($normalizedPath);
+        }
+
+        return '';
     }
 }
 
 function getFile($fileFullPath)
 {
-    if ($fileFullPath && file_exists(public_path('/storage/' . $fileFullPath))) {
-        return asset('/storage/' . $fileFullPath);
+    if ($fileFullPath && $fileFullPath !== 'null') {
+        $normalizedPath = ltrim($fileFullPath, '/');
+        if (Storage::disk('public')->exists($normalizedPath) || file_exists(public_path('storage/' . $normalizedPath))) {
+            return Storage::disk('public')->url($normalizedPath);
+        }
     }
 
     return asset('/storage/uploads/noImage.gif');
