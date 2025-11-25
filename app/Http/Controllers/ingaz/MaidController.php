@@ -46,7 +46,7 @@ class MaidController extends Controller
     public function index(Request $request, objAction $Action)
     {
         $query = objModel::query()
-            ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders', 'office'])
+            ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders', 'office', 'creatorActivity.causer'])
             ->select([
                 'id',
                 'name',
@@ -70,8 +70,8 @@ class MaidController extends Controller
                 'experience_years',
                 'experience_status'
             ])
-            ->orderByDesc('is_pinned')
-            ->orderByDesc('created_at');
+            ->orderByDesc('created_at')
+            ->orderByDesc('is_pinned');
 
         if ($request->ajax()) {
             $this->applyMaidFilter($request, $query);
@@ -111,6 +111,33 @@ class MaidController extends Controller
                         . '<i class="fas fa-praying-hands me-1"></i>' . $religion
                         . '</div>'
                         . '</div>'
+                        . '</div>';
+                })
+                ->addColumn('added_info', function (Maid $row) {
+                    $addedOnLabel = helperTrans('ingaz.added_on');
+                    $addedByLabel = helperTrans('ingaz.added_by');
+                    $recentLabel = helperTrans('ingaz.recently_added');
+                    $addedAt = $row->created_at
+                        ? $row->created_at->timezone(config('app.timezone'))->format('Y-m-d h:i A')
+                        : helperTrans('ingaz.not_specified');
+                    $addedBy = $row->added_by_name
+                        ? e($row->added_by_name)
+                        : helperTrans('ingaz.not_specified');
+                    $isRecent = $row->created_at ? $row->created_at->gte(Carbon::now()->subDay()) : false;
+                    $recentBadge = $isRecent
+                        ? '<span class="badge bg-success-subtle text-success"><i class="fas fa-star me-1"></i>' . $recentLabel . '</span>'
+                        : '';
+
+                    return '<div class="d-flex flex-column gap-2">'
+                        . '<div class="text-muted small d-flex align-items-center gap-2">'
+                        . '<i class="fas fa-clock"></i>'
+                        . '<span>' . $addedOnLabel . ': ' . $addedAt . '</span>'
+                        . '</div>'
+                        . '<div class="text-muted small d-flex align-items-center gap-2">'
+                        . '<i class="fas fa-user-plus"></i>'
+                        . '<span>' . $addedByLabel . ': ' . $addedBy . '</span>'
+                        . '</div>'
+                        . ($recentBadge ? '<div>' . $recentBadge . '</div>' : '')
                         . '</div>';
                 })
                 ->addColumn('status_badge', function (Maid $row) {
@@ -311,7 +338,7 @@ class MaidController extends Controller
                                 </ul>
                             </div>';
                 })
-                ->rawColumns(['profile', 'status_badge', 'job_info', 'metrics', 'actions'])
+                ->rawColumns(['profile', 'added_info', 'status_badge', 'job_info', 'metrics', 'actions'])
                 ->make(true);
         }
 

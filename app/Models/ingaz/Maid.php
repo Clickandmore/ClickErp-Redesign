@@ -9,6 +9,7 @@ use Astrotomic\Translatable\Translatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Models\Activity;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 class Maid extends Model
@@ -166,6 +167,18 @@ class Maid extends Model
     public function recruitmentOffice()
     {
         return $this->belongsTo(RecruitmentOffices::class, 'office_id');
+    }
+
+    public function creatorActivity()
+    {
+        return $this->morphOne(Activity::class, 'subject')
+            ->where('event', 'created')
+            ->latestOfMany();
+    }
+
+    public function getAddedByNameAttribute(): ?string
+    {
+        return $this->creatorActivity?->causer?->name;
     }
 
     public function unavailableRecords()

@@ -8,6 +8,17 @@
             box-shadow: 0 6px 18px rgba(15, 34, 58, 0.05);
         }
 
+        .filter-stat-card {
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .filter-stat-card:hover,
+        .filter-stat-card.active {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 24px rgba(15, 34, 58, 0.12);
+        }
+
         .stats-card .stats-icon {
             width: 48px;
             height: 48px;
@@ -109,7 +120,7 @@
 
                 <div class="row g-3 mb-4">
                     <div class="col-xl-2 col-md-4 col-sm-6">
-                        <div class="card stats-card h-100">
+                        <div class="card stats-card h-100 filter-stat-card" data-card="total" data-reset="true">
                             <div class="card-body d-flex align-items-center justify-content-between">
                                 <div>
                                     <div class="text-muted small fw-semibold">{{ helperTrans('ingaz.total_maids') }}</div>
@@ -120,7 +131,7 @@
                         </div>
                     </div>
                     <div class="col-xl-2 col-md-4 col-sm-6">
-                        <div class="card stats-card h-100">
+                        <div class="card stats-card h-100 filter-stat-card" data-card="available" data-status="available">
                             <div class="card-body d-flex align-items-center justify-content-between">
                                 <div>
                                     <div class="text-muted small fw-semibold">{{ helperTrans('ingaz.available_maids') }}
@@ -133,7 +144,7 @@
                         </div>
                     </div>
                     <div class="col-xl-2 col-md-4 col-sm-6">
-                        <div class="card stats-card h-100">
+                        <div class="card stats-card h-100 filter-stat-card" data-card="reserved" data-status="reserved">
                             <div class="card-body d-flex align-items-center justify-content-between">
                                 <div>
                                     <div class="text-muted small fw-semibold">{{ helperTrans('ingaz.reserved_maids') }}
@@ -146,7 +157,8 @@
                         </div>
                     </div>
                     <div class="col-xl-2 col-md-4 col-sm-6">
-                        <div class="card stats-card h-100">
+                        <div class="card stats-card h-100 filter-stat-card" data-card="accommodation"
+                            data-status="in_accommodation">
                             <div class="card-body d-flex align-items-center justify-content-between">
                                 <div>
                                     <div class="text-muted small fw-semibold">{{ helperTrans('ingaz.shelter_maids') }}
@@ -159,7 +171,7 @@
                         </div>
                     </div>
                     <div class="col-xl-2 col-md-4 col-sm-6">
-                        <div class="card stats-card h-100">
+                        <div class="card stats-card h-100 filter-stat-card" data-card="backout" data-status="backout">
                             <div class="card-body d-flex align-items-center justify-content-between">
                                 <div>
                                     <div class="text-muted small fw-semibold">{{ helperTrans('ingaz.backout_maids') }}
@@ -171,7 +183,7 @@
                         </div>
                     </div>
                     <div class="col-xl-2 col-md-4 col-sm-6">
-                        <div class="card stats-card h-100">
+                        <div class="card stats-card h-100 filter-stat-card" data-card="pinned" data-pinned="only">
                             <div class="card-body d-flex align-items-center justify-content-between">
                                 <div>
                                     <div class="text-muted small fw-semibold">{{ helperTrans('ingaz.pinned_maids') }}</div>
@@ -278,6 +290,7 @@
                                     <tr>
                                         <th>#</th>
                                         <th>{{ helperTrans('ingaz.profile') }}</th>
+                                        <th>{{ helperTrans('ingaz.added_details') }}</th>
                                         <th>{{ helperTrans('ingaz.status') }}</th>
                                         <th>{{ helperTrans('ingaz.job_information') }}</th>
                                         <th>{{ helperTrans('ingaz.metrics') }}</th>
@@ -393,6 +406,12 @@
                         searchable: false
                     },
                     {
+                        data: 'added_info',
+                        name: 'created_at',
+                        orderable: true,
+                        searchable: false
+                    },
+                    {
                         data: 'status_badge',
                         name: 'status_badge',
                         orderable: false,
@@ -418,11 +437,58 @@
                     }
                 ],
                 order: [
-                    [1, 'desc']
+                    [2, 'desc']
                 ],
                 language: {
                     url: "{{ asset('admin/assets/js/datatable-ar.json') }}"
                 }
+            });
+            const statsCards = $('.filter-stat-card');
+            const defaultStatCard = statsCards.filter('[data-card="total"]').first();
+            const maidFiltersForm = document.getElementById('maidFilters');
+
+            const highlightStatCard = (card) => {
+                statsCards.removeClass('active');
+                if (card && card.length) {
+                    card.addClass('active');
+                }
+            };
+
+            if (defaultStatCard.length) {
+                highlightStatCard(defaultStatCard);
+            }
+
+            const resetFiltersForm = () => {
+                if (maidFiltersForm) {
+                    maidFiltersForm.reset();
+                }
+            };
+
+            const clearStatHighlights = () => highlightStatCard(null);
+
+            statsCards.on('click', function() {
+                const card = $(this);
+                if (!maidFiltersForm) {
+                    return;
+                }
+
+                resetFiltersForm();
+
+                const statusVal = card.data('status');
+                const pinnedVal = card.data('pinned');
+                const isResetCard = !!card.data('reset');
+
+                if (!isResetCard) {
+                    if (typeof statusVal !== 'undefined') {
+                        $('#filter-status').val(statusVal);
+                    }
+                    if (typeof pinnedVal !== 'undefined') {
+                        $('#filter-pinned').val(pinnedVal);
+                    }
+                }
+
+                table.draw();
+                highlightStatCard(card);
             });
 
             const offerModalEl = document.getElementById('maidOfferModal');
@@ -643,15 +709,18 @@
 
             $('#maidFilters').on('submit', function(e) {
                 e.preventDefault();
+                clearStatHighlights();
                 table.draw();
             });
 
             $('#resetFilters').on('click', function() {
-                $('#maidFilters')[0].reset();
+                resetFiltersForm();
+                highlightStatCard(defaultStatCard);
                 table.draw();
             });
 
             $('.filter-trigger').on('change', function() {
+                clearStatHighlights();
                 table.draw();
             });
 
