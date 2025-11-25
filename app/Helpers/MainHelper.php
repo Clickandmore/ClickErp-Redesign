@@ -326,6 +326,48 @@ if (!function_exists('deleteFile')) {
 //       }
 //  }
 
+if (!function_exists('normalizeStorageAssetUrl')) {
+    function normalizeStorageAssetUrl(?string $url): ?string
+    {
+        if (!$url) {
+            return $url;
+        }
+
+        $needsOverride = Str::contains($url, ['127.0.0.1', 'localhost']);
+        if (!$needsOverride) {
+            return $url;
+        }
+
+        $path = parse_url($url, PHP_URL_PATH) ?? '';
+        $query = parse_url($url, PHP_URL_QUERY);
+        $fragment = parse_url($url, PHP_URL_FRAGMENT);
+
+        if (!$path) {
+            $path = '/' . ltrim($url, '/');
+        }
+
+        $suffix = $path;
+        if ($query) {
+            $suffix .= '?' . $query;
+        }
+        if ($fragment) {
+            $suffix .= '#' . $fragment;
+        }
+
+        $request = app()->runningInConsole() ? null : request();
+        if ($request && $request->getSchemeAndHttpHost()) {
+            return rtrim($request->getSchemeAndHttpHost(), '/') . $suffix;
+        }
+
+        $base = config('app.asset_url') ?: config('app.url');
+        if ($base) {
+            return rtrim($base, '/') . $suffix;
+        }
+
+        return $url;
+    }
+}
+
 if (!function_exists('showFile')) {
     function showFile($fileFullPath)
     {
@@ -337,15 +379,15 @@ if (!function_exists('showFile')) {
         $publicDisk = Storage::disk('public');
 
         if ($publicDisk->exists($normalizedPath)) {
-            return $publicDisk->url($normalizedPath);
+            return normalizeStorageAssetUrl($publicDisk->url($normalizedPath));
         }
 
         $symlinkedPath = public_path('storage/' . $normalizedPath);
         if (file_exists($symlinkedPath)) {
-            return asset('storage/' . $normalizedPath);
+            return normalizeStorageAssetUrl(asset('storage/' . $normalizedPath));
         }
 
-        return asset('storage/' . $normalizedPath);
+        return normalizeStorageAssetUrl(asset('storage/' . $normalizedPath));
     }
 }
 
@@ -357,8 +399,10 @@ if (!function_exists('imageOrNull')) {
         }
 
         $normalizedPath = ltrim($fileFullPath, '/');
-        if (Storage::disk('public')->exists($normalizedPath) || file_exists(public_path('storage/' . $normalizedPath))) {
-            return Storage::disk('public')->url($normalizedPath);
+        $publicDisk = Storage::disk('public');
+
+        if ($publicDisk->exists($normalizedPath) || file_exists(public_path('storage/' . $normalizedPath))) {
+            return normalizeStorageAssetUrl($publicDisk->url($normalizedPath));
         }
 
         return '';
@@ -369,12 +413,13 @@ function getFile($fileFullPath)
 {
     if ($fileFullPath && $fileFullPath !== 'null') {
         $normalizedPath = ltrim($fileFullPath, '/');
-        if (Storage::disk('public')->exists($normalizedPath) || file_exists(public_path('storage/' . $normalizedPath))) {
-            return Storage::disk('public')->url($normalizedPath);
+        $publicDisk = Storage::disk('public');
+        if ($publicDisk->exists($normalizedPath) || file_exists(public_path('storage/' . $normalizedPath))) {
+            return normalizeStorageAssetUrl($publicDisk->url($normalizedPath));
         }
     }
 
-    return asset('/storage/uploads/noImage.gif');
+    return normalizeStorageAssetUrl(asset('/storage/uploads/noImage.gif'));
 }
 
 if (!function_exists('getAuthUser')) {
