@@ -468,7 +468,14 @@ class ShelterContractController extends Controller
 
         $contract = Contract::with('maid')->findOrFail($id);
         $displayOnSite = $request->wants_to_work === 'yes' && $request->boolean('is_available_for_instant');
-        $existingAttachments = $contract->info ? ($contract->info->shelter_attachments ?? []) : [];
+        // $existingAttachments = $contract->info ? ($contract->info->shelter_attachments ?? []) : [];
+        $existingAttachments = $contract->info && $contract->info->shelter_attachments ? 
+        (
+            is_array($contract->info->shelter_attachments) ? 
+            $contract->info->shelter_attachments : 
+            json_decode($contract->info->shelter_attachments, true)
+        ) : [];
+        
         $attachments = $this->prepareShelterAttachments($request, $existingAttachments);
 
         $contract->info()->update([

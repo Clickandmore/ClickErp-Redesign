@@ -476,30 +476,30 @@
         });
 
         // Check if trip already exists for this order
-        @if(!@$data)
-        $('#order_id').on('change', function() {
-            var orderId = $(this).val();
-            if (orderId) {
-                $.ajax({
-                    url: '/api/admin/check-trip-exists',
-                    method: 'GET',
-                    data: {
-                        order_id: orderId
-                    },
-                    success: function(response) {
-                        if (response.exists) {
-                            swal({
-                                title: '{{ __("admin.error") }}',
-                                text: '{{ __("admin.trip_already_exists") }}',
-                                icon: 'error'
-                            });
-                            $('#order_id').val('').trigger('change');
-                        }
-                    }
-                });
-            }
-        });
-        @endif
+        // @if(!@$data)
+        // $('#order_id').on('change', function() {
+        //     var orderId = $(this).val();
+        //     if (orderId) {
+        //         $.ajax({
+        //             url: '/api/admin/check-trip-exists',
+        //             method: 'GET',
+        //             data: {
+        //                 order_id: orderId
+        //             },
+        //             success: function(response) {
+        //                 if (response.exists) {
+        //                     swal({
+        //                         title: '{{ __("admin.error") }}',
+        //                         text: '{{ __("admin.trip_already_exists") }}',
+        //                         icon: 'error'
+        //                     });
+        //                     $('#order_id').val('').trigger('change');
+        //                 }
+        //             }
+        //         });
+        //     }
+        // });
+        // @endif
     });
 </script>
 @endpush

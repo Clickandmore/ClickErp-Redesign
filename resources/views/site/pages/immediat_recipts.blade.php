@@ -81,8 +81,8 @@
                                                 @php
                                                     $imagePath =
                                                         $customer_service->sex_type == 0
-                                                            ? asset('web/assets/images/man.svg')
-                                                            : asset('web/assets/images/woman.svg');
+                                                            ? asset('admin/assets/img/xs/avatar3.jpg')
+                                                            : asset('admin/assets/img/xs/avatar9.jpg');
                                                 @endphp
                                                 <img src="{{ $imagePath }}" style="mix-blend-mode: multiply"
                                                      alt="man">
