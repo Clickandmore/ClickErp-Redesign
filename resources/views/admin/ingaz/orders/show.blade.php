@@ -130,11 +130,12 @@
             border-radius: 6px;
             margin: 8px 0 0 0;
         }
-        .refuse-reason h5{
+
+        .refuse-reason h5 {
             border-bottom: 1px solid;
         }
 
-        .refuse-reason p{
+        .refuse-reason p {
             color: #d1d1d1;
             font-size: 14px;
         }
@@ -667,16 +668,25 @@
                     admin_id: adminId
                 },
                 success: function(response) {
-                    if (response.success) {
+                    if (response.data.success) {
                         $('#changeResponsibleModal').modal('hide');
                         // Show success message and reload after a short delay
-                        alert(response.message ||
-                            '{{ helperTrans('ingaz.responsible_changed_successfully') }}');
+                        Swal.fire({
+                            title: 'تم الحفظ!',
+                            text: response.message || 'تم تحديث الموظف بنجاح',
+                            icon: 'success',
+                            confirmButtonText: 'حسناً'
+                        })
                         setTimeout(function() {
                             window.location.reload();
                         }, 1000);
                     } else {
-                        alert(response.message || '{{ helperTrans('ingaz.error_changing_responsible') }}');
+                        Swal.fire({
+                            title: 'تم الحفظ!',
+                            text: response.message || 'تم تحديث الموظف بنجاح',
+                            icon: 'success',
+                            confirmButtonText: 'حسناً'
+                        })
                     }
                 },
                 error: function(xhr) {
@@ -684,31 +694,54 @@
                     if (xhr.responseJSON && xhr.responseJSON.message) {
                         errorMessage = xhr.responseJSON.message;
                     }
-                    alert(errorMessage);
+                    Swal.fire({
+                        title: 'حدث خطأ!',
+                        text: errorMessage,
+                        icon: 'error',
+                        confirmButtonText: 'حسناً',
+                        confirmButtonColor: '#3085d6'
+                    });
                 }
             });
         }
 
         function deleteOrder(orderId) {
-            if (confirm('{{ helperTrans('ingaz.confirm_delete_order') }}')) {
-                $.ajax({
-                    url: '{{ route('orders.destroy', '') }}/' + orderId,
-                    type: 'DELETE',
-                    data: {
-                        _token: '{{ csrf_token() }}'
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            window.location.href = '{{ route('orders.index') }}';
-                        } else {
-                            alert('{{ helperTrans('ingaz.error_deleting_order') }}');
+            Swal.fire({
+                title: '{{ helperTrans('ingaz.confirm_delete_order') }}',
+                text: 'هل أنت متأكد من رغبتك في حذف هذا العنصر؟ لا يمكن التراجع عن هذه العملية.',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'حذف',
+                cancelButtonText: 'إلغاء'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '{{ route('orders.destroy', '') }}/' + orderId,
+                        type: 'DELETE',
+                        data: {
+                            _token: '{{ csrf_token() }}'
+                        },
+                        success: function(response) {
+                            if (response.data.success) {
+                                Swal.fire({
+                                    title: 'تم الحذف!',
+                                    text: response.message || 'تم حذف الموظف بنجاح',
+                                    icon: 'success',
+                                    confirmButtonText: 'حسناً'
+                                })
+                                window.location.href = '{{ route('orders.index') }}';
+                            } else {
+                                toastr.success('{{ helperTrans('ingaz.error_deleting_order') }}');
+                            }
+                        },
+                        error: function() {
+                            toastr.error('{{ helperTrans('ingaz.error_deleting_order') }}');
                         }
-                    },
-                    error: function() {
-                        alert('{{ helperTrans('ingaz.error_deleting_order') }}');
-                    }
-                });
-            }
+                    });
+                }
+            });
         }
 
         // Edit Status Function
@@ -759,25 +792,27 @@
                                     if (response.success) {
                                         $('#editStatusModal').modal('hide');
                                         // Show success message and reload
-                                        alert(response.message ||
-                                            '{{ helperTrans('ingaz.status_updated') }}'
+                                        toastr.success(response.message ||
+                                            '{{ helperTrans('ingaz.status_update_error') }}'
                                         );
                                         setTimeout(function() {
                                             window.location.reload();
                                         }, 1000);
                                     } else {
-                                        alert(response.message ||
+                                        // alert(response.message ||
+                                        //     '{{ helperTrans('ingaz.status_update_error') }}'
+                                        // );
+                                        toastr.success(response.message ||
                                             '{{ helperTrans('ingaz.status_update_error') }}'
                                         );
                                     }
                                 },
                                 error: function(xhr) {
                                     if (xhr.responseJSON && xhr.responseJSON.message) {
-                                        alert(xhr.responseJSON.message);
+                                        // alert(xhr.responseJSON.message);
+                                        toastr.error(xhr.responseJSON.message);
                                     } else {
-                                        alert(
-                                            '{{ helperTrans('ingaz.status_update_error') }}'
-                                            );
+                                        toastr.error(xhr.responseJSON.message);
                                     }
                                 }
                             });
@@ -863,18 +898,37 @@
                     reason: reason
                 },
                 success: function(response) {
-                    if (response.success) {
+                    if (response.data.success) {
                         $('#refuseReturnModal').modal('hide');
-                        alert(response.message || '{{ helperTrans('ingaz.order_updated') }}');
+                        Swal.fire({
+                            title: 'تم الحفظ!',
+                            text: response.message || '{{ helperTrans('ingaz.order_updated') }}',
+                            icon: 'success',
+                            confirmButtonText: 'حسناً'
+                        }).then(() => {
+                            window.location.reload();
+                        })
                         setTimeout(function() {
                             window.location.reload();
                         }, 1000);
                     } else {
-                        alert(response.message || '{{ helperTrans('ingaz.update_error') }}');
+                        Swal.fire({
+                            title: 'تم الحفظ!',
+                            text: response.message || '{{ helperTrans('ingaz.order_updated') }}',
+                            icon: 'success',
+                            confirmButtonText: 'حسناً'
+                        }).then(() => {
+                            window.location.reload();
+                        })
                     }
                 },
                 error: function() {
-                    alert('{{ helperTrans('ingaz.update_error') }}');
+                    Swal.fire({
+                        title: ' حدث خطأ!',
+                        text: '{{ helperTrans('ingaz.update_error') }}',
+                        icon: 'error',
+                        confirmButtonText: 'حسناً'
+                    })
                 }
             });
         }
