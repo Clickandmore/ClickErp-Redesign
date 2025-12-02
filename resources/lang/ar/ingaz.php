@@ -1667,6 +1667,7 @@
   'mission' => 'Mission',
   'our_vision' => 'رؤيتنا',
   'our_message' => 'رسالتنا',
+  'expected_duration'=> 'المدة المتوقعة',
   'our_value' => 'قيمنا',
   'our_vision_image' => 'صورة رؤيتنا',
   'our_message_image' => 'صورة رسالتنا',

@@ -1536,6 +1536,7 @@
     'link' => 'Link',
     'display_on_site' => 'Display on site',
     'display_on_site_hint' => 'Display on site hint',
+    'expected_duration'=> 'Expected Duration',
     'shelter_attachments_hint' => 'Shelter attachments hint',
   'shelter_attachments' => 'Shelter attachments',
     'warning_text' => 'The recruitment fees are paid through the Masaned platform.',

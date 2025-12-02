@@ -28,6 +28,7 @@ class NationalityController extends Controller
         "salary_with_experience",
         "service_transportation_cost",
         "rental_cost",
+        "expected_duration",
         "monthly_salary",
         "is_show",
     ];
@@ -111,7 +112,7 @@ class NationalityController extends Controller
                         ['icon' => 'fa-user', 'label' => helperTrans('ingaz.salary_with_no_experience'), 'value' => $row->salary_with_no_experience],
                         ['icon' => 'fa-truck', 'label' => helperTrans('ingaz.service_transportation_cost'), 'value' => $row->service_transportation_cost],
                         ['icon' => 'fa-file-contract', 'label' => helperTrans('ingaz.rental_cost'), 'value' => $row->rental_cost],
-                        ['icon' => 'fa-money-bill-wave', 'label' => helperTrans('ingaz.monthly_salary'), 'value' => $row->monthly_salary],
+                        // ['icon' => 'fa-money-bill-wave', 'label' => helperTrans('ingaz.monthly_salary'), 'value' => $row->monthly_salary],
                     ];
 
                     $chips = collect($items)->map(function ($item) use ($format) {
@@ -122,7 +123,13 @@ class NationalityController extends Controller
                                 </div>';
                     })->implode('');
 
-                    return '<div class="d-flex flex-column flex-md-row flex-wrap gap-2">' . $chips . '</div>';
+                    return '<div class="d-flex flex-column flex-md-row flex-wrap gap-2">' . $chips .
+                                '<div class="financial-chip">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                    <span class="text-muted">' . helperTrans('ingaz.expected_duration') . '</span>
+                                    <strong>' . $row->expected_duration . " " . helperTrans('ingaz.day') . '</strong>
+                                </div>' .
+                            '</div>';
                 })
                 ->addColumn('visibility_toggle', function ($row) {
                     $statusLabel = $row->is_show
@@ -167,7 +174,6 @@ class NationalityController extends Controller
         ];
 
         return view($this->folderPath . '.index', $data);
-
     }
 
     public function show($id)
@@ -189,7 +195,7 @@ class NationalityController extends Controller
     }
 
 
-    public function store(NationalityRequest $request,objAction $action)
+    public function store(NationalityRequest $request, objAction $action)
     {
 
         $data = $request->only($this->postData);
@@ -211,6 +217,7 @@ class NationalityController extends Controller
     public function update(NationalityRequest $request, objAction $action, $id)
     {
         $updatedData = $request->only($this->postData);
+        // dd($updatedData);
         $data = $action->updateNationality($id, $updatedData);
         return jsonSuccess($data);
     }
