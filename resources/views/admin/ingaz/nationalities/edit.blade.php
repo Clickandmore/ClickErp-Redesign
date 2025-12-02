@@ -42,11 +42,17 @@
         </label>
         <input type="number" step="0.01" name="rental_cost" class="form-control" value="{{$obj->rental_cost}}" placeholder="تكلفة التأجير">
     </div>
-    <div class="col-12">
+    {{-- <div class="col-12">
         <label for="TextInput" class="form-label">
             الراتب الشهري
         </label>
         <input type="number" step="0.01" name="monthly_salary" class="form-control" value="{{$obj->monthly_salary}}" placeholder="الراتب الشهري">
+    </div> --}}
+    <div class="col-12">
+        <label for="TextInput" class="form-label">
+           {{ helperTrans('ingaz.expected_duration') }}
+        </label>
+        <input type="number" name="expected_duration" class="form-control" value="{{$obj->expected_duration}}" placeholder="{{ helperTrans('ingaz.expected_duration') }}">
     </div>
 
     @foreach (config('translatable.locales') as $locale)

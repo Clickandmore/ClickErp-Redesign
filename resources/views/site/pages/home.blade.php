@@ -1,4 +1,4 @@
-@extends('site.layouts.index')
+﻿@extends('site.layouts.index')
 @section('title')
     {{ __('ingaz.home') }}
 @endsection
@@ -230,6 +230,145 @@
             font-weight: 500;
         }
     }
+
+    /* about-services redesign */
+    .about-services {
+        position: relative;
+        margin-top: 32px;
+        padding: 34px 28px;
+        border-radius: 24px;
+        background: radial-gradient(circle at 12% 18%, rgba(14, 165, 233, 0.12) 0, rgba(14, 165, 233, 0) 42%), radial-gradient(circle at 88% 86%, rgba(16, 185, 129, 0.14) 0, rgba(16, 185, 129, 0) 46%), #ffffff;
+        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+        border: 1px solid #e5e7eb;
+        overflow: hidden;
+        direction: rtl;
+    }
+
+    .about-services::before,
+    .about-services::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(30px);
+        opacity: 0.35;
+        pointer-events: none;
+    }
+
+    .about-services::before {
+        width: 260px;
+        height: 260px;
+        background: rgba(14, 165, 233, 0.2);
+        top: -140px;
+        right: -100px;
+    }
+
+    .about-services::after {
+        width: 300px;
+        height: 300px;
+        background: rgba(16, 185, 129, 0.2);
+        bottom: -140px;
+        left: -90px;
+    }
+
+    .about-services .services-grid {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+    }
+
+    .about-services .about-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-inline-end: 6px solid var(--accent, #2563eb);
+        border-radius: 18px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        height: 100%;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+        transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+
+    .about-services .about-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+        border-color: rgba(0, 0, 0, 0.08);
+    }
+
+    .about-services .about-card__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .about-services .about-card__number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        height: 56px;
+        border-radius: 18px;
+        background: var(--accent-soft, #e0f2fe);
+        color: var(--accent, #2563eb);
+        font-size: 24px;
+        font-weight: 900;
+    }
+
+    .about-services .about-card__icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(145deg, var(--accent, #2563eb), rgba(37, 99, 235, 0.85));
+        color: #fff;
+        font-size: 28px;
+        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .about-services .about-card h4 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+
+    .about-services .about-card p {
+        margin: 0;
+        color: #475569;
+        line-height: 1.8;
+        font-size: 16px;
+    }
+
+    .about-services .theme-sky {
+        --accent: #0ea5e9;
+        --accent-soft: #e0f2fe;
+    }
+
+    .about-services .theme-amber {
+        --accent: #f97316;
+        --accent-soft: #fff2e5;
+    }
+
+    .about-services .theme-rose {
+        --accent: #f43f5e;
+        --accent-soft: #ffe4e8;
+    }
+
+    @media (max-width: 992px) {
+        .about-services .services-grid {
+            grid-template-columns: repeat(auto-fit, minmax(100%, 1fr));
+            gap: 18px;
+        }
+
+        .about-services {
+            padding: 22px 16px;
+        }
+    }
 </style>
 
 @section('content')
@@ -337,8 +476,9 @@
                     {{ __('web.our_services') }}
                 </i>
             </div>
-            <h2 class="section-title">{{isset($whatDoSetting) ? $whatDoSetting->title : 'خدمات شركه بلاتينيوم'}}</h2>
-            <p>{{isset($whatDoSetting) ? $whatDoSetting->description : ' خدماتنا مرخصه من وزاره الموارد البشريه والتنميه الاجتماعية لضمان راحتك وراحه اسرتك'}}</p>
+            <h2 class="section-title">{{ isset($whatDoSetting) ? $whatDoSetting->title : 'خدمات شركه بلاتينيوم' }}</h2>
+            <p>{{ isset($whatDoSetting) ? $whatDoSetting->description : ' خدماتنا مرخصه من وزاره الموارد البشريه والتنميه الاجتماعية لضمان راحتك وراحه اسرتك' }}
+            </p>
         </div>
         <div class="services-container">
             @php
@@ -348,18 +488,18 @@
                 @php
                     $color = $colors[array_rand($colors)];
                 @endphp
-                <a href="{{route('site.all-workers.index')}}?type={{$whatDo->type}}">
+                <a href="{{ route('site.all-workers.index') }}?type={{ $whatDo->type }}">
                     <div class="service-card {{ $color }}">
                         <div class="icon {{ $color }}">
-                            <i class="{{$whatDo->icon}}"></i>
+                            <i class="{{ $whatDo->icon }}"></i>
                         </div>
-                        <h4>{{$whatDo->title}}</h4>
+                        <h4>{{ $whatDo->title }}</h4>
                         <p>
-                            {{$whatDo->description}}
+                            {{ $whatDo->description }}
                         </p>
                         <ul>
-                            @foreach($whatDo->items as $item)
-                                <li>{{$item->title}}</li>
+                            @foreach ($whatDo->items as $item)
+                                <li>{{ $item->title }}</li>
                             @endforeach
                         </ul>
                     </div>
@@ -436,7 +576,8 @@
             <!-- About Content -->
             <div class="about-content">
                 <div class="about-text">
-                    @if(isset($abouts))
+                    {{-- @dd($abouts) --}}
+                    @if (isset($abouts))
                         <h2>
                             {{ $abouts->title }}
                         </h2>
@@ -445,9 +586,9 @@
                             {{ __('ingaz.about-us') }}
                         </h2>
                     @endif
-                    @if(isset($abouts))
+                    @if (isset($abouts))
                         <h2>
-                            {!! $abouts->description  !!}
+                            {!! $abouts->description !!}
                         </h2>
                     @else
                         <p>
@@ -455,13 +596,13 @@
                         </p>
                     @endif
                 </div>
-                @if(isset($abouts))
+                @if (isset($abouts))
                     <div class="about-image">
-                        <img src="{{ showFile($abouts->image) }}" alt="{{ __('ingaz.about_us') }}"/>
+                        <img src="{{ showFile($abouts->image) }}" alt="{{ __('ingaz.about_us') }}" />
                     </div>
                 @else
                     <div class="about-image">
-                        <img src="{{ asset('site/assets/images/about.webp') }}" alt="{{ __('ingaz.about_us') }}"/>
+                        <img src="{{ asset('site/assets/images/about.webp') }}" alt="{{ __('ingaz.about_us') }}" />
                     </div>
                 @endif
                 <!-- About Cards -->
@@ -501,7 +642,104 @@
                     </div>
                 @endforelse
             </div>
-        </div>
+
+            <div class="about-services">
+                <div class="services-grid">
+                    @if ($abouts->vision)
+                        <div class="about-card theme-sky">
+                            <div class="about-card__header">
+                                <span class="about-card__number">01</span>
+                                <div class="about-card__icon">
+                                    <i class="fa-solid fa-headset"></i>
+                                </div>
+                            </div>
+                            <h4 class="about-card__title">رؤيتنا</h4>
+                            <p>
+                                {!! $abouts->vision !!}
+                            </p>
+                        </div>
+                    @else
+                        <div class="about-card theme-sky">
+                            <div class="about-card__header">
+                                <span class="about-card__number">01</span>
+                                <div class="about-card__icon">
+                                    <i class="fa-solid fa-headset"></i>
+                                </div>
+                            </div>
+                            <h4 class="about-card__title">رؤيتنا</h4>
+                            <p>
+                                أن نكون الخيار الأول للاستقدام في المملكة العربية السعودية، وذلك بالتفرد بتقديم أجود الخدمات
+                                وانتقاء أجود الكفاءات، والحرص على راحة العملاء وحفظ حقوقهم، ونحقق ذلك بعد اكتساب ثقة العملاء
+                                وتوصيتهم بنا لمن حولهم.
+                            </p>
+                        </div>
+                    @endif
+
+                    @if ($abouts->mission)
+                        <div class="about-card theme-amber">
+                            <div class="about-card__header">
+                                <span class="about-card__number">02</span>
+                                <div class="about-card__icon">
+                                    <i class="fa-solid fa-laptop"></i>
+                                </div>
+                            </div>
+                            <h4 class="about-card__title">رسالتنا</h4>
+                            <p>
+                                {!! $abouts->mission !!}
+                            </p>
+                        </div>
+                    @else
+                        <div class="about-card theme-amber">
+                            <div class="about-card__header">
+                                <span class="about-card__number">02</span>
+                                <div class="about-card__icon">
+                                    <i class="fa-solid fa-laptop"></i>
+                                </div>
+                            </div>
+                            <h4 class="about-card__title">رسالتنا</h4>
+                            <p>
+                                "إنسانية" نفتخر بعملنا كونه يسهم بتوفير موارد ودخل جيّد لأسرة وفرد بحاجة لهذه الموارد لدعم
+                                أسرته
+                                وبناء مستقبله، وبالمقابل توفير سبل الراحة للأسرة السعودية والمقيمة في وطننا المعطاء من خلال
+                                تقديم خدمات العاملة المنزلية والعمالة الوافدة وذلك ضمن اطار قانوني ينظم العلاقة بين كافة
+                                الأطراف
+                                ويحفظ حقوق الجميع في وطننا المعطاء. "احتياجاتكم أولوياتنا".
+                            </p>
+                        </div>
+                    @endif
+
+                    @if ($abouts->value)
+                        <div class="about-card theme-rose">
+                            <div class="about-card__header">
+                                <span class="about-card__number">03</span>
+                                <div class="about-card__icon">
+                                    <i class="fa-solid fa-users-gear"></i>
+                                </div>
+                            </div>
+                            <h4 class="about-card__title">قيمنا</h4>
+                            <p>
+                               {!! $abouts->value !!}
+                            </p>
+                        </div>
+                    @else
+                        <div class="about-card theme-rose">
+                            <div class="about-card__header">
+                                <span class="about-card__number">03</span>
+                                <div class="about-card__icon">
+                                    <i class="fa-solid fa-users-gear"></i>
+                                </div>
+                            </div>
+                            <h4 class="about-card__title">قيمنا</h4>
+                            <p>
+                                قيمنا تركز على رضى العميل، حيث نولي الأولوية للجودة والكمال في كل خدماتنا. نحن روح الفريق
+                                أداة
+                                أساسية لتحقيق الأهداف، حيث يعمل فريقنا معًا لتحقيق النجاح. نحرص على السرعة والإنجاز لتلبية
+                                احتياجات عملائنا في الوقت المحدد. نعتبر النزاهة والشفافية أساسية في كل تعاملاتنا.
+                            </p>
+                        </div>
+                    @endif
+                </div>
+            </div>
     </section>
 
     <section class="countries">
@@ -518,7 +756,7 @@
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
                                     <img src="{{ showFile($nationalty->logo) }}" alt="{{ $nationalty->title }}"
-                                         class="flag-img"/>
+                                        class="flag-img" />
                                     <span class="pulse-ring"></span>
                                 </div>
                             </div>
@@ -551,7 +789,7 @@
                                     </div>
                                 </div>
                                 <a href="{{ route('site.all-workers.index') }}?nationality_id={{ $nationalty->id }}"
-                                   class="modern-btn">
+                                    class="modern-btn">
                                     تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
                                 </a>
                             </div>
@@ -564,7 +802,7 @@
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
                                     <img src="{{ asset('site') }}/assets/images/countries/2.png" alt="علم كينيا"
-                                         class="flag-img"/>
+                                        class="flag-img" />
                                     <span class="pulse-ring"></span>
                                 </div>
                             </div>
@@ -612,7 +850,7 @@
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
                                     <img src="{{ asset('site') }}/assets/images/countries/3.jpeg" alt="علم بنغلادش"
-                                         class="flag-img"/>
+                                        class="flag-img" />
                                     <span class="pulse-ring"></span>
                                 </div>
                             </div>
@@ -660,7 +898,7 @@
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
                                     <img src="{{ asset('site') }}/assets/images/countries/4.jpeg" alt="علم الفلبين"
-                                         class="flag-img"/>
+                                        class="flag-img" />
                                     <span class="pulse-ring"></span>
                                 </div>
                             </div>
@@ -708,7 +946,7 @@
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
                                     <img src="{{ asset('site') }}/assets/images/countries/5.png" alt="علم الهند"
-                                         class="flag-img"/>
+                                        class="flag-img" />
                                     <span class="pulse-ring"></span>
                                 </div>
                             </div>
@@ -756,7 +994,7 @@
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
                                     <img src="{{ asset('site') }}/assets/images/countries/6.png" alt="علم موريتانيا"
-                                         class="flag-img"/>
+                                        class="flag-img" />
                                     <span class="pulse-ring"></span>
                                 </div>
                             </div>
@@ -804,7 +1042,7 @@
                                 <div class="flag-bg"></div>
                                 <div class="flag-wrapper">
                                     <img src="{{ asset('site') }}/assets/images/countries/7.png" alt="علم جيبوتي"
-                                         class="flag-img"/>
+                                        class="flag-img" />
                                     <span class="pulse-ring"></span>
                                 </div>
                             </div>
@@ -861,7 +1099,7 @@
                     @forelse($services as $service)
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                               style="background: url('{{ showFile($service->image) }}') no-repeat center/cover;">
+                                style="background: url('{{ showFile($service->image) }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-passport"></i>
                                 <h3 class="serviceTitle">{{ $service->title }}</h3>
                                 <h6 class="serviceP">
@@ -872,7 +1110,7 @@
                     @empty
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                               style="background: url('{{ asset('site/assets/images/passport-bg.webp') }}') no-repeat center/cover;">
+                                style="background: url('{{ asset('site/assets/images/passport-bg.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-passport"></i>
                                 <h3 class="serviceTitle">إصدار التأشيرة</h3>
                                 <h6 class="serviceP">
@@ -882,7 +1120,7 @@
                         </div>
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                               style="background: url('{{ asset('site/assets/images/files.webp') }}') no-repeat center/cover;">
+                                style="background: url('{{ asset('site/assets/images/files.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-users-gear"></i>
                                 <h3 class="serviceTitle">اختيار العمالة</h3>
                                 <h6 class="serviceP">
@@ -892,7 +1130,7 @@
                         </div>
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                               style="background: url('{{ asset('site/assets/images/bg-plane.webp') }}') no-repeat center/cover;">
+                                style="background: url('{{ asset('site/assets/images/bg-plane.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-plane-arrival"></i>
                                 <h3 class="serviceTitle">وصول العمالة</h3>
                                 <h6 class="serviceP">
@@ -902,7 +1140,7 @@
                         </div>
                         <div class="swiper-slide">
                             <a href="#" class="service d-flex flex-column justify-content-center"
-                               style="background: url('{{ asset('site/assets/images/hands.webp') }}') no-repeat center/cover;">
+                                style="background: url('{{ asset('site/assets/images/hands.webp') }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-file-contract"></i>
                                 <h3 class="serviceTitle">تجديد عقد عاملة</h3>
                                 <h6 class="serviceP">
@@ -917,7 +1155,7 @@
             </div>
             <div class="wide-card mt-4" data-aos="fade-up">
                 <a href="#" class="service d-flex flex-column justify-content-center"
-                   style="background: url('{{ asset('site/assets/images/f3.webp') }}') no-repeat center/cover;">
+                    style="background: url('{{ asset('site/assets/images/f3.webp') }}') no-repeat center/cover;">
                     <i class="fa-solid fa-users-gear"></i>
                     <h3 class="serviceTitle">طلب العمالة المهنية</h3>
                     <h6 class="serviceP">
@@ -938,21 +1176,21 @@
 
             {{-- الإحصائيات الرئيسية --}}
             <div class="stats-container">
-                {{--                @forelse($statics as $static)--}}
-                {{--                    <div class="stat-card" data-aos="zoom-in" data-aos-delay="100">--}}
-                {{--                        <div class="icon-wrapper">--}}
-                {{--                            <i class="fa-solid fa-{{ $static->image }}"></i>--}}
-                {{--                        </div>--}}
-                {{--                        <span class="counter" data-target="{{ $static->counter_num }}">0</span>--}}
-                {{--                        <h6>{{ $static->title }}</h6>--}}
-                {{--                    </div>--}}
-                {{--                @empty--}}
+                {{--                @forelse($statics as $static) --}}
+                {{--                    <div class="stat-card" data-aos="zoom-in" data-aos-delay="100"> --}}
+                {{--                        <div class="icon-wrapper"> --}}
+                {{--                            <i class="fa-solid fa-{{ $static->image }}"></i> --}}
+                {{--                        </div> --}}
+                {{--                        <span class="counter" data-target="{{ $static->counter_num }}">0</span> --}}
+                {{--                        <h6>{{ $static->title }}</h6> --}}
+                {{--                    </div> --}}
+                {{--                @empty --}}
                 <div class="stat-card" data-aos="zoom-in" data-aos-delay="100">
                     <div class="icon-wrapper">
                         <i class="fa-solid fa-user-plus"></i>
                     </div>
-                    <span class="counter" data-target="{{$counts['number_recruitment_requests']}}">
-                          {{$counts['number_recruitment_requests']}}
+                    <span class="counter" data-target="{{ $counts['number_recruitment_requests'] }}">
+                        {{ $counts['number_recruitment_requests'] }}
                     </span>
                     <h6>طلبات الاستقدام</h6>
                 </div>
@@ -961,8 +1199,8 @@
                     <div class="icon-wrapper">
                         <i class="fa-solid fa-file-contract"></i>
                     </div>
-                    <span class="counter" data-target="{{$counts['number_contracts_requests']}}">
-                         {{$counts['number_contracts_requests']}}
+                    <span class="counter" data-target="{{ $counts['number_contracts_requests'] }}">
+                        {{ $counts['number_contracts_requests'] }}
                     </span>
                     <h6>عقود تمت بنجاح</h6>
                 </div>
@@ -971,13 +1209,13 @@
                     <div class="icon-wrapper">
                         <i class="fa-solid fa-face-smile"></i>
                     </div>
-                    <span class="counter" data-target="{{$counts['clients']}}">
-                         {{$counts['clients']}}
-                     </span>
+                    <span class="counter" data-target="{{ $counts['clients'] }}">
+                        {{ $counts['clients'] }}
+                    </span>
                     <h6>عميل راضي عن الخدمة</h6>
                 </div>
 
-                {{--                @endforelse--}}
+                {{--                @endforelse --}}
             </div>
 
             {{-- الإحصائيات الإضافية --}}
@@ -1039,7 +1277,7 @@
                         <img src="{{ asset('site') }}/assets/images/mada.webp" data-aos="zoom-in" data-aos-delay="400">
                         <img src="{{ asset('site') }}/assets/images/tabby.png" data-aos="zoom-in" data-aos-delay="400">
                         <img src="{{ asset('site') }}/assets/images/tamara.webp" data-aos="zoom-in"
-                             data-aos-delay="400">
+                            data-aos-delay="400">
                     </div>
                 @empty
                     <div class="step" data-aos="fade-up" data-aos-delay="100">
@@ -1100,17 +1338,17 @@
         <div class="images">
             <div>
                 <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in"
-                     data-aos-delay="200">
+                    data-aos-delay="200">
                 <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/visa.webp" data-aos="zoom-in"
-                     data-aos-delay="300">
+                    data-aos-delay="300">
                 <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/mada.webp" data-aos="zoom-in"
-                     data-aos-delay="400">
+                    data-aos-delay="400">
             </div>
             <div>
                 <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/tabby.png" data-aos="zoom-in"
-                     data-aos-delay="400">
+                    data-aos-delay="400">
                 <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/tamara.webp"
-                     data-aos="zoom-in" data-aos-delay="400">
+                    data-aos="zoom-in" data-aos-delay="400">
             </div>
         </div>
     </section>
@@ -1241,9 +1479,10 @@
             </h2>
 
             <div class="video-wrapper" data-aos="zoom-in" data-aos-duration="1000">
-                <iframe src="{{ __('ingaz.video_link') }}" title="{{ __('ingaz.video_description') }}" frameborder="0"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                <iframe src="{{ __('ingaz.video_link') }}" title="{{ __('ingaz.video_description') }}"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
             </div>
         </div>
     </section>
@@ -1272,7 +1511,7 @@
                             <label class="form-label">
                                 <i class="fas fa-user me-2"></i> {{ __('ingaz.full name') }}*
                             </label>
-                            <input type="text" id="name" name="name" class="form-control" required/>
+                            <input type="text" id="name" name="name" class="form-control" required />
                             <div class="invalid-feedback"> {{ __('ingaz.this field is required') }}</div>
                             <div class="valid-feedback">{{ __('ingaz.good') }}</div>
                         </div>
@@ -1280,14 +1519,14 @@
                             <label class="form-label"><i class="fas fa-phone-alt me-2"></i> {{ __('ingaz.phone') }}*
                             </label>
                             <input type="tel" id="phone" name="phone" id="phoneNum" class="form-control"
-                                   required/>
+                                required />
                             <div class="invalid-feedback"> {{ __('ingaz.this field is required') }} </div>
                         </div>
                         <div class="col-md-6 p-2">
                             <label class="form-label">
                                 <i class="fa-solid fa-comment-lines me-2"></i> {{ __('ingaz.subject') }}
                             </label>
-                            <input type="text" id="subject" name="subject" class="form-control"/>
+                            <input type="text" id="subject" name="subject" class="form-control" />
                         </div>
                         <div class="col-md-12 p-2">
                             <label class="form-label">
@@ -1300,7 +1539,7 @@
                         {!! NoCaptcha::display() !!}
 
                         @error('g-recaptcha-response')
-                        <span class="text-danger">{{ $message }}</span>
+                            <span class="text-danger">{{ $message }}</span>
                         @enderror
 
                         <div class="col-md-12 text-center p-2">
@@ -1313,21 +1552,13 @@
                 </div>
                 <div class="col-md-6 p-2 wow fadeInUp">
                     <section class="googleMap">
-                        @if(isset($settings))
-                            <iframe
-                                src="{{$settings->map_link}}"
-                                frameborder="0"
-                                style="border: 0"
-                                allowfullscreen=""
-                                aria-hidden="false"
-                                tabindex="0"></iframe>
+                        @if (isset($settings))
+                            <iframe src="{{ $settings->map_link }}" frameborder="0" style="border: 0"
+                                allowfullscreen="" aria-hidden="false" tabindex="0"></iframe>
                         @else
                             <iframe
                                 src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d57144.98454618672!2d50.12401500000001!3d26.469859!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3e49fbc320200d1b%3A0x1abc87f1ffdb75d5!2z2KjZhNin2KrZitmG2YrZiNmFINin2YTYtNix2YLZitipINmE2YTYpdiz2KrZgtiv2KfZhQ!5e0!3m2!1sar!2ssa!4v1761469557614!5m2!1sar!2ssa"
-                                frameborder="0"
-                                style="border: 0"
-                                allowfullscreen=""
-                                aria-hidden="false"
+                                frameborder="0" style="border: 0" allowfullscreen="" aria-hidden="false"
                                 tabindex="0"></iframe>
                         @endif
 
@@ -1346,8 +1577,8 @@
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
                                 <img src="{{ showFile($client->image) ?? asset('site/assets/images/musand.svg') }}"
-                                     alt=""
-                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
+                                    alt=""
+                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
                             </div>
                         </div>
                     @empty
@@ -1355,21 +1586,20 @@
                             <div class="referenceLogo">
 
                                 <img src="{{ asset('site/assets/images/Ministry-of-Foreign-Affairs-01.svg') }}"
-                                     alt=""
-                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
+                                    alt=""
+                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
 
                             </div>
                         </div>
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
                                 <img src="{{ asset('site/assets/images/Ministry-of-Interior-01.svg') }}" alt=""
-                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
+                                    onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
                             </div>
                         </div>
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
-                                <img
-                                    src="{{ asset('site/assets/images/Ministry-of-Labor-and-Social-Development.svg') }}"
+                                <img src="{{ asset('site/assets/images/Ministry-of-Labor-and-Social-Development.svg') }}"
                                     alt=""
                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
 
@@ -1410,7 +1640,7 @@
             });
 
             // عند تحريك العلامة (Marker)
-            google.maps.event.addListener(marker, 'dragend', function (event) {
+            google.maps.event.addListener(marker, 'dragend', function(event) {
                 document.getElementById("latitude").value = event.latLng.lat();
                 document.getElementById("longitude").value = event.latLng.lng();
             });
@@ -1421,8 +1651,8 @@
     </script>
 
     <script>
-        $(document).ready(function () {
-            $('#contact-form').on('submit', function (e) {
+        $(document).ready(function() {
+            $('#contact-form').on('submit', function(e) {
                 e.preventDefault();
 
                 $.ajax({
@@ -1439,7 +1669,7 @@
                         'g-recaptcha-response': grecaptcha.getResponse()
 
                     },
-                    success: function (response) {
+                    success: function(response) {
 
                         $('#contact-form')[0].reset();
                         Swal.fire({
@@ -1448,11 +1678,11 @@
                             text: '{{ __('ingaz.success') }}',
                             confirmButtonText: '{{ __('ingaz.ok') }}'
                         });
-                        setTimeout(function () {
+                        setTimeout(function() {
                             location.reload();
                         }, 500);
                     },
-                    error: function (xhr) {
+                    error: function(xhr) {
                         console.error("خطأ في الطلب:", xhr);
                     }
                 });

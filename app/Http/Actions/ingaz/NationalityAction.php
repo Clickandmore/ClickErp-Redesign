@@ -40,6 +40,8 @@ class NationalityAction extends MainAction
             Maid::where('nationality_id', $id)->update(['price' => $data['price']]);
         }
 
+        $data['expected_duration'] = (int) $data['expected_duration'];
+        // dd($row, $data);
         return $row->update($data);
     }
 

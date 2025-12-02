@@ -33,6 +33,7 @@ class NationalityRequest extends MainRequest
             'price' => "nullable|numeric|min:0",
             'service_transportation_cost' => "nullable|numeric|min:0",
             'rental_cost' => "nullable|numeric|min:0",
+            "expected_duration"=> "required|integer|min:45",
             'monthly_salary' => "nullable|numeric|min:0",
             'is_show' => 'nullable|in:0,1,on',
         ];
