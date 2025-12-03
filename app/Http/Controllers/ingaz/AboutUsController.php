@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ingaz\AboutUs as objModel;
 use App\Http\Requests\ingaz\AboutUsRequest as objRequest;
 use App\Models\ingaz\AboutUs;
+use App\Models\Feature;
 use Illuminate\Http\Request;
 
 
@@ -53,7 +54,9 @@ class AboutUsController extends Controller
             ]);
         }
 
-        return view('admin.ingaz.about_us.index', compact('about'));
+        $featuresList = Feature::all();
+
+        return view('admin.ingaz.about_us.index', compact('about', 'featuresList'));
     }
 
 

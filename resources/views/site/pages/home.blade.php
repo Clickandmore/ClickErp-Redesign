@@ -91,7 +91,7 @@
 
         .services-container {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 20px;
             padding: 20px;
 
@@ -231,142 +231,89 @@
         }
     }
 
-    /* about-services redesign */
-    .about-services {
-        position: relative;
-        margin-top: 32px;
-        padding: 34px 28px;
-        border-radius: 24px;
-        background: radial-gradient(circle at 12% 18%, rgba(14, 165, 233, 0.12) 0, rgba(14, 165, 233, 0) 42%), radial-gradient(circle at 88% 86%, rgba(16, 185, 129, 0.14) 0, rgba(16, 185, 129, 0) 46%), #ffffff;
-        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
-        border: 1px solid #e5e7eb;
-        overflow: hidden;
-        direction: rtl;
+    .about-section {
+        padding: 70px 0;
+        background: linear-gradient(180deg, #f8fafc 0%, #ffffff 90%);
     }
 
-    .about-services::before,
-    .about-services::after {
-        content: "";
-        position: absolute;
-        border-radius: 50%;
-        filter: blur(30px);
-        opacity: 0.35;
-        pointer-events: none;
+    .about-section .container {
+        background: #fff;
+        border-radius: 32px;
+        padding: 40px 30px;
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
     }
 
-    .about-services::before {
-        width: 260px;
-        height: 260px;
-        background: rgba(14, 165, 233, 0.2);
-        top: -140px;
-        right: -100px;
-    }
-
-    .about-services::after {
-        width: 300px;
-        height: 300px;
-        background: rgba(16, 185, 129, 0.2);
-        bottom: -140px;
-        left: -90px;
-    }
-
-    .about-services .services-grid {
-        position: relative;
-        z-index: 1;
+    .about-content {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 24px;
-    }
-
-    .about-services .about-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-inline-end: 6px solid var(--accent, #2563eb);
-        border-radius: 18px;
-        padding: 24px;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        height: 100%;
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
-        transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-    }
-
-    .about-services .about-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
-        border-color: rgba(0, 0, 0, 0.08);
-    }
-
-    .about-services .about-card__header {
-        display: flex;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 36px;
         align-items: center;
-        justify-content: space-between;
-        gap: 12px;
     }
 
-    .about-services .about-card__number {
+    .about-text .about-badge {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
-        width: 56px;
-        height: 56px;
-        border-radius: 18px;
-        background: var(--accent-soft, #e0f2fe);
-        color: var(--accent, #2563eb);
-        font-size: 24px;
-        font-weight: 900;
+        gap: 8px;
+        padding: 6px 16px;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 14px;
+        background: rgba(91, 34, 130, 0.08);
+        color: var(--mainColor);
+        margin-bottom: 12px;
     }
 
-    .about-services .about-card__icon {
-        width: 64px;
-        height: 64px;
-        border-radius: 18px;
-        display: grid;
-        place-items: center;
-        background: linear-gradient(145deg, var(--accent, #2563eb), rgba(37, 99, 235, 0.85));
-        color: #fff;
-        font-size: 28px;
-        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.12);
-    }
-
-    .about-services .about-card h4 {
-        margin: 0;
-        font-size: 22px;
+    .about-text h2 {
+        font-size: 32px;
         font-weight: 800;
-        color: #0f172a;
+        color: #111827;
+        margin-bottom: 16px;
+        line-height: 1.4;
     }
 
-    .about-services .about-card p {
-        margin: 0;
-        color: #475569;
-        line-height: 1.8;
+    .about-text .about-description {
+        color: #4b5563;
+        line-height: 1.9;
         font-size: 16px;
     }
 
-    .about-services .theme-sky {
-        --accent: #0ea5e9;
-        --accent-soft: #e0f2fe;
+    .about-image {
+        position: relative;
+        padding: 18px;
+        border-radius: 32px;
+        background: linear-gradient(135deg, rgba(147, 197, 253, 0.25), rgba(167, 139, 250, 0.2));
     }
 
-    .about-services .theme-amber {
-        --accent: #f97316;
-        --accent-soft: #fff2e5;
+    .about-image::after {
+        content: "";
+        position: absolute;
+        inset: 18px;
+        border-radius: 24px;
+        border: 1px dashed rgba(255, 255, 255, 0.5);
+        pointer-events: none;
     }
 
-    .about-services .theme-rose {
-        --accent: #f43f5e;
-        --accent-soft: #ffe4e8;
+    .about-image img {
+        width: 100%;
+        display: block;
+        border-radius: 24px;
+        position: relative;
+        z-index: 1;
+        object-fit: cover;
     }
 
-    @media (max-width: 992px) {
-        .about-services .services-grid {
-            grid-template-columns: repeat(auto-fit, minmax(100%, 1fr));
-            gap: 18px;
+    .about-cards {
+        margin-top: 40px;
+        margin-bottom: 32px;
+    }
+
+    @media (max-width: 768px) {
+        .about-section .container {
+            padding: 32px 20px;
         }
 
-        .about-services {
-            padding: 22px 16px;
+        .about-text h2 {
+            font-size: 26px;
         }
     }
 </style>
@@ -483,8 +430,9 @@
         <div class="services-container">
             @php
                 $colors = ['green', 'blue', 'red', 'orange', 'purple', 'teal'];
+                $displayWhatDos = ($whatDos ?? collect())->take(3);
             @endphp
-            @forelse($whatDos as $whatDo)
+            @forelse($displayWhatDos as $whatDo)
                 @php
                     $color = $colors[array_rand($colors)];
                 @endphp
@@ -550,13 +498,6 @@
                         </ul>
                     </div>
                 </a>
-                <a href="{{ route('site.all-workers.index') }}?type=transfer">
-                    <div class="service-card orange">
-                        <div class="icon orange">
-                            <i class="fa-solid fa-stopwatch"></i>
-                        </div>
-                    </div>
-                </a>
             @endforelse
         </div>
         <!-- التحذير -->
@@ -570,42 +511,28 @@
         </div>
     </section>
 
+    @php
+        $aboutTitle = optional($abouts)->title ?? __('ingaz.about-us');
+        $aboutDescription = optional($abouts)->description ?? __('ingaz.about_description');
+        $aboutImage = optional($abouts)->image ? showFile($abouts->image) : asset('site/assets/images/about.webp');
+    @endphp
     <!-- about sec  -->
     <section class="about-section" id="about">
         <div class="container">
-            <!-- About Content -->
             <div class="about-content">
                 <div class="about-text">
-                    {{-- @dd($abouts) --}}
-                    @if (isset($abouts))
-                        <h2>
-                            {{ $abouts->title }}
-                        </h2>
-                    @else
-                        <h2>
-                            {{ __('ingaz.about-us') }}
-                        </h2>
-                    @endif
-                    @if (isset($abouts))
-                        <h2>
-                            {!! $abouts->description !!}
-                        </h2>
-                    @else
-                        <p>
-                            {{ __('ingaz.about_description') }}
-                        </p>
-                    @endif
+                    <span class="about-badge">
+                        <i class="fa-solid fa-building"></i>
+                        {{ __('web.aboutUs') }}
+                    </span>
+                    <h2>{{ $aboutTitle }}</h2>
+                    <div class="about-description">
+                        {!! $aboutDescription !!}
+                    </div>
                 </div>
-                @if (isset($abouts))
-                    <div class="about-image">
-                        <img src="{{ showFile($abouts->image) }}" alt="{{ __('ingaz.about_us') }}" />
-                    </div>
-                @else
-                    <div class="about-image">
-                        <img src="{{ asset('site/assets/images/about.webp') }}" alt="{{ __('ingaz.about_us') }}" />
-                    </div>
-                @endif
-                <!-- About Cards -->
+                <div class="about-image">
+                    <img src="{{ $aboutImage }}" alt="{{ $aboutTitle }}" />
+                </div>
             </div>
             <div class="about-cards">
                 @forelse($features as $feature)
@@ -642,106 +569,8 @@
                     </div>
                 @endforelse
             </div>
-
-            <div class="about-services">
-                <div class="services-grid">
-                    @if ($abouts->vision)
-                        <div class="about-card theme-sky">
-                            <div class="about-card__header">
-                                <span class="about-card__number">01</span>
-                                <div class="about-card__icon">
-                                    <i class="fa-solid fa-headset"></i>
-                                </div>
-                            </div>
-                            <h4 class="about-card__title">رؤيتنا</h4>
-                            <p>
-                                {!! $abouts->vision !!}
-                            </p>
-                        </div>
-                    @else
-                        <div class="about-card theme-sky">
-                            <div class="about-card__header">
-                                <span class="about-card__number">01</span>
-                                <div class="about-card__icon">
-                                    <i class="fa-solid fa-headset"></i>
-                                </div>
-                            </div>
-                            <h4 class="about-card__title">رؤيتنا</h4>
-                            <p>
-                                أن نكون الخيار الأول للاستقدام في المملكة العربية السعودية، وذلك بالتفرد بتقديم أجود الخدمات
-                                وانتقاء أجود الكفاءات، والحرص على راحة العملاء وحفظ حقوقهم، ونحقق ذلك بعد اكتساب ثقة العملاء
-                                وتوصيتهم بنا لمن حولهم.
-                            </p>
-                        </div>
-                    @endif
-
-                    @if ($abouts->mission)
-                        <div class="about-card theme-amber">
-                            <div class="about-card__header">
-                                <span class="about-card__number">02</span>
-                                <div class="about-card__icon">
-                                    <i class="fa-solid fa-laptop"></i>
-                                </div>
-                            </div>
-                            <h4 class="about-card__title">رسالتنا</h4>
-                            <p>
-                                {!! $abouts->mission !!}
-                            </p>
-                        </div>
-                    @else
-                        <div class="about-card theme-amber">
-                            <div class="about-card__header">
-                                <span class="about-card__number">02</span>
-                                <div class="about-card__icon">
-                                    <i class="fa-solid fa-laptop"></i>
-                                </div>
-                            </div>
-                            <h4 class="about-card__title">رسالتنا</h4>
-                            <p>
-                                "إنسانية" نفتخر بعملنا كونه يسهم بتوفير موارد ودخل جيّد لأسرة وفرد بحاجة لهذه الموارد لدعم
-                                أسرته
-                                وبناء مستقبله، وبالمقابل توفير سبل الراحة للأسرة السعودية والمقيمة في وطننا المعطاء من خلال
-                                تقديم خدمات العاملة المنزلية والعمالة الوافدة وذلك ضمن اطار قانوني ينظم العلاقة بين كافة
-                                الأطراف
-                                ويحفظ حقوق الجميع في وطننا المعطاء. "احتياجاتكم أولوياتنا".
-                            </p>
-                        </div>
-                    @endif
-
-                    @if ($abouts->value)
-                        <div class="about-card theme-rose">
-                            <div class="about-card__header">
-                                <span class="about-card__number">03</span>
-                                <div class="about-card__icon">
-                                    <i class="fa-solid fa-users-gear"></i>
-                                </div>
-                            </div>
-                            <h4 class="about-card__title">قيمنا</h4>
-                            <p>
-                               {!! $abouts->value !!}
-                            </p>
-                        </div>
-                    @else
-                        <div class="about-card theme-rose">
-                            <div class="about-card__header">
-                                <span class="about-card__number">03</span>
-                                <div class="about-card__icon">
-                                    <i class="fa-solid fa-users-gear"></i>
-                                </div>
-                            </div>
-                            <h4 class="about-card__title">قيمنا</h4>
-                            <p>
-                                قيمنا تركز على رضى العميل، حيث نولي الأولوية للجودة والكمال في كل خدماتنا. نحن روح الفريق
-                                أداة
-                                أساسية لتحقيق الأهداف، حيث يعمل فريقنا معًا لتحقيق النجاح. نحرص على السرعة والإنجاز لتلبية
-                                احتياجات عملائنا في الوقت المحدد. نعتبر النزاهة والشفافية أساسية في كل تعاملاتنا.
-                            </p>
-                        </div>
-                    @endif
-                </div>
-            </div>
+        </div>
     </section>
-
     <section class="countries">
         <div class="container">
             <div class="headTitle text-center">
@@ -1098,7 +927,8 @@
                 <div class="swiper-wrapper">
                     @forelse($services as $service)
                         <div class="swiper-slide">
-                            <a href="{{ $service->service_link ? $service->service_link : '#' }}" class="service d-flex flex-column justify-content-center"
+                            <a href="{{ $service->service_link ? $service->service_link : '#' }}"
+                                class="service d-flex flex-column justify-content-center"
                                 style="background: url('{{ showFile($service->image) }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-passport"></i>
                                 <h3 class="serviceTitle">{{ $service->title }}</h3>

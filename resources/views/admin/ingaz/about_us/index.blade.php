@@ -118,6 +118,7 @@
             </div>
 
         @endforeach
+
         @foreach (config('translatable.locales') as $locale)
             @php
                 $translation = $about?->translate($locale);
@@ -136,6 +137,7 @@
             </div>
 
         @endforeach
+
         <div class="col-6">
             <label for="TextInput" class="form-label">{{__('ingaz.image')}} </label>
             <input type="file" data-default-file="{{isset($abouts) ? showFile($abouts->image) : ''}}"
@@ -162,6 +164,39 @@
             </div>
         </div>
     </form>
+
+    <div class="card mt-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{{ helperTrans('ingaz.features') }}</h5>
+            @if($featuresList->count() < 6)
+                <button type="button" class="btn btn-success addButton"
+                        data-bs-toggle="modal" data-bs-target="#createModal"
+                        model-title="{{ helperTrans('ingaz.features') }}"
+                        model-route="{{ route('features.create') }}">
+                    <i class="fa fa-plus-circle"></i> {{ helperTrans('ingaz.features') }}
+                </button>
+            @endif
+        </div>
+        <div class="card-body">
+            @forelse($featuresList as $feature)
+                <div class="d-flex align-items-start justify-content-between border-bottom py-3">
+                    <div class="me-3">
+                        <span class="fs-3 text-primary"><i class="{{ $feature->image }}"></i></span>
+                    </div>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">{{ $feature->title }}</h6>
+                        <p class="mb-0 text-muted">{{ $feature->description ?? '' }}</p>
+                    </div>
+                    <div class="text-nowrap ms-3">
+                        {!! editButton(route('features.edit', $feature->id), $feature->title) !!}
+                        {!! deleteButton(route('features.destroy', $feature->id)) !!}
+                    </div>
+                </div>
+            @empty
+                <p class="text-muted mb-0">{{ __('web.no_data_found') }}</p>
+            @endforelse
+        </div>
+    </div>
 
 @endsection
 
