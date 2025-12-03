@@ -30,6 +30,7 @@ class ServiceRequest extends MainRequest
             'description:en' => 'required',
             'title:ar' => 'required',
             'description:ar' => 'required',
+            'service_link' => 'nullable|url',
         ];
     }
 }

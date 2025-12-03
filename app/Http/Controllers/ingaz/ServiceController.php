@@ -15,7 +15,7 @@ class ServiceController extends Controller
 {
 
     public $folderPath = "admin.ingaz.services";
-    public $postData = ["image", 'title:ar', 'title:en', "description:ar", "description:en"];
+    public $postData = ["image", 'title:ar', 'title:en', "description:ar", "description:en", "service_link"];
     public $mainRoute = "services";
 
     function __construct()

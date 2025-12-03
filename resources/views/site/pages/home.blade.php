@@ -1098,7 +1098,7 @@
                 <div class="swiper-wrapper">
                     @forelse($services as $service)
                         <div class="swiper-slide">
-                            <a href="#" class="service d-flex flex-column justify-content-center"
+                            <a href="{{ $service->service_link ? $service->service_link : '#' }}" class="service d-flex flex-column justify-content-center"
                                 style="background: url('{{ showFile($service->image) }}') no-repeat center/cover;">
                                 <i class="fa-solid fa-passport"></i>
                                 <h3 class="serviceTitle">{{ $service->title }}</h3>
