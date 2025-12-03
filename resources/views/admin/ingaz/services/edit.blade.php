@@ -27,6 +27,14 @@
                     value="{{$obj->translate($locale)->description}}">
             </div>
         @endforeach
+
+        <div class="col-12">
+            <label for="TextInput" class="form-label">
+                {{ helperTrans('ingaz.service_link') }} ({{ helperTrans('ingaz.optional') }})
+            </label>
+            <input type="url" name="service_link" value="{{ $obj->service_link }}" class="form-control" placeholder="https://example.com/service">
+        </div>
+
         <div class="col-12 modal-footer">
             <button class="btn btn-primary" type="submit">{{__("buttons.save")}}</button>
             <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">{{__("buttons.close")}}</button>
