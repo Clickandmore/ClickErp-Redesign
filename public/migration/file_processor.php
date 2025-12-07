@@ -204,6 +204,54 @@ try {
             exit();
             break;
 
+        case 'migrate_job_titles':
+            ob_clean();
+            echo json_encode(migrateJobTitles(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_religions':
+            ob_clean();
+            echo json_encode(migrateReligions(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_social_status':
+            ob_clean();
+            echo json_encode(migrateSocialStatus(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_skills':
+            ob_clean();
+            echo json_encode(migrateSkills(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_experience':
+            ob_clean();
+            echo json_encode(migrateExperience(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_ages':
+            ob_clean();
+            echo json_encode(migrateAges(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_languages':
+            ob_clean();
+            echo json_encode(migrateLanguages(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_office_translations':
+            ob_clean();
+            echo json_encode(migrateOfficeTranslations(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
         case 'migrate_contract_logs':
             ob_clean();
             echo json_encode(migrateContractLogs(), JSON_UNESCAPED_UNICODE);
@@ -2006,6 +2054,496 @@ function cleanPhoneNumber($phone) {
     }
 
     return $phone;
+}
+
+/**
+ * ????? ?? office_translations ?? recruitment_office_translations
+ */
+function migrateOfficeTranslations() {
+    try {
+        global $config;
+
+        $oldDbName = $_POST['old_db_name'] ?? $_GET['old_db_name'] ?? 'platinum_old';
+
+        $oldDb = new PDO(
+            "mysql:host={$config['host']};port={$config['port']};dbname={$oldDbName};charset=utf8mb4",
+            $config['username'],
+            $config['password'],
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+            ]
+        );
+
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        $translations = $oldDb->query("SELECT * FROM office_translations")->fetchAll(PDO::FETCH_ASSOC);
+        if (empty($translations)) {
+            return [
+                'success' => true,
+                'message' => 'لا يوجد مكاتب مترجمة لنقلها',
+                'total' => 0,
+                'inserted' => 0,
+                'updated' => 0,
+                'skipped' => 0
+            ];
+        }
+
+        $existingOffices = $newDb->query("SELECT id FROM recruitment_offices")->fetchAll(PDO::FETCH_COLUMN);
+        $officeLookup = array_fill_keys(array_map('intval', $existingOffices), true);
+
+        $sql = "INSERT INTO recruitment_office_translations (id, rec_office_id, title, locale, created_at, updated_at)
+                VALUES (:id, :rec_office_id, :title, :locale, :created_at, :updated_at)
+                ON DUPLICATE KEY UPDATE
+                    rec_office_id = VALUES(rec_office_id),
+                    title = VALUES(title),
+                    locale = VALUES(locale),
+                    created_at = VALUES(created_at),
+                    updated_at = VALUES(updated_at)";
+        $stmt = $newDb->prepare($sql);
+
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
+
+        $newDb->beginTransaction();
+        try {
+            foreach ($translations as $row) {
+                $recOfficeId = isset($row['office_id']) ? (int)$row['office_id'] : null;
+                if (!$recOfficeId || !isset($officeLookup[$recOfficeId])) {
+                    $skipped++;
+                    continue;
+                }
+
+                $params = [
+                    ':id' => $row['id'] ?? null,
+                    ':rec_office_id' => $recOfficeId,
+                    ':title' => $row['name'] ?? null,
+                    ':locale' => $row['lang'] ?? null,
+                    ':created_at' => $row['created_at'] ?? null,
+                    ':updated_at' => $row['updated_at'] ?? null,
+                ];
+
+                $stmt->execute($params);
+                $affected = $stmt->rowCount();
+                if ($affected === 1) {
+                    $inserted++;
+                } elseif ($affected === 2) {
+                    $updated++;
+                }
+            }
+            $newDb->commit();
+        } catch (Exception $e) {
+            $newDb->rollBack();
+            throw $e;
+        }
+
+        return [
+            'success' => true,
+            'message' => 'تم نقل ترجمات مكاتب الاستقدام بنجاح',
+            'total' => count($translations),
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'skipped' => $skipped
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل النقل: ' . $e->getMessage()
+        ];
+    }
+}
+
+function migrateJobTitles() {
+    try {
+        global $config;
+
+        $oldDbName = $_POST['old_db_name'] ?? $_GET['old_db_name'] ?? 'platinum_old';
+
+        $oldDb = new PDO(
+            "mysql:host={$config['host']};port={$config['port']};dbname={$oldDbName};charset=utf8mb4",
+            $config['username'],
+            $config['password'],
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+            ]
+        );
+
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        $rows = $oldDb->query("SELECT * FROM recruitment_form_occupation")->fetchAll(PDO::FETCH_ASSOC);
+        if (empty($rows)) {
+            return [
+                'success' => true,
+                'message' => 'لا توجد بيانات مهن لنقلها',
+                'total' => 0,
+                'inserted' => 0,
+                'updated' => 0
+            ];
+        }
+
+        $jobSql = "INSERT INTO job_titles (id, image, created_at, updated_at)
+                   VALUES (:id, :image, :created_at, :updated_at)
+                   ON DUPLICATE KEY UPDATE
+                        image = VALUES(image),
+                        created_at = VALUES(created_at),
+                        updated_at = VALUES(updated_at)";
+        $jobStmt = $newDb->prepare($jobSql);
+
+        $trSql = "INSERT INTO job_titles_translations (id, job_title_id, title, locale, created_at, updated_at)
+                  VALUES (:id, :job_title_id, :title, :locale, :created_at, :updated_at)
+                  ON DUPLICATE KEY UPDATE
+                        job_title_id = VALUES(job_title_id),
+                        title = VALUES(title),
+                        locale = VALUES(locale),
+                        created_at = VALUES(created_at),
+                        updated_at = VALUES(updated_at)";
+        $trStmt = $newDb->prepare($trSql);
+
+        $inserted = 0;
+        $updated = 0;
+
+        $newDb->beginTransaction();
+        try {
+            foreach ($rows as $row) {
+                $id = $row['id'] ?? null;
+                if ($id === null) {
+                    continue;
+                }
+
+                $jobParams = [
+                    ':id' => $id,
+                    ':image' => '',
+                    ':created_at' => $row['created_at'] ?? null,
+                    ':updated_at' => $row['updated_at'] ?? null,
+                ];
+
+                $jobStmt->execute($jobParams);
+                $affected = $jobStmt->rowCount();
+                if ($affected === 1) {
+                    $inserted++;
+                } elseif ($affected === 2) {
+                    $updated++;
+                }
+
+                $trParams = [
+                    ':id' => $id,
+                    ':job_title_id' => $id,
+                    ':title' => $row['name'] ?? null,
+                    ':locale' => 'ar',
+                    ':created_at' => $row['created_at'] ?? null,
+                    ':updated_at' => $row['updated_at'] ?? null,
+                ];
+                $trStmt->execute($trParams);
+            }
+
+            $newDb->commit();
+        } catch (Exception $e) {
+            $newDb->rollBack();
+            throw $e;
+        }
+
+        return [
+            'success' => true,
+            'message' => 'تم نقل المهن بنجاح',
+            'total' => count($rows),
+            'inserted' => $inserted,
+            'updated' => $updated
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل نقل المهن: ' . $e->getMessage()
+        ];
+    }
+}
+
+function migrateReligions() {
+    try {
+        global $config;
+
+        $oldDbName = $_POST['old_db_name'] ?? $_GET['old_db_name'] ?? 'platinum_old';
+
+        $oldDb = new PDO(
+            "mysql:host={$config['host']};port={$config['port']};dbname={$oldDbName};charset=utf8mb4",
+            $config['username'],
+            $config['password'],
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+            ]
+        );
+
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        $rows = $oldDb->query("SELECT * FROM recruitment_form_religions")->fetchAll(PDO::FETCH_ASSOC);
+        if (empty($rows)) {
+            return [
+                'success' => true,
+                'message' => 'لا توجد بيانات أديان لنقلها',
+                'total' => 0,
+                'inserted' => 0,
+                'updated' => 0
+            ];
+        }
+
+        $relSql = "INSERT INTO religions (id, is_show, created_at, updated_at)
+                   VALUES (:id, :is_show, :created_at, :updated_at)
+                   ON DUPLICATE KEY UPDATE
+                        is_show = VALUES(is_show),
+                        created_at = VALUES(created_at),
+                        updated_at = VALUES(updated_at)";
+        $relStmt = $newDb->prepare($relSql);
+
+        $trSql = "INSERT INTO religions_translations (id, religion_id, title, locale, created_at, updated_at)
+                  VALUES (:id, :religion_id, :title, :locale, :created_at, :updated_at)
+                  ON DUPLICATE KEY UPDATE
+                        religion_id = VALUES(religion_id),
+                        title = VALUES(title),
+                        locale = VALUES(locale),
+                        created_at = VALUES(created_at),
+                        updated_at = VALUES(updated_at)";
+        $trStmt = $newDb->prepare($trSql);
+
+        $inserted = 0;
+        $updated = 0;
+
+        $newDb->beginTransaction();
+        try {
+            foreach ($rows as $row) {
+                $id = $row['id'] ?? null;
+                if ($id === null) {
+                    continue;
+                }
+
+                $relParams = [
+                    ':id' => $id,
+                    ':is_show' => 1,
+                    ':created_at' => $row['created_at'] ?? null,
+                    ':updated_at' => $row['updated_at'] ?? null,
+                ];
+
+                $relStmt->execute($relParams);
+                $affected = $relStmt->rowCount();
+                if ($affected === 1) {
+                    $inserted++;
+                } elseif ($affected === 2) {
+                    $updated++;
+                }
+
+                $trParams = [
+                    ':id' => $id,
+                    ':religion_id' => $id,
+                    ':title' => $row['name'] ?? null,
+                    ':locale' => 'ar',
+                    ':created_at' => $row['created_at'] ?? null,
+                    ':updated_at' => $row['updated_at'] ?? null,
+                ];
+                $trStmt->execute($trParams);
+            }
+
+            $newDb->commit();
+        } catch (Exception $e) {
+            $newDb->rollBack();
+            throw $e;
+        }
+
+        return [
+            'success' => true,
+            'message' => 'تم نقل الأديان بنجاح',
+            'total' => count($rows),
+            'inserted' => $inserted,
+            'updated' => $updated
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل نقل الأديان: ' . $e->getMessage()
+        ];
+    }
+}
+
+function migrateSocialStatus() {
+    return migrateLookupWithTranslations('recruitment_form_social_status', 'social_status', 'social_status_translations', 'name', 'social_status_id');
+}
+
+function migrateSkills() {
+    return migrateLookupWithTranslations('skills', 'skills', 'skills_translations', 'name', 'skill_id');
+}
+
+function migrateExperience() {
+    return migrateLookupWithTranslations('recruitment_form_experience', 'experience', 'experience_translations', 'name', 'experience_id');
+}
+
+function migrateAges() {
+    return migrateLookupWithTranslations('recruitment_form_ages', 'ages', 'ages_translations', 'name', 'age_id');
+}
+
+function migrateLanguages() {
+    return migrateLookupWithTranslations('recruitment_form_languages', 'languages', 'languages_translations', 'name', 'language_id');
+}
+
+function migrateLookupWithTranslations($oldTable, $baseTable, $transTable, $titleField, $fkColumn, $oldDbName = null, $locale = 'ar') {
+    try {
+        global $config;
+
+        $oldDbName = $oldDbName ?: ($_POST['old_db_name'] ?? $_GET['old_db_name'] ?? 'platinum_old');
+
+        $oldDb = new PDO(
+            "mysql:host={$config['host']};port={$config['port']};dbname={$oldDbName};charset=utf8mb4",
+            $config['username'],
+            $config['password'],
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+            ]
+        );
+
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        $rows = $oldDb->query("SELECT * FROM {$oldTable}")->fetchAll(PDO::FETCH_ASSOC);
+        if (empty($rows)) {
+            return [
+                'success' => true,
+                'message' => 'لا توجد بيانات للنقل',
+                'total' => 0,
+                'inserted' => 0,
+                'updated' => 0
+            ];
+        }
+
+        $baseColumns = getTableColumnsLocal($newDb, $baseTable);
+        $transColumns = getTableColumnsLocal($newDb, $transTable);
+
+        $baseSql = buildUpsertSql($baseTable, $baseColumns);
+        $baseStmt = $newDb->prepare($baseSql);
+
+        $transSql = buildUpsertSql($transTable, $transColumns);
+        $transStmt = $newDb->prepare($transSql);
+
+        $inserted = 0;
+        $updated = 0;
+
+        $newDb->beginTransaction();
+        try {
+            foreach ($rows as $row) {
+                $baseData = [];
+                foreach ($baseColumns as $col) {
+                    switch ($col) {
+                        case 'id':
+                            $baseData[$col] = $row['id'] ?? null;
+                            break;
+                        case 'is_show':
+                            $baseData[$col] = 1;
+                            break;
+                        case 'title':
+                            $baseData[$col] = $row[$titleField] ?? null;
+                            break;
+                        case 'created_at':
+                        case 'updated_at':
+                            $baseData[$col] = $row[$col] ?? null;
+                            break;
+                        default:
+                            $baseData[$col] = $row[$col] ?? null;
+                    }
+                }
+
+                $baseStmt->execute(prefixPlaceholders($baseColumns, $baseData));
+                $affected = $baseStmt->rowCount();
+                if ($affected === 1) {
+                    $inserted++;
+                } elseif ($affected === 2) {
+                    $updated++;
+                }
+
+                if (!empty($transColumns)) {
+                    $transData = [];
+                    foreach ($transColumns as $col) {
+                        switch ($col) {
+                            case 'id':
+                                $transData[$col] = $row['id'] ?? null;
+                                break;
+                            case $fkColumn:
+                                $transData[$col] = $row['id'] ?? null;
+                                break;
+                            case 'title':
+                                $transData[$col] = $row[$titleField] ?? null;
+                                break;
+                            case 'locale':
+                                $transData[$col] = $locale;
+                                break;
+                            case 'created_at':
+                            case 'updated_at':
+                                $transData[$col] = $row[$col] ?? null;
+                                break;
+                            default:
+                                $transData[$col] = $row[$col] ?? null;
+                        }
+                    }
+                    $transStmt->execute(prefixPlaceholders($transColumns, $transData));
+                }
+            }
+
+            $newDb->commit();
+        } catch (Exception $e) {
+            $newDb->rollBack();
+            throw $e;
+        }
+
+        return [
+            'success' => true,
+            'message' => 'تم النقل بنجاح',
+            'total' => count($rows),
+            'inserted' => $inserted,
+            'updated' => $updated
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل النقل: ' . $e->getMessage()
+        ];
+    }
+}
+
+function getTableColumnsLocal(PDO $pdo, $table) {
+    $stmt = $pdo->query("DESCRIBE `{$table}`");
+    return $stmt ? $stmt->fetchAll(PDO::FETCH_COLUMN) : [];
+}
+
+function buildUpsertSql($table, array $columns) {
+    if (empty($columns)) {
+        throw new Exception("لا يمكن تحديد أعمدة الجدول {$table}");
+    }
+    $cols = array_map(fn($c) => "`$c`", $columns);
+    $placeholders = array_map(fn($c) => ':' . $c, $columns);
+    $updates = [];
+    foreach ($columns as $col) {
+        if ($col === 'id') {
+            continue;
+        }
+        $updates[] = "`$col` = VALUES(`$col`)";
+    }
+    if (empty($updates)) {
+        $updates[] = "`id` = `id`";
+    }
+    return "INSERT INTO `{$table}` (" . implode(', ', $cols) . ") VALUES (" . implode(', ', $placeholders) . ") ON DUPLICATE KEY UPDATE " . implode(', ', $updates);
+}
+
+function prefixPlaceholders(array $columns, array $data) {
+    $result = [];
+    foreach ($columns as $col) {
+        $result[':' . $col] = $data[$col] ?? null;
+    }
+    return $result;
 }
 
 function get_db_connection() {

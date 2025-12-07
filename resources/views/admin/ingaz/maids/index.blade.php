@@ -85,6 +85,8 @@
                 'reserved' => 0,
                 'in_accommodation' => 0,
                 'backout' => 0,
+                'suspended' => 0,
+                'deported' => 0,
                 'pinned' => 0,
             ];
         @endphp
@@ -191,6 +193,30 @@
                                 </div>
                                 <span class="stats-icon bg-secondary-subtle text-secondary"><i
                                         class="fas fa-thumbtack"></i></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-2 col-md-4 col-sm-6">
+                        <div class="card stats-card h-100 filter-stat-card" data-card="suspended" data-status="suspended">
+                            <div class="card-body d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="text-muted small fw-semibold">{{ helperTrans('ingaz.suspended_maids') }}
+                                    </div>
+                                    <div class="fs-4 fw-bold text-dark">{{ number_format($stats['suspended']) }}</div>
+                                </div>
+                                <span class="stats-icon bg-dark-subtle text-dark"><i class="fas fa-ban"></i></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-2 col-md-4 col-sm-6">
+                        <div class="card stats-card h-100 filter-stat-card" data-card="deported" data-status="deported">
+                            <div class="card-body d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="text-muted small fw-semibold">{{ helperTrans('ingaz.deported_maids') }}
+                                    </div>
+                                    <div class="fs-4 fw-bold text-secondary">{{ number_format($stats['deported']) }}</div>
+                                </div>
+                                <span class="stats-icon bg-secondary-subtle text-secondary"><i class="fas fa-plane-departure"></i></span>
                             </div>
                         </div>
                     </div>

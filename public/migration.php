@@ -202,7 +202,7 @@
             <div style="background: #fff3cd; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
                 <h6 style="color: #856404; margin-bottom: 10px;">📋 تطابق الأعمدة:</h6>
                 <div style="font-size: 13px; color: #856404;">
-                    <strong>من platinum.nationalities إلى:</strong><br>
+                    <strong>من platinum_old.nationalities إلى:</strong><br>
                     • platinum_new.nationalities: id, flag_image→logo, salary→price, sponsor_salary→service_transportation_cost<br>
                     • platinum_new.nationalities_translations: name→title, sub_title (فارغ)<br>
                     <strong>أعمدة إضافية:</strong> code, key_comment, rank, key_code, status, apper_home, expected_duration, period
@@ -220,7 +220,7 @@
 
         <!-- قسم المكاتب الخارجية (Offices) -->
         <div class="section">
-            <h3>4️⃣ نقل المكاتب الخارجية</h3>
+            <h3> 4️⃣ نقل المكاتب الخارجية </h3>
 
             <div style="background: #e0f7fa; border-radius: 8px; padding: 15px; margin-bottom: 15px; color: #006064;">
                 <h6 style="margin-bottom: 10px;">🏢 تطابق الأعمدة (platinum.offices → platinum_new.recruitment_offices)</h6>
@@ -235,6 +235,7 @@
             <div class="buttons">
                 <button onclick="analyzeOffices(this)" class="btn-info">تحليل المكاتب</button>
                 <button onclick="migrateOffices(this)" class="btn-success">نقل المكاتب</button>
+                <button onclick="migrateOfficeTranslationsOnly(this)" class="btn-success" style="background:#6f42c1;">نقل ترجمات المكاتب</button>
                 <button onclick="checkOffices()" class="btn-info">فحص النتيجة</button>
                 <button onclick="exportOfficesCsv()" class="btn-info">تصدير CSV</button>
             </div>
@@ -858,7 +859,7 @@
                     export_table: 'nationalities',
                     old_db_host: '127.0.0.1',
                     old_db_port: '8889',
-                    old_db_name: 'platinum',
+                    old_db_name: 'platinum_old',
                     old_db_user: 'root',
                     old_db_pass: 'root',
                     db_host: '127.0.0.1',
@@ -1003,7 +1004,7 @@
                 db_port: '8889',
                 db_user: 'root',
                 db_pass: 'root',
-                old_db: 'platinum',
+                old_db: 'platinum_old',
                 new_db: 'platinum_new'
             });
 
@@ -1073,7 +1074,7 @@
                 db_port: '8889',
                 db_user: 'root',
                 db_pass: 'root',
-                old_db: 'platinum',
+                old_db: 'platinum_old',
                 new_db: 'platinum_new'
             });
 
@@ -1173,6 +1174,44 @@
                 .catch(error => showResult('offices_result', '❌ خطأ: ' + error.message, false));
         }
 
+        function migrateOfficeTranslationsOnly(button) {
+            const btn = button instanceof HTMLElement ? button : null;
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'جاري الترحيل...';
+            }
+
+            fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=migrate_office_translations'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lines = [
+                            data.message || 'تم نقل الترجمات بنجاح',
+                            `إجمالي: ${data.total || 0}`,
+                            `تمت الإضافة: ${data.inserted || 0}`,
+                            `تم التحديث: ${data.updated || 0}`,
+                            `تم التخطي: ${data.skipped || 0}`
+                        ];
+                        showResult('offices_result', lines.join('\n'), true);
+                        updateStats();
+                    } else {
+                        showResult('offices_result', 'فشل نقل الترجمات: ' + (data.message || 'غير معروف'), false);
+                    }
+                })
+                .catch(error => showResult('offices_result', 'خطأ: ' + error.message, false))
+                .finally(() => {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = 'نقل ترجمات المكاتب';
+                    }
+                });
+        }
         function exportOfficesCsv() {
             const params = new URLSearchParams({
                 action: 'export_csv',
@@ -1186,54 +1225,33 @@
             window.open('migration/migrate_offices.php?' + params.toString(), '_blank');
         }
 
-        // وظائف المهن Job Titles
+        // قسم المهن Job Titles
         async function transferJobTitles() {
             const btn = event.target;
             btn.disabled = true;
-            btn.textContent = 'جاري التصدير...';
+            btn.textContent = 'جاري النقل...';
 
             try {
-                // 1) تصدير من الجدول القديم recruitment_form_occupation
-                const exportParams = {
-                    action: 'export_from_old_db',
-                    export_table: 'recruitment_form_occupation',
-                    old_db_host: '127.0.0.1',
-                    old_db_port: '8889',
-                    old_db_name: 'platinum',
-                    old_db_user: 'root',
-                    old_db_pass: 'root'
-                };
-
-                const exportResponse = await fetch('migration/file_processor.php', {
+                const response = await fetch('migration/file_processor.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: new URLSearchParams(exportParams)
+                    body: 'action=migrate_job_titles'
                 });
-                const exportData = await exportResponse.json();
-                if (!exportData.success) throw new Error(exportData.message || 'فشل التصدير');
+                const data = await response.json();
 
-                // 2) معالجة ورفع للجدولين job_titles و job_titles_translations
-                btn.textContent = 'جاري المعالجة والرفع...';
-                const processParams = {
-                    action: 'process_exported_file',
-                    exported_file: exportData.file_name,
-                    table_type: 'job_titles'
-                };
-                const processResponse = await fetch('migration/file_processor.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: new URLSearchParams(processParams)
-                });
-                const processData = await processResponse.json();
-
-                if (processData.success) {
-                    showResult('jobs_result', `✅ تم نقل ${processData.processed || 0} مهنة مع الترجمات`, true);
+                if (data.success) {
+                    const lines = [
+                        data.message || 'تم نقل المهن بنجاح',
+                        `إجمالي: ${data.total || 0}`,
+                        `تمت الإضافة: ${data.inserted || 0}`,
+                        `تم التحديث: ${data.updated || 0}`
+                    ];
+                    showResult('jobs_result', lines.join('\n'), true);
+                    updateStats();
                 } else {
-                    showResult('jobs_result', `❌ ${processData.message}`, false);
+                    showResult('jobs_result', `فشل النقل: ${data.message || 'غير معروف'}`, false);
                 }
             } catch (e) {
                 showResult('jobs_result', `❌ خطأ: ${e.message}`, false);
@@ -1263,55 +1281,33 @@
                 .catch(e => showResult('jobs_result', '❌ ' + e.message, false));
         }
 
-        // وظائف الأديان Religions
+        // قسم الأديان Religions
         async function transferReligions() {
             const btn = event.target;
             btn.disabled = true;
-            btn.textContent = 'جاري التصدير...';
+            btn.textContent = 'جاري النقل...';
 
             try {
-                // 1) تصدير من الجدول القديم recruitment_form_religions
-                const exportParams = {
-                    action: 'export_from_old_db',
-                    export_table: 'recruitment_form_religions',
-                    old_db_host: '127.0.0.1',
-                    old_db_port: '8889',
-                    old_db_name: 'platinum',
-                    old_db_user: 'root',
-                    old_db_pass: 'root'
-                };
-
-                const exportResponse = await fetch('migration/file_processor.php', {
+                const response = await fetch('migration/file_processor.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: new URLSearchParams(exportParams)
+                    body: 'action=migrate_religions'
                 });
-                const exportData = await exportResponse.json();
-                if (!exportData.success) throw new Error(exportData.message || 'فشل التصدير');
+                const data = await response.json();
 
-                // 2) معالجة ورفع للجدولين religions و religions_translations
-                btn.textContent = 'جاري المعالجة والرفع...';
-                const processParams = {
-                    action: 'process_exported_file',
-                    exported_file: exportData.file_name,
-                    table_type: 'religions'
-                };
-                const processResponse = await fetch('migration/file_processor.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: new URLSearchParams(processParams)
-                });
-                const processData = await processResponse.json();
-
-                if (processData.success) {
-                    showResult('religions_result', `✅ تم نقل ${processData.processed || 0} ديانة مع الترجمات`, true);
+                if (data.success) {
+                    const lines = [
+                        data.message || 'تم نقل الأديان بنجاح',
+                        `إجمالي: ${data.total || 0}`,
+                        `تمت الإضافة: ${data.inserted || 0}`,
+                        `تم التحديث: ${data.updated || 0}`
+                    ];
+                    showResult('religions_result', lines.join('\n'), true);
                     updateStats();
                 } else {
-                    showResult('religions_result', `❌ ${processData.message}`, false);
+                    showResult('religions_result', `فشل النقل: ${data.message || 'غير معروف'}`, false);
                 }
             } catch (e) {
                 showResult('religions_result', `❌ خطأ: ${e.message}`, false);
@@ -1342,54 +1338,33 @@
         }
 
         // وظائف الحالات الاجتماعية Social Status
+        // قسم الحالات الاجتماعية Social Status
         async function transferSocialStatus() {
             const btn = event.target;
             btn.disabled = true;
-            btn.textContent = 'جاري التصدير...';
+            btn.textContent = 'جاري النقل...';
 
             try {
-                // 1) تصدير من الجدول القديم recruitment_form_social_status
-                const exportParams = {
-                    action: 'export_from_old_db',
-                    export_table: 'recruitment_form_social_status',
-                    old_db_host: '127.0.0.1',
-                    old_db_port: '8889',
-                    old_db_name: 'platinum',
-                    old_db_user: 'root',
-                    old_db_pass: 'root'
-                };
-
-                const exportResponse = await fetch('migration/file_processor.php', {
+                const response = await fetch('migration/file_processor.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: new URLSearchParams(exportParams)
+                    body: 'action=migrate_social_status'
                 });
-                const exportData = await exportResponse.json();
-                if (!exportData.success) throw new Error(exportData.message || 'فشل التصدير');
+                const data = await response.json();
 
-                // 2) معالجة ورفع للجدولين social_status و social_status_translations
-                btn.textContent = 'جاري المعالجة والرفع...';
-                const processParams = {
-                    action: 'process_exported_file',
-                    exported_file: exportData.file_name,
-                    table_type: 'social_status'
-                };
-                const processResponse = await fetch('migration/file_processor.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: new URLSearchParams(processParams)
-                });
-                const processData = await processResponse.json();
-
-                if (processData.success) {
-                    showResult('social_status_result', `✅ تم نقل ${processData.processed || 0} حالة اجتماعية مع الترجمات`, true);
+                if (data.success) {
+                    const lines = [
+                        data.message || 'تم نقل الحالات الاجتماعية بنجاح',
+                        `إجمالي: ${data.total || 0}`,
+                        `تمت الإضافة: ${data.inserted || 0}`,
+                        `تم التحديث: ${data.updated || 0}`
+                    ];
+                    showResult('social_status_result', lines.join('\n'), true);
                     updateStats();
                 } else {
-                    showResult('social_status_result', `❌ ${processData.message}`, false);
+                    showResult('social_status_result', `فشل النقل: ${data.message || 'غير معروف'}`, false);
                 }
             } catch (e) {
                 showResult('social_status_result', `❌ خطأ: ${e.message}`, false);
@@ -1420,54 +1395,33 @@
         }
 
         // وظائف المهارات Skills
+        // قسم المهارات Skills
         async function transferSkills() {
             const btn = event.target;
             btn.disabled = true;
-            btn.textContent = 'جاري التصدير...';
+            btn.textContent = 'جاري النقل...';
 
             try {
-                // 1) تصدير من الجدول القديم skills
-                const exportParams = {
-                    action: 'export_from_old_db',
-                    export_table: 'skills',
-                    old_db_host: '127.0.0.1',
-                    old_db_port: '8889',
-                    old_db_name: 'platinum',
-                    old_db_user: 'root',
-                    old_db_pass: 'root'
-                };
-
-                const exportResponse = await fetch('migration/file_processor.php', {
+                const response = await fetch('migration/file_processor.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: new URLSearchParams(exportParams)
+                    body: 'action=migrate_skills'
                 });
-                const exportData = await exportResponse.json();
-                if (!exportData.success) throw new Error(exportData.message || 'فشل التصدير');
+                const data = await response.json();
 
-                // 2) معالجة ورفع للجدولين skills و skills_translations
-                btn.textContent = 'جاري المعالجة والرفع...';
-                const processParams = {
-                    action: 'process_exported_file',
-                    exported_file: exportData.file_name,
-                    table_type: 'skills'
-                };
-                const processResponse = await fetch('migration/file_processor.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: new URLSearchParams(processParams)
-                });
-                const processData = await processResponse.json();
-
-                if (processData.success) {
-                    showResult('skills_result', `✅ تم نقل ${processData.processed || 0} مهارة مع الترجمات`, true);
+                if (data.success) {
+                    const lines = [
+                        data.message || 'تم نقل المهارات بنجاح',
+                        `إجمالي: ${data.total || 0}`,
+                        `تمت الإضافة: ${data.inserted || 0}`,
+                        `تم التحديث: ${data.updated || 0}`
+                    ];
+                    showResult('skills_result', lines.join('\n'), true);
                     updateStats();
                 } else {
-                    showResult('skills_result', `❌ ${processData.message}`, false);
+                    showResult('skills_result', `فشل النقل: ${data.message || 'غير معروف'}`, false);
                 }
             } catch (e) {
                 showResult('skills_result', `❌ خطأ: ${e.message}`, false);
@@ -1498,52 +1452,33 @@
         }
 
         // وظائف الخبرات Experience
+        // قسم الخبرات Experience
         async function transferExperience() {
             const btn = event.target;
             btn.disabled = true;
-            btn.textContent = 'جاري التصدير...';
+            btn.textContent = 'جاري النقل...';
 
             try {
-                const exportParams = {
-                    action: 'export_from_old_db',
-                    export_table: 'recruitment_form_experience',
-                    old_db_host: '127.0.0.1',
-                    old_db_port: '8889',
-                    old_db_name: 'platinum',
-                    old_db_user: 'root',
-                    old_db_pass: 'root'
-                };
-
-                const exportResponse = await fetch('migration/file_processor.php', {
+                const response = await fetch('migration/file_processor.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: new URLSearchParams(exportParams)
+                    body: 'action=migrate_experience'
                 });
-                const exportData = await exportResponse.json();
-                if (!exportData.success) throw new Error(exportData.message || 'فشل التصدير');
+                const data = await response.json();
 
-                btn.textContent = 'جاري المعالجة والرفع...';
-                const processParams = {
-                    action: 'process_exported_file',
-                    exported_file: exportData.file_name,
-                    table_type: 'experience'
-                };
-                const processResponse = await fetch('migration/file_processor.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: new URLSearchParams(processParams)
-                });
-                const processData = await processResponse.json();
-
-                if (processData.success) {
-                    showResult('experience_result', `✅ تم نقل ${processData.processed || 0} خبرة مع الترجمات`, true);
+                if (data.success) {
+                    const lines = [
+                        data.message || 'تم نقل الخبرات بنجاح',
+                        `إجمالي: ${data.total || 0}`,
+                        `تمت الإضافة: ${data.inserted || 0}`,
+                        `تم التحديث: ${data.updated || 0}`
+                    ];
+                    showResult('experience_result', lines.join('\n'), true);
                     updateStats();
                 } else {
-                    showResult('experience_result', `❌ ${processData.message}`, false);
+                    showResult('experience_result', `فشل النقل: ${data.message || 'غير معروف'}`, false);
                 }
             } catch (e) {
                 showResult('experience_result', `❌ خطأ: ${e.message}`, false);
@@ -1574,52 +1509,33 @@
         }
 
         // وظائف اللغات Languages
+        // قسم اللغات Languages
         async function transferLanguages() {
             const btn = event.target;
             btn.disabled = true;
-            btn.textContent = 'جاري التصدير...';
+            btn.textContent = 'جاري النقل...';
 
             try {
-                const exportParams = {
-                    action: 'export_from_old_db',
-                    export_table: 'recruitment_form_languages',
-                    old_db_host: '127.0.0.1',
-                    old_db_port: '8889',
-                    old_db_name: 'platinum',
-                    old_db_user: 'root',
-                    old_db_pass: 'root'
-                };
-
-                const exportResponse = await fetch('migration/file_processor.php', {
+                const response = await fetch('migration/file_processor.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: new URLSearchParams(exportParams)
+                    body: 'action=migrate_languages'
                 });
-                const exportData = await exportResponse.json();
-                if (!exportData.success) throw new Error(exportData.message || 'فشل التصدير');
+                const data = await response.json();
 
-                btn.textContent = 'جاري المعالجة والرفع...';
-                const processParams = {
-                    action: 'process_exported_file',
-                    exported_file: exportData.file_name,
-                    table_type: 'languages'
-                };
-                const processResponse = await fetch('migration/file_processor.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: new URLSearchParams(processParams)
-                });
-                const processData = await processResponse.json();
-
-                if (processData.success) {
-                    showResult('languages_result', `✅ تم نقل ${processData.processed || 0} لغة مع الترجمات`, true);
+                if (data.success) {
+                    const lines = [
+                        data.message || 'تم نقل اللغات بنجاح',
+                        `إجمالي: ${data.total || 0}`,
+                        `تمت الإضافة: ${data.inserted || 0}`,
+                        `تم التحديث: ${data.updated || 0}`
+                    ];
+                    showResult('languages_result', lines.join('\n'), true);
                     updateStats();
                 } else {
-                    showResult('languages_result', `❌ ${processData.message}`, false);
+                    showResult('languages_result', `فشل النقل: ${data.message || 'غير معروف'}`, false);
                 }
             } catch (e) {
                 showResult('languages_result', `❌ خطأ: ${e.message}`, false);
@@ -1650,54 +1566,33 @@
         }
 
         // وظائف الأعمار Ages
+        // قسم الأعمار Ages
         async function transferAges() {
             const btn = event.target;
             btn.disabled = true;
-            btn.textContent = 'جاري التصدير...';
+            btn.textContent = 'جاري النقل...';
 
             try {
-                // 1) تصدير من الجدول القديم recruitment_form_ages
-                const exportParams = {
-                    action: 'export_from_old_db',
-                    export_table: 'recruitment_form_ages',
-                    old_db_host: '127.0.0.1',
-                    old_db_port: '8889',
-                    old_db_name: 'platinum',
-                    old_db_user: 'root',
-                    old_db_pass: 'root'
-                };
-
-                const exportResponse = await fetch('migration/file_processor.php', {
+                const response = await fetch('migration/file_processor.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: new URLSearchParams(exportParams)
+                    body: 'action=migrate_ages'
                 });
-                const exportData = await exportResponse.json();
-                if (!exportData.success) throw new Error(exportData.message || 'فشل التصدير');
+                const data = await response.json();
 
-                // 2) معالجة ورفع للجدولين ages و ages_translations
-                btn.textContent = 'جاري المعالجة والرفع...';
-                const processParams = {
-                    action: 'process_exported_file',
-                    exported_file: exportData.file_name,
-                    table_type: 'ages'
-                };
-                const processResponse = await fetch('migration/file_processor.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: new URLSearchParams(processParams)
-                });
-                const processData = await processResponse.json();
-
-                if (processData.success) {
-                    showResult('ages_result', `✅ تم نقل ${processData.processed || 0} عمر مع الترجمات`, true);
+                if (data.success) {
+                    const lines = [
+                        data.message || 'تم نقل الأعمار بنجاح',
+                        `إجمالي: ${data.total || 0}`,
+                        `تمت الإضافة: ${data.inserted || 0}`,
+                        `تم التحديث: ${data.updated || 0}`
+                    ];
+                    showResult('ages_result', lines.join('\n'), true);
                     updateStats();
                 } else {
-                    showResult('ages_result', `❌ ${processData.message}`, false);
+                    showResult('ages_result', `فشل النقل: ${data.message || 'غير معروف'}`, false);
                 }
             } catch (e) {
                 showResult('ages_result', `❌ خطأ: ${e.message}`, false);
@@ -2541,6 +2436,13 @@
                             numbers[11].textContent = stats.ages || '0';
                             numbers[12].textContent = stats.languages || '0';
                             numbers[13].textContent = stats.maids || '0';
+                            numbers[14].textContent = stats.contracts || '0';
+                            numbers[15].textContent = stats.contract_infos || '0';
+                            numbers[16].textContent = stats.contract_logs || '0';
+                            numbers[17].textContent = stats.activity_logs || '0';
+                            numbers[18].textContent = stats.messages || '0';
+                            numbers[19].textContent = stats.airports || '0';
+                            numbers[20].textContent = stats.accommodation_types || '0';
                         }
                     }
                 })

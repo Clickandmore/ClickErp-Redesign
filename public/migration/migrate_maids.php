@@ -14,7 +14,7 @@ $config = [
     'port'   => (int)($_POST['db_port'] ?? $_GET['db_port'] ?? 8889),
     'user'   => $_POST['db_user'] ?? $_GET['db_user'] ?? 'root',
     'pass'   => $_POST['db_pass'] ?? $_GET['db_pass'] ?? 'root',
-    'old_db' => $_POST['old_db'] ?? $_GET['old_db'] ?? 'platinum',
+    'old_db' => $_POST['old_db'] ?? $_GET['old_db'] ?? 'platinum_old',
     'new_db' => $_POST['new_db'] ?? $_GET['new_db'] ?? 'platinum_new',
 ];
 
@@ -174,7 +174,8 @@ function migrateMaids(PDO $oldDb, PDO $newDb, int $chunkSize): array
             'cv_file', 'available', 'is_pinned', 'available_at', 'status', 'is_show', 'created_at', 'updated_at',
             'experience_years', 'experience_status', 'cv_preview', 'office_id', 'image', 'height', 'weight',
             'id_number', 'id_expiry_date', 'skills', 'languages', 'experience_country', 'video_preview',
-            'childrens_count', 'education', 'duration', 'st_code', 'int_code'
+            'childrens_count', 'education', 'duration', 'st_code', 'int_code',
+            'maid_accommodation_type', 'added_by'
         ],
         $maidColumns
     );
@@ -548,6 +549,8 @@ function transformCvRow(array $cv, array $mappings, array $allowedColumns): ?arr
     $age = computeAge($cv, $mappings['ages']);
     $experience = computeExperienceData($cv, $mappings['experiences']);
     $statusData = mapCvStatus((int)($cv['cv_status'] ?? 0));
+    $accommodationType = trimString($cv['cv_rev_type'] ?? null) ?: null;
+    $addedBy = trimString($cv['added_by'] ?? null) ?: null;
 
     $languages = normalizeLanguagesField($cv['lang_id'] ?? null, $mappings['languages']);
     $skills = normalizeSkillsField($cv['skills'] ?? null, $mappings['skills']);
@@ -606,6 +609,8 @@ function transformCvRow(array $cv, array $mappings, array $allowedColumns): ?arr
         ':duration' => trimString($cv['duration_contract'] ?? '') ?: null,
         ':st_code' => null,
         ':int_code' => null,
+        ':maid_accommodation_type' => $accommodationType,
+        ':added_by' => $addedBy,
     ];
 
     foreach (array_keys($maidData) as $key) {
@@ -810,11 +815,9 @@ function mapCvStatus(int $cvStatus): array
         case 2:
             return ['status' => 'backout', 'available' => 0];
         case 3:
-            return ['status' => 'pending', 'available' => 0];
+            return ['status' => 'suspended', 'available' => 0];
         case 4:
-            return ['status' => 'completed', 'available' => 0];
-        case 5:
-            return ['status' => 'backout', 'available' => 0];
+            return ['status' => 'deported', 'available' => 0];
         default:
             return ['status' => 'available', 'available' => 1];
     }
