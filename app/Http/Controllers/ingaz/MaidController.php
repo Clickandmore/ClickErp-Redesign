@@ -147,12 +147,16 @@ class MaidController extends Controller
                     $labelAccommodation = helperTrans('ingaz.maid_status_in_accommodation');
                     $labelBackout = helperTrans('ingaz.maid_status_backout');
                     $labelUnknown = helperTrans('ingaz.maid_status_unknown');
+                    $labelSuspended = helperTrans('ingaz.maid_status_suspended');
+                    $labelDeported = helperTrans('ingaz.maid_status_deported');
                     $statuses = [
                         'available' => ['class' => 'bg-success-subtle text-success', 'icon' => 'fa-check-circle', 'label' => $labelAvailable],
                         'reserved' => ['class' => 'bg-warning-subtle text-warning', 'icon' => 'fa-hand-paper', 'label' => $labelReserved],
                         'contracted' => ['class' => 'bg-primary-subtle text-primary', 'icon' => 'fa-file-signature', 'label' => $labelContracted],
                         'in_accommodation' => ['class' => 'bg-info-subtle text-info', 'icon' => 'fa-warehouse', 'label' => $labelAccommodation],
                         'backout' => ['class' => 'bg-danger-subtle text-danger', 'icon' => 'fa-undo', 'label' => $labelBackout],
+                        'deported' => ['class' => 'bg-secondary-subtle text-secondary', 'icon' => 'fa-plane-departure', 'label' => $labelDeported],
+                        'suspended' => ['class' => 'bg-dark-subtle text-dark', 'icon' => 'fa-ban', 'label' => $labelSuspended],
                     ];
 
                     $statusMeta = $statuses[$row->status] ?? ['class' => 'bg-secondary-subtle text-secondary', 'icon' => 'fa-question-circle', 'label' => $labelUnknown];
@@ -348,6 +352,8 @@ class MaidController extends Controller
             'reserved' => objModel::where('status', 'reserved')->count(),
             'in_accommodation' => objModel::where('status', 'in_accommodation')->count(),
             'backout' => objModel::where('status', 'backout')->count(),
+            'suspended' => objModel::where('status', 'suspended')->count(),
+            'deported' => objModel::where('status', 'deported')->count(),
             'pinned' => objModel::where('is_pinned', 1)->count(),
         ];
 
@@ -360,6 +366,8 @@ class MaidController extends Controller
                 'contracted' => helperTrans('ingaz.maid_status_contracted'),
                 'in_accommodation' => helperTrans('ingaz.maid_status_in_accommodation'),
                 'backout' => helperTrans('ingaz.maid_status_backout'),
+                'suspended' => helperTrans('ingaz.maid_status_suspended'),
+                'deported' => helperTrans('ingaz.maid_status_deported'),
             ],
         ];
 

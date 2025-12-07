@@ -14,7 +14,7 @@ $config = [
     'port'   => (int)($_POST['db_port'] ?? $_GET['db_port'] ?? 8889),
     'user'   => $_POST['db_user'] ?? $_GET['db_user'] ?? 'root',
     'pass'   => $_POST['db_pass'] ?? $_GET['db_pass'] ?? 'root',
-    'old_db' => $_POST['old_db'] ?? $_GET['old_db'] ?? 'platinum',
+    'old_db' => $_POST['old_db'] ?? $_GET['old_db'] ?? 'platinum_old',
     'new_db' => $_POST['new_db'] ?? $_GET['new_db'] ?? 'platinum_new',
 ];
 

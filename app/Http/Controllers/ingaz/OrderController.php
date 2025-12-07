@@ -577,6 +577,28 @@ class OrderController extends Controller
         return view('admin.ingaz.orders.show', compact('data'));
     }
 
+    public function show($orderId)
+    {
+        $data = Order::with([
+            'user.nationality',
+            'maid.nationality',
+            'maid.religion',
+            'maid.jobTitles',
+            'jobType',
+            'details.admin',
+            'details.package',
+            'details.address',
+            'transfers',
+            'contracts'
+        ])->find($orderId);
+
+        if (!$data) {
+            abort(404);
+        }
+
+        return view('admin.ingaz.orders.show', compact('data'));
+    }
+
     public function download($id)
     {
         $transfer = OrderTransfers::find($id); // Corrected the namespace

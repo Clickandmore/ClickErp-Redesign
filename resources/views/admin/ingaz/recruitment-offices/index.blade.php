@@ -17,7 +17,7 @@
         <thead>
         <tr>
             <th>#</th>
-            <th>{{helperTrans("ingaz.title")}}</th>
+            <th>{{helperTrans("ingaz.office_name")}}</th>
             <th>{{helperTrans("ingaz.nationality")}}</th>
             <th>{{helperTrans("ingaz.created_at")}}</th>
             <th>{{helperTrans("ingaz.actions")}}</th>
