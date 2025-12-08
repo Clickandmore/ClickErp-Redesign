@@ -228,4 +228,25 @@ class Contract extends Model
         return $this->hasMany(ContractReturnRequest::class);
     }
 
+    /**
+     * Calculate contract total using stored info.
+     */
+    public function calculateContractValue(): float
+    {
+        if ($this->info) {
+            if ($this->info->contract_value !== null) {
+                return (float) $this->info->contract_value;
+            }
+
+            $monthlyCost = $this->info->monthly_cost;
+            $duration = $this->info->contract_duration;
+
+            if ($monthlyCost && $duration) {
+                return (float) $monthlyCost * (float) $duration;
+            }
+        }
+
+        return 0;
+    }
+
 }

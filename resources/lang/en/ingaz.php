@@ -392,6 +392,7 @@
     'maid_visibility_hidden' => 'Hidden',
     'maid_available_now' => 'Ready now',
     'maid_not_available_now' => 'Not ready',
+    'undefined'=> 'Undefined',
     'total_maids' => 'Total Maids',
     'available_maids' => 'Available Maids',
     'reserved_maids' => 'Reserved Maids',

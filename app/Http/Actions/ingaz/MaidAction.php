@@ -22,7 +22,6 @@ class MaidAction extends MainAction
 
     public function storeMaid($data, $request)
     {
-        // Debug: Log the raw data received
         \Log::info('Raw data received in storeMaid:', $data);
         \Log::info('Languages data type: ' . gettype($data['languages'] ?? 'not set'));
         \Log::info('Languages data: ', is_array($data['languages'] ?? null) ? $data['languages'] : [$data['languages'] ?? 'not set']);
@@ -265,6 +264,7 @@ class MaidAction extends MainAction
             'cv_preview' => $data['cv_preview'] ?? null,
             'office_id' => $data['office_id'] ?? null,
             'status' => $data['status'],
+            'added_by'=> $data['added_by'] ?? null,
             'available' => $data['available'],
             'available_at' => $data['available_at'],
             'is_show' => $data['is_show'],
@@ -383,7 +383,9 @@ class MaidAction extends MainAction
 
                 // Update maid status to in accommodation but available for work
                 $maid->update([
-                    'status' => 'in_accommodation',
+                    // 'status' => 'in_accommodation',
+                    'status' => 'available',
+                    'maid_accommodation_type' => 2,
                     'available' => 1, // متاحة للعمل
                     'available_at' => now()->toDateString(),
                 ]);
@@ -478,7 +480,7 @@ class MaidAction extends MainAction
         $offerStartsColumnExists = Schema::hasColumn('maids', 'offer_starts_at');
         $offerExpiresColumnExists = Schema::hasColumn('maids', 'offer_expires_at');
 
-        $experienceStatusValue = $data['experience_status'] ?? $maid->experience_status ?? 'no_experience';
+        $experienceStatusValue = $data['experience_status']  ?? 'no_experience';
         // unset($data['duration'], $data['additional_notes'], $data['id']);
         unset($data['duration'], $data['id']);
         if ($experienceStatusValue === 'has_experience') {
@@ -496,6 +498,8 @@ class MaidAction extends MainAction
         } else {
             $data['experience_years'] = '0';
         }
+
+        // dd($data, $experienceStatusValue);
 
         // Handle name field
         if (isset($data['name:en'])) {
@@ -519,11 +523,9 @@ class MaidAction extends MainAction
             unset($data['marital_status:ar']);
         }
 
-        // Handle languages field for translation
-        if (isset($data['languages'])) {
-            $languagesData = $data['languages'];
-            unset($data['languages']);
-        }
+        // Handle languages field for translation and main columns
+        $languagesData = $request->input('languages', []);
+        $data['languages'] = $languagesData;
 
         if (isset($data['cv_file'])) {
             deleteFile($maid->cv_file);
@@ -554,39 +556,24 @@ class MaidAction extends MainAction
             $data['skills'] = json_encode($filteredSkills);
         }
 
-        // استخرج القيم الحالية
-        $currentLanguages = is_array($maid->languages) ? $maid->languages : (json_decode($maid->languages, true) ?? []);
-        $currentPercentage = is_array($maid->percentage) ? $maid->percentage : (json_decode($maid->percentage, true) ?? []);
-
-// لو المستخدم أرسل لغات جديدة
-        if ($request->has('languages')) {
-            $langs = $request->input('languages', []);
-            $langs = array_values($langs); // لضمان مصفوفة مرتبة
-
-            // خزّن اللغات في جدول الترجمة
-            $translation = $maid->translateOrNew(app()->getLocale());
-            $translation->languages = json_encode($langs, JSON_UNESCAPED_UNICODE);
-            $translation->save();
+        // Normalize and persist languages + percentages
+        $langs = is_array($data['languages']) ? array_values(array_filter($data['languages'], fn($v) => $v !== null && $v !== '')) : [];
+        $percentageInput = $request->input('percentage', []);
+        $percs = [];
+        if (is_array($percentageInput)) {
+            $percs = array_filter(
+                array_intersect_key($percentageInput, array_flip($langs)),
+                fn($v) => $v !== null && $v !== ''
+            );
         }
 
-// لو المستخدم أرسل نسب جديدة
-        if ($request->has('percentage')) {
-            $percs = $request->input('percentage', []);
-            // خذ فقط اللغات اللي معمولة check وليها قيمة
-            if (isset($langs)) {
-                $percs = array_filter(
-                    array_intersect_key($percs, $langs),
-                    fn($v) => $v !== null && $v !== ''
-                );
-            } else {
-                $percs = array_filter($percs, fn($v) => $v !== null && $v !== '');
-            }
+        $data['languages'] = json_encode($langs, JSON_UNESCAPED_UNICODE);
+        $data['percentage'] = json_encode($percs, JSON_UNESCAPED_UNICODE);
 
-            // خزّن النسب في الجدول الأصلي
-            $maid->update([
-                'percentage' => json_encode($percs, JSON_UNESCAPED_UNICODE),
-            ]);
-        }
+        // Also store localized languages list
+        $translation = $maid->translateOrNew(app()->getLocale());
+        $translation->languages = json_encode($langs, JSON_UNESCAPED_UNICODE);
+        $translation->save();
 
         if ($requestTypeColumnExists) {
             $data['request_type'] = $data['request_type'] ?? $maid->request_type ?? 'known';
@@ -814,7 +801,23 @@ class MaidAction extends MainAction
 
     private function applyShelterInstantFilters($query, string $today): void
     {
-        $query->whereIn('status', ['in_accommodation', 'available', 'completed'])
+        // $query->whereIn('status', ['in_accommodation', 'available', 'completed'])
+        //     ->whereHas('contracts', function ($contractQuery) {
+        //         $contractQuery->where('status', ContractStatusEnum::Shelter->value)
+        //             ->whereHas('info', function ($infoQuery) {
+        //                 $infoQuery->whereIn('is_available_for_instant', [true, 1, '1'])
+        //                     ->where(function ($wantsToWorkQuery) {
+        //                         $wantsToWorkQuery
+        //                             ->whereRaw('LOWER(TRIM(COALESCE(wants_to_work, ""))) = ?', ['yes'])
+        //                             ->orWhereIn('wants_to_work', [1, '1', true]);
+        //                     });
+        //             });
+        //     })
+        //     ->whereDoesntHave('orders', function ($orderQuery) {
+        //         $orderQuery->whereIn('status', ['new', 'under_process', 'contracted']);
+        //     });
+        $query->whereIn('status', ['available', 'completed'])
+            ->where('maid_accommodation_type', 2)
             ->whereHas('contracts', function ($contractQuery) {
                 $contractQuery->where('status', ContractStatusEnum::Shelter->value)
                     ->whereHas('info', function ($infoQuery) {
@@ -893,3 +896,11 @@ class MaidAction extends MainAction
         return $this->availableQuery()->find($id);
     }
 }
+
+
+
+
+
+
+
+

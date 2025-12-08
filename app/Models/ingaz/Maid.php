@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Activitylog\Traits\LogsActivity;
+use App\Models\ingaz\User;
 
 class Maid extends Model
 {
@@ -57,6 +58,8 @@ class Maid extends Model
         'cv_preview',
         'office_id',
         'status',
+        'maid_accommodation_type',
+        'added_by',
         'request_type',
         'available',
         'available_at',
@@ -71,7 +74,7 @@ class Maid extends Model
         'offer_duration',
         'offer_description',
         'offer_starts_at',
-        'offer_expires_at'
+        'offer_expires_at',
     ];
 
     protected $casts = [
@@ -179,6 +182,11 @@ class Maid extends Model
     public function getAddedByNameAttribute(): ?string
     {
         return $this->creatorActivity?->causer?->name;
+    }
+
+    public function addedBy()
+    {
+        return $this->belongsTo(User::class, 'added_by');
     }
 
     public function unavailableRecords()

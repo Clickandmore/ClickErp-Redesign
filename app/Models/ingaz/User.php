@@ -15,7 +15,7 @@ use Spatie\Activitylog\Models\Activity;
 use App\Models\RentalContract;
 use App\Models\SponsorshipTransfer;
 use App\Models\Contract;
-
+use App\Models\ingaz\Maid;
 class User extends Authenticatable implements JWTSubject
 {
     use HasFactory, Notifiable, LogsActivity, HasRoles;
@@ -99,5 +99,10 @@ class User extends Authenticatable implements JWTSubject
     public function sponsorshipTransfersAsOldSponsor()
     {
         return $this->hasMany(SponsorshipTransfer::class, 'old_sponsor_id');
+    }
+
+    public function maids()
+    {
+        return $this->hasMany(Maid::class);
     }
 }

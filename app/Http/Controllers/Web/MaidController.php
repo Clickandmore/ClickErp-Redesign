@@ -26,13 +26,25 @@ class MaidController extends Controller
         // تشمل العاملات المتاحة، المكتملة، وفي الإيواء
         // وتشمل العاملات في الإيواء حتى لو كانت available = 0
         // هذا يضمن ظهور عاملات التأجير التي قد تكون في حالة in_accommodation
+        // $data['maids'] = $action->getMaids($request)
+        //     ->whereIn('status', ['available', 'completed', 'in_accommodation'])
+        //     ->where('is_show', 1)
+        //     ->where(function($query) {
+        //         $query->where('available', 1)
+        //               ->orWhere(function($q) {
+        //                   $q->where('status', 'in_accommodation')
+        //                     ->where('available', 0);
+        //               });
+        //     })
+        //     ->where('available_at', '<=', now()->addDays(30)->toDateString()); // السماح بالعاملات المتاحة خلال 30 يوم
         $data['maids'] = $action->getMaids($request)
-            ->whereIn('status', ['available', 'completed', 'in_accommodation'])
+            ->whereIn('status', ['available', 'completed'])
+            ->where('maid_accommodation_type', 2)
             ->where('is_show', 1)
             ->where(function($query) {
                 $query->where('available', 1)
                       ->orWhere(function($q) {
-                          $q->where('status', 'in_accommodation')
+                          $q->where('maid_accommodation_type', 2)
                             ->where('available', 0);
                       });
             })
