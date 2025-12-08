@@ -14,7 +14,7 @@ class AddColumnMaidAccommodationTypeToMaidsTable extends Migration
     public function up()
     {
         Schema::table('maids', function (Blueprint $table) {
-            $table->tinyInteger('maid_accommodation_type')->default(0)->after('status');
+            $table->tinyInteger('maid_accommodation_type')->default(1)->after('status')->comment('1 => سيرة حجز, 2 = داخل الايواء');
         });
     }
 

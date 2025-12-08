@@ -27,7 +27,7 @@ class MaidController extends Controller
 {
 
     public $folderPath = "admin.ingaz.maids";
-    public $postData = ["nationality_id", "expertises", 'image', 'video', 'childrens_count', 'duration', 'additional_notes', 'video_link', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'percentage', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'create_shelter_contract'];
+    public $postData = ["nationality_id", "expertises", 'experience_status', 'image', 'video', 'childrens_count', 'duration', 'additional_notes', 'video_link', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'percentage', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'create_shelter_contract'];
     public $mainRoute = "maids";
 
     public function __construct()
@@ -46,7 +46,7 @@ class MaidController extends Controller
     public function index(Request $request, objAction $Action)
     {
         $query = objModel::query()
-            ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders', 'office', 'creatorActivity.causer'])
+            ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders', 'office', 'creatorActivity.causer', 'addedBy'])
             ->select([
                 'id',
                 'name',
@@ -68,7 +68,9 @@ class MaidController extends Controller
                 'status',
                 'office_id',
                 'experience_years',
-                'experience_status'
+                'experience_status',
+                'maid_accommodation_type',
+                'added_by',
             ])
             ->orderByDesc('created_at')
             ->orderByDesc('is_pinned');
@@ -120,9 +122,10 @@ class MaidController extends Controller
                     $addedAt = $row->created_at
                         ? $row->created_at->timezone(config('app.timezone'))->format('Y-m-d h:i A')
                         : helperTrans('ingaz.not_specified');
-                    $addedBy = $row->added_by_name
-                        ? e($row->added_by_name)
-                        : helperTrans('ingaz.not_specified');
+                    // $addedBy = $row->added_by_name
+                    //     ? e($row->added_by_name)
+                    //     : helperTrans('ingaz.not_specified');
+                    $addedBy = $row->addedBy->name ?? __('ingaz.undefined');
                     $isRecent = $row->created_at ? $row->created_at->gte(Carbon::now()->subDay()) : false;
                     $recentBadge = $isRecent
                         ? '<span class="badge bg-success-subtle text-success"><i class="fas fa-star me-1"></i>' . $recentLabel . '</span>'
@@ -153,13 +156,21 @@ class MaidController extends Controller
                         'available' => ['class' => 'bg-success-subtle text-success', 'icon' => 'fa-check-circle', 'label' => $labelAvailable],
                         'reserved' => ['class' => 'bg-warning-subtle text-warning', 'icon' => 'fa-hand-paper', 'label' => $labelReserved],
                         'contracted' => ['class' => 'bg-primary-subtle text-primary', 'icon' => 'fa-file-signature', 'label' => $labelContracted],
-                        'in_accommodation' => ['class' => 'bg-info-subtle text-info', 'icon' => 'fa-warehouse', 'label' => $labelAccommodation],
+                        // 'in_accommodation' => ['class' => 'bg-info-subtle text-info', 'icon' => 'fa-warehouse', 'label' => $labelAccommodation],
                         'backout' => ['class' => 'bg-danger-subtle text-danger', 'icon' => 'fa-undo', 'label' => $labelBackout],
                         'deported' => ['class' => 'bg-secondary-subtle text-secondary', 'icon' => 'fa-plane-departure', 'label' => $labelDeported],
                         'suspended' => ['class' => 'bg-dark-subtle text-dark', 'icon' => 'fa-ban', 'label' => $labelSuspended],
                     ];
 
                     $statusMeta = $statuses[$row->status] ?? ['class' => 'bg-secondary-subtle text-secondary', 'icon' => 'fa-question-circle', 'label' => $labelUnknown];
+
+                    if ($row->maid_accommodation_type == 2) {
+                        $statusMeta = ['class' => 'bg-info-subtle text-info', 'icon' => 'fa-warehouse', 'label' => $labelAccommodation];
+                        if ($row->status == 'deported') {
+                            $statusMeta = ['class' => 'bg-secondary-subtle text-secondary', 'icon' => 'fa-plane-departure', 'label' => $labelDeported];
+                        }
+                    }
+
                     $visibilityLabel = $row->is_show ? helperTrans('ingaz.maid_visibility_visible') : helperTrans('ingaz.maid_visibility_hidden');
                     $availabilityLabel = $row->available ? helperTrans('ingaz.maid_available_now') : helperTrans('ingaz.maid_not_available_now');
                     $visibilityBadge = $row->is_show
@@ -350,7 +361,8 @@ class MaidController extends Controller
             'total' => objModel::count(),
             'available' => objModel::where('status', 'available')->count(),
             'reserved' => objModel::where('status', 'reserved')->count(),
-            'in_accommodation' => objModel::where('status', 'in_accommodation')->count(),
+            // 'in_accommodation' => objModel::where('status', 'in_accommodation')->count(),
+            'in_accommodation' => objModel::where('maid_accommodation_type', '2')->count(),
             'backout' => objModel::where('status', 'backout')->count(),
             'suspended' => objModel::where('status', 'suspended')->count(),
             'deported' => objModel::where('status', 'deported')->count(),
@@ -519,6 +531,7 @@ class MaidController extends Controller
             'jobTypes',
             'jobTitles',
             'office',
+            'addedBy',
             'contracts.info',
             'contracts.user',
             'orders.jobType',
@@ -691,6 +704,7 @@ class MaidController extends Controller
 
         // Set default status in Arabic
         $data['status'] = 'available';
+        $data['added_by'] = auth()->user()->id;
         $data = $action->storeMaid($data, $request);
         if ($request->ajax()) {
             return jsonSuccess($data);
@@ -1362,8 +1376,14 @@ class MaidController extends Controller
         }
 
         if ($request->filled('status')) {
-            $statuses = (array) $request->status;
-            $rows->whereIn('status', $statuses);
+            // $statuses = (array) $request->status;
+            // $rows->whereIn('status', $statuses);
+            if($request->status == 'in_accommodation') {
+                $rows->where('maid_accommodation_type', 2);
+            }else {
+                $statuses = (array) $request->status;
+                $rows->whereIn('status', $statuses);
+            }
         }
 
         if ($request->filled('visibility')) {

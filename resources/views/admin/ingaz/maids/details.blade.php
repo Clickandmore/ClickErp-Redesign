@@ -140,6 +140,9 @@
                                 <span><i
                                         class="fas fa-building me-1"></i>{{ $maid->office?->title ?? helperTrans('ingaz.not_specified') }}</span>
                                 <span><i
+                                        class="fas fa-user-tie me-1"></i>{{ helperTrans('ingaz.added_by') }}:
+                                    {{ $maid->addedBy?->name ?? helperTrans('ingaz.not_specified') }}</span>
+                                <span><i
                                         class="fas fa-calendar-plus me-1"></i>{{ $availability['created_at']?->format('Y-m-d') ?? '-' }}</span>
                             </div>
                         </div>

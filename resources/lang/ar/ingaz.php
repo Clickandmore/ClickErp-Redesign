@@ -502,6 +502,7 @@
   'maid_status_reserved' => 'محجوزة',
   'maid_status_contracted' => 'متعاقد عليها',
   'maid_status_in_accommodation' => 'في الإيواء',
+  'undefined' => 'غير مُحدد',
   'maid_status_backout' => 'باك آوت',
   'maid_status_unknown' => 'غير محدد',
   'maid_visibility_visible' => 'ظاهرة',

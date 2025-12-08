@@ -13,8 +13,13 @@ return new class extends Migration
     public function up(): void
     {
         // إضافة أنواع الوظائف للعاملات الموجودة بناءً على حالتها
+        // $maids = DB::table('maids')
+        //     ->whereIn('status', ['available', 'completed', 'in_accommodation'])
+        //     ->where('is_show', 1)
+        //     ->get();
         $maids = DB::table('maids')
-            ->whereIn('status', ['available', 'completed', 'in_accommodation'])
+            ->whereIn('status', ['available', 'completed'])
+            ->where('maid_accommodation_type','=',2)
             ->where('is_show', 1)
             ->get();
 
@@ -22,7 +27,8 @@ return new class extends Migration
             // تحديد نوع الوظيفة بناءً على حالة العاملات
             $jobTypeId = null;
 
-            if ($maid->status === 'in_accommodation') {
+            // if ($maid->status === 'in_accommodation') {
+            if ($maid->maid_accommodation_type === 2) {
                 // العاملات في الايواء تكون متاحة للاستلام الفوري
                 $jobTypeId = 3; // إستلام فورى
             } elseif ($maid->status === 'available' && $maid->available == 1) {

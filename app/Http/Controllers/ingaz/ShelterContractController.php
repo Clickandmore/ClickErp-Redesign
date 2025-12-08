@@ -536,14 +536,18 @@ class ShelterContractController extends Controller
         if ($displayOnSite) {
             $maid->jobTypes()->syncWithoutDetaching([$instantJobTypeId]);
             $maid->is_show = true;
-            $maid->status = 'in_accommodation';
+            // $maid->status = 'in_accommodation';
+            $maid->maid_accommodation_type = 2;
             $maid->available = 0;
             $maid->save();
         } else {
             $maid->jobTypes()->detach($instantJobTypeId);
             if ($maid->jobTypes()->count() === 0) {
                 $maid->is_show = false;
-                if ($maid->status === 'in_accommodation') {
+                // if ($maid->status === 'in_accommodation') {
+                //     $maid->status = 'available';
+                // }
+                if ($maid->maid_accommodation_type === 2) {
                     $maid->status = 'available';
                 }
                 $maid->available = 1;
