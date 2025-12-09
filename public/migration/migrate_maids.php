@@ -194,6 +194,9 @@ function migrateMaids(PDO $oldDb, PDO $newDb, int $chunkSize): array
         ON DUPLICATE KEY UPDATE languages = VALUES(languages), marital_status = VALUES(marital_status), updated_at = VALUES(updated_at)";
     $translationStmt = $newDb->prepare($translationInsertSql);
 
+    $deleteExpertiseStmt = $newDb->prepare('DELETE FROM maid_expertises WHERE maid_id = :maid_id');
+    $insertExpertiseStmt = $newDb->prepare('INSERT INTO maid_expertises (maid_id, number_of_years, job_title_id, country_id, created_at, updated_at) VALUES (:maid_id, :number_of_years, :job_title_id, :country_id, NOW(), NOW())');
+
     $selectCvStmt = $oldDb->query('SELECT * FROM cvs ORDER BY id');
     $processed = 0;
     $inserted = 0;
@@ -276,6 +279,19 @@ function migrateMaids(PDO $oldDb, PDO $newDb, int $chunkSize): array
                 ]);
             }
 
+            // تحديث الخبرات التفصيلية
+            $deleteExpertiseStmt->execute([':maid_id' => $maidId]);
+            if (!empty($result['expertises'])) {
+                foreach ($result['expertises'] as $exp) {
+                    $insertExpertiseStmt->execute([
+                        ':maid_id' => $maidId,
+                        ':number_of_years' => $exp['years'],
+                        ':job_title_id' => $exp['job_title_id'],
+                        ':country_id' => $exp['country_id'],
+                    ]);
+                }
+            }
+
             if ($processed % $chunkSize === 0) {
                 $newDb->commit();
                 $newDb->beginTransaction();
@@ -331,6 +347,8 @@ function buildMaidsMappings(PDO $oldDb, PDO $newDb): array
         'occupations' => buildOccupationMapping($oldDb, $newDb),
         'default_nationality' => getDefaultValue($newDb, 'nationalities'),
         'default_religion' => getDefaultValue($newDb, 'religions'),
+        'countries' => buildCountryMap($newDb),
+        'default_country' => getDefaultValue($newDb, 'countries'),
     ];
 }
 
@@ -547,12 +565,12 @@ function transformCvRow(array $cv, array $mappings, array $allowedColumns): ?arr
     $maidId = (int)$cv['id'];
 
     $age = computeAge($cv, $mappings['ages']);
-    $experience = computeExperienceData($cv, $mappings['experiences']);
+    $experience = computeExperienceData($cv, $mappings['experiences'], $mappings['countries']);
     $statusData = mapCvStatus((int)($cv['cv_status'] ?? 0));
     $accommodationType = trimString($cv['cv_rev_type'] ?? null) ?: null;
     $addedBy = trimString($cv['added_by'] ?? null) ?: null;
 
-    $languages = normalizeLanguagesField($cv['lang_id'] ?? null, $mappings['languages']);
+    $languages = normalizeLanguagesField($cv['lang_id'] ?? null, $cv['lang_percentage'] ?? null, $mappings['languages']);
     $skills = normalizeSkillsField($cv['skills'] ?? null, $mappings['skills']);
 
     $maritalStatus = mapSocialStatus((int)($cv['social_id'] ?? 0), $mappings['social_status']);
@@ -660,6 +678,7 @@ function transformCvRow(array $cv, array $mappings, array $allowedColumns): ?arr
         'job_types' => $jobTypeId ? [$jobTypeId] : [],
         'translations' => $translations,
         'skills' => $skills,
+        'expertises' => [],
         'errors' => $errors,
         'warnings' => $warnings,
         'used_defaults' => [
@@ -667,6 +686,21 @@ function transformCvRow(array $cv, array $mappings, array $allowedColumns): ?arr
             'religion' => $usedDefaultReligion,
         ],
     ];
+
+    // إضافة سجل خبرة تفصيلي إذا كانت لديها خبرة
+    if ($experienceStatus === 'has_experience') {
+        $expertCountryId = $experience['country_id'] ?? $mappings['default_country'];
+        $expertYears = $experienceYears !== '' ? $experienceYears : '0';
+        $jobTitleForExp = $jobTitleId ?: null;
+
+        if ($jobTitleForExp !== null && $expertCountryId !== null) {
+            $result['expertises'][] = [
+                'job_title_id' => $jobTitleForExp,
+                'country_id' => $expertCountryId ?? null,
+                'years' => $expertYears,
+            ];
+        }
+    }
 }
 
 function computeAge(array $cv, array $ageMap): float
@@ -686,7 +720,7 @@ function computeAge(array $cv, array $ageMap): float
     return (float)($cv['age'] ?? 0) ?: 0.0;
 }
 
-function computeExperienceData(array $cv, array $experienceMap): array
+function computeExperienceData(array $cv, array $experienceMap, array $countryMap): array
 {
     $experId = (int)($cv['exper_id'] ?? 0);
     $status = 'no_experience';
@@ -707,23 +741,42 @@ function computeExperienceData(array $cv, array $experienceMap): array
         $status = 'has_experience';
     }
 
+    $countryName = trimString($cv['experience_country'] ?? null);
+    $countryId = resolveCountryId($countryName, $countryMap);
+
     return [
         'years' => (string)$years,
         'status' => $status,
+        'country_id' => $countryId,
     ];
 }
 
-function normalizeLanguagesField($value, array $languageMap): array
+function normalizeLanguagesField($idsValue, $percentValue, array $languageMap): array
 {
-    $ids = normalizeJsonArray($value);
-    $result = [];
-    foreach ($ids as $id) {
-        $id = (int)$id;
-        if (isset($languageMap[$id])) {
-            $result[] = $languageMap[$id];
-        }
+    $ids = normalizeJsonArray($idsValue);
+    $percents = normalizeJsonArray($percentValue);
+
+    // إذا كانت النسب منفصلة بنص عادي أو CSV
+    if (empty($percents) && is_string($percentValue) && trim($percentValue) !== '') {
+        $percents = array_map('trim', explode(',', $percentValue));
     }
-    return array_values(array_unique($result));
+
+    $result = [];
+    foreach ($ids as $index => $id) {
+        $id = (int)$id;
+        if (!isset($languageMap[$id])) {
+            continue;
+        }
+        $key = $languageMap[$id];
+        $percent = isset($percents[$index]) ? trim((string)$percents[$index]) : null;
+        if ($percent === '' || $percent === null) {
+            $percent = '0';
+        }
+        $result[$key] = $percent;
+    }
+
+    // تأكد من عدم تكرار المفاتيح
+    return $result;
 }
 
 function normalizeSkillsField($value, array $availableSkills): array
@@ -823,6 +876,23 @@ function mapCvStatus(int $cvStatus): array
     }
 }
 
+function buildCountryMap(PDO $newDb): array
+{
+    $map = [];
+    try {
+        $stmt = $newDb->query('SELECT id, name FROM countries');
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $normalized = normalizeKey($row['name']);
+            if ($normalized !== '') {
+                $map[$normalized] = (int)$row['id'];
+            }
+        }
+    } catch (Throwable $e) {
+        // ignore, we will fallback to null country id
+    }
+    return $map;
+}
+
 function normalizeJsonArray($value): array
 {
     if ($value === null) {
@@ -863,6 +933,18 @@ function normalizeEducationField($value): ?string
     }
 
     return implode(', ', $parts);
+}
+
+function resolveCountryId(?string $name, array $countryMap): ?int
+{
+    if ($name === null) {
+        return null;
+    }
+    $normalized = normalizeKey($name);
+    if ($normalized === '') {
+        return null;
+    }
+    return $countryMap[$normalized] ?? null;
 }
 
 function normalizeLanguageName(string $name): string

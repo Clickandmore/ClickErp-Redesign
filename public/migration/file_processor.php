@@ -246,6 +246,12 @@ try {
             exit();
             break;
 
+        case 'migrate_reservations_to_orders':
+            ob_clean();
+            echo json_encode(migrateReservationsToOrders(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
         case 'migrate_office_translations':
             ob_clean();
             echo json_encode(migrateOfficeTranslations(), JSON_UNESCAPED_UNICODE);
@@ -285,6 +291,18 @@ try {
         case 'messages_summary':
             ob_clean();
             echo json_encode(getMessagesSummary(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_contacts':
+            ob_clean();
+            echo json_encode(migrateContacts(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'contacts_summary':
+            ob_clean();
+            echo json_encode(getContactsSummary(), JSON_UNESCAPED_UNICODE);
             exit();
             break;
 
@@ -2512,6 +2530,139 @@ function migrateLookupWithTranslations($oldTable, $baseTable, $transTable, $titl
             'message' => 'فشل النقل: ' . $e->getMessage()
         ];
     }
+}
+
+/**
+ * نقل جدول reservations القديم إلى orders الجديد مع خريطة حالات وحدود افتراضية
+ */
+function migrateReservationsToOrders() {
+    try {
+        global $config;
+
+        $oldDbName = $_POST['old_db_name'] ?? $_GET['old_db_name'] ?? 'platinum_old';
+
+        $oldDb = new PDO(
+            "mysql:host={$config['host']};port={$config['port']};dbname={$oldDbName};charset=utf8mb4",
+            $config['username'],
+            $config['password'],
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+            ]
+        );
+
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        $rows = $oldDb->query("SELECT * FROM rservations")->fetchAll(PDO::FETCH_ASSOC);
+        if (empty($rows)) {
+            return [
+                'success' => true,
+                'message' => 'لا توجد حجوزات لنقلها',
+                'total' => 0,
+                'inserted' => 0,
+                'updated' => 0,
+                'skipped' => 0,
+            ];
+        }
+
+        $sql = "INSERT INTO orders (id, maid_id, user_id, payment_method, order_code, job_type_id, status, created_at, updated_at, deleted_at)
+                VALUES (:id, :maid_id, :user_id, :payment_method, :order_code, :job_type_id, :status, :created_at, :updated_at, :deleted_at)
+                ON DUPLICATE KEY UPDATE
+                    maid_id = VALUES(maid_id),
+                    user_id = VALUES(user_id),
+                    payment_method = VALUES(payment_method),
+                    order_code = VALUES(order_code),
+                    job_type_id = VALUES(job_type_id),
+                    status = VALUES(status),
+                    created_at = VALUES(created_at),
+                    updated_at = VALUES(updated_at),
+                    deleted_at = VALUES(deleted_at)";
+        $stmt = $newDb->prepare($sql);
+
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
+
+        $newDb->beginTransaction();
+        try {
+            foreach ($rows as $row) {
+                $id = $row['id'] ?? null;
+                if ($id === null) {
+                    $skipped++;
+                    continue;
+                }
+
+                $statusMapped = mapReservationStatus((int)($row['status'] ?? 0));
+
+                $params = [
+                    ':id' => $id,
+                    ':maid_id' => $row['cv_id'] ?? 0,
+                    ':user_id' => $row['user_id'] ?? null,
+                    ':payment_method' => 'cash',
+                    ':order_code' => $row['code'] ?? ('ORD_' . $id),
+                    ':job_type_id' => 1,
+                    ':status' => $statusMapped,
+                    ':created_at' => $row['created_at'] ?? null,
+                    ':updated_at' => $row['updated_at'] ?? null,
+                    ':deleted_at' => $row['deleted_at'] ?? null,
+                ];
+
+                $stmt->execute($params);
+                $affected = $stmt->rowCount();
+                if ($affected === 1) {
+                    $inserted++;
+                } elseif ($affected === 2) {
+                    $updated++;
+                }
+            }
+            $newDb->commit();
+        } catch (Exception $e) {
+            $newDb->rollBack();
+            throw $e;
+        }
+
+        return [
+            'success' => true,
+            'message' => 'تم نقل الحجوزات إلى الطلبات بنجاح',
+            'total' => count($rows),
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'skipped' => $skipped
+        ];
+
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل نقل الحجوزات: ' . $e->getMessage()
+        ];
+    }
+}
+
+function mapReservationStatus(int $oldStatus): string
+{
+    // خريطة الحالات القديمة (أرقام) إلى الحالات النصية الجديدة (OrderEnum)
+    // 5: عقود غير معتمدة  -> تحت الإجراء
+    // 6: اعتماد العقد      -> تم التعاقد
+    // 7: عقد جديد          -> جديد
+    // 8: مساند             -> تم التعاقد بدون عقد
+    // 9: التفويض           -> تحت الإجراء
+    // 10: التفييز          -> تحت الإجراء
+    // 11: التذكرة          -> تحت الإجراء
+    // 13: مرتجع            -> طلب استرجاع
+    // 15: تم الوصول        -> مكتملة (done)
+    // 16: الهروب           -> مرفوضة
+    return match ($oldStatus) {
+        5 => 'under_process',
+        6 => 'contracted',
+        7 => 'new',
+        8 => 'contracted_without_contract',
+        9, 10, 11 => 'under_process',
+        13 => 'return',
+        15 => 'done',
+        16 => 'refused',
+        default => 'new',
+    };
 }
 
 function getTableColumnsLocal(PDO $pdo, $table) {
@@ -4974,40 +5125,49 @@ function determineWarrantyStatus($startValue, $endValue) {
     }
 }
 
-function mapReservationStatus($value) {
-    $statusMap = [
-        7 => 'new',
-        8 => 'msaned',
-        9 => 'tafwed',
-        10 => 'taffez',
-        11 => 'tazker',
-        15 => 'arrival',
-        3 => 'delegate_selected',
-        13 => 'back',
-        12 => 'under_warranty',
-        4 => 'client_contracted',
-        14 => 'in_progress'
-    ];
+// function mapReservationStatus($value) {
+//     // 5 => 'under_process',
+//     //     6 => 'contracted',
+//     //     7 => 'new',
+//     //     8 => 'contracted_without_contract',
+//     //     9, 10, 11 => 'under_process',
+//     //     13 => 'return',
+//     //     15 => 'done',
+//     //     16 => 'refused',
+//     //     default => 'new',
+//     $statusMap = [
+//         7 => 'new',
+//         8 => 'msaned',
+//         9 => 'tafwed',
+//         10 => 'taffez',
+//         11 => 'tazker',
+//         15 => 'arrival',
+//         3 => 'delegate_selected',
+//         13 => 'back',
+//         12 => 'under_warranty',
+//         4 => 'client_contracted',
+//         14 => 'in_progress'
+//     ];
 
-    $normalizedValue = normalizeContractValue($value);
-    if ($normalizedValue === null) {
-        return null;
-    }
+//     $normalizedValue = normalizeContractValue($value);
+//     if ($normalizedValue === null) {
+//         return null;
+//     }
 
-    if (is_numeric($normalizedValue)) {
-        $intStatus = (int)$normalizedValue;
-        if (isset($statusMap[$intStatus])) {
-            return $statusMap[$intStatus];
-        }
-    }
+//     if (is_numeric($normalizedValue)) {
+//         $intStatus = (int)$normalizedValue;
+//         if (isset($statusMap[$intStatus])) {
+//             return $statusMap[$intStatus];
+//         }
+//     }
 
-    $lowered = strtolower($normalizedValue);
-    if (in_array($lowered, $statusMap, true)) {
-        return $lowered;
-    }
+//     $lowered = strtolower($normalizedValue);
+//     if (in_array($lowered, $statusMap, true)) {
+//         return $lowered;
+//     }
 
-    return null;
-}
+//     return null;
+// }
 
 function normalizeContractValue($value) {
     if ($value === null) {
@@ -5877,6 +6037,220 @@ function getMessagesSummary() {
         return [
             'success' => false,
             'message' => 'خطأ في جلب إحصائيات الرسائل: ' . $e->getMessage()
+        ];
+    }
+}
+
+function migrateContacts() {
+    $oldHost = $_POST['old_db_host'] ?? '127.0.0.1';
+    $oldPort = $_POST['old_db_port'] ?? 8889;
+    $oldDbName = $_POST['old_db_name'] ?? 'platinum_old';
+    $oldUser = $_POST['old_db_user'] ?? 'root';
+    $oldPass = $_POST['old_db_pass'] ?? 'root';
+
+    try {
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بقاعدة البيانات الجديدة: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $oldDsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $oldHost, $oldPort, $oldDbName);
+        $oldDb = new PDO($oldDsn, $oldUser, $oldPass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4'
+        ]);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بقاعدة البيانات القديمة: ' . $e->getMessage()
+        ];
+    }
+
+    // Allow overriding old table name, and try common variants (contact_us / contacts_us)
+    $requestedTable = $_POST['old_contacts_table'] ?? $_GET['old_contacts_table'] ?? 'contact_us';
+    if (!preg_match('/^[a-zA-Z0-9_]+$/', $requestedTable)) {
+        $requestedTable = 'contact_us';
+    }
+    $candidates = array_unique([$requestedTable, 'contact_us', 'contact_us']);
+
+    $rows = [];
+    $lastError = null;
+    foreach ($candidates as $table) {
+        if (!$table) {
+            continue;
+        }
+        try {
+            $rows = $oldDb->query("SELECT id, name, email, subject, massage, phone, status, created_at, updated_at FROM `{$table}` ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
+            $requestedTable = $table; // keep the table that worked
+            break;
+        } catch (Exception $e) {
+            $lastError = $e;
+            $rows = [];
+        }
+    }
+
+    if ($rows === [] && $lastError !== null) {
+        return [
+            'success' => false,
+            'message' => 'لم يمكن قراءة بيانات contact_us/contact_us من القاعدة القديمة: ' . $lastError->getMessage()
+        ];
+    }
+
+    if (empty($rows)) {
+        return [
+            'success' => true,
+            'message' => "لا توجد بيانات في {$requestedTable} للنقل",
+            'processed' => 0,
+            'inserted' => 0,
+            'updated' => 0,
+            'unchanged' => 0,
+            'skipped' => 0
+        ];
+    }
+
+    // Build column list based on actual target table structure to avoid column mismatches
+    $targetColumns = getTableColumnsLocal($newDb, 'contacts');
+    if (empty($targetColumns)) {
+        return [
+            'success' => false,
+            'message' => 'جدول contacts غير موجود أو لا يمكن قراءته في القاعدة الجديدة'
+        ];
+    }
+
+    $mapping = [
+        'id' => 'id',
+        'name' => 'name',
+        'email' => 'email',
+        'subject' => 'subject',
+        'message' => ['massage', 'message'], // massage في القديم قد تكون message
+        'phone' => 'phone',
+        'is_contacted' => 'status',
+        'created_at' => 'created_at',
+        'updated_at' => 'updated_at'
+    ];
+
+    $columnsToUse = array_values(array_intersect($targetColumns, array_keys($mapping)));
+    if (!in_array('id', $columnsToUse, true)) {
+        return [
+            'success' => false,
+            'message' => 'جدول contacts لا يحتوي على عمود id، لا يمكن الترحيل'
+        ];
+    }
+
+    $sql = buildUpsertSql('contacts', $columnsToUse);
+    $stmt = $newDb->prepare($sql);
+
+    $processed = 0;
+    $inserted = 0;
+    $updated = 0;
+    $unchanged = 0;
+    $skipped = 0;
+
+    $errors = [];
+    try {
+        $newDb->beginTransaction();
+
+        foreach ($rows as $row) {
+            $processed++;
+
+            $id = isset($row['id']) ? (int)$row['id'] : 0;
+            if ($id <= 0) {
+                $skipped++;
+                continue;
+            }
+
+            $data = [];
+            foreach ($columnsToUse as $col) {
+                switch ($col) {
+                    case 'id':
+                        $data[$col] = $id;
+                        break;
+                    case 'message':
+                        $data[$col] = $row['massage'] ?? ($row['message_alt'] ?? ($row['message'] ?? null));
+                        break;
+                    case 'is_contacted':
+                        $data[$col] = isset($row['status']) ? (int)$row['status'] : 0;
+                        break;
+                    case 'created_at':
+                    case 'updated_at':
+                        $data[$col] = normalizeContractDateTime($row[$col] ?? null);
+                        break;
+                    default:
+                        $sourceKey = is_array($mapping[$col]) ? ($mapping[$col][0] ?? null) : $mapping[$col];
+                        $value = $sourceKey && isset($row[$sourceKey]) ? $row[$sourceKey] : ($row[$col] ?? null);
+                        // fallback to empty string for required string columns to avoid NOT NULL errors
+                        if ($value === null && in_array($col, ['name', 'email', 'subject', 'message', 'phone'], true)) {
+                            $value = '';
+                        }
+                        $data[$col] = $value;
+                        break;
+                }
+            }
+
+            try {
+                $stmt->execute(prefixPlaceholders($columnsToUse, $data));
+                $affected = $stmt->rowCount();
+                if ($affected === 1) {
+                    $inserted++;
+                } elseif ($affected === 2) {
+                    $updated++;
+                } else {
+                    $unchanged++;
+                }
+            } catch (Exception $e) {
+                $skipped++;
+                if (count($errors) < 5) {
+                    $errors[] = "ID {$id}: " . $e->getMessage();
+                }
+                error_log('خطأ أثناء إدراج contact_us #' . $id . ': ' . $e->getMessage());
+            }
+        }
+
+        $newDb->commit();
+    } catch (Exception $e) {
+        if ($newDb->inTransaction()) {
+            $newDb->rollBack();
+        }
+        return [
+            'success' => false,
+            'message' => 'تعذر إتمام ترحيل contact_us: ' . $e->getMessage()
+        ];
+    }
+
+    if ($errors) {
+        $errorMsg = 'واجهنا أخطاء في بعض السجلات (' . count($errors) . ' من أوائلها): ' . implode(' | ', $errors);
+    }
+
+    return [
+        'success' => true,
+        'message' => 'تم نقل contact_us إلى contacts بنجاح' . (!empty($errorMsg) ? " — {$errorMsg}" : ''),
+        'processed' => $processed,
+        'inserted' => $inserted,
+        'updated' => $updated,
+        'unchanged' => $unchanged,
+        'skipped' => $skipped
+    ];
+}
+
+function getContactsSummary() {
+    try {
+        $db = get_db_connection();
+        $total = $db->query('SELECT COUNT(*) AS total FROM contacts')->fetch(PDO::FETCH_ASSOC);
+        return [
+            'success' => true,
+            'total' => (int)($total['total'] ?? 0),
+            'contacts' => (int)($total['total'] ?? 0),
+            'message' => 'تم جلب إحصائيات contacts بنجاح'
+        ];
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'تعذر جلب إحصائيات contacts: ' . $e->getMessage()
         ];
     }
 }

@@ -1382,7 +1382,8 @@
                 </div>
                 <div class="col-md-6 p-2 wow fadeInUp">
                     <section class="googleMap">
-                        @if (isset($settings))
+                        {{-- @dd($settings->map_link) --}}
+                        @if ($settings->map_link)
                             <iframe src="{{ $settings->map_link }}" frameborder="0" style="border: 0"
                                 allowfullscreen="" aria-hidden="false" tabindex="0"></iframe>
                         @else
