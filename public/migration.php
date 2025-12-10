@@ -195,6 +195,16 @@
             <div id="countries_result" class="result"></div>
         </div>
 
+        <!-- ??? ????? (Cities) -->
+        <div class="section">
+            <h3>3️⃣ المدن (Cities)</h3>
+            <div class="buttons">
+                <button onclick="transferCities()" class="btn-success">نقل المدن</button>
+                <button onclick="checkCities()" class="btn-info">فحص النقل</button>
+            </div>
+            <div id="cities_result" class="result"></div>
+        </div>
+
         <!-- قسم الجنسيات -->
         <div class="section">
             <h3>3️⃣ نقل الجنسيات (النظام المتقدم)</h3>
@@ -394,6 +404,15 @@
             <div id="activity_logs_result" class="result"></div>
         </div>
 
+                <!-- Questions -->
+        <div class="section">
+            <h3>الأسئلة الشائعة (Questions)</h3>
+            <div class="buttons">
+                <button onclick="transferQuestions()" class="btn-success">Transfer Questions</button>
+                <button onclick="checkQuestions()" class="btn-info">Check Questions</button>
+            </div>
+            <div id="questions_result" class="result"></div>
+        </div>
         <!-- Messages -->
         <div class="section">
             <h3>1️⃣8️⃣ الرسائل (Messages)</h3>
@@ -418,7 +437,7 @@
         <!-- الإحصائيات -->
         <div class="section">
             <h3>📊 الإحصائيات الحالية</h3>
-            <div class="stats" id="stats">
+                        <div class="stats" id="stats">
                 <div class="stat">
                     <div class="number">-</div>
                     <div class="label">Users</div>
@@ -426,6 +445,10 @@
                 <div class="stat">
                     <div class="number">-</div>
                     <div class="label">Countries</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Cities</div>
                 </div>
                 <div class="stat">
                     <div class="number">-</div>
@@ -496,10 +519,18 @@
                     <div class="label">Messages</div>
                 </div>
                 <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Questions</div>
+                </div>
+                <div class="stat">
+                    <div class="number">-</div>
+                    <div class="label">Question Translations</div>
+                </div>
                 <div class="stat">
                     <div class="number">-</div>
                     <div class="label">Contacts</div>
                 </div>
+                <div class="stat">
                     <div class="number">-</div>
                     <div class="label">Airports</div>
                 </div>
@@ -816,7 +847,139 @@
         }
 
         // وظائف الجنسيات المتقدمة
-        function analyzeNationalitiesStructure() {
+        function transferCities() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Transferring...';
+
+            fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=migrate_cities'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lines = [
+                            'Cities migrated successfully',
+                            'Total: ' + (data.processed ?? data.total ?? 0),
+                            'Inserted: ' + (data.inserted ?? 0),
+                            'Updated: ' + (data.updated ?? 0),
+                            'Unchanged: ' + (data.unchanged ?? 0),
+                            'Skipped: ' + (data.skipped ?? 0)
+                        ];
+                        if (data.message) {
+                            lines.push(data.message);
+                        }
+                        showResult('cities_result', lines.join('\n'), true);
+                        updateStats();
+                    } else {
+                        showResult('cities_result', 'Migration failed: ' + (data.message || 'operation could not be completed'), false);
+                    }
+                })
+                .catch(error => {
+                    showResult('cities_result', 'Error: ' + error.message, false);
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.textContent = 'Transfer Cities';
+                });
+        }
+
+        function checkCities() {
+            fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=cities_summary'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lines = [
+                            'Current cities stats:',
+                            'Total: ' + (data.total ?? data.cities ?? 0)
+                        ];
+                        if (data.message) lines.push(data.message);
+                        showResult('cities_result', lines.join('\n'), true);
+                    } else {
+                        showResult('cities_result', 'Failed to fetch stats: ' + (data.message || 'unknown'), false);
+                    }
+                })
+                .catch(error => {
+                    showResult('cities_result', 'Error: ' + error.message, false);
+                });
+        }
+
+        
+        function transferQuestions() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = "Transferring...";
+
+            fetch("migration/file_processor.php", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=migrate_questions'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lines = [
+                            'Questions migrated successfully',
+                            'Total: ' + (data.processed ?? data.total ?? 0),
+                            'Inserted: ' + (data.inserted ?? 0),
+                            'Updated: ' + (data.updated ?? 0),
+                            'Unchanged: ' + (data.unchanged ?? 0),
+                            'Skipped: ' + (data.skipped ?? 0)
+                        ];
+                        if (data.message) lines.push(data.message);
+                        showResult('questions_result', lines.join("\n"), true);
+                        updateStats();
+                    } else {
+                        showResult('questions_result', 'Migration failed: ' + (data.message || 'operation could not be completed'), false);
+                    }
+                })
+                .catch(error => {
+                    showResult('questions_result', 'Error: ' + error.message, false);
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.textContent = 'Transfer Questions';
+                });
+        }
+
+        function checkQuestions() {
+            fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=questions_summary'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lines = [
+                            'Questions: ' + (data.questions ?? 0),
+                            'Translations: ' + (data.question_translations ?? 0)
+                        ];
+                        if (data.message) lines.push(data.message);
+                        showResult('questions_result', lines.join('\n'), true);
+                    } else {
+                        showResult('questions_result', 'Failed to fetch stats: ' + (data.message || 'unknown'), false);
+                    }
+                })
+                .catch(error => {
+                    showResult('questions_result', 'Error: ' + error.message, false);
+                });
+        }
+function analyzeNationalitiesStructure() {
             const btn = event.target;
             btn.disabled = true;
             btn.textContent = 'جاري التحليل...';
@@ -2489,10 +2652,16 @@
         window.checkContractInfos = checkContractInfos;
         window.transferContractLogs = transferContractLogs;
         window.checkContractLogs = checkContractLogs;
-        window.transferActivityLogs = transferActivityLogs;
+        window.transferActivityLogs = transferActivityLogs;        
         window.checkActivityLogs = checkActivityLogs;
         window.transferMessages = transferMessages;
         window.checkMessages = checkMessages;
+        window.transferQuestions = transferQuestions;
+        window.checkQuestions = checkQuestions;
+        // window.transferMessages = transferMessages;
+        // window.checkMessages = checkMessages;
+        window.transferCities = transferCities;
+        window.checkCities = checkCities;
         window.transferContacts = transferContacts;
         window.checkContacts = checkContacts;
         window.transferAccommodationTypes = transferAccommodationTypes;
@@ -2516,6 +2685,7 @@
                 SELECT
                     (SELECT COUNT(*) FROM users) as users,
                     (SELECT COUNT(*) FROM countries) as countries,
+                    (SELECT COUNT(*) FROM cities) as cities,
                     (SELECT COUNT(*) FROM nationalities) as nationalities,
                     (SELECT COUNT(*) FROM nationalities_translations) as translations,
                     (SELECT COUNT(*) FROM recruitment_offices) as offices,
@@ -2533,6 +2703,8 @@
                     (SELECT COUNT(*) FROM contract_status_logs) as contract_logs,
                     (SELECT COUNT(*) FROM activity_log) as activity_logs,
                     (SELECT COUNT(*) FROM messages) as messages,
+                    (SELECT COUNT(*) FROM questions) as questions,
+                    (SELECT COUNT(*) FROM questions_translations) as question_translations,
                     (SELECT COUNT(*) FROM contacts) as contacts,
                     (SELECT COUNT(*) FROM accommodation_types) as accommodation_types,
                     (SELECT COUNT(*) FROM airports) as airports
@@ -2551,6 +2723,7 @@
                         const order = [
                             'users',
                             'countries',
+                            'cities',
                             'nationalities',
                             'translations',
                             'offices',
@@ -2568,6 +2741,8 @@
                             'contract_logs',
                             'activity_logs',
                             'messages',
+                            'questions',
+                            'question_translations',
                             'contacts',
                             'airports',
                             'accommodation_types'
@@ -2581,29 +2756,32 @@
                         // });
 
                         let numbers = document.querySelectorAll('.stat .number');
-                        if (numbers.length >= 22) {
+                        if (numbers.length >= 25) {
                             numbers[0].textContent = stats.users || '0';
                             numbers[1].textContent = stats.countries || '0';
-                            numbers[2].textContent = stats.nationalities || '0';
-                            numbers[3].textContent = stats.translations || '0';
-                            numbers[4].textContent = stats.offices || '0';
-                            numbers[5].textContent = stats.office_translations || '0';
-                            numbers[6].textContent = stats.job_titles || '0';
-                            numbers[7].textContent = stats.religions || '0';
-                            numbers[8].textContent = stats.social_status || '0';
-                            numbers[9].textContent = stats.skills || '0';
-                            numbers[10].textContent = stats.experience || '0';
-                            numbers[11].textContent = stats.ages || '0';
-                            numbers[12].textContent = stats.languages || '0';
-                            numbers[13].textContent = stats.maids || '0';
-                            numbers[14].textContent = stats.contracts || '0';
-                            numbers[15].textContent = stats.contract_infos || '0';
-                            numbers[16].textContent = stats.contract_logs || '0';
-                            numbers[17].textContent = stats.activity_logs || '0';
-                            numbers[18].textContent = stats.messages || '0';
-                            numbers[19].textContent = stats.contacts || '0';
-                            numbers[20].textContent = stats.airports || '0';
-                            numbers[21].textContent = stats.accommodation_types || '0';
+                            numbers[2].textContent = stats.cities || '0';
+                            numbers[3].textContent = stats.nationalities || '0';
+                            numbers[4].textContent = stats.translations || '0';
+                            numbers[5].textContent = stats.offices || '0';
+                            numbers[6].textContent = stats.office_translations || '0';
+                            numbers[7].textContent = stats.job_titles || '0';
+                            numbers[8].textContent = stats.religions || '0';
+                            numbers[9].textContent = stats.social_status || '0';
+                            numbers[10].textContent = stats.skills || '0';
+                            numbers[11].textContent = stats.experience || '0';
+                            numbers[12].textContent = stats.ages || '0';
+                            numbers[13].textContent = stats.languages || '0';
+                            numbers[14].textContent = stats.maids || '0';
+                            numbers[15].textContent = stats.contracts || '0';
+                            numbers[16].textContent = stats.contract_infos || '0';
+                            numbers[17].textContent = stats.contract_logs || '0';
+                            numbers[18].textContent = stats.activity_logs || '0';
+                            numbers[19].textContent = stats.messages || '0';
+                            numbers[20].textContent = stats.questions || '0';
+                            numbers[21].textContent = stats.question_translations || '0';
+                            numbers[22].textContent = stats.contacts || '0';
+                            numbers[23].textContent = stats.airports || '0';
+                            numbers[24].textContent = stats.accommodation_types || '0';
                         }
                     }
                 })
@@ -2618,3 +2796,12 @@
 </body>
 
 </html>
+
+
+
+
+
+
+
+
+
