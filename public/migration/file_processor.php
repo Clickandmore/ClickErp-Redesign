@@ -151,6 +151,12 @@ try {
             exit();
             break;
 
+        case 'exportAndUpload':
+            ob_clean();
+            echo json_encode(exportAndUploadPipeline(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
         case 'process_exported_file':
             ob_clean();
             echo json_encode(processExportedFile(), JSON_UNESCAPED_UNICODE);
@@ -201,6 +207,48 @@ try {
         case 'airports_summary':
             ob_clean();
             echo json_encode(getAirportsSummary(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_cities':
+            ob_clean();
+            echo json_encode(migrateCities(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'cities_summary':
+            ob_clean();
+            echo json_encode(getCitiesSummary(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_questions':
+            ob_clean();
+            echo json_encode(migrateQuestions(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'questions_summary':
+            ob_clean();
+            echo json_encode(getQuestionsSummary(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_nationalities':
+            ob_clean();
+            echo json_encode(migrateNationalitiesDirect(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_cities':
+            ob_clean();
+            echo json_encode(migrateCities(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'cities_summary':
+            ob_clean();
+            echo json_encode(getCitiesSummary(), JSON_UNESCAPED_UNICODE);
             exit();
             break;
 
@@ -3302,6 +3350,48 @@ function exportFromOldDatabase() {
 /**
  * معالجة الملف المصدر تلقائياً
  */
+
+/**
+ * خط أنابيب سريع: تصدير جدول من القاعدة القديمة ثم معالجته فوراً إلى القاعدة الجديدة
+ */
+/**
+ * خط أنابيب سريع: تصدير جدول من القاعدة القديمة ثم معالجته فوراً إلى القاعدة الجديدة
+ */
+function exportAndUploadPipeline() {
+    $table = $_POST['table'] ?? $_POST['export_table'] ?? '';
+    if (!$table) {
+        return [
+            'success' => false,
+            'message' => 'لم يتم تحديد اسم الجدول للتصدير'
+        ];
+    }
+
+    // مرر اسم الجدول إلى exportFromOldDatabase
+    $_POST['export_table'] = $table;
+    $exportResult = exportFromOldDatabase();
+    if (empty($exportResult['success'])) {
+        return $exportResult;
+    }
+
+    // ثم مرر الملف الناتج لمعالجته
+    $_POST['exported_file'] = $exportResult['file_name'] ?? '';
+    $_POST['table_type'] = $table;
+    $processResult = processExportedFile();
+    if (empty($processResult['success'])) {
+        return $processResult;
+    }
+
+    return [
+        'success' => true,
+        'message' => $processResult['message'] ?? 'تم التصدير والمعالجة بنجاح',
+        'processed' => $processResult['processed'] ?? 0,
+        'details' => $processResult,
+        'export' => [
+            'file' => $exportResult['file_name'] ?? null,
+            'count' => $exportResult['record_count'] ?? null
+        ]
+    ];
+}
 function processExportedFile() {
     try {
         $exportedFile = $_POST['exported_file'] ?? '';
@@ -6293,7 +6383,624 @@ function getContractLogsSummary() {
     }
 }
 
+function migrateCities() {
+    $oldHost = $_POST['old_db_host'] ?? '127.0.0.1';
+    $oldPort = $_POST['old_db_port'] ?? 8889;
+    $oldDbName = $_POST['old_db_name'] ?? 'platinum_old';
+    $oldUser = $_POST['old_db_user'] ?? 'root';
+    $oldPass = $_POST['old_db_pass'] ?? 'root';
+
+    try {
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في جلب المدن : ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $oldDsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $oldHost, $oldPort, $oldDbName);
+        $oldDb = new PDO($oldDsn, $oldUser, $oldPass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4'
+        ]);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في جلب المدن : ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $createSql = "CREATE TABLE IF NOT EXISTS cities (\n            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,\n            country_id BIGINT UNSIGNED NOT NULL,\n            name_ar VARCHAR(255) NOT NULL DEFAULT '',\n            name_en VARCHAR(255) NOT NULL DEFAULT '',\n            created_at TIMESTAMP NULL DEFAULT NULL,\n            updated_at TIMESTAMP NULL DEFAULT NULL,\n            PRIMARY KEY (id),\n            KEY cities_country_id_index (country_id)\n        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+        $newDb->exec($createSql);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في جلب المدن : ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $rows = $oldDb->query('SELECT id, country_id, name, created_at, updated_at FROM cities ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'خطأ في جلب المدن : ' . $e->getMessage()
+        ];
+    }
+
+    if (empty($rows)) {
+        return [
+            'success' => true,
+            'message' => '?? ???? ?????? ?? cities ?? ??????? ???????',
+            'processed' => 0,
+            'inserted' => 0,
+            'updated' => 0,
+            'unchanged' => 0,
+            'skipped' => 0
+        ];
+    }
+
+    $targetColumns = getTableColumnsLocal($newDb, 'cities');
+    if (empty($targetColumns)) {
+        return [
+            'success' => false,
+            'message' => '???? cities ??? ????? ?? ?? ???? ?????? ?? ??????? ???????'
+        ];
+    }
+
+    $mapping = [
+        'id' => 'id',
+        'country_id' => 'country_id',
+        'name' => 'name',
+        'name_ar' => 'name',
+        'name_en' => 'name',
+        'created_at' => 'created_at',
+        'updated_at' => 'updated_at'
+    ];
+
+    $columnsToUse = array_values(array_intersect($targetColumns, array_keys($mapping)));
+    if (!in_array('id', $columnsToUse, true) || !in_array('country_id', $columnsToUse, true)) {
+        return [
+            'success' => false,
+            'message' => '???? cities ?? ????? ??? ???? id ????? ??? country_id'
+        ];
+    }
+
+    $sql = buildUpsertSql('cities', $columnsToUse);
+    $stmt = $newDb->prepare($sql);
+
+    // تأكد من وجود الدول المرتبطة مسبقاً
+    $existingCountries = $newDb->query('SELECT id FROM countries')->fetchAll(PDO::FETCH_COLUMN);
+    $countryExists = array_fill_keys($existingCountries ?: [], true);
+
+    $processed = 0;
+    $inserted = 0;
+    $updated = 0;
+    $unchanged = 0;
+    $skipped = 0;
+    $errors = [];
+    $missingCountries = 0;
+
+    try {
+        $newDb->beginTransaction();
+
+        foreach ($rows as $row) {
+            $processed++;
+
+            $id = isset($row['id']) ? (int)$row['id'] : 0;
+            $countryId = isset($row['country_id']) ? (int)$row['country_id'] : 0;
+            $nameValue = trim((string)($row['name'] ?? ''));
+
+            if ($id <= 0 || $countryId <= 0 || $nameValue === '') {
+                $skipped++;
+                continue;
+            }
+
+            if (!isset($countryExists[$countryId])) {
+                $skipped++;
+                $missingCountries++;
+                if (count($errors) < 5) {
+                    $errors[] = "ID {$id}: country_id {$countryId} غير موجود في countries";
+                }
+                continue;
+            }
+
+            $data = [];
+            foreach ($columnsToUse as $col) {
+                switch ($col) {
+                    case 'id':
+                        $data[$col] = $id;
+                        break;
+                    case 'country_id':
+                        $data[$col] = $countryId;
+                        break;
+                    case 'name':
+                    case 'name_ar':
+                    case 'name_en':
+                        $value = trim((string)($row[$mapping[$col]] ?? ''));
+                        if ($value === '' && $col !== 'name') {
+                            $value = $nameValue;
+                        }
+                        $data[$col] = $value;
+                        break;
+                    case 'created_at':
+                    case 'updated_at':
+                        $data[$col] = parseDateValue($row[$mapping[$col]] ?? null);
+                        break;
+                    default:
+                        $sourceKey = $mapping[$col] ?? $col;
+                        $data[$col] = $row[$sourceKey] ?? null;
+                        break;
+                }
+            }
+
+            try {
+                $stmt->execute(prefixPlaceholders($columnsToUse, $data));
+                $affected = $stmt->rowCount();
+                if ($affected === 1) {
+                    $inserted++;
+                } elseif ($affected === 2) {
+                    $updated++;
+                } else {
+                    $unchanged++;
+                }
+            } catch (Exception $e) {
+                $skipped++;
+                if (count($errors) < 5) {
+                    $errors[] = "ID {$id}: " . $e->getMessage();
+                }
+                error_log('??? ?? ??? city #' . $id . ': ' . $e->getMessage());
+            }
+        }
+
+        $newDb->commit();
+    } catch (Exception $e) {
+        if ($newDb->inTransaction()) {
+            $newDb->rollBack();
+        }
+        return [
+            'success' => false,
+            'message' => '??? ????? ??? ??????? ?????: ' . $e->getMessage()
+        ];
+    }
+
+    $message = '?? ??? ???????? ?????';
+    if ($errors) {
+        $message .= ' - ' . implode(' | ', $errors);
+    }
+
+    return [
+        'success' => true,
+        'message' => $message,
+        'processed' => $processed,
+        'inserted' => $inserted,
+        'updated' => $updated,
+        'unchanged' => $unchanged,
+        'skipped' => $skipped
+    ];
+}
+
+function getCitiesSummary() {
+    try {
+        $db = get_db_connection();
+        $total = $db->query('SELECT COUNT(*) AS total FROM cities')->fetch(PDO::FETCH_ASSOC);
+        return [
+            'success' => true,
+            'total' => (int)($total['total'] ?? 0),
+            'cities' => (int)($total['total'] ?? 0),
+            'message' => '?? ??? ???????? ?????'
+        ];
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => '??? ?? ??? ???????? ?????: ' . $e->getMessage()
+        ];
+    }
+}
+
+function migrateQuestions() {
+    $oldHost = $_POST['old_db_host'] ?? '127.0.0.1';
+    $oldPort = $_POST['old_db_port'] ?? 8889;
+    $oldDbName = $_POST['old_db_name'] ?? 'platinum_old';
+    $oldUser = $_POST['old_db_user'] ?? 'root';
+    $oldPass = $_POST['old_db_pass'] ?? 'root';
+
+    try {
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => '??? ??????? ?????? ?????? ???????: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $oldDsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $oldHost, $oldPort, $oldDbName);
+        $oldDb = new PDO($oldDsn, $oldUser, $oldPass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4'
+        ]);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => '??? ??????? ?????? ?????? ???????: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $createQuestionsSql = "CREATE TABLE IF NOT EXISTS questions (\n            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,\n            is_show TINYINT NOT NULL DEFAULT 1,\n            created_at TIMESTAMP NULL DEFAULT NULL,\n            updated_at TIMESTAMP NULL DEFAULT NULL,\n            PRIMARY KEY (id)\n        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+        $newDb->exec($createQuestionsSql);
+
+        $createTranslationsSql = "CREATE TABLE IF NOT EXISTS questions_translations (\n            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,\n            question_id BIGINT UNSIGNED NOT NULL,\n            title VARCHAR(255) NOT NULL DEFAULT '',\n            description TEXT NULL,\n            locale VARCHAR(10) NOT NULL,\n            created_at TIMESTAMP NULL DEFAULT NULL,\n            updated_at TIMESTAMP NULL DEFAULT NULL,\n            PRIMARY KEY (id),\n            KEY questions_translations_question_id_index (question_id),\n            KEY questions_translations_locale_index (locale)\n        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+        $newDb->exec($createTranslationsSql);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => '??? ?? ????? ???? questions: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $rows = $oldDb->query('SELECT id, question, answer, created_at, updated_at FROM frequently_questioned ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => '?? ????? ?? ????? ???? frequently_questioned: ' . $e->getMessage()
+        ];
+    }
+
+    if (empty($rows)) {
+        return [
+            'success' => true,
+            'message' => '?? ???? ?????? ?? frequently_questioned',
+            'processed' => 0,
+            'inserted' => 0,
+            'updated' => 0,
+            'unchanged' => 0,
+            'skipped' => 0
+        ];
+    }
+
+    $questionSql = "INSERT INTO questions (id, is_show, created_at, updated_at)\n                  VALUES (:id, :is_show, :created_at, :updated_at)\n                  ON DUPLICATE KEY UPDATE\n                    is_show = VALUES(is_show),\n                    created_at = VALUES(created_at),\n                    updated_at = VALUES(updated_at)";
+    $questionStmt = $newDb->prepare($questionSql);
+
+    $translationSql = "INSERT INTO questions_translations (id, question_id, title, description, locale, created_at, updated_at)\n                      VALUES (:id, :question_id, :title, :description, :locale, :created_at, :updated_at)\n                      ON DUPLICATE KEY UPDATE\n                        question_id = VALUES(question_id),\n                        title = VALUES(title),\n                        description = VALUES(description),\n                        locale = VALUES(locale),\n                        created_at = VALUES(created_at),\n                        updated_at = VALUES(updated_at)";
+    $translationStmt = $newDb->prepare($translationSql);
+
+    $processed = 0;
+    $inserted = 0;
+    $updated = 0;
+    $unchanged = 0;
+    $skipped = 0;
+    $errors = [];
+
+    try {
+        $newDb->beginTransaction();
+
+        foreach ($rows as $row) {
+            $processed++;
+
+            $id = isset($row['id']) ? (int)$row['id'] : 0;
+            $title = trim((string)($row['question'] ?? ''));
+            $description = $row['answer'] ?? null;
+
+            if ($id <= 0 || $title === '') {
+                $skipped++;
+                continue;
+            }
+
+            $questionParams = [
+                ':id' => $id,
+                ':is_show' => 1,
+                ':created_at' => parseDateValue($row['created_at'] ?? null),
+                ':updated_at' => parseDateValue($row['updated_at'] ?? null)
+            ];
+
+            $translationParams = [
+                ':id' => $id,
+                ':question_id' => $id,
+                ':title' => $title,
+                ':description' => $description,
+                ':locale' => 'ar',
+                ':created_at' => parseDateValue($row['created_at'] ?? null),
+                ':updated_at' => parseDateValue($row['updated_at'] ?? null)
+            ];
+
+            try {
+                $questionStmt->execute($questionParams);
+                $translationStmt->execute($translationParams);
+
+                $affected = $questionStmt->rowCount() + $translationStmt->rowCount();
+                if ($affected >= 2 && ($questionStmt->rowCount() === 1 || $translationStmt->rowCount() === 1)) {
+                    $inserted++;
+                } elseif ($questionStmt->rowCount() === 2 || $translationStmt->rowCount() === 2) {
+                    $updated++;
+                } else {
+                    $unchanged++;
+                }
+            } catch (Exception $e) {
+                $skipped++;
+                if (count($errors) < 5) {
+                    $errors[] = "ID {$id}: " . $e->getMessage();
+                }
+                error_log('??? ?? ??? question #' . $id . ': ' . $e->getMessage());
+            }
+        }
+
+        $newDb->commit();
+    } catch (Exception $e) {
+        if ($newDb->inTransaction()) {
+            $newDb->rollBack();
+        }
+        return [
+            'success' => false,
+            'message' => '??? ????? ??? ??????? ?????: ' . $e->getMessage()
+        ];
+    }
+
+    $message = '?? ??? frequently_questioned ??? questions/questions_translations';
+    if ($errors) {
+        $message .= ' - ' . implode(' | ', $errors);
+    }
+    if ($missingCountries > 0) {
+        $message .= " - تم تجاهل {$missingCountries} بسبب country_id غير موجود";
+    }
+
+    return [
+        'success' => true,
+        'message' => $message,
+        'processed' => $processed,
+        'inserted' => $inserted,
+        'updated' => $updated,
+        'unchanged' => $unchanged,
+        'skipped' => $skipped
+    ];
+}
+
+function getQuestionsSummary() {
+    try {
+        $db = get_db_connection();
+        $counts = $db->query('SELECT (SELECT COUNT(*) FROM questions) as questions, (SELECT COUNT(*) FROM questions_translations) as question_translations')->fetch(PDO::FETCH_ASSOC);
+        return [
+            'success' => true,
+            'questions' => (int)($counts['questions'] ?? 0),
+            'question_translations' => (int)($counts['question_translations'] ?? 0),
+            'message' => '?? ??? ???????? ?????? ???????'
+        ];
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => '??? ?? ??? ???????? ?????? ???????: ' . $e->getMessage()
+        ];
+    }
+}
+
+function migrateNationalitiesDirect() {
+    $oldHost = $_POST['old_db_host'] ?? '127.0.0.1';
+    $oldPort = $_POST['old_db_port'] ?? 8889;
+    $oldDbName = $_POST['old_db_name'] ?? 'platinum_old';
+    $oldUser = $_POST['old_db_user'] ?? 'root';
+    $oldPass = $_POST['old_db_pass'] ?? 'root';
+
+    try {
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => '??? ??????? ?????? ?????? ???????: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $oldDsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $oldHost, $oldPort, $oldDbName);
+        $oldDb = new PDO($oldDsn, $oldUser, $oldPass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4'
+        ]);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => '??? ??????? ?????? ?????? ???????: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $rows = $oldDb->query('SELECT id, name, sub_title, flag_image, salary, sponsor_salary, created_at, updated_at FROM nationalities ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => '?? ????? ?? ????? ???? nationalities ?? ??????? ???????: ' . $e->getMessage()
+        ];
+    }
+
+    if (empty($rows)) {
+        return [
+            'success' => true,
+            'message' => '?? ???? ?????? ?? nationalities ?? ??????? ???????',
+            'processed' => 0,
+            'inserted' => 0,
+            'updated' => 0,
+            'unchanged' => 0,
+            'skipped' => 0
+        ];
+    }
+
+    $natColumns = getTableColumnsLocal($newDb, 'nationalities');
+    $trColumns = getTableColumnsLocal($newDb, 'nationalities_translations');
+    if (empty($natColumns) || empty($trColumns)) {
+        return [
+            'success' => false,
+            'message' => '??? ???? ????? nationalities/nationalities_translations ?? ??????? ???????'
+        ];
+    }
+
+    $natMapping = [
+        'id' => 'id',
+        'logo' => 'flag_image',
+        'price' => 'salary',
+        'service_transportation_cost' => 'sponsor_salary',
+        'created_at' => 'created_at',
+        'updated_at' => 'updated_at'
+    ];
+    $trMapping = [
+        'id' => 'id',
+        'nationality_id' => 'id',
+        'title' => 'name',
+        'sub_title' => 'sub_title',
+        'description' => 'description',
+        'locale' => 'locale',
+        'created_at' => 'created_at',
+        'updated_at' => 'updated_at'
+    ];
+
+    $natCols = array_values(array_intersect($natColumns, array_keys($natMapping)));
+    $trCols = array_values(array_intersect($trColumns, array_keys($trMapping)));
+
+    if (!in_array('id', $natCols, true) || !in_array('id', $trCols, true)) {
+        return [
+            'success' => false,
+            'message' => '???? nationalities او nationalities_translations ?? ????? ??? ???? id'
+        ];
+    }
+
+    $natSql = buildUpsertSql('nationalities', $natCols);
+    $natStmt = $newDb->prepare($natSql);
+
+    $trSql = buildUpsertSql('nationalities_translations', $trCols);
+    $trStmt = $newDb->prepare($trSql);
+
+    $processed = 0;
+    $inserted = 0;
+    $updated = 0;
+    $unchanged = 0;
+    $skipped = 0;
+    $errors = [];
+
+    try {
+        $newDb->beginTransaction();
+
+        foreach ($rows as $row) {
+            $processed++;
+            $id = isset($row['id']) ? (int)$row['id'] : 0;
+            $name = trim((string)($row['name'] ?? ''));
+
+            if ($id <= 0 || $name === '') {
+                $skipped++;
+                continue;
+            }
+
+            $natData = [];
+            foreach ($natCols as $col) {
+                switch ($col) {
+                    case 'id':
+                        $natData[$col] = $id;
+                        break;
+                    case 'logo':
+                    case 'price':
+                    case 'service_transportation_cost':
+                        $src = $natMapping[$col];
+                        $natData[$col] = $row[$src] ?? null;
+                        break;
+                    case 'created_at':
+                    case 'updated_at':
+                        $natData[$col] = parseDateValue($row[$natMapping[$col]] ?? null);
+                        break;
+                    default:
+                        $src = $natMapping[$col] ?? $col;
+                        $natData[$col] = $row[$src] ?? null;
+                        break;
+                }
+            }
+
+            $trData = [];
+            foreach ($trCols as $col) {
+                switch ($col) {
+                    case 'id':
+                        $trData[$col] = $id;
+                        break;
+                    case 'nationality_id':
+                        $trData[$col] = $id;
+                        break;
+                    case 'title':
+                        $trData[$col] = $name;
+                        break;
+                    case 'sub_title':
+                        $trData[$col] = $row['sub_title'] ?? null;
+                        break;
+                    case 'description':
+                        $trData[$col] = $row['description'] ?? null;
+                        break;
+                    case 'locale':
+                        $trData[$col] = 'ar';
+                        break;
+                    case 'created_at':
+                    case 'updated_at':
+                        $trData[$col] = parseDateValue($row[$trMapping[$col]] ?? null);
+                        break;
+                    default:
+                        $src = $trMapping[$col] ?? $col;
+                        $trData[$col] = $row[$src] ?? null;
+                        break;
+                }
+            }
+
+            try {
+                $natStmt->execute(prefixPlaceholders($natCols, $natData));
+                $trStmt->execute(prefixPlaceholders($trCols, $trData));
+
+                $affected = $natStmt->rowCount() + $trStmt->rowCount();
+                if ($affected >= 2 && ($natStmt->rowCount() === 1 || $trStmt->rowCount() === 1)) {
+                    $inserted++;
+                } elseif ($natStmt->rowCount() === 2 || $trStmt->rowCount() === 2) {
+                    $updated++;
+                } else {
+                    $unchanged++;
+                }
+            } catch (Exception $e) {
+                $skipped++;
+                if (count($errors) < 5) {
+                    $errors[] = "ID {$id}: " . $e->getMessage();
+                }
+                error_log('??? ?? ??? nationality #' . $id . ': ' . $e->getMessage());
+            }
+        }
+
+        $newDb->commit();
+    } catch (Exception $e) {
+        if ($newDb->inTransaction()) {
+            $newDb->rollBack();
+        }
+        return [
+            'success' => false,
+            'message' => '??? ????? ??? ??????? ???????: ' . $e->getMessage()
+        ];
+    }
+
+    $message = 'تم نقل الجنسيات بنجاح';
+    if ($errors) {
+        $message .= ' - ' . implode(' | ', $errors);
+    }
+
+    return [
+        'success' => true,
+        'message' => $message,
+        'processed' => $processed,
+        'inserted' => $inserted,
+        'updated' => $updated,
+        'unchanged' => $unchanged,
+        'skipped' => $skipped
+    ];
+}
+
 ?>
+
+
 
 
 
