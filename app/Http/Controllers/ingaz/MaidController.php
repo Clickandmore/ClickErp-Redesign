@@ -704,7 +704,8 @@ class MaidController extends Controller
 
         // Set default status in Arabic
         $data['status'] = 'available';
-        $data['added_by'] = auth()->user()->id;
+        // $data['added_by'] = auth()->user()->id;
+        $data['added_by'] = null; // Temporarily set to null
         $data = $action->storeMaid($data, $request);
         if ($request->ajax()) {
             return jsonSuccess($data);

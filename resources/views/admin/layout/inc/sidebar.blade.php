@@ -400,6 +400,14 @@
                                 @endif
 
                                 <li>
+                                    <a class="m-link {{ Route::currentRouteName() == 'packages.index' ? 'active' : '' }}"
+                                        href="{{ route('packages.index') }}">
+                                        <i class="fas fa-box-open text-info"></i>
+                                        <span class="ms-2"> باقات التأجير </span>
+                                    </a>
+                                </li>
+
+                                <li>
                                     <a class="m-link {{ in_array(Route::currentRouteName(), ['rent-contract-terms.index', 'rent-contract-terms.create', 'rent-contract-terms.edit']) ? 'active' : '' }}"
                                         href="{{ route('rent-contract-terms.index') }}">
                                         <i class="fa fa-file-contract"></i>

@@ -91,7 +91,7 @@
 
         .services-container {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 20px;
             padding: 20px;
 
@@ -417,24 +417,46 @@
         ];
     @endphp
     <section class="hero-services" data-aos="fade-up">
-        <div class="section-header">
+        {{-- <div class="section-header">
             <div class="badge">
                 <i class="fa-solid fa-briefcase" style="font-weight: bold;">
                     {{ __('web.our_services') }}
                 </i>
             </div>
-            <h2 class="section-title">{{ isset($whatDoSetting) ? $whatDoSetting->title : 'خدمات شركه بلاتينيوم' }}</h2>
-            <p>{{ isset($whatDoSetting) ? $whatDoSetting->description : ' خدماتنا مرخصه من وزاره الموارد البشريه والتنميه الاجتماعية لضمان راحتك وراحه اسرتك' }}
+            <h2 class="title">{{ isset($whatDoSetting) ? $whatDoSetting->title : 'خدمات شركه بلاتينيوم' }}</h2>
+            <p class="hint">{{ isset($whatDoSetting) ? $whatDoSetting->description : ' خدماتنا مرخصه من وزاره الموارد البشريه والتنميه الاجتماعية لضمان راحتك وراحه اسرتك' }}
+            </p>
+        </div> --}}
+        <div class="section-header" data-aos="fade-up" data-aos-duration="1000">
+            <h1 class="title"> {{ __('web.our_services') }}</h1>
+            <p class="hint">
+                {{ isset($whatDoSetting) ? $whatDoSetting->description : ' خدماتنا مرخصه من وزاره الموارد البشريه والتنميه الاجتماعية لضمان راحتك وراحه اسرتك' }}
             </p>
         </div>
         <div class="services-container">
             @php
                 $colors = ['green', 'blue', 'red', 'orange', 'purple', 'teal'];
-                $displayWhatDos = ($whatDos ?? collect())->take(3);
+                // $displayWhatDos = ($whatDos ?? collect())->take(3);
+                $displayWhatDos = ($whatDos ?? collect())->take(4);
             @endphp
+            {{-- @dd($displayWhatDos) --}}
             @forelse($displayWhatDos as $whatDo)
                 @php
-                    $color = $colors[array_rand($colors)];
+                    // $color = $colors[array_rand($colors)];
+                    $color = '';
+                    switch ($whatDo->type) {
+                        case 'estqdam':
+                            $color = 'green';
+                            break;
+                        case 'egar':
+                            $color = 'purple';
+                            break;
+                        case 'transfer':
+                            $color = 'blue';
+                            break;
+                        default:
+                            $color = $colors[array_rand($colors)];
+                    }
                 @endphp
                 <a href="{{ route('site.all-workers.index') }}?type={{ $whatDo->type }}">
                     <div class="service-card {{ $color }}">
@@ -573,9 +595,15 @@
     </section>
     <section class="countries">
         <div class="container">
-            <div class="headTitle text-center">
+            {{-- <div class="headTitle text-center">
                 <h2>دول الاستقدام</h2>
                 <p>اختر الدولة التي ترغب بالاستقدام منها</p>
+            </div> --}}
+            <div class="section-header" data-aos="fade-up" data-aos-duration="1000">
+                <h1 class="title"> دول الاستقدام</h1>
+                <p class="hint">
+                   اختر الدولة التي ترغب بالاستقدام منها
+                </p>
             </div>
             <div class="row justify-content-center">
                 @forelse($nationalities as $nationalty)
@@ -918,9 +946,15 @@
     <!-- ================ services ================= -->
     <section class="services-sec" style="height: fit-content" id="services">
         <div class="container">
-            <div class="headTitle" data-aos="fade-up">
+            {{-- <div class="headTitle" data-aos="fade-up">
                 <h2>{{ __('ingaz.our_services') }}</h2>
                 <p>{{ __('ingaz.our_services_desc') }}</p>
+            </div> --}}
+            <div class="section-header" data-aos="fade-up" data-aos-duration="1000">
+                <h1 class="title">{{ __('ingaz.our_services') }}</h1>
+                <p class="hint">
+                    {{ __('ingaz.our_services_desc') }}
+                </p>
             </div>
             <!-- السلايدر -->
             <div class="services-slider swiper" data-aos="fade-up">
@@ -1081,11 +1115,17 @@
     <section class="steps" id="steps" style="position: relative">
         <div class="container">
             <!-- Section Title -->
-            <div class="SectionTitle">
+            {{-- <div class="SectionTitle">
                 <h2 class="title" data-aos="fade-up">{{ __('ingaz.Recruitment steps') }}</h2>
                 <h6 class="hint" data-aos="fade-up" data-aos-delay="100">
                     {{ __('ingaz.Recruitment steps hint') }}
                 </h6>
+            </div> --}}
+            <div class="section-header" data-aos="fade-up" data-aos-duration="1000">
+                <h1 class="title">{{ __('ingaz.Recruitment steps') }}</h1>
+                <p class="hint">
+                    {{ __('ingaz.Recruitment steps hint') }}
+                </p>
             </div>
             <!-- steps -->
             <div class="allSteps">
@@ -1186,9 +1226,15 @@
     <!-- ================ requirements ================= -->
     <section class="requirements">
         <div class="container">
-            <div class="headTitle">
+            {{-- <div class="headTitle">
                 <h2 data-aos="fade-up">{{ __('ingaz.Recruitment_requirements') }} </h2>
                 <p data-aos="fade-up">
+                    {{ __('ingaz.requirements_you_need') }}
+                </p>
+            </div> --}}
+            <div class="section-header" data-aos="fade-up" data-aos-duration="1000">
+                <h1 class="title">{{ __('ingaz.Recruitment_requirements') }}</h1>
+                <p class="hint">
                     {{ __('ingaz.requirements_you_need') }}
                 </p>
             </div>

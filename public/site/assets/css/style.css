@@ -2526,12 +2526,13 @@ main .statistics {
     background-color: var(--mainColor10);
 }
 
-main .statistics .section-header {
+main .statistics .section-header, main .hero-services .section-header, main .countries .section-header, main .services-sec .section-header, main .steps .section-header, main .requirements .section-header {
     text-align: center;
-    margin-bottom: 3rem;
+    /* margin-bottom: 3rem; */
+    margin-bottom: 20px;
 }
 
-main .statistics .section-header .title {
+main .statistics .section-header .title, main .hero-services .section-header .title, main .countries .section-header .title, main .services-sec .section-header .title, main .steps .section-header .title, main .requirements .section-header .title {
     font-size: 2.8rem;
     color: var(--mainColor);
     margin-bottom: 1rem;
@@ -2539,7 +2540,7 @@ main .statistics .section-header .title {
     display: inline-block;
 }
 
-main .statistics .section-header .hint {
+main .statistics .section-header .hint, main .hero-services .section-header .hint, main .countries .section-header .hint, main .services-sec .section-header .hint, main .steps .section-header .hint, main .requirements .section-header .hint {
     font-size: 1.2rem;
     color: #6c757d;
     max-width: 600px;
@@ -6795,6 +6796,30 @@ main .cvPage .informationCol .head .name h3 {
 @media (max-width: 768px) {
     main .cvPage .informationCol .head .name h3 {
         font-size: 18px;
+    }
+}
+
+@media (max-width: 448px) {
+    main .cvPage .informationCol .head {
+        flex-direction: column-reverse;
+    }
+
+    main .cvPage .sub .title{
+        font-size: 16px;
+    }
+
+    main .cvPage .imageCol .mainInfo{
+        padding: 92px 3px 24px;
+    }
+
+    main .cvPage .bar-code{
+        padding: 18px 3px 12px;
+        border-radius: 8px
+    }
+    main .cvPage .bar-code img{
+        border-radius: 0;
+        width: 90px;
+        height: 90px;
     }
 }
 

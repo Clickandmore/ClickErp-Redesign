@@ -101,7 +101,7 @@
             <p>
                 {{ __("ingaz.all_rights_reserved") }} ©
                 <script>document.write(new Date().getFullYear());</script>
-                <a target="_blank" href="http://istqdim.com">عالم الاستقدام </a>
+                <a target="_blank" href="https://platinum.istqdim.com"> شركة بلاتنيوم الشرقية </a>
             </p>
             <ul class="footer-social">
                 @if($settings->facebook)
