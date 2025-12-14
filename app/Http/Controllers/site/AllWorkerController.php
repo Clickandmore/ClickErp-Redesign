@@ -44,10 +44,13 @@ class AllWorkerController extends Controller
     public function show($id, Request $request, MaidAction $maidAction)
     {
         $maid = $maidAction->find($id);
+        $type = $request->query('type') ?? null;
+
         if(!$maid){
             return redirect()->route('site.all-workers.index');
         }
-        return view('site.pages.cv_details', ['maid' => $maid]);
+
+        return view('site.pages.cv_details', ['maid' => $maid, 'type' => $type]);
     }
 
 

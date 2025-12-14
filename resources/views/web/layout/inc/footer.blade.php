@@ -172,18 +172,18 @@
                         <i class="fa-sharp fa-regular fa-location-dot"></i><b>عنوان مقرنا: </b>
                         <a
                             href="https://www.google.com/maps/place/%D8%B4%D8%B1%D9%83%D8%A9+%D8%A3%D8%B3%D8%B3+%D8%A7%D9%84%D8%A7%D9%86%D8%AC%D8%A7%D8%B2+%D9%84%D9%84%D8%A7%D8%B3%D8%AA%D9%82%D8%AF%D8%A7%D9%85%E2%80%AD/@24.8154273,46.7778357,15z/data=!4m2!3m1!1s0x0:0x4bf41f66a325c69f?sa=X&ved=2ahUKEwjN5_zxqfqCAxVpQ6QEHTqRDE4Q_BJ6BAgYEAA">
-                            {{ $settings->address ?? 'الرياض حي اليرموك' }}
+                            {{ $settings->address ?? 'طريق الأمير محمد بن فهد بن عبدالعزيز، الشاطئ الشرقي، الدمام' }}
                         </a>
                     </li>
                     <li>
                         <i class="fa-light fa-envelope"></i><b> {{ helperTrans('web.email') }}</b>
                         <a
-                            href="mailto:{{ $settings->email ?? 'assusalengaz@gmail.com' }}">{{ $settings->email ?? 'assusalengaz@gmail.com' }}</a>
+                            href="mailto:{{ $settings->email ?? 'info@platinumeastern.com' }}">{{ $settings->email ?? 'info@platinumeastern.com' }}</a>
                     </li>
                     <li>
                         <i class="fa-light fa-phone"></i><b>{{ helperTrans('web.tech_support') }}</b>
                         <a
-                            href="tel:{{ $settings->phone ?? '+0553123833' }}">{{ $settings->phone ?? '+0553123833' }}</a>
+                            href="tel:{{ $settings->phone ?? '+966501142288' }}">{{ $settings->phone ?? '+966501142288' }}</a>
                     </li>
                 </ul>
             </div>

@@ -71,7 +71,7 @@
                             <input type="hidden" name="experience_status" id="experience_status_input"
                                 value="{{ $currentExperienceStatus }}">
                             <!-- Experience Status -->
-                            <div class="py-3 col col-md-12">
+                            <div class="py-3 col-12 col-md-12">
                                 <div class="toggleBtns mb-2">
                                     <button type="button"
                                         class="btn toggle-btn experience-toggle {{ $currentExperienceStatus === 'has_experience' ? 'active' : '' }}"

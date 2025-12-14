@@ -9,12 +9,12 @@
                 <h2>{{ __('ingaz.policies_hero_title') }}</h2>
                 <p>{{ __('ingaz.policies_hero_desc') }}</p>
                 <div class="buttons">
-                    <a href="{{ asset('site/files/employer-rights.pdf') }}" class="btn" download>
+                    <a href="{{ asset('site/files/employer-rights.pdf') }}" class="btn" target="_blank">
                         <i class="fa-solid fa-file-pdf"></i>
                         {{ __('ingaz.employer_rights') }}
                     </a>
 
-                    <a href="{{ asset('site/files/worker-rights.pdf') }}" class="btn" download>
+                    <a href="{{ asset('site/files/worker-rights.pdf') }}" class="btn" target="_blank">
                         <i class="fa-solid fa-file-pdf"></i>
                         {{ __('ingaz.worker_rights') }}
                     </a>

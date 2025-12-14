@@ -25,7 +25,7 @@
                                     </div>
                                     <div class="text">
                                         <h4>{{helperTrans('web.location')}} : </h4>
-                                        <p>{{ $settings->location ?? 'اليرموك، الرياض 13251، المملكة العربية السعودية' }}</p>
+                                        <p>{{ $settings->location ?? 'طريق الأمير محمد بن فهد بن عبدالعزيز، الشاطئ الشرقي، الدمام 32413'}}</p>
                                     </div>
                                 </li>
                                 <li class="field">
@@ -34,7 +34,7 @@
                                     </div>
                                     <div class="text">
                                         <h4>{{helperTrans('web.email')}} : </h4>
-                                        <a href="mailto:{{ $settings->eamil?? 'assusalengaz@gmail.com' }}">{{ $settings->eamil?? 'assusalengaz@gmail.com' }}</a>
+                                        <a href="mailto:{{ $settings->eamil ?? 'info@platinumeastern.com' }}">{{ $settings->eamil ?? 'info@platinumeastern.com' }}</a>
                                     </div>
                                 </li>
                                 <li class="field">
@@ -43,7 +43,7 @@
                                     </div>
                                     <div class="text">
                                         <h4>{{helperTrans('web.phone')}} : </h4>
-                                        <a href="tel:+{{ $settings->phone ?? '+950012121252' }}">{{ $settings->phone ?? '+950012121252' }}+</a>
+                                        <a href="tel:+{{ $settings->phone ?? '+966501142288' }}">{{ $settings->phone ?? '+966501142288' }}+</a>
                                     </div>
                                 </li>
                                 <h5>مواعيد العمل</h5>

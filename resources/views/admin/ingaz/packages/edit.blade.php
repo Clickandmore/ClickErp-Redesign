@@ -11,7 +11,10 @@
     <div class="col-6">
         <label for="TextInput" class="form-label">{{helperTrans("ingaz.nationality")}} </label>
         <select name="nationality_id" class="form-control">
-            {!! showSelectElement($nationalities , 'title',$obj->nationality_id) !!}
+            {{-- {!! showSelectElement($nationalities , 'title',$obj->nationality_id) !!} --}}
+            @foreach ($nationalities as $nationality)
+                <option value="{{ $nationality->id }}" {{ $obj->nationality_id == $nationality->id ? 'selected' : '' }}>{{ $nationality->title }}</option>
+            @endforeach
         </select>
     </div>
     <div class="col-6">

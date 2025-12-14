@@ -58,7 +58,7 @@
                     <small class="text-light opacity-75">طلبات الاستقدام</small>
                     <h3 class="text-white mb-0">{{ number_format($ordersStats['total'] ?? 0) }}</h3>
                 </div>
-                <a href="{{ url('dashboard/orders') }}" class="btn btn-sm btn-light text-dark">عرض</a>
+                <a href="{{ url('admin/orders') }}" class="btn btn-sm btn-light text-dark">عرض</a>
             </div>
             <div class="mt-3 text-white small">جديدة: {{ number_format($ordersStats['new'] ?? 0) }} | تحت الإجراء:
                 {{ number_format($ordersStats['under_process'] ?? 0) }} | تم التعاقد:
@@ -78,7 +78,7 @@
                     <small class="text-light opacity-75">عقود الاستقدام</small>
                     <h3 class="text-white mb-0">{{ number_format($contractsStats['total'] ?? 0) }}</h3>
                 </div>
-                <a href="{{ url('dashboard/contracts') }}" class="btn btn-sm btn-light text-dark">عرض</a>
+                <a href="{{ url('admin/contracts') }}" class="btn btn-sm btn-light text-dark">عرض</a>
             </div>
             <div class="mt-3 text-white small">قبل الوصول: {{ number_format($contractsPipeline['pre_arrival'] ?? 0) }} |
                 مرحلة الوصول: {{ number_format($contractsPipeline['arrival_stage'] ?? 0) }} | تحت الضمان:
@@ -98,7 +98,7 @@
                     <small class="text-light opacity-75">السير الذاتية</small>
                     <h3 class="text-white mb-0">{{ number_format($cvStats['total'] ?? 0) }}</h3>
                 </div>
-                <a href="{{ url('dashboard/maids') }}" class="btn btn-sm btn-light text-dark">عرض</a>
+                <a href="{{ url('admin/maids') }}" class="btn btn-sm btn-light text-dark">عرض</a>
             </div>
             <div class="mt-3 text-white small">متاحة: {{ number_format($cvStats['available'] ?? 0) }} | محجوزة:
                 {{ number_format($cvStats['booked'] ?? 0) }}</div>
@@ -117,7 +117,7 @@
                     <small class="text-light opacity-75">العملاء</small>
                     <h3 class="text-white mb-0">{{ number_format($clientsStats['total'] ?? 0) }}</h3>
                 </div>
-                <a href="{{ url('dashboard/clients') }}" class="btn btn-sm btn-light text-dark">عرض</a>
+                <a href="{{ url('admin/clients') }}" class="btn btn-sm btn-light text-dark">عرض</a>
             </div>
             <div class="mt-3 text-white small">لديهم طلبات: {{ number_format($clientsStats['with_orders'] ?? 0) }} | بدون
                 طلبات: {{ number_format($clientsStats['no_orders'] ?? 0) }}</div>
