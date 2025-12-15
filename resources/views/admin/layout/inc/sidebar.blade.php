@@ -103,6 +103,15 @@
                                         </a>
                                     </li>
                                 @endif
+                                @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
+                                    <li>
+                                        <a class="m-link {{ Route::currentRouteName() == 'maids.create_rapid_cv' ? 'active' : '' }}"
+                                            href="{{ route('maids.create_rapid_cv') }}">
+                                            <i class="fa fa-plus"></i>
+                                            <span class="ms-2">{{ helperTrans('ingaz.add_rapid_cv') }}</span>
+                                        </a>
+                                    </li>
+                                @endif
                                 @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW))
                                     <li>
                                         <a class="m-link {{ Route::currentRouteName() == 'maids.index' ? 'active' : '' }}"

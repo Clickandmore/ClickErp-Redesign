@@ -498,6 +498,7 @@
   'last_update' => 'آخر تحديث',
   'maids_management' => 'إدارة السير الذاتية',
   'pinned' => 'مثبتة',
+  'add_rapid_cv' => 'إضافة سيرة ذاتية مختصرة',
   'maid_status_available' => 'متاحة',
   'maid_status_reserved' => 'محجوزة',
   'maid_status_contracted' => 'متعاقد عليها',

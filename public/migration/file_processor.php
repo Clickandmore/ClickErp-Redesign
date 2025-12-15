@@ -4749,6 +4749,47 @@ function migrateContracts() {
         ];
     }
 
+    // Map latest contract status from contract_logs (numeric -> text)
+    $contractLogStatusMap = [];
+    $contractLogStatusOrder = [];
+    $logStatusMap = [
+        1 => 'new',
+        2 => 'completed',
+        3 => 'msaned',
+        4 => 'tafwed',
+        5 => 'taffez',
+        6 => 'tazker',
+        7 => 'arrival',
+        8 => 'back',
+    ];
+
+    try {
+        $logs = $oldDb->query('SELECT contract_id, status, date, id FROM contract_logs ORDER BY contract_id, date DESC, id DESC')->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($logs as $log) {
+            $logContractId = isset($log['contract_id']) ? (int)$log['contract_id'] : 0;
+            if ($logContractId <= 0) {
+                continue;
+            }
+
+            $mappedStatus = $logStatusMap[(int)($log['status'] ?? 0)] ?? null;
+            if (!$mappedStatus) {
+                continue;
+            }
+
+            $logDate = $log['date'] ?? null;
+            $logId = isset($log['id']) ? (int)$log['id'] : 0;
+            $existing = $contractLogStatusOrder[$logContractId] ?? null;
+
+            // Keep the latest by date, falling back to highest id
+            if (!$existing || ($logDate && $logDate > $existing['date']) || ($logDate === $existing['date'] && $logId > $existing['id'])) {
+                $contractLogStatusMap[$logContractId] = $mappedStatus;
+                $contractLogStatusOrder[$logContractId] = ['date' => $logDate, 'id' => $logId];
+            }
+        }
+    } catch (Exception $e) {
+        // If contract_logs is unavailable, continue without overriding status
+    }
+
     $insertSql = <<<SQL
 INSERT INTO contracts (
     id,
@@ -4870,6 +4911,10 @@ SQL;
 
         try {
             $status = 'shelter';
+            $logStatus = $contractLogStatusMap[$contractId] ?? null;
+            if ($logStatus) {
+                $status = $logStatus;
+            }
             $warrantyStartDate = normalizeWarrantyTimestamp($row['contract_from_day'] ?? null);
             $warrantyEndDate = normalizeWarrantyTimestamp($row['contract_to_day'] ?? null);
             $warrantyStatus = determineWarrantyStatus($row['contract_from_day'] ?? null, $row['contract_to_day'] ?? null);
@@ -4898,7 +4943,7 @@ SQL;
                 }
 
                 $mappedStatus = mapReservationStatus($reservationData['status'] ?? null);
-                if ($mappedStatus !== null) {
+                if ($mappedStatus !== null && !$logStatus) {
                     $status = $mappedStatus;
                 }
             }
@@ -5722,13 +5767,13 @@ function migrateContractLogs() {
 
     $statusMap = [
         '1' => 'new',
-        '2' => 'approval',
+        '2' => 'completed', // اعتماد العقد
         '3' => 'msaned',
         '4' => 'tafwed',
         '5' => 'taffez',
         '6' => 'tazker',
-        '7' => 'completed',
-        '8' => 'return'
+        '7' => 'arrival',
+        '8' => 'back'
     ];
 
     try {
@@ -6999,8 +7044,6 @@ function migrateNationalitiesDirect() {
 }
 
 ?>
-
-
 
 
 

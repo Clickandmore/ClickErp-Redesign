@@ -10,6 +10,8 @@ use App\Models\ContractInfo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+// use Barryvdh\DomPDF\Facade as PDF;
+use PDF;
 
 class ContractController extends Controller
 {
@@ -345,5 +347,44 @@ class ContractController extends Controller
                 'message' => 'حدث خطأ أثناء إنشاء العقد: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function deliveryFormDownload($id)
+    {
+        $contract = Contract::with(['user', 'maid.nationality', 'marketer'])->findOrFail($id);
+
+        $clientName = $contract->user->name ?? '';
+        $clientNationalNumber = $contract->user->national_num ?? '';
+        $clientPhone = $contract->user->phone ?? '';
+        $clientAddress = $contract->user->address ?? '';
+
+        $maid = $contract->maid;
+        $passportId = $maid->passport_num ?? '';
+        $nationalityTitle = $maid?->nationality?->title ?? $maid?->nationality?->sub_title ?? '';
+        $arriveDate = $maid->available_at ?? null;
+        $dateReceipt = $contract->contract_date ?? null;
+        $maidName = $maid->name ?? '';
+        $adminStaff = $contract->marketer->name ?? '';
+
+        $textReceipt = $contract->text_receipt ?? '';
+
+        PDF::setOptions(['defaultFont' => 'DejaVu Sans']);
+
+        $pdf = PDF::loadView('admin.ingaz.RecruitmentContract.delivery_form', [
+            'text_receipt' => $textReceipt,
+            'date_receipt' => $dateReceipt,
+            'contract' => $contract,
+            'client_name' => $clientName,
+            'national_identification_number' => $clientNationalNumber,
+            'cvs_name' => $maidName,
+            'nationality_id' => $nationalityTitle,
+            'passport_id' => $passportId,
+            'client_phone' => $clientPhone,
+            'client_address' => $clientAddress,
+            'adminStaff' => $adminStaff,
+            'arrive_date' => $arriveDate,
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->stream('contract-' . $contract->id . '.pdf');
     }
 }

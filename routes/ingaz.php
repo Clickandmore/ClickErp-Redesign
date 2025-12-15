@@ -170,7 +170,10 @@ Route::group(
             Route::get('show-maid-details/{id}', [\App\Http\Controllers\ingaz\MaidController::class, 'showMaidDetails'])->name('showMaidDetails');
             Route::get('maids-not-available', [\App\Http\Controllers\ingaz\MaidController::class, 'noneAvailableMaids'])->name('noneAvailableMaids');
             Route::get('maids/{id}/details', [\App\Http\Controllers\ingaz\MaidController::class, 'getMaidDetails'])->name('maids.details');
-            Route::resource('maids', MaidController::class);
+            // Limit maid parameter to numeric IDs to avoid catching custom pages like create_rapid_cv
+            Route::resource('maids', MaidController::class)->whereNumber('maid');
+            Route::get('maids/create_rapid_cv', [MaidController::class, 'create_rapid_cv'])->name('maids.create_rapid_cv');
+            Route::post('maids/store_rapid_cv', [MaidController::class, 'store_rapid_cv'])->name('maids.store_rapid_cv');
             Route::post('maids/{id}/toggle-pin', [\App\Http\Controllers\ingaz\MaidController::class, 'togglePin'])->name('maids.toggle-pin');
             Route::post('maids/{id}/offer', [\App\Http\Controllers\ingaz\MaidController::class, 'updateOffer'])->name('maids.offer');
             Route::get('convert_page/{id}', [App\Http\Controllers\ingaz\MaidController::class, 'convert_page'])->name('convert_page');
@@ -382,6 +385,7 @@ Route::group(
                 Route::post('create', [App\Http\Controllers\ingaz\ContractController::class, 'createContract'])->name('Contract.create');
                 Route::post('create-completed', [App\Http\Controllers\ingaz\ContractController::class, 'createCompletedContract'])->name('Contract.createCompleted');
                 Route::get('create-completed-page', [App\Http\Controllers\ingaz\ContractController::class, 'createCompletedPage'])->name('Contract.createCompletedPage');
+                Route::get('contract_delivery_form/download/{contract_id}', [App\Http\Controllers\ingaz\ContractController::class, 'deliveryFormDownload'])->name('contract_delivery_form.download');
             });
 
             // طلبات استرجاع العقود - الإدارة

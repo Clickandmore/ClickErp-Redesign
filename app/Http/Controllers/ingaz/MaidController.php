@@ -11,6 +11,7 @@ use App\Http\Actions\ingaz\ReligionAction;
 use App\Http\Actions\ingaz\SkillAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ingaz\MaidRequest;
+use App\Http\Requests\StoreRapidCv;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Maid as objModel;
@@ -697,6 +698,20 @@ class MaidController extends Controller
             )
         );
     }
+    public function create_rapid_cv(NationalityAction $act, RecruitmentOfficeAction $officeAct, Request $request)
+    {
+        // Handle direct request
+        $nationalities = $act->getNationalities();
+        $offices = $officeAct->getAllOffices();
+
+        return view(
+            "{$this->folderPath}.rapid_cv_add",
+            compact(
+                'nationalities',
+                'offices',
+            )
+        );
+    }
 
     public function store(MaidRequest $request, objAction $action)
     {
@@ -706,12 +721,34 @@ class MaidController extends Controller
         $data['status'] = 'available';
         // $data['added_by'] = auth()->user()->id;
         $data['added_by'] = null; // Temporarily set to null
+        // $data = $action->storeMaid($data, $request);
         $data = $action->storeMaid($data, $request);
         if ($request->ajax()) {
             return jsonSuccess($data);
         }
 
         return response()->json(['code' => 200, 'message' => 'تم إضافة العاملة بنجاح']);
+    }
+
+    public function store_rapid_cv(StoreRapidCv $request, objAction $action)
+    {
+        $data = $request->validated();
+
+        // Set defaults so the rapid form saves without missing fields
+        $data['status'] = 'available';
+        $data['added_by'] = auth()->id();
+        $data['available'] = $data['available'] ?? 1;
+        $data['experience_status'] = $data['experience_status'] ?? 'no_experience';
+        $data['experience_years'] = $data['experience_years'] ?? '0';
+
+        // Map the provided English name into the non-translatable column
+        if (isset($data['name:en']) && !isset($data['name'])) {
+            $data['name'] = $data['name:en'];
+        }
+
+        $data = $action->storeRapidCvMaid($data, $request);
+
+        return response()->json(['code' => 200, 'message' => 'تم إضافة السيرة الذاتية بنجاح']);
     }
 
     // Helper method to get status in current language

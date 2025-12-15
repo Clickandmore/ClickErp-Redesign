@@ -30,6 +30,8 @@ use App\Actions\JobTitleAction;
 use App\Actions\JobTypeAction;
 use Illuminate\Support\Facades\DB;
 use App\Helpers\NewPermKeys;
+use PDF;
+
 
 class RecruitmentContractController extends Controller
 {
@@ -45,7 +47,7 @@ class RecruitmentContractController extends Controller
         'sponsorship_price',
         'salary_after_sponsorship',
         'monthly_cost',
-        'contract_duration' ,
+        'contract_duration',
         'contract_value',
         'contract_date',
         'ingaz_from',
@@ -70,20 +72,20 @@ class RecruitmentContractController extends Controller
 
 
             $query = Contract::with([
-                    'user', // جميع بيانات العميل
-                    'user.nationality', // جنسية العميل (Country model)
-                    'maid', // جميع بيانات العاملة
-                    'maid.nationality.translations', // جنسية العاملة مع الترجمات
-                    'maid.religion.translations', // ديانة العاملة مع الترجمات
-                    'maid.office.translations', // المكتب الخارجي مع الترجمات
-                    'requiredMaidNationality.translations', // الجنسية المفضلة للعاملة
-                    'info', // جميع بيانات العقد
-                    'info.shelter.translations', // بيانات الإيواء
-                    'contract_status_logs', // سجل حالات العقد (مطلوب لبعض العمليات)
-                    'order', // بيانات الطلب
-                    'order.details', // تفاصيل الطلب
-                    'order.details.admin' // بيانات المسوق
-                ])
+                'user', // جميع بيانات العميل
+                'user.nationality', // جنسية العميل (Country model)
+                'maid', // جميع بيانات العاملة
+                'maid.nationality.translations', // جنسية العاملة مع الترجمات
+                'maid.religion.translations', // ديانة العاملة مع الترجمات
+                'maid.office.translations', // المكتب الخارجي مع الترجمات
+                'requiredMaidNationality.translations', // الجنسية المفضلة للعاملة
+                'info', // جميع بيانات العقد
+                'info.shelter.translations', // بيانات الإيواء
+                'contract_status_logs', // سجل حالات العقد (مطلوب لبعض العمليات)
+                'order', // بيانات الطلب
+                'order.details', // تفاصيل الطلب
+                'order.details.admin' // بيانات المسوق
+            ])
                 ->whereIn('type', ['recruitment', 'maid']);
 
             // فلتر الحالة - استخدام query parameter فقط
@@ -96,13 +98,10 @@ class RecruitmentContractController extends Controller
                     $warrantyStatuses = explode(',', $request->warranty_status);
                     if (count($warrantyStatuses) > 1) {
                         $query->whereIn('warranty_status', $warrantyStatuses);
-            } else {
+                    } else {
                         $query->where('warranty_status', $request->warranty_status);
                     }
-
                 }
-
-
             }
 
 
@@ -118,28 +117,28 @@ class RecruitmentContractController extends Controller
 
             // فلتر رقم جوال العميل
             if ($request->filled('client_phone')) {
-                $query->whereHas('user', function($q) use ($request) {
+                $query->whereHas('user', function ($q) use ($request) {
                     $q->where('phone', 'like', '%' . $request->client_phone . '%');
                 });
             }
 
             // فلتر اسم العميل
             if ($request->filled('client_name')) {
-                $query->whereHas('user', function($q) use ($request) {
+                $query->whereHas('user', function ($q) use ($request) {
                     $q->where('name', 'like', '%' . $request->client_name . '%');
                 });
             }
 
             // فلتر رقم جواز العاملة
             if ($request->filled('maid_passport')) {
-                $query->whereHas('maid', function($q) use ($request) {
+                $query->whereHas('maid', function ($q) use ($request) {
                     $q->where('passport_num', 'like', '%' . $request->maid_passport . '%');
                 });
             }
 
             // فلتر اسم العاملة
             if ($request->filled('maid_name')) {
-                $query->whereHas('maid', function($q) use ($request) {
+                $query->whereHas('maid', function ($q) use ($request) {
                     $q->where('name', 'like', '%' . $request->maid_name . '%');
                 });
             }
@@ -151,41 +150,41 @@ class RecruitmentContractController extends Controller
 
             // فلتر جنسية العاملة
             if ($request->filled('nationality')) {
-                $query->whereHas('maid.nationality.translations', function($q) use ($request) {
+                $query->whereHas('maid.nationality.translations', function ($q) use ($request) {
                     $q->where('sub_title', $request->nationality);
                 });
             }
 
             // فلتر ديانة العاملة
             if ($request->filled('religion')) {
-                $query->whereHas('maid.religion.translations', function($q) use ($request) {
+                $query->whereHas('maid.religion.translations', function ($q) use ($request) {
                     $q->where('title', $request->religion);
                 });
             }
 
             // فلتر المكتب الخارجي
             if ($request->filled('office_id')) {
-                $query->whereHas('maid', function($q) use ($request) {
+                $query->whereHas('maid', function ($q) use ($request) {
                     $q->where('office_id', $request->office_id);
                 });
             }
 
             // فلتر مدينة العميل
             if ($request->filled('city')) {
-                $query->whereHas('user', function($q) use ($request) {
+                $query->whereHas('user', function ($q) use ($request) {
                     $q->where('city', 'like', '%' . $request->city . '%');
                 });
             }
 
             // فلتر المسوق
             if ($request->filled('marketer_id')) {
-                $query->where(function($q) use ($request) {
+                $query->where(function ($q) use ($request) {
                     // البحث في marketer_id المباشر
                     $q->where('marketer_id', $request->marketer_id)
-                      // أو البحث في order.details.admin_id
-                      ->orWhereHas('order.details', function($orderQuery) use ($request) {
-                          $orderQuery->where('admin_id', $request->marketer_id);
-                      });
+                        // أو البحث في order.details.admin_id
+                        ->orWhereHas('order.details', function ($orderQuery) use ($request) {
+                            $orderQuery->where('admin_id', $request->marketer_id);
+                        });
                 });
             }
 
@@ -270,7 +269,7 @@ class RecruitmentContractController extends Controller
                     if ($row->user) {
                         $phoneInfo .= '<div class="user-info">';
                         $phoneInfo .= '<strong>' . $row->user->name . '</strong><br>';
-                        $phoneInfo .= getPhoneWithTag($row->user->phone_code . $row->user->phone). '<br>';
+                        $phoneInfo .= getPhoneWithTag($row->user->phone_code . $row->user->phone) . '<br>';
                         if ($row->user->birthdate) {
                             $phoneInfo .= '<small class="text-muted mt-2">تاريخ الميلاد: ' . \Carbon\Carbon::parse($row->user->birthdate)->format('Y-m-d') . '</small>';
                         }
@@ -305,7 +304,7 @@ class RecruitmentContractController extends Controller
                         if ($row->maid->religion) {
                             $maidInfo .= '<small class="text-muted">الديانة: ' . $row->maid->religion->title . '</small>';
                         }
-                       $maidInfo .= '</div>';
+                        $maidInfo .= '</div>';
                     } else {
                         // رسالة محسنة عندما لا توجد عاملة مع إظهار جميع المتطلبات المفضلة
                         if ($row->status == ContractStatusEnum::PendingMaidSelection->value) {
@@ -563,7 +562,7 @@ class RecruitmentContractController extends Controller
                                 break;
                             case ContractStatusEnum::Closed->value:
                                 // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
-                        $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+                                $travelHistory = TravelHistory::where('order_id', $row->id)->first();
                                 if ($travelHistory && $travelHistory->status !== 'completed' && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
                                     return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
                                         <i class="fas fa-check me-1"></i>إكمال الرحلة
@@ -601,7 +600,7 @@ class RecruitmentContractController extends Controller
                                     <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
 
                     // زر عرض العقد
-                    $actions .= '<li><a class="dropdown-item" href="' . route('contracts.details', $row->id) . '" target="_blank">
+                    $actions .= '<li><a class="dropdown-item" href="' . route('contract_delivery_form.download', $row->id) . '" target="_blank">
                                     <i class="fas fa-eye"></i> عرض العقد
                                 </a></li>';
 
@@ -611,9 +610,11 @@ class RecruitmentContractController extends Controller
                                 </a></li>';
 
                     // منع التعديل والحذف للعقود المكتملة والمرتجعة والتي في الإيواء
-                    if ($row->status !== ContractStatusEnum::Completed->value &&
+                    if (
+                        $row->status !== ContractStatusEnum::Completed->value &&
                         $row->status !== ContractStatusEnum::Back->value &&
-                        $row->status !== ContractStatusEnum::Shelter->value) {
+                        $row->status !== ContractStatusEnum::Shelter->value
+                    ) {
 
                         // زر التعديل
                         if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EDIT)) {
@@ -628,7 +629,7 @@ class RecruitmentContractController extends Controller
                                             <i class="fas fa-trash"></i> حذف العقد
                                         </button></li>';
                         }
-                        } else {
+                    } else {
                         // للعقود المكتملة والمرتجعة والتي في الإيواء - إضافة رسالة توضيحية
                         if ($row->status === ContractStatusEnum::Completed->value) {
                             $actions .= '<li><span class="dropdown-item disabled">
@@ -638,7 +639,7 @@ class RecruitmentContractController extends Controller
                             $actions .= '<li><span class="dropdown-item disabled">
                                             <span class="badge bg-info">العقد في الإيواء - لا يمكن التعديل</span>
                                         </span></li>';
-                            } else {
+                        } else {
                             $actions .= '<li><span class="dropdown-item disabled">
                                             <span class="badge bg-danger">العقد مرتجع - لا يمكن التعديل</span>
                                         </span></li>';
@@ -649,8 +650,10 @@ class RecruitmentContractController extends Controller
                     $travelHistory = TravelHistory::where('order_id', $row->id)->first();
                     if ($travelHistory && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
                         // التأكد من أن العقد ليس في مرحلة التذكرة وأن الرحلة موجودة ولم تكتمل
-                        if ($row->status !== ContractStatusEnum::Tazker->value &&
-                            $travelHistory->status !== 'completed') {
+                        if (
+                            $row->status !== ContractStatusEnum::Tazker->value &&
+                            $travelHistory->status !== 'completed'
+                        ) {
                             $actions .= '<li><button class="dropdown-item complete-trip-btn" data-trip-id="' . $travelHistory->id . '">
                                             <i class="fas fa-check"></i> إكمال الرحلة
                                         </button></li>';
@@ -658,9 +661,11 @@ class RecruitmentContractController extends Controller
                     }
 
                     // زر إضافة رحلة - يظهر للعقود في مرحلة التذكرة التي لا تحتوي على رحلة
-                    if ($row->status === ContractStatusEnum::Tazker->value &&
+                    if (
+                        $row->status === ContractStatusEnum::Tazker->value &&
                         !$travelHistory &&
-                        @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_ADD_TRAVEL)) {
+                        @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_ADD_TRAVEL)
+                    ) {
                         $actions .= '<li><button class="dropdown-item add-travel-btn" data-contract-id="' . $row->id . '">
                                         <i class="fas fa-plane"></i> إضافة رحلة
                                     </button></li>';
@@ -668,13 +673,13 @@ class RecruitmentContractController extends Controller
 
                     // زر الإرجاع - لا يظهر للعقود المكتملة أو التي في الإيواء
                     if ($row->status !== ContractStatusEnum::Completed->value && $row->status !== ContractStatusEnum::Shelter->value) {
-                    if ($row->status == ContractStatusEnum::Back->value) {
+                        if ($row->status == ContractStatusEnum::Back->value) {
                             $actions .= '<li><span class="dropdown-item disabled">
                                             <span class="badge bg-warning">مرتجع</span>
                                         </span></li>';
-                    } else {
-                        // التحقق من صلاحية إرجاع العقد
-                        if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
+                        } else {
+                            // التحقق من صلاحية إرجاع العقد
+                            if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
                                 $actions .= '<li><button class="dropdown-item backContract" data-row-id="' . $row->id . '">
                                                 <i class="fas fa-undo"></i> إرجاع العقد
                                             </button></li>';
@@ -683,10 +688,12 @@ class RecruitmentContractController extends Controller
                     }
 
                     // زر إلغاء العقد - لا يظهر للعقود المكتملة أو المرتجعة أو التي في الإيواء
-                    if ($row->status !== ContractStatusEnum::Completed->value &&
+                    if (
+                        $row->status !== ContractStatusEnum::Completed->value &&
                         $row->status !== ContractStatusEnum::Back->value &&
-                        $row->status !== ContractStatusEnum::Shelter->value) {
-                    if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
+                        $row->status !== ContractStatusEnum::Shelter->value
+                    ) {
+                        if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
                             $actions .= '<li><button class="dropdown-item cancel-contract-btn" data-contract-id="' . $row->id . '" data-contract-number="' . $row->id . '" data-client-name="' . ($row->user ? $row->user->name : 'غير محدد') . '" data-maid-name="' . ($row->maid ? $row->maid->name : 'غير محدد') . '">
                                             <i class="fas fa-times-circle"></i> إلغاء العقد
                                         </button></li>';
@@ -794,8 +801,8 @@ class RecruitmentContractController extends Controller
             'maid.religion',
             'jobType.translations'
         ])
-        ->where('status', 'new')
-        ->get();
+            ->where('status', 'new')
+            ->get();
 
         // Get ended orders with relationships
         $endedOrders = Order::with([
@@ -804,8 +811,8 @@ class RecruitmentContractController extends Controller
             'maid.religion',
             'jobType.translations'
         ])
-        ->where('status', 'ended')
-        ->get();
+            ->where('status', 'ended')
+            ->get();
 
         // Get all available maids with relationships - استبعاد العاملات التي لها عقود نشطة
         $all_available_maids = Maid::with([
@@ -813,21 +820,21 @@ class RecruitmentContractController extends Controller
             'religion',
             'jobTitles'
         ])
-        ->where('available', true)
-        ->where('status', 'available')
-        ->where('is_show', true)
-        ->where('available_at', '<=', now()->toDateString())
-        ->whereNotNull('name')
-        ->where('name', '!=', '')
-        // استبعاد العاملات التي لها عقود نشطة أو معلقة
-        ->whereDoesntHave('contracts', function($q) {
-            $q->whereNotIn('status', ['back', 'closed', 'completed']);
-        })
-        // استبعاد العاملات التي لها طلبات نشطة
-        ->whereDoesntHave('orders', function($q) {
-            $q->whereIn('status', ['pending', 'approved', 'in_progress']);
-        })
-        ->get();
+            ->where('available', true)
+            ->where('status', 'available')
+            ->where('is_show', true)
+            ->where('available_at', '<=', now()->toDateString())
+            ->whereNotNull('name')
+            ->where('name', '!=', '')
+            // استبعاد العاملات التي لها عقود نشطة أو معلقة
+            ->whereDoesntHave('contracts', function ($q) {
+                $q->whereNotIn('status', ['back', 'closed', 'completed']);
+            })
+            // استبعاد العاملات التي لها طلبات نشطة
+            ->whereDoesntHave('orders', function ($q) {
+                $q->whereIn('status', ['pending', 'approved', 'in_progress']);
+            })
+            ->get();
 
         // Get existing clients for new contract
         $existing_clients = User::with('nationality')->get();
@@ -1082,7 +1089,6 @@ class RecruitmentContractController extends Controller
                 'message' => $successMessage,
                 'contract' => $contract->load(['user', 'maid', 'info'])
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -1105,7 +1111,7 @@ class RecruitmentContractController extends Controller
     public function show($id, Request $request)
     {
         try {
-        $row = Contract::find($id);
+            $row = Contract::find($id);
 
             // التحقق من وجود العقد
             if (!$row) {
@@ -1132,64 +1138,64 @@ class RecruitmentContractController extends Controller
                 $nextStatus = $request->next_status;
                 $statusDate = $request->date ?? now()->format('Y-m-d');
 
-        // التحقق من الصلاحيات حسب حالة العقد الحالية
-        $hasPermission = false;
-        $permissionRequired = '';
+                // التحقق من الصلاحيات حسب حالة العقد الحالية
+                $hasPermission = false;
+                $permissionRequired = '';
 
                 switch ($currentStatus) {
-            case ContractStatusEnum::New->value:
-                $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED;
-                if (@AdminGuardHasPerm($permissionRequired)) {
-                    $hasPermission = true;
-                }
-                break;
-            case ContractStatusEnum::Msaned->value:
-                $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED;
-                if (@AdminGuardHasPerm($permissionRequired)) {
-                    $hasPermission = true;
-                }
-                break;
-            case ContractStatusEnum::Tafwed->value:
-                $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ;
-                if (@AdminGuardHasPerm($permissionRequired)) {
-                    $hasPermission = true;
-                }
-                break;
-            case ContractStatusEnum::Taffez->value:
-                $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER;
-                if (@AdminGuardHasPerm($permissionRequired)) {
-                    $hasPermission = true;
-                }
-                break;
+                    case ContractStatusEnum::New->value:
+                        $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED;
+                        if (@AdminGuardHasPerm($permissionRequired)) {
+                            $hasPermission = true;
+                        }
+                        break;
+                    case ContractStatusEnum::Msaned->value:
+                        $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED;
+                        if (@AdminGuardHasPerm($permissionRequired)) {
+                            $hasPermission = true;
+                        }
+                        break;
+                    case ContractStatusEnum::Tafwed->value:
+                        $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ;
+                        if (@AdminGuardHasPerm($permissionRequired)) {
+                            $hasPermission = true;
+                        }
+                        break;
+                    case ContractStatusEnum::Taffez->value:
+                        $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER;
+                        if (@AdminGuardHasPerm($permissionRequired)) {
+                            $hasPermission = true;
+                        }
+                        break;
                     case ContractStatusEnum::Arrival->value:
-                // التحقق من صلاحية إغلاق العقد بعد الضمان
-                if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CLOSE_AFTER_WARRANTY)) {
-                    $hasPermission = true;
+                        // التحقق من صلاحية إغلاق العقد بعد الضمان
+                        if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CLOSE_AFTER_WARRANTY)) {
+                            $hasPermission = true;
+                        }
+                        break;
+                    default:
+                        break;
                 }
-                break;
-            default:
-                break;
-        }
 
-        if (!$hasPermission) {
-            return response()->json([
-                'success' => false,
+                if (!$hasPermission) {
+                    return response()->json([
+                        'success' => false,
                         'message' => 'ليس لديك صلاحية لتغيير حالة العقد من ' . getContractStatus($currentStatus) . ' إلى المرحلة التالية'
-            ], 403);
-        }
+                    ], 403);
+                }
 
                 // تحديث حالة العقد
                 $row->status = $nextStatus;
-        $row->save();
+                $row->save();
 
                 // حفظ سجل حالة العقد
-        $row->contract_status_logs()->create([
+                $row->contract_status_logs()->create([
                     'status' => $nextStatus,
                     'date' => $statusDate
-        ]);
+                ]);
 
-        return response()->json([
-            'success' => true,
+                return response()->json([
+                    'success' => true,
                     'message' => 'تم تحديث حالة العقد بنجاح من ' . getContractStatus($currentStatus) . ' إلى ' . getContractStatus($nextStatus)
                 ]);
             }
@@ -1200,7 +1206,6 @@ class RecruitmentContractController extends Controller
                 'message' => 'تم تحميل معلومات العقد بنجاح',
                 'contract' => $row->load(['user', 'maid', 'info'])
             ]);
-
         } catch (\Exception $e) {
             logger()->error('Error in show contract:', [
                 'error' => $e->getMessage(),
@@ -1218,48 +1223,47 @@ class RecruitmentContractController extends Controller
     public function back($id)
     {
         try {
-        // التحقق من صلاحية إرجاع العقد
-        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'ليس لديك صلاحية لإرجاع العقد'
-            ], 403);
-        }
+            // التحقق من صلاحية إرجاع العقد
+            if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية لإرجاع العقد'
+                ], 403);
+            }
 
-        $contract = Contract::find($id);
-        if (!$contract) {
+            $contract = Contract::find($id);
+            if (!$contract) {
                 logger()->warning('Contract not found in back function', ['id' => $id]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العقد غير موجود'
+                ], 404);
+            }
+
+            // منع إرجاع العقود في الإيواء
+            if ($contract->status === ContractStatusEnum::Shelter->value) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن إرجاع العقد الذي في الإيواء. يجب حذفه من الإيواء أولاً'
+                ], 400);
+            }
+
+            // منع إرجاع العقود المكتملة
+            if ($contract->status === ContractStatusEnum::Completed->value) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن إرجاع العقد المكتمل'
+                ], 400);
+            }
+
+            $newStatus = contractBackStatus($contract->status);
+            $contract->update(['status' => $newStatus->value]);
+            $contract->contract_status_logs()->create(['status' => $newStatus->value]);
+
             return response()->json([
-                'success' => false,
-                'message' => 'العقد غير موجود'
-            ], 404);
-        }
-
-        // منع إرجاع العقود في الإيواء
-        if ($contract->status === ContractStatusEnum::Shelter->value) {
-            return response()->json([
-                'success' => false,
-                'message' => 'لا يمكن إرجاع العقد الذي في الإيواء. يجب حذفه من الإيواء أولاً'
-            ], 400);
-        }
-
-        // منع إرجاع العقود المكتملة
-        if ($contract->status === ContractStatusEnum::Completed->value) {
-            return response()->json([
-                'success' => false,
-                'message' => 'لا يمكن إرجاع العقد المكتمل'
-            ], 400);
-        }
-
-        $newStatus = contractBackStatus($contract->status);
-        $contract->update(['status' => $newStatus->value]);
-        $contract->contract_status_logs()->create(['status' => $newStatus->value]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'تم إرجاع العقد بنجاح إلى ' . getContractStatus($newStatus->value)
-        ]);
-
+                'success' => true,
+                'message' => 'تم إرجاع العقد بنجاح إلى ' . getContractStatus($newStatus->value)
+            ]);
         } catch (\Exception $e) {
             logger()->error('Error in back contract', [
                 'id' => $id,
@@ -1435,7 +1439,6 @@ class RecruitmentContractController extends Controller
                 'success' => true,
                 'message' => 'تم تحديث العقد بنجاح'
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1740,7 +1743,7 @@ class RecruitmentContractController extends Controller
         }
 
         // Auto-size columns
-        foreach(range('A','I') as $column) {
+        foreach (range('A', 'I') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 
@@ -1820,12 +1823,10 @@ class RecruitmentContractController extends Controller
                     'success' => true,
                     'message' => 'تم إكمال الرحلة وتحديث حالة العقد إلى مكتمل بنجاح'
                 ]);
-
             } catch (\Exception $e) {
                 DB::rollBack();
                 throw $e;
             }
-
         } catch (\Exception $e) {
             logger()->error('Error in completeTrip', [
                 'tripId' => $tripId,
@@ -1882,7 +1883,6 @@ class RecruitmentContractController extends Controller
                 'success' => true,
                 'message' => 'تم إضافة الرحلة بنجاح'
             ]);
-
         } catch (\Exception $e) {
             logger()->error('Error in addTravel', [
                 'contractId' => $request->contract_id,
@@ -1990,7 +1990,6 @@ class RecruitmentContractController extends Controller
                 'message' => $message,
                 'sms_sent' => $smsResult
             ]);
-
         } catch (\Exception $e) {
             logger()->error('Error in updateStatus', [
                 'rowId' => $request->row_id,
@@ -2017,14 +2016,21 @@ class RecruitmentContractController extends Controller
             $query = Maid::with(['nationality'])
                 ->where('available', true)
                 ->where('status', 'available') // التأكد من أن الحالة متاحة
-                ->whereDoesntHave('contracts', function($q) {
+                ->whereDoesntHave('contracts', function ($q) {
                     $q->whereIn('status', [
-                        'new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival'
+                        'new',
+                        'msaned',
+                        'tafwed',
+                        'taffez',
+                        'tazker',
+                        'arrival'
                     ]);
                 })
-                ->whereDoesntHave('orders', function($q) {
+                ->whereDoesntHave('orders', function ($q) {
                     $q->whereIn('status', [
-                        'new', 'under_process', 'contracted'
+                        'new',
+                        'under_process',
+                        'contracted'
                     ]);
                 });
 
@@ -2043,10 +2049,10 @@ class RecruitmentContractController extends Controller
             // البحث بالاسم أو رقم الجواز
             if ($request->has('search') && $request->search) {
                 $search = $request->search;
-                $query->where(function($q) use ($search) {
+                $query->where(function ($q) use ($search) {
                     $q->where('name', 'LIKE', "%{$search}%")
-                      ->orWhere('passport_num', 'LIKE', "%{$search}%")
-                      ->orWhere('id_number', 'LIKE', "%{$search}%");
+                        ->orWhere('passport_num', 'LIKE', "%{$search}%")
+                        ->orWhere('id_number', 'LIKE', "%{$search}%");
                 });
             }
 
@@ -2077,7 +2083,7 @@ class RecruitmentContractController extends Controller
             }
 
             // تحويل البيانات للعرض
-            $maidsData = $availableMaids->map(function($maid) {
+            $maidsData = $availableMaids->map(function ($maid) {
                 return [
                     'id' => $maid->id,
                     'name' => $maid->name ?? 'غير محدد',
@@ -2095,7 +2101,6 @@ class RecruitmentContractController extends Controller
                 'success' => true,
                 'maids' => $maidsData
             ]);
-
         } catch (\Exception $e) {
             logger()->error('Error in getAvailableMaids', [
                 'message' => $e->getMessage(),
@@ -2118,7 +2123,7 @@ class RecruitmentContractController extends Controller
         // استخدام cache لتسريع التحميل
         return \Cache::remember('recruitment_contract_filter_options', 300, function () { // 5 دقائق
             // جلب الجنسيات مع الترجمات وتحويلها للشكل المطلوب
-            $nationalities = \App\Models\ingaz\Nationality::with('translations')->get()->map(function($nationality) {
+            $nationalities = \App\Models\ingaz\Nationality::with('translations')->get()->map(function ($nationality) {
                 $translation = $nationality->translations->where('locale', app()->getLocale())->first();
                 if (!$translation) {
                     $translation = $nationality->translations->first(); // fallback to first translation
@@ -2130,7 +2135,7 @@ class RecruitmentContractController extends Controller
             });
 
             // جلب الديانات مع الترجمات وتحويلها للشكل المطلوب
-            $religions = \App\Models\ingaz\Religion::with('translations')->get()->map(function($religion) {
+            $religions = \App\Models\ingaz\Religion::with('translations')->get()->map(function ($religion) {
                 $translation = $religion->translations->where('locale', app()->getLocale())->first();
                 if (!$translation) {
                     $translation = $religion->translations->first(); // fallback to first translation
@@ -2142,7 +2147,7 @@ class RecruitmentContractController extends Controller
             });
 
             // جلب المكاتب الخارجية مع الترجمات وتحويلها للشكل المطلوب
-            $offices = \App\Models\RecruitmentOffices::with('translations')->get()->map(function($office) {
+            $offices = \App\Models\RecruitmentOffices::with('translations')->get()->map(function ($office) {
                 $translation = $office->translations->where('locale', app()->getLocale())->first();
                 if (!$translation) {
                     $translation = $office->translations->first(); // fallback to first translation
@@ -2216,7 +2221,6 @@ class RecruitmentContractController extends Controller
                 'success' => true,
                 'message' => 'تم إضافة العاملة للعقد بنجاح'
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -2261,14 +2265,14 @@ class RecruitmentContractController extends Controller
                 ->where('available_at', '<=', now()->toDateString())
                 ->whereNotNull('name')
                 ->where('name', '!=', '')
-                ->whereDoesntHave('contracts', function($q) {
+                ->whereDoesntHave('contracts', function ($q) {
                     $q->whereIn('status', ['active', 'pending']);
                 })
-                ->whereDoesntHave('orders', function($q) {
+                ->whereDoesntHave('orders', function ($q) {
                     $q->whereIn('status', ['pending', 'approved', 'in_progress']);
                 });
 
-                        // فلترة تلقائية بناءً على الجنسية المفضلة في العقد
+            // فلترة تلقائية بناءً على الجنسية المفضلة في العقد
             if ($contract->required_maid_nationality_id && !$request->has('show_all_nationalities')) {
                 $query->where('nationality_id', $contract->required_maid_nationality_id);
 
@@ -2288,10 +2292,10 @@ class RecruitmentContractController extends Controller
             // تطبيق الفلاتر الإضافية
             if ($request->filled('search')) {
                 $search = $request->search;
-                $query->where(function($q) use ($search) {
+                $query->where(function ($q) use ($search) {
                     $q->where('name', 'LIKE', "%{$search}%")
-                      ->orWhere('passport_num', 'LIKE', "%{$search}%")
-                      ->orWhere('id_number', 'LIKE', "%{$search}%");
+                        ->orWhere('passport_num', 'LIKE', "%{$search}%")
+                        ->orWhere('id_number', 'LIKE', "%{$search}%");
                 });
             }
 
@@ -2304,7 +2308,7 @@ class RecruitmentContractController extends Controller
             }
 
             if ($request->filled('job_title_id')) {
-                $query->whereHas('jobTitles', function($q) use ($request) {
+                $query->whereHas('jobTitles', function ($q) use ($request) {
                     $q->where('job_title_id', $request->job_title_id);
                 });
             }
@@ -2349,7 +2353,6 @@ class RecruitmentContractController extends Controller
                 'religions',
                 'jobTitles'
             ));
-
         } catch (\Exception $e) {
             logger()->error('Error in selectMaidForContract', [
                 'message' => $e->getMessage(),
@@ -2390,28 +2393,28 @@ class RecruitmentContractController extends Controller
 
             // فلتر رقم جوال العميل
             if ($request->filled('client_phone')) {
-                $query->whereHas('user', function($q) use ($request) {
+                $query->whereHas('user', function ($q) use ($request) {
                     $q->where('phone', 'like', '%' . $request->client_phone . '%');
                 });
             }
 
             // فلتر اسم العميل
             if ($request->filled('client_name')) {
-                $query->whereHas('user', function($q) use ($request) {
+                $query->whereHas('user', function ($q) use ($request) {
                     $q->where('name', 'like', '%' . $request->client_name . '%');
                 });
             }
 
             // فلتر رقم جواز العاملة
             if ($request->filled('maid_passport')) {
-                $query->whereHas('maid', function($q) use ($request) {
+                $query->whereHas('maid', function ($q) use ($request) {
                     $q->where('passport_num', 'like', '%' . $request->maid_passport . '%');
                 });
             }
 
             // فلتر اسم العاملة
             if ($request->filled('maid_name')) {
-                $query->whereHas('maid', function($q) use ($request) {
+                $query->whereHas('maid', function ($q) use ($request) {
                     $q->where('name', 'like', '%' . $request->maid_name . '%');
                 });
             }
@@ -2423,28 +2426,28 @@ class RecruitmentContractController extends Controller
 
             // فلتر جنسية العاملة
             if ($request->filled('nationality')) {
-                $query->whereHas('maid.nationality.translations', function($q) use ($request) {
+                $query->whereHas('maid.nationality.translations', function ($q) use ($request) {
                     $q->where('sub_title', $request->nationality);
                 });
             }
 
             // فلتر ديانة العاملة
             if ($request->filled('religion')) {
-                $query->whereHas('maid.religion.translations', function($q) use ($request) {
+                $query->whereHas('maid.religion.translations', function ($q) use ($request) {
                     $q->where('title', $request->religion);
                 });
             }
 
             // فلتر المكتب الخارجي
             if ($request->filled('office_id')) {
-                $query->whereHas('maid', function($q) use ($request) {
+                $query->whereHas('maid', function ($q) use ($request) {
                     $q->where('office_id', $request->office_id);
                 });
             }
 
             // فلتر مدينة العميل
             if ($request->filled('city')) {
-                $query->whereHas('user', function($q) use ($request) {
+                $query->whereHas('user', function ($q) use ($request) {
                     $q->where('city', 'like', '%' . $request->city . '%');
                 });
             }
@@ -2474,7 +2477,6 @@ class RecruitmentContractController extends Controller
                     'closed' => $closed
                 ]
             ]);
-
         } catch (\Exception $e) {
             logger()->error('Error in contract statistics:', [
                 'error' => $e->getMessage(),
@@ -2670,12 +2672,10 @@ class RecruitmentContractController extends Controller
                         ]
                     ]
                 ]);
-
             } catch (\Exception $e) {
                 DB::rollback();
                 throw $e;
             }
-
         } catch (\Exception $e) {
             logger()->error('Error changing maid in contract:', [
                 'contract_id' => $contractId,
@@ -2714,7 +2714,7 @@ class RecruitmentContractController extends Controller
             }
 
             $availableMaids = Maid::where('available', true)
-                ->whereDoesntHave('contracts', function($q) {
+                ->whereDoesntHave('contracts', function ($q) {
                     $q->whereIn('status', [
                         ContractStatusEnum::New->value,
                         ContractStatusEnum::Msaned->value,
@@ -2724,7 +2724,7 @@ class RecruitmentContractController extends Controller
                         ContractStatusEnum::Arrival->value
                     ]);
                 })
-                ->whereDoesntHave('orders', function($q) {
+                ->whereDoesntHave('orders', function ($q) {
                     $q->whereIn('status', [
                         OrderEnum::New->value,
                         OrderEnum::UnderProcess->value,
@@ -2734,7 +2734,6 @@ class RecruitmentContractController extends Controller
                 ->get();
 
             return view($this->folderPath . '.change_maid', compact('contract', 'availableMaids'));
-
         } catch (\Exception $e) {
             logger()->error('Error showing change maid page:', [
                 'contract_id' => $contractId,
@@ -2844,12 +2843,10 @@ class RecruitmentContractController extends Controller
                     'message' => 'تم إلغاء العقد بنجاح',
                     'contract' => $contract->load(['user', 'maid', 'info'])
                 ]);
-
             } catch (\Exception $e) {
                 DB::rollback();
                 throw $e;
             }
-
         } catch (\Exception $e) {
             logger()->error('Error cancelling contract:', [
                 'contract_id' => $request->contract_id ?? null,
@@ -2864,4 +2861,3 @@ class RecruitmentContractController extends Controller
         }
     }
 }
-

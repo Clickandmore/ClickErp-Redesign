@@ -1669,6 +1669,11 @@ main .countries .modern-card .cost-highlight .label {
     margin: 8px 0 0;
 }
 
+main .countries .modern-card .cost-highlight .label.title{
+    font-weight: 600;
+    font-size: 1.4rem;
+}
+
 main .countries .modern-card .cost-highlight .price small {
     font-size: 1.1rem;
     font-weight: 500;
