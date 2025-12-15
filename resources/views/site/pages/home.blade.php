@@ -91,7 +91,7 @@
 
         .services-container {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 20px;
             padding: 20px;
 
@@ -618,7 +618,7 @@
                                 </div>
                             </div>
                             <div class="cost-highlight">
-                                <span class="label">{{ $nationalty->title }}</span>
+                                <span class="label title">{{ $nationalty->title }}</span>
                                 <h2 class="price">{{ $nationalty->price }} <small>ريال</small></h2>
                                 <span class="label">تكلفة الاستقدام شامل الضريبة</span>
                             </div>

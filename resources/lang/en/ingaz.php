@@ -380,6 +380,7 @@
     'maids_management' => 'Maids Management',
     'add_maid' => 'Add Maid',
     'pinned' => 'Pinned',
+    'add_rapid_cv' => 'Add Rapid CV',
     'maid_status_available' => 'Available',
     'maid_status_reserved' => 'Reserved',
     'maid_status_contracted' => 'Contracted',

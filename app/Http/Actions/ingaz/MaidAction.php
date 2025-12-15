@@ -334,13 +334,21 @@ class MaidAction extends MainAction
             }
         }
 
-        \Log::info('About to attach job titles: ' . print_r($request->job_id, true));
-        $maid->jobTitles()->attach($request->job_id);
-        \Log::info('Job titles attached successfully');
+        if ($request->job_id) {
+            \Log::info('About to attach job titles: ' . print_r($request->job_id, true));
+            $maid->jobTitles()->attach($request->job_id);
+            \Log::info('Job titles attached successfully');
+        } else {
+            \Log::info('Skipping job titles attach - no job_id provided.');
+        }
 
-        \Log::info('About to attach job types: ' . print_r($request->type_id, true));
-        $maid->jobTypes()->attach($request->type_id);
-        \Log::info('Job types attached successfully');
+        if ($request->type_id) {
+            \Log::info('About to attach job types: ' . print_r($request->type_id, true));
+            $maid->jobTypes()->attach($request->type_id);
+            \Log::info('Job types attached successfully');
+        } else {
+            \Log::info('Skipping job types attach - no type_id provided.');
+        }
 
         // Create Shelter contract if user selected the option
         try {
@@ -398,6 +406,11 @@ class MaidAction extends MainAction
             \Log::error('Failed to create shelter contract for maid: ' . $t->getMessage());
         }
 
+        return $maid;
+    }
+
+    public function storeRapidCvMaid($createData, $request){
+        $maid = $this->model->create($createData);
         return $maid;
     }
 
@@ -896,7 +909,6 @@ class MaidAction extends MainAction
         return $this->availableQuery()->find($id);
     }
 }
-
 
 
 
