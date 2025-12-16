@@ -298,7 +298,7 @@ class ShelterContractController extends Controller
             ])
             ->where('status', '!=', ContractStatusEnum::Shelter->value) // ليس في الإيواء
             ->where('status', '!=', ContractStatusEnum::Back->value)    // ليس مسترجع
-            ->with(['maid', 'info'])
+            ->with(['maid.nationality', 'info', 'user'])
             ->latest()
             ->get();
 
@@ -308,7 +308,9 @@ class ShelterContractController extends Controller
         // إذا تم تمرير contract_id في الطلب، نختار العقد المحدد
         $selectedContractId = request('contract_id');
 
-        return view($this->folderPath . '.create', compact('shelters', 'contracts', 'selectedContractId'));
+        $nationalities = Nationality::with('translations')->where('status', 1)->get();
+
+        return view($this->folderPath . '.create', compact('shelters', 'contracts', 'selectedContractId', 'nationalities'));
     }
 
     /**
@@ -332,7 +334,7 @@ class ShelterContractController extends Controller
             ->whereHas('maid', function ($query) use ($passportNumber) {
                 $query->where('passport_num', 'like', '%' . $passportNumber . '%');
             })
-            ->with(['maid', 'info'])
+            ->with(['maid.nationality', 'info', 'user'])
             ->latest()
             ->get()
             ->map(function ($contract) {
@@ -350,6 +352,18 @@ class ShelterContractController extends Controller
                     'desc' => $contract->desc . $warrantyStatus,
                     'passport_number' => $contract->maid ? $contract->maid->passport_num : '',
                     'maid_name' => $contract->maid ? $contract->maid->name : '',
+                    'maid_name_snapshot' => optional($contract->info)->worker_name_snapshot ?? ($contract->maid->name ?? ''),
+                    'maid_nationality' => $contract->maid && $contract->maid->nationality ? $contract->maid->nationality->name_ar : '',
+                    'maid_nationality_snapshot' => optional($contract->info)->worker_nationality_snapshot ?? (($contract->maid && $contract->maid->nationality) ? $contract->maid->nationality->name_ar : ''),
+                    'passport_snapshot' => optional($contract->info)->passport_number_snapshot ?? ($contract->maid->passport_num ?? ''),
+                    'client_name' => optional($contract->info)->client_name_snapshot ?? ($contract->user->name ?? ''),
+                    'client_national_id' => optional($contract->info)->client_national_id ?? ($contract->user->national_num ?? ''),
+                    'sponsorship_price' => optional($contract->info)->sponsorship_price ?? '',
+                    'receipt_date' => optional($contract->info)->receipt_form_date ?? optional($contract->info)->arrival_date ?? ($contract->contract_date ?? ''),
+                    'receipt_text' => optional($contract->info)->receipt_form_text ?? '',
+                    'has_residency' => optional($contract->info)->workers_have_residency ?? '',
+                    'medical_exam' => optional($contract->info)->performing_medical_examination ?? '',
+                    'service_type' => optional($contract->info)->worker_service_type ?? '',
                     'status' => $contract->status,
                 ];
             });
@@ -359,7 +373,7 @@ class ShelterContractController extends Controller
 
     public function store(ShelterContactStore $request)
     {
-        $contract = Contract::with('maid')->find($request->contract_id);
+        $contract = Contract::with(['maid.nationality', 'user', 'info'])->find($request->contract_id);
         $displayOnSite = $request->wants_to_work === 'yes' && $request->boolean('is_available_for_instant');
         $existingAttachments = $contract->info ? ($contract->info->shelter_attachments ?? []) : [];
         $attachments = $this->prepareShelterAttachments($request, $existingAttachments);
@@ -375,6 +389,17 @@ class ShelterContractController extends Controller
             'arrival_date' => $request->arrival_date,
             'is_available_for_instant' => $displayOnSite,
             'shelter_attachments' => $attachments,
+            'workers_have_residency' => $request->workers_have_residency,
+            'performing_medical_examination' => $request->performing_medical_examination,
+            'worker_service_type' => $request->worker_service_type,
+            'client_name_snapshot' => $request->client_name_snapshot ?? optional($contract->user)->name,
+            'client_national_id' => $request->client_national_id ?? optional($contract->user)->national_num,
+            'worker_name_snapshot' => $request->maid_name_snapshot ?? optional($contract->maid)->name,
+            'worker_nationality_snapshot' => $request->maid_nationality_snapshot ?? optional(optional($contract->maid)->nationality)->name_ar,
+            'passport_number_snapshot' => $request->passport_number_snapshot ?? optional($contract->maid)->passport_num,
+            'sponsorship_price' => $request->sponsorship_price ?? optional($contract->info)->sponsorship_price,
+            'receipt_form_date' => $request->receipt_form_date,
+            'receipt_form_text' => $request->receipt_form_text,
         ];
 
         if ($contract->info) {

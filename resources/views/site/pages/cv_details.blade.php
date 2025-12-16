@@ -269,7 +269,7 @@
                     <div class="data">
                         <p class="innerTitle">{{ __('ingaz.education') }}</p>
                         <h6 class="innerData">
-                            {{ $educationLabel }}
+                            {{ $educationLabel ?? __('ingaz.not_specified') }}
                         </h6>
                     </div>
                     <div class="data">
