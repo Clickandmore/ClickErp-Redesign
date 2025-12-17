@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
 use App\Models\ingaz\Maid;
+use PDF;
 
 class ShelterContractController extends Controller
 {
@@ -34,70 +35,70 @@ class ShelterContractController extends Controller
 
         // العاملات اللواتي يرغبن بالعمل (متاحات للنقل)
         $wantsToWork = $shelterBaseQuery->clone()
-            ->whereHas('info', function($query) {
+            ->whereHas('info', function ($query) {
                 $query->where('wants_to_work', 'yes');
             })->count();
 
         // العاملات في مرحلة الترحيل
         $inDeportation = $shelterBaseQuery->clone()
-            ->whereHas('info', function($query) {
+            ->whereHas('info', function ($query) {
                 $query->where('wants_to_work', 'no');
             })->count();
 
         // العاملات غير محدد وضعهن
         $undecided = $shelterBaseQuery->clone()
-            ->whereHas('info', function($query) {
-                $query->where(function($q) {
+            ->whereHas('info', function ($query) {
+                $query->where(function ($q) {
                     $q->where('wants_to_work', 'unknown')
-                      ->orWhereNull('wants_to_work');
+                        ->orWhereNull('wants_to_work');
                 });
             })->count();
 
         // حساب حالة الضمان بناءً على تاريخ الوصول
         $today = now();
         $withinGuarantee = $shelterBaseQuery->clone()
-            ->whereHas('info', function($query) use ($today) {
-                $query->where(function($q) use ($today) {
+            ->whereHas('info', function ($query) use ($today) {
+                $query->where(function ($q) use ($today) {
                     // التحقق من تاريخ الوصول في آخر 90 يوم
-                    $q->where(function($subQ) use ($today) {
+                    $q->where(function ($subQ) use ($today) {
                         $subQ->whereNotNull('arrival_date')
-                             ->whereDate('arrival_date', '>=', $today->copy()->subDays(90));
-                    })->orWhere(function($subQ) use ($today) {
+                            ->whereDate('arrival_date', '>=', $today->copy()->subDays(90));
+                    })->orWhere(function ($subQ) use ($today) {
                         $subQ->whereNotNull('visa_milad_date')
-                             ->whereDate('visa_milad_date', '>=', $today->copy()->subDays(90));
-                    })->orWhere(function($subQ) use ($today) {
+                            ->whereDate('visa_milad_date', '>=', $today->copy()->subDays(90));
+                    })->orWhere(function ($subQ) use ($today) {
                         $subQ->whereNotNull('contract_date')
-                             ->whereDate('contract_date', '>=', $today->copy()->subDays(90));
-                    })->orWhere(function($subQ) use ($today) {
+                            ->whereDate('contract_date', '>=', $today->copy()->subDays(90));
+                    })->orWhere(function ($subQ) use ($today) {
                         $subQ->whereNotNull('ingaz_from')
-                             ->whereDate('ingaz_from', '>=', $today->copy()->subDays(90));
+                            ->whereDate('ingaz_from', '>=', $today->copy()->subDays(90));
                     });
                 });
             })->count();
 
         $expiredGuarantee = $shelterBaseQuery->clone()
-            ->whereHas('info', function($query) use ($today) {
-                $query->where(function($q) use ($today) {
+            ->whereHas('info', function ($query) use ($today) {
+                $query->where(function ($q) use ($today) {
                     // التحقق من تاريخ الوصول أقدم من 90 يوم
-                    $q->where(function($subQ) use ($today) {
+                    $q->where(function ($subQ) use ($today) {
                         $subQ->whereNotNull('arrival_date')
-                             ->whereDate('arrival_date', '<', $today->copy()->subDays(90));
-                    })->orWhere(function($subQ) use ($today) {
+                            ->whereDate('arrival_date', '<', $today->copy()->subDays(90));
+                    })->orWhere(function ($subQ) use ($today) {
                         $subQ->whereNotNull('visa_milad_date')
-                             ->whereDate('visa_milad_date', '<', $today->copy()->subDays(90));
-                    })->orWhere(function($subQ) use ($today) {
+                            ->whereDate('visa_milad_date', '<', $today->copy()->subDays(90));
+                    })->orWhere(function ($subQ) use ($today) {
                         $subQ->whereNotNull('contract_date')
-                             ->whereDate('contract_date', '<', $today->copy()->subDays(90));
-                    })->orWhere(function($subQ) use ($today) {
+                            ->whereDate('contract_date', '<', $today->copy()->subDays(90));
+                    })->orWhere(function ($subQ) use ($today) {
                         $subQ->whereNotNull('ingaz_from')
-                             ->whereDate('ingaz_from', '<', $today->copy()->subDays(90));
+                            ->whereDate('ingaz_from', '<', $today->copy()->subDays(90));
                     });
                 });
             })->count();
 
         // العاملات المتاحة للاستلام الفوري (يرغبن بالعمل)
         $availableForInstantReceipt = $shelterBaseQuery->clone()
-            ->whereHas('info', function($query) {
+            ->whereHas('info', function ($query) {
                 $query->where('wants_to_work', 'yes');
             })->count();
 
@@ -130,7 +131,7 @@ class ShelterContractController extends Controller
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ];
 
-        $callback = function() use ($contracts) {
+        $callback = function () use ($contracts) {
             $file = fopen('php://output', 'w');
 
             // Add CSV headers
@@ -218,8 +219,8 @@ class ShelterContractController extends Controller
                 $guaranteeStatus = 'غير محدد';
                 if ($contract->info) {
                     $arrivalDate = $contract->info->visa_milad_date ??
-                                  $contract->info->contract_date ??
-                                  $contract->info->ingaz_from;
+                        $contract->info->contract_date ??
+                        $contract->info->ingaz_from;
 
                     if ($arrivalDate) {
                         try {
@@ -242,8 +243,8 @@ class ShelterContractController extends Controller
                 $arrivalDate = null;
                 if ($contract->info) {
                     $arrivalDate = $contract->info->visa_milad_date ??
-                                  $contract->info->contract_date ??
-                                  $contract->info->ingaz_from;
+                        $contract->info->contract_date ??
+                        $contract->info->ingaz_from;
                 }
                 $arrivalDate = $arrivalDate ? \Carbon\Carbon::parse($arrivalDate)->format('Y-m-d') : 'غير محدد';
 
@@ -292,10 +293,10 @@ class ShelterContractController extends Controller
 
         // جلب العقود المكتملة فقط (تشمل under_warranty و closed)
         $contracts = Contract::whereIn('status', [
-                ContractStatusEnum::Completed->value,      // عقد مكتمل (جديد)
-                ContractStatusEnum::UnderWarranty->value,  // تحت الضمان (قديم)
-                ContractStatusEnum::Closed->value          // مكتمل (قديم)
-            ])
+            ContractStatusEnum::Completed->value,      // عقد مكتمل (جديد)
+            ContractStatusEnum::UnderWarranty->value,  // تحت الضمان (قديم)
+            ContractStatusEnum::Closed->value          // مكتمل (قديم)
+        ])
             ->where('status', '!=', ContractStatusEnum::Shelter->value) // ليس في الإيواء
             ->where('status', '!=', ContractStatusEnum::Back->value)    // ليس مسترجع
             ->with(['maid.nationality', 'info', 'user'])
@@ -325,10 +326,10 @@ class ShelterContractController extends Controller
         }
 
         $contracts = Contract::whereIn('status', [
-                ContractStatusEnum::Completed->value,      // عقد مكتمل (جديد)
-                ContractStatusEnum::UnderWarranty->value,  // تحت الضمان (قديم)
-                ContractStatusEnum::Closed->value          // مكتمل (قديم)
-            ])
+            ContractStatusEnum::Completed->value,      // عقد مكتمل (جديد)
+            ContractStatusEnum::UnderWarranty->value,  // تحت الضمان (قديم)
+            ContractStatusEnum::Closed->value          // مكتمل (قديم)
+        ])
             ->where('status', '!=', ContractStatusEnum::Shelter->value) // ليس في الإيواء
             ->where('status', '!=', ContractStatusEnum::Back->value)    // ليس مسترجع
             ->whereHas('maid', function ($query) use ($passportNumber) {
@@ -392,13 +393,13 @@ class ShelterContractController extends Controller
             'workers_have_residency' => $request->workers_have_residency,
             'performing_medical_examination' => $request->performing_medical_examination,
             'worker_service_type' => $request->worker_service_type,
-            'client_name_snapshot' => $request->client_name_snapshot ?? optional($contract->user)->name,
-            'client_national_id' => $request->client_national_id ?? optional($contract->user)->national_num,
-            'worker_name_snapshot' => $request->maid_name_snapshot ?? optional($contract->maid)->name,
-            'worker_nationality_snapshot' => $request->maid_nationality_snapshot ?? optional(optional($contract->maid)->nationality)->name_ar,
-            'passport_number_snapshot' => $request->passport_number_snapshot ?? optional($contract->maid)->passport_num,
-            'sponsorship_price' => $request->sponsorship_price ?? optional($contract->info)->sponsorship_price,
-            'receipt_form_date' => $request->receipt_form_date,
+            // 'client_name_snapshot' => $request->client_name_snapshot ?? optional($contract->user)->name,
+            // 'client_national_id' => $request->client_national_id ?? optional($contract->user)->national_num,
+            // 'worker_name_snapshot' => $request->maid_name_snapshot ?? optional($contract->maid)->name,
+            // 'worker_nationality_snapshot' => $request->maid_nationality_snapshot ?? optional(optional($contract->maid)->nationality)->name_ar,
+            // 'passport_number_snapshot' => $request->passport_number_snapshot ?? optional($contract->maid)->passport_num,
+            // 'sponsorship_price' => $request->sponsorship_price ?? optional($contract->info)->sponsorship_price,
+            // 'receipt_form_date' => $request->receipt_form_date,
             'receipt_form_text' => $request->receipt_form_text,
         ];
 
@@ -440,8 +441,8 @@ class ShelterContractController extends Controller
         $warrantyDays = 0;
         if ($contract->info) {
             $arrivalDate = $contract->info->visa_milad_date ??
-                          $contract->info->contract_date ??
-                          $contract->info->ingaz_from;
+                $contract->info->contract_date ??
+                $contract->info->ingaz_from;
 
             if ($arrivalDate) {
                 try {
@@ -494,13 +495,13 @@ class ShelterContractController extends Controller
         $contract = Contract::with('maid')->findOrFail($id);
         $displayOnSite = $request->wants_to_work === 'yes' && $request->boolean('is_available_for_instant');
         // $existingAttachments = $contract->info ? ($contract->info->shelter_attachments ?? []) : [];
-        $existingAttachments = $contract->info && $contract->info->shelter_attachments ? 
-        (
-            is_array($contract->info->shelter_attachments) ? 
-            $contract->info->shelter_attachments : 
-            json_decode($contract->info->shelter_attachments, true)
-        ) : [];
-        
+        $existingAttachments = $contract->info && $contract->info->shelter_attachments ?
+            (
+                is_array($contract->info->shelter_attachments) ?
+                $contract->info->shelter_attachments :
+                json_decode($contract->info->shelter_attachments, true)
+            ) : [];
+
         $attachments = $this->prepareShelterAttachments($request, $existingAttachments);
 
         $contract->info()->update([
@@ -589,9 +590,9 @@ class ShelterContractController extends Controller
 
         $jobType = JobType::whereHas('translations', function ($query) {
             $query->where('title', 'LIKE', '%استلام%')
-                  ->orWhere('title', 'LIKE', '%إستلام%')
-                  ->orWhere('title', 'LIKE', '%instant%')
-                  ->orWhere('title', 'LIKE', '%Instant%');
+                ->orWhere('title', 'LIKE', '%إستلام%')
+                ->orWhere('title', 'LIKE', '%instant%')
+                ->orWhere('title', 'LIKE', '%Instant%');
         })->first();
 
         if (!$jobType) {
@@ -678,9 +679,9 @@ class ShelterContractController extends Controller
                         'latestShelterLog'
                     ])
                     ->whereHas('info', function ($query) {
-                        $query->where(function($q) {
+                        $query->where(function ($q) {
                             $q->where('wants_to_work', 'yes')
-                              ->orWhere('wants_to_work', 1);
+                                ->orWhere('wants_to_work', 1);
                         });
                     });
 
@@ -745,22 +746,22 @@ class ShelterContractController extends Controller
 
         // العقود قيد التنفيذ (لديها إجراءات ترحيل ولكن لم تكتمل)
         $inProgress = $deportationContracts->clone()
-            ->whereHas('deportationProcedure', function($query) {
+            ->whereHas('deportationProcedure', function ($query) {
                 $query->where('status', 'pending');
             })
             ->count();
 
         // العقود التي تم حجز التذاكر لها
         $ticketsBooked = $deportationContracts->clone()
-            ->whereHas('deportationProcedure', function($query) {
+            ->whereHas('deportationProcedure', function ($query) {
                 $query->where('has_final_exit', true)
-                      ->whereNotNull('final_exit_date');
+                    ->whereNotNull('final_exit_date');
             })
             ->count();
 
         // العقود التي تم ترحيلها (مكتملة)
         $completed = $deportationContracts->clone()
-            ->whereHas('deportationProcedure', function($query) {
+            ->whereHas('deportationProcedure', function ($query) {
                 $query->where('status', 'completed');
             })
             ->count();
@@ -1114,13 +1115,13 @@ class ShelterContractController extends Controller
                     $query->where(function ($q) use ($today) {
                         $q->where(function ($subQ) use ($today) {
                             $subQ->whereNotNull('visa_milad_date')
-                                 ->whereDate('visa_milad_date', '>=', $today->copy()->subDays(90));
+                                ->whereDate('visa_milad_date', '>=', $today->copy()->subDays(90));
                         })->orWhere(function ($subQ) use ($today) {
                             $subQ->whereNotNull('contract_date')
-                                 ->whereDate('contract_date', '>=', $today->copy()->subDays(90));
+                                ->whereDate('contract_date', '>=', $today->copy()->subDays(90));
                         })->orWhere(function ($subQ) use ($today) {
                             $subQ->whereNotNull('ingaz_from')
-                                 ->whereDate('ingaz_from', '>=', $today->copy()->subDays(90));
+                                ->whereDate('ingaz_from', '>=', $today->copy()->subDays(90));
                         });
                     });
                 });
@@ -1130,13 +1131,13 @@ class ShelterContractController extends Controller
                     $query->where(function ($q) use ($today) {
                         $q->where(function ($subQ) use ($today) {
                             $subQ->whereNotNull('visa_milad_date')
-                                 ->whereDate('visa_milad_date', '<', $today->copy()->subDays(90));
+                                ->whereDate('visa_milad_date', '<', $today->copy()->subDays(90));
                         })->orWhere(function ($subQ) use ($today) {
                             $subQ->whereNotNull('contract_date')
-                                 ->whereDate('contract_date', '<', $today->copy()->subDays(90));
+                                ->whereDate('contract_date', '<', $today->copy()->subDays(90));
                         })->orWhere(function ($subQ) use ($today) {
                             $subQ->whereNotNull('ingaz_from')
-                                 ->whereDate('ingaz_from', '<', $today->copy()->subDays(90));
+                                ->whereDate('ingaz_from', '<', $today->copy()->subDays(90));
                         });
                     });
                 });
@@ -1155,8 +1156,8 @@ class ShelterContractController extends Controller
             $rows->whereHas('info', function ($query) use ($arrivalDate) {
                 $query->where(function ($q) use ($arrivalDate) {
                     $q->whereDate('visa_milad_date', $arrivalDate)
-                      ->orWhereDate('contract_date', $arrivalDate)
-                      ->orWhereDate('ingaz_from', $arrivalDate);
+                        ->orWhereDate('contract_date', $arrivalDate)
+                        ->orWhereDate('ingaz_from', $arrivalDate);
                 });
             });
         }
@@ -1198,18 +1199,18 @@ class ShelterContractController extends Controller
                 $rows->whereDoesntHave('deportationProcedure');
             } elseif ($procedureStatus === 'in_progress') {
                 // العقود قيد التنفيذ (لديها إجراءات ترحيل ولكن لم تكتمل)
-                $rows->whereHas('deportationProcedure', function($query) {
+                $rows->whereHas('deportationProcedure', function ($query) {
                     $query->where('status', 'pending');
                 });
             } elseif ($procedureStatus === 'tickets_booked') {
                 // العقود التي تم حجز التذاكر لها
-                $rows->whereHas('deportationProcedure', function($query) {
+                $rows->whereHas('deportationProcedure', function ($query) {
                     $query->where('has_final_exit', true)
-                          ->whereNotNull('final_exit_date');
+                        ->whereNotNull('final_exit_date');
                 });
             } elseif ($procedureStatus === 'completed') {
                 // العقود التي تم ترحيلها (مكتملة)
-                $rows->whereHas('deportationProcedure', function($query) {
+                $rows->whereHas('deportationProcedure', function ($query) {
                     $query->where('status', 'completed');
                 });
             }
@@ -1222,32 +1223,32 @@ class ShelterContractController extends Controller
                     case 'salary':
                         $query->where(function ($q) {
                             $q->whereNull('salary_received')
-                              ->orWhere('salary_received', '!=', 1);
+                                ->orWhere('salary_received', '!=', 1);
                         });
                         break;
                     case 'passport':
                         $query->where(function ($q) {
                             $q->whereNull('has_passport')
-                              ->orWhere('has_passport', '!=', 1);
+                                ->orWhere('has_passport', '!=', 1);
                         });
                         break;
                     case 'letter':
                         $query->where(function ($q) {
                             $q->whereNull('has_deportation_letter')
-                              ->orWhere('has_deportation_letter', '!=', 1);
+                                ->orWhere('has_deportation_letter', '!=', 1);
                         });
                         break;
                     case 'settlement':
                         $query->where(function ($q) {
                             $q->whereNull('has_settlement_session')
-                              ->orWhere('has_settlement_session', '!=', 1);
+                                ->orWhere('has_settlement_session', '!=', 1);
                         });
                         break;
                     case 'final_exit':
                         $query->where(function ($q) {
                             $q->whereNull('has_final_exit')
-                              ->orWhere('has_final_exit', '!=', 1)
-                              ->orWhereNull('final_exit_date');
+                                ->orWhere('has_final_exit', '!=', 1)
+                                ->orWhereNull('final_exit_date');
                         });
                         break;
                 }
@@ -1270,21 +1271,21 @@ class ShelterContractController extends Controller
         try {
             $rows = Contract::insideShelter()
                 ->with([
-                    'maid' => function($query) {
+                    'maid' => function ($query) {
                         $query->with([
-                            'nationality' => function($q) {
+                            'nationality' => function ($q) {
                                 $q->with('translations');
                             },
-                            'job_types' => function($q) {
-                                $q->with(['job_type' => function($jt) {
+                            'job_types' => function ($q) {
+                                $q->with(['job_type' => function ($jt) {
                                     $jt->with('translations');
                                 }]);
                             }
                         ]);
                     },
                     'user',
-                    'info' => function($query) {
-                        $query->with(['shelter' => function($q) {
+                    'info' => function ($query) {
+                        $query->with(['shelter' => function ($q) {
                             $q->with('translations');
                         }]);
                     },
@@ -1533,8 +1534,8 @@ class ShelterContractController extends Controller
                     }
 
                     $arrivalDate = $row->info->visa_milad_date ??
-                                  $row->info->contract_date ??
-                                  $row->info->ingaz_from;
+                        $row->info->contract_date ??
+                        $row->info->ingaz_from;
 
                     if (!$arrivalDate) {
                         return '<span class="badge bg-secondary">غير محدد</span>';
@@ -1612,6 +1613,10 @@ class ShelterContractController extends Controller
                     // عرض التفاصيل
                     $actions .= '<li><a class="dropdown-item" href="' . route('ShelterContract.show', $row->id) . '">
                                     <i class="fas fa-eye"></i> عرض التفاصيل
+                                </a></li>';
+                    // عرض نموذج الاستلام
+                    $actions .= '<li><a class="dropdown-item" href="' . route('shelter_contract_form.download', $row->id) . '" target="_blank">
+                                    <i class="fas fa-eye"></i> عرض نموذج الاستلام
                                 </a></li>';
 
                     // تحرير
@@ -1709,7 +1714,6 @@ class ShelterContractController extends Controller
 
             \Log::info('DataTables processing completed');
             return $dataTable;
-
         } catch (\Exception $e) {
             \Log::error('Error in buildDataTable: ' . $e->getMessage());
             \Log::error('Stack trace: ' . $e->getTraceAsString());
@@ -1897,7 +1901,6 @@ class ShelterContractController extends Controller
                 'message' => 'تم بدء إجراءات الترحيل بنجاح',
                 'procedure_id' => $procedure->id
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -2054,9 +2057,17 @@ class ShelterContractController extends Controller
 
             // حفظ القيم القديمة لتسجيل التحركات
             $oldValues = $procedure->only([
-                'salary_received', 'salary_received_date', 'has_passport', 'passport_date',
-                'has_deportation_letter', 'deportation_letter_date', 'has_settlement_session',
-                'settlement_date', 'has_final_exit', 'final_exit_date', 'notes'
+                'salary_received',
+                'salary_received_date',
+                'has_passport',
+                'passport_date',
+                'has_deportation_letter',
+                'deportation_letter_date',
+                'has_settlement_session',
+                'settlement_date',
+                'has_final_exit',
+                'final_exit_date',
+                'notes'
             ]);
 
             // Update procedure data
@@ -2109,9 +2120,17 @@ class ShelterContractController extends Controller
 
             // تسجيل التحركات للتغييرات
             $newValues = $procedure->only([
-                'salary_received', 'salary_received_date', 'has_passport', 'passport_date',
-                'has_deportation_letter', 'deportation_letter_date', 'has_settlement_session',
-                'settlement_date', 'has_final_exit', 'final_exit_date', 'notes'
+                'salary_received',
+                'salary_received_date',
+                'has_passport',
+                'passport_date',
+                'has_deportation_letter',
+                'deportation_letter_date',
+                'has_settlement_session',
+                'settlement_date',
+                'has_final_exit',
+                'final_exit_date',
+                'notes'
             ]);
 
             foreach ($newValues as $field => $newValue) {
@@ -2162,7 +2181,7 @@ class ShelterContractController extends Controller
             if ($request->hasFile('passport_attachments')) {
                 \Log::info('Passport attachments found', [
                     'count' => count($request->file('passport_attachments')),
-                    'files' => array_map(function($file) {
+                    'files' => array_map(function ($file) {
                         return $file->getClientOriginalName();
                     }, $request->file('passport_attachments'))
                 ]);
@@ -2256,11 +2275,13 @@ class ShelterContractController extends Controller
                 foreach ($allAttachments as $newAttachment) {
                     $exists = false;
                     foreach ($existingAttachments as $existing) {
-                        if (is_array($existing) &&
+                        if (
+                            is_array($existing) &&
                             isset($existing['name']) && isset($newAttachment['name']) &&
                             $existing['name'] === $newAttachment['name'] &&
                             isset($existing['type']) && isset($newAttachment['type']) &&
-                            $existing['type'] === $newAttachment['type']) {
+                            $existing['type'] === $newAttachment['type']
+                        ) {
                             $exists = true;
                             break;
                         }
@@ -2284,7 +2305,6 @@ class ShelterContractController extends Controller
                 'completion_percentage' => $procedure->completion_percentage,
                 'partial_save' => $isPartialSave
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -2309,13 +2329,13 @@ class ShelterContractController extends Controller
 
             // تطبيق الفلاتر
             if ($request->filled('contract_number')) {
-                $query->whereHas('contract', function($q) use ($request) {
+                $query->whereHas('contract', function ($q) use ($request) {
                     $q->where('id', 'like', '%' . $request->contract_number . '%');
                 });
             }
 
             if ($request->filled('maid_name')) {
-                $query->whereHas('contract.maid', function($q) use ($request) {
+                $query->whereHas('contract.maid', function ($q) use ($request) {
                     $q->where('name', 'like', '%' . $request->maid_name . '%');
                 });
             }
@@ -2475,7 +2495,6 @@ class ShelterContractController extends Controller
                     'maid_name' => $contract->maid->name
                 ]
             ]);
-
         } catch (\Exception $e) {
             \Log::error('Error changing work desire: ' . $e->getMessage());
             return response()->json([
@@ -2581,7 +2600,6 @@ class ShelterContractController extends Controller
                     'status_text' => $statusText
                 ]
             ]);
-
         } catch (\Exception $e) {
             \Log::error('Error toggling instant receipt: ' . $e->getMessage());
             return response()->json([
@@ -2589,5 +2607,39 @@ class ShelterContractController extends Controller
                 'message' => 'حدث خطأ أثناء تغيير حالة الاستلام الفوري'
             ], 500);
         }
+    }
+
+    public function deliveryShelterContractDownload($id)
+    {
+        $contract = Contract::with(['user', 'maid.nationality'])->findOrFail($id);
+        // dd($contract->info->receipt_form_text);
+        $clientName = $contract->user->name ?? '';
+        $clientNationalNumber = $contract->user->national_num ?? '';
+
+        $maid = $contract->maid;
+        $passportId = $maid->passport_num ?? '';
+        $nationalityTitle = $maid?->nationality?->title ?? $maid?->nationality?->sub_title ?? '';
+        $arriveDate = $maid->available_at ?? null;
+        $dateReceipt = $contract->contract_date ?? null;
+        $maidName = $maid->name ?? '';
+
+        $textReceipt = $contract->info->receipt_form_text ?? '';
+
+        $pdf = PDF::loadView('admin.ingaz.ShelterContract.receipt_form', [
+            'client_name' => $clientName,
+            'national_identification_number' => $clientNationalNumber,
+            'passport_id' => $passportId,
+            'nationality_id' => $nationalityTitle,
+            'arrive_date' => $arriveDate,
+            'date_receipt' => $dateReceipt,
+            'cvs_name' => $maidName,
+            'text_receipt' => $textReceipt,
+        ], [], [
+            'title' => 'Shelter Contract Receipt',
+            'format' => 'A4-P',
+            'orientation' => 'P'
+        ]);
+
+        return $pdf->stream('contract-' . $contract->id . '.pdf');
     }
 }

@@ -353,6 +353,7 @@ class ContractController extends Controller
     {
         $contract = Contract::with(['user', 'maid.nationality', 'marketer'])->findOrFail($id);
 
+        // dd($contract->user->name);
         $clientName = $contract->user->name ?? '';
         $clientNationalNumber = $contract->user->national_num ?? '';
         $clientPhone = $contract->user->phone ?? '';
@@ -368,8 +369,6 @@ class ContractController extends Controller
 
         $textReceipt = $contract->text_receipt ?? '';
 
-        PDF::setOptions(['defaultFont' => 'DejaVu Sans']);
-
         $pdf = PDF::loadView('admin.ingaz.RecruitmentContract.delivery_form', [
             'text_receipt' => $textReceipt,
             'date_receipt' => $dateReceipt,
@@ -383,7 +382,11 @@ class ContractController extends Controller
             'client_address' => $clientAddress,
             'adminStaff' => $adminStaff,
             'arrive_date' => $arriveDate,
-        ])->setPaper('a4', 'portrait');
+        ],[], [
+            'title' => 'Contract Form',
+            'format' => 'A4-P',
+            'orientation' => 'P'
+        ]);
 
         if (request()->query('type') === 'download') {
             return $pdf->download('contract-' . $contract->id . '.pdf');
