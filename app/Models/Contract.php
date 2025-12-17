@@ -26,7 +26,7 @@ class Contract extends Model
 
     public function getDescAttribute()
     {
-        return helperTrans('ingaz.contract number') . $this->id . helperTrans('ingaz.contract of') . $this->user->name;
+        return helperTrans('ingaz.contract number') . $this->id . helperTrans('ingaz.contract of') . ($this->user->name ?? __('ingaz.unknown_user'));
     }
     public function user()
     {

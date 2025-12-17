@@ -56,12 +56,23 @@
                     @endphp
                     <option value="{{$contract->id}}"
                             data-passport="{{$contract->maid ? $contract->maid->passport_num : ''}}"
+                            data-passport-snapshot="{{ optional($contract->info)->passport_number_snapshot ?? ($contract->maid->passport_num ?? '') }}"
                             data-maid-name="{{$contract->maid ? $contract->maid->name : ''}}"
+                            data-maid-name-snapshot="{{ optional($contract->info)->worker_name_snapshot ?? ($contract->maid->name ?? '') }}"
+                            data-maid-nationality="{{ $contract->maid && $contract->maid->nationality ? $contract->maid->nationality->name_ar : '' }}"
+                            data-client-name="{{ optional($contract->info)->client_name_snapshot ?? ($contract->user->name ?? '') }}"
+                            data-client-national-id="{{ optional($contract->info)->client_national_id ?? ($contract->user->national_num ?? '') }}"
+                            data-sponsorship-price="{{ optional($contract->info)->sponsorship_price }}"
+                            data-receipt-date="{{ optional($contract->info)->receipt_form_date ?? optional($contract->info)->arrival_date ?? ($contract->contract_date ?? '') }}"
+                            data-receipt-text="{{ optional($contract->info)->receipt_form_text }}"
+                            data-has-residency="{{ optional($contract->info)->workers_have_residency }}"
+                            data-medical-exam="{{ optional($contract->info)->performing_medical_examination }}"
+                            data-service-type="{{ optional($contract->info)->worker_service_type }}"
                             data-status="{{$contract->status}}"
                             {{ $selectedContractId == $contract->id ? 'selected' : '' }}>
                         {{$contract->desc }}{{ $warrantyStatus }} @if($contract->maid && $contract->maid->passport_num) - {{$contract->maid->passport_num}}  @endif
                     </option>
-                    @endforeach
+                    @endforeach 
                 </select>
             </div>
 
@@ -121,6 +132,33 @@
                 </select>
             </div>
 
+            <div class="col-4 mt-4">
+                <label class="form-label">هل العاملة لديها اقامة؟</label>
+                <select name="workers_have_residency" id="workers_have_residency" class="form-select form-control select2" data-validation="required">
+                    <option disabled {{ old('workers_have_residency') ? '' : 'selected' }}>{{helperTrans('ingaz.choose')}}</option>
+                    <option value="yes" {{ old('workers_have_residency') === 'yes' ? 'selected' : '' }}>لديها اقامة</option>
+                    <option value="no" {{ old('workers_have_residency') === 'no' ? 'selected' : '' }}>ليس لديها اقامة</option>
+                </select>
+            </div>
+
+            <div class="col-4 mt-4">
+                <label class="form-label">هل تم عمل الفحص الطبي؟</label>
+                <select name="performing_medical_examination" id="performing_medical_examination" class="form-select form-control select2" data-validation="required">
+                    <option disabled {{ old('performing_medical_examination') ? '' : 'selected' }}>{{helperTrans('ingaz.choose')}}</option>
+                    <option value="yes" {{ old('performing_medical_examination') === 'yes' ? 'selected' : '' }}>نعم</option>
+                    <option value="no" {{ old('performing_medical_examination') === 'no' ? 'selected' : '' }}>لا</option>
+                </select>
+            </div>
+
+            <div class="col-4 mt-4">
+                <label class="form-label">هل العاملة للتسفير ام لنقل الخدمات؟</label>
+                <select name="worker_service_type" id="worker_service_type" class="form-select form-control select2" data-validation="required">
+                    <option disabled {{ old('worker_service_type') ? '' : 'selected' }}>{{helperTrans('ingaz.choose')}}</option>
+                    <option value="deportation" {{ old('worker_service_type') === 'deportation' ? 'selected' : '' }}>التسفير</option>
+                    <option value="transfer" {{ old('worker_service_type') === 'transfer' ? 'selected' : '' }}>نقل خدمات</option>
+                </select>
+            </div>
+
             <div class="col-4 mt-4" id="instant_display_wrapper" style="display:none;">
                 <label for="is_available_for_instant" class="form-label">{{ helperTrans('ingaz.display_on_site') }}</label>
                 <select name="is_available_for_instant" id="is_available_for_instant" class="form-select form-control select2">
@@ -128,6 +166,58 @@
                     <option value="1">{{ helperTrans('ingaz.yes') }}</option>
                 </select>
                 <small class="form-text text-muted">{{ helperTrans('ingaz.display_on_site_hint') }}</small>
+            </div>
+
+            <div class="col-12 mt-4">
+                <div class="card border-secondary">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">بيانات العميل</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6 col-lg-3">
+                                <label class="form-label">اسم العميل</label>
+                                <input type="text" name="client_name_snapshot" id="client_name_snapshot" class="form-control" value="{{ old('client_name_snapshot') }}">
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <label class="form-label">رقم الهوية الوطنية</label>
+                                <input type="text" name="client_national_id" id="client_national_id" class="form-control" value="{{ old('client_national_id') }}">
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <label class="form-label">اسم العاملة</label>
+                                <input type="text" name="maid_name_snapshot" id="maid_name_snapshot" class="form-control" value="{{ old('maid_name_snapshot') }}">
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <label class="form-label">الجنسية</label>
+                                {{-- <input type="text" name="maid_nationality_snapshot" id="maid_nationality_snapshot" class="form-control" value="{{ old('maid_nationality_snapshot') }}"> --}}
+                                <select name="maid_nationality_snapshot" id="maid_nationality_snapshot" class="form-select form-control select2">
+                                    <option disabled {{ !old('maid_nationality_snapshot') ? 'selected' : '' }}>{{helperTrans('ingaz.choose')}}</option>
+                                    @foreach($nationalities as $nationality)
+                                        <option value="{{ $nationality->id }}" {{ old('maid_nationality_snapshot') == $nationality->id ? 'selected' : '' }}>
+                                            {{ $nationality->translations->where('locale', app()->getLocale())->first()?->title ?? $nationality->translations->first()?->title }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <label class="form-label">سعر نقل الكفالة</label>
+                                <input type="number" step="0.01" name="sponsorship_price" id="sponsorship_price" class="form-control" value="{{ old('sponsorship_price') }}">
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <label class="form-label">رقم جواز السفر</label>
+                                <input type="text" name="passport_number_snapshot" id="passport_number_snapshot" class="form-control" value="{{ old('passport_number_snapshot') }}">
+                            </div>
+                            <div class="col-md-6 col-lg-3">
+                                <label class="form-label">تاريخ نموذج الاستلام</label>
+                                <input type="date" name="receipt_form_date" id="receipt_form_date" class="form-control" value="{{ old('receipt_form_date') }}">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">نص النموذج</label>
+                                <textarea name="receipt_form_text" id="receipt_form_text" rows="8" class="form-control"> الى مكتب بلاتنيوم الشرقية للاستقدام وأمل من المكتب حل مشكلتها وذلك بنقل خدماتها  لتعمل عند صاحب عمل آخر او ترحيلها  حسب ما يراه المكتب مناسبا، كما اتعهد بعدم عمل خروج نهائي او بلاغ هروب أو اي اجراء يخص العاملة إلا بموافقة من المكتب، علماً أنه في حالة نقل خدمات العاملة يحق لي استرجاع مستحقاتي وفقاً للعقد الموحد والنظام الصادر من وزارة الموارد البشرية والتنمية الاجتماعية ، حيث انه حسب التعميم الصادر من مساند والذي ينص على الزام ارجاع المبالغ المستحقة للعملاء من خلال منصة مساند وليس عن طريق حساب المكتب المستقدم وعلى ان يكون ارجاع المبلغ خلال عشرين يوم عمل من تاريخ تسليم العاملة .</textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="col-12 mt-4">
@@ -523,6 +613,11 @@
                     }
                 @endforeach
             }
+
+            const selectedOption = $(this).find('option:selected');
+            if (selectedOption.length) {
+                fillSnapshotFields(selectedOption.data());
+            }
         });
 
         // حساب المدة عند تغيير تاريخ الوصول
@@ -579,6 +674,47 @@
         }
 
         // تعيين تاريخ الإرجاع في نفس اليوم تلقائياً
+        function fillSnapshotFields(data, preserveExisting = false) {
+            console.log(data);
+            
+            const setValue = (selector, value) => {
+                if (preserveExisting && $(selector).val()) {
+                    return;
+                }
+                $(selector).val(value || '');
+            };
+
+            setValue('#client_name_snapshot', data.clientName);
+            setValue('#client_national_id', data.clientNationalId);
+            setValue('#maid_name_snapshot', data.maidNameSnapshot || data.maidName);
+            setValue('#maid_nationality_snapshot', data.maidNationality);
+            setValue('#passport_number_snapshot', data.passportSnapshot || data.passport);
+            setValue('#sponsorship_price', data.sponsorshipPrice);
+            setValue('#receipt_form_date', data.receiptDate);
+
+            // if (!preserveExisting || !$('#receipt_form_text').val()) {
+            //     $('#receipt_form_text').val(data.receiptText || '');
+            // }
+
+            if (data.hasResidency || (!preserveExisting && data.hasResidency === '')) {
+                $('#workers_have_residency').val(data.hasResidency || null).trigger('change');
+            } else if (!preserveExisting) {
+                $('#workers_have_residency').val(null).trigger('change');
+            }
+
+            if (data.medicalExam || (!preserveExisting && data.medicalExam === '')) {
+                $('#performing_medical_examination').val(data.medicalExam || null).trigger('change');
+            } else if (!preserveExisting) {
+                $('#performing_medical_examination').val(null).trigger('change');
+            }
+
+            if (data.serviceType || (!preserveExisting && data.serviceType === '')) {
+                $('#worker_service_type').val(data.serviceType || null).trigger('change');
+            } else if (!preserveExisting) {
+                $('#worker_service_type').val(null).trigger('change');
+            }
+        }
+
         function setReturnDateToToday() {
             let today = new Date();
             let year = today.getFullYear();
@@ -594,6 +730,11 @@
         $(document).ready(function() {
             setReturnDateToToday();
             toggleInstantDisplayField();
+
+            const initialOption = $('#contract_id').find('option:selected');
+            if (initialOption.length && initialOption.val()) {
+                fillSnapshotFields(initialOption.data(), true);
+            }
         });
 
         // تعيين تاريخ الإرجاع عند تغيير العقد
@@ -771,6 +912,8 @@
         // عند اختيار العاملة، عرض التفاصيل
         $('#maid_id').on('select2:select', function(e) {
             var maid = e.params.data.maid;
+            console.log(maid);
+            
             if (maid) {
                 $('#maid_name_display').text(maid.name);
                 $('#maid_passport_display').text(maid.passport_num);

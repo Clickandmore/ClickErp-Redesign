@@ -271,6 +271,7 @@ class MaidAction extends MainAction
             'name' => $data['name'],
         ];
 
+        
         if ($requestTypeColumnExists) {
             $createData['request_type'] = $data['request_type'] ?? 'known';
         }
@@ -297,10 +298,28 @@ class MaidAction extends MainAction
         \Log::info('Languages in createData: ' . ($createData['languages'] ?? 'null'));
         \Log::info('Name in createData: ' . ($data['name'] ?? 'null'));
 
+        // Handle marital_status:ar field for translation
+        if (isset($data['marital_status:ar'])) {
+            $maritalStatusAr = $data['marital_status:ar'];
+            unset($data['marital_status:ar']);
+        }
+        if (isset($data['marital_status:en'])) {
+            $maritalStatusEn = $data['marital_status:en'];
+            unset($data['marital_status:en']);
+        }
 
         try {
+            // dd($createData, $data,$maritalStatusAr, $maritalStatusEn);
             $maid = $this->model->create($createData);
             \Log::info('Maid created successfully with ID: ' . $maid->id);
+
+            // Handle translation fields
+            if (isset($maritalStatusAr)) {
+                $maid->translateOrNew('ar')->marital_status = $maritalStatusAr;
+            }
+            if (isset($maritalStatusEn)) {
+                $maid->translateOrNew('en')->marital_status = $maritalStatusEn;
+            }
 
             // توليد cv_code بناءً على المكتب
             if ($maid->office_id || $maid->office?->title) {
@@ -532,8 +551,13 @@ class MaidAction extends MainAction
 
         // Handle marital_status:ar field for translation
         if (isset($data['marital_status:ar'])) {
-            $maritalStatus = $data['marital_status:ar'];
+            $maritalStatusAr = $data['marital_status:ar'];
             unset($data['marital_status:ar']);
+        }
+
+        if (isset($data['marital_status:en'])) {
+            $maritalStatusEn = $data['marital_status:en'];
+            unset($data['marital_status:en']);
         }
 
         // Handle languages field for translation and main columns
@@ -661,8 +685,11 @@ class MaidAction extends MainAction
         }
 
         // Handle translation fields
-        if (isset($maritalStatus)) {
-            $row->translateOrNew('ar')->marital_status = $maritalStatus;
+        if (isset($maritalStatusAr)) {
+            $row->translateOrNew('ar')->marital_status = $maritalStatusAr;
+        }
+        if (isset($maritalStatusEn)) {
+            $row->translateOrNew('en')->marital_status = $maritalStatusEn;
         }
 
         if (isset($languagesData)) {

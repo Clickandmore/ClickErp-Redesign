@@ -385,6 +385,10 @@ class ContractController extends Controller
             'arrive_date' => $arriveDate,
         ])->setPaper('a4', 'portrait');
 
+        if (request()->query('type') === 'download') {
+            return $pdf->download('contract-' . $contract->id . '.pdf');
+        }
+        
         return $pdf->stream('contract-' . $contract->id . '.pdf');
     }
 }

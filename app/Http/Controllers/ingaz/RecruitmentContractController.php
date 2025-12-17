@@ -605,7 +605,7 @@ class RecruitmentContractController extends Controller
                                 </a></li>';
 
                     // زر الطباعة
-                    $actions .= '<li><a class="dropdown-item" href="' . route('contracts.details', $row->id) . '" target="_blank">
+                    $actions .= '<li><a class="dropdown-item" href="' . route('contract_download_form.download', $row->id) . '?type=download" target="_blank">
                                     <i class="fas fa-print"></i> طباعة العقد
                                 </a></li>';
 

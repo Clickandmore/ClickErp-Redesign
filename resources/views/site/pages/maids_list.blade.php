@@ -14,16 +14,24 @@
                 $todayDate = now()->toDateString();
                 $offerStarts = optional($maid->offer_starts_at)->format('Y-m-d');
                 $offerExpires = optional($maid->offer_expires_at)->format('Y-m-d');
+
                 $offerPriceRaw = $maid->offer_price !== null ? (float) $maid->offer_price : null;
                 $salaryRaw = $maid->resolved_salary !== null ? (float) $maid->resolved_salary : null;
                 $priceRaw = $maid->resolved_price !== null ? (float) $maid->resolved_price : null;
+
                 $offerActive =
                     $offerPriceRaw !== null &&
-                    (empty($offerStarts) || $offerStarts <= $todayDate) &&
-                    (empty($offerExpires) || $offerExpires >= $todayDate);
+                    (!empty($offerStarts) || $offerStarts <= $todayDate) &&
+                    (!empty($offerExpires) || $offerExpires >= $todayDate);
+
+                /* الحساب دايمًا يكون بالقيم الخام */
+                $salaryAfterOfferRaw = $offerActive && $salaryRaw !== null ? $salaryRaw - $offerPriceRaw : null;
+
+                /* التنسيق للعرض فقط */
                 $offerPriceDisplay = $offerPriceRaw !== null ? number_format($offerPriceRaw, 2) : null;
                 $salaryDisplay = $salaryRaw !== null ? number_format($salaryRaw, 2) : null;
                 $priceDisplay = $priceRaw !== null ? number_format($priceRaw, 2) : null;
+                $salaryAfterOffer = $salaryAfterOfferRaw !== null ? number_format($salaryAfterOfferRaw, 2) : null;
                 $cvFile = $maid->cv_file ?? $maid->cv_preview;
                 $cv_code = $maid->cv_code ? $maid->cv_code : null;
             @endphp
@@ -110,12 +118,12 @@
                                             @if ($priceRaw !== null && $offerPriceRaw < $priceRaw && $priceDisplay)
                                                 <p class="old-salary mb-1">
                                                     {{ __('ingaz.before_discount') }} :
-                                                    <span>222 {{ __('ingaz.SAR') }}</span>
+                                                    <span>{{ $salaryDisplay }} {{ __('ingaz.SAR') }}</span>
                                                 </p>
                                             @endif
                                             <p class="new-salary mb-0">
                                                 {{ __('ingaz.now_price') }} :
-                                                <span>2222222 {{ __('ingaz.SAR') }}</span>
+                                                <span>{{ $salaryAfterOffer }} {{ __('ingaz.SAR') }}</span>
                                             </p>
                                         @elseif($priceDisplay)
                                             <p class="new-salary mb-0">
