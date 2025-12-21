@@ -178,8 +178,8 @@
                 <button onclick="prepareUsersTable()" class="btn-info">إعداد الجدول</button>
                 <button onclick="transferUsersSimple()" class="btn-success">نقل المستخدمين</button>
                 <button onclick="transferCustomersSimple()" class="btn-success">دمج العملاء</button>
-                <button onclick="syncAdminsFromUsers(this)" class="btn-success">مزامنة المدراء (Users→Admins)</button>
-                <button onclick="syncStaffFromUsers(this)" class="btn-success">مزامنة الطاقم (Users→Admins)</button>
+                <button onclick="syncAdminsFromUsers(this)" class="btn-success">مزامنة المدراء (Users→Admins (Admin))</button>
+                <button onclick="syncStaffFromUsers(this)" class="btn-success">مزامنة الطاقم (Users→Admins (Staff))</button>
                 <button onclick="checkUsers()" class="btn-info">فحص النتيجة</button>
             </div>
             <div id="users_result" class="result"></div>
