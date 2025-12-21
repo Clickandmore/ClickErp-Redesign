@@ -12,6 +12,7 @@ use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Models\Activity;
 use Spatie\Activitylog\Traits\LogsActivity;
 use App\Models\ingaz\User;
+use App\Models\auth\Admin;
 
 class Maid extends Model
 {
@@ -186,7 +187,7 @@ class Maid extends Model
 
     public function addedBy()
     {
-        return $this->belongsTo(User::class, 'added_by');
+        return $this->belongsTo(Admin::class, 'added_by');
     }
 
     public function unavailableRecords()

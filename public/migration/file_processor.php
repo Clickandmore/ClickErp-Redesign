@@ -1055,277 +1055,298 @@ function addSystemStatusColumns() {
  */
 function migrateUsersSimple() {
     try {
-        // الاتصال بالقاعدة القديمة
-        $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum_old;charset=utf8mb4", 'root', 'root');
+        $oldDb = get_old_db_connection();
         $newDb = get_db_connection();
 
-        // جلب جميع المستخدمين من القاعدة القديمة
-        $oldUsers = $oldDb->query("SELECT * FROM users")->fetchAll(PDO::FETCH_ASSOC);
+        $oldUsers = $oldDb->query("SELECT * FROM users ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
 
         if (empty($oldUsers)) {
-            throw new Exception('لا توجد بيانات في القاعدة القديمة');
+            throw new Exception('لم يتم العثور على مستخدمين في القاعدة القديمة');
         }
+
+        $newColumns = $newDb->query("DESCRIBE users")->fetchAll(PDO::FETCH_COLUMN);
+        if (empty($newColumns)) {
+            throw new Exception('جدول users في القاعدة الجديدة غير متاح');
+        }
+
+        $columnsToUse = array_values(array_intersect($newColumns, [
+            'id', 'name', 'first_name', 'last_name', 'email', 'phone', 'phone2', 'phone_code', 'password',
+            'remember_token', 'user_type', 'token', 'avatar', 'address', 'city', 'country', 'region',
+            'nationality_id', 'is_blocked', 'status', 'register_from', 'phone_verified_at',
+            'verification_code', 'created_at', 'updated_at', 'lang'
+        ]));
+
+        if (!in_array('id', $columnsToUse, true)) {
+            throw new Exception('يجب أن يحتوي جدول users على حقل id');
+        }
+
+        $placeholders = array_fill(0, count($columnsToUse), '?');
+        $updates = [];
+        foreach ($columnsToUse as $col) {
+            if ($col === 'id') {
+                continue;
+            }
+            $updates[] = "`$col` = VALUES(`$col`)";
+        }
+        $upsertSql = "INSERT INTO users (`" . implode('`, `', $columnsToUse) . "`) VALUES (" . implode(', ', $placeholders) . ") ON DUPLICATE KEY UPDATE " . implode(', ', $updates);
+        $stmt = $newDb->prepare($upsertSql);
 
         $migratedCount = 0;
         $updatedCount = 0;
+        $unchanged = 0;
+        $skipped = 0;
         $namesSplit = 0;
 
+        $newDb->beginTransaction();
+
         foreach ($oldUsers as $user) {
-            try {
-                // تحضير البيانات
-                $data = [];
+            if (empty($user['id'])) {
+                $skipped++;
+                continue;
+            }
 
-                // البيانات المباشرة
-                $data['id'] = $user['id'];
-                $data['name'] = $user['name'] ?? null;
-                $data['email'] = $user['email'] ?? null;
-                $data['phone'] = $user['phone'] ?? null;
-                $data['password'] = $user['password'] ?? null;
-                $data['remember_token'] = $user['remember_token'] ?? null;
-                $data['created_at'] = $user['created_at'] ?? null;
-                $data['updated_at'] = $user['updated_at'] ?? null;
-                $data['address'] = $user['address'] ?? null;
-                $data['city'] = $user['city'] ?? null;
-                $data['nationality_id'] = $user['nationality_id'] ?? null;
+            $fullName = trim((string)($user['name'] ?? ''));
+            if ($fullName !== '') {
+                $namesSplit++;
+            }
+            $firstName = extractFirstName($fullName);
+            $lastName = extractLastName($fullName);
 
-                // تقسيم الاسم
-                if (!empty($user['name'])) {
-                    $nameParts = explode(' ', trim($user['name']), 2);
-                    $data['first_name'] = $nameParts[0] ?? '';
-                    $data['last_name'] = $nameParts[1] ?? '';
-                    $namesSplit++;
+            $phone = cleanPhoneNumber($user['phone'] ?? '');
+            $phone = $phone === '' ? null : $phone;
+
+            $whatsapp = cleanPhoneNumber($user['whatsapp_phone'] ?? '');
+            if ($whatsapp === '') {
+                $whatsapp = $phone ?? null;
+            }
+            $whatsapp = $whatsapp === '' ? null : $whatsapp;
+
+            $banned = isset($user['banned']) ? (int)$user['banned'] : 0;
+            $createdAt = parseDateValue($user['created_at'] ?? null);
+            $updatedAt = parseDateValue($user['updated_at'] ?? null);
+
+            $values = [];
+            foreach ($columnsToUse as $col) {
+                switch ($col) {
+                    case 'id':
+                        $values[] = (int)$user['id'];
+                        break;
+                    case 'name':
+                        $values[] = $fullName ?: null;
+                        break;
+                    case 'first_name':
+                        $values[] = $firstName;
+                        break;
+                    case 'last_name':
+                        $values[] = $lastName;
+                        break;
+                    case 'phone':
+                        $values[] = $phone;
+                        break;
+                    case 'phone2':
+                        $values[] = $whatsapp;
+                        break;
+                    case 'phone_code':
+                        $values[] = '+966';
+                        break;
+                    case 'is_blocked':
+                        $values[] = $banned;
+                        break;
+                    case 'status':
+                        $values[] = 1 - $banned;
+                        break;
+                    case 'register_from':
+                        $values[] = 'migration';
+                        break;
+                    case 'user_type':
+                        $values[] = $user['user_type'] ?? null;
+                        break;
+                    case 'token':
+                        $values[] = $user['token'] ?? null;
+                        break;
+                    case 'created_at':
+                        $values[] = $createdAt;
+                        break;
+                    case 'updated_at':
+                        $values[] = $updatedAt;
+                        break;
+                    case 'verification_code':
+                        $values[] = $user['verification_code'] ?? null;
+                        break;
+                    case 'phone_verified_at':
+                        $values[] = parseDateValue($user['phone_verified_at'] ?? null);
+                        break;
+                    case 'lang':
+                        $values[] = $user['lang'] ?? 'ar';
+                        break;
+                    default:
+                        $values[] = $user[$col] ?? null;
                 }
+            }
 
-                // التحويلات
-                $data['is_blocked'] = isset($user['banned']) ? (int)$user['banned'] : 0;
-                $data['status'] = isset($user['banned']) ? (1 - (int)$user['banned']) : 1;
-                $data['phone2'] = $user['whatsapp_phone'] ?? null;
-
-                // الأعمدة الناقصة إن وجدت
-                $data['user_type'] = $user['user_type'] ?? null;
-                $data['phone_verified_at'] = $user['phone_verified_at'] ?? null;
-                $data['verification_code'] = $user['verification_code'] ?? null;
-                $data['token'] = $user['token'] ?? null;
-
-                // القيم الافتراضية
-                $data['register_from'] = 'migration';
-                $data['phone_code'] = '+966';
-
-                // التحقق من وجود المستخدم
-                $checkStmt = $newDb->prepare("SELECT id FROM users WHERE id = ?");
-                $checkStmt->execute([$user['id']]);
-
-                if ($checkStmt->rowCount() > 0) {
-                    // تحديث موجود
-                    $updateFields = [];
-                    $updateValues = [];
-                    foreach ($data as $field => $value) {
-                        if ($field !== 'id') {
-                            $updateFields[] = "`$field` = ?";
-                            $updateValues[] = $value;
-                        }
-                    }
-                    $updateValues[] = $user['id'];
-
-                    $updateSql = "UPDATE users SET " . implode(', ', $updateFields) . " WHERE id = ?";
-                    $updateStmt = $newDb->prepare($updateSql);
-                    $updateStmt->execute($updateValues);
+            try {
+                $stmt->execute($values);
+                $affected = $stmt->rowCount();
+                if ($affected === 1) {
+                    $migratedCount++;
+                } elseif ($affected === 2) {
                     $updatedCount++;
                 } else {
-                    // إدراج جديد
-                    $fields = array_keys($data);
-                    $placeholders = array_fill(0, count($fields), '?');
-
-                    $insertSql = "INSERT INTO users (`" . implode('`, `', $fields) . "`) VALUES (" . implode(', ', $placeholders) . ")";
-                    $insertStmt = $newDb->prepare($insertSql);
-                    $insertStmt->execute(array_values($data));
-                    $migratedCount++;
+                    $unchanged++;
                 }
-
             } catch (Exception $e) {
-                error_log("خطأ في نقل المستخدم {$user['id']}: " . $e->getMessage());
+                $skipped++;
+                error_log("تعذر ترحيل المستخدم {$user['id']}: " . $e->getMessage());
             }
         }
+
+        $newDb->commit();
 
         return [
             'success' => true,
             'total_users' => count($oldUsers),
             'migrated' => $migratedCount,
             'updated' => $updatedCount,
+            'unchanged' => $unchanged,
+            'skipped' => $skipped,
             'names_split' => $namesSplit,
-            'message' => "✅ تم نقل المستخدمين بنجاح!\n📊 إجمالي: " . count($oldUsers) . "\n➕ جديد: $migratedCount\n🔄 محدث: $updatedCount"
+            'message' => "تم ترحيل المستخدمين بنجاح!\nالإجمالي: " . count($oldUsers) . "\nتمت الإضافة: $migratedCount\nتم التحديث: $updatedCount\nبدون تغيير: $unchanged\nتم تخطي: $skipped"
         ];
 
     } catch (Exception $e) {
+        if (isset($newDb) && $newDb instanceof PDO && $newDb->inTransaction()) {
+            $newDb->rollBack();
+        }
         return [
             'success' => false,
-            'message' => 'خطأ في نقل المستخدمين: ' . $e->getMessage()
+            'message' => 'حدث خطأ أثناء ترحيل المستخدمين: ' . $e->getMessage()
         ];
     }
 }
 
 function migrateAdminsFromUsers() {
-    try {
-        $db = get_db_connection();
-
-        $totalAdmins = (int)$db->query("SELECT COUNT(*) FROM users WHERE user_type = 'admin'")->fetchColumn();
-
-        if ($totalAdmins === 0) {
-            return [
-                'success' => false,
-                'message' => 'لا يوجد أي مستخدمين بنوع admin في جدول users.'
-            ];
-        }
-
-        // تحديث أي سجلات حالية في جدول admins مرتبطة بنفس البريد الإلكتروني
-        $updateSql = "UPDATE admins a
-            JOIN users u ON u.email = a.email AND u.user_type = 'admin'
-            SET a.name = u.name,
-                a.phone = NULLIF(u.phone, ''),
-                a.password = u.password,
-                a.remember_token = u.remember_token,
-                a.admin_type = 'admin',
-                a.sort = COALESCE(a.sort, 999),
-                a.lang = COALESCE(a.lang, 'ar'),
-                a.updated_at = COALESCE(u.updated_at, NOW()),
-                a.whatsapp = COALESCE(NULLIF(u.phone, ''), a.whatsapp)";
-        $updated = $db->exec($updateSql);
-
-        // إدراج السجلات غير الموجودة مسبقًا
-        $insertSql = "INSERT INTO admins (name, phone, email, password, remember_token, admin_type, sort, role_id, lang, created_at, updated_at, whatsapp)
-            SELECT u.name,
-                   NULLIF(u.phone, ''),
-                   u.email,
-                   u.password,
-                   u.remember_token,
-                   'admin',
-                   999,
-                   NULL,
-                   'ar',
-                   COALESCE(u.created_at, NOW()),
-                   COALESCE(u.updated_at, NOW()),
-                   COALESCE(NULLIF(u.phone, ''), '')
-            FROM users u
-            WHERE u.user_type = 'admin'
-              AND u.email IS NOT NULL
-              AND u.email <> ''
-              AND NOT EXISTS (
-                  SELECT 1 FROM admins a WHERE a.email = u.email
-              )";
-        $inserted = $db->exec($insertSql);
-
-        return [
-            'success' => true,
-            'total_admin_users' => $totalAdmins,
-            'inserted' => $inserted,
-            'updated' => $updated,
-            'message' => "✅ تمت مزامنة المدراء بنجاح.\nإجمالي في users: {$totalAdmins}\n➕ تمت إضافة: {$inserted}\n🔄 تم تحديث: {$updated}"
-        ];
-
-    } catch (Exception $e) {
-        return [
-            'success' => false,
-            'message' => 'فشل مزامنة المدراء: ' . $e->getMessage()
-        ];
-    }
+    return migrateAdminsByType('admin');
 }
 
 function migrateStaffFromUsers() {
+    return migrateAdminsByType('staff');
+}
+
+function migrateAdminsByType(string $userType) {
+    $type = strtolower($userType) === 'staff' ? 'staff' : 'admin';
+
     try {
-        $oldDb = new PDO("mysql:host=127.0.0.1;port=8889;dbname=platinum_old;charset=utf8mb4", 'root', 'root');
-        $oldDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $oldDb = get_old_db_connection();
         $newDb = get_db_connection();
 
-        $staffUsers = $oldDb->query("SELECT * FROM users WHERE user_type = 'staff'")->fetchAll(PDO::FETCH_ASSOC);
+        $stmt = $oldDb->prepare("SELECT * FROM users WHERE user_type = :type ORDER BY id");
+        $stmt->execute(['type' => $type]);
+        $sourceUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        if (empty($staffUsers)) {
+        if (empty($sourceUsers)) {
             return [
-                'success' => false,
-                'message' => 'لا يوجد أي مستخدمين بنوع staff في القاعدة القديمة.'
+                'success' => true,
+                'message' => "لا يوجد مستخدمون من نوع {$type} في القاعدة القديمة",
+                'processed' => 0,
+                'inserted' => 0,
+                'updated' => 0,
+                'unchanged' => 0,
+                'skipped' => 0
             ];
         }
 
-        $checkStmt = $newDb->prepare("SELECT id FROM admins WHERE email = ? LIMIT 1");
-        $updateStmt = $newDb->prepare("UPDATE admins SET name = ?, phone = ?, password = ?, remember_token = ?, admin_type = ?, lang = ?, whatsapp = ?, updated_at = ? WHERE id = ?");
-        $insertStmt = $newDb->prepare("INSERT INTO admins (name, phone, email, password, remember_token, admin_type, sort, role_id, lang, created_at, updated_at, whatsapp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $adminColumns = getTableColumnsLocal($newDb, 'admins');
+        if (empty($adminColumns) || !in_array('id', $adminColumns, true)) {
+            return [
+                'success' => false,
+                'message' => 'جدول admins يجب أن يحتوي على عمود id'
+            ];
+        }
+
+        $mapping = [
+            'id' => fn($u) => (int)$u['id'],
+            'name' => fn($u) => $u['name'] ?? null,
+            'email' => fn($u) => trim((string)($u['email'] ?? '')) ?: null,
+            'phone' => function ($u) {
+                $phone = cleanPhoneNumber($u['phone'] ?? '');
+                return $phone === '' ? null : $phone;
+            },
+            'password' => fn($u) => $u['password'] ?? null,
+            'remember_token' => fn($u) => $u['remember_token'] ?? null,
+            'admin_type' => fn() => $type,
+            'sort' => fn() => 999,
+            'role_id' => fn($u) => $u['role_id'] ?? null,
+            'lang' => fn($u) => $u['lang'] ?? 'ar',
+            'created_at' => fn($u) => parseDateValue($u['created_at'] ?? null) ?? date('Y-m-d H:i:s'),
+            'updated_at' => fn($u) => parseDateValue($u['updated_at'] ?? null) ?? date('Y-m-d H:i:s'),
+            'whatsapp' => function ($u) {
+                $whats = cleanPhoneNumber($u['whatsapp_phone'] ?? '');
+                if ($whats === '') {
+                    $whats = cleanPhoneNumber($u['phone'] ?? '');
+                }
+                return $whats === '' ? null : $whats;
+            },
+        ];
+
+        $columnsToUse = array_values(array_intersect(array_keys($mapping), $adminColumns));
+        $insertSql = buildUpsertSql('admins', $columnsToUse);
+        $insertStmt = $newDb->prepare($insertSql);
 
         $inserted = 0;
         $updated = 0;
+        $unchanged = 0;
         $skipped = 0;
 
-        foreach ($staffUsers as $user) {
-            $email = trim($user['email'] ?? '');
-            if ($email === '') {
+        $newDb->beginTransaction();
+
+        foreach ($sourceUsers as $user) {
+            $emailValue = trim((string)($user['email'] ?? ''));
+            if ($emailValue === '' && in_array('email', $columnsToUse, true)) {
                 $skipped++;
                 continue;
             }
 
-            $name = $user['name'] ?? null;
-            $phone = trim($user['phone'] ?? '');
-            $phoneValue = $phone === '' ? null : $phone;
-            $whatsappPhone = trim($user['whatsapp_phone'] ?? '');
-            $whatsapp = $whatsappPhone !== '' ? $whatsappPhone : ($phoneValue ?? '');
-            $password = $user['password'] ?? null;
-            $rememberToken = $user['remember_token'] ?? null;
-            $lang = $user['lang'] ?? 'ar';
-            $createdAt = $user['created_at'] ?? null;
-            if (empty($createdAt) || $createdAt === '0000-00-00 00:00:00') {
-                $createdAt = date('Y-m-d H:i:s');
-            }
-            $updatedAt = $user['updated_at'] ?? null;
-            if (empty($updatedAt) || $updatedAt === '0000-00-00 00:00:00') {
-                $updatedAt = date('Y-m-d H:i:s');
+            $rowData = [];
+            foreach ($columnsToUse as $col) {
+                $rowData[$col] = $mapping[$col]($user);
             }
 
-            $checkStmt->execute([$email]);
-            $adminId = $checkStmt->fetchColumn();
-
-            if ($adminId) {
-                $updateStmt->execute([
-                    $name,
-                    $phoneValue,
-                    $password,
-                    $rememberToken,
-                    'staff',
-                    $lang,
-                    $whatsapp,
-                    $updatedAt,
-                    $adminId
-                ]);
-                $updated++;
-            } else {
-                $insertStmt->execute([
-                    $name,
-                    $phoneValue,
-                    $email,
-                    $password,
-                    $rememberToken,
-                    'staff',
-                    999,
-                    null,
-                    $lang,
-                    $createdAt,
-                    $updatedAt,
-                    $whatsapp
-                ]);
-                $inserted++;
+            try {
+                $insertStmt->execute(prefixPlaceholders($columnsToUse, $rowData));
+                $affected = $insertStmt->rowCount();
+                if ($affected === 1) {
+                    $inserted++;
+                } elseif ($affected === 2) {
+                    $updated++;
+                } else {
+                    $unchanged++;
+                }
+            } catch (Exception $e) {
+                $skipped++;
+                error_log('تعذر ترحيل admin #' . ($user['id'] ?? 'unknown') . ': ' . $e->getMessage());
             }
         }
 
+        $newDb->commit();
+
+        $processed = count($sourceUsers);
         return [
             'success' => true,
-            'total_staff' => count($staffUsers),
+            'processed' => $processed,
             'inserted' => $inserted,
             'updated' => $updated,
+            'unchanged' => $unchanged,
             'skipped' => $skipped,
-            'message' => "✅ تمت مزامنة طاقم العمل بنجاح.\nإجمالي: " . count($staffUsers) . "\n➕ جديد: $inserted\n🔄 محدث: $updated\n⏭️ تم تخطي: $skipped"
+            'message' => "تمت مزامنة {$type} من users إلى admins.\nالإجمالي: {$processed}\nتمت الإضافة: {$inserted}\nتم التحديث: {$updated}\nبدون تغيير: {$unchanged}\nتم التخطي: {$skipped}"
         ];
 
     } catch (Exception $e) {
+        if (isset($newDb) && $newDb instanceof PDO && $newDb->inTransaction()) {
+            $newDb->rollBack();
+        }
         return [
             'success' => false,
-            'message' => 'فشل مزامنة الطاقم: ' . $e->getMessage()
+            'message' => 'فشل مزامنة المدراء/الطاقم: ' . $e->getMessage()
         ];
     }
 }
@@ -2759,6 +2780,24 @@ function get_db_connection() {
         return $pdo;
     } catch (PDOException $e) {
         throw new Exception('فشل الاتصال بقاعدة البيانات: ' . $e->getMessage());
+    }
+}
+
+function get_old_db_connection() {
+    $oldHost = $_POST['old_db_host'] ?? $_GET['old_db_host'] ?? '127.0.0.1';
+    $oldPort = $_POST['old_db_port'] ?? $_GET['old_db_port'] ?? 8889;
+    $oldDbName = $_POST['old_db_name'] ?? $_GET['old_db_name'] ?? 'platinum_old';
+    $oldUser = $_POST['old_db_user'] ?? $_GET['old_db_user'] ?? 'root';
+    $oldPass = $_POST['old_db_pass'] ?? $_GET['old_db_pass'] ?? 'root';
+
+    try {
+        $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', $oldHost, $oldPort, $oldDbName);
+        return new PDO($dsn, $oldUser, $oldPass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+        ]);
+    } catch (PDOException $e) {
+        throw new Exception('??? ??????? ?????? ????????: ' . $e->getMessage());
     }
 }
 
@@ -7044,6 +7083,8 @@ function migrateNationalitiesDirect() {
 }
 
 ?>
+
+
 
 
 

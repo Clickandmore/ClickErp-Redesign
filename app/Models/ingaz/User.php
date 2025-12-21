@@ -101,8 +101,8 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(SponsorshipTransfer::class, 'old_sponsor_id');
     }
 
-    public function maids()
-    {
-        return $this->hasMany(Maid::class);
-    }
+    // public function maids()
+    // {
+    //     return $this->hasMany(Maid::class);
+    // }
 }

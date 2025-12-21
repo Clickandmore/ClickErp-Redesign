@@ -344,6 +344,7 @@ function buildMaidsMappings(PDO $oldDb, PDO $newDb): array
         'skills' => array_map('intval', $newDb->query('SELECT id FROM skills')->fetchAll(PDO::FETCH_COLUMN) ?: []),
         'social_status' => buildSocialStatusMap($oldDb),
         'office_map' => buildOfficeMap($newDb),
+        'users' => buildUserMap($newDb),
         'occupations' => buildOccupationMapping($oldDb, $newDb),
         'default_nationality' => getDefaultValue($newDb, 'nationalities'),
         'default_religion' => getDefaultValue($newDb, 'religions'),
@@ -466,6 +467,22 @@ function buildOfficeMap(PDO $newDb): array
     return $map;
 }
 
+function buildUserMap(PDO $newDb): array
+{
+    try {
+        $ids = $newDb->query('SELECT id FROM users')->fetchAll(PDO::FETCH_COLUMN) ?: [];
+    } catch (Throwable $e) {
+        return [];
+    }
+
+    $map = [];
+    foreach ($ids as $id) {
+        $map[(int)$id] = true;
+    }
+
+    return $map;
+}
+
 function buildOccupationMapping(PDO $oldDb, PDO $newDb): array
 {
     $occupations = [];
@@ -568,7 +585,7 @@ function transformCvRow(array $cv, array $mappings, array $allowedColumns): ?arr
     $experience = computeExperienceData($cv, $mappings['experiences'], $mappings['countries']);
     $statusData = mapCvStatus((int)($cv['cv_status'] ?? 0));
     $accommodationType = trimString($cv['cv_rev_type'] ?? null) ?: null;
-    $addedBy = trimString($cv['added_by'] ?? null) ?: null;
+    $addedBy = normalizeAddedBy($cv['added_by'] ?? null, $mappings['users'] ?? []);
 
     $languages = normalizeLanguagesField($cv['lang_id'] ?? null, $cv['lang_percentage'] ?? null, $mappings['languages']);
     $skills = normalizeSkillsField($cv['skills'] ?? null, $mappings['skills']);
@@ -842,6 +859,25 @@ function normalizeCvPreview(array $cv): ?string
 
     $newImage = trimString($cv['new_image'] ?? null);
     return $newImage ?: null;
+}
+
+function normalizeAddedBy($value, array $availableUsers): ?int
+{
+    if ($value === null) {
+        return null;
+    }
+
+    $value = trim((string)$value);
+    if ($value === '' || !ctype_digit($value)) {
+        return null;
+    }
+
+    $userId = (int)$value;
+    if ($userId <= 0 || empty($availableUsers)) {
+        return null;
+    }
+
+    return isset($availableUsers[$userId]) ? $userId : null;
 }
 
 function resolveOfficeId(?string $officeName, array $officeMap): ?int
