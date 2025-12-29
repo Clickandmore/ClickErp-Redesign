@@ -104,6 +104,17 @@ if (!function_exists('editButton')) {
                 </button>';
     }
 }
+if (!function_exists('showButton')) {
+
+    function showButton($route, $text = "")
+    {
+        $fullText = __("buttons.show") . ' ' . $text;
+        return '<button type="button" class="btn btn-sm btn-warning btn-edit editButton" data-bs-toggle="modal" data-bs-target="#createModal"
+                       model-route="' . $route . '" model-title="' . $fullText . '" title="تفاصيل">
+                   <i class="fa fa-eye"></i>
+                </button>';
+    }
+}
 
 // if (!function_exists('editButton')) {
 //     function editButton($route, $text = "",$permissionName = "")

@@ -12,6 +12,13 @@ use App\Models\RentalContract;
 use App\Models\SponsorshipTransfer;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Nami\Finance\Enums\AccountStatusEnum;
+use Nami\Finance\Enums\AccountTypesEnum;
+use Nami\Finance\Models\Account;
+use Nami\Finance\Models\Client;
+use Nami\Finance\Models\ClientCategory;
 use Yajra\DataTables\Facades\DataTables;
 use Spatie\Activitylog\Models\Activity;
 use App\Keys;
@@ -141,6 +148,13 @@ class UserController extends Controller
                     }
                     return '<span class="badge bg-danger rounded-pill px-3">' . helperTrans('ingaz.blocked') . '</span>';
                 })
+                ->editColumn('account_id', function ($row) {
+                    if ($row->account_id != null) {
+                        return '<span class="badge bg-success rounded-pill px-3">' . helperTrans('ingaz.yes') . '</span>';
+                    } else {
+                        return '<span class="badge bg-danger rounded-pill px-3">' . helperTrans('ingaz.no') . '</span>';
+                    }
+                })
                 ->editColumn('phone', function ($row) {
                     $primary = $row->phone
                         ? '<a href="tel:' . e($row->phone_code . $row->phone) . '" class="text-decoration-none">
@@ -180,10 +194,10 @@ class UserController extends Controller
                             </div>';
                 })
                 ->addColumn('metrics', function ($row) {
-                    $ordersCount = number_format((int) $row->orders_count);
-                    $activeOrders = number_format((int) $row->active_orders_count);
-                    $rentalCount = number_format((int) $row->rental_contracts_count);
-                    $transferCount = number_format((int) $row->transfer_requests_count);
+                    $ordersCount = number_format((int)$row->orders_count);
+                    $activeOrders = number_format((int)$row->active_orders_count);
+                    $rentalCount = number_format((int)$row->rental_contracts_count);
+                    $transferCount = number_format((int)$row->transfer_requests_count);
 
                     $lastOrder = $row->last_order_at ? Carbon::parse($row->last_order_at)->diffForHumans() : helperTrans('ingaz.not_specified');
                     $lastRental = $row->last_rental_contract_at ? Carbon::parse($row->last_rental_contract_at)->diffForHumans() : helperTrans('ingaz.not_specified');
@@ -268,7 +282,7 @@ class UserController extends Controller
                                 </ul>
                             </div>';
                 })
-                ->rawColumns(['name', 'actions', 'is_blocked', 'phone', 'created_at', 'metrics'])
+                ->rawColumns(['name', 'actions', 'is_blocked', 'account_id', 'phone', 'created_at', 'metrics'])
                 ->make(true);
         }
         $data["createRoute"] = route($this->mainRoute . ".create");
@@ -300,8 +314,9 @@ class UserController extends Controller
         }
 
         $countries = \App\Models\Country::active()->ordered()->get();
+        $client_categories = ClientCategory::all();
         $cities = \App\Models\City::active()->ordered()->get();
-        return view($this->folderPath . '.create', compact('countries', 'cities'));
+        return view($this->folderPath . '.create', compact('countries', 'cities', 'client_categories'));
     }
 
     /**
@@ -323,6 +338,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:20|unique:users,phone',
             'email' => 'nullable|email|max:255|unique:users,email',
+            'client_category_id' => 'nullable|exists:fn_client_categories,id',
             'password' => 'required|string|min:6',
             'nationality_id' => 'nullable|exists:countries,id',
             'national_num' => 'nullable|string|max:50',
@@ -335,50 +351,57 @@ class UserController extends Controller
             'children' => 'nullable|integer|min:0',
             'job' => 'nullable|string|max:100'
         ], [
-            'name.required' => __('ingaz.client_name_required'),
-            'name.string' => __('ingaz.client_name_required'),
-            'name.max' => __('ingaz.client_name_max'),
-            'phone.required' => __('ingaz.client_phone_required'),
-            'phone.string' => __('ingaz.client_phone_required'),
-            'phone.max' => __('ingaz.client_phone_max'),
-            'phone.unique' => __('ingaz.client_phone_already_exists'),
-            'email.email' => __('ingaz.client_email_invalid'),
-            'email.max' => __('ingaz.client_email_max'),
-            'email.unique' => __('ingaz.client_email_already_exists'),
-            'password.required' => __('ingaz.client_password_required'),
-            'password.string' => __('ingaz.client_password_required'),
-            'password.min' => __('ingaz.client_password_min'),
-            'nationality_id.exists' => __('ingaz.client_nationality_not_found'),
-            'national_num.string' => __('ingaz.client_national_num_max'),
-            'national_num.max' => __('ingaz.client_national_num_max'),
-            'birthdate.date' => __('ingaz.client_birthdate_invalid'),
-            'phone2.string' => __('ingaz.client_phone2_max'),
-            'phone2.max' => __('ingaz.client_phone2_max'),
-            'address.string' => __('ingaz.client_address_max'),
-            'address.max' => __('ingaz.client_address_max'),
-            'city.string' => __('ingaz.client_city_max'),
-            'city.max' => __('ingaz.client_city_max'),
-            'rooms_num.integer' => __('ingaz.client_rooms_num_integer'),
-            'rooms_num.min' => __('ingaz.client_rooms_num_min'),
-            'family_num.integer' => __('ingaz.client_family_num_integer'),
-            'family_num.min' => __('ingaz.client_family_num_min'),
-            'children.integer' => __('ingaz.client_children_integer'),
-            'children.min' => __('ingaz.client_children_min'),
-            'job.string' => __('ingaz.client_job_max'),
-            'job.max' => __('ingaz.client_job_max')
+            // رسائل الفاليديشن
         ]);
 
         $data['password'] = bcrypt($data['password']);
         $data['is_blocked'] = 0;
 
-        $client = objModel::create($data);
+        return DB::transaction(function () use ($data) {
 
-        return response()->json([
-            'code' => 200,
-            'message' => __('ingaz.client_created_successfully'),
-            'url' => route($this->mainRoute . '.index')
-        ]);
+            $parentAccount = Account::query()->where('type', '=', AccountTypesEnum::Clients->value)
+                ->lockForUpdate()
+                ->first();
+
+            $lastCode = Account::where('parent_id', $parentAccount->id)->max('code');
+            if (!$lastCode) {
+                $lastCode = (int)($parentAccount->code . '00000');
+            }
+
+            $newAccount = Account::create([
+                'name' => $data['name'],
+                'operation_type' => $parentAccount->operation_type,
+                'status' => $parentAccount->status,
+                'level' => $parentAccount->level + 1,
+                'type' => AccountTypesEnum::Client->value,
+                'parent_id' => $parentAccount->id,
+                'code' => $lastCode + 1,
+                'created_by_id' => Auth::id(),
+            ]);
+
+            $data['account_id'] = $newAccount->id;
+
+            Client::create([
+                'is_company' => 0,
+                'client_category_id' => $data['client_category_id'],
+                'name' => $data['name'],
+                'phone' => $data['phone'],
+                'email' => $data['email'],
+                'code' => $newAccount->code,
+                'days_credit_period' => 30,
+                'credit_limit' => 30,
+                'created_by_id' => Auth::id(),
+                'account_id' => $newAccount->id,
+            ]);
+            objModel::create($data);
+            return response()->json([
+                'code' => 200,
+                'message' => __('ingaz.client_created_successfully'),
+                'url' => route($this->mainRoute . '.index')
+            ]);
+        });
     }
+
 
     /**
      * Display the specified resource.
@@ -433,9 +456,9 @@ class UserController extends Controller
             'approvedBy',
             'transferredBy',
             'failedBy'
-        ])->where(function($query) use ($client) {
+        ])->where(function ($query) use ($client) {
             $query->where('old_sponsor_id', $client->id)
-                  ->orWhere('new_sponsor_id', $client->id);
+                ->orWhere('new_sponsor_id', $client->id);
         })->orderBy('created_at', 'desc')->get();
 
         $stats = [
@@ -468,7 +491,7 @@ class UserController extends Controller
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  int  $id
+     * @param int $id
      * @return \Illuminate\Http\Response
      */
     public function edit($id)
@@ -479,14 +502,16 @@ class UserController extends Controller
 
         $client = objModel::findOrFail($id);
         $countries = \App\Models\Country::active()->ordered()->get();
-        return view($this->folderPath . '.edit', compact('client', 'countries'));
+        $client_categories = ClientCategory::all();
+
+        return view($this->folderPath . '.edit', compact('client', 'countries', 'client_categories'));
     }
 
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
+     * @param \Illuminate\Http\Request $request
+     * @param int $id
      * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, $id)
@@ -506,6 +531,7 @@ class UserController extends Controller
             'phone' => 'required|string|max:20|unique:users,phone,' . $client->id,
             'email' => 'nullable|email|max:255|unique:users,email,' . $client->id,
             'nationality_id' => 'nullable|exists:countries,id',
+            'client_category_id' => 'nullable|exists:fn_client_categories,id',
             'national_num' => 'nullable|string|max:50',
             'birthdate' => 'nullable|date',
             'phone2' => 'nullable|string|max:20',
@@ -553,7 +579,14 @@ class UserController extends Controller
         ]);
 
         $client->update($data);
-
+        $clientAccount = Account::find($client->account_id);
+        $clientFinance = Client::where('account_id', $client->account_id)->first();
+        if ($clientFinance) {
+            $clientFinance->update(['name' => $data['name']]);
+        }
+        if ($clientAccount) {
+            $clientAccount->update(['name' => $data['name']]);
+        }
         return jsonSuccess(null, null, 201);
     }
 
@@ -937,7 +970,7 @@ class UserController extends Controller
         }
 
         // Auto-size columns
-        foreach(range('A','J') as $column) {
+        foreach (range('A', 'J') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 
