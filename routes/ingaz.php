@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ContractReturnRequestController;
 use App\Http\Controllers\ingaz\ArrivalWorkerController;
 use App\Http\Controllers\ingaz\CountryPoliceController;
+use App\Http\Controllers\ingaz\MakeAccountsForClientsController;
 use App\Http\Controllers\ingaz\PoliceSettingController;
 use App\Http\Controllers\ingaz\SelectWorkerController;
 use App\Http\Controllers\ingaz\SelectWorkerSettingsController;
@@ -166,6 +167,7 @@ Route::group(
             Route::resource('police-settings', PoliceSettingController::class);
             Route::resource('about-us', AboutUsController::class);
             Route::resource('clients', UserController::class);
+            Route::resource('make-accounts-for-clients', MakeAccountsForClientsController::class);
             Route::resource('skills', SkillController::class);
             Route::get('show-maid-details/{id}', [\App\Http\Controllers\ingaz\MaidController::class, 'showMaidDetails'])->name('showMaidDetails');
             Route::get('maids-not-available', [\App\Http\Controllers\ingaz\MaidController::class, 'noneAvailableMaids'])->name('noneAvailableMaids');
@@ -196,7 +198,7 @@ Route::group(
             Route::post('complaints/change-priority', [ComplaintController::class, 'changePriority'])->name('complaints.change-priority');
             Route::post('completeOrder/{id}', [OrderController::class, 'completeOrder'])->name('orders.completeOrder');
             Route::post('getOrderById/{id}', [OrderController::class, 'getOrderById'])->name('orders.getOrderById');
-            Route::resource('orders', OrderController::class); 
+            Route::resource('orders', OrderController::class);
             Route::post('orders/{id}/restore', [OrderController::class, 'restore'])->name('orders.restore');
 
             // Rental Orders Routes

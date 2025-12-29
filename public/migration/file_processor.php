@@ -5873,7 +5873,11 @@ function migrateContractLogs() {
             $createdAt = parseDateValue($row['created_at'] ?? null);
             $updatedAt = parseDateValue($row['updated_at'] ?? null);
 
-            if ($id <= 0 || $contractId <= 0 || $userId <= 0 || !$date) {
+            // if ($id <= 0 || $contractId <= 0 || $userId <= 0 || !$date) {
+            //     $skipped++;
+            //     continue;
+            // }
+            if ($id <= 0 || $contractId <= 0 || !$date) {
                 $skipped++;
                 continue;
             }

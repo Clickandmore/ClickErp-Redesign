@@ -10,7 +10,7 @@
 @endsection
 
 @section('content')
-    <form  id="addForm" method="POST" action="{{ route('clients.store') }}">
+    <form id="addForm" method="POST" action="{{ route('clients.store') }}">
         @csrf
         <div class="row">
             <div class="card mg-b-20">
@@ -69,7 +69,14 @@
                                 <input type="text" name="phone2" class="form-control">
                             </div>
                         </div>
-                        <div class="col-12">
+                        <div class="col-6">
+                            <label for="title" class="form-label">{{ __("finance::finance.client_category") }}</label>
+                            <select name="client_category_id" id="client_category_id" class="form-select"
+                                    data-validation="required">
+                                {!! showSelectElement($client_categories,'name') !!}
+                            </select>
+                        </div>
+                        <div class="col-6">
                             <div class="form-group">
                                 <label class="form-label">{{ helperTrans('ingaz.address') }}</label>
                                 <input type="text" name="address" class="form-control">
@@ -81,7 +88,8 @@
                                 <select name="city" id="citySelect" class="form-control select2">
                                     <option value="">{{ helperTrans('ingaz.choose') }}</option>
                                     @foreach($cities as $city)
-                                        <option value="{{ $city->name }}" data-country-id="{{ $city->country_id }}">{{ $city->name }}</option>
+                                        <option value="{{ $city->name }}"
+                                                data-country-id="{{ $city->country_id }}">{{ $city->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -110,6 +118,7 @@
                                 <input type="text" name="job" class="form-control">
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -219,7 +228,7 @@
             if (response.responseJSON && response.responseJSON.errors) {
                 let errors = response.responseJSON.errors;
                 let messages = [];
-                Object.keys(errors).forEach(function(key) {
+                Object.keys(errors).forEach(function (key) {
                     messages.push(errors[key][0]);
                 });
                 Swal.fire({

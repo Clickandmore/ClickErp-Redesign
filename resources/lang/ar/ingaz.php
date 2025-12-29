@@ -1716,4 +1716,6 @@
   'shelter_contract_updated' => 'تم تحديث العقد داخل الإيواء بنجاح',
   'service_link'=> 'رابط الخدمة',
   'optional'=> 'اختياري',
+  'make_accounts_for_uses'=> 'انشاء حسابات للعملاء',
+  'Accounts were created for customers'=> ' انشاء الحسابات للعملاء',
 );
