@@ -24,7 +24,7 @@ class PhoneVerificationAction extends MainAction
             ->where('phone_code', $request->phone_code)->first();
 
         $code = '12345';
-        if (env('MESSAGE_Live')) {
+        if (env('MESSAGE_Live') == true) {
             $code = sprintf("%05d", rand(0, 99999));
         }
 
@@ -36,7 +36,7 @@ class PhoneVerificationAction extends MainAction
             $code = $storedData->code;
         }
 
-        $msg = "رمز التحقق  : $code  لدخول منصة ussusalenjaz.sa";
+        $msg = "رمز التحقق  : $code  لدخول منصة platinum.istqdim.com";
         $result = $this->sendSMS($request->phone, $msg);
 
         return ["code" => $code];

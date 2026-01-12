@@ -49,6 +49,16 @@ if (!function_exists('closeButton')) {
 if (!function_exists('jsonError')) {
     function jsonError($msg = "", $code = 400)
     {
+        if (!is_int($code)) {
+            if (is_numeric($code)) {
+                $code = (int) $code;
+            } else {
+                if ($msg === null || $msg === '') {
+                    $msg = $code;
+                }
+                $code = 400;
+            }
+        }
         return response()->json([
             'code' => $code,
             'message' => $msg,
