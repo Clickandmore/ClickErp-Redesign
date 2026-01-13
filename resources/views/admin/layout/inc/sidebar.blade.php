@@ -92,7 +92,7 @@
                                 <span class="ms-2">{{ helperTrans('ingaz.cv_management') }}</span>
                                 <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                             </a>
-                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['maids.index', 'noneAvailableMaids', 'maids.create']) ? 'show' : '' }}"
+                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['maids.index', 'noneAvailableMaids', 'maids.deleted_cvs', 'maids.create', 'maids.create_rapid_cv']) ? 'show' : '' }}"
                                 id="cvManagement">
                                 @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
                                     <li>
@@ -125,6 +125,13 @@
                                             href="{{ route('noneAvailableMaids') }}">
                                             <i class="fa fa-times-circle"></i>
                                             <span class="ms-2">عاملات باك اوت</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="m-link {{ Route::currentRouteName() == 'maids.deleted_cvs' ? 'active' : '' }}"
+                                            href="{{ route('maids.deleted_cvs') }}">
+                                            <i class="fa fa-trash"></i>
+                                            <span class="ms-2">{{ helperTrans('ingaz.deleted_cvs') }}</span>
                                         </a>
                                     </li>
                                 @endif
