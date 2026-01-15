@@ -23,6 +23,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
+use App\Models\MaidUnavailableRecord;
 
 class MaidController extends Controller
 {
@@ -336,6 +337,23 @@ class MaidController extends Controller
                         $menuItems .= '<li><button class="dropdown-item update-status" data-id="' . $row->id . '"><i class="fas fa-adjust text-muted me-2"></i>' . helperTrans('ingaz.toggle_visibility') . '</button></li>';
                     }
 
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
+                        if ($row->status == "suspended") {
+                            $menuItems .= '  <a  href="javascript:void(0)" onclick="suspendCv(' . $row->id . ',' . 0 . ')"  title="' . 'إلغاء تعليق السيرة' . '" class="dropdown-item"><i class="fas fa-play-circle text-success me-2"></i>' . 'إلغاء تعليق السيرة' . '</a>';
+                        } elseif ($row->status == "available") {
+                            $menuItems .= ' <a href="javascript:void(0)" onclick="suspendCv(' . $row->id . ',' . 1 . ')"  title="' . 'تعليق السيرة' . '" class="dropdown-item"><i class="fas fa-pause-circle text-warning me-2"></i>' . 'تعليق السيرة' . '</a>';
+                        }
+                    }
+
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
+                        if ($row->status == "available" || $row->status == "suspended") {
+                            $menuItems .= '<a href="javascript:void(0)" onclick="back_out(' . $row->id . ')" title="' . 'باك اوت' . '" class="dropdown-item  "><i class="fas fa-toggle-off text-danger me-2"></i>' . 'باك اوت' . '</a>';
+                        } elseif ($row->status == "backout") {
+                            $menuItems .= '<a href="javascript:void(0)" onclick="back_out_on(' . $row->id . ')" title="' . 'ارجاع متاح' . '" class="dropdown-item  "><i class="fas fa-toggle-on text-success me-2"></i>' . 'ارجاع متاح' . '</a>';
+                        }
+                    }
+
+
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_PIN) && $row->available == 1) {
                         $pinLabel = $row->is_pinned ? helperTrans('ingaz.unpin_maid') : helperTrans('ingaz.pin_maid');
                         $menuItems .= '<li><button class="dropdown-item toggle-pin" data-id="' . $row->id . '" data-pinned="' . ($row->is_pinned ? 'true' : 'false') . '"><i class="fas fa-thumbtack text-warning me-2"></i>' . $pinLabel . '</button></li>';
@@ -396,7 +414,7 @@ class MaidController extends Controller
     {
         $rows = objModel::latest()
             ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders', 'unavailableRecords']) // Added unavailableRecords
-            ->select(['id','cv_code', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at', 'is_pinned', 'status']) // Added status field
+            ->select(['id', 'cv_code', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at', 'is_pinned', 'status']) // Added status field
             ->where('status', 'backout')
             ->where('available', false);
 
@@ -524,9 +542,104 @@ class MaidController extends Controller
         return view($this->folderPath . '.none-ava', $data, compact('filter', 'request'));
     }
 
+    public function deletedCvs(Request $request, objAction $Action)
+    {
+        $rows = objModel::onlyTrashed()
+            ->with(['nationality', 'jobTypes', 'deletedBy'])
+            ->select([
+                'id',
+                'name',
+                'cv_code',
+                'image',
+                'cv_file',
+                'cv_preview',
+                'nationality_id',
+                'passport_num',
+                'price',
+                'salary',
+                'deleted_at',
+                'deleted_by',
+            ])
+            ->orderByDesc('deleted_at');
+
+        if ($request->ajax()) {
+            $this->applyMaidFilterForDeleted($request, $rows);
+
+            return DataTables::of($rows)
+                ->addIndexColumn()
+                ->editColumn('cv_file', function ($row) {
+                    $rawPath = $row->image ?: ($row->cv_preview ?: $row->cv_file);
+                    $imageUrl = $rawPath ? showFile($rawPath) : null;
+
+                    if (!$imageUrl) {
+                        return '';
+                    }
+
+                    $imgTag = '<img src="' . $imageUrl . '" alt="cv" style="border-radius: 50%; object-fit: cover; width: 90px; height: 90px;">';
+
+                    return '<a href="#" class="maidViewData" data-id="' . $row->id . '">' . $imgTag . '</a>';
+                })
+                ->editColumn('name', function ($row) {
+                    return e($row->name ?? '');
+                })
+                ->editColumn('passport_num', function ($row) {
+                    return e($row->passport_num ?? '');
+                })
+                ->editColumn('nationality_id', function ($row) {
+                    $nationality = $row->nationality?->sub_title ?? $row->nationality?->title ?? '';
+                    return e($nationality);
+                })
+                ->addColumn('job_type', function ($row) {
+                    return e($row->jobTypes->pluck('title')->filter()->implode(', '));
+                })
+                ->editColumn('price', function ($row) {
+                    $price = $row->resolved_price ?? $row->price;
+                    return $price !== null ? number_format((float) $price, 2) : '-';
+                })
+                ->editColumn('salary', function ($row) {
+                    $salary = $row->resolved_salary ?? $row->salary;
+                    return $salary !== null ? number_format((float) $salary, 2) : '-';
+                })
+                ->editColumn('deleted_at', function ($row) {
+                    return $row->deleted_at ? $row->deleted_at->format('Y-m-d h:i A') : '';
+                })
+                ->addColumn('deleted_by', function ($row) {
+                    return e($row->deletedBy?->name ?? '-');
+                })
+                ->addColumn('actions', function ($row) {
+                    $actions = '';
+
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW)) {
+                        $actions .= viewSingleButton(route('showMaidDetails', $row->id));
+                    }
+
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_DELETE)) {
+                        $actions .= ' <button type="button" class="btn btn-sm btn-success restore-maid" data-id="' . $row->id . '" title="' . helperTrans('ingaz.restore') . '"><i class="fa fa-undo"></i></button>';
+                    }
+
+                    return $actions ?: '-';
+                })
+                ->rawColumns(['cv_file', 'actions'])
+                ->make(true);
+        }
+
+        $bladeTitle = helperTrans('ingaz.deleted') . ' ' . helperTrans('ingaz.cvs');
+
+        $filter['nationalities'] = \App\Models\ingaz\Nationality::orderByTranslation('sub_title', 'asc')->get();
+        $filter['job_types'] = \App\Models\ingaz\JobType::orderByTranslation('title', 'asc')->get();
+
+        $data["createRoute"] = route($this->mainRoute . ".create");
+        $data["dataTableRoute"] = route('maids.deleted_cvs');
+        $data["bladeTitle"] = $bladeTitle;
+        $data["addButtonText"] = helperTrans("ingaz.maid");
+        $data["modalType"] = "modal-lg";
+
+        return view($this->folderPath . '.cvs_deleted', $data, compact('filter', 'request'));
+    }
+
     public function showMaidDetails($id)
     {
-        $maid = objModel::with([
+        $maid = objModel::withTrashed()->with([
             'nationality',
             'religion',
             'jobTypes',
@@ -720,7 +833,7 @@ class MaidController extends Controller
         // Set default status in Arabic
         $data['status'] = 'available';
         $data['added_by'] = auth()->user()->id;
-        
+
         // $data['added_by'] = null; // Temporarily set to null
         // $data = $action->storeMaid($data, $request);
         $data = $action->storeMaid($data, $request);
@@ -896,7 +1009,7 @@ class MaidController extends Controller
 
 
         // Handle direct form submission
-//        return jsonSuccess($data, null, 201);
+        //        return jsonSuccess($data, null, 201);
         if ($request->ajax()) {
             return jsonSuccess($data);
         }
@@ -1052,13 +1165,32 @@ class MaidController extends Controller
      */
     public function destroy($id, objAction $action)
     {
-        $action->delete($id);
-        return jsonSuccess();
+        // $action->delete($id);
+        $maid = objModel::findOrFail($id);
+        $maid->deleted_by = auth()->id();
+        $maid->save();
+        $maid->delete();
+        return jsonSuccess(['success' => true], "تم حذف العاملة بنجاح", 200);
     }
 
-    public function exportPdf()
+    public function restore($id)
     {
-        $maids = objModel::with('nationality', 'religion', 'jobTypes', 'jobTitles')->get();
+        $maid = objModel::onlyTrashed()->findOrFail($id);
+        $maid->restore();
+
+        return response()->json([
+            'success' => true,
+            'message' => helperTrans('ingaz.updated_successfully'),
+        ]);
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $maidsQuery = objModel::with('nationality', 'religion', 'jobTypes', 'jobTitles');
+        if ($request->boolean('deleted')) {
+            $maidsQuery->onlyTrashed();
+        }
+        $maids = $maidsQuery->get();
 
         // Create HTML content with RTL support and better styling
         $html = '<!DOCTYPE html>
@@ -1206,9 +1338,13 @@ class MaidController extends Controller
         return response($html, 200, $headers);
     }
 
-    public function exportExcel()
+    public function exportExcel(Request $request)
     {
-        $maids = objModel::with('nationality', 'religion', 'jobTypes', 'jobTitles')->get();
+        $maidsQuery = objModel::with('nationality', 'religion', 'jobTypes', 'jobTitles');
+        if ($request->boolean('deleted')) {
+            $maidsQuery->onlyTrashed();
+        }
+        $maids = $maidsQuery->get();
 
         // Create new Spreadsheet object
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
@@ -1417,9 +1553,9 @@ class MaidController extends Controller
         if ($request->filled('status')) {
             // $statuses = (array) $request->status;
             // $rows->whereIn('status', $statuses);
-            if($request->status == 'in_accommodation') {
+            if ($request->status == 'in_accommodation') {
                 $rows->where('maid_accommodation_type', 2);
-            }else {
+            } else {
                 $statuses = (array) $request->status;
                 $rows->whereIn('status', $statuses);
             }
@@ -1494,7 +1630,6 @@ class MaidController extends Controller
             } elseif ($request->order_by == 'low_salary') {
                 $rows->orderBy('salary', 'ASC');
             }
-
         }
         if ($request->has('job_type') && !empty($request->job_type)) {
             $rows->whereHas('jobTypes', function ($subQ) use ($request) {
@@ -1521,9 +1656,43 @@ class MaidController extends Controller
         }
     }
 
+    public function applyMaidFilterForDeleted($request, $rows)
+    {
+        if ($request->has('passport_num') && $request->passport_num != null) {
+            $rows->whereRaw('LOWER(passport_num) like ?', ['%' . strtolower($request->passport_num) . '%']);
+        }
+
+        if ($request->has('nationality_id') && $request->nationality_id != null) {
+            $rows->where('nationality_id', $request->nationality_id);
+        }
+
+        if ($request->has('job_type') && !empty($request->job_type)) {
+            $rows->whereHas('jobTypes', function ($subQ) use ($request) {
+                if (is_array($request->job_type)) {
+                    $subQ->whereIn('job_type_id', $request->job_type);
+                } else {
+                    $subQ->where('job_type_id', $request->job_type);
+                }
+            });
+        }
+
+        if ($request->has('experience_years') && $request->experience_years != null) {
+            $rows->where('experience_years', $request->experience_years);
+        }
+
+        if ($request->has('datefilter') && $request->datefilter != null) {
+            $dates = explode(' - ', $request->datefilter);
+            if (count($dates) == 2) {
+                $startDate = Carbon::parse($dates[0])->startOfDay();
+                $endDate = Carbon::parse($dates[1])->endOfDay();
+                $rows->whereBetween('deleted_at', [$startDate, $endDate]);
+            }
+        }
+    }
+
     public function getMaidDetails($maidId)
     {
-        $maid = Maid::with(['nationality', 'religion', 'job_types.job_type'])
+        $maid = Maid::withTrashed()->with(['nationality', 'religion', 'job_types.job_type'])
             ->findOrFail($maidId);
 
         // Ensure the image URL is correctly formatted
@@ -1699,4 +1868,69 @@ class MaidController extends Controller
         }
     }
 
+    public function backout(Request $request)
+    {
+        $request->validate([
+            'maid_id' => 'required|exists:maids,id',
+            'backout_reason' => 'required|string|max:1000',
+        ]);
+
+        try {
+            $maid = Maid::findOrFail($request->maid_id);
+            $maid->update(['status' => 'backout', 'available' => 0, 'backout_reason' => $request->backout_reason]);
+
+            // Save at maid unavailable record
+            $record_maid_unavailable = MaidUnavailableRecord::create([
+                'maid_id' => $request->maid_id,
+                'reason' => $request->backout_reason,
+                'admin_id' => auth()->guard('admin')->user()->id,
+            ]);
+
+
+            return jsonSuccess(['success' => true, 'message' => 'تم إرجاع العاملة إلى قائمة العاملات المُرجعة'], 'تم إرجاع العاملة إلى قائمة العاملات المُرجعة', 200);
+        } catch (\Exception $e) {
+            return jsonError(['success' => false, 'message' => 'حدث خطأ أثناء إرجاع العاملة'], 500);
+        }
+    }
+
+    public function clearBackout(Request $request)
+    {
+        try {
+            $maid = Maid::findOrFail($request->maid_id);
+            $maid->update(['status' => 'available', 'available' => 1, 'backout_reason' => null]);
+
+            $record_maid_unavailable = MaidUnavailableRecord::where('maid_id', $request->maid_id)
+                ->whereNotNull('reason')
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            if ($record_maid_unavailable) {
+                $record_maid_unavailable->delete();
+            }
+
+            return jsonSuccess(['success' => true, 'message' => 'تم إعادة العاملة إلى قائمة العاملات المتاحات'], 'تم إعادة العاملة إلى قائمة العاملات المتاحات', 200);
+        } catch (\Exception $e) {
+            return jsonError(['success' => false, 'message' => 'حدث خطأ أثناء إعادة العاملة'], 500);
+        }
+    }
+
+    public function suspendCv(Request $request)
+    {
+        $maid = Maid::findOrFail($request->id);
+
+        if ($maid) {
+            if ($request->status == 1) {
+                $maid->status = 'suspended';
+                $maid->available = 0;
+            } else {
+                $maid->status = 'available';
+                $maid->available = 1;
+            }
+
+            $maid->save();
+            return jsonSuccess(['success' => true, 'message' => 'تم تحديث حالة العاملة'], 'تم تحديث حالة العاملة', 200);
+        } else {
+            return jsonError(['success' => false, 'message' => 'حدث خطأ أثناء تحديث حالة العاملة'], 500);
+        }
+    }
 }

@@ -29,6 +29,15 @@
                         <label for="TextInput" class="form-label">صورة كاملة </label>
                         <input type="file" data-default-file="{{showFile($obj->cv_file)}}" name="cv_file" class="dropify">
                     </div>
+
+                    <!-- اسم العاملة -->
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.maid_name")}} ({{helperTrans('ingaz.en')}})
+                        </label>
+                        <input type="text" name="name:en" class="form-control" required value="{{$obj->name ?? ''}}">
+                    </div>
+
                     <!-- أنواع الوظائف -->
                     <div class="col-4">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.job_types_2")}} </label>
@@ -99,14 +108,6 @@
                             <option value="specific" {{ $requestType === 'specific' ? 'selected' : '' }}>{{ helperTrans('ingaz.request_type_specific') }}</option>
                             <option value="custom_spec" {{ $requestType === 'custom_spec' ? 'selected' : '' }}>{{ helperTrans('ingaz.request_type_custom') }}</option>
                         </select>
-                    </div>
-
-                    <!-- اسم العاملة -->
-                    <div class="col-4">
-                        <label for="TextInput" class="form-label">
-                            {{helperTrans("ingaz.maid_name")}} ({{helperTrans('ingaz.en')}})
-                        </label>
-                        <input type="text" name="name:en" class="form-control" required value="{{$obj->name ?? ''}}">
                     </div>
 
                     <!-- السعر والراتب -->
@@ -192,26 +193,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-4">
-                        <label for="TextInput" class="form-label">
-                            {{helperTrans("ingaz.childrens_count")}}
-                        </label>
-                        <input type="number" name="childrens_count" class="form-control" min="0" step="1"
-                               value="{{$obj->childrens_count}}">
-                    </div>
-                    <div class="col-4">
-                        <label for="TextInput" class="form-label">
-                            {{helperTrans("ingaz.duration")}}
-                        </label>
-                        <input type="text" name="duration" class="form-control"
-                               value="{{ old('duration', $obj->duration ?: '24 شهر') }}">
-                    </div>
-                    <div class="col-4">
-                        <label for="TextInput" class="form-label">
-                            {{helperTrans("ingaz.additional_notes")}}
-                        </label>
-                        <textarea type="text" name="additional_notes" class="form-control">{{$obj->additional_notes}}</textarea>
-                    </div>
+
                     <div class="col-4">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.marital status")}} </label>
                         <select name="marital_status:ar" class="form-control" required>
@@ -234,6 +216,27 @@
                         </select>
                         <input type="hidden" name="marital_status:en" id="marital_status_en"
                                value="{{ optional($obj->translate('en'))->marital_status }}">
+                    </div>
+                    
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.childrens_count")}}
+                        </label>
+                        <input type="number" name="childrens_count" class="form-control" min="0" step="1"
+                               value="{{$obj->childrens_count}}">
+                    </div>
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.duration")}}
+                        </label>
+                        <input type="text" name="duration" class="form-control"
+                               value="{{ old('duration', $obj->duration ?: '24 شهر') }}">
+                    </div>
+                    <div class="col-4">
+                        <label for="TextInput" class="form-label">
+                            {{helperTrans("ingaz.additional_notes")}}
+                        </label>
+                        <textarea type="text" name="additional_notes" class="form-control">{{$obj->additional_notes}}</textarea>
                     </div>
 
                     <!-- رقم الجواز ورقم الهوية وتاريخ انتهاء الهوية -->

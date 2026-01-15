@@ -171,12 +171,14 @@ Route::group(
             Route::resource('skills', SkillController::class);
             Route::get('show-maid-details/{id}', [\App\Http\Controllers\ingaz\MaidController::class, 'showMaidDetails'])->name('showMaidDetails');
             Route::get('maids-not-available', [\App\Http\Controllers\ingaz\MaidController::class, 'noneAvailableMaids'])->name('noneAvailableMaids');
+            Route::get('maids/cvs-deleted', [\App\Http\Controllers\ingaz\MaidController::class, 'deletedCvs'])->name('maids.deleted_cvs');
             Route::get('maids/{id}/details', [\App\Http\Controllers\ingaz\MaidController::class, 'getMaidDetails'])->name('maids.details');
             // Limit maid parameter to numeric IDs to avoid catching custom pages like create_rapid_cv
             Route::resource('maids', MaidController::class)->whereNumber('maid');
             Route::get('maids/create_rapid_cv', [MaidController::class, 'create_rapid_cv'])->name('maids.create_rapid_cv');
             Route::post('maids/store_rapid_cv', [MaidController::class, 'store_rapid_cv'])->name('maids.store_rapid_cv');
             Route::post('maids/{id}/toggle-pin', [\App\Http\Controllers\ingaz\MaidController::class, 'togglePin'])->name('maids.toggle-pin');
+            Route::post('maids/{id}/restore', [\App\Http\Controllers\ingaz\MaidController::class, 'restore'])->name('maids.restore');
             Route::post('maids/{id}/offer', [\App\Http\Controllers\ingaz\MaidController::class, 'updateOffer'])->name('maids.offer');
             Route::get('convert_page/{id}', [App\Http\Controllers\ingaz\MaidController::class, 'convert_page'])->name('convert_page');
             Route::post('update_cv/{id}', [App\Http\Controllers\ingaz\MaidController::class, 'update_cv'])->name('maids.update_cv');
@@ -186,6 +188,9 @@ Route::group(
             Route::get('maids/available', [App\Http\Controllers\ingaz\MaidController::class, 'getAvailableMaids'])->name('maids.available');
             Route::get('maids/search', [App\Http\Controllers\ingaz\MaidController::class, 'searchMaids'])->name('maids.search');
             Route::get('maids/{id}/info', [App\Http\Controllers\ingaz\MaidController::class, 'getMaidInfo'])->name('maids.info');
+            Route::post('maids/backout', [App\Http\Controllers\ingaz\MaidController::class, 'backout'])->name('maids.backout');
+            Route::post('maids/remove_backout', [App\Http\Controllers\ingaz\MaidController::class, 'clearBackout'])->name('maids.remove_backout');
+            Route::get('maids/suspendCv', [App\Http\Controllers\ingaz\MaidController::class, 'suspendCv'])->name('maids.suspendCv');
 
             Route::resource('maids-test', MaidTestController::class);
             Route::resource('packages', PackageController::class);

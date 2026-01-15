@@ -13,10 +13,11 @@ use Spatie\Activitylog\Models\Activity;
 use Spatie\Activitylog\Traits\LogsActivity;
 use App\Models\ingaz\User;
 use App\Models\auth\Admin;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Maid extends Model
 {
-    use HasFactory, Translatable, LogsActivity;
+    use HasFactory, Translatable, LogsActivity, SoftDeletes;
 
     // Status constants with translations
     const STATUS_AVAILABLE = [
@@ -76,6 +77,7 @@ class Maid extends Model
         'offer_description',
         'offer_starts_at',
         'offer_expires_at',
+        'deleted_by',
     ];
 
     protected $casts = [
@@ -93,7 +95,8 @@ class Maid extends Model
         'id_expiry_date' => 'date',
         'offer_price' => 'decimal:2',
         'offer_starts_at' => 'date',
-        'offer_expires_at' => 'date'
+        'offer_expires_at' => 'date',
+        'deleted_at' => 'datetime',
     ];
 
     public $translatedAttributes = ['marital_status', 'languages'];
@@ -188,6 +191,11 @@ class Maid extends Model
     public function addedBy()
     {
         return $this->belongsTo(Admin::class, 'added_by');
+    }
+
+    public function deletedBy()
+    {
+        return $this->belongsTo(Admin::class, 'deleted_by');
     }
 
     public function unavailableRecords()

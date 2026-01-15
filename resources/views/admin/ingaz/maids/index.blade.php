@@ -216,7 +216,8 @@
                                     </div>
                                     <div class="fs-4 fw-bold text-secondary">{{ number_format($stats['deported']) }}</div>
                                 </div>
-                                <span class="stats-icon bg-secondary-subtle text-secondary"><i class="fas fa-plane-departure"></i></span>
+                                <span class="stats-icon bg-secondary-subtle text-secondary"><i
+                                        class="fas fa-plane-departure"></i></span>
                             </div>
                         </div>
                     </div>
@@ -389,6 +390,85 @@
                                 </div>
                             </div>
                         </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="back_out_modal" tabindex="-1" role="dialog"
+                aria-labelledby="addContactModalTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header  align-items-center">
+                            <h5 class="modal-title">{{ 'اضافة سبب' }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="add-contact-box">
+                                <div class="add-contact-content">
+                                    <form id="back_out_form" method="POST">
+                                        @csrf
+                                        <input type="hidden" name="maid_id" id="maid_id">
+                                        <div class="row">
+                                            <div class="col-md-12">
+                                                <div class="mb-3 contact-cost">
+                                                    <textarea rows="8" class="form-control" name="backout_reason" placeholder="{{ 'سبب الباك اوت' }}" required></textarea>
+
+                                                    <span class="validation-text text-danger">
+                                                        @error('backout_reason')
+                                                            {{ $message }}
+                                                        @enderror
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button class="btn btn-success px-4" type="button"
+                                                onclick="back_out_modal_func()"> {{ 'ارسال' }}</button>
+                                            <button class="btn btn-danger  px-4" data-bs-dismiss="modal">
+                                                {{ 'اغلاق' }}</button>
+                                        </div>
+                                    </form>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="back_out_modal_on" tabindex="-1" role="dialog"
+                aria-labelledby="addContactModalTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header  align-items-center">
+                            <h5 class="modal-title">{{ 'ارجاع السيرة متاحة' }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="add-contact-box">
+                                <div class="add-contact-content">
+                                    <form id="back_out_modal_on_form" method="POST">
+                                        @csrf
+                                        <input type="hidden" name="maid_id" id="maid_id_on">
+
+                                        <h3>{{ 'هل تريد ارجاع السيرة متاحة الان ؟' }}</h3>
+
+                                        <div class="modal-footer">
+                                            <button class="btn btn-success  px-4" type="button"
+                                                onclick="back_out_modal_on_func()"> {{ 'نعم' }}</button>
+
+                                            <button class="btn btn-danger  px-4" data-bs-dismiss="modal">
+                                                {{ 'ﻻ' }}</button>
+                                        </div>
+                                    </form>
+
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
@@ -873,6 +953,119 @@
                     $('#maidFiltersIcon').removeClass('fa-chevron-up').addClass('fa-chevron-down');
                 });
             }
+
+            window.back_out_modal_func = function() {
+                $('#back_out_modal').modal('hide');
+
+                $.ajax({
+                    url: "{{ route('maids.backout') }}",
+                    type: 'Post',
+                    data: $("#back_out_form").serialize(),
+                    success: function(response) {
+                        console.log(response);
+                        if (response.data.success == true) {
+                            table.ajax.reload();
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: response.data.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: response.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+
+                        }
+                    },
+                });
+            };
+
+            window.back_out_modal_on_func = function() {
+                $('#back_out_modal_on').modal('hide');
+
+                $.ajax({
+                    url: "{{ route('maids.remove_backout') }}",
+                    type: 'Post',
+                    data: $("#back_out_modal_on_form").serialize(),
+                    success: function(response) {
+                        console.log(response);
+                        if (response.data.success == true) {
+                            table.ajax.reload();
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: response.data.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: response.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+
+                        }
+                    },
+                });
+            };
+
+            window.back_out_on = function(id) {
+                $('#back_out_modal_on').modal('show', {
+                    backdrop: 'static'
+                });
+                $("#maid_id_on").val(id);
+            };
+
+            window.back_out = function(id) {
+                console.log("Backout Here!");
+
+                $('#back_out_modal').modal('show', {
+                    backdrop: 'static'
+                });
+                $("#maid_id").val(id);
+            };
+
+
+            window.suspendCv = function suspendCv(id, status) {
+                $.ajax({
+                    type: "GET",
+                    url: "{{ route('maids.suspendCv') }}",
+                    data: {
+                        'id': id,
+                        'status': status
+                    },
+                    async: false,
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.data.success == true) {
+                            table.ajax.reload();
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: response.data.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: response.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+
+                        }
+                    },
+
+                });
+            };
         });
     </script>
 @endsection
