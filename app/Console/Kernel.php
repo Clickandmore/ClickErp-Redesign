@@ -130,6 +130,12 @@ class Kernel extends ConsoleKernel
              ->hourly()
              ->withoutOverlapping()
              ->runInBackground();
+
+        // Auto-refuse expired orders
+        $schedule->command('orders:handle-expired')
+            ->everyFiveMinutes()
+            ->withoutOverlapping()
+            ->runInBackground();
     }
 
     /**

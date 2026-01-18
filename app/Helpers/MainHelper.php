@@ -904,3 +904,26 @@ if (!function_exists('getNextContractStatus')) {
         return $statusFlow[$currentStatus] ?? null;
     }
 }
+
+if (!function_exists('formatSaudiPhone')) {
+    function formatSaudiPhone($phone)
+    {
+        // إزالة كل شيء ما عدا الأرقام
+        $phone = preg_replace('/\D/', '', $phone);
+
+        // لو بدأ بـ 05 → حوله إلى 9665...
+        if (strlen($phone) === 10 && str_starts_with($phone, '5')) {
+            $phone = '966' . $phone;
+        }
+        // لو بدأ بـ 05 → حوله إلى 9665...
+        elseif (strlen($phone) === 9 && str_starts_with($phone, '5')) {
+            $phone = '966' . $phone;
+        }
+        // لو +966 → شيل الـ +
+        elseif (str_starts_with($phone, '+966')) {
+            $phone = '966' . substr($phone, 4);
+        }
+
+        return $phone;
+    }
+}

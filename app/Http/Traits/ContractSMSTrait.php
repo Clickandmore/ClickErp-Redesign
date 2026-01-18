@@ -6,9 +6,11 @@ use App\Models\Contract;
 use App\Models\SmsTemplate;
 use App\Enums\ingaz\ContractStatusEnum;
 use Illuminate\Support\Facades\Log;
+use App\Http\Traits\SendSMSTrait;
 
 trait ContractSMSTrait
 {
+    use SendSMSTrait;
     /**
      * Send SMS notification to client about contract status update
      *
@@ -137,15 +139,11 @@ trait ContractSMSTrait
             );
             return true;
             */
+            
+            // Send SMS using the existing SendSMSTrait
+            $result = $this->sendSMS($phone, $message);
 
-            // للاختبار: نسجل الرسالة في الـ log
-            Log::info('SMS would be sent', [
-                'phone' => $phone,
-                'message' => $message
-            ]);
-
-            // إرجاع true للاختبار (في التطبيق الفعلي، أرجع نتيجة الإرسال الحقيقي)
-            return true;
+            return $result;
 
         } catch (\Exception $e) {
             Log::error('SMS sending failed', [

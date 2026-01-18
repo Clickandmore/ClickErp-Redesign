@@ -11,9 +11,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\site\CustomerServiceRequest;
 use App\Models\ingaz\RecruitmentRequest;
 use Illuminate\Http\Request;
+use App\Http\Traits\SendSMSTrait;
 
 class CustomerServiceController extends Controller
 {
+    use SendSMSTrait;
     public function index()
     {
         return redirect(route('site.all-workers.index'));
@@ -28,6 +30,17 @@ class CustomerServiceController extends Controller
                 'customer_id' => $dataInserted['customer']
             ]);
         }
+
+        // Send SMS after assigning customer service
+        $userPhone = formatSaudiPhone(auth()->user()->phone);
+        $userName = auth()->user()->name;
+        $customerPhone = formatSaudiPhone($adminAction->find($dataInserted['customer'])->phone);
+        if (!empty($customerPhone)) {
+            $body =  "يوجد لديكم حجز باسم " . $userName . "برقم جوال " . $userPhone;
+            $recipients = [$customerPhone];
+            $this->sendSMS($recipients, $body);
+        }
+
         $customer = $adminAction->find($dataInserted['customer']);
         return view('site.pages.selected_customer', get_defined_vars());
     }
@@ -52,6 +65,14 @@ class CustomerServiceController extends Controller
             'maid_id' => $maid->id,
             'job_type_id' => $jobType->id
         ]);
+
+        // Send SMS to user after creating order and before assigning customer service
+        $userPhone = formatSaudiPhone(auth()->user()->phone);
+        if (!empty($userPhone)) {
+            $body = "عزيزي العميل، تم حجز سيرة ذاتية جديدة بنجاح. رقم الطلب {$order->order_code}. للمتابعة يرجى التواصل مع المندوب المسؤول عن طلبكم.";
+            $recipients = [$userPhone];
+            $this->sendSMS($recipients, $body);
+        }
 
         $customer_services = $adminAction->getWhere(['admin_type' => AdminTypes::CustomerService->value]);
         return view('site.pages.customer_sevices', get_defined_vars());
