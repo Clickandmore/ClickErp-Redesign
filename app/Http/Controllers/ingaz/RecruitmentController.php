@@ -15,9 +15,11 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\ingaz\Client;
 use App\Models\ingaz\RecruitmentRequest;
 use App\Models\RecruitmentOffices;
+use App\Http\Traits\SendSMSTrait;
 
 class RecruitmentController extends Controller
 {
+    use SendSMSTrait;
     public function create($client_id)
     {
         $client = User::findOrFail($client_id);
@@ -144,7 +146,8 @@ class RecruitmentController extends Controller
                 'experience_years' => $request->experience_years,
                 'salary' => $request->salary,
                 'notes' => $request->notes,
-                'status' => 'pending'
+                'status' => 'pending',
+                'customer_id' => $request->employee_id,
             ]);
 
             // Create order details
@@ -164,6 +167,22 @@ class RecruitmentController extends Controller
             DB::commit();
 
             \Log::info('Order Created Successfully', ['id' => $recruitment->id]);
+
+            // Send SMS
+            $userPhone = formatSaudiPhone($recruitment->client->phone);
+            $customerPhone = formatSaudiPhone($recruitment?->customer?->phone);
+            if (!empty($customerPhone)) {
+                $body =  "يوجد لديكم حجز باسم " . auth()->user()->name . "برقم جوال " . auth()->user()->phone;
+                $recipients = [$customerPhone];
+                $this->sendSMS($recipients, $body);
+            }
+
+            if (!empty($userPhone)) {
+                $body = "عزيزي العميل، تم حجز سيرة ذاتية جديدة بنجاح. رقم الطلب {$recruitment->order_code}. للمتابعة يرجى التواصل مع المندوب المسؤول عن طلبكم.";
+                $recipients = [$userPhone];
+                $this->sendSMS($recipients, $body);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => __('ingaz.recruitment_request_created')

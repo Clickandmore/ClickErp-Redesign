@@ -36,8 +36,8 @@ class PhoneVerificationAction extends MainAction
             $code = $storedData->code;
         }
 
-        $msg = "رمز التحقق  : $code  لدخول منصة platinum.istqdim.com";
-        $result = $this->sendSMS($request->phone, $msg);
+        $msg = "مرحبًا بك، نأمل استخدام رمز التفعيل للتحقق من الهاتف: {$code}. للدخول إلى منصة platinum.istqdim.com";
+        $result = $this->sendSMS($request->phone, $msg, $code);
 
         return ["code" => $code];
     }

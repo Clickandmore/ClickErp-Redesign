@@ -6,9 +6,11 @@ use Illuminate\Console\Command;
 use App\Models\ingaz\Order;
 use App\Enums\ingaz\OrderEnum;
 use Carbon\Carbon;
+use App\Http\Traits\SendSMSTrait;
 
 class HandleExpiredOrders extends Command
 {
+    use SendSMSTrait;
     protected $signature = 'orders:handle-expired';
     protected $description = 'Handle expired orders by updating their status';
 
@@ -35,6 +37,17 @@ class HandleExpiredOrders extends Command
                 'type' => 'order_expired',
                 'order_id' => $order->id
             ]);
+
+            // Send SMS
+            $userPhone = $order->user?->phone;
+            if ($userPhone) {
+                $body = " عزيزي العميل : تخطي الطلب الخاص بكم المدة المسموحة له في النظام والغاءه برقم جواز : " . $order->maid->passport_num . " ورقم الطلب : " . $order->order_code;
+                $this->sendSMS(formatSaudiPhone($userPhone), $body);
+            } else {
+                \Log::warning('Expired order SMS skipped: missing user phone', [
+                    'order_id' => $order->id
+                ]);
+            }
         }
 
         $this->info('Expired orders handled successfully.');

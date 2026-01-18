@@ -23,18 +23,23 @@ class NotificationAction extends MainAction
     public function storeNotification($data, $request)
     {
         if ($request->type == 'sms') {
+            $msg = ($request->title['ar'] ?? '') . "\n" . ($request->description['ar'] ?? '');
             if ($request->all_or_some == 'all') {
-                $users = User::where('is_blocked', false)->get();
-                foreach ($users as $user) {
-                    $msg = $request->title['ar'] . "\n";
-                    $msg .= $request->description['ar'];
-                    $this->sendSMS($user->phone, $msg);
-                }
+                $phones = User::where('is_blocked', 0)
+                    ->whereNotNull('phone')
+                    ->pluck('phone');
             } elseif ($request->all_or_some == 'some') {
-                $user = User::find($request->user_id);
-                $msg = $request->title['ar'] . "\n";
-                $msg .= $request->description['ar'];
-                $this->sendSMS($user[0]->phone, $msg);
+                $ids = (array) $request->user_id;
+                $phones = User::whereIn('id', $ids)
+                    ->where('is_blocked', 0)
+                    ->whereNotNull('phone')
+                    ->pluck('phone');
+            } else {
+                $phones = collect();
+            }
+
+            foreach ($phones as $phone) {
+                $this->sendSMS($phone, $msg);
             }
         } else {
             $usersIDs = [];

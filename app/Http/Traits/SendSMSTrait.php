@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Http;
 
 trait SendSMSTrait
 {
-    function sendSMS($phone, $msg)
+    function sendSMS($phone, $msg, $code = null)
     {
         $phone = preg_replace('/[^0-9]/', '', $phone);
 
@@ -41,7 +41,7 @@ trait SendSMSTrait
 
         $result = curl_exec($ch);
 
-        logger()->info('Msegat SMS Response: ' . $result);
+        logger()->info("Msegat SMS Sent Successfully: ", ['code' => $code, 'phone' => $phone, 'msg' => $msg, 'response' => $result]);
 
         return $result;
     }

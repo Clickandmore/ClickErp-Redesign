@@ -23,10 +23,11 @@ use App\Models\ingaz\Order as objModel;
 use Yajra\DataTables\Facades\DataTables;
 use App\Http\Actions\ingaz\OrderAction as objAction;
 use App\Models\ingaz\Notification;
+use App\Http\Traits\SendSMSTrait;
 
 class OrderController extends Controller
 {
-
+    use SendSMSTrait;
     public $folderPath = "admin.ingaz.orders";
     public $postData = ["status"];
     public $mainRoute = "orders";
@@ -808,6 +809,18 @@ class OrderController extends Controller
             $order->status_changed_at = now();
             $order->refuse_reason = $this->resolveRefuseReason($validated['reason'] ?? null, $validated['action']);
             $order->save();
+
+            // Send SMS
+            if($validated['action'] == "refused"){
+                $body = "عزيزي العميل، تم رفض طلب الاستقدام رقم {$order->order_code}. لمزيد من التفاصيل يرجى التواصل مع خدمة العملاء.";
+            }else if($validated['action'] == "return"){
+                $body = "عزيزي العميل، نود إشعاركم بأنه تم إرجاع طلب الاستقدام رقم {$order->order_code}. يرجى مراجعة الطلب عبر حسابكم.";
+            }
+            $userPhone = formatSaudiPhone($order->user->phone);
+            $customerPhone = formatSaudiPhone($order->customer?->phone);
+            $recipients = [$userPhone, $customerPhone];
+            $this->sendSMS($recipients, $body);
+
 
             // Refuse/Return Notification
             Notification::create([
