@@ -34,11 +34,11 @@
         <div class="col-12">
             <label for="TextInput" class="form-label">{{helperTrans("ingaz.who")}} </label>
             <select name="all_or_some" id="who" class="form-control" data-validation="required">
-                <option value="all">{{helperTrans('ingaz.all')}}</option>
-                <option value="some">{{helperTrans('ingaz.someone')}}</option>
+                {{-- <option value="all">{{helperTrans('ingaz.all')}}</option> --}}
+                <option value="some" selected>{{helperTrans('ingaz.someone')}}</option>
             </select>
         </div>
-        <div class="col-12" style="display: none" id="some">
+        <div class="col-12" style="" id="some">
             <label for="TextInput" class="form-label">{{helperTrans("ingaz.appUsers")}} </label>
             <select name="user_id[]" data-placeholder="{{helperTrans('ingaz.choose')}}"
                 class="form-control js-example-basic-multiple" multiple data-validation="required">
