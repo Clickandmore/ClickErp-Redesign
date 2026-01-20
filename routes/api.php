@@ -84,3 +84,11 @@ Route::group(
         //--------------------------------------------------------
     }
 );
+
+
+Route::controller(Api\HomeController::class)->group(function ($router) {
+    Route::post('contract_status', 'contractStatus');
+    Route::get('nationalites', 'nationalites');
+    Route::get('all_staff', 'allStaff');
+    Route::post('store_ticket', 'storeTicket');
+});
