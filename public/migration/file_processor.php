@@ -6154,13 +6154,13 @@ function migrateMessages() {
 
             $params = [
                 ':id' => $id,
-                ':conversation_id' => normalizeContractInt($row['conversation_id'] ?? null),
-                ':user_id' => normalizeContractInt($row['user_id'] ?? null),
-                ':from_user' => normalizeContractValue($row['from_user'] ?? null),
+                ':conversation_id' => $row['conversation_id'] ?? null,
+                ':user_id' => $row['user_id'] ?? null,
+                ':from_user' => $row['from_user'] ?? null,
                 ':message' => $row['message'] ?? null,
                 ':files' => $row['files'] ?? null,
-                ':created_at' => normalizeContractDateTime($row['created_at'] ?? null),
-                ':updated_at' => normalizeContractDateTime($row['updated_at'] ?? null)
+                ':created_at' => $row['created_at'] ?? null,
+                ':updated_at' => $row['updated_at'] ?? null
             ];
 
             try {
@@ -6200,6 +6200,7 @@ function migrateMessages() {
         'skipped' => $skipped
     ];
 }
+
 
 function getMessagesSummary() {
     try {
