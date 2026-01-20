@@ -103,14 +103,14 @@
                     <table class="table table-bordered table-striped table-hover" id="countries-table">
                         <thead class="table-dark">
                             <tr>
-                                <th style="width: 50px"><i class="fas fa-arrows-alt"></i></th>
-                                <th>الاسم</th>
-                                <th>الرمز</th>
-                                <th>رمز الهاتف</th>
-                                <th>العملة</th>
-                                <th>الحالة</th>
-                                <th>الترتيب</th>
-                                <th>الإجراءات</th>
+                                <th style="width: 50px; color: #fff;"><i class="fas fa-arrows-alt"></i></th>
+                                <th style="color: #fff">الاسم</th>
+                                <th style="color: #fff">الرمز</th>
+                                <th style="color: #fff">رمز الهاتف</th>
+                                <th style="color: #fff">العملة</th>
+                                <th style="color: #fff">الحالة</th>
+                                <th style="color: #fff">الترتيب</th>
+                                <th style="color: #fff">الإجراءات</th>
                             </tr>
                         </thead>
                         <tbody>

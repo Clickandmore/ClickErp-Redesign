@@ -995,8 +995,7 @@
                                 @endif
                                 @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW))
                                     <li>
-                                        <a class="m-link" href="{{ route('social-statuses.index') }}"
-                                            target="_blank">
+                                        <a class="m-link" href="{{ route('social-statuses.index') }}">
                                             <i class="fa fa-heart"></i>
                                             <span class="ms-2">الحالات الاجتماعية</span>
                                             <span class="badge bg-success ms-2" style="font-size: 10px;">✅</span>

@@ -89,12 +89,12 @@
                     <table class="table table-bordered table-striped table-hover" id="cities-table">
                         <thead class="table-dark">
                             <tr>
-                                <th width="5%">#</th>
-                                <th width="30%">اسم المدينة</th>
-                                <th width="25%">الدولة</th>
-                                <th width="15%">الحالة</th>
-                                <th width="15%">الإحداثيات</th>
-                                <th width="10%">الإجراءات</th>
+                                <th width="5%" style="color: #fff">#</th>
+                                <th width="30%" style="color: #fff">اسم المدينة</th>
+                                <th width="25%" style="color: #fff">الدولة</th>
+                                <th width="15%" style="color: #fff">الحالة</th>
+                                <th width="15%" style="color: #fff">الإحداثيات</th>
+                                <th width="10%" style="color: #fff">الإجراءات</th>
                             </tr>
                         </thead>
                         <tbody>

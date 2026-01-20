@@ -165,6 +165,11 @@ class MaidController extends Controller
                     ];
 
                     $statusMeta = $statuses[$row->status] ?? ['class' => 'bg-secondary-subtle text-secondary', 'icon' => 'fa-question-circle', 'label' => $labelUnknown];
+                    
+                    $hasActiveOrder = $row->orders->whereIn('status', ['new', 'under_process', 'contracted'])->isNotEmpty();
+                    if ($hasActiveOrder && $row->status === 'available') {
+                        $statusMeta = $statuses['reserved'];
+                    }
 
                     if ($row->maid_accommodation_type == 2) {
                         $statusMeta = ['class' => 'bg-info-subtle text-info', 'icon' => 'fa-warehouse', 'label' => $labelAccommodation];
