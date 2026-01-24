@@ -167,6 +167,9 @@
             successToster('{{__("auth.done successfully")}}', result.message);
         } else if (result.code == 201) {
             successToster('{{__("auth.done successfully")}}', result.message);
+            if (window.accountingGuideReloadOnCreate === false) {
+                return;
+            }
             location.reload();
             //location.href = result.data.url;
         } else if (result.code == 202) {
@@ -474,8 +477,12 @@
             success: function (result) {
                 //console.log(200)
                 handleSuccessResponce(result);
-                reloadDataTable();
                 submitButton.html(buttonText)
+                if (window.accountingGuideReloadOnCreate) {
+                    window.location.reload();
+                    return;
+                }
+                reloadDataTable();
                 if (modalResult.is(":visible")) {
                     modalResult.modal('toggle');
                 }

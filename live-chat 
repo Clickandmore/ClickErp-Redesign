@@ -1,0 +1,99 @@
+response = Map();
+msg = message.get("text");
+if(!msg.isNull())
+{
+	response.put("action","context");
+	if(msg.equalsIgnoreCase("طلب استقدام جديد"))
+	{
+		data_info = invokeurl
+		[
+			url :"https://platinum.istqdim.com/api/nationalites"
+			type :GET
+			headers:{"Content-Type":"application/json"}
+		];
+		nationalities = data_info.get('data');
+		if(nationalities == null || nationalities.size() == 0)
+		{
+			response.put("action","reply");
+			response.put("replies",{"عذرا لا توجد جنسيات متاحة حاليا"});
+			return response;
+		}
+
+		optionList = Collection();
+		optionValues = Collection();
+		for each  val in nationalities.keys()
+		{
+			optionList.insert(val);
+		}
+		for each  val in nationalities.values()
+		{
+			optionValues.insert(val);
+		}
+		optionList.insert('جميع الجنسيات');
+		optionValues.insert('all');
+		info optionValues;
+		response.put("context_id","deals");
+		question = {"name":"new_request","replies":{"يمكنك الاطلاع على السير الذاتية من خلال اختيار احد الجنسيات الاتية"},"input":{"type":"select","options":optionList,"values":optionValues}};
+		response.put("questions",{question});
+	}
+	else if(msg.equalsIgnoreCase("متابعة طلب سابق"))
+	{
+		response.put("context_id","help");
+		question = {"name":"query","replies":{"يمكنك الاستعلام عن حالة العقد من خلال احد الاختيارات الاتية"},"input":{"type":"select","options":{"رقم عقد مساند","رقم الهوية","رقم التأشيرة"}}};
+		response.put("questions",{question});
+	}
+	else if(msg.equalsIgnoreCase("خدمة العملاء"))
+	{
+		// 		response.put("action","context");
+		// 		response.put("context_id","complaints");
+		questionscollection = Collection();
+		questionscollection.insert({"text":"يمكنك التواصل مع طاقمنا المميز بكل سهولة ويسر"});
+		data_info = invokeurl
+		[
+			url :"https://www.platinum.istqdim.com/api/all_staff"
+			type :GET
+			headers:{"Content-Type":"application/json"}
+		];
+		admins = data_info.get('data');
+		if(admins == null || admins.size() == 0)
+		{
+			response.put("action","reply");
+			response.put("replies",{"عذرا لا توجد بيانات لخدمة العملاء حاليا"});
+			return response;
+		}
+
+		admins_keys = admins.keys();
+		admins_values = admins.values();
+		adminsList = Collection();
+		for each  val in admins_keys
+		{
+			adminsList.insert(val);
+		}
+		for each  admin in adminsList
+		{
+			admin_index = admins_keys.indexOf(admin);
+			selected_admin_phone = admins_values.get(admin_index);
+			info selected_admin_phone;
+			newLine = hexToText("0A");
+			question = {"type":"links","text":admin,"links":{{"url":"https://api.whatsapp.com/send?phone=" + selected_admin_phone,"text":"تواصل مع المسؤل","icon":"https://cdn3.iconfinder.com/data/icons/social-media-chat-1/512/WhatsApp-512.png"}}};
+			questionscollection.insert(question);
+		}
+		response.put("action","end");
+		response.put("replies",questionscollection);
+	}
+	else if(msg.equalsIgnoreCase("تسجيل شكوى"))
+	{
+		response.put("context_id","complaints");
+		question = {"name":"complaints","replies":{"عزيزي العميل يمكننا مساعدتك في في مشكلتكم بشكل اسرع من خلال الاتي :"},"input":{"type":"select","options":{"تسجيل شكوي","تواصل معنا"}}};
+		response.put("questions",{question});
+	}
+	else
+	{
+		response.put("action","reply");
+		response.put("replies",{" مرحبا بك فى  بلاتينيوم الشرقية للاستقدام استقدم افضل العمالة المنزلية"});
+		//modified line
+		response.put("input",{"type":"select","options":{"خدمة العملاء","طلب استقدام جديد","متابعة طلب سابق"}});
+		return response;
+	}
+}
+return response;
