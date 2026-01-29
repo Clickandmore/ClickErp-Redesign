@@ -134,8 +134,8 @@
                             <label for="warrantyStatusFilter" class="form-label">حالة الضمان:</label>
                             <select id="warrantyStatusFilter" class="form-select">
                                 <option value="">جميع حالات الضمان</option>
-                                <option value="active">نشط</option>
-                                <option value="expired">منتهي</option>
+                                <option value="active">نشط (تحت الضمان)</option>
+                                <option value="expired">منتهي (خارج الضمان)</option>
                                 <option value="not_applicable">غير قابل للتطبيق</option>
                             </select>
                         </div>
@@ -431,6 +431,20 @@
                 return urlParams.get('warranty_status');
             }
 
+            function toggleWarrantyFilter() {
+                const isArrival = $('#statusFilter').val() === 'arrival';
+                const wrapper = $('#warrantyStatusFilter').closest('.col-md-3');
+
+                if (isArrival) {
+                    wrapper.show();
+                    $('#warrantyStatusFilter').show();
+                } else {
+                    wrapper.hide();
+                    $('#warrantyStatusFilter').hide();
+                    $('#warrantyStatusFilter').val('');
+                }
+            }
+
             // تطبيق الـ status من الـ URL على الفلتر أولاً
             const urlStatus = getStatusFromUrl();
             const urlWarrantyStatus = getWarrantyStatusFromUrl();
@@ -441,16 +455,12 @@
                 // إزالة الفلتر من localStorage لتجنب التضارب
                 localStorage.removeItem('contractFilters');
 
-                // إظهار فلتر الضمان إذا كانت الحالة "عقود مكتملة"
-                if (urlStatus === 'completed') {
-                    $('#warrantyStatusFilter').parent().show();
-                    $('#warrantyStatusFilter').show();
+                toggleWarrantyFilter();
 
-                    // تطبيق فلتر warranty_status إذا كان موجود في URL
-                    if (urlWarrantyStatus) {
-                        $('#warrantyStatusFilter').val(urlWarrantyStatus);
-                        console.log('Warranty status from URL applied to filter:', urlWarrantyStatus);
-                    }
+                // تطبيق فلتر warranty_status إذا كان موجود في URL
+                if (urlStatus === 'arrival' && urlWarrantyStatus) {
+                    $('#warrantyStatusFilter').val(urlWarrantyStatus);
+                    console.log('Warranty status from URL applied to filter:', urlWarrantyStatus);
                 }
             }
 
@@ -542,7 +552,7 @@
                         d.marketer_id = $('#marketerFilter').val(); // Add marketer filter
 
                         // إضافة فلتر حالة الضمان فقط إذا كانت الحالة "عقود مكتملة"
-                        if ($('#statusFilter').val() === 'completed') {
+                        if ($('#statusFilter').val() === 'arrival') {
                             d.warranty_status = $('#warrantyStatusFilter').val();
                         }
                     },
@@ -617,17 +627,7 @@
 
             // تحديث الجدول عند تغيير الفلتر
             $('#statusFilter').on('change', function() {
-                var selectedStatus = $(this).val();
-
-                // إظهار/إخفاء فلتر حالة الضمان
-                if (selectedStatus === 'completed') {
-                    $('#warrantyStatusFilter').parent().show();
-                    $('#warrantyStatusFilter').show();
-                } else {
-                    $('#warrantyStatusFilter').parent().hide();
-                    $('#warrantyStatusFilter').hide();
-                    $('#warrantyStatusFilter').val(''); // مسح القيمة
-                }
+                toggleWarrantyFilter();
 
                 // لا تحدث الجدول إذا كان التغيير من الـ URL
                 if (urlStatus && $(this).val() === urlStatus) {
@@ -680,9 +680,7 @@
                 $('#dateFromFilter, #dateToFilter').val('');
                 localStorage.removeItem('contractFilters'); // مسح الفلاتر المحفوظة
 
-                // إخفاء فلتر حالة الضمان عند المسح
-                $('#warrantyStatusFilter').parent().hide();
-                $('#warrantyStatusFilter').hide();
+                toggleWarrantyFilter();
 
                 $('#dataTableObject').addClass('loading');
                 dataTable.ajax.reload(function() {
@@ -779,6 +777,7 @@
             function saveFilters() {
                 var filters = {
                     status: $('#statusFilter').val(),
+                    warrantyStatus: $('#warrantyStatusFilter').val(),
                     clientPhone: $('#clientPhoneFilter').val(),
                     clientName: $('#clientNameFilter').val(),
                     maidPassport: $('#maidPassportFilter').val(),
@@ -806,6 +805,7 @@
                 if (filters) {
                     filters = JSON.parse(filters);
                     $('#statusFilter').val(filters.status || '');
+                    $('#warrantyStatusFilter').val(filters.warrantyStatus || '');
                     $('#clientPhoneFilter').val(filters.clientPhone || '');
                     $('#clientNameFilter').val(filters.clientName || '');
                     $('#maidPassportFilter').val(filters.maidPassport || '');
@@ -822,6 +822,7 @@
 
             // تحميل الفلاتر عند تحميل الصفحة
             loadFilters();
+            toggleWarrantyFilter();
 
             // حفظ الفلاتر عند تغييرها (فقط إذا لم يكن هناك status في الـ URL)
             $('.form-control, .form-select').on('change', function() {

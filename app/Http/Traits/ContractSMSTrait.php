@@ -141,7 +141,7 @@ trait ContractSMSTrait
             */
             
             // Send SMS using the existing SendSMSTrait
-            $result = $this->sendSMS($phone, $message);
+            $result = $this->sendSMS(formatSaudiPhone($phone), $message);
 
             return $result;
 

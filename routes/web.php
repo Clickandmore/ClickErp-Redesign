@@ -400,6 +400,7 @@ Route::prefix('admin')->middleware(['auth:admin'])->group(function () {
     Route::put('sms-templates/{smsTemplate}', [\App\Http\Controllers\admin\SmsTemplateController::class, 'update'])->name('admin.sms-templates.update');
     Route::delete('sms-templates/{smsTemplate}', [\App\Http\Controllers\admin\SmsTemplateController::class, 'destroy'])->name('admin.sms-templates.destroy');
     Route::post('sms-templates/{smsTemplate}/test', [\App\Http\Controllers\admin\SmsTemplateController::class, 'test'])->name('admin.sms-templates.test');
+    Route::post('sms-templates/{smsTemplate}/send', [\App\Http\Controllers\admin\SmsTemplateController::class, 'send'])->name('admin.sms-templates.send');
 });
 
 // روابط التقييم العامة (بدون تسجيل دخول)

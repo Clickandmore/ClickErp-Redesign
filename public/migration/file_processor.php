@@ -2649,6 +2649,23 @@ function migrateReservationsToOrders() {
                     deleted_at = VALUES(deleted_at)";
         $stmt = $newDb->prepare($sql);
 
+        $orderDetailsColumns = getTableColumnsLocal($newDb, 'order_details');
+        $orderDetailsColumns = array_map('strtolower', $orderDetailsColumns);
+        $detailsColumns = array_values(array_intersect(
+            $orderDetailsColumns,
+            ['order_id', 'admin_id', 'package_id', 'address_id', 'created_at', 'updated_at', 'deliver_maid']
+        ));
+        $detailsStmt = null;
+        $deleteDetailsStmt = null;
+        if (!empty($detailsColumns) && in_array('order_id', $detailsColumns, true)) {
+            $quotedDetails = array_map(fn($col) => "`{$col}`", $detailsColumns);
+            $placeholders = array_map(fn($col) => ':' . $col, $detailsColumns);
+            $detailsSql = "INSERT INTO `order_details` (" . implode(', ', $quotedDetails) . ")
+                           VALUES (" . implode(', ', $placeholders) . ")";
+            $detailsStmt = $newDb->prepare($detailsSql);
+            $deleteDetailsStmt = $newDb->prepare('DELETE FROM order_details WHERE order_id = :order_id');
+        }
+
         $inserted = 0;
         $updated = 0;
         $skipped = 0;
@@ -2683,6 +2700,27 @@ function migrateReservationsToOrders() {
                     $inserted++;
                 } elseif ($affected === 2) {
                     $updated++;
+                }
+
+                if ($detailsStmt !== null && $deleteDetailsStmt !== null) {
+                    $adminId = $row['administrator_id'] ?? null;
+                    if ($adminId === null || $adminId === '') {
+                        $adminId = $row['added_by'] ?? null;
+                    }
+                    $adminId = is_numeric($adminId) ? (int)$adminId : null;
+
+                    $detailsData = [
+                        'order_id' => $id,
+                        'admin_id' => $adminId,
+                        'package_id' => null,
+                        'address_id' => null,
+                        'deliver_maid' => null,
+                        'created_at' => $row['created_at'] ?? null,
+                        'updated_at' => $row['updated_at'] ?? null,
+                    ];
+
+                    $deleteDetailsStmt->execute([':order_id' => $id]);
+                    $detailsStmt->execute(prefixPlaceholders($detailsColumns, $detailsData));
                 }
             }
             $newDb->commit();
@@ -2722,16 +2760,45 @@ function mapReservationStatus(int $oldStatus): string
     // 15: تم الوصول        -> مكتملة (done)
     // 16: الهروب           -> مرفوضة
     return match ($oldStatus) {
-        5 => 'under_process',
+        5 => 'contracted',
         6 => 'contracted',
+        3 => 'new',
         7 => 'new',
-        8 => 'contracted_without_contract',
-        9, 10, 11 => 'under_process',
+        14 => 'under_process',
+        8 => 'contracted',
+        9, 10, 11 => 'contracted',
         13 => 'return',
-        15 => 'done',
-        16 => 'refused',
-        default => 'new',
+        15 => 'contracted',
+        16 => 'contracted',
+        default => 'contracted',
     };
+}
+
+function mapReservationStatusForContracts($value): ?string
+{
+    if ($value === null || $value === '') {
+        return null;
+    }
+
+    if (is_numeric($value)) {
+        $value = (int)$value;
+        $map = [
+            15 => 'arrival',
+            13 => 'back',
+            11 => 'tazker',
+            10 => 'taffez',
+            9 => 'tafwed',
+            8 => 'msaned',
+            7 => 'new',
+            6 => 'accreditation_contracts',
+            5 => 'new',
+            14 => 'new',
+        ];
+
+        return $map[$value] ?? 'new';
+    }
+
+    return 'new';
 }
 
 function getTableColumnsLocal(PDO $pdo, $table) {
@@ -4788,47 +4855,6 @@ function migrateContracts() {
         ];
     }
 
-    // Map latest contract status from contract_logs (numeric -> text)
-    $contractLogStatusMap = [];
-    $contractLogStatusOrder = [];
-    $logStatusMap = [
-        1 => 'new',
-        2 => 'completed',
-        3 => 'msaned',
-        4 => 'tafwed',
-        5 => 'taffez',
-        6 => 'tazker',
-        7 => 'arrival',
-        8 => 'back',
-    ];
-
-    try {
-        $logs = $oldDb->query('SELECT contract_id, status, date, id FROM contract_logs ORDER BY contract_id, date DESC, id DESC')->fetchAll(PDO::FETCH_ASSOC);
-        foreach ($logs as $log) {
-            $logContractId = isset($log['contract_id']) ? (int)$log['contract_id'] : 0;
-            if ($logContractId <= 0) {
-                continue;
-            }
-
-            $mappedStatus = $logStatusMap[(int)($log['status'] ?? 0)] ?? null;
-            if (!$mappedStatus) {
-                continue;
-            }
-
-            $logDate = $log['date'] ?? null;
-            $logId = isset($log['id']) ? (int)$log['id'] : 0;
-            $existing = $contractLogStatusOrder[$logContractId] ?? null;
-
-            // Keep the latest by date, falling back to highest id
-            if (!$existing || ($logDate && $logDate > $existing['date']) || ($logDate === $existing['date'] && $logId > $existing['id'])) {
-                $contractLogStatusMap[$logContractId] = $mappedStatus;
-                $contractLogStatusOrder[$logContractId] = ['date' => $logDate, 'id' => $logId];
-            }
-        }
-    } catch (Exception $e) {
-        // If contract_logs is unavailable, continue without overriding status
-    }
-
     $insertSql = <<<SQL
 INSERT INTO contracts (
     id,
@@ -4949,16 +4975,13 @@ SQL;
         }
 
         try {
-            $status = 'shelter';
-            $logStatus = $contractLogStatusMap[$contractId] ?? null;
-            if ($logStatus) {
-                $status = $logStatus;
-            }
-            $warrantyStartDate = normalizeWarrantyTimestamp($row['contract_from_day'] ?? null);
-            $warrantyEndDate = normalizeWarrantyTimestamp($row['contract_to_day'] ?? null);
-            $warrantyStatus = determineWarrantyStatus($row['contract_from_day'] ?? null, $row['contract_to_day'] ?? null);
+            $status = 'new';
+            $warrantyStartDate = normalizeWarrantyTimestamp($row['covered_guarantee_date'] ?? null);
+            $warrantyEndDate = normalizeWarrantyTimestamp($row['expired_date'] ?? null);
+            $warrantyStatus = determineWarrantyStatus($warrantyEndDate);
 
-            $orderId = normalizeContractInt($row['resv_id'] ?? null);
+            // order_id في العقود الجديدة يعتمد على id في rservations
+            $orderId = normalizeContractInt($row['resv_id'] ?? ($row['order_id'] ?? null));
             $userId = 1673;
             $maidId = null;
             $marketerId = normalizeContractInt($row['driver_id'] ?? null);
@@ -4981,8 +5004,8 @@ SQL;
                     $marketerId = $mappedMarketerId;
                 }
 
-                $mappedStatus = mapReservationStatus($reservationData['status'] ?? null);
-                if ($mappedStatus !== null && !$logStatus) {
+                $mappedStatus = mapReservationStatusForContracts($reservationData['status'] ?? null);
+                if ($mappedStatus !== null) {
                     $status = $mappedStatus;
                 }
             }
@@ -5272,28 +5295,16 @@ function normalizeWarrantyTimestamp($value) {
     return $date . ' 00:00:00';
 }
 
-function determineWarrantyStatus($startValue, $endValue) {
-    $startDateString = normalizeContractDateTime($startValue);
+function determineWarrantyStatus($endValue) {
     $endDateString = normalizeContractDateTime($endValue);
-
-    if ($startDateString === null || $endDateString === null) {
+    if ($endDateString === null) {
         return 'not_applicable';
     }
 
     try {
-        $startDate = new DateTime($startDateString);
         $endDate = new DateTime($endDateString);
-        $days = (int)$startDate->diff($endDate)->format('%a');
-
-        if ($days < 1) {
-            return 'expired';
-        }
-
-        if ($days < 60 && $days > 1) {
-            return 'applicable';
-        }
-
-        return 'not_applicable';
+        $now = new DateTime('now');
+        return $endDate >= $now ? 'active' : 'expired';
     } catch (Exception $e) {
         return 'not_applicable';
     }

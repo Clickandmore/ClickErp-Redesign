@@ -303,13 +303,23 @@
                                     </li>
                                     <li>
                                         <a class="m-link"
-                                            href="{{ route('RecruitmentContract.index', ['status' => 'completed', 'warranty_status' => 'active']) }}">
+                                            href="{{ route('RecruitmentContract.index', ['status' => 'arrival']) }}">
+                                            <i class="fa fa-shield"></i>
+                                            <span class="ms-2"> الوصول </span>&nbsp;&nbsp;
+                                            <span
+                                                class="badge bg-warning">{{ $contractsCount['arrival'] }}
+                                            </span>
+                                        </a>
+                                    </li>
+                                    {{-- <li>
+                                        <a class="m-link"
+                                            href="{{ route('RecruitmentContract.index', ['status' => 'arrival', 'warranty_status' => 'active']) }}">
                                             <i class="fa fa-shield"></i>
                                             <span class="ms-2"> تحت الضمان</span>&nbsp;&nbsp;
                                             <span
                                                 class="badge bg-warning">{{ $contractsCount['under_warranty'] }}</span>
                                         </a>
-                                    </li>
+                                    </li> --}}
                                     @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
                                         <li>
                                             <a class="m-link"
@@ -735,7 +745,7 @@
                                 <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                             </a>
 
-                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['settings.index', 'about-us.index', 'questions.index', 'dash.settings']) ? 'show' : '' }}"
+                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['settings.index', 'about-us.index', 'questions.index', 'dash.settings', 'admin.sms-templates.index']) ? 'show' : '' }}"
                                 id="websiteManagement">
                                 @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                                     <li>
@@ -756,7 +766,7 @@
                                 @endif
 
                                 <li>
-                                    <a class="m-link" href="/admin/sms-templates">
+                                    <a class="m-link {{ Route::currentRouteName() == 'admin.sms-templates.index' ? 'active' : '' }}" href="/admin/sms-templates">
                                         <i class="fa fa-sms"></i>
                                         <span class="ms-2">قوالب الرسائل النصية</span>
                                     </a>

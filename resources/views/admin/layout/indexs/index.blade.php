@@ -12,6 +12,8 @@
         <link href="{{ asset('admin/custom/style-rtl.css') }}" rel="stylesheet" type="text/css" />
     @endif
 
+    <link rel="stylesheet" type="text/css" href="{{ asset('plugins/sweetalert/sweetalert.css') }}">
+
     <!-- Admin Tables & Sidebar Design System -->
     
     @yield("style")
@@ -44,6 +46,7 @@
 @include("admin.layout.inc._js")
 @include("admin.layout.inc._js_custom")
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 @section('js')
     <script src="{{asset('admin/assets/js/notifications.js')}}"></script>

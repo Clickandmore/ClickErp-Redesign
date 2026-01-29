@@ -84,7 +84,7 @@ class ComplaintFeedbackController extends Controller
         $message .= "بلاتنيوم الشرقية للاستقدام";
 
         // إرسال الرسالة عبر بوابة SMS
-        self::sendSMS($complaint->complainant_phone, $message);
+        self::sendSMS(formatSaudiPhone($complaint->complainant_phone), $message);
 
         return $feedback;
     }
@@ -94,37 +94,29 @@ class ComplaintFeedbackController extends Controller
      */
     private static function sendSMS($phone, $message)
     {
-        // يمكنك استخدام أي بوابة SMS مثل Twilio, Unifonic, etc.
-        // هذا مثال باستخدام Unifonic
+        $ch = curl_init(config('msegat.url'));
+        $data = array(
+            'userName' => config('msegat.username'),
+            'apiKey' => config('msegat.api_key'),
+            'numbers' => $phone,
+            "userSender" => config('msegat.sender'),
+            'msg' => $message,
+            'msgEncoding' => config('msegat.encoding'),
+        );
+        $response_data = json_encode($data);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        //Attach our encoded JSON string to the POST fields.
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $response_data);
+        //Set the content type to application/json
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+        //Execute the request
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 
-        $apiKey = env('SMS_API_KEY');
-        $senderId = env('SMS_SENDER_ID', 'ASSUS');
+        $result = curl_exec($ch);
 
-        if (!$apiKey) {
-            \Log::warning('SMS API key not configured');
-            return false;
-        }
+        logger()->info("Msegat SMS Sent Successfully (Complaint Feedback): ", ['phone' => $phone, 'msg' => $msg, 'response' => $result]);
 
-        try {
-            $response = Http::post('https://el.cloud.unifonic.com/rest/SMS/messages', [
-                'AppSid' => $apiKey,
-                'SenderID' => $senderId,
-                'Recipient' => $phone,
-                'Body' => $message,
-                'encoding' => 'UTF8'
-            ]);
-
-            if ($response->successful()) {
-                \Log::info('SMS sent successfully to ' . $phone);
-                return true;
-            } else {
-                \Log::error('Failed to send SMS: ' . $response->body());
-                return false;
-            }
-        } catch (\Exception $e) {
-            \Log::error('SMS sending error: ' . $e->getMessage());
-            return false;
-        }
+        return $result;
     }
 
     /**

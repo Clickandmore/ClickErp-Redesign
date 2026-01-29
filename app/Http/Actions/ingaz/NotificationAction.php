@@ -39,7 +39,7 @@ class NotificationAction extends MainAction
             }
 
             foreach ($phones as $phone) {
-                $this->sendSMS($phone, $msg);
+                $this->sendSMS(formatSaudiPhone($phone), $msg);
             }
         } else {
             $usersIDs = [];

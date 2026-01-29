@@ -166,7 +166,8 @@ class MaidController extends Controller
 
                     $statusMeta = $statuses[$row->status] ?? ['class' => 'bg-secondary-subtle text-secondary', 'icon' => 'fa-question-circle', 'label' => $labelUnknown];
                     
-                    $hasActiveOrder = $row->orders->whereIn('status', ['new', 'under_process', 'contracted'])->isNotEmpty();
+                    $hasActiveOrder = $row->orders->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract'])->isNotEmpty();
+                    
                     if ($hasActiveOrder && $row->status === 'available') {
                         $statusMeta = $statuses['reserved'];
                     }
@@ -294,7 +295,7 @@ class MaidController extends Controller
                 })
                 ->addColumn('metrics', function (Maid $row) {
                     $ordersTotal = $row->orders->count();
-                    $activeOrders = $row->orders->whereIn('status', ['new', 'under_process', 'contracted'])->count();
+                    $activeOrders = $row->orders->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract'])->count();
                     $contractsTotal = $row->contracts->count();
                     $activeContracts = $row->contracts->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival'])->count();
                     $availableAt = $row->available_at ? Carbon::parse($row->available_at)->format('Y-m-d') : helperTrans('ingaz.not_specified');
@@ -488,7 +489,7 @@ class MaidController extends Controller
                     } else {
                         // التحقق من وجود عقود أو طلبات نشطة
                         $hasActiveContracts = $row->contracts()->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival'])->exists();
-                        $hasActiveOrders = $row->orders()->whereIn('status', ['new', 'under_process', 'contracted'])->exists();
+                        $hasActiveOrders = $row->orders()->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract'])->exists();
 
                         if ($hasActiveContracts || $hasActiveOrders) {
                             return '<span class="badge bg-warning">محجوزة</span>';
@@ -733,7 +734,7 @@ class MaidController extends Controller
 
         $stats = [
             'orders_total' => $orders->count(),
-            'orders_active' => $orders->whereIn('status', ['new', 'under_process', 'contracted'])->count(),
+            'orders_active' => $orders->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract'])->count(),
             'contracts_total' => $contracts->count(),
             'contracts_active' => $contracts->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival'])->count(),
             'experience_years' => $maid->experience_status === 'has_experience' ? ($maid->experience_years ?? 0) : 0,
@@ -1599,7 +1600,7 @@ class MaidController extends Controller
                         $q->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival']);
                     })
                     ->whereDoesntHave('orders', function ($q) {
-                        $q->whereIn('status', ['new', 'under_process', 'contracted']);
+                        $q->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract']);
                     });
             } elseif ($request->cv_status == 'reserved') {
                 $rows->where(function ($q) {
@@ -1609,7 +1610,7 @@ class MaidController extends Controller
                             $subQ->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival']);
                         })
                         ->orWhereHas('orders', function ($subQ) {
-                            $subQ->whereIn('status', ['new', 'under_process', 'contracted']);
+                            $subQ->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract']);
                         });
                 });
             } elseif ($request->cv_status == 'backout') {
