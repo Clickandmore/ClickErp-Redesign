@@ -53,6 +53,7 @@
                                 <option value="back">مرتجع</option>
                                 <option value="shelter">الايواء</option>
                                 <option value="pending_maid_selection">انتظار اختيار العاملة</option>
+                                <option value="accreditation_contracts">اعتماد العقود</option>
                             </select>
                         </div>
 
