@@ -532,7 +532,7 @@ class ComplaintController extends Controller
             $message .= "{$statusText}\n";
             $message .= "الرد: {$request->response}";
 
-            $this->sendSMS($complaint->user->phone, $message);
+            $this->sendSMS(formatSaudiPhone($complaint->user->phone), $message);
         }
 
         return jsonSuccess(null, 'تم حفظ الرد بنجاح');

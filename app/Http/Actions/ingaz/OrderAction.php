@@ -83,7 +83,7 @@ class OrderAction extends MainAction
                     $msg = "يوجد طلب نقل كفالة جديد رقم $orderId";
                 }
 
-                $result = $this->sendSMS($order->admin->phone, $msg);
+                $result = $this->sendSMS(formatSaudiPhone($order->admin->phone), $msg);
             }
         }catch(\Exception $ex){
             //msg not sent

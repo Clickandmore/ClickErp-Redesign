@@ -247,6 +247,10 @@ class Constant
                 "ar" => "بانتظار الاعتماد",
                 "en" => "new"
             ],
+            'accreditation_contracts' => [
+                "ar" => "اعتماد العقود",
+                "en" => "accreditation contracts"
+            ],
             'msaned' => [
                 "ar" => "عقود مساند",
                 "en" => "msaned"

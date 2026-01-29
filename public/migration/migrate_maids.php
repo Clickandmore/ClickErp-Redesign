@@ -175,7 +175,7 @@ function migrateMaids(PDO $oldDb, PDO $newDb, int $chunkSize): array
             'experience_years', 'experience_status', 'cv_preview', 'office_id', 'image', 'height', 'weight',
             'id_number', 'id_expiry_date', 'skills', 'languages', 'experience_country', 'video_preview',
             'childrens_count', 'education', 'duration', 'st_code', 'int_code',
-            'maid_accommodation_type', 'added_by'
+            'maid_accommodation_type', 'added_by', 'deleted_at', 'deleted_by'
         ],
         $maidColumns
     );
@@ -607,6 +607,8 @@ function transformCvRow(array $cv, array $mappings, array $allowedColumns): ?arr
     $birthDate = normalizeTimestamp($cv['birth_date'] ?? null, 'date');
     $createdAt = normalizeTimestamp($cv['created_at'] ?? null);
     $updatedAt = normalizeTimestamp($cv['updated_at'] ?? null) ?: $createdAt;
+    $deletedAt = normalizeTimestamp($cv['deleted_at'] ?? null);
+    $deletedBy = normalizeAddedBy($cv['deleted_by'] ?? null, $mappings['users'] ?? []);
 
     $maidData = [
         ':id' => $maidId,
@@ -646,6 +648,8 @@ function transformCvRow(array $cv, array $mappings, array $allowedColumns): ?arr
         ':int_code' => null,
         ':maid_accommodation_type' => $accommodationType,
         ':added_by' => $addedBy,
+        ':deleted_at' => $deletedAt,
+        ':deleted_by' => $deletedBy,
     ];
 
     foreach (array_keys($maidData) as $key) {

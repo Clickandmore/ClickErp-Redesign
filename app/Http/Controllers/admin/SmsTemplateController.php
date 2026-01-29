@@ -5,9 +5,11 @@ namespace App\Http\Controllers\admin;
 use App\Http\Controllers\Controller;
 use App\Models\SmsTemplate;
 use Illuminate\Http\Request;
+use App\Http\Traits\SendSMSTrait;
 
 class SmsTemplateController extends Controller
 {
+    use SendSMSTrait;
     /**
      * Display a listing of the resource.
      */
@@ -41,12 +43,12 @@ class SmsTemplateController extends Controller
             'name' => $request->name,
             'title' => $request->title,
             'message' => $request->message,
-            'is_active' => $request->has('is_active'),
+            'is_active' => $request->boolean('is_active'),
             'variables' => $this->extractVariables($request->message)
         ]);
 
         return redirect()->route('admin.sms-templates.index')
-                        ->with('success', 'تم إنشاء قالب الرسالة بنجاح');
+            ->with('success', 'تم إنشاء قالب الرسالة بنجاح');
     }
 
     /**
@@ -94,12 +96,12 @@ class SmsTemplateController extends Controller
             'name' => $request->name,
             'title' => $request->title,
             'message' => $request->message,
-            'is_active' => $request->has('is_active'),
+            'is_active' => $request->boolean('is_active'),
             'variables' => $this->extractVariables($request->message)
         ]);
 
         return redirect('/admin/sms-templates')
-                        ->with('success', 'تم تحديث قالب الرسالة بنجاح');
+            ->with('success', 'تم تحديث قالب الرسالة بنجاح');
     }
 
     /**
@@ -110,7 +112,7 @@ class SmsTemplateController extends Controller
         $smsTemplate = SmsTemplate::findOrFail($id);
         $smsTemplate->delete();
         return redirect('/admin/sms-templates')
-                        ->with('success', 'تم حذف قالب الرسالة بنجاح');
+            ->with('success', 'تم حذف قالب الرسالة بنجاح');
     }
 
     /**
@@ -139,6 +141,36 @@ class SmsTemplateController extends Controller
         return response()->json([
             'success' => true,
             'message' => $processedMessage
+        ]);
+    }
+
+    /**
+     * Send SMS template to a real phone number
+     */
+    public function send(Request $request, SmsTemplate $smsTemplate)
+    {
+        if (!$smsTemplate->is_active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'القالب غير نشط'
+            ], 422);
+        }
+
+        $data = $request->validate([
+            'phone' => 'required|string',
+            'test_variables' => 'array'
+        ]);
+
+        $variables = $data['test_variables'] ?? [];
+        $processedMessage = $smsTemplate->processMessage($variables);
+        $phone = $data['phone'];
+
+        $result = $this->sendSMS(formatSaudiPhone($phone), $processedMessage);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم إرسال الرسالة بنجاح',
+            'result' => $result
         ]);
     }
 }

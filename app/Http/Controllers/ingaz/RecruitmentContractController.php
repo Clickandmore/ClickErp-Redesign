@@ -92,15 +92,37 @@ class RecruitmentContractController extends Controller
             $statusFilter = $request->get('status');
             if ($statusFilter) {
                 $query->where('status', $statusFilter);
+            }
 
-                // إذا كانت الحالة completed وهناك فلتر warranty_status
-                if ($statusFilter === 'completed' && $request->filled('warranty_status')) {
-                    $warrantyStatuses = explode(',', $request->warranty_status);
-                    if (count($warrantyStatuses) > 1) {
-                        $query->whereIn('warranty_status', $warrantyStatuses);
-                    } else {
-                        $query->where('warranty_status', $request->warranty_status);
-                    }
+            // فلتر حالة الضمان إذا تم تمريرها (حسب تاريخ انتهاء الضمان)
+            if ($request->filled('warranty_status')) {
+                $warrantyStatuses = array_filter(array_map('trim', explode(',', $request->warranty_status)));
+                if (!empty($warrantyStatuses)) {
+                    $today = \Carbon\Carbon::now()->toDateString();
+                    $query->where(function ($q) use ($warrantyStatuses, $today) {
+                        foreach ($warrantyStatuses as $status) {
+                            switch ($status) {
+                                case 'active':
+                                    $q->orWhere(function ($sub) use ($today) {
+                                        $sub->whereNotNull('warranty_end_date')
+                                            ->whereDate('warranty_end_date', '>=', $today);
+                                    });
+                                    break;
+                                case 'expired':
+                                    $q->orWhere(function ($sub) use ($today) {
+                                        $sub->whereNotNull('warranty_end_date')
+                                            ->whereDate('warranty_end_date', '<', $today);
+                                    });
+                                    break;
+                                case 'not_applicable':
+                                    $q->orWhereNull('warranty_end_date');
+                                    break;
+                                default:
+                                    $q->orWhere('warranty_status', $status);
+                                    break;
+                            }
+                        }
+                    });
                 }
             }
 
@@ -210,7 +232,7 @@ class RecruitmentContractController extends Controller
                     }
 
                     // إضافة حالة الضمان للعقود المكتملة
-                    if ($row->status === 'completed') {
+                    if ($row->status === 'arrival') {
                         $warrantyStatus = $row->warranty_status ?? 'not_applicable';
 
                         // حساب الأيام المتبقية من تاريخ انتهاء الضمان
@@ -2374,10 +2396,37 @@ class RecruitmentContractController extends Controller
             // فلتر الحالة
             if ($request->filled('status')) {
                 $query->where('status', $request->status);
+            }
 
-                // فلتر حالة الضمان (فقط للعقود المكتملة)
-                if ($request->status === 'completed' && $request->filled('warranty_status')) {
-                    $query->where('warranty_status', $request->warranty_status);
+            // فلتر حالة الضمان إذا تم تمريرها (حسب تاريخ انتهاء الضمان)
+            if ($request->filled('warranty_status')) {
+                $warrantyStatuses = array_filter(array_map('trim', explode(',', $request->warranty_status)));
+                if (!empty($warrantyStatuses)) {
+                    $today = \Carbon\Carbon::now()->toDateString();
+                    $query->where(function ($q) use ($warrantyStatuses, $today) {
+                        foreach ($warrantyStatuses as $status) {
+                            switch ($status) {
+                                case 'active':
+                                    $q->orWhere(function ($sub) use ($today) {
+                                        $sub->whereNotNull('warranty_end_date')
+                                            ->whereDate('warranty_end_date', '>=', $today);
+                                    });
+                                    break;
+                                case 'expired':
+                                    $q->orWhere(function ($sub) use ($today) {
+                                        $sub->whereNotNull('warranty_end_date')
+                                            ->whereDate('warranty_end_date', '<', $today);
+                                    });
+                                    break;
+                                case 'not_applicable':
+                                    $q->orWhereNull('warranty_end_date');
+                                    break;
+                                default:
+                                    $q->orWhere('warranty_status', $status);
+                                    break;
+                            }
+                        }
+                    });
                 }
             }
 

@@ -37,8 +37,7 @@ class CustomerServiceController extends Controller
         $customerPhone = formatSaudiPhone($adminAction->find($dataInserted['customer'])->phone);
         if (!empty($customerPhone)) {
             $body =  "يوجد لديكم حجز باسم " . $userName . "برقم جوال " . $userPhone;
-            $recipients = [$customerPhone];
-            $this->sendSMS($recipients, $body);
+            $this->sendSMS($customerPhone, $body);
         }
 
         $customer = $adminAction->find($dataInserted['customer']);
@@ -70,8 +69,7 @@ class CustomerServiceController extends Controller
         $userPhone = formatSaudiPhone(auth()->user()->phone);
         if (!empty($userPhone)) {
             $body = "عزيزي العميل، تم حجز سيرة ذاتية جديدة بنجاح. رقم الطلب {$order->order_code}. للمتابعة يرجى التواصل مع المندوب المسؤول عن طلبكم.";
-            $recipients = [$userPhone];
-            $this->sendSMS($recipients, $body);
+            $this->sendSMS($userPhone, $body);
         }
 
         $customer_services = $adminAction->getWhere(['admin_type' => AdminTypes::CustomerService->value]);
