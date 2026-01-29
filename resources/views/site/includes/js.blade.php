@@ -2,7 +2,6 @@
 <script src="{{asset('site')}}/assets/js/main.js"></script>
 <script src="{{asset('site')}}/assets/js/app.js?v={{time()}}"></script>
 
-<script src="{{asset('site')}}/assets/js/filepond.min.js"></script>
 <script>
     $(document).ready(function () {
         $('.supportBtn').click(function () {
@@ -23,25 +22,34 @@
         });
     });
 
-    document.getElementById('close-ad').onclick = function () {
-        document.getElementById('ad-popup').style.display = 'none';
-    };
+    const closeAdButton = document.getElementById('close-ad');
+    if (closeAdButton) {
+        closeAdButton.onclick = function () {
+            const adPopup = document.getElementById('ad-popup');
+            if (adPopup) {
+                adPopup.style.display = 'none';
+            }
+        };
+    }
 
     function checkInternetConnection() {
         return navigator.onLine;
     }
 
-    document.querySelector('form').addEventListener('submit', function (e) {
-        if (!checkInternetConnection()) {
-            e.preventDefault();
-            Toastify({
-                text: "{{__("web.you_are_offline")}}",
-                duration: 4000,
-                gravity: "top",
-                position: "right",
-                backgroundColor: "red"
-            }).showToast();
-        }
+    const forms = document.querySelectorAll('form');
+    forms.forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            if (!checkInternetConnection()) {
+                e.preventDefault();
+                Toastify({
+                    text: "{{__("web.you_are_offline")}}",
+                    duration: 4000,
+                    gravity: "top",
+                    position: "right",
+                    backgroundColor: "red"
+                }).showToast();
+            }
+        });
     });
     if (!checkInternetConnection()) {
         Toastify({
@@ -53,6 +61,27 @@
         }).showToast();
 
     }
+
+    function unlockScrollIfNoOverlay() {
+        const hasOverlay = document.querySelector('.modal.show, .offcanvas.show, .fancybox__container[aria-hidden="false"]');
+        if (!hasOverlay) {
+            document.body.classList.remove('modal-open', 'compensate-for-scrollbar');
+            document.documentElement.classList.remove('with-fancybox');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
+        }
+    }
+
+    window.addEventListener('load', function () {
+        unlockScrollIfNoOverlay();
+        const preloader = document.querySelector('.preloader');
+        if (preloader) {
+            preloader.style.display = 'none';
+        }
+    });
+
+    document.addEventListener('hidden.bs.modal', unlockScrollIfNoOverlay);
+    document.addEventListener('hidden.bs.offcanvas', unlockScrollIfNoOverlay);
 
 </script>
 

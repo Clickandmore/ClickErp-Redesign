@@ -438,9 +438,50 @@
                 $colors = ['green', 'blue', 'red', 'orange', 'purple', 'teal'];
                 // $displayWhatDos = ($whatDos ?? collect())->take(3);
                 $displayWhatDos = ($whatDos ?? collect())->take(4);
+
+                $normalize = function ($value) {
+                    $value = trim((string) $value);
+                    return function_exists('mb_strtolower') ? mb_strtolower($value) : strtolower($value);
+                };
+
+                $contains = function ($haystack, $needle) {
+                    if ($needle === '') {
+                        return false;
+                    }
+                    if (function_exists('mb_strpos')) {
+                        return mb_strpos($haystack, $needle) !== false;
+                    }
+                    return strpos($haystack, $needle) !== false;
+                };
+
+                $preferredOrder = [
+                    ['keywords' => ['السير الذاتية', 'سيرة ذاتية', 'cv', 'cvs']],
+                    ['keywords' => ['عروض الاستقدام', 'عروض', 'offers', 'offer']],
+                    ['keywords' => ['خدمة التأجير', 'التأجير', 'إيجار', 'إجار', 'rent', 'rental', 'egar']],
+                    ['keywords' => ['مساند', 'musaned']],
+                ];
+
+                $orderedWhatDos = $displayWhatDos
+                    ->sortBy(function ($item, $originalIndex) use ($preferredOrder, $normalize, $contains) {
+                        $title = $normalize($item->title ?? '');
+                        $type = $normalize($item->type ?? '');
+                        $haystack = $title . ' ' . $type;
+
+                        foreach ($preferredOrder as $index => $rule) {
+                            foreach ($rule['keywords'] as $keyword) {
+                                $keyword = $normalize($keyword);
+                                if ($contains($haystack, $keyword)) {
+                                    return $index;
+                                }
+                            }
+                        }
+
+                        return 999 + $originalIndex;
+                    })
+                    ->values();
             @endphp
             {{-- @dd($displayWhatDos) --}}
-            @forelse($displayWhatDos as $whatDo)
+            @forelse($orderedWhatDos as $whatDo)
                 @php
                     // $color = $colors[array_rand($colors)];
                     $color = '';
@@ -1497,20 +1538,23 @@
 @section('js')
     <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY"></script>
     <script>
-        let map, marker;
-
         function initMap() {
+            const mapElement = document.getElementById("map");
+            if (!mapElement || typeof google === "undefined" || !google.maps) {
+                return;
+            }
+
             const defaultLocation = {
                 lat: 30.0444,
                 lng: 31.2357
             }; // القاهرة كمثال
 
-            map = new google.maps.Map(document.getElementById("map"), {
+            const map = new google.maps.Map(mapElement, {
                 zoom: 10,
                 center: defaultLocation,
             });
 
-            marker = new google.maps.Marker({
+            const marker = new google.maps.Marker({
                 position: defaultLocation,
                 map: map,
                 draggable: true
@@ -1518,13 +1562,19 @@
 
             // عند تحريك العلامة (Marker)
             google.maps.event.addListener(marker, 'dragend', function(event) {
-                document.getElementById("latitude").value = event.latLng.lat();
-                document.getElementById("longitude").value = event.latLng.lng();
+                const latInput = document.getElementById("latitude");
+                const lngInput = document.getElementById("longitude");
+                if (latInput) {
+                    latInput.value = event.latLng.lat();
+                }
+                if (lngInput) {
+                    lngInput.value = event.latLng.lng();
+                }
             });
         }
 
         // تحميل الخريطة عند فتح الصفحة
-        window.onload = initMap;
+        window.addEventListener('load', initMap);
     </script>
 
     <script>
