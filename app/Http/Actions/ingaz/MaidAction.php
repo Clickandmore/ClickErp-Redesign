@@ -430,6 +430,7 @@ class MaidAction extends MainAction
 
     public function storeRapidCvMaid($createData, $request){
         $maid = $this->model->create($createData);
+        $maid->jobTypes()->attach(1); // استقدام
         return $maid;
     }
 
