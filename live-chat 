@@ -1,5 +1,132 @@
 response = Map();
 msg = message.get("text");
+
+selected_request = message.get("new_request");
+if(selected_request != null)
+{
+	response.put("action","reply");
+	selected_text = selected_request.get("text");
+	selected_value = null;
+	selected_meta = selected_request.get("meta");
+	if(selected_meta != null)
+	{
+		card_data = selected_meta.get("card_data");
+		if(card_data != null)
+		{
+			if(card_data.get("value") != null)
+			{
+				selected_value = card_data.get("value");
+			}
+		}
+	}
+	if(selected_value == null && selected_text != null)
+	{
+		selected_value = selected_text;
+	}
+	if(selected_value == null)
+	{
+		response.put("replies",{"تعذر تحديد الجنسية المختارة. حاول مرة أخرى"});
+		return response;
+	}
+	selected_value_text = selected_value.toString();
+	if(selected_value_text.equalsIgnoreCase("all") || selected_value_text.equals("جميع الجنسيات"))
+	{
+		response.put("replies",{"يمكنك الاطلاع على جميع السير الذاتية عبر الرابط التالي: https://platinum.istqdim.com/all-workers"});
+		return response;
+	}
+
+	nationality_id = null;
+	data_info = invokeurl
+	[
+		url :"https://platinum.istqdim.com/api/nationalites"
+		type :GET
+		headers:{"Content-Type":"application/json"}
+	];
+	nationalities = data_info.get('data');
+
+	if(nationalities != null)
+	{
+		try
+		{
+			for each  nat_key in nationalities.keys()
+			{
+				nat_val = nationalities.get(nat_key);
+				if(nat_val != null && nat_val.toString() == selected_value_text)
+				{
+					nationality_id = nat_val;
+					break;
+				}
+				if(nat_key != null && (nat_key == selected_value_text || nat_key.equalsIgnoreCase(selected_value_text)))
+				{
+					nationality_id = nat_val;
+					break;
+				}
+			}
+		}
+		catch (e)
+		{
+		}
+
+		if(nationality_id == null)
+		{
+			try
+			{
+				for each  nat in nationalities
+				{
+					nat_name = null;
+					nat_id = null;
+
+					if(nat.get("title") != null)
+					{
+						nat_name = nat.get("title");
+					}
+					else if(nat.get("sub_title") != null)
+					{
+						nat_name = nat.get("sub_title");
+					}
+					else if(nat.get("name") != null)
+					{
+						nat_name = nat.get("name");
+					}
+
+					if(nat.get("id") != null)
+					{
+						nat_id = nat.get("id");
+					}
+					else if(nat.get("nationality_id") != null)
+					{
+						nat_id = nat.get("nationality_id");
+					}
+					else if(nat.get("value") != null)
+					{
+						nat_id = nat.get("value");
+					}
+
+					if(nat_name != null && nat_id != null)
+					{
+						if(nat_name == selected_value_text || nat_name.equalsIgnoreCase(selected_value_text) || nat_id.toString() == selected_value_text)
+						{
+							nationality_id = nat_id;
+							break;
+						}
+					}
+				}
+			}
+			catch (ex)
+			{
+			}
+		}
+	}
+
+	if(nationality_id == null)
+	{
+		response.put("replies",{"لم أتمكن من تحديد الجنسية المختارة. حاول مرة أخرى"});
+		return response;
+	}
+	response.put("replies",{"يمكنك الاطلاع على السير الذاتية عبر الرابط التالي: https://platinum.istqdim.com/all-workers?nationality_id=" + nationality_id});
+	return response;
+}
+
 if(!msg.isNull())
 {
 	response.put("action","context");
@@ -11,30 +138,91 @@ if(!msg.isNull())
 			type :GET
 			headers:{"Content-Type":"application/json"}
 		];
-		nationalities = data_info.get('data');
-		if(nationalities == null || nationalities.size() == 0)
-		{
-			response.put("action","reply");
-			response.put("replies",{"عذرا لا توجد جنسيات متاحة حاليا"});
-			return response;
-		}
+			nationalities = data_info.get('data');
+			optionList = Collection();
+			optionValues = Collection();
+			handled = false;
+			if(nationalities == null)
+			{
+				response.put("action","reply");
+				response.put("replies",{"عذرا لا توجد جنسيات متاحة حاليا"});
+				return response;
+			}
 
-		optionList = Collection();
-		optionValues = Collection();
-		for each  val in nationalities.keys()
-		{
-			optionList.insert(val);
-		}
-		for each  val in nationalities.values()
-		{
-			optionValues.insert(val);
-		}
-		optionList.insert('جميع الجنسيات');
-		optionValues.insert('all');
-		info optionValues;
-		response.put("context_id","deals");
-		question = {"name":"new_request","replies":{"يمكنك الاطلاع على السير الذاتية من خلال اختيار احد الجنسيات الاتية"},"input":{"type":"select","options":optionList,"values":optionValues}};
-		response.put("questions",{question});
+			try
+			{
+				for each  nat_key in nationalities.keys()
+				{
+					optionList.insert(nat_key);
+					optionValues.insert(nationalities.get(nat_key));
+				}
+				handled = true;
+			}
+			catch (e)
+			{
+				handled = false;
+			}
+
+			if(handled == false)
+			{
+				try
+				{
+					for each  nat in nationalities
+					{
+						nat_name = null;
+						nat_value = null;
+
+						if(nat.get("title") != null)
+						{
+							nat_name = nat.get("title");
+						}
+						else if(nat.get("sub_title") != null)
+						{
+							nat_name = nat.get("sub_title");
+						}
+						else if(nat.get("name") != null)
+						{
+							nat_name = nat.get("name");
+						}
+
+						if(nat.get("id") != null)
+						{
+							nat_value = nat.get("id");
+						}
+						else if(nat.get("nationality_id") != null)
+						{
+							nat_value = nat.get("nationality_id");
+						}
+						else if(nat.get("value") != null)
+						{
+							nat_value = nat.get("value");
+						}
+
+						if(nat_name != null && nat_value != null)
+						{
+							optionList.insert(nat_name);
+							optionValues.insert(nat_value);
+						}
+					}
+				}
+				catch (ex)
+				{
+				}
+			}
+
+			if(optionList.size() == 0 || optionValues.size() == 0)
+			{
+				response.put("action","reply");
+				response.put("replies",{"عذرا لا توجد جنسيات متاحة حاليا"});
+				return response;
+			}
+
+			optionList.insert('جميع الجنسيات');
+			optionValues.insert('all');
+			info optionValues;
+			response.put("context_id","live-chat");
+			question = {"name":"new_request","replies":{"يمكنك الاطلاع على السير الذاتية من خلال اختيار احد الجنسيات الاتية"},"input":{"type":"select","options":optionList,"values":optionValues}};
+			response.put("questions",{question});
 	}
 	else if(msg.equalsIgnoreCase("متابعة طلب سابق"))
 	{

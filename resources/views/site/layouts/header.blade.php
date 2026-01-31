@@ -5,7 +5,8 @@
         $headerLogo = isset($settings) ? showFile($settings->logo_header) : null;
     @endphp
     <a class="navbar-brand" href="{{route('site.home.index')}}">
-        <img class="logo" src="{{ $headerLogo ?? asset('site/assets/images/logo.png') }}" alt="Logo"/>
+        <img class="logo" src="{{ $headerLogo ?? asset('site/assets/images/company_logo.png') }}" alt="Logo"
+             onerror="this.onerror=null;this.src='{{ asset('site/assets/images/company_logo.png') }}';"/>
     </a>
 
             <!-- Toggle Btn (Mobile) -->
@@ -213,21 +214,20 @@
             </div>
         </div>
 </nav>
-<div class="news-ticker">
-    <marquee id="news-marquee">
-        <i class="fa-solid fa-bell mx-2"></i>
-        {{__("ingaz.last_news")}}
-        @forelse($fastnews as $fastnew)
-            <span>|</span>
-            {{ $fastnew->title }}
-        @empty
-            @foreach(__('web.lastNews') as $index => $item)
-                <span>{{ $item }}</span>
-                @if($index < count(__('web.lastNews')) - 1)
-                    <span> | </span>
-                @endif
-            @endforeach
-        @endforelse
-
-    </marquee>
+<div class="news-ticker" data-aos="fade-up" data-aos-duration="900">
+    <div class="news-inner">
+        <span class="news-label">
+            <i class="fa-solid fa-bell"></i>
+            {{ __("ingaz.last_news") }}
+        </span>
+        <ul class="news-items" aria-live="polite">
+            @forelse($fastnews as $fastnew)
+                <li style="--i: {{ $loop->index }};">{{ $fastnew->title }}</li>
+            @empty
+                @foreach(__('web.lastNews') as $index => $item)
+                    <li style="--i: {{ $index }};">{{ $item }}</li>
+                @endforeach
+            @endforelse
+        </ul>
+    </div>
 </div>

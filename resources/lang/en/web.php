@@ -19,6 +19,7 @@ return [
     'Contact_Us' => 'Contact Us',
     'Staff_entry' => 'Staff entry',
     'Know_More' => 'Know More',
+    'request_service' => 'Request Service',
     'Projects' => 'Projects',
     'Our_Business' => 'Our Business',
     'See_All' => 'See All',

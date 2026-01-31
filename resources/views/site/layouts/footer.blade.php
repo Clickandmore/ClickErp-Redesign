@@ -1,50 +1,35 @@
+@php
+    $defaultCompanyLogo = asset('site/assets/images/company_logo.png');
+    $footerLogo = (isset($settings) && !empty($settings->logo_footer)) ? showFile($settings->logo_footer) : $defaultCompanyLogo;
+    $footerText = (isset($settings) && !empty($settings->footer_text))
+        ? $settings->footer_text
+        : 'بلاتينيوم للاستقدام يقدم خدمات استقدام العمالة المنزلية باحترافية وجودة مميزة.';
+    $taxLogo = (isset($settings) && !empty($settings->zatch_logo))
+        ? showFile($settings->zatch_logo)
+        : asset('site/assets/images/zatca-logo.png');
+    $taxNumber = (isset($settings) && !empty($settings->tax_number)) ? $settings->tax_number : '314232024200003';
+    $footerLocation = (isset($settings) && !empty($settings->location)) ? $settings->location : 'الدمام 32413';
+    $footerEmail = (isset($settings) && !empty($settings->email)) ? $settings->email : 'info@platinumeastern.com';
+    $footerPhone = (isset($settings) && !empty($settings->phone)) ? $settings->phone : '920003174';
+    $footerOtherPhone = (isset($settings) && !empty($settings->other_phone)) ? $settings->other_phone : '0552333182';
+@endphp
 <div class="container">
     <div class="row align-items-start">
-        @if(isset($settings))
-            <!-- الشعار والوصف -->
-            <div class="col-lg-4 col-md-6 mb-4 mb-md-0 footer-about">
-                <img src="{{ showFile($settings->logo_footer) }}" alt="Logo" class="footer-logo"/>
-                <p class="footer-desc">
-                    {{ $settings->footer_text }}
-                </p>
+        <!-- الشعار والوصف -->
+        <div class="col-lg-4 col-md-6 mb-4 mb-md-0 footer-about">
+            <img src="{{ $footerLogo }}" alt="Logo" class="footer-logo"
+                 onerror="this.onerror=null;this.src='{{ $defaultCompanyLogo }}';"/>
+            <p class="footer-desc">
+                {{ $footerText }}
+            </p>
 
-                <div class="tax-info">
-                    <img src="{{ asset('site/assets/images/zatca-logo.png') }}" alt="شعار هيئة الزكاة والضريبة والجمارك"
-                         class="tax-logo"/>
-                    <p class="tax-number">
-                        الرقم الضريبي: <span>{{ $settings->tax_number ?? '310012345600003' }}</span>
-                    </p>
-                </div>
-
-
+            <div class="tax-info">
+                <img src="{{ $taxLogo }}" alt="شعار هيئة الزكاة والضريبة والجمارك"
+                     class="tax-logo"
+                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/zatca-logo.png') }}';"/>
+                <p class="tax-number">الرقم الضريبي: <span>{{ $taxNumber }}</span></p>
             </div>
-        @else
-            <!-- الحالة الافتراضية -->
-            <div class="col-lg-4 col-md-6 mb-4 footer-about">
-                <img src="{{ asset('site/assets/images/logo.svg') }}" alt="Logo" class="footer-logo"/>
-                <p class="footer-desc">
-                    بلاتينيوم للاستقدام يقدم خدمات استقدام العمالة المنزلية باحترافية وجودة مميزة.
-                </p>
-                @if(isset($settings))
-
-                    <div class="tax-info">
-                        <img src="{{ showFile($settings->zatch_logo) }}"
-                             alt="شعار هيئة الزكاة والضريبة والجمارك"
-                             class="tax-logo"/>
-                        <p class="tax-number">الرقم الضريبي: <span>{{$settings->tax_number}}</span></p>
-                    </div>
-                @else
-
-                    <div class="tax-info">
-                        <img src="{{ asset('site/assets/images/zatca-logo.png') }}"
-                             alt="شعار هيئة الزكاة والضريبة والجمارك"
-                             class="tax-logo"/>
-                        <p class="tax-number">الرقم الضريبي: <span>314232024200003</span></p>
-                    </div>
-                @endif
-
-            </div>
-        @endif
+        </div>
 
         <!-- خدماتنا -->
         <div class="col-6 col-lg-2 col-md-6 mb-4">
@@ -79,17 +64,10 @@
         <div class="col-12 col-lg-3 col-md-6 mb-4">
             <h6 class="footer-title">{{ __("ingaz.contact_us") }}</h6>
             <ul class="footer-contact">
-                @if(isset($settings))
-                    <li><i class="fa-solid fa-map-marker-alt"></i> {{ $settings->location }}</li>
-                    <li><i class="fas fa-envelope"></i> {{ $settings->email }}</li>
-                    <li><i class="fa-solid fa-phone"></i> {{ $settings->phone }}</li>
-                    <li><i class="fa-solid fa-headset"></i> {{ $settings->other_phone }}</li>
-                @else
-                    <li><i class="fa-solid fa-map-marker-alt"></i> الدمام 32413</li>
-                    <li><i class="fas fa-envelope"></i> info@platinumeastern.com</li>
-                    <li><i class="fa-solid fa-phone"></i> 920003174</li>
-                    <li><i class="fa-solid fa-headset"></i> 0552333182</li>
-                @endif
+                <li><i class="fa-solid fa-map-marker-alt"></i> {{ $footerLocation }}</li>
+                <li><i class="fas fa-envelope"></i> {{ $footerEmail }}</li>
+                <li><i class="fa-solid fa-phone"></i> {{ $footerPhone }}</li>
+                <li><i class="fa-solid fa-headset"></i> {{ $footerOtherPhone }}</li>
             </ul>
         </div>
     </div>
@@ -104,26 +82,26 @@
                 <a target="_blank" href="https://platinum.istqdim.com"> شركة بلاتنيوم الشرقية </a>
             </p>
             <ul class="footer-social">
-                @if($settings->facebook)
+                @if(isset($settings) && $settings->facebook)
                     <li><a href="{{ $settings->facebook }}"><i class="fab fa-facebook-f"></i></a></li>
                 @endif
-                @if($settings->twitter)
+                @if(isset($settings) && $settings->twitter)
                     <li><a href="{{ $settings->twitter }}"><i class="fab fa-twitter"></i></a></li>
                 @endif
-                @if($settings->instagram)
+                @if(isset($settings) && $settings->instagram)
                     <li><a href="{{ $settings->instagram }}"><i class="fab fa-instagram"></i></a></li>
                 @endif
-                @if($settings->snapchat)
+                @if(isset($settings) && $settings->snapchat)
                     <li><a href="{{ $settings->snapchat }}"><i class="fab fa-snapchat-ghost"></i></a></li>
                 @endif
-                @if($settings->whatsapp)
+                @if(isset($settings) && $settings->whatsapp)
                     <li>
                         <a href="https://wa.me/{{ ltrim($settings->whatsapp, '+') }}" target="_blank" rel="noopener">
                             <i class="fab fa-whatsapp"></i>
                         </a>
                     </li>
                 @endif
-                @if($settings->email)
+                @if(isset($settings) && $settings->email)
                     <li>
                         <a href="mailto:{{ $settings->email }}"><i class="fas fa-envelope"></i></a>
                     </li>

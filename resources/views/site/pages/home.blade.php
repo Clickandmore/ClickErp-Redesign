@@ -6,15 +6,47 @@
     .hero-services {
         position: relative;
         z-index: 2;
-        margin: -80px auto 0;
-        background: #f9f9f9;
+        margin: -90px auto 0;
         width: min(100% - 24px, 1320px);
-        padding: 12px;
-        border-radius: 24px;
-        box-shadow: var(--BigShadow);
+        padding: 36px 28px 26px;
+        border-radius: 32px;
+        --platinum-navy: #0f1b40;
+        --platinum-blue: #1763a6;
+        --platinum-cyan: #23b7d9;
+        --platinum-slate: #7c83a6;
+        --platinum-light: #f2f2f2;
+        --platinum-ink: #0b1430;
+        background:
+            radial-gradient(120% 120% at 110% -10%, rgba(35, 183, 217, 0.2) 0%, rgba(255, 255, 255, 0) 60%),
+            radial-gradient(120% 120% at -10% 110%, rgba(23, 99, 166, 0.18) 0%, rgba(255, 255, 255, 0) 60%),
+            linear-gradient(180deg, #f8f9fc 0%, #ffffff 100%);
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+        overflow: hidden;
         display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
+        flex-direction: column;
+        gap: 24px;
+
+        &::before {
+            content: "";
+            position: absolute;
+            inset: 16px;
+            border-radius: 26px;
+            border: 1px dashed rgba(23, 99, 166, 0.25);
+            pointer-events: none;
+        }
+
+        &::after {
+            content: "";
+            position: absolute;
+            width: 280px;
+            height: 280px;
+            right: -140px;
+            top: -140px;
+            background: radial-gradient(circle, rgba(23, 99, 166, 0.25), rgba(255, 255, 255, 0) 70%);
+            filter: blur(2px);
+            animation: heroGlow 10s ease-in-out infinite;
+            pointer-events: none;
+        }
 
         .section-header {
             width: 100%;
@@ -23,211 +55,398 @@
             align-items: center;
             justify-content: center;
             flex-direction: column;
-            margin: 0 auto 20px;
+            gap: 10px;
+            margin: 0 auto;
 
-            .badge {
-
+            .kicker {
+                display: inline-flex;
                 align-items: center;
                 gap: 8px;
-                background-color: var(--mainColor10);
-                color: var(--mainColor);
-                padding: 8px 18px;
+                padding: 6px 16px;
+                border-radius: 999px;
+                background: rgba(23, 99, 166, 0.12);
+                color: var(--platinum-navy);
                 font-size: 14px;
                 font-weight: 600;
-                margin: 10px 0;
-                border-radius: 30px;
+                letter-spacing: 0.2px;
 
                 i {
-                    color: var(--mainColor);
-                    font-size: 16px;
+                    font-size: 14px;
                 }
             }
 
-            .section-title {
-                font-size: 22px;
-                font-weight: 700;
-                color: black;
-                margin-bottom: 10px;
+            .title {
+                font-size: clamp(24px, 2.3vw + 18px, 40px);
+                font-weight: 800;
+                color: var(--platinum-navy);
+                margin: 0;
+                position: relative;
+                display: inline-block;
+
+                &::after {
+                    content: "";
+                    display: block;
+                    width: 64px;
+                    height: 4px;
+                    background: var(--platinum-blue);
+                    border-radius: 999px;
+                    margin: 12px auto 0;
+                    box-shadow: 0 8px 18px rgba(23, 99, 166, 0.35);
+                }
             }
 
-            p {
-                color: #727272;
-            }
-        }
-
-        .expertise {
-            position: absolute;
-            left: 50%;
-            top: -120px;
-            transform: translateX(-50%);
-            width: 220px;
-            aspect-ratio: 1;
-            z-index: -1;
-            background: #f9f9f9;
-            border-radius: 50%;
-            padding: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-
-            img {
-                width: 100%;
-                height: 100%;
-                object-fit: cover;
-                border-radius: 50%;
-            }
-
-            &::after {
-                content: "";
-                position: absolute;
-                top: 55%;
-                left: 0;
-                width: 100%;
-                height: 50%;
-                background: #f9f9f9;
+            .hint {
+                color: var(--platinum-slate);
+                margin: 0;
+                font-size: 16px;
+                line-height: 1.8;
+                max-width: 720px;
             }
         }
 
         .services-container {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            padding: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 22px;
+            padding: 6px;
+        }
 
-            a {
-                color: black;
+        .service-card {
+            --accent: var(--platinum-blue);
+            --accent-soft: rgba(23, 99, 166, 0.18);
+            position: relative;
+            background-image:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.82) 0%, rgba(255, 255, 255, 0.86) 100%),
+                radial-gradient(circle at 2px 2px, rgba(23, 99, 166, 0.05) 1.5px, transparent 0),
+                var(--card-bg, none),
+                var(--card-image, none);
+            background-size: cover, 20px 20px, cover, cover;
+            background-position: center, top left, center, center;
+            border-radius: 22px;
+            padding: 22px 20px 18px;
+            text-align: right;
+            transition: transform 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            border-top: 4px solid var(--accent);
+            display: grid;
+            gap: 12px;
+            align-content: start;
+            height: 100%;
+            overflow: hidden;
+            isolation: isolate;
+            animation: serviceFloat 7s ease-in-out infinite;
+            animation-delay: var(--float-delay, 0s);
+
+            &::before {
+                content: "";
+                position: absolute;
+                inset: -60% -10% auto;
+                height: 180px;
+                background: radial-gradient(closest-side, var(--accent-soft) 0%, rgba(255, 255, 255, 0) 70%);
+                opacity: 0.8;
+                z-index: -1;
+                animation: cardSheen 12s ease-in-out infinite;
             }
 
-            @media (max-width: 992px) {
-                grid-template-columns: repeat(2, 1fr);
+            &::after {
+                content: "";
+                position: absolute;
+                inset: auto -40px -40px auto;
+                width: 160px;
+                height: 160px;
+                background: radial-gradient(circle, var(--accent-soft), rgba(255, 255, 255, 0) 70%);
+                opacity: 0.5;
+                z-index: -1;
             }
 
-            @media (max-width: 576px) {
-                grid-template-columns: 1fr;
+            &:hover {
+                transform: translateY(-10px);
+                box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+                border-color: rgba(23, 99, 166, 0.25);
+                animation-play-state: paused;
             }
 
-            .service-card {
-                background-color: var(--white);
-                border-radius: 15px;
-                padding: 25px;
-                text-align: center;
-                transition: all 0.3s ease;
-                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                height: 100%;
+            &:hover::before {
+                animation-play-state: paused;
+            }
 
-                &:hover {
-                    transform: translateY(-5px);
-                    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-                }
+            &.blue {
+                --accent: var(--platinum-navy);
+                --accent-soft: rgba(15, 27, 64, 0.2);
+                --card-bg: radial-gradient(140px 140px at 15% 20%, rgba(15, 27, 64, 0.28), transparent 70%),
+                    radial-gradient(200px 200px at 85% 10%, rgba(35, 183, 217, 0.18), transparent 70%);
+            }
 
-                .icon {
-                    font-size: 35px;
-                    height: 60px;
-                    width: 60px;
-                    margin-bottom: 15px;
-                    padding: 15px;
-                    border-radius: 30%;
+            &.green {
+                --accent: var(--platinum-blue);
+                --accent-soft: rgba(23, 99, 166, 0.2);
+                --card-bg: radial-gradient(140px 140px at 20% 20%, rgba(23, 99, 166, 0.22), transparent 70%),
+                    radial-gradient(200px 200px at 85% 10%, rgba(35, 183, 217, 0.18), transparent 70%);
+            }
+
+            &.purple {
+                --accent: var(--platinum-cyan);
+                --accent-soft: rgba(35, 183, 217, 0.22);
+                --card-bg: radial-gradient(140px 140px at 20% 20%, rgba(35, 183, 217, 0.24), transparent 70%),
+                    radial-gradient(200px 200px at 85% 15%, rgba(23, 99, 166, 0.16), transparent 70%);
+            }
+
+            &.orange {
+                --accent: var(--platinum-slate);
+                --accent-soft: rgba(124, 131, 166, 0.22);
+                --card-bg: radial-gradient(140px 140px at 25% 25%, rgba(124, 131, 166, 0.25), transparent 70%),
+                    radial-gradient(200px 200px at 90% 10%, rgba(23, 99, 166, 0.16), transparent 70%);
+            }
+
+            &.teal {
+                --accent: var(--platinum-blue);
+                --accent-soft: rgba(23, 99, 166, 0.18);
+                --card-bg: radial-gradient(140px 140px at 15% 25%, rgba(23, 99, 166, 0.22), transparent 70%),
+                    radial-gradient(200px 200px at 85% 20%, rgba(35, 183, 217, 0.2), transparent 70%);
+            }
+
+            &.red {
+                --accent: var(--platinum-navy);
+                --accent-soft: rgba(15, 27, 64, 0.2);
+                --card-bg: radial-gradient(140px 140px at 15% 20%, rgba(15, 27, 64, 0.22), transparent 70%),
+                    radial-gradient(200px 200px at 90% 10%, rgba(124, 131, 166, 0.2), transparent 70%);
+            }
+
+            &.gold {
+                --accent: var(--platinum-cyan);
+                --accent-soft: rgba(35, 183, 217, 0.22);
+                --card-bg: radial-gradient(140px 140px at 20% 25%, rgba(35, 183, 217, 0.25), transparent 70%),
+                    radial-gradient(200px 200px at 85% 10%, rgba(23, 99, 166, 0.2), transparent 70%);
+            }
+
+            .icon {
+                font-size: 26px;
+                height: 64px;
+                width: 64px;
+                border-radius: 18px;
+                display: grid;
+                place-items: center;
+                margin-bottom: 4px;
+                background: linear-gradient(145deg, rgba(255, 255, 255, 0.85), var(--accent-soft));
+                color: var(--accent);
+                box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06),
+                    0 12px 20px rgba(15, 23, 42, 0.08);
+                transition: transform 0.4s ease, box-shadow 0.4s ease;
+            }
+
+            &:hover .icon {
+                transform: translateY(-4px) scale(1.04);
+                box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.1),
+                    0 16px 30px rgba(15, 23, 42, 0.14);
+            }
+
+            h4 {
+                font-size: 19px;
+                margin: 0;
+                font-weight: 700;
+                color: var(--platinum-navy);
+            }
+
+            p {
+                font-size: 14px;
+                color: var(--platinum-slate);
+                margin: 0;
+                line-height: 1.7;
+                min-height: 42px;
+            }
+
+            ul {
+                padding: 0;
+                list-style: none;
+                text-align: right;
+                margin: 0;
+                display: grid;
+                gap: 8px;
+
+                li {
+                    font-size: 13px;
+                    color: var(--platinum-ink);
                     display: flex;
-                    justify-content: center;
                     align-items: center;
-                    margin-inline: auto;
+                    justify-content: flex-start;
+                    gap: 8px;
+                    background: rgba(23, 99, 166, 0.08);
+                    padding: 6px 10px;
+                    border-radius: 999px;
 
-                    &.orange {
-                        background-color: #ffe7d3;
-                        color: #ff8c00;
-                    }
-
-                    &.blue {
-                        background-color: var(--mainColor10);
-                        color: var(--mainColor);
-                    }
-
-                    &.purple {
-                        background-color: #ead3ff;
-                        color: #7b2cbf;
-                    }
-
-                    &.green {
-                        background-color: #d3ffd8;
-                        color: #28a745;
+                    &::before {
+                        content: "";
+                        width: 10px;
+                        height: 10px;
+                        border-radius: 50%;
+                        background-color: var(--accent);
+                        box-shadow: 0 0 0 3px var(--accent-soft);
+                        flex-shrink: 0;
                     }
                 }
+            }
 
-                h4 {
-                    font-size: 18px;
-                    margin-bottom: 10px;
-                    font-weight: bold;
+            .service-actions {
+                margin-top: auto;
+                display: flex;
+                justify-content: flex-start;
+            }
+
+            .service-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 10px 18px;
+                border-radius: 999px;
+                background: var(--accent);
+                color: #fff;
+                font-size: 13px;
+                font-weight: 600;
+                text-decoration: none;
+                box-shadow: 0 10px 20px rgba(15, 23, 42, 0.16);
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+                i {
+                    font-size: 12px;
                 }
+            }
 
-                p {
-                    font-size: 14px;
-                    color: #666;
-                    margin-bottom: 10px;
-                    min-height: 40px;
-                }
+            .service-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 14px 24px rgba(15, 23, 42, 0.2);
+                color: #fff;
+            }
 
-                ul {
-                    padding: 0;
-                    list-style: none;
-                    text-align: right;
-
-                    li {
-                        font-size: 13px;
-                        color: #444;
-                        margin-bottom: 8px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: flex-start;
-                        gap: 8px;
-
-                        &::before {
-                            content: "✔";
-                            font-size: 11px;
-                            font-weight: bold;
-                            color: #fff;
-                            display: inline-flex;
-                            justify-content: center;
-                            align-items: center;
-                            width: 18px;
-                            height: 18px;
-                            border-radius: 50%;
-                        }
-                    }
-                }
-
-                &.orange ul li::before {
-                    background-color: #ff8c00;
-                }
-
-                &.blue ul li::before {
-                    background-color: var(--mainColor);
-                }
-
-                &.purple ul li::before {
-                    background-color: #7b2cbf;
-                }
-
-                &.green ul li::before {
-                    background-color: #28a745;
-                }
+            .service-btn:focus-visible {
+                outline: 2px solid rgba(15, 23, 42, 0.4);
+                outline-offset: 3px;
             }
         }
 
-
-        .warning {
+        .service-alert {
             width: 100%;
-            background-color: #c10e0e;
-            color: var(--white);
-            text-align: center;
-            padding: 12px;
-            border-radius: 12px;
-            margin-top: 10px;
-            font-weight: 500;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 16px;
+            align-items: center;
+            background: linear-gradient(135deg, rgba(23, 99, 166, 0.12), #ffffff 70%);
+            color: var(--platinum-navy);
+            padding: 18px 20px;
+            border-radius: 18px;
+            border: 1px solid rgba(23, 99, 166, 0.25);
+            box-shadow: 0 16px 30px rgba(15, 27, 64, 0.12);
+            position: relative;
+            overflow: hidden;
+            text-align: right;
+
+            &::after {
+                content: "";
+                position: absolute;
+                width: 200px;
+                height: 200px;
+                left: -60px;
+                bottom: -80px;
+                background: radial-gradient(circle, rgba(35, 183, 217, 0.2), rgba(255, 255, 255, 0) 70%);
+                pointer-events: none;
+            }
+
+            .alert-icon {
+                width: 52px;
+                height: 52px;
+                border-radius: 16px;
+                display: grid;
+                place-items: center;
+                background: #fff;
+                color: var(--platinum-blue);
+                box-shadow: inset 0 0 0 1px rgba(23, 99, 166, 0.25),
+                    0 10px 18px rgba(15, 23, 42, 0.08);
+                font-size: 20px;
+            }
+
+            .alert-title {
+                display: block;
+                font-weight: 700;
+                font-size: 16px;
+                margin-bottom: 4px;
+            }
+
+            p {
+                margin: 0;
+                color: var(--platinum-slate);
+                font-size: 15px;
+                line-height: 1.8;
+            }
+        }
+
+        @media (max-width: 992px) {
+            margin: -70px auto 0;
+            padding: 28px 22px 22px;
+        }
+
+        @media (max-width: 576px) {
+            margin: -50px auto 0;
+            padding: 22px 18px;
+
+            .section-header .title {
+                font-size: 26px;
+            }
+
+            .service-alert {
+                grid-template-columns: 1fr;
+                text-align: right;
+            }
+        }
+    }
+
+    @keyframes heroGlow {
+        0%,
+        100% {
+            transform: translateY(0);
+            opacity: 0.7;
+        }
+        50% {
+            transform: translateY(12px);
+            opacity: 1;
+        }
+    }
+
+    @keyframes serviceFloat {
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(-6px);
+        }
+    }
+
+    @keyframes cardSheen {
+        0%,
+        100% {
+            transform: translateY(0);
+            opacity: 0.6;
+        }
+        50% {
+            transform: translateY(10px);
+            opacity: 1;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .hero-services {
+            &::after {
+                animation: none;
+            }
+
+            .service-card {
+                animation: none;
+                transition: none;
+            }
+
+            .service-card::before {
+                animation: none;
+            }
         }
     }
 
@@ -348,7 +567,7 @@
         </div>
     @endif
     <!-- main slider -->
-    <section class="mainSlider">
+    <section class="mainSlider" data-aos="fade-up" data-aos-duration="900">
         <div class="swiper">
             <div class="swiper-wrapper">
                 @forelse($sliders as $slider)
@@ -428,6 +647,10 @@
             </p>
         </div> --}}
         <div class="section-header" data-aos="fade-up" data-aos-duration="1000">
+            <span class="kicker">
+                <i class="fa-solid fa-star"></i>
+                {{ __('ingaz.musaned_services_subtitle') }}
+            </span>
             <h1 class="title"> {{ __('web.our_services') }}</h1>
             <p class="hint">
                 {{ isset($whatDoSetting) ? $whatDoSetting->description : ' خدماتنا مرخصه من وزاره الموارد البشريه والتنميه الاجتماعية لضمان راحتك وراحه اسرتك' }}
@@ -436,6 +659,12 @@
         <div class="services-container">
             @php
                 $colors = ['green', 'blue', 'red', 'orange', 'purple', 'teal'];
+                $serviceImages = [
+                    'estqdam' => asset('site/assets/images/worker.webp'),
+                    'egar' => asset('site/assets/images/service2.webp'),
+                    'transfer' => asset('site/assets/images/passport-bg.webp'),
+                ];
+                $defaultServiceImage = asset('site/assets/images/bg5.webp');
                 // $displayWhatDos = ($whatDos ?? collect())->take(3);
                 $displayWhatDos = ($whatDos ?? collect())->take(4);
 
@@ -498,79 +727,130 @@
                         default:
                             $color = $colors[array_rand($colors)];
                     }
+                    $cardImage = $serviceImages[$whatDo->type] ?? $defaultServiceImage;
                 @endphp
-                <a href="{{ route('site.all-workers.index') }}?type={{ $whatDo->type }}">
-                    <div class="service-card {{ $color }}">
-                        <div class="icon {{ $color }}">
-                            <i class="{{ $whatDo->icon }}"></i>
-                        </div>
-                        <h4>{{ $whatDo->title }}</h4>
-                        <p>
-                            {{ $whatDo->description }}
-                        </p>
-                        <ul>
-                            @foreach ($whatDo->items as $item)
-                                <li>{{ $item->title }}</li>
-                            @endforeach
-                        </ul>
+                <div class="service-card {{ $color }}" data-aos="fade-up" data-aos-delay="{{ $loop->index * 100 }}"
+                    style="--float-delay: {{ $loop->index * 0.2 }}s; --card-image: url('{{ $cardImage }}');">
+                    <div class="icon {{ $color }}">
+                        <i class="{{ $whatDo->icon }}"></i>
                     </div>
-                </a>
+                    <h4>{{ $whatDo->title }}</h4>
+                    <p>
+                        {{ $whatDo->description }}
+                    </p>
+                    <ul>
+                        @foreach ($whatDo->items as $item)
+                            <li>{{ $item->title }}</li>
+                        @endforeach
+                    </ul>
+                    <div class="service-actions">
+                        <a href="{{ route('site.all-workers.index') }}?type={{ $whatDo->type }}" class="service-btn">
+                            {{ __('web.request_service') }}
+                            <i class="fa-solid fa-arrow-left"></i>
+                        </a>
+                    </div>
+                </div>
             @empty
-                <a href="{{ route('site.all-workers.index') }}?type=estqdam">
-                    <div class="service-card green">
-                        <div class="icon green">
-                            <i class="fa-solid fa-user-check"></i>
-                        </div>
-                        <h4>الاستقدام</h4>
-                        <p>
-                            خدمة استقدام العمالة المنزلية والمهنية من الخارج للعمل داخل
-                            المملكة.
-                        </p>
-                        <ul>
-                            <li>سهولة الاستقدام</li>
-                            <li>الجودة</li>
-                            <li>نظام تتبع دقيق</li>
-                        </ul>
+                <div class="service-card green" data-aos="fade-up" data-aos-delay="0"
+                    style="--float-delay: 0s; --card-image: url('{{ asset('site/assets/images/worker.webp') }}');">
+                    <div class="icon green">
+                        <i class="fa-solid fa-user-check"></i>
                     </div>
-                </a>
-                <a href="{{ route('site.all-workers.index') }}?type=egar">
-                    <div class="service-card purple">
-                        <div class="icon purple">
-                            <i class="fa-solid fa-clock"></i>
-                        </div>
-                        <h4>تأجير العمالة الشهري</h4>
-                        <p>خدمة تأجير العمالة للشهر الواحد مع ضمان مرونة وجودة.</p>
-                        <ul>
-                            <li>مرونة عالية</li>
-                            <li>جودة مضمونة</li>
-                            <li>تسليم سريع</li>
-                        </ul>
+                    <h4>الاستقدام</h4>
+                    <p>
+                        خدمة استقدام العمالة المنزلية والمهنية من الخارج للعمل داخل
+                        المملكة.
+                    </p>
+                    <ul>
+                        <li>سهولة الاستقدام</li>
+                        <li>الجودة</li>
+                        <li>نظام تتبع دقيق</li>
+                    </ul>
+                    <div class="service-actions">
+                        <a href="{{ route('site.all-workers.index') }}?type=estqdam" class="service-btn">
+                            {{ __('web.request_service') }}
+                            <i class="fa-solid fa-arrow-left"></i>
+                        </a>
                     </div>
-                </a>
-                <a href="{{ route('site.all-workers.index') }}?type=transfer">
-                    <div class="service-card blue">
-                        <div class="icon blue">
-                            <i class="fa-solid fa-truck-fast"></i>
-                        </div>
-                        <h4>النقل الفوري للعمالة</h4>
-                        <p>خدمة نقل العمالة لمشاريعك بسرعة وكفاءة عالية.</p>
-                        <ul>
-                            <li>النقل السريع</li>
-                            <li>التسليم الفوري</li>
-                            <li>الجودة</li>
-                        </ul>
+                </div>
+                <div class="service-card purple" data-aos="fade-up" data-aos-delay="100"
+                    style="--float-delay: 0.2s; --card-image: url('{{ asset('site/assets/images/service2.webp') }}');">
+                    <div class="icon purple">
+                        <i class="fa-solid fa-clock"></i>
                     </div>
-                </a>
+                    <h4>تأجير العمالة الشهري</h4>
+                    <p>خدمة تأجير العمالة للشهر الواحد مع ضمان مرونة وجودة.</p>
+                    <ul>
+                        <li>مرونة عالية</li>
+                        <li>جودة مضمونة</li>
+                        <li>تسليم سريع</li>
+                    </ul>
+                    <div class="service-actions">
+                        <a href="{{ route('site.all-workers.index') }}?type=egar" class="service-btn">
+                            {{ __('web.request_service') }}
+                            <i class="fa-solid fa-arrow-left"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="service-card blue" data-aos="fade-up" data-aos-delay="200"
+                    style="--float-delay: 0.4s; --card-image: url('{{ asset('site/assets/images/passport-bg.webp') }}');">
+                    <div class="icon blue">
+                        <i class="fa-solid fa-truck-fast"></i>
+                    </div>
+                    <h4>النقل الفوري للعمالة</h4>
+                    <p>خدمة نقل العمالة لمشاريعك بسرعة وكفاءة عالية.</p>
+                    <ul>
+                        <li>النقل السريع</li>
+                        <li>التسليم الفوري</li>
+                        <li>الجودة</li>
+                    </ul>
+                    <div class="service-actions">
+                        <a href="{{ route('site.all-workers.index') }}?type=transfer" class="service-btn">
+                            {{ __('web.request_service') }}
+                            <i class="fa-solid fa-arrow-left"></i>
+                        </a>
+                    </div>
+                </div>
             @endforelse
+            <div class="service-card gold" data-aos="fade-up" data-aos-delay="350"
+                style="--float-delay: 0.6s; --card-image: url('{{ asset('site/assets/images/musanedMap.svg') }}');">
+                <div class="icon gold">
+                    <i class="fa-solid fa-building-columns"></i>
+                </div>
+                <h4>صفحة الشركة في منصة مساند</h4>
+                <p>
+                    استعرض ملف الشركة الرسمي في منصة مساند وتفاصيل الاعتماد والخدمات المتاحة
+                    بكل وضوح.
+                </p>
+                <ul>
+                    <li>بيانات موثقة</li>
+                    <li>تفاصيل الخدمات والعروض</li>
+                    <li>سهولة الوصول للملف الرسمي</li>
+                </ul>
+                <div class="service-actions">
+                    <a href="https://musaned.com.sa/ar/marketplace?page=0&params=%7B%22office_name%22:%22%D8%B4%D8%B1%D9%83%D8%A9+%D8%A8%D9%84%D8%A7%D8%AA%D9%8A%D9%86%D9%8A%D9%88%D9%85+%D8%A7%D9%84%D8%B4%D8%B1%D9%82%D9%8A%D8%A9+%D9%84%D9%84%D8%A7%D8%B3%D8%AA%D9%82%D8%AF%D8%A7%D9%85+%22%7D&officeNameSearch=%D8%B4%D8%B1%D9%83%D8%A9+%D8%A8%D9%84%D8%A7%D8%AA%D9%8A%D9%86%D9%8A%D9%88%D9%85+%D8%A7%D9%84%D8%B4%D8%B1%D9%82%D9%8A%D8%A9+%D9%84%D9%84%D8%A7%D8%B3%D8%AA%D9%82%D8%AF%D8%A7%D9%85+"
+                        class="service-btn" target="_blank" rel="noopener">
+                        {{ __('web.request_service') }}
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    </a>
+                </div>
+            </div>
         </div>
         <!-- التحذير -->
-        <div class="warning">
-            {{ __('ingaz.warning') }} :
-            @if (isset($settings))
-                {{ app()->getLocale() == 'ar' ? $settings->note_ar : $settings->note_en }}
-            @else
-                {{ 'ingaz.warning_text' }}
-            @endif
+        <div class="service-alert" data-aos="fade-up" data-aos-delay="150" role="alert">
+            <div class="alert-icon">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="alert-content">
+                <span class="alert-title">{{ __('ingaz.warning') }}</span>
+                <p>
+                    @if (isset($settings))
+                        {{ app()->getLocale() == 'ar' ? $settings->note_ar : $settings->note_en }}
+                    @else
+                        {{ __('ingaz.warning_text') }}
+                    @endif
+                </p>
+            </div>
         </div>
     </section>
 
@@ -580,7 +860,7 @@
         $aboutImage = optional($abouts)->image ? showFile($abouts->image) : asset('site/assets/images/about.webp');
     @endphp
     <!-- about sec  -->
-    <section class="about-section" id="about">
+    <section class="about-section" id="about" data-aos="fade-up" data-aos-duration="900">
         <div class="container">
             <div class="about-content">
                 <div class="about-text">
@@ -634,7 +914,7 @@
             </div>
         </div>
     </section>
-    <section class="countries">
+    <section class="countries" data-aos="fade-up" data-aos-duration="900">
         <div class="container">
             {{-- <div class="headTitle text-center">
                 <h2>دول الاستقدام</h2>
@@ -985,7 +1265,8 @@
         </div>
     </section>
     <!-- ================ services ================= -->
-    <section class="services-sec" style="height: fit-content" id="services">
+    <section class="services-sec" style="height: fit-content" id="services" data-aos="fade-up"
+        data-aos-duration="900">
         <div class="container">
             {{-- <div class="headTitle" data-aos="fade-up">
                 <h2>{{ __('ingaz.our_services') }}</h2>
@@ -1072,7 +1353,7 @@
         </div>
     </section>
     <!-- statistics sec  -->
-    <section class="statistics" id="statistics">
+    <section class="statistics" id="statistics" data-aos="fade-up" data-aos-duration="900">
         <div class="container">
             <div class="section-header" data-aos="fade-up" data-aos-duration="1000">
                 <h1 class="title">{{ __('ingaz.Statistics') }}</h1>
@@ -1153,7 +1434,7 @@
     </section>
 
     <!-- steps sec  -->
-    <section class="steps" id="steps" style="position: relative">
+    <section class="steps" id="steps" style="position: relative" data-aos="fade-up" data-aos-duration="900">
         <div class="container">
             <!-- Section Title -->
             {{-- <div class="SectionTitle">
@@ -1265,7 +1546,7 @@
     </section>
 
     <!-- ================ requirements ================= -->
-    <section class="requirements">
+    <section class="requirements" data-aos="fade-up" data-aos-duration="900">
         <div class="container">
             {{-- <div class="headTitle">
                 <h2 data-aos="fade-up">{{ __('ingaz.Recruitment_requirements') }} </h2>
@@ -1389,7 +1670,7 @@
         </div>
     </section>
     <!-- ================ musaned-platform ================= -->
-    <section class="video-section" id="promo-video">
+    <section class="video-section" id="promo-video" data-aos="fade-up" data-aos-duration="900">
         <div class="container">
             <h2 class="video-title" data-aos="fade-up" data-aos-duration="800">
                 {{ __('ingaz.video_title') }}
@@ -1409,7 +1690,7 @@
 
 
     <!-- ================ contact Form ================= -->
-    <section class="contactForm">
+    <section class="contactForm" data-aos="fade-up" data-aos-duration="900">
         <div class="container">
             <div class="row">
                 <div class="col-md-6 p-2 mb-5 mb-md-0 wow fadeInUp">
@@ -1468,7 +1749,7 @@
                     </form>
                 </div>
                 <div class="col-md-6 p-2 wow fadeInUp">
-                    <section class="googleMap">
+                    <section class="googleMap" data-aos="fade-up" data-aos-duration="900">
                         {{-- @dd($settings->map_link) --}}
                         @if ($settings->map_link)
                             <iframe src="{{ $settings->map_link }}" frameborder="0" style="border: 0"

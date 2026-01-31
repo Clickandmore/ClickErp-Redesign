@@ -6,6 +6,7 @@
     'Contact_Us' => 'تواصل معنا',
     'Staff_entry' => 'دخول الموظفين',
     'Know_More' => 'اعرف المزيد',
+    'request_service' => 'طلب الخدمة',
     'Projects' => 'المشاريع',
     'Our_Business' => 'أعمالنا',
     'See_All' => 'اظهار الكل',
