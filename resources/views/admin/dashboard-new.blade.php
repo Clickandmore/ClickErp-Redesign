@@ -40,19 +40,26 @@
             </div>
             <div class="hero-micro-grid">
                 <div>
-                    <small>طلبات اليوم</small>
-                    <strong>{{ number_format($ordersStats['today'] ?? 0) }}</strong>
+                    <small data-range-label data-today="طلبات اليوم" data-week="طلبات هذا الأسبوع"
+                        data-month="طلبات هذا الشهر" data-total="إجمالي الطلبات">طلبات اليوم</small>
+                    <strong data-range-value data-range-format="number" data-today="{{ $ordersStats['today'] ?? 0 }}"
+                        data-week="{{ $ordersStats['thisWeek'] ?? 0 }}" data-month="{{ $ordersStats['thisMonth'] ?? 0 }}"
+                        data-total="{{ $ordersStats['total'] ?? 0 }}">{{ number_format($ordersStats['today'] ?? 0) }}</strong>
                 </div>
                 <div>
-                    <small>عقود قيد المتابعة</small>
-                    <strong>{{ number_format($contractsStats['pending'] ?? 0) }}</strong>
+                    <small data-range-label data-today="عقود اليوم" data-week="عقود هذا الأسبوع"
+                        data-month="عقود هذا الشهر" data-total="إجمالي العقود">عقود اليوم</small>
+                    <strong data-range-value data-range-format="number" data-today="{{ $contractsStats['today'] ?? 0 }}"
+                        data-week="{{ $contractsStats['thisWeek'] ?? 0 }}"
+                        data-month="{{ $contractsStats['thisMonth'] ?? 0 }}"
+                        data-total="{{ $contractsStats['total'] ?? 0 }}">{{ number_format($contractsStats['today'] ?? 0) }}</strong>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="stat-row">
-        <div class="stat-card" style="background: linear-gradient(135deg,#0d5c63,#0a3f44);">
+        <div class="stat-card is-1">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
                     <small class="text-light opacity-75">طلبات الاستقدام</small>
@@ -72,7 +79,7 @@
             </div>
         </div>
 
-        <div class="stat-card" style="background: linear-gradient(135deg,#0a4d8c,#082f51);">
+        <div class="stat-card is-2">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
                     <small class="text-light opacity-75">عقود الاستقدام</small>
@@ -92,7 +99,7 @@
             </div>
         </div>
 
-        <div class="stat-card" style="background: linear-gradient(135deg,#1f1f39,#0c0c1c);">
+        <div class="stat-card is-3">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
                     <small class="text-light opacity-75">السير الذاتية</small>
@@ -111,7 +118,7 @@
             </div>
         </div>
 
-        <div class="stat-card" style="background: linear-gradient(135deg,#b87900,#6e4c00);">
+        <div class="stat-card is-4">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
                     <small class="text-light opacity-75">العملاء</small>
@@ -151,7 +158,6 @@
                 'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::New->value] ?? 0,
                 'meta' => 'اليوم: ' . number_format($contractsStats['today'] ?? 0),
                 'video' => asset('admin/assets/img/new-dashboard/contracted.webm'),
-                'bg' => 'linear-gradient(145deg,#fdf4ff,#eef2ff)'
             ],
             [
                 'title' => 'حركة وصول اليوم',
@@ -159,7 +165,6 @@
                 'value' => $arrivalTodayCount,
                 'meta' => 'تذاكر جاهزة: ' . number_format($ticketsReady),
                 'video' => asset('admin/assets/img/new-dashboard/daily-arraivel.webm'),
-                'bg' => 'linear-gradient(145deg,#e0f7ff,#edf6ff)'
             ],
             [
                 'title' => 'المتأخرة بالوصول',
@@ -167,7 +172,6 @@
                 'value' => $delayedWithoutTickets,
                 'meta' => 'مطلوب متابعة عاجلة',
                 'video' => asset('admin/assets/img/new-dashboard/ezgif.com-resize.webm'),
-                'bg' => 'linear-gradient(145deg,#fff1e1,#ffe7f0)'
             ],
             [
                 'title' => 'عقود منتهية',
@@ -175,7 +179,6 @@
                 'value' => $expiredLongTerm,
                 'meta' => 'ضمان ' . number_format($warrantyActive) . ' | مكتملة ' . number_format($completedContracts) . ' | مرتجع ' . number_format($returnedContracts),
                 'video' => asset('admin/assets/img/new-dashboard/ended-contracted.webm'),
-                'bg' => 'linear-gradient(145deg,#eafbea,#dcfce7)'
             ]
         ];
 
@@ -185,28 +188,28 @@
                 'subtitle' => __('ingaz.new'),
                 'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::New->value] ?? 0,
                 'icon' => 'fas fa-file-signature',
-                'color' => '#0ea5e9'
+                'color' => 'var(--dash-chart-1)'
             ],
             [
                 'title' => __('ingaz.msaned'),
                 'subtitle' => 'بعد الاعتماد',
                 'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::Msaned->value] ?? 0,
                 'icon' => 'fas fa-folder-open',
-                'color' => '#06b6d4'
+                'color' => 'var(--dash-chart-2)'
             ],
             [
                 'title' => __('ingaz.tafwed'),
                 'subtitle' => 'إجراءات التفويض',
                 'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::Tafwed->value] ?? 0,
                 'icon' => 'fas fa-key',
-                'color' => '#2563eb'
+                'color' => 'var(--dash-chart-3)'
             ],
             [
                 'title' => __('ingaz.taffez'),
                 'subtitle' => 'التفييز والتجهيز',
                 'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::Taffez->value] ?? 0,
                 'icon' => 'fas fa-check-double',
-                'color' => '#8b5cf6'
+                'color' => 'var(--dash-chart-4)'
             ],
         ];
 
@@ -216,28 +219,28 @@
                 'subtitle' => 'تذاكر معتمدة',
                 'value' => $ticketsReady,
                 'icon' => 'fas fa-ticket-alt',
-                'color' => '#f97316'
+                'color' => 'var(--dash-chart-5)'
             ],
             [
                 'title' => 'تحت الضمان',
                 'subtitle' => 'آخر 90 يوماً',
                 'value' => $warrantyActive,
                 'icon' => 'fas fa-shield-alt',
-                'color' => '#facc15'
+                'color' => 'var(--warning)'
             ],
             [
                 'title' => 'عقود مكتملة',
                 'subtitle' => 'محصلة نهائية',
                 'value' => $completedContracts,
                 'icon' => 'fas fa-check-circle',
-                'color' => '#22c55e'
+                'color' => 'var(--success)'
             ],
             [
                 'title' => 'عقود مرتجعة',
                 'subtitle' => 'تحت إعادة المعالجة',
                 'value' => $returnedContracts,
                 'icon' => 'fas fa-undo-alt',
-                'color' => '#ef4444'
+                'color' => 'var(--danger)'
             ],
         ];
     @endphp
@@ -254,8 +257,8 @@
         </div>
         <div class="section-body operations-showcase" data-section-body="operations">
             <div class="operations-highlight-grid">
-                @foreach ($operationsHighlights as $highlight)
-                    <div class="operation-tile" style="background: {{ $highlight['bg'] }};">
+                @foreach ($operationsHighlights as $index => $highlight)
+                    <div class="operation-tile op-tile-{{ $index }}">
                         <div class="operation-icon">
                             <video src="{{ $highlight['video'] }}" autoplay muted loop playsinline></video>
                         </div>
@@ -303,7 +306,7 @@
     </div>
 
     <div class="stat-row mt-3">
-        <div class="stat-card" style="background: linear-gradient(135deg,#0c6f75,#0a4a4e);">
+        <div class="stat-card is-5">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
                     <small class="text-light opacity-75">عقود الإيجار</small>
@@ -316,7 +319,7 @@
                 {{ number_format($rentalStats['completed'] ?? 0) }}</div>
         </div>
 
-        <div class="stat-card" style="background: linear-gradient(135deg,#7b2cbf,#4b1f73);">
+        <div class="stat-card is-6">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
                     <small class="text-light opacity-75">نقل الكفالة</small>
@@ -329,7 +332,7 @@
                 {{ number_format($transferStats['transferred'] ?? 0) }}</div>
         </div>
 
-        <div class="stat-card" style="background: linear-gradient(135deg,#a86b00,#6d4500);">
+        <div class="stat-card is-7">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
                     <small class="text-light opacity-75">الإيواء</small>
@@ -342,12 +345,12 @@
         </div>
     </div>
 
-    @php $contractsLast6Total = array_sum($newContracts ?? []); @endphp
+    @php $contractsLast12Total = array_sum($newContracts ?? []); @endphp
 
     <div class="surface-card mt-3">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">اجمالي العقود</h5>
-            <small class="text-muted">إجمالي الفترة: {{ number_format($contractsLast6Total) }} عقد</small>
+            <small class="text-muted">إجمالي آخر 12 شهر: {{ number_format($contractsLast12Total) }} عقد</small>
         </div>
         <div class="card-body">
             <div class="row g-3 align-items-stretch">
@@ -363,37 +366,37 @@
                                 'label' => 'بانتظار الاعتماد',
                                 'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::New->value] ?? ($contractsPipeline['pre_arrival'] ?? 0),
                                 'meta' => 'قبل الوصول',
-                                'color' => '#5f5bff'
+                                'color' => 'var(--dash-chart-1)'
                             ],
                             [
                                 'label' => 'مرحلة الوصول اليوم',
                                 'value' => $contractsPipeline['arrival_stage'] ?? 0,
                                 'meta' => 'تذاكر مؤكدة في الطريق',
-                                'color' => '#0ea5e9'
+                                'color' => 'var(--dash-chart-2)'
                             ],
                             [
                                 'label' => 'تحت الضمان',
                                 'value' => $contractsPipeline['under_warranty'] ?? 0,
                                 'meta' => 'آخر 90 يوماً',
-                                'color' => '#facc15'
+                                'color' => 'var(--warning)'
                             ],
                             [
                                 'label' => 'مكتمل',
                                 'value' => $contractsPipeline['completed'] ?? 0,
                                 'meta' => 'تم إغلاقه',
-                                'color' => '#22c55e'
+                                'color' => 'var(--success)'
                             ],
                             [
                                 'label' => 'متأخر بالوصول',
                                 'value' => $contractsPipeline['delayed_arrival'] ?? 0,
                                 'meta' => 'تجاوز 60 يوماً بلا تذكرة',
-                                'color' => '#f97316'
+                                'color' => 'var(--dash-chart-5)'
                             ],
                             [
                                 'label' => 'عقود منتهية (> سنتين)',
                                 'value' => $contractsPipeline['expired_over_2y'] ?? 0,
                                 'meta' => 'مراجعة أرشيفية',
-                                'color' => '#ef4444'
+                                'color' => 'var(--danger)'
                             ],
                         ];
                         $contractStagesTotal = max(
@@ -568,6 +571,48 @@
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css' rel='stylesheet' />
     <script>
         $(document).ready(function() {
+            const rootStyles = getComputedStyle(document.documentElement);
+            const getCssVar = (name, fallback) => {
+                const value = rootStyles.getPropertyValue(name).trim();
+                return value || fallback;
+            };
+            const hexToRgba = (hex, alpha) => {
+                let value = hex.replace('#', '').trim();
+                if (value.length === 3) {
+                    value = value.split('').map((c) => c + c).join('');
+                }
+                if (value.length !== 6) return hex;
+                const bigint = parseInt(value, 16);
+                const r = (bigint >> 16) & 255;
+                const g = (bigint >> 8) & 255;
+                const b = bigint & 255;
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            };
+            const toRgba = (color, alpha) => {
+                if (!color) return `rgba(95, 91, 255, ${alpha})`;
+                const trimmed = color.trim();
+                if (trimmed.startsWith('rgba(')) {
+                    return trimmed.replace(/rgba\(([^)]+)\)/, (match, values) => {
+                        const parts = values.split(',').map((v) => v.trim());
+                        return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${alpha})`;
+                    });
+                }
+                if (trimmed.startsWith('rgb(')) {
+                    return trimmed.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
+                }
+                if (trimmed.startsWith('#')) {
+                    return hexToRgba(trimmed, alpha);
+                }
+                return trimmed;
+            };
+
+            const chartColor1 = getCssVar('--dash-chart-1', '#5f5bff');
+            const chartColor2 = getCssVar('--dash-chart-2', '#28c76f');
+            const chartColor3 = getCssVar('--dash-chart-3', '#36b9cc');
+            const chartColor4 = getCssVar('--dash-chart-4', '#f4b347');
+            const chartColor5 = getCssVar('--dash-chart-5', '#ef5350');
+            const successColor = getCssVar('--success', '#28c76f');
+
             const rangeButtons = document.querySelectorAll('.range-btn');
             const rangeValues = document.querySelectorAll('[data-range-value]');
             const rangeLabels = document.querySelectorAll('[data-range-label]');
@@ -633,16 +678,16 @@
                         datasets: [{
                             label: 'عقود جديدة',
                             data: {!! json_encode($newContracts ?? []) !!},
-                            backgroundColor: 'rgba(95, 91, 255, 0.85)',
-                            borderColor: '#5f5bff',
+                            backgroundColor: toRgba(chartColor1, 0.85),
+                            borderColor: chartColor1,
                             borderWidth: 2,
                             borderRadius: 10,
                             barPercentage: 0.65
                         }, {
                             label: 'عقود مكتملة',
                             data: {!! json_encode($completedContracts ?? []) !!},
-                            backgroundColor: 'rgba(40, 199, 111, 0.85)',
-                            borderColor: '#28c76f',
+                            backgroundColor: toRgba(successColor, 0.85),
+                            borderColor: successColor,
                             borderWidth: 2,
                             borderRadius: 10,
                             barPercentage: 0.65
@@ -692,7 +737,7 @@
                     labels: {!! json_encode($nationalityLabels ?? ['الفلبين', 'إندونيسيا', 'بنغلاديش', 'الهند', 'أخرى']) !!},
                     datasets: [{
                         data: {!! json_encode($nationalityData ?? [35, 25, 20, 15, 5]) !!},
-                        backgroundColor: ['#5f5bff', '#28c76f', '#36b9cc', '#ffa726', '#ff4d4f'],
+                        backgroundColor: [chartColor1, successColor, chartColor2, chartColor4, chartColor5],
                         borderColor: '#fff',
                         borderWidth: 3,
                         hoverOffset: 8,

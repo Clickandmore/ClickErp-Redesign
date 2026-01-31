@@ -216,13 +216,13 @@ class DashboardController extends Controller
             'available' => 15,
         ];
 
-        // آخر 6 أشهر للعقود (مخطط)
+        // آخر 12 شهر للعقود (مخطط)
         $chartLabels = [];
         $newContracts = [];
         $completedContracts = [];
-        for ($i = 5; $i >= 0; $i--) {
+        for ($i = 11; $i >= 0; $i--) {
             $date = now()->subMonths($i);
-            $chartLabels[] = $date->locale('ar')->monthName;
+            $chartLabels[] = $date->locale('ar')->translatedFormat('F Y');
             $newContracts[] = Contract::whereMonth('created_at', $date->month)
                 ->whereYear('created_at', $date->year)
                 ->count();

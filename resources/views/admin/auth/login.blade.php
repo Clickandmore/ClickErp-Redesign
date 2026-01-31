@@ -30,7 +30,17 @@
                 ? 'أدخل بياناتك للوصول إلى لوحة التحكم ومتابعة سير العمل بكل سهولة.'
                 : 'Enter your details to reach the dashboard and keep work flowing.';
     @endphp
-    <div class="auth-page">
+    @php
+        $loginBg = null;
+        if (isset($settings) && !empty($settings->cover_image)) {
+            $loginBg = showFile($settings->cover_image);
+        } elseif (isset($settings) && !empty($settings->light_image)) {
+            $loginBg = showFile($settings->light_image);
+        } else {
+            $loginBg = asset('site/assets/images/login_image.jpg');
+        }
+    @endphp
+    <div class="auth-page" style="--login-bg-image: url('{{ $loginBg }}');">
         <div class="auth-card">
             <div class="auth-media">
                 <div class="media-content">

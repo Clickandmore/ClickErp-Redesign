@@ -4,4 +4,4 @@
 <meta name="description" content="">
 <meta name="keyword" content="">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<link rel="icon" href="{{ asset('admin') }}/assets/img/favicon.ico" type="image/x-icon">
+<link rel="icon" href="{{ asset('admin') }}/assets/img/fav.png" type="image/x-icon">

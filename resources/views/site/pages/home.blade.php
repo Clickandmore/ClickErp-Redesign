@@ -730,7 +730,7 @@
                     $cardImage = $serviceImages[$whatDo->type] ?? $defaultServiceImage;
                 @endphp
                 <div class="service-card {{ $color }}" data-aos="fade-up" data-aos-delay="{{ $loop->index * 100 }}"
-                    style="--float-delay: {{ $loop->index * 0.2 }}s; --card-image: url('{{ $cardImage }}');">
+                    style="--float-delay: {{ $loop->index * 0.2 }}s;">
                     <div class="icon {{ $color }}">
                         <i class="{{ $whatDo->icon }}"></i>
                     </div>
@@ -751,8 +751,7 @@
                     </div>
                 </div>
             @empty
-                <div class="service-card green" data-aos="fade-up" data-aos-delay="0"
-                    style="--float-delay: 0s; --card-image: url('{{ asset('site/assets/images/worker.webp') }}');">
+                <div class="service-card green" data-aos="fade-up" data-aos-delay="0" style="--float-delay: 0s;">
                     <div class="icon green">
                         <i class="fa-solid fa-user-check"></i>
                     </div>
@@ -773,8 +772,7 @@
                         </a>
                     </div>
                 </div>
-                <div class="service-card purple" data-aos="fade-up" data-aos-delay="100"
-                    style="--float-delay: 0.2s; --card-image: url('{{ asset('site/assets/images/service2.webp') }}');">
+                <div class="service-card purple" data-aos="fade-up" data-aos-delay="100" style="--float-delay: 0.2s;">
                     <div class="icon purple">
                         <i class="fa-solid fa-clock"></i>
                     </div>
@@ -792,8 +790,7 @@
                         </a>
                     </div>
                 </div>
-                <div class="service-card blue" data-aos="fade-up" data-aos-delay="200"
-                    style="--float-delay: 0.4s; --card-image: url('{{ asset('site/assets/images/passport-bg.webp') }}');">
+                <div class="service-card blue" data-aos="fade-up" data-aos-delay="200" style="--float-delay: 0.4s;">
                     <div class="icon blue">
                         <i class="fa-solid fa-truck-fast"></i>
                     </div>
@@ -812,8 +809,7 @@
                     </div>
                 </div>
             @endforelse
-            <div class="service-card gold" data-aos="fade-up" data-aos-delay="350"
-                style="--float-delay: 0.6s; --card-image: url('{{ asset('site/assets/images/musanedMap.svg') }}');">
+            <div class="service-card gold" data-aos="fade-up" data-aos-delay="350" style="--float-delay: 0.6s;">
                 <div class="icon gold">
                     <i class="fa-solid fa-building-columns"></i>
                 </div>
@@ -927,8 +923,25 @@
                 </p>
             </div>
             <div class="row justify-content-center">
+                @php
+                    $formatNumber = function ($value) {
+                        if ($value === null || $value === '') {
+                            return '';
+                        }
+                        if (!is_numeric($value)) {
+                            return $value;
+                        }
+                        $number = (float) $value;
+                        if (abs($number - round($number)) < 0.00001) {
+                            return number_format($number, 0, '.', '');
+                        }
+                        $formatted = number_format($number, 2, '.', '');
+                        return rtrim(rtrim($formatted, '0'), '.');
+                    };
+                @endphp
                 @forelse($nationalities as $nationalty)
-                    <div class="col-12 col-md-6 col-lg-4 p-3">
+                    <div class="col-12 col-md-6 col-lg-4 p-3" data-aos="fade-up"
+                        data-aos-delay="{{ $loop->index * 100 }}">
                         <div class="modern-card">
                             <div class="flag-side">
                                 <div class="flag-bg"></div>
@@ -940,7 +953,7 @@
                             </div>
                             <div class="cost-highlight">
                                 <span class="label title">{{ $nationalty->title }}</span>
-                                <h2 class="price">{{ $nationalty->price }} <small>ريال</small></h2>
+                                <h2 class="price">{{ $formatNumber($nationalty->price) }} <small>ريال</small></h2>
                                 <span class="label">تكلفة الاستقدام شامل الضريبة</span>
                             </div>
                             <div class="info-side">
@@ -953,17 +966,17 @@
                                     <div class="info-card">
                                         <i class="fas fa-hand-holding-usd"></i>
                                         <h5>الراتب يبدء من</h5>
-                                        <p>{{ $nationalty->salary_with_no_experience }} ريال</p>
+                                        <p>{{ $formatNumber($nationalty->salary_with_no_experience) }} ريال</p>
                                     </div>
                                     <div class="info-card">
                                         <i class="fas fa-user-check"></i>
                                         <h5>راتب الخبرة</h5>
-                                        <p>{{ $nationalty->salary_with_experience }}ريال</p>
+                                        <p>{{ $formatNumber($nationalty->salary_with_experience) }} ريال</p>
                                     </div>
                                     <div class="info-card">
                                         <i class="fas fa-flag"></i>
                                         <h5> تكلفة التاجير</h5>
-                                        <p>{{ $nationalty->rental_cost }}ريال</p>
+                                        <p>{{ $formatNumber($nationalty->rental_cost) }} ريال</p>
                                     </div>
                                 </div>
                                 <a href="{{ route('site.all-workers.index') }}?nationality_id={{ $nationalty->id }}"
@@ -974,7 +987,7 @@
                         </div>
                     </div>
                 @empty
-                    <div class="col-12 col-md-6 col-lg-4 p-3">
+                    <div class="col-12 col-md-6 col-lg-4 p-3" data-aos="fade-up" data-aos-delay="0">
                         <div class="modern-card">
                             <div class="flag-side">
                                 <div class="flag-bg"></div>
@@ -987,7 +1000,7 @@
 
                             <div class="cost-highlight">
                                 <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                                <h2 class="price">9500 <small>ريال</small></h2>
+                                <h2 class="price">{{ $formatNumber(9500) }} <small>ريال</small></h2>
                             </div>
 
                             <div class="info-side">
@@ -1000,7 +1013,7 @@
                                     <div class="info-card">
                                         <i class="fas fa-hand-holding-usd"></i>
                                         <h5>الراتب</h5>
-                                        <p>1000 ريال</p>
+                                        <p>{{ $formatNumber(1000) }} ريال</p>
                                     </div>
                                     <div class="info-card">
                                         <i class="fas fa-user-check"></i>
@@ -1022,7 +1035,7 @@
                     </div>
 
                     <!-- Bangladesh -->
-                    <div class="col-12 col-md-6 col-lg-4 p-3">
+                    <div class="col-12 col-md-6 col-lg-4 p-3" data-aos="fade-up" data-aos-delay="100">
                         <div class="modern-card">
                             <div class="flag-side">
                                 <div class="flag-bg"></div>
@@ -1035,7 +1048,7 @@
 
                             <div class="cost-highlight">
                                 <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                                <h2 class="price">8000 <small>ريال</small></h2>
+                                <h2 class="price">{{ $formatNumber(8000) }} <small>ريال</small></h2>
                             </div>
 
                             <div class="info-side">
@@ -1048,7 +1061,7 @@
                                     <div class="info-card">
                                         <i class="fas fa-hand-holding-usd"></i>
                                         <h5>الراتب</h5>
-                                        <p>850 ريال</p>
+                                        <p>{{ $formatNumber(850) }} ريال</p>
                                     </div>
                                     <div class="info-card">
                                         <i class="fas fa-user-check"></i>
@@ -1070,7 +1083,7 @@
                     </div>
 
                     <!-- Philippines -->
-                    <div class="col-12 col-md-6 col-lg-4 p-3">
+                    <div class="col-12 col-md-6 col-lg-4 p-3" data-aos="fade-up" data-aos-delay="200">
                         <div class="modern-card">
                             <div class="flag-side">
                                 <div class="flag-bg"></div>
@@ -1083,7 +1096,7 @@
 
                             <div class="cost-highlight">
                                 <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                                <h2 class="price">12000 <small>ريال</small></h2>
+                                <h2 class="price">{{ $formatNumber(12000) }} <small>ريال</small></h2>
                             </div>
 
                             <div class="info-side">
@@ -1096,7 +1109,7 @@
                                     <div class="info-card">
                                         <i class="fas fa-hand-holding-usd"></i>
                                         <h5>الراتب</h5>
-                                        <p>1500 ريال</p>
+                                        <p>{{ $formatNumber(1500) }} ريال</p>
                                     </div>
                                     <div class="info-card">
                                         <i class="fas fa-user-check"></i>
@@ -1118,7 +1131,7 @@
                     </div>
 
                     <!-- India -->
-                    <div class="col-12 col-md-6 col-lg-4 p-3">
+                    <div class="col-12 col-md-6 col-lg-4 p-3" data-aos="fade-up" data-aos-delay="300">
                         <div class="modern-card">
                             <div class="flag-side">
                                 <div class="flag-bg"></div>
@@ -1131,7 +1144,7 @@
 
                             <div class="cost-highlight">
                                 <span class="label">تكلفة الاستقدام شامل الضريبة</span>
-                                <h2 class="price">9000 <small>ريال</small></h2>
+                                <h2 class="price">{{ $formatNumber(9000) }} <small>ريال</small></h2>
                             </div>
 
                             <div class="info-side">
@@ -1144,7 +1157,7 @@
                                     <div class="info-card">
                                         <i class="fas fa-hand-holding-usd"></i>
                                         <h5>الراتب</h5>
-                                        <p>1000 ريال</p>
+                                        <p>{{ $formatNumber(1000) }} ريال</p>
                                     </div>
                                     <div class="info-card">
                                         <i class="fas fa-user-check"></i>
