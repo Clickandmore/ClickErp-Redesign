@@ -37,7 +37,7 @@ class PhoneVerificationAction extends MainAction
         }
 
         $msg = "مرحبًا بك، نأمل استخدام رمز التفعيل للتحقق من الهاتف: {$code}. للدخول إلى منصة platinum.istqdim.com";
-        $result = $this->sendSMS($request->phone, $msg, $code);
+        $result = $this->sendSMS(formatSaudiPhone($request->phone), $msg, $code);
 
         return ["code" => $code];
     }

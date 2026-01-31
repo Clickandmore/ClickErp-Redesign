@@ -8,18 +8,18 @@ trait SendSMSTrait
 {
     function sendSMS($phone, $msg, $code = null)
     {
-        $phone = preg_replace('/[^0-9]/', '', $phone);
+        // $phone = preg_replace('/[^0-9]/', '', $phone);
 
-        if (substr($phone, 0, 2) == '05') {
-            $phone = '966' . substr($phone, 1);
-        } elseif (substr($phone, 0, 4) == '9660') {
-            $phone = ltrim($phone, '9660');
-            $phone = '966' . $phone;
-        } elseif (substr($phone, 0, 4) == '00966') {
-            $phone = '966' . substr($phone, 5);
-        } else {
-            $phone = '966' . $phone;
-        }
+        // if (substr($phone, 0, 2) == '05') {
+        //     $phone = '966' . substr($phone, 1);
+        // } elseif (substr($phone, 0, 4) == '9660') {
+        //     $phone = ltrim($phone, '9660');
+        //     $phone = '966' . $phone;
+        // } elseif (substr($phone, 0, 4) == '00966') {
+        //     $phone = '966' . substr($phone, 5);
+        // } else {
+        //     $phone = '966' . $phone;
+        // }
 
         $ch = curl_init(config('msegat.url'));
         $data = array(

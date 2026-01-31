@@ -1279,7 +1279,7 @@ class OrderController extends Controller
                 $objAction = new objAction($order);
                 // إرسال SMS للعميل بتأكيد بدء معالجة الطلب
                 $message = "تم بدء معالجة طلبكم رقم #{$order->id}. شكراً لثقتكم بنا.";
-                $objAction->sendSMS($order->client_phone ?? $order->phone, $message);
+                $objAction->sendSMS($order->client_phone ? formatSaudiPhone($order->client_phone) : formatSaudiPhone($order->phone), $message);
             }
 
             return response()->json([

@@ -814,6 +814,10 @@ if (!function_exists('getContractStatus')) {
                 'ar' => 'مرتجع',
                 'en' => 'Back'
             ],
+            'accreditation_contracts' => [
+                "ar" => "اعتماد العقود",
+                "en" => "accreditation contracts"
+            ],
             'arrival' => [
                 'ar' => 'مرحلة الوصول',
                 'en' => 'Arrival'
@@ -876,6 +880,7 @@ if (!function_exists('getContractStatusColor')) {
             'delegate_selected' => 'info',
             'client_contracted' => 'primary',
             'in_progress' => 'warning',
+            'accreditation_contracts' => 'dark'
         ];
 
         return $colors[$status] ?? 'secondary';

@@ -116,7 +116,7 @@ class HomeController extends Controller
             $ticket->code = $ticket->id;
             $msg = " عزيزنا العميل ,تم تسليم الشكوى لدى مكتب بلاتنيوم الشرقية للاستقدام بنجاح . وهى محل اهتمامنا و سيتم المتابعة و أعلامك بالمستجدات رقم الشكوى" . $ticket->code;
             if (!empty($user->phone)) {
-                $this->sendSMS($user->phone, $msg);
+                $this->sendSMS(formatSaudiPhone($user->phone), $msg);
             }
             return [
                 "status" => 1,
