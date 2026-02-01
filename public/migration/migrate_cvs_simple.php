@@ -1,4 +1,47 @@
-<!DOCTYPE html>
+<?php
+function readEnvFile(string $path): array
+{
+    if (!is_file($path)) {
+        return [];
+    }
+
+    $vars = [];
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line == '' || str_starts_with($line, '#')) {
+            continue;
+        }
+
+        $parts = explode('=', $line, 2);
+        if (count($parts) != 2) {
+            continue;
+        }
+        $key = trim($parts[0]);
+        $value = trim($parts[1]);
+        if ($value != '' && ($value[0] == '"' || $value[0] == "'")) {
+            $value = trim($value, "\"'");
+        }
+        $vars[$key] = $value;
+    }
+
+    return $vars;
+}
+
+$env = readEnvFile(__DIR__ . '/../../.env');
+
+$MIGRATION_OLD_DB_HOST = $env['MIGRATION_OLD_DB_HOST'] ?? $env['OLD_DB_HOST'] ?? $env['DB_OLD_HOST'] ?? '127.0.0.1';
+$MIGRATION_OLD_DB_PORT = $env['MIGRATION_OLD_DB_PORT'] ?? $env['OLD_DB_PORT'] ?? $env['DB_OLD_PORT'] ?? '8889';
+$MIGRATION_OLD_DB_NAME = $env['MIGRATION_OLD_DB_NAME'] ?? $env['OLD_DB_NAME'] ?? $env['OLD_DB_DATABASE'] ?? $env['DB_OLD_DATABASE'] ?? 'platinum_old';
+$MIGRATION_OLD_DB_USER = $env['MIGRATION_OLD_DB_USER'] ?? $env['OLD_DB_USER'] ?? $env['DB_OLD_USERNAME'] ?? 'root';
+$MIGRATION_OLD_DB_PASS = $env['MIGRATION_OLD_DB_PASS'] ?? $env['OLD_DB_PASS'] ?? $env['DB_OLD_PASSWORD'] ?? 'root';
+
+$MIGRATION_NEW_DB_HOST = $env['MIGRATION_NEW_DB_HOST'] ?? $env['DB_HOST'] ?? '127.0.0.1';
+$MIGRATION_NEW_DB_PORT = $env['MIGRATION_NEW_DB_PORT'] ?? $env['DB_PORT'] ?? '8889';
+$MIGRATION_NEW_DB_NAME = $env['MIGRATION_NEW_DB_NAME'] ?? $env['DB_DATABASE'] ?? 'platinum_new';
+$MIGRATION_NEW_DB_USER = $env['MIGRATION_NEW_DB_USER'] ?? $env['DB_USERNAME'] ?? 'root';
+$MIGRATION_NEW_DB_PASS = $env['MIGRATION_NEW_DB_PASS'] ?? $env['DB_PASSWORD'] ?? 'root';
+?><!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
@@ -67,6 +110,30 @@
     </div>
 
     <script>
+        const MIGRATION_DB = <?php echo json_encode([
+            'old' => [
+                'old_db_host' => $MIGRATION_OLD_DB_HOST,
+                'old_db_port' => $MIGRATION_OLD_DB_PORT,
+                'old_db_name' => $MIGRATION_OLD_DB_NAME,
+                'old_db_user' => $MIGRATION_OLD_DB_USER,
+                'old_db_pass' => $MIGRATION_OLD_DB_PASS,
+            ],
+            'new' => [
+                'db_host' => $MIGRATION_NEW_DB_HOST,
+                'db_port' => $MIGRATION_NEW_DB_PORT,
+                'db_name' => $MIGRATION_NEW_DB_NAME,
+                'db_user' => $MIGRATION_NEW_DB_USER,
+                'db_pass' => $MIGRATION_NEW_DB_PASS,
+            ]
+        ], JSON_UNESCAPED_SLASHES); ?>;
+
+        function withOldDb(params) {
+            return new URLSearchParams(Object.assign({}, params, MIGRATION_DB.old, MIGRATION_DB.new));
+        }
+
+        function withNewDb(params) {
+            return new URLSearchParams(Object.assign({}, params, MIGRATION_DB.new));
+        }
         async function prepareTablesForCV() {
             const btn = event.target;
             const resultDiv = document.getElementById('prepare-result');
@@ -88,7 +155,10 @@
                 const response2 = await fetch('file_processor.php', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: 'action=export_from_old_db&export_table=nationalities&old_db_host=127.0.0.1&old_db_port=8889&old_db_name=platinum&old_db_user=root&old_db_pass=root&db_host=127.0.0.1&db_port=8889&db_name=platinum_new&db_user=root&db_pass=root'
+                    body: withOldDb({
+                        action: 'export_from_old_db',
+                        export_table: 'nationalities'
+                    }).toString()
                 });
                 const export2 = await response2.json();
 
@@ -96,7 +166,11 @@
                     const response3 = await fetch('file_processor.php', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: `action=process_exported_file&exported_file=${export2.file_name}&table_type=nationalities&db_host=127.0.0.1&db_port=8889&db_name=platinum_new&db_user=root&db_pass=root`
+                        body: withNewDb({
+                            action: 'process_exported_file',
+                            exported_file: export2.file_name,
+                            table_type: 'nationalities'
+                        }).toString()
                     });
                     const process3 = await response3.json();
                 }
