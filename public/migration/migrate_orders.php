@@ -1,4 +1,47 @@
-﻿<?php
+<?php
+function readEnvFile(string $path): array
+{
+    if (!is_file($path)) {
+        return [];
+    }
+
+    $vars = [];
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line == '' || str_starts_with($line, '#')) {
+            continue;
+        }
+
+        $parts = explode('=', $line, 2);
+        if (count($parts) != 2) {
+            continue;
+        }
+        $key = trim($parts[0]);
+        $value = trim($parts[1]);
+        if ($value != '' && ($value[0] == '"' || $value[0] == "'")) {
+            $value = trim($value, "\"'");
+        }
+        $vars[$key] = $value;
+    }
+
+    return $vars;
+}
+
+$env = readEnvFile(__DIR__ . '/../../.env');
+
+$MIGRATION_OLD_DB_HOST = $env['MIGRATION_OLD_DB_HOST'] ?? $env['OLD_DB_HOST'] ?? $env['DB_OLD_HOST'] ?? '127.0.0.1';
+$MIGRATION_OLD_DB_PORT = $env['MIGRATION_OLD_DB_PORT'] ?? $env['OLD_DB_PORT'] ?? $env['DB_OLD_PORT'] ?? '8889';
+$MIGRATION_OLD_DB_NAME = $env['MIGRATION_OLD_DB_NAME'] ?? $env['OLD_DB_NAME'] ?? $env['OLD_DB_DATABASE'] ?? $env['DB_OLD_DATABASE'] ?? 'platinum_old';
+$MIGRATION_OLD_DB_USER = $env['MIGRATION_OLD_DB_USER'] ?? $env['OLD_DB_USER'] ?? $env['DB_OLD_USERNAME'] ?? 'root';
+$MIGRATION_OLD_DB_PASS = $env['MIGRATION_OLD_DB_PASS'] ?? $env['OLD_DB_PASS'] ?? $env['DB_OLD_PASSWORD'] ?? 'root';
+
+$MIGRATION_NEW_DB_HOST = $env['MIGRATION_NEW_DB_HOST'] ?? $env['DB_HOST'] ?? '127.0.0.1';
+$MIGRATION_NEW_DB_PORT = $env['MIGRATION_NEW_DB_PORT'] ?? $env['DB_PORT'] ?? '8889';
+$MIGRATION_NEW_DB_NAME = $env['MIGRATION_NEW_DB_NAME'] ?? $env['DB_DATABASE'] ?? 'platinum_new';
+$MIGRATION_NEW_DB_USER = $env['MIGRATION_NEW_DB_USER'] ?? $env['DB_USERNAME'] ?? 'root';
+$MIGRATION_NEW_DB_PASS = $env['MIGRATION_NEW_DB_PASS'] ?? $env['DB_PASSWORD'] ?? 'root';
+
 header('Content-Type: application/json; charset=utf-8');
 
 $response = [
@@ -28,14 +71,14 @@ $pdo = null;
 $foreignKeysDisabled = false;
 
 try {
-    $dbHost = read_param('db_host', '127.0.0.1');
-    $dbPort = (int) read_param('db_port', '3306');
-    $dbName = read_param('db_name', 'platinum_new');
-    $dbUser = read_param('db_user', 'root');
-    $dbPass = read_param('db_pass', 'root');
+    $dbHost = read_param('db_host', $MIGRATION_NEW_DB_HOST);
+    $dbPort = (int) read_param('db_port', $MIGRATION_NEW_DB_PORT);
+    $dbName = read_param('db_name', $MIGRATION_NEW_DB_NAME);
+    $dbUser = read_param('db_user', $MIGRATION_NEW_DB_USER);
+    $dbPass = read_param('db_pass', $MIGRATION_NEW_DB_PASS);
 
-    $newDb = read_param('new_db', $dbName);
-    $oldDb = read_param('old_db', 'platinum_old');
+    $newDb = read_param('new_db', $MIGRATION_NEW_DB_NAME);
+    $oldDb = read_param('old_db', $MIGRATION_OLD_DB_NAME);
     $sourceTable = read_param('source_table', 'rservations');
     $targetTable = read_param('target_table', 'orders');
     $truncateTarget = read_param('truncate_target', '0') === '1';
