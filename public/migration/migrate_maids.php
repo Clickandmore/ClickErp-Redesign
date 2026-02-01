@@ -174,6 +174,7 @@ function migrateMaids(PDO $oldDb, PDO $newDb, int $chunkSize): array
             'cv_file', 'available', 'is_pinned', 'available_at', 'status', 'is_show', 'created_at', 'updated_at',
             'experience_years', 'experience_status', 'cv_preview', 'office_id', 'image', 'height', 'weight',
             'id_number', 'id_expiry_date', 'skills', 'languages', 'experience_country', 'video_preview',
+            'video', 'video_link',
             'childrens_count', 'education', 'duration', 'st_code', 'int_code',
             'maid_accommodation_type', 'added_by', 'deleted_at', 'deleted_by'
         ],
@@ -641,6 +642,8 @@ function transformCvRow(array $cv, array $mappings, array $allowedColumns): ?arr
         ':languages' => json_encode($languages, JSON_UNESCAPED_UNICODE),
         ':experience_country' => trimString($cv['experience_country'] ?? null),
         ':video_preview' => trimString($cv['cv_url'] ?? null),
+        ':video' => trimString($cv['cv_url'] ?? null),
+        ':video_link' => trimString($cv['cv_url'] ?? null),
         ':childrens_count' => trimString($cv['child_num'] ?? '') ?: null,
         ':education' => normalizeEducationField($cv['learning'] ?? null),
         ':duration' => trimString($cv['duration_contract'] ?? '') ?: null,
