@@ -401,16 +401,6 @@ $newDb = [
             <div id="contracts_result" class="result"></div>
         </div>
 
-        <!-- داخل الايواء (cv_previous_sponsor) -->
-        <div class="section">
-            <h3>🛖 نقل داخل الإيواء (cv_previous_sponsor → contracts/contract_infos)</h3>
-            <div class="buttons">
-                <button onclick="transferPreviousSponsor()" class="btn-success">نقل داخل الإيواء</button>
-                <button onclick="checkPreviousSponsor()" class="btn-info">فحص النتيجة</button>
-            </div>
-            <div id="previous_sponsor_result" class="result"></div>
-        </div>
-
         <!-- Contract Infos -->
         <div class="section">
             <h3>1️⃣3️⃣ معلومات العقد (Contract Infos)</h3>
@@ -429,6 +419,25 @@ $newDb = [
                 <button onclick="checkContractLogs()" class="btn-info">فحص سجلات العقود</button>
             </div>
             <div id="contract_logs_result" class="result"></div>
+        </div>
+
+        <!-- داخل الايواء (cv_previous_sponsor) -->
+        <div class="section">
+            <h3>1️⃣5️⃣ نقل داخل الإيواء (cv_previous_sponsor → contracts/contract_infos)</h3>
+            <div class="buttons">
+                <button onclick="transferPreviousSponsor()" class="btn-success">نقل داخل الإيواء</button>
+                <button onclick="checkPreviousSponsor()" class="btn-info">فحص النتيجة</button>
+            </div>
+            <div id="previous_sponsor_result" class="result"></div>
+        </div>
+
+        <!-- نقل حجوزات نقل الكفالة (reservation_sponsor) -->
+        <div class="section">
+            <h3>1️⃣5️⃣ نقل حجوزات نقل الكفالة (reservation_sponsor → sponsorship_transfers)</h3>
+            <div class="buttons">
+                <button onclick="transferReservationSponsor()" class="btn-success">نقل حجوزات نقل الكفالة</button>
+            </div>
+            <div id="reservation_sponsor_result" class="result"></div>
         </div>
 
         <!-- قسم أنواع الإيواء (Accommodation Types) -->
@@ -2633,6 +2642,43 @@ function analyzeNationalitiesStructure() {
                 });
         }
 
+        function transferReservationSponsor() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'جاري النقل...';
+
+            fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=migrate_reservation_sponsor'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lines = [
+                            data.message || 'تم نقل حجوزات نقل الكفالة بنجاح',
+                            'الإجمالي: ' + (data.processed ?? 0),
+                            'مضاف: ' + (data.inserted ?? 0),
+                            'محدث: ' + (data.updated ?? 0),
+                            'متجاوز: ' + (data.skipped ?? 0)
+                        ];
+                        showResult('reservation_sponsor_result', lines.join('\n'), true);
+                        updateStats();
+                    } else {
+                        showResult('reservation_sponsor_result', 'فشل النقل: ' + (data.message || 'غير معروف'), false);
+                    }
+                })
+                .catch(error => {
+                    showResult('reservation_sponsor_result', 'خطأ: ' + error.message, false);
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.textContent = 'نقل حجوزات نقل الكفالة';
+                });
+        }
+
         function checkPreviousSponsor() {
             fetch('migration/file_processor.php', {
                     method: 'POST',
@@ -2784,6 +2830,7 @@ function analyzeNationalitiesStructure() {
         window.checkOrders = checkOrders;
         window.transferContracts = transferContracts;
         window.transferPreviousSponsor = transferPreviousSponsor;
+        window.transferReservationSponsor = transferReservationSponsor;
         window.checkContracts = checkContracts;
         window.checkPreviousSponsor = checkPreviousSponsor;
         window.transferContractInfos = transferContractInfos;
