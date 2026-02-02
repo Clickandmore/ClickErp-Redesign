@@ -1831,6 +1831,28 @@ function migrateUsersSimple() {
         $upsertSql = "INSERT INTO users (`" . implode('`, `', $columnsToUse) . "`) VALUES (" . implode(', ', $placeholders) . ") ON DUPLICATE KEY UPDATE " . implode(', ', $updates);
         $stmt = $newDb->prepare($upsertSql);
 
+        $existingPhones = $newDb->query("SELECT phone FROM users WHERE phone IS NOT NULL AND phone <> ''")->fetchAll(PDO::FETCH_COLUMN);
+        $usedPhones = array_fill_keys($existingPhones ?: [], true);
+        $duplicatePhones = 0;
+        $makeUniquePhone = function (string $base, int $userId) use (&$usedPhones, &$duplicatePhones): string {
+            $base = trim($base);
+            if ($base === '') {
+                $base = '000' . $userId;
+            }
+            if (!isset($usedPhones[$base])) {
+                $usedPhones[$base] = true;
+                return $base;
+            }
+            $duplicatePhones++;
+            $suffix = 0;
+            do {
+                $suffix++;
+                $candidate = $base . '-dup-' . ($suffix > 1 ? $suffix : '');
+            } while (isset($usedPhones[$candidate]));
+            $usedPhones[$candidate] = true;
+            return $candidate;
+        };
+
         $migratedCount = 0;
         $updatedCount = 0;
         $unchanged = 0;
@@ -1853,14 +1875,12 @@ function migrateUsersSimple() {
             $firstName = extractFirstName($fullName);
             $lastName = extractLastName($fullName);
 
-            $phone = cleanPhoneNumber($user['phone'] ?? '');
-            if ($phone === '') {
-                $phone = '000' . $userId;
-            }
+            $rawPhone = cleanPhoneNumber($user['phone'] ?? '');
+            $phone = $makeUniquePhone($rawPhone, $userId);
 
             $whatsapp = cleanPhoneNumber($user['whatsapp_phone'] ?? '');
             if ($whatsapp === '') {
-                $whatsapp = $phone;
+                $whatsapp = $rawPhone !== '' ? $rawPhone : $phone;
             }
 
             $password = trim((string)($user['password'] ?? ''));
@@ -1960,7 +1980,8 @@ function migrateUsersSimple() {
             'unchanged' => $unchanged,
             'skipped' => $skipped,
             'names_split' => $namesSplit,
-            'message' => "تم ترحيل المستخدمين بنجاح!\nالإجمالي: " . count($oldUsers) . "\nتمت الإضافة: $migratedCount\nتم التحديث: $updatedCount\nبدون تغيير: $unchanged\nتم تخطي: $skipped"
+            'duplicate_phones' => $duplicatePhones,
+            'message' => "تم ترحيل المستخدمين بنجاح!\nالإجمالي: " . count($oldUsers) . "\nتمت الإضافة: $migratedCount\nتم التحديث: $updatedCount\nبدون تغيير: $unchanged\nتم تخطي: $skipped\nأرقام مكررة تم تعديلها: $duplicatePhones"
         ];
 
     } catch (Exception $e) {
