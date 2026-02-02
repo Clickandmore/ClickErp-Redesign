@@ -2395,7 +2395,7 @@ class ShelterContractController extends Controller
                     return $row->completedBy ? $row->completedBy->name : 'غير محدد';
                 })
                 ->addColumn('status', function ($row) {
-                    return '<span class="badge deported-badge">تم الترحيل</span>';
+                    return '<span class="badge text-bg-danger">تم الترحيل</span>';
                 })
                 ->addColumn('actions', function ($row) {
                     $actions = '<div class="dropdown actions-dropdown">

@@ -120,7 +120,7 @@
                             </table>
 
                         <div class="mt-3">
-                            {{ $transfers->links() }}
+                            {{ $transfers->links('pagination::bootstrap-4') }}
                         </div>
                     @else
                         <div class="text-center py-5">
