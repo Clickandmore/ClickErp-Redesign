@@ -107,7 +107,10 @@
                                                             </a>
                                                         </li>
                                                         <li>
-                                                            <a class="dropdown-item" href="{{ route('RecruitmentContract.show', $transfer->contract->id) }}">
+                                                            {{-- <a class="dropdown-item" href="{{ route('RecruitmentContract.show', $transfer->contract->id) }}">
+                                                                <i class="fas fa-file-contract"></i> عرض العقد
+                                                            </a> --}}
+                                                            <a class="dropdown-item" href="{{ route('contracts.details', $transfer->contract->id) }}">
                                                                 <i class="fas fa-file-contract"></i> عرض العقد
                                                             </a>
                                                         </li>

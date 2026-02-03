@@ -56,6 +56,10 @@ class Complaint extends Model
     {
         return $this->belongsTo(Admin::class, 'resolved_by');
     }
+
+    public function comments(){
+        return $this->hasMany(ComplaintComment::class);
+    }
     
     // Accessor for priority badge
     public function getPriorityBadgeAttribute()

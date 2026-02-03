@@ -353,7 +353,8 @@
         <div class="page-1">
             <div class="header">
                 <div class="logo-container">
-                    <img src="{{ $logoUrl }}" alt="شركة بلاتنيوم الشرقية">
+                    {{-- <img src="{{ $logoUrl }}" alt="شركة بلاتنيوم الشرقية"> --}}
+                    <img src="{{ asset('admin/assets/img/company_logo.png') }}" alt="شركة بلاتنيوم الشرقية">
                 </div>
                 <h1>عقد</h1>
             </div>
