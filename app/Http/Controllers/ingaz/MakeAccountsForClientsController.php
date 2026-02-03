@@ -16,6 +16,7 @@ class MakeAccountsForClientsController extends Controller
     {
         return DB::transaction(function () {
             $parentAccount = Account::where('type', AccountTypesEnum::Clients->value)->lockForUpdate()->firstOrFail();
+            
             $lastCode = Account::where('parent_id', $parentAccount->id)->max('code');
             if (!$lastCode) {
                 $lastCode = (int)($parentAccount->code . '00000');

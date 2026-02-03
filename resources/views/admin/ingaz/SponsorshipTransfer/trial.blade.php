@@ -188,7 +188,7 @@
 </div>
 @endif --}}
 @endsection
-@section("script")
+@section("js")
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="{{asset("admin")}}/custom/admin-tables.js"></script>
 

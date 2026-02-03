@@ -821,7 +821,7 @@
             });
 
             // Handle toggle instant receipt action
-            $(document).on('click', '.toggle-instant-receipt', function(e) {
+            $(document).on('click', '.toggle-instant-receipt', function(e) {                
                 e.preventDefault();
                 const contractId = $(this).data('id');
                 const currentStatus = $(this).data('current');

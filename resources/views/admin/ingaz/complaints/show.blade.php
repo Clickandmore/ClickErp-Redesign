@@ -231,6 +231,95 @@
             color: #495057;
             line-height: 1.6;
         }
+
+        /* ==============================================
+                       Comment Section - Arabic RTL - Attractive Design
+                       ============================================== */
+
+        .comment-section {
+            direction: rtl;
+            font-family: 'Tajawal', 'Cairo', system-ui, sans-serif;
+            color: #2d3748;
+        }
+
+        .comment-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: all 0.25s ease;
+        }
+
+        .comment-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .comment-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: #f8fafc;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .comment-author {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .author-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            color: #4f46e5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+
+        .author-name {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .comment-time {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+
+        .comment-body {
+            padding: 20px;
+            line-height: 1.7;
+            font-size: 1.05rem;
+            color: #334155;
+        }
+
+        .comment-attachments {
+            padding: 0 20px 20px;
+            border-top: 1px solid #edf2f7;
+        }
+
+        /* للـ empty state */
+        .no-comments {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+            font-size: 1.1rem;
+        }
+
+        .no-comments i {
+            font-size: 3.5rem;
+            opacity: 0.4;
+            margin-bottom: 16px;
+        }
     </style>
 @endsection
 
@@ -257,7 +346,7 @@
                             <i class="fas fa-calendar"></i>
                             <span>{{ $complaint->created_at->format('Y-m-d H:i') }}</span>
                         </div>
-                        @if($complaint->assignedTo)
+                        @if ($complaint->assignedTo)
                             <div class="meta-item">
                                 <i class="fas fa-user-tie"></i>
                                 <span>{{ $complaint->assignedTo->name }}</span>
@@ -267,17 +356,72 @@
                 </div>
                 <div class="col-md-4 text-end">
                     <div class="mb-3">
-                        {!! $complaint->priorityBadge !!}
-                        {!! $complaint->statusBadge !!}
+                        @php
+                            $priorityBadgeHtml = $complaint->priorityBadge ?? '';
+                            $statusBadgeHtml = $complaint->statusBadge ?? '';
+
+                            $priorityHasTag =
+                                is_string($priorityBadgeHtml) &&
+                                (strpos($priorityBadgeHtml, '<') !== false ||
+                                    strpos($priorityBadgeHtml, '&lt;') !== false);
+                            $statusHasTag =
+                                is_string($statusBadgeHtml) &&
+                                (strpos($statusBadgeHtml, '<') !== false || strpos($statusBadgeHtml, '&lt;') !== false);
+
+                            if ($priorityHasTag) {
+                                $priorityBadgeHtml = html_entity_decode($priorityBadgeHtml);
+                            }
+                            if ($statusHasTag) {
+                                $statusBadgeHtml = html_entity_decode($statusBadgeHtml);
+                            }
+
+                            if (!$priorityHasTag) {
+                                $priorityBadgeHtml =
+                                    '<span class="' .
+                                    e($complaint->priorityBadge ?? 'badge text-bg-light text-dark') .
+                                    ' priority-badge-large">' .
+                                    e($complaint->priorityText ?? ($complaint->priority ?? 'غير محدد')) .
+                                    '</span>';
+                            }
+
+                            if (!$statusHasTag) {
+                                $statusTextMap = [
+                                    'pending' => 'قيد الانتظار',
+                                    'in_progress' => 'قيد المعالجة',
+                                    'resolved' => 'تم الحل',
+                                    'closed' => 'مغلقة',
+                                    'rejected' => 'مرفوضة',
+                                ];
+                                $statusClassMap = [
+                                    'pending' => 'text-bg-warning',
+                                    'in_progress' => 'text-bg-info',
+                                    'resolved' => 'text-bg-success',
+                                    'closed' => 'text-bg-secondary',
+                                    'rejected' => 'text-bg-danger',
+                                ];
+                                $statusKey = $complaint->status ?? '';
+                                $statusText = $statusTextMap[$statusKey] ?? $statusKey;
+                                $statusClass = $statusClassMap[$statusKey] ?? 'text-bg-light text-dark';
+
+                                $statusBadgeHtml =
+                                    '<span class="badge ' .
+                                    e($statusClass) .
+                                    ' status-badge-large">' .
+                                    e($statusText) .
+                                    '</span>';
+                            }
+                        @endphp
+                        {!! $priorityBadgeHtml !!}
+                        {!! $statusBadgeHtml !!}
                     </div>
                     <div class="action-buttons-top">
-                        @if(@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT))
-                            <a class="btn btn-light" href="{{route('complaints.edit',$complaint->id)}}">
+                        @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT))
+                            <a class="btn btn-light" href="{{ route('complaints.edit', $complaint->id) }}">
                                 <i class="fas fa-edit me-2"></i>تعديل
                             </a>
                         @endif
 
-                        @if(@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_DELETE))
+                        @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_DELETE))
                             <button class="btn btn-light text-danger" id="deleteTicket">
                                 <i class="fas fa-trash me-2"></i>حذف
                             </button>
@@ -312,25 +456,25 @@
                         </div>
                     </div>
 
-                    @if($complaint->maid_passport || $complaint->maid_nationality_id)
+                    @if ($complaint->maid_passport || $complaint->maid_nationality_id)
                         <div class="info-row">
                             <div class="info-label">معلومات العاملة:</div>
                             <div class="info-value">
-                                @if($complaint->maid_passport)
+                                @if ($complaint->maid_passport)
                                     جواز: {{ $complaint->maid_passport }}
                                 @endif
-                                @if($complaint->maidNationality)
+                                @if ($complaint->maidNationality)
                                     - الجنسية: {{ $complaint->maidNationality->title }}
                                 @endif
                             </div>
                         </div>
                     @endif
 
-                    @if($complaint->attachments && count($complaint->attachments) > 0)
+                    @if ($complaint->attachments && count($complaint->attachments) > 0)
                         <div class="info-row">
                             <div class="info-label">المرفقات:</div>
                             <div class="info-value">
-                                @foreach($complaint->attachments as $attachment)
+                                @foreach ($complaint->attachments as $attachment)
                                     <a href="{{ Storage::url($attachment) }}" target="_blank" class="attachment-item">
                                         <i class="fas fa-paperclip"></i>
                                         مرفق {{ $loop->iteration }}
@@ -360,8 +504,8 @@
                             </div>
                         </div>
 
-                        @if(isset($complaint->updates) && count($complaint->updates) > 0)
-                            @foreach($complaint->updates as $update)
+                        @if (isset($complaint->updates) && count($complaint->updates) > 0)
+                            @foreach ($complaint->updates as $update)
                                 <div class="timeline-item">
                                     <div class="timeline-icon {{ $update->type_class }}"></div>
                                     <div class="timeline-content">
@@ -371,7 +515,7 @@
                                         </div>
                                         <div>
                                             {{ $update->description }}
-                                            @if($update->admin)
+                                            @if ($update->admin)
                                                 <br><small class="text-muted">بواسطة: {{ $update->admin->name }}</small>
                                             @endif
                                         </div>
@@ -380,7 +524,7 @@
                             @endforeach
                         @endif
 
-                        @if($complaint->resolved_at)
+                        @if ($complaint->resolved_at)
                             <div class="timeline-item">
                                 <div class="timeline-icon success"></div>
                                 <div class="timeline-content">
@@ -401,31 +545,45 @@
                 <div class="info-card">
                     <h5><i class="fas fa-comments me-2"></i>التعليقات والردود</h5>
 
-                    <div id="commentsSection">
-                        @if(isset($complaint->comments) && count($complaint->comments) > 0)
-                            @foreach($complaint->comments as $comment)
-                                <div class="comment-item">
+                    <div id="commentsSection" class="comment-section">
+                        @if (isset($complaint->comments) && count($complaint->comments) > 0)
+                            @foreach ($complaint->comments as $comment)
+                                <div class="comment-card">
                                     <div class="comment-header">
                                         <div class="comment-author">
-                                            <i class="fas fa-user-circle me-2"></i>
-                                            {{ $comment->admin->name ?? 'غير محدد' }}
+                                            <div class="author-avatar">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                            <div>
+                                                <div class="author-name">{{ $comment->admin->name ?? 'غير محدد' }}</div>
+                                                <div class="comment-time">{{ $comment->created_at->diffForHumans() }}</div>
+                                            </div>
                                         </div>
-                                        <div class="comment-time">
-                                            {{ $comment->created_at->diffForHumans() }}
-                                        </div>
+                                        @if (auth('admin')->id() == $comment->added_by)
+                                            <div class="">
+                                                <button class="btn btn-danger deleteComment"
+                                                    data-comment-id="{{ $comment->id }}">
+                                                    حذف التعليق
+                                                </button>
+                                            </div>
+                                        @endif
                                     </div>
+
                                     <div class="comment-body">
-                                        {{ $comment->comment }}
+                                        {!! nl2br(e($comment->comment)) !!}
                                     </div>
                                 </div>
                             @endforeach
                         @else
-                            <p class="text-muted text-center">لا توجد تعليقات بعد</p>
+                            <div class="no-comments">
+                                <i class="far fa-comment-dots"></i>
+                                <p>لا توجد تعليقات حتى الآن...</p>
+                            </div>
                         @endif
                     </div>
 
                     <!-- نموذج إضافة تعليق -->
-                    @if(@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_RESPONSE))
+                    @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_RESPONSE))
                         <div class="update-form">
                             <h6 class="mb-3">إضافة تعليق أو تحديث</h6>
                             <form id="addCommentForm">
@@ -433,8 +591,7 @@
                                 <input type="hidden" name="complaint_id" value="{{ $complaint->id }}">
 
                                 <div class="mb-3">
-                            <textarea name="comment" class="form-control" rows="3"
-                                      placeholder="اكتب تعليقك هنا..." required></textarea>
+                                    <textarea name="comment" class="form-control" rows="3" placeholder="اكتب تعليقك هنا..." required></textarea>
                                 </div>
 
                                 <div class="row">
@@ -442,9 +599,9 @@
                                         <label class="form-label">تغيير الحالة (اختياري)</label>
                                         <select name="status" class="form-select">
                                             <option value="">-- بدون تغيير --</option>
-                                            <option value="in_progress">قيد المعالجة</option>
+                                            <option value="pending">قيد المعالجة</option>
                                             <option value="resolved">تم الحل</option>
-                                            <option value="closed">إغلاق التذكرة</option>
+                                            {{-- <option value="closed">إغلاق التذكرة</option> --}}
                                             <option value="rejected">رفض الشكوى</option>
                                         </select>
                                     </div>
@@ -453,7 +610,7 @@
                                         <label class="form-label">تحويل إلى موظف آخر</label>
                                         <select name="assigned_to" class="form-select">
                                             <option value="">-- بدون تغيير --</option>
-                                            @foreach($admins as $admin)
+                                            @foreach ($admins as $admin)
                                                 <option value="{{ $admin->id }}"
                                                     {{ $complaint->assigned_to == $admin->id ? 'selected' : '' }}>
                                                     {{ $admin->name }}
@@ -488,7 +645,7 @@
                     <div class="info-row">
                         <div class="info-label">الجوال:</div>
                         <div class="info-value">
-                            @if($complaint->complainant_phone)
+                            @if ($complaint->complainant_phone)
                                 <a href="tel:{{ $complaint->complainant_phone }}">{{ $complaint->complainant_phone }}</a>
                             @else
                                 غير محدد
@@ -496,7 +653,7 @@
                         </div>
                     </div>
 
-                    @if($complaint->user)
+                    @if ($complaint->user)
                         <div class="info-row">
                             <div class="info-label">العميل المسجل:</div>
                             <div class="info-value">
@@ -529,12 +686,12 @@
 
                     <div class="info-row">
                         <div class="info-label">الحالة:</div>
-                        <div class="info-value">{!! $complaint->statusBadge !!}</div>
+                        <div class="info-value">{!! $statusBadgeHtml ?? '' !!}</div>
                     </div>
 
                     <div class="info-row">
                         <div class="info-label">الأولوية:</div>
-                        <div class="info-value">{!! $complaint->priorityBadge !!}</div>
+                        <div class="info-value">{!! $priorityBadgeHtml ?? '' !!}</div>
                     </div>
 
                     <div class="info-row">
@@ -550,13 +707,13 @@
                     <h5><i class="fas fa-bolt me-2"></i>إجراءات سريعة</h5>
 
                     <div class="d-grid gap-2">
-                        @if($complaint->status != 'resolved')
+                        @if ($complaint->status != 'resolved')
                             <button class="btn btn-success" id="markResolved">
                                 <i class="fas fa-check me-2"></i>وضع علامة "تم الحل"
                             </button>
                         @endif
 
-                        @if($complaint->status != 'closed')
+                        @if ($complaint->status != 'closed')
                             <button class="btn btn-secondary" id="closeTicket">
                                 <i class="fas fa-times me-2"></i>إغلاق التذكرة
                             </button>
@@ -592,7 +749,7 @@
                             <label class="form-label">اختر الموظف</label>
                             <select name="assigned_to" class="form-select" required>
                                 <option value="">-- اختر موظف --</option>
-                                @foreach($admins as $admin)
+                                @foreach ($admins as $admin)
                                     <option value="{{ $admin->id }}">{{ $admin->name }}</option>
                                 @endforeach
                             </select>
@@ -657,16 +814,16 @@
 
 @section('js')
     <script>
-        $(document).ready(function () {
+        $(document).ready(function() {
             // إضافة تعليق
-            $('#addCommentForm').submit(function (e) {
+            $('#addCommentForm').submit(function(e) {
                 e.preventDefault();
 
                 $.ajax({
                     url: "{{ route('complaints.add-comment') }}",
                     type: 'POST',
                     data: $(this).serialize(),
-                    success: function (response) {
+                    success: function(response) {
                         if (response.success) {
                             if (typeof successToster !== 'undefined') {
                                 successToster('تم بنجاح', 'تم إضافة التحديث بنجاح');
@@ -686,7 +843,7 @@
                             }
                         }
                     },
-                    error: function () {
+                    error: function() {
                         if (typeof errorToster !== 'undefined') {
                             errorToster('خطأ', 'حدث خطأ أثناء إضافة التحديث');
                         } else if (typeof toastr !== 'undefined') {
@@ -699,7 +856,7 @@
             });
 
             // وضع علامة تم الحل
-            $('#markResolved').click(function () {
+            $('#markResolved').click(function() {
                 Swal.fire({
                     title: 'هل أنت متأكد؟',
                     text: "سيتم وضع علامة 'تم الحل' على هذه التذكرة",
@@ -715,7 +872,7 @@
             });
 
             // إغلاق التذكرة
-            $('#closeTicket').click(function () {
+            $('#closeTicket').click(function() {
                 Swal.fire({
                     title: 'هل أنت متأكد؟',
                     text: "سيتم إغلاق هذه التذكرة",
@@ -731,16 +888,16 @@
             });
 
             // تحويل التذكرة
-            $('#assignTicket').click(function () {
+            $('#assignTicket').click(function() {
                 $('#assignModal').modal('show');
             });
 
-            $('#saveAssign').click(function () {
+            $('#saveAssign').click(function() {
                 $.ajax({
                     url: "{{ route('complaints.assign') }}",
                     type: 'POST',
                     data: $('#assignForm').serialize(),
-                    success: function (response) {
+                    success: function(response) {
                         if (response.success) {
                             $('#assignModal').modal('hide');
                             if (typeof successToster !== 'undefined') {
@@ -761,7 +918,7 @@
                             }
                         }
                     },
-                    error: function () {
+                    error: function() {
                         if (typeof errorToster !== 'undefined') {
                             errorToster('خطأ', 'حدث خطأ أثناء تحويل التذكرة');
                         } else if (typeof toastr !== 'undefined') {
@@ -774,16 +931,16 @@
             });
 
             // تغيير الأولوية
-            $('#changePriority').click(function () {
+            $('#changePriority').click(function() {
                 $('#priorityModal').modal('show');
             });
 
-            $('#savePriority').click(function () {
+            $('#savePriority').click(function() {
                 $.ajax({
                     url: "{{ route('complaints.change-priority') }}",
                     type: 'POST',
                     data: $('#priorityForm').serialize(),
-                    success: function (response) {
+                    success: function(response) {
                         if (response.success) {
                             $('#priorityModal').modal('hide');
                             if (typeof successToster !== 'undefined') {
@@ -804,7 +961,7 @@
                             }
                         }
                     },
-                    error: function () {
+                    error: function() {
                         if (typeof errorToster !== 'undefined') {
                             errorToster('خطأ', 'حدث خطأ أثناء تغيير الأولوية');
                         } else if (typeof toastr !== 'undefined') {
@@ -817,7 +974,7 @@
             });
 
             // حذف التذكرة
-            $('#deleteTicket').click(function () {
+            $('#deleteTicket').click(function() {
                 Swal.fire({
                     title: 'هل أنت متأكد؟',
                     text: "لن تتمكن من التراجع عن هذا الإجراء!",
@@ -835,21 +992,24 @@
                             data: {
                                 _token: '{{ csrf_token() }}'
                             },
-                            success: function (response) {
+                            success: function(response) {
                                 if (response.success) {
                                     if (typeof successToster !== 'undefined') {
-                                        successToster('تم بنجاح', 'تم حذف التذكرة بنجاح');
+                                        successToster('تم بنجاح',
+                                            'تم حذف التذكرة بنجاح');
                                     } else if (typeof toastr !== 'undefined') {
                                         toastr.success('تم حذف التذكرة بنجاح');
                                     } else {
                                         alert('تم حذف التذكرة بنجاح');
                                     }
                                     setTimeout(() => {
-                                        window.location.href = '{{ route("complaints.index") }}';
+                                        window.location.href =
+                                            '{{ route('complaints.index') }}';
                                     }, 1500);
                                 } else {
                                     if (typeof errorToster !== 'undefined') {
-                                        errorToster('خطأ', response.message || 'حدث خطأ');
+                                        errorToster('خطأ', response.message ||
+                                            'حدث خطأ');
                                     } else if (typeof toastr !== 'undefined') {
                                         toastr.error(response.message || 'حدث خطأ');
                                     } else {
@@ -857,7 +1017,7 @@
                                     }
                                 }
                             },
-                            error: function () {
+                            error: function() {
                                 if (typeof errorToster !== 'undefined') {
                                     errorToster('خطأ', 'حدث خطأ أثناء الحذف');
                                 } else if (typeof toastr !== 'undefined') {
@@ -879,39 +1039,92 @@
                     data: {
                         _token: '{{ csrf_token() }}',
                         complaint_id: {{ $complaint->id }},
-                status: status
-            },
-            success: function(response) {
-                if (response.success) {
-                    if (typeof successToster !== 'undefined') {
-                        successToster('تم بنجاح', 'تم تحديث الحالة بنجاح');
-                    } else if (typeof toastr !== 'undefined') {
-                        toastr.success('تم تحديث الحالة بنجاح');
-                    } else {
-                        alert('تم تحديث الحالة بنجاح');
+                        status: status
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            if (typeof successToster !== 'undefined') {
+                                successToster('تم بنجاح', 'تم تحديث الحالة بنجاح');
+                            } else if (typeof toastr !== 'undefined') {
+                                toastr.success('تم تحديث الحالة بنجاح');
+                            } else {
+                                alert('تم تحديث الحالة بنجاح');
+                            }
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            if (typeof errorToster !== 'undefined') {
+                                errorToster('خطأ', response.message || 'حدث خطأ');
+                            } else if (typeof toastr !== 'undefined') {
+                                toastr.error(response.message || 'حدث خطأ');
+                            } else {
+                                alert(response.message || 'حدث خطأ');
+                            }
+                        }
+                    },
+                    error: function() {
+                        if (typeof errorToster !== 'undefined') {
+                            errorToster('خطأ', 'حدث خطأ أثناء تحديث الحالة');
+                        } else if (typeof toastr !== 'undefined') {
+                            toastr.error('حدث خطأ أثناء تحديث الحالة');
+                        } else {
+                            alert('حدث خطأ أثناء تحديث الحالة');
+                        }
                     }
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    if (typeof errorToster !== 'undefined') {
-                        errorToster('خطأ', response.message || 'حدث خطأ');
-                    } else if (typeof toastr !== 'undefined') {
-                        toastr.error(response.message || 'حدث خطأ');
-                    } else {
-                        alert(response.message || 'حدث خطأ');
-                    }
-                }
-            },
-            error: function() {
-                if (typeof errorToster !== 'undefined') {
-                    errorToster('خطأ', 'حدث خطأ أثناء تحديث الحالة');
-                } else if (typeof toastr !== 'undefined') {
-                    toastr.error('حدث خطأ أثناء تحديث الحالة');
-                } else {
-                    alert('حدث خطأ أثناء تحديث الحالة');
-                }
+                });
             }
+
+            $(document).on('click', '.deleteComment', function(e) {
+                e.preventDefault();
+                var commentId = $(this).data('comment-id');
+
+                Swal.fire({
+                    title: 'حذف التعليق',
+                    text: "هل انت متأكد من حذف هذا التعليق؟",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: "تأكيد",
+                    cancelButtonText: "الغاء"
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const commentId = $(this).data('comment-id');
+                        $.ajax({
+                            url: '/admin/complaints/complaint-comment/' + commentId,
+                            type: 'DELETE',
+                            data: {
+                                _token: '{{ csrf_token() }}'
+                            },
+                            success: function(response) {
+                                if (response.code == 200) {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'تم حذف التعليق',
+                                        confirmButtonText: 'حسناً'
+                                    });
+                                    setTimeout(() => {
+                                        window.location.reload();
+                                    }, 1000);
+                                } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'حدث خطأ أثناء الحذف',
+                                        confirmButtonText: 'حسناً'
+                                    });
+
+                                }
+                            },
+                            error: function() {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'حدث خطأ أثناء الحذف',
+                                    confirmButtonText: 'حسناً'
+                                });
+                            }
+                        });
+                    }
+                });
+            });
         });
-    }
-});
-</script>
+    </script>
 @endsection

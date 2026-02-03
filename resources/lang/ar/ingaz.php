@@ -574,7 +574,7 @@
   'previous' => 'السابق',
   'filter' => 'تصفية',
   'search_by_client_name' => 'ابحث باسم العميل',
-  'search_by_phone' => 'ابحث برقم الهاتف',
+  'search_by_phone' => 'ابحث برقم الجوال (5********)',
   'search_by_passport' => 'البحث برقم الجواز',
   'to_date' => 'إلى تاريخ',
   'from_date' => 'من تاريخ',
@@ -1719,5 +1719,6 @@
   'Accounts were created for customers' => ' انشاء الحسابات للعملاء',
   'deleted_at' => 'تم الحذف في',
   'deleted_by' => 'تم الحذف بواسطة',
-  'deleted_cvs' => 'السير الذاتية المحذوفة'
+  'deleted_cvs' => 'السير الذاتية المحذوفة',
+  'comment_deleted' => 'Comment deleted',
 );

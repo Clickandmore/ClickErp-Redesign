@@ -815,7 +815,16 @@ class SponsorshipTransferController extends Controller
             //         'message' => 'لا يمكن تأكيد النقل لهذا الطلب'
             //     ], 400);
             // }
-            if ($transfer->status !== 'trial_started') {
+
+            // if ($transfer->status !== 'trial_started') {
+            //     return response()->json([
+            //         'success' => false,
+            //         'message' => 'لا يمكن تأكيد النقل لهذا الطلب'
+            //     ], 400);
+            // }
+
+            // لانه يستخدم كل حالة في مكان مختلف لذلك هتعامل مع القيمتين
+            if ($transfer->status !== 'trial_started' && $transfer->status !== 'trial') {
                 return response()->json([
                     'success' => false,
                     'message' => 'لا يمكن تأكيد النقل لهذا الطلب'
@@ -863,7 +872,17 @@ class SponsorshipTransferController extends Controller
             //         'message' => 'لا يمكن إلغاء النقل لهذا الطلب'
             //     ], 400);
             // }
-            if ($transfer->status !== 'trial_started') {
+
+            // if ($transfer->status !== 'trial_started') {
+            //     return response()->json([
+            //         'success' => false,
+            //         'message' => 'لا يمكن إلغاء النقل لهذا الطلب'
+            //     ], 400);
+            // }
+            
+
+            // لانه يستخدم كل حالة في مكان مختلف لذلك هتعامل مع القيمتين
+            if ($transfer->status !== 'trial_started' && $transfer->status !== 'trial') {
                 return response()->json([
                     'success' => false,
                     'message' => 'لا يمكن إلغاء النقل لهذا الطلب'
@@ -946,8 +965,13 @@ class SponsorshipTransferController extends Controller
      */
     public function trial()
     {
+        // $transfers = SponsorshipTransfer::with(['contract.maid.nationality', 'oldSponsor', 'newSponsor', 'approvedBy'])
+        //     ->where('status', 'trial')
+        //     ->latest()
+        //     ->paginate(25);
+
         $transfers = SponsorshipTransfer::with(['contract.maid.nationality', 'oldSponsor', 'newSponsor', 'approvedBy'])
-            ->where('status', 'trial')
+            ->whereIn('status', ['trial', 'trial_started'])
             ->latest()
             ->paginate(25);
 
