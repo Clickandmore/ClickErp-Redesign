@@ -350,7 +350,11 @@ if (!function_exists('deleteFile')) {
 if (!function_exists('showFile')) {
     function showFile($fileFullPath)
     {
-        if (!$fileFullPath || $fileFullPath === 'null' || $fileFullPath === '') {
+        if (!is_string($fileFullPath)) {
+            return null;
+        }
+
+        if ($fileFullPath === 'null' || $fileFullPath === '') {
             return null;
         }
 
