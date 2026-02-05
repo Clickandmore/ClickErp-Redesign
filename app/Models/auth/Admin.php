@@ -2,6 +2,7 @@
 
 namespace App\Models\auth;
 
+use App\Models\ingaz\ComplaintComment;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -24,6 +25,10 @@ class Admin extends Authenticatable
     public function maids()
     {
         return $this->hasMany(Maid::class);
+    }
+    public function complaintComments()
+    {
+        return $this->hasMany(ComplaintComment::class);
     }
 
 }

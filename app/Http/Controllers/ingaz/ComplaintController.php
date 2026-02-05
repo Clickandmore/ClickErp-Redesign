@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\Storage;
 use App\Http\Traits\SendSMSTrait;
 use App\Models\ingaz\Nationality;
 use App\Models\auth\Admin;
+use App\Models\ingaz\ComplaintComment;
+use Illuminate\Validation\ValidationException;
 
 class ComplaintController extends Controller
 {
@@ -79,15 +81,19 @@ class ComplaintController extends Controller
                     $statusText = '';
                     switch ($status) {
                         case 'pending':
-                            $badgeClass = 'bg-warning';
+                            $badgeClass = 'text-bg-warning';
                             $statusText = 'قيد الانتظار';
                             break;
+                        case 'in_progress':
+                            $badgeClass = 'text-bg-info';
+                            $statusText = 'قيد المعالجة';
+                            break;
                         case 'resolved':
-                            $badgeClass = 'bg-success';
+                            $badgeClass = 'text-bg-success';
                             $statusText = 'تم الحل';
                             break;
                         case 'rejected':
-                            $badgeClass = 'bg-danger';
+                            $badgeClass = 'text-bg-danger';
                             $statusText = 'مرفوض';
                             break;
                     }
@@ -171,10 +177,10 @@ class ComplaintController extends Controller
                 'complainant_name' => 'required|string|max:255',
                 'complainant_phone' => [
                     'required',
-                    'regex:/^05[0-9]{8}$/',
+                    'regex:/^(05|5)[0-9]{8}$/',
                     function ($attribute, $value, $fail) {
                         $phoneWithout0 = ltrim($value, '0');
-                        if (!User::where('phone', $phoneWithout0)->exists()) {
+                        if (!User::whereIn('phone', [$phoneWithout0, $value])->exists()) {
                             $fail(__('validation.exists', ['attribute' => $attribute]));
                         }
                     },
@@ -203,8 +209,25 @@ class ComplaintController extends Controller
                 }
                 $data['attachments'] = $attachmentPaths;
             }
-            $data['complainant_phone'] = ltrim($data['complainant_phone'], '0');
-            $user = $userAction->getWhereFirst(['phone' => $data['complainant_phone']]);
+            $rawPhone = $data['complainant_phone'] ?? '';
+            $normalizedPhone = ltrim($rawPhone, '0');
+            $data['complainant_phone'] = $normalizedPhone;
+
+            $user = null;
+            if (!empty($data['user_id'])) {
+                $user = User::find($data['user_id']);
+            }
+            if (!$user) {
+                $user = User::where('phone', $normalizedPhone)
+                    ->orWhere('phone', $rawPhone)
+                    ->first();
+            }
+            if (!$user) {
+                throw ValidationException::withMessages([
+                    'complainant_phone' => [__('validation.exists', ['attribute' => 'complainant_phone'])],
+                ]);
+            }
+
             $data['user_id'] = $user->id;
             $complaint = objModel::create($data);
 
@@ -406,7 +429,7 @@ class ComplaintController extends Controller
 
         if ($request->status) {
             $complaint->status = $request->status;
-
+            // dd($request->status);
             if ($request->status == 'resolved') {
                 $complaint->resolved_at = now();
                 $complaint->resolved_by = auth('admin')->id();
@@ -418,6 +441,15 @@ class ComplaintController extends Controller
         }
 
         $complaint->save();
+
+
+        // Add Comment for this complant
+        ComplaintComment::create([
+          'comment' => $request->comment ?? '-',
+          'complaint_id' => $request->complaint_id,
+          'added_by' => auth()->user()->id,
+          'attachments' => $request->attachments ?? null
+        ]);
 
         return response()->json(['success' => true, 'message' => 'تم إضافة التحديث بنجاح']);
     }
@@ -485,26 +517,26 @@ class ComplaintController extends Controller
     private function getStatusBadge($status)
     {
         $badges = [
-            'pending' => '<span class="badge bg-warning">قيد الانتظار</span>',
-            'in_progress' => '<span class="badge bg-info">قيد المعالجة</span>',
-            'resolved' => '<span class="badge bg-success">تم الحل</span>',
-            'closed' => '<span class="badge bg-secondary">مغلقة</span>',
-            'rejected' => '<span class="badge bg-danger">مرفوضة</span>'
+            'pending' => '<span class="badge text-bg-warning">قيد الانتظار</span>',
+            'in_progress' => '<span class="badge text-bg-info">قيد المعالجة</span>',
+            'resolved' => '<span class="badge text-bg-success">تم الحل</span>',
+            'closed' => '<span class="badge text-bg-secondary">مغلقة</span>',
+            'rejected' => '<span class="badge text-bg-danger">مرفوضة</span>'
         ];
 
-        return $badges[$status] ?? '<span class="badge bg-light text-dark">' . $status . '</span>';
+        return $badges[$status] ?? '<span class="badge text-bg-light text-dark">' . $status . '</span>';
     }
 
     private function getPriorityBadge($priority)
     {
         $badges = [
-            'urgent' => '<span class="badge bg-danger">عاجلة</span>',
-            'high' => '<span class="badge bg-warning">عالية</span>',
-            'medium' => '<span class="badge bg-info">متوسطة</span>',
-            'low' => '<span class="badge bg-secondary">منخفضة</span>'
+            'urgent' => '<span class="badge text-bg-danger">عاجلة</span>',
+            'high' => '<span class="badge text-bg-warning">عالية</span>',
+            'medium' => '<span class="badge text-bg-info">متوسطة</span>',
+            'low' => '<span class="badge text-bg-secondary">منخفضة</span>'
         ];
 
-        return $badges[$priority] ?? '<span class="badge bg-light text-dark">' . $priority . '</span>';
+        return $badges[$priority] ?? '<span class="badge text-bg-light text-dark">' . $priority . '</span>';
     }
 
     public function response(Request $request)
@@ -536,5 +568,18 @@ class ComplaintController extends Controller
         }
 
         return jsonSuccess(null, 'تم حفظ الرد بنجاح');
+    }
+
+
+    public function deleteComment($id){
+        $complaint_comment = ComplaintComment::findOrFail($id);
+
+        if (!$complaint_comment) {
+            return jsonError(['error' => 'هذا التعليق غير موجود'], 404);
+        }
+
+        $complaint_comment->delete();
+        
+        return jsonSuccess(['success' => 'تم حذف التعليق بنجاح']);
     }
 }

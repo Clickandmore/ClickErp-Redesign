@@ -528,9 +528,12 @@
 
         <!-- Action Buttons -->
         <div class="action-buttons no-print">
-            <button type="button" class="btn-icon btn-print" onclick="printContract()" title="طباعة العقد">
+            {{-- <button type="button" class="btn-icon btn-print" onclick="printContract()" title="طباعة العقد">
                 <i class="fas fa-print"></i>
-            </button>
+            </button> --}}
+            <a href="{{ route('print.rental.contract', $contract->id) }}" class="btn-icon btn-print" title="طباعة العقد" target="_blank">
+                <i class="fas fa-print"></i>
+            </a>
 
             @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_EDIT))
                 <a href="{{ route('RentContract.edit', $contract->id) }}" class="btn-icon btn-edit" title="تعديل العقد">
@@ -569,11 +572,11 @@
                 window.print();
             }
 
-            $(document).on('click', '.btn-print', function() {
-                console.log('print');
-                window.print();
+            // $(document).on('click', '.btn-print', function() {
+            //     console.log('print');
+            //     window.print();
                 
-            });
+            // });
 
             $(document).on('click', '.btn-complete', function() {
                 console.log('completeContract');

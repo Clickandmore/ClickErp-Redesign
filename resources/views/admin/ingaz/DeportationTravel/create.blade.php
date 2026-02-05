@@ -22,10 +22,10 @@
                                 <strong>رقم العقد:</strong> {{ $contract->id }}
                             </div>
                             <div class="col-md-4">
-                                <strong>العميل:</strong> {{ $contract->user->name }}
+                                <strong>العميل:</strong> {{ optional($contract->user)->name ?? 'غير محدد' }}
                             </div>
                             <div class="col-md-4">
-                                <strong>العاملة:</strong> {{ $contract->maid->name }}
+                                <strong>العاملة:</strong> {{ optional($contract->maid)->name ?? 'غير محدد' }}
                             </div>
                         </div>
                     </div>

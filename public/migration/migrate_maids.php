@@ -1,4 +1,46 @@
 <?php
+function readEnvFile(string $path): array
+{
+    if (!is_file($path)) {
+        return [];
+    }
+
+    $vars = [];
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line == '' || str_starts_with($line, '#')) {
+            continue;
+        }
+
+        $parts = explode('=', $line, 2);
+        if (count($parts) != 2) {
+            continue;
+        }
+        $key = trim($parts[0]);
+        $value = trim($parts[1]);
+        if ($value != '' && ($value[0] == '"' || $value[0] == "'")) {
+            $value = trim($value, "\"'");
+        }
+        $vars[$key] = $value;
+    }
+
+    return $vars;
+}
+
+$env = readEnvFile(__DIR__ . '/../../.env');
+
+$MIGRATION_OLD_DB_HOST = $env['MIGRATION_OLD_DB_HOST'] ?? $env['OLD_DB_HOST'] ?? $env['DB_OLD_HOST'] ?? '127.0.0.1';
+$MIGRATION_OLD_DB_PORT = $env['MIGRATION_OLD_DB_PORT'] ?? $env['OLD_DB_PORT'] ?? $env['DB_OLD_PORT'] ?? '8889';
+$MIGRATION_OLD_DB_NAME = $env['MIGRATION_OLD_DB_NAME'] ?? $env['OLD_DB_NAME'] ?? $env['OLD_DB_DATABASE'] ?? $env['DB_OLD_DATABASE'] ?? 'platinum_old';
+$MIGRATION_OLD_DB_USER = $env['MIGRATION_OLD_DB_USER'] ?? $env['OLD_DB_USER'] ?? $env['DB_OLD_USERNAME'] ?? 'root';
+$MIGRATION_OLD_DB_PASS = $env['MIGRATION_OLD_DB_PASS'] ?? $env['OLD_DB_PASS'] ?? $env['DB_OLD_PASSWORD'] ?? 'root';
+
+$MIGRATION_NEW_DB_HOST = $env['MIGRATION_NEW_DB_HOST'] ?? $env['DB_HOST'] ?? '127.0.0.1';
+$MIGRATION_NEW_DB_PORT = $env['MIGRATION_NEW_DB_PORT'] ?? $env['DB_PORT'] ?? '8889';
+$MIGRATION_NEW_DB_NAME = $env['MIGRATION_NEW_DB_NAME'] ?? $env['DB_DATABASE'] ?? 'platinum_new';
+$MIGRATION_NEW_DB_USER = $env['MIGRATION_NEW_DB_USER'] ?? $env['DB_USERNAME'] ?? 'root';
+$MIGRATION_NEW_DB_PASS = $env['MIGRATION_NEW_DB_PASS'] ?? $env['DB_PASSWORD'] ?? 'root';
 
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
@@ -10,12 +52,12 @@ if ($action !== 'export_csv') {
 }
 
 $config = [
-    'host'   => $_POST['db_host'] ?? $_GET['db_host'] ?? '127.0.0.1',
-    'port'   => (int)($_POST['db_port'] ?? $_GET['db_port'] ?? 8889),
-    'user'   => $_POST['db_user'] ?? $_GET['db_user'] ?? 'root',
-    'pass'   => $_POST['db_pass'] ?? $_GET['db_pass'] ?? 'root',
-    'old_db' => $_POST['old_db'] ?? $_GET['old_db'] ?? 'platinum_old',
-    'new_db' => $_POST['new_db'] ?? $_GET['new_db'] ?? 'platinum_new',
+    'host'   => $_POST['db_host'] ?? $_GET['db_host'] ?? $MIGRATION_NEW_DB_HOST,
+    'port'   => (int)($_POST['db_port'] ?? $_GET['db_port'] ?? $MIGRATION_NEW_DB_PORT),
+    'user'   => $_POST['db_user'] ?? $_GET['db_user'] ?? $MIGRATION_NEW_DB_USER,
+    'pass'   => $_POST['db_pass'] ?? $_GET['db_pass'] ?? $MIGRATION_NEW_DB_PASS,
+    'old_db' => $_POST['old_db'] ?? $_GET['old_db'] ?? $MIGRATION_OLD_DB_NAME,
+    'new_db' => $_POST['new_db'] ?? $_GET['new_db'] ?? $MIGRATION_NEW_DB_NAME,
 ];
 
 try {
@@ -174,6 +216,7 @@ function migrateMaids(PDO $oldDb, PDO $newDb, int $chunkSize): array
             'cv_file', 'available', 'is_pinned', 'available_at', 'status', 'is_show', 'created_at', 'updated_at',
             'experience_years', 'experience_status', 'cv_preview', 'office_id', 'image', 'height', 'weight',
             'id_number', 'id_expiry_date', 'skills', 'languages', 'experience_country', 'video_preview',
+            'video', 'video_link',
             'childrens_count', 'education', 'duration', 'st_code', 'int_code',
             'maid_accommodation_type', 'added_by', 'deleted_at', 'deleted_by'
         ],
@@ -641,6 +684,8 @@ function transformCvRow(array $cv, array $mappings, array $allowedColumns): ?arr
         ':languages' => json_encode($languages, JSON_UNESCAPED_UNICODE),
         ':experience_country' => trimString($cv['experience_country'] ?? null),
         ':video_preview' => trimString($cv['cv_url'] ?? null),
+        ':video' => trimString($cv['cv_url'] ?? null),
+        ':video_link' => trimString($cv['cv_url'] ?? null),
         ':childrens_count' => trimString($cv['child_num'] ?? '') ?: null,
         ':education' => normalizeEducationField($cv['learning'] ?? null),
         ':duration' => trimString($cv['duration_contract'] ?? '') ?: null,

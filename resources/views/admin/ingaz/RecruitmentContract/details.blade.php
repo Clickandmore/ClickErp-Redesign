@@ -631,6 +631,33 @@
                             </div>
                         </div>
                     </div>
+
+                    {{-- مستندات الطلب --}}
+                    @if ($contract->signature)
+                        <div class="col-md-6 mb-4">
+                            <div class="info-card">
+                                <div class="card-title">
+                                    <i class="fas fa-file-pdf text-danger me-2"></i>
+                                    مستندات الطلب
+                                </div>
+
+                                <div class="info-row d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <span class="info-label">عرض الملف:</span>
+                                        <span class="info-value highlight">
+                                            {{-- {{ $document->file_name }} --}}
+                                        </span>
+                                    </div>
+
+                                    <!-- Eye icon -->
+                                    <a href="{{ showFile($contract->signature) }}" target="_blank"
+                                        class="text-secondary fs-5" title="عرض الملف">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             @endif
 
@@ -736,9 +763,13 @@
 
             <!-- أزرار الإجراءات -->
             <div class="action-buttons">
-                <button type="button" class="btn-icon btn-print" onclick="printDiv()" title="طباعة العقد">
+                {{-- <button type="button" class="btn-icon btn-print" onclick="printDiv()" title="طباعة العقد">
                     <i class="fas fa-print"></i>
-                </button>
+                </button> --}}
+                <a href="{{ route('contract_download_form.download', $contract->id) . '?type=download' }}"
+                    class="btn-icon btn-print" title="طباعة العقد" target="_blank">
+                    <i class="fas fa-print"></i>
+                </a>
 
                 @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EDIT))
                     <a href="{{ route('RecruitmentContract.edit', $contract->id) }}" class="btn-icon btn-edit"
@@ -903,25 +934,26 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     fetch(`/admin/RecruitmentContract/${contractId}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                            'Content-Type': 'application/json',
-                        },
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire('نجاح!', data.message || 'تم حذف العقد بنجاح', 'success');
-                            window.location.href = '{{ route('RecruitmentContract.index') }}';
-                        } else {
-                            Swal.fire('خطأ!', data.message || 'حدث خطأ أثناء حذف العقد', 'error');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        Swal.fire('خطأ!', 'حدث خطأ أثناء حذف العقد', 'error');
-                    });
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute(
+                                    'content'),
+                                'Content-Type': 'application/json',
+                            },
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire('نجاح!', data.message || 'تم حذف العقد بنجاح', 'success');
+                                window.location.href = '{{ route('RecruitmentContract.index') }}';
+                            } else {
+                                Swal.fire('خطأ!', data.message || 'حدث خطأ أثناء حذف العقد', 'error');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            Swal.fire('خطأ!', 'حدث خطأ أثناء حذف العقد', 'error');
+                        });
                 }
             });
         }

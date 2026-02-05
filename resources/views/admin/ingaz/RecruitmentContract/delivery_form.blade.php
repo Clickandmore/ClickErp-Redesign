@@ -135,7 +135,7 @@
             <div class="row">
                 <p style="padding-top: 2pt;text-indent: 0pt;text-align: justify;font-weight: bold; " dir="rtl"
                     lang="ar">
-                    مكتب تفرد للاستقدام
+                    شركة بلاتينيوم للاستقدام
                 </p> <br>
                 <p dir="rtl" lang="ar" class="col-md-6 text-end">
                     اسم الموظفة : {{ $adminStaff }}

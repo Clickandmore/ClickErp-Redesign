@@ -318,13 +318,13 @@ class RecruitmentContractController extends Controller
                             $maidInfo .= '<br><small class="text-muted">جواز: ' . $row->maid->passport_num . '</small>';
                         }
                         if ($row->maid->nationality) {
-                            $maidInfo .= '<small class="text-muted">الجنسية: ' . $row->maid->nationality->sub_title . '</small>';
+                            $maidInfo .= '<br><small class="text-muted">الجنسية: ' . $row->maid->nationality->sub_title . '</small>';
                         }
                         if ($row->maid->office) {
-                            $maidInfo .= '<small class="text-muted">المكتب الخارجي: ' . $row->maid->office->title . '</small>';
+                            $maidInfo .= '<br><small class="text-muted">المكتب الخارجي: ' . $row->maid->office->title . '</small>';
                         }
                         if ($row->maid->religion) {
-                            $maidInfo .= '<small class="text-muted">الديانة: ' . $row->maid->religion->title . '</small>';
+                            $maidInfo .= '<br><small class="text-muted">الديانة: ' . $row->maid->religion->title . '</small>';
                         }
                         $maidInfo .= '</div>';
                     } else {
@@ -621,14 +621,18 @@ class RecruitmentContractController extends Controller
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
 
-                    // زر عرض العقد
-                    $actions .= '<li><a class="dropdown-item" href="' . route('contract_delivery_form.download', $row->id) . '" target="_blank">
-                                    <i class="fas fa-eye"></i> عرض العقد
+                    // تفاصيل العقد
+                    $actions .= '<li><a class="dropdown-item" href="' . route('contracts.details', $row->id) . '">
+                                    <i class="fas fa-eye"></i> عرض تفاصيل العقد
                                 </a></li>';
+                    // زر عرض العقد
+                    // $actions .= '<li><a class="dropdown-item" href="' . route('contract_delivery_form.download', $row->id) . '" target="_blank">
+                    //                 <i class="fas fa-eye"></i> عرض العقد (PDF)
+                    //             </a></li>';
 
                     // زر الطباعة
                     $actions .= '<li><a class="dropdown-item" href="' . route('contract_download_form.download', $row->id) . '?type=download" target="_blank">
-                                    <i class="fas fa-print"></i> طباعة العقد
+                                    <i class="fas fa-print"></i> طباعة العقد (PDF)
                                 </a></li>';
 
                     // منع التعديل والحذف للعقود المكتملة والمرتجعة والتي في الإيواء

@@ -360,9 +360,9 @@
                     <i class="fas fa-edit"></i>
                 </a>
             @endif
-            <button onclick="window.print()" class="btn-icon btn-print" title="طباعة">
+            {{-- <button onclick="window.print()" class="btn-icon btn-print" title="طباعة">
                 <i class="fas fa-print"></i>
-            </button>
+            </button> --}}
         </div>
 
         <div class="row">
@@ -436,7 +436,7 @@
                                         : 0;
                             @endphp
                             <span
-                                class="details-badge {{ $percentage >= 100 ? 'bg-success' : ($percentage >= 50 ? 'bg-warning' : 'bg-danger') }}">
+                                class="details-badge {{ $percentage >= 100 ? 'text-bg-success' : ($percentage >= 50 ? 'text-bg-warning' : 'text-bg-danger') }}">
                                 {{ number_format($percentage, 1) }}%
                             </span>
                         </span>
@@ -585,11 +585,11 @@
                             <span class="info-label">حالة التجربة:</span>
                             <span class="info-value">
                                 @if ($daysRemaining > 0)
-                                    <span class="details-badge bg-success">متبقي {{ $daysRemaining }} يوم</span>
+                                    <span class="details-badge text-bg-success">متبقي {{ $daysRemaining }} يوم</span>
                                 @elseif($daysRemaining == 0)
-                                    <span class="details-badge bg-warning">تنتهي اليوم</span>
+                                    <span class="details-badge text-bg-warning">تنتهي اليوم</span>
                                 @else
-                                    <span class="details-badge bg-danger">انتهت منذ {{ abs($daysRemaining) }} يوم</span>
+                                    <span class="details-badge text-bg-danger">انتهت منذ {{ abs($daysRemaining) }} يوم</span>
                                 @endif
                             </span>
                         </div>

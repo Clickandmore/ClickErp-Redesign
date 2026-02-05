@@ -1,4 +1,51 @@
-﻿<!DOCTYPE html>
+<?php
+function readEnvFile(string $path): array
+{
+    if (!is_file($path)) {
+        return [];
+    }
+
+    $vars = [];
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '' || str_starts_with($line, '#')) {
+            continue;
+        }
+
+        $parts = explode('=', $line, 2);
+        if (count($parts) !== 2) {
+            continue;
+        }
+        $key = trim($parts[0]);
+        $value = trim($parts[1]);
+        if ($value !== '' && ($value[0] === '"' || $value[0] === "'")) {
+            $value = trim($value, "\"'");
+        }
+        $vars[$key] = $value;
+    }
+
+    return $vars;
+}
+
+$env = readEnvFile(__DIR__ . '/../.env');
+
+$oldDb = [
+    'host' => $env['MIGRATION_OLD_DB_HOST'] ?? $env['OLD_DB_HOST'] ?? $env['DB_OLD_HOST'] ?? '127.0.0.1',
+    'port' => $env['MIGRATION_OLD_DB_PORT'] ?? $env['OLD_DB_PORT'] ?? $env['DB_OLD_PORT'] ?? '8889',
+    'name' => $env['MIGRATION_OLD_DB_NAME'] ?? $env['OLD_DB_NAME'] ?? $env['OLD_DB_DATABASE'] ?? $env['DB_OLD_DATABASE'] ?? 'platinum_old',
+    'user' => $env['MIGRATION_OLD_DB_USER'] ?? $env['OLD_DB_USER'] ?? $env['DB_OLD_USERNAME'] ?? 'root',
+    'pass' => $env['MIGRATION_OLD_DB_PASS'] ?? $env['OLD_DB_PASS'] ?? $env['DB_OLD_PASSWORD'] ?? 'root',
+];
+
+$newDb = [
+    'host' => $env['MIGRATION_NEW_DB_HOST'] ?? $env['DB_HOST'] ?? '127.0.0.1',
+    'port' => $env['MIGRATION_NEW_DB_PORT'] ?? $env['DB_PORT'] ?? '8889',
+    'name' => $env['MIGRATION_NEW_DB_NAME'] ?? $env['DB_DATABASE'] ?? 'platinum_new',
+    'user' => $env['MIGRATION_NEW_DB_USER'] ?? $env['DB_USERNAME'] ?? 'root',
+    'pass' => $env['MIGRATION_NEW_DB_PASS'] ?? $env['DB_PASSWORD'] ?? 'root',
+];
+?><!DOCTYPE html>
 <html dir="rtl" lang="ar">
 
 <head>
@@ -212,9 +259,9 @@
             <div style="background: #fff3cd; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
                 <h6 style="color: #856404; margin-bottom: 10px;">📋 تطابق الأعمدة:</h6>
                 <div style="font-size: 13px; color: #856404;">
-                    <strong>من platinum_old.nationalities إلى:</strong><br>
-                    • platinum_new.nationalities: id, flag_image→logo, salary→price, sponsor_salary→service_transportation_cost<br>
-                    • platinum_new.nationalities_translations: name→title, sub_title (فارغ)<br>
+                    <strong>من <?php echo htmlspecialchars($oldDb['name']); ?>.nationalities إلى:</strong><br>
+                    • <?php echo htmlspecialchars($newDb['name']); ?>.nationalities: id, flag_image→logo, salary→price, sponsor_salary→service_transportation_cost<br>
+                    • <?php echo htmlspecialchars($newDb['name']); ?>.nationalities_translations: name→title, sub_title (فارغ)<br>
                     <strong>أعمدة إضافية:</strong> code, key_comment, rank, key_code, status, apper_home, expected_duration, period
                 </div>
             </div>
@@ -233,7 +280,7 @@
             <h3> 4️⃣ نقل المكاتب الخارجية </h3>
 
             <div style="background: #e0f7fa; border-radius: 8px; padding: 15px; margin-bottom: 15px; color: #006064;">
-                <h6 style="margin-bottom: 10px;">🏢 تطابق الأعمدة (platinum.offices → platinum_new.recruitment_offices)</h6>
+                <h6 style="margin-bottom: 10px;">🏢 تطابق الأعمدة (<?php echo htmlspecialchars($oldDb['name']); ?>.offices → <?php echo htmlspecialchars($newDb['name']); ?>.recruitment_offices)</h6>
                 <div style="font-size: 13px; line-height: 1.6;">
                     • ban → status (القيمة 0 = Active، القيمة 1 = Dis Active)<br>
                     • office_phone → phone_office<br>
@@ -372,6 +419,25 @@
                 <button onclick="checkContractLogs()" class="btn-info">فحص سجلات العقود</button>
             </div>
             <div id="contract_logs_result" class="result"></div>
+        </div>
+
+        <!-- داخل الايواء (cv_previous_sponsor) -->
+        <div class="section">
+            <h3>1️⃣5️⃣ نقل داخل الإيواء (cv_previous_sponsor → contracts/contract_infos)</h3>
+            <div class="buttons">
+                <button onclick="transferPreviousSponsor()" class="btn-success">نقل داخل الإيواء</button>
+                <button onclick="checkPreviousSponsor()" class="btn-info">فحص النتيجة</button>
+            </div>
+            <div id="previous_sponsor_result" class="result"></div>
+        </div>
+
+        <!-- نقل حجوزات نقل الكفالة (reservation_sponsor) -->
+        <div class="section">
+            <h3>1️⃣5️⃣ نقل حجوزات نقل الكفالة (reservation_sponsor → sponsorship_transfers)</h3>
+            <div class="buttons">
+                <button onclick="transferReservationSponsor()" class="btn-success">نقل حجوزات نقل الكفالة</button>
+            </div>
+            <div id="reservation_sponsor_result" class="result"></div>
         </div>
 
         <!-- قسم أنواع الإيواء (Accommodation Types) -->
@@ -544,6 +610,42 @@
     </div>
 
     <script>
+        const MIGRATION_DB = <?php echo json_encode([
+            'old' => [
+                'old_db_host' => $oldDb['host'],
+                'old_db_port' => $oldDb['port'],
+                'old_db_name' => $oldDb['name'],
+                'old_db_user' => $oldDb['user'],
+                'old_db_pass' => $oldDb['pass'],
+            ],
+            'new' => [
+                'db_host' => $newDb['host'],
+                'db_port' => $newDb['port'],
+                'db_name' => $newDb['name'],
+                'db_user' => $newDb['user'],
+                'db_pass' => $newDb['pass'],
+            ],
+            'maids' => [
+                'db_host' => $newDb['host'],
+                'db_port' => $newDb['port'],
+                'db_user' => $newDb['user'],
+                'db_pass' => $newDb['pass'],
+                'old_db' => $oldDb['name'],
+                'new_db' => $newDb['name'],
+            ],
+        ], JSON_UNESCAPED_SLASHES); ?>;
+
+        function withOldDb(params) {
+            return Object.assign({}, params, MIGRATION_DB.old, MIGRATION_DB.new);
+        }
+
+        function withNewDb(params) {
+            return Object.assign({}, params, MIGRATION_DB.new);
+        }
+
+        function withMaidsDb(params) {
+            return Object.assign({}, params, MIGRATION_DB.maids);
+        }
         // Toggle upload section
         function toggleUploadSection() {
             const mode = document.querySelector('input[name="transfer_mode"]:checked').value;
@@ -1044,20 +1146,10 @@ function analyzeNationalitiesStructure() {
                 // خطوة 1: التصدير من القاعدة القديمة
                 btn.textContent = 'جاري التصدير...';
 
-                const exportParams = {
+                const exportParams = withOldDb({
                     action: 'export_from_old_db',
-                    export_table: 'nationalities',
-                    old_db_host: '127.0.0.1',
-                    old_db_port: '8889',
-                    old_db_name: 'platinum_old',
-                    old_db_user: 'root',
-                    old_db_pass: 'root',
-                    db_host: '127.0.0.1',
-                    db_port: '8889',
-                    db_name: 'platinum_new',
-                    db_user: 'root',
-                    db_pass: 'root'
-                };
+                    export_table: 'nationalities'
+                });
 
                 const exportResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
@@ -1076,16 +1168,11 @@ function analyzeNationalitiesStructure() {
                 // خطوة 2: معالجة ورفع البيانات
                 btn.textContent = 'جاري المعالجة والرفع...';
 
-                const processParams = {
+                const processParams = withNewDb({
                     action: 'process_exported_file',
                     exported_file: exportData.file_name,
-                    table_type: 'nationalities',
-                    db_host: '127.0.0.1',
-                    db_port: '8889',
-                    db_name: 'platinum_new',
-                    db_user: 'root',
-                    db_pass: 'root'
-                };
+                    table_type: 'nationalities'
+                });
 
                 const processResponse = await fetch('migration/file_processor.php', {
                     method: 'POST',
@@ -1188,15 +1275,9 @@ function analyzeNationalitiesStructure() {
                 btn.textContent = 'جاري التحليل...';
             }
 
-            const params = new URLSearchParams({
-                action: 'analyze',
-                db_host: '127.0.0.1',
-                db_port: '8889',
-                db_user: 'root',
-                db_pass: 'root',
-                old_db: 'platinum_old',
-                new_db: 'platinum_new'
-            });
+            const params = new URLSearchParams(withMaidsDb({
+                action: 'analyze'
+            }));
 
             fetch('migration/migrate_offices.php', {
                     method: 'POST',
@@ -1257,16 +1338,10 @@ function analyzeNationalitiesStructure() {
                 btn.textContent = 'جاري النقل...';
             }
 
-            const params = new URLSearchParams({
+            const params = new URLSearchParams(withMaidsDb({
                 action: 'migrate',
-                chunk: '500',
-                db_host: '127.0.0.1',
-                db_port: '8889',
-                db_user: 'root',
-                db_pass: 'root',
-                old_db: 'platinum_old',
-                new_db: 'platinum_new'
-            });
+                chunk: '500'
+            }));
 
             fetch('migration/migrate_offices.php', {
                     method: 'POST',
@@ -1403,14 +1478,9 @@ function analyzeNationalitiesStructure() {
                 });
         }
         function exportOfficesCsv() {
-            const params = new URLSearchParams({
-                action: 'export_csv',
-                db_host: '127.0.0.1',
-                db_port: '8889',
-                db_user: 'root',
-                db_pass: 'root',
-                new_db: 'platinum_new'
-            });
+            const params = new URLSearchParams(withMaidsDb({
+                action: 'export_csv'
+            }));
 
             window.open('migration/migrate_offices.php?' + params.toString(), '_blank');
         }
@@ -1836,12 +1906,16 @@ function analyzeNationalitiesStructure() {
                 btn.textContent = 'جاري التحليل...';
             }
 
+            const params = new URLSearchParams(withMaidsDb({
+                action: 'analyze'
+            }));
+
             fetch('migration/migrate_maids.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: 'action=analyze'
+                    body: params.toString()
                 })
                 .then(response => response.text())
                 .then(result => {
@@ -1916,12 +1990,16 @@ function analyzeNationalitiesStructure() {
                 btn.textContent = 'جاري النقل...';
             }
 
+            const params = new URLSearchParams(withMaidsDb({
+                action: 'migrate'
+            }));
+
             fetch('migration/migrate_maids.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: 'action=migrate'
+                    body: params.toString()
                 })
                 .then(response => response.text())
                 .then(result => {
@@ -1991,12 +2069,16 @@ function analyzeNationalitiesStructure() {
                 btn.textContent = 'جاري التحميل...';
             }
 
+            const params = new URLSearchParams(withMaidsDb({
+                action: 'missing_details'
+            }));
+
             fetch('migration/migrate_maids.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: 'action=missing_details'
+                    body: params.toString()
                 })
                 .then(response => response.text())
                 .then(result => {
@@ -2523,6 +2605,106 @@ function analyzeNationalitiesStructure() {
                 });
         }
 
+        function transferPreviousSponsor() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'جاري النقل...';
+
+            fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=migrate_previous_sponsor'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lines = [
+                            data.message || 'تم نقل داخل الإيواء بنجاح',
+                            'الإجمالي: ' + (data.processed ?? 0),
+                            'مضاف: ' + (data.inserted ?? 0),
+                            'محدث: ' + (data.updated ?? 0),
+                            'متجاوز: ' + (data.skipped ?? 0)
+                        ];
+                        showResult('previous_sponsor_result', lines.join('\n'), true);
+                        updateStats();
+                    } else {
+                        showResult('previous_sponsor_result', 'فشل النقل: ' + (data.message || 'غير معروف'), false);
+                    }
+                })
+                .catch(error => {
+                    showResult('previous_sponsor_result', 'خطأ: ' + error.message, false);
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.textContent = 'نقل داخل الإيواء';
+                });
+        }
+
+        function transferReservationSponsor() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'جاري النقل...';
+
+            fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=migrate_reservation_sponsor'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lines = [
+                            data.message || 'تم نقل حجوزات نقل الكفالة بنجاح',
+                            'الإجمالي: ' + (data.processed ?? 0),
+                            'مضاف: ' + (data.inserted ?? 0),
+                            'محدث: ' + (data.updated ?? 0),
+                            'متجاوز: ' + (data.skipped ?? 0)
+                        ];
+                        showResult('reservation_sponsor_result', lines.join('\n'), true);
+                        updateStats();
+                    } else {
+                        showResult('reservation_sponsor_result', 'فشل النقل: ' + (data.message || 'غير معروف'), false);
+                    }
+                })
+                .catch(error => {
+                    showResult('reservation_sponsor_result', 'خطأ: ' + error.message, false);
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.textContent = 'نقل حجوزات نقل الكفالة';
+                });
+        }
+
+        function checkPreviousSponsor() {
+            fetch('migration/file_processor.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'action=previous_sponsor_summary'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const lines = [
+                            'إجمالي القديم: ' + (data.old_total ?? 0),
+                            'عقود الإيواء الجديدة: ' + (data.new_shelter_contracts ?? 0),
+                            data.message || ''
+                        ].filter(Boolean);
+                        showResult('previous_sponsor_result', lines.join('\n'), true);
+                    } else {
+                        showResult('previous_sponsor_result', 'فشل الفحص: ' + (data.message || 'غير معروف'), false);
+                    }
+                })
+                .catch(error => {
+                    showResult('previous_sponsor_result', 'خطأ: ' + error.message, false);
+                });
+        }
+
         function transferAccommodationTypes() {
             const btn = event.target;
             btn.disabled = true;
@@ -2647,7 +2829,10 @@ function analyzeNationalitiesStructure() {
         window.transferReservationsToOrders = transferReservationsToOrders;
         window.checkOrders = checkOrders;
         window.transferContracts = transferContracts;
+        window.transferPreviousSponsor = transferPreviousSponsor;
+        window.transferReservationSponsor = transferReservationSponsor;
         window.checkContracts = checkContracts;
+        window.checkPreviousSponsor = checkPreviousSponsor;
         window.transferContractInfos = transferContractInfos;
         window.checkContractInfos = checkContractInfos;
         window.transferContractLogs = transferContractLogs;

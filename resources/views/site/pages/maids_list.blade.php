@@ -12,17 +12,18 @@
                 ];
                 $targetJobTypeId = $typeToJobTypeId[$currentType] ?? null;
                 $todayDate = now()->toDateString();
-                $offerStarts = optional($maid->offer_starts_at)->format('Y-m-d');
-                $offerExpires = optional($maid->offer_expires_at)->format('Y-m-d');
+                $offerStartsRaw = $maid->getRawOriginal('offer_starts_at');
+                $offerExpiresRaw = $maid->getRawOriginal('offer_expires_at');
+                $offerStarts = is_string($offerStartsRaw) && $offerStartsRaw !== '' ? substr($offerStartsRaw, 0, 10) : null;
+                $offerExpires = is_string($offerExpiresRaw) && $offerExpiresRaw !== '' ? substr($offerExpiresRaw, 0, 10) : null;
 
                 $offerPriceRaw = $maid->offer_price !== null ? (float) $maid->offer_price : null;
                 $salaryRaw = $maid->resolved_salary !== null ? (float) $maid->resolved_salary : null;
                 $priceRaw = $maid->resolved_price !== null ? (float) $maid->resolved_price : null;
 
-                $offerActive =
-                    $offerPriceRaw !== null &&
-                    (!empty($offerStarts) || $offerStarts <= $todayDate) &&
-                    (!empty($offerExpires) || $offerExpires >= $todayDate);
+                $offerStartsOk = empty($offerStarts) || $offerStarts <= $todayDate;
+                $offerExpiresOk = empty($offerExpires) || $offerExpires >= $todayDate;
+                $offerActive = $offerPriceRaw !== null && $offerStartsOk && $offerExpiresOk;
 
                 /* الحساب دايمًا يكون بالقيم الخام */
                 $salaryAfterOfferRaw = $offerActive && $salaryRaw !== null ? $salaryRaw - $offerPriceRaw : null;
@@ -64,10 +65,17 @@
                                             <p class="cv-code">{{ $cv_code }}</p>
                                         @else
                                             @if ($maid->recruitmentOffice)
+                                                @php
+                                                    $officeTitle = optional($maid->recruitmentOffice)->title ?? '';
+                                                    $officeShort = \Illuminate\Support\Str::limit($officeTitle, 3, '');
+                                                @endphp
+                                                @php
+                                                    $officeMaidCount = $maid->recruitmentOffice?->maids()->count() ?? 0;
+                                                @endphp
                                                 <p class="cv-code">
-                                                    <span>{{ optional($maid->recruitmentOffice?->maids)->count() ?? 0 }}</span>
+                                                    <span>{{ $officeMaidCount }}</span>
                                                     <span>/</span>
-                                                    <span>{{ mb_substr(optional($maid->recruitmentOffice)->title ?? '', 0, 3) }}</span>
+                                                    <span>{{ $officeShort }}</span>
                                                 </p>
                                             @endif
                                         @endif
@@ -81,17 +89,17 @@
                                     @endif
                                     <div class="workerInfo">
                                         <p>{{ __('ingaz.nationality') }} :
-                                            <span>{{ $maid->nationality->sub_title ?? '' }}</span>
+                                            <span>{{ $maid->nationality?->sub_title ?? '' }}</span>
                                         </p>
                                         <p>{{ __('ingaz.religion') }} :
-                                            <span>{{ $maid->religion->title ?? '' }}</span>
+                                            <span>{{ $maid->religion?->title ?? '' }}</span>
                                         </p>
                                         @if (!empty($maid->passport_num))
                                             <p>{{ __('ingaz.passport_num') }} : <span>{{ $maid->passport_num }}</span>
                                             </p>
                                         @endif
                                         <p>{{ __('ingaz.job') }} :
-                                            <span>{{ $maid->jobTitles->first()->title ?? '' }}</span>
+                                            <span>{{ $maid->jobTitles->first()?->title ?? '' }}</span>
                                         </p>
                                         <p>{{ __('ingaz.experience') }} :
                                             <span>
@@ -193,17 +201,17 @@
                                     <h4>{{ $maid->name ?? '' }}</h4>
                                     <div class="workerInfo">
                                         <p>{{ __('ingaz.nationality') }} :
-                                            <span>{{ $maid->nationality->sub_title ?? '' }}</span>
+                                            <span>{{ $maid->nationality?->sub_title ?? '' }}</span>
                                         </p>
                                         <p>{{ __('ingaz.religion') }} :
-                                            <span>{{ $maid->religion->title ?? '' }}</span>
+                                            <span>{{ $maid->religion?->title ?? '' }}</span>
                                         </p>
                                         @if (!empty($maid->passport_num))
                                             <p>{{ __('ingaz.passport_num') }} : <span>{{ $maid->passport_num }}</span>
                                             </p>
                                         @endif
                                         <p>{{ __('ingaz.job') }} :
-                                            <span>{{ $maid->jobTitles->first()->title ?? '' }}</span>
+                                            <span>{{ $maid->jobTitles->first()?->title ?? '' }}</span>
                                         </p>
                                         <p>{{ __('ingaz.experience') }} :
                                             <span>
@@ -283,10 +291,17 @@
                                             <p class="cv-code">{{ $cv_code }}</p>
                                         @else
                                             @if ($maid->recruitmentOffice)
+                                                @php
+                                                    $officeTitle = optional($maid->recruitmentOffice)->title ?? '';
+                                                    $officeShort = \Illuminate\Support\Str::limit($officeTitle, 3, '');
+                                                @endphp
+                                                @php
+                                                    $officeMaidCount = $maid->recruitmentOffice?->maids()->count() ?? 0;
+                                                @endphp
                                                 <p class="cv-code">
-                                                    <span>{{ optional($maid->recruitmentOffice?->maids)->count() ?? 0 }}</span>
+                                                    <span>{{ $officeMaidCount }}</span>
                                                     <span>/</span>
-                                                    <span>{{ mb_substr(optional($maid->recruitmentOffice)->title ?? '', 0, 3) }}</span>
+                                                    <span>{{ $officeShort }}</span>
                                                 </p>
                                             @endif
                                         @endif
@@ -294,17 +309,17 @@
                                     <h4>{{ $maid->name ?? '' }}</h4>
                                     <div class="workerInfo">
                                         <p>{{ __('ingaz.nationality') }} :
-                                            <span>{{ $maid->nationality->sub_title ?? '' }}</span>
+                                            <span>{{ $maid->nationality?->sub_title ?? '' }}</span>
                                         </p>
                                         <p>{{ __('ingaz.religion') }} :
-                                            <span>{{ $maid->religion->title ?? '' }}</span>
+                                            <span>{{ $maid->religion?->title ?? '' }}</span>
                                         </p>
                                         @if (!empty($maid->passport_num))
                                             <p>{{ __('ingaz.passport_num') }} : <span>{{ $maid->passport_num }}</span>
                                             </p>
                                         @endif
                                         <p>{{ __('ingaz.job') }} :
-                                            <span>{{ $maid->jobTitles->first()->title ?? '' }}</span>
+                                            <span>{{ $maid->jobTitles->first()?->title ?? '' }}</span>
                                         </p>
                                         <p>{{ __('ingaz.experience') }} :
                                             <span>

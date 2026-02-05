@@ -9323,4 +9323,58 @@ main .guidelines-section .country-card .links .btn:hover i {
     color: #333;
 }
 
+.recruitmentContract {
+    background-image: linear-gradient(45deg, rgba(0, 0, 0, 0.7098039216), rgba(0, 0, 0, 0.4)), url(../images/s3.webp);
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
+    text-align: center;
+    padding: 120px 0 70px;
+
+}
+
+.recruitmentContract h3 {
+    font-weight: bold;
+    color: #ffffff;
+    margin-bottom: 20px;
+    line-height: 34px;
+    font-size: 26px;
+}
+
+.recruitmentContract p {
+    margin: auto;
+    line-height: 34px;
+    color: #e0e0e0;
+    margin-bottom: 20px;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.recruitmentContract {
+    background-image: linear-gradient(45deg, rgba(0, 0, 0, 0.7098039216), rgba(0, 0, 0, 0.4)), url(../images/s3.webp);
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
+    text-align: center;
+    padding: 120px 0 70px;
+
+}
+
+.recruitmentContract h3 {
+    font-weight: bold;
+    color: #ffffff;
+    margin-bottom: 20px;
+    line-height: 34px;
+    font-size: 26px;
+}
+
+.recruitmentContract p {
+    margin: auto;
+    line-height: 34px;
+    color: #e0e0e0;
+    margin-bottom: 20px;
+    font-size: 18px;
+    font-weight: 700;
+}
+
 /*# sourceMappingURL=style.css.map */

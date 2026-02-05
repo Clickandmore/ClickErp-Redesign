@@ -87,7 +87,7 @@
                 <div class="col-md-4 mb-3">
                     <label class="form-label">رقم الجوال <span class="required-star">*</span></label>
                     <input type="tel" name="complainant_phone" class="form-control" required
-                           placeholder="05XXXXXXXX" pattern="05[0-9]{8}" value="{{ old('complainant_phone') }}"
+                           placeholder="05XXXXXXXX | 5XXXXXXXX" pattern="^(05|5)[0-9]{8}$" value="{{ old('complainant_phone') }}"
                            data-validation="required">
                     @error('complainant_phone')
                         <span class="text-danger">{{ $message }}</span>
@@ -285,7 +285,7 @@ $(document).ready(function() {
     // تحقق من رقم الجوال
     $('input[name="complainant_phone"]').on('blur', function() {
         var phone = $(this).val();
-        if (phone && !phone.match(/^05[0-9]{8}$/)) {
+        if (phone && !phone.match(/^(05|5)[0-9]{8}$/)) {
             toastr.warning('رقم الجوال يجب أن يبدأ بـ 05 ويتكون من 10 أرقام');
             $(this).focus();
         }

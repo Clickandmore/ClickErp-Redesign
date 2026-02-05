@@ -14,6 +14,56 @@ ini_set('max_execution_time', 600);
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache');
 
+function readEnvFile(string $path): array
+{
+    if (!is_file($path)) {
+        return [];
+    }
+
+    $vars = [];
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '' || str_starts_with($line, '#')) {
+            continue;
+        }
+        $parts = explode('=', $line, 2);
+        if (count($parts) !== 2) {
+            continue;
+        }
+        $key = trim($parts[0]);
+        $value = trim($parts[1]);
+        if ($value !== '' && ($value[0] === '"' || $value[0] === "'")) {
+            $value = trim($value, "\"'");
+        }
+        $vars[$key] = $value;
+    }
+
+    return $vars;
+}
+
+$env = readEnvFile(__DIR__ . '/../../.env');
+
+// Fill request defaults from .env so migrations work without passing DB params
+$requestDefaults = [
+    'db_host' => $env['MIGRATION_NEW_DB_HOST'] ?? $env['DB_HOST'] ?? '127.0.0.1',
+    'db_port' => $env['MIGRATION_NEW_DB_PORT'] ?? $env['DB_PORT'] ?? 8889,
+    'db_name' => $env['MIGRATION_NEW_DB_NAME'] ?? $env['DB_DATABASE'] ?? 'platinum_new',
+    'db_user' => $env['MIGRATION_NEW_DB_USER'] ?? $env['DB_USERNAME'] ?? 'root',
+    'db_pass' => $env['MIGRATION_NEW_DB_PASS'] ?? $env['DB_PASSWORD'] ?? 'root',
+    'old_db_host' => $env['MIGRATION_OLD_DB_HOST'] ?? $env['OLD_DB_HOST'] ?? $env['DB_OLD_HOST'] ?? '127.0.0.1',
+    'old_db_port' => $env['MIGRATION_OLD_DB_PORT'] ?? $env['OLD_DB_PORT'] ?? $env['DB_OLD_PORT'] ?? 8889,
+    'old_db_name' => $env['MIGRATION_OLD_DB_NAME'] ?? $env['OLD_DB_NAME'] ?? $env['OLD_DB_DATABASE'] ?? $env['DB_OLD_DATABASE'] ?? 'platinum_old',
+    'old_db_user' => $env['MIGRATION_OLD_DB_USER'] ?? $env['OLD_DB_USER'] ?? $env['DB_OLD_USERNAME'] ?? 'root',
+    'old_db_pass' => $env['MIGRATION_OLD_DB_PASS'] ?? $env['OLD_DB_PASS'] ?? $env['DB_OLD_PASSWORD'] ?? 'root'
+];
+
+foreach ($requestDefaults as $key => $value) {
+    if (!isset($_POST[$key]) && !isset($_GET[$key])) {
+        $_POST[$key] = $value;
+    }
+}
+
 // إعدادات قاعدة البيانات - مرنة للاستخدامات المتعددة
 $config = [
     'host' => $_POST['db_host'] ?? $_GET['db_host'] ?? '127.0.0.1',
@@ -345,6 +395,24 @@ try {
         case 'migrate_contacts':
             ob_clean();
             echo json_encode(migrateContacts(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_previous_sponsor':
+            ob_clean();
+            echo json_encode(migratePreviousSponsor(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'migrate_reservation_sponsor':
+            ob_clean();
+            echo json_encode(migrateReservationSponsor(), JSON_UNESCAPED_UNICODE);
+            exit();
+            break;
+
+        case 'previous_sponsor_summary':
+            ob_clean();
+            echo json_encode(getPreviousSponsorSummary(), JSON_UNESCAPED_UNICODE);
             exit();
             break;
 
@@ -813,6 +881,676 @@ try {
     exit();
 }
 
+function migratePreviousSponsor()
+{
+    try {
+        $oldDb = get_old_db_connection();
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بقاعدة البيانات: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $rows = $oldDb->query("SELECT id, status, apper_front, cv_id, date_worker_returned, reason_worker_returned, salary_worker_returned, date_receipt, text_receipt, workers_have_residency, performing_medical_examination, worker_service_type, duration_type, created_at, updated_at, deleted_at
+            FROM cv_previous_sponsor
+            WHERE status IN ('1','2','3','4','5','6','7','8')
+              AND EXISTS (SELECT 1 FROM cvs WHERE cvs.id = cv_previous_sponsor.cv_id)
+              AND EXISTS (SELECT 1 FROM rservations WHERE rservations.cv_id = cv_previous_sponsor.cv_id)
+            ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل قراءة جدول cv_previous_sponsor: ' . $e->getMessage()
+        ];
+    }
+
+    if (empty($rows)) {
+        return [
+            'success' => true,
+            'message' => 'لا توجد بيانات داخل الإيواء لنقلها',
+            'processed' => 0,
+            'inserted' => 0,
+            'updated' => 0,
+            'skipped' => 0
+        ];
+    }
+
+    $contractMap = [];
+    try {
+        $contractMapRows = $oldDb->query("SELECT r.cv_id, r.id AS reservation_id, c.id AS contract_id
+            FROM rservations r
+            LEFT JOIN contracts c ON c.resv_id = r.id
+            ORDER BY r.cv_id, c.id DESC, r.id DESC")->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل ربط الحجوزات بالعقود القديمة: ' . $e->getMessage()
+        ];
+    }
+
+    foreach ($contractMapRows as $mapRow) {
+        $cvId = isset($mapRow['cv_id']) ? (int)$mapRow['cv_id'] : 0;
+        $contractId = isset($mapRow['contract_id']) ? (int)$mapRow['contract_id'] : 0;
+        $reservationId = isset($mapRow['reservation_id']) ? (int)$mapRow['reservation_id'] : 0;
+        if ($cvId <= 0 || $reservationId <= 0) {
+            continue;
+        }
+        if (!isset($contractMap[$cvId])) {
+            $contractMap[$cvId] = [
+                'contract_id' => $contractId,
+                'reservation_id' => $reservationId
+            ];
+        }
+    }
+
+    $contractsColumns = getTableColumnsLocal($newDb, 'contracts');
+    $infosColumns = getTableColumnsLocal($newDb, 'contract_infos');
+    try {
+        $deportationColumns = getTableColumnsLocal($newDb, 'deportation_procedures');
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'تعذر قراءة جدول deportation_procedures: ' . $e->getMessage()
+        ];
+    }
+    $contractsColumns = array_map('strtolower', $contractsColumns);
+    $infosColumns = array_map('strtolower', $infosColumns);
+    $deportationColumns = array_map('strtolower', $deportationColumns);
+
+    $contractPayloadKeys = [
+        'status',
+        'updated_at'
+    ];
+    $infoPayloadKeys = [
+        'contract_id',
+        'shelter_id',
+        'maid_date_back',
+        'salary_final_status',
+        'duration_from_enter',
+        'back_reasons',
+        'wants_to_work',
+        'arrival_date',
+        'workers_have_residency',
+        'performing_medical_examination',
+        'worker_service_type',
+        'receipt_form_text',
+        'created_at',
+        'updated_at'
+    ];
+    $deportationPayloadKeys = [
+        'contract_id',
+        'maid_id',
+        'salary_received',
+        'salary_received_date',
+        'notes',
+        'status',
+        'started_at',
+        'completed_at',
+        'created_at',
+        'updated_at'
+    ];
+
+    $contractUpdateCols = array_values(array_intersect($contractsColumns, $contractPayloadKeys));
+    $infoInsertCols = array_values(array_intersect($infosColumns, $infoPayloadKeys));
+    $deportationInsertCols = array_values(array_intersect($deportationColumns, $deportationPayloadKeys));
+
+    if (!in_array('status', $contractUpdateCols, true) || empty($infoInsertCols)) {
+        return [
+            'success' => false,
+            'message' => 'تعذر تحديد أعمدة الجداول في القاعدة الجديدة'
+        ];
+    }
+
+    if (!in_array('contract_id', $deportationInsertCols, true) || !in_array('maid_id', $deportationInsertCols, true) || !in_array('status', $deportationInsertCols, true)) {
+        return [
+            'success' => false,
+            'message' => 'تعذر تحديد الأعمدة الأساسية في جدول deportation_procedures'
+        ];
+    }
+
+    $contractUpdateSql = "UPDATE contracts SET " . implode(', ', array_map(fn($c) => "`{$c}` = :{$c}", $contractUpdateCols)) . " WHERE id = :id";
+
+    $contractUpdateStmt = $newDb->prepare($contractUpdateSql);
+    $findContractStmt = $newDb->prepare('SELECT id FROM contracts WHERE id = :id LIMIT 1');
+    $findContractByOrderStmt = null;
+    if (in_array('order_id', $contractsColumns, true)) {
+        $findContractByOrderStmt = $newDb->prepare('SELECT id FROM contracts WHERE order_id = :order_id ORDER BY id DESC LIMIT 1');
+    }
+
+    $infoInsertSql = "INSERT INTO contract_infos (" . implode(', ', array_map(fn($c) => "`{$c}`", $infoInsertCols)) . ")
+        VALUES (" . implode(', ', array_map(fn($c) => ':' . $c, $infoInsertCols)) . ")";
+    $infoUpdateCols = array_values(array_filter($infoInsertCols, fn($c) => $c !== 'contract_id'));
+    $infoUpdateSql = "UPDATE contract_infos SET " . implode(', ', array_map(fn($c) => "`{$c}` = :{$c}", $infoUpdateCols)) . " WHERE contract_id = :contract_id";
+
+    $infoInsertStmt = $newDb->prepare($infoInsertSql);
+    $infoUpdateStmt = $newDb->prepare($infoUpdateSql);
+    $findInfoStmt = $newDb->prepare('SELECT id FROM contract_infos WHERE contract_id = :contract_id LIMIT 1');
+
+    $deportationInsertSql = "INSERT INTO deportation_procedures (" . implode(', ', array_map(fn($c) => "`{$c}`", $deportationInsertCols)) . ")
+        VALUES (" . implode(', ', array_map(fn($c) => ':' . $c, $deportationInsertCols)) . ")";
+    $deportationUpdateCols = array_values(array_filter($deportationInsertCols, fn($c) => $c !== 'contract_id'));
+    $deportationUpdateSql = "UPDATE deportation_procedures SET " . implode(', ', array_map(fn($c) => "`{$c}` = :{$c}", $deportationUpdateCols)) . " WHERE id = :id";
+
+    $deportationInsertStmt = $newDb->prepare($deportationInsertSql);
+    $deportationUpdateStmt = $newDb->prepare($deportationUpdateSql);
+    $findDeportationStmt = $newDb->prepare('SELECT id FROM deportation_procedures WHERE contract_id = :contract_id LIMIT 1');
+
+    $processed = 0;
+    $inserted = 0;
+    $updated = 0;
+    $infoUpdated = 0;
+    $deportationInserted = 0;
+    $deportationUpdated = 0;
+    $deportationSkipped = 0;
+    $skipped = 0;
+    $errors = [];
+
+    $newDb->beginTransaction();
+    try {
+        foreach ($rows as $row) {
+            $processed++;
+
+            $maidId = isset($row['cv_id']) ? (int)$row['cv_id'] : 0;
+            if ($maidId <= 0) {
+                $skipped++;
+                continue;
+            }
+
+            $mapping = $contractMap[$maidId] ?? null;
+            if ($mapping === null) {
+                if ((int)($row['status'] ?? 0) === 6) {
+                    $deportationSkipped++;
+                }
+                $skipped++;
+                continue;
+            }
+
+            $mapped = mapPreviousSponsorStatus($row['status'] ?? null);
+            $contractStatus = $mapped['contract_status'];
+            $wantsToWork = $mapped['wants_to_work'];
+
+            $contractId = isset($mapping['contract_id']) ? (int)$mapping['contract_id'] : 0;
+            $existingContractId = null;
+            if ($contractId > 0) {
+                $findContractStmt->execute([':id' => $contractId]);
+                $existingContractId = $findContractStmt->fetchColumn();
+            }
+
+            if (!$existingContractId && $findContractByOrderStmt !== null) {
+                $reservationId = isset($mapping['reservation_id']) ? (int)$mapping['reservation_id'] : 0;
+                if ($reservationId > 0) {
+                    $findContractByOrderStmt->execute([':order_id' => $reservationId]);
+                    $existingContractId = $findContractByOrderStmt->fetchColumn();
+                }
+            }
+
+            if (!$existingContractId) {
+                if ((int)($row['status'] ?? 0) === 6) {
+                    $deportationSkipped++;
+                }
+                $skipped++;
+                continue;
+            }
+
+            $contractId = (int)$existingContractId;
+            $contractPayload = [
+                'status' => $contractStatus,
+                'updated_at' => normalizeContractDateTime($row['updated_at'] ?? null)
+            ];
+
+            $contractPayload = array_intersect_key($contractPayload, array_flip($contractUpdateCols));
+            $contractPayload['id'] = $contractId;
+            $contractUpdateStmt->execute(prefixPlaceholders(array_keys($contractPayload), $contractPayload));
+            $updated++;
+
+            $infoPayload = [
+                'contract_id' => $contractId,
+                'shelter_id' => 2,
+                'maid_date_back' => normalizeContractDate($row['date_worker_returned'] ?? null),
+                'salary_final_status' => normalizeContractValue($row['salary_worker_returned'] ?? null),
+                'duration_from_enter' => normalizeContractValue($row['duration_type'] ?? null),
+                'back_reasons' => normalizeContractValue($row['reason_worker_returned'] ?? null),
+                'wants_to_work' => $wantsToWork,
+                'arrival_date' => normalizeContractDate($row['date_receipt'] ?? null),
+                'workers_have_residency' => mapYesNoEnum($row['workers_have_residency'] ?? null),
+                'performing_medical_examination' => mapYesNoEnum($row['performing_medical_examination'] ?? null),
+                'worker_service_type' => mapServiceType($row['worker_service_type'] ?? null),
+                'receipt_form_text' => normalizeContractValue($row['text_receipt'] ?? null),
+                'created_at' => normalizeContractDateTime($row['created_at'] ?? null),
+                'updated_at' => normalizeContractDateTime($row['updated_at'] ?? null)
+            ];
+
+            $infoPayload = array_intersect_key($infoPayload, array_flip($infoInsertCols));
+
+            $findInfoStmt->execute([':contract_id' => $contractId]);
+            $infoExists = $findInfoStmt->fetchColumn();
+            if ($infoExists) {
+                $infoUpdatePayload = array_intersect_key($infoPayload, array_flip($infoUpdateCols));
+                $infoUpdatePayload['contract_id'] = $contractId;
+                $infoUpdateStmt->execute(prefixPlaceholders(array_keys($infoUpdatePayload), $infoUpdatePayload));
+                $infoUpdated++;
+            } else {
+                $infoInsertStmt->execute(prefixPlaceholders(array_keys($infoPayload), $infoPayload));
+                $inserted++;
+            }
+
+            if ((int)($row['status'] ?? 0) === 6) {
+                $findDeportationStmt->execute([':contract_id' => $contractId]);
+                $existingProcedureId = $findDeportationStmt->fetchColumn();
+
+                $reason = normalizeContractValue($row['reason_worker_returned'] ?? null);
+                $receipt = normalizeContractValue($row['text_receipt'] ?? null);
+                $notesParts = [];
+                if ($reason !== null && $reason !== '') {
+                    $notesParts[] = $reason;
+                }
+                if ($receipt !== null && $receipt !== '' && $receipt !== $reason) {
+                    $notesParts[] = $receipt;
+                }
+                $notes = empty($notesParts) ? null : implode(' | ', $notesParts);
+
+                $salaryValue = normalizeContractValue($row['salary_worker_returned'] ?? null);
+                $salaryReceived = ($salaryValue !== null && $salaryValue !== '') ? 1 : 0;
+
+                $completedAt = normalizeContractDateTime($row['date_worker_returned'] ?? null);
+                if ($completedAt === null) {
+                    $completedAt = normalizeContractDateTime($row['updated_at'] ?? null);
+                }
+
+                $deportationPayload = [
+                    'contract_id' => $contractId,
+                    'maid_id' => $maidId,
+                    'status' => 'completed',
+                    'salary_received' => $salaryReceived,
+                    'salary_received_date' => normalizeContractDate($row['date_receipt'] ?? null),
+                    'notes' => $notes,
+                    'started_at' => normalizeContractDateTime($row['created_at'] ?? null),
+                    'completed_at' => $completedAt,
+                    'created_at' => normalizeContractDateTime($row['created_at'] ?? null),
+                    'updated_at' => normalizeContractDateTime($row['updated_at'] ?? null)
+                ];
+
+                $deportationPayload = array_intersect_key($deportationPayload, array_flip($deportationInsertCols));
+
+                if ($existingProcedureId) {
+                    $deportationUpdatePayload = array_intersect_key($deportationPayload, array_flip($deportationUpdateCols));
+                    $deportationUpdatePayload['id'] = $existingProcedureId;
+                    $deportationUpdateStmt->execute(prefixPlaceholders(array_keys($deportationUpdatePayload), $deportationUpdatePayload));
+                    $deportationUpdated++;
+                } else {
+                    $deportationInsertStmt->execute(prefixPlaceholders($deportationInsertCols, $deportationPayload));
+                    $deportationInserted++;
+                }
+            }
+        }
+
+        $newDb->commit();
+    } catch (Exception $e) {
+        $newDb->rollBack();
+        return [
+            'success' => false,
+            'message' => 'فشل النقل: ' . $e->getMessage()
+        ];
+    }
+
+    return [
+        'success' => true,
+        'message' => 'تم تحديث بيانات داخل الإيواء بنجاح',
+        'processed' => $processed,
+        'inserted' => $inserted,
+        'updated' => $updated,
+        'info_updated' => $infoUpdated,
+        'deportation_inserted' => $deportationInserted,
+        'deportation_updated' => $deportationUpdated,
+        'deportation_skipped' => $deportationSkipped,
+        'skipped' => $skipped,
+        'errors' => $errors
+    ];
+}
+
+function getPreviousSponsorSummary()
+{
+    try {
+        $oldDb = get_old_db_connection();
+        $newDb = get_db_connection();
+        $oldCount = (int)($oldDb->query('SELECT COUNT(*) FROM cv_previous_sponsor')->fetchColumn() ?: 0);
+        $newCount = (int)($newDb->query('SELECT COUNT(*) FROM contracts WHERE status IN ("shelter","completed","trial","transferred")')->fetchColumn() ?: 0);
+
+        return [
+            'success' => true,
+            'old_total' => $oldCount,
+            'new_shelter_contracts' => $newCount,
+            'message' => 'تم جلب الإحصائيات'
+        ];
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل جلب الإحصائيات: ' . $e->getMessage()
+        ];
+    }
+}
+
+function migrateReservationSponsor()
+{
+    try {
+        $oldDb = get_old_db_connection();
+        $newDb = get_db_connection();
+        $newDb->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل الاتصال بقاعدة البيانات: ' . $e->getMessage()
+        ];
+    }
+
+    try {
+        $rows = $oldDb->query("SELECT rs.*, cps.cv_id, cps.status AS cv_status
+            FROM reservation_sponsor rs
+            LEFT JOIN cv_previous_sponsor cps ON cps.id = rs.cv_sponsor_id
+            ORDER BY rs.id")->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل قراءة جدول reservation_sponsor: ' . $e->getMessage()
+        ];
+    }
+
+    if (empty($rows)) {
+        return [
+            'success' => true,
+            'message' => 'لا توجد بيانات لنقلها من جدول reservation_sponsor',
+            'processed' => 0,
+            'inserted' => 0,
+            'updated' => 0,
+            'skipped' => 0
+        ];
+    }
+
+    $contractMap = [];
+    try {
+        $contractMapRows = $oldDb->query("SELECT r.cv_id, r.id AS reservation_id, c.id AS contract_id
+            FROM rservations r
+            LEFT JOIN contracts c ON c.resv_id = r.id
+            ORDER BY r.cv_id, c.id DESC, r.id DESC")->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'فشل ربط الحجوزات بالعقود القديمة: ' . $e->getMessage()
+        ];
+    }
+
+    foreach ($contractMapRows as $mapRow) {
+        $cvId = isset($mapRow['cv_id']) ? (int)$mapRow['cv_id'] : 0;
+        $contractId = isset($mapRow['contract_id']) ? (int)$mapRow['contract_id'] : 0;
+        $reservationId = isset($mapRow['reservation_id']) ? (int)$mapRow['reservation_id'] : 0;
+        if ($cvId <= 0 || $reservationId <= 0) {
+            continue;
+        }
+        if (!isset($contractMap[$cvId])) {
+            $contractMap[$cvId] = [
+                'contract_id' => $contractId,
+                'reservation_id' => $reservationId
+            ];
+        }
+    }
+
+    $userIds = $newDb->query('SELECT id FROM users')->fetchAll(PDO::FETCH_COLUMN) ?: [];
+    $userLookup = array_fill_keys(array_map('intval', $userIds), true);
+
+    $adminIds = $newDb->query('SELECT id FROM admins')->fetchAll(PDO::FETCH_COLUMN) ?: [];
+    $adminLookup = array_fill_keys(array_map('intval', $adminIds), true);
+
+    $transferColumns = getTableColumnsLocal($newDb, 'sponsorship_transfers');
+    $transferColumns = array_map('strtolower', $transferColumns);
+
+    $payloadKeys = [
+        'id',
+        'contract_id',
+        'old_sponsor_id',
+        'new_sponsor_id',
+        'trial_days',
+        'trial_start_date',
+        'contract_value',
+        'paid_amount',
+        'remaining_amount',
+        'notes',
+        'status',
+        'approved_by',
+        'approved_at',
+        'trial_started_at',
+        'transferred_at',
+        'failed_at',
+        'failure_reason',
+        'transferred_by',
+        'failed_by',
+        'rejection_reason',
+        'created_at',
+        'updated_at'
+    ];
+
+    $insertCols = array_values(array_intersect($transferColumns, $payloadKeys));
+
+    $requiredCols = ['contract_id', 'old_sponsor_id', 'new_sponsor_id', 'status'];
+    foreach ($requiredCols as $requiredCol) {
+        if (!in_array($requiredCol, $insertCols, true)) {
+            return [
+                'success' => false,
+                'message' => 'تعذر تحديد الأعمدة الأساسية في جدول sponsorship_transfers'
+            ];
+        }
+    }
+
+    $insertSql = buildUpsertSql('sponsorship_transfers', $insertCols);
+    $stmt = $newDb->prepare($insertSql);
+
+    $findContractStmt = $newDb->prepare('SELECT id FROM contracts WHERE id = :id LIMIT 1');
+    $findContractByOrderStmt = null;
+    if (in_array('order_id', getTableColumnsLocal($newDb, 'contracts'), true)) {
+        $findContractByOrderStmt = $newDb->prepare('SELECT id FROM contracts WHERE order_id = :order_id ORDER BY id DESC LIMIT 1');
+    }
+
+    $processed = 0;
+    $inserted = 0;
+    $updated = 0;
+    $skipped = 0;
+
+    $newDb->beginTransaction();
+    try {
+        foreach ($rows as $row) {
+            $processed++;
+
+            $cvId = isset($row['cv_id']) ? (int)$row['cv_id'] : 0;
+            if ($cvId <= 0) {
+                $skipped++;
+                continue;
+            }
+
+            $mapping = $contractMap[$cvId] ?? null;
+            if ($mapping === null) {
+                $skipped++;
+                continue;
+            }
+
+            $contractId = isset($mapping['contract_id']) ? (int)$mapping['contract_id'] : 0;
+            $existingContractId = null;
+            if ($contractId > 0) {
+                $findContractStmt->execute([':id' => $contractId]);
+                $existingContractId = $findContractStmt->fetchColumn();
+            }
+
+            if (!$existingContractId && $findContractByOrderStmt !== null) {
+                $reservationId = isset($mapping['reservation_id']) ? (int)$mapping['reservation_id'] : 0;
+                if ($reservationId > 0) {
+                    $findContractByOrderStmt->execute([':order_id' => $reservationId]);
+                    $existingContractId = $findContractByOrderStmt->fetchColumn();
+                }
+            }
+
+            if (!$existingContractId) {
+                $skipped++;
+                continue;
+            }
+
+            $oldSponsorId = normalizeContractInt($row['old_guarantor_id'] ?? null);
+            $newSponsorId = normalizeContractInt($row['new_guarantor_id'] ?? null);
+            if ($oldSponsorId === null || $newSponsorId === null) {
+                $skipped++;
+                continue;
+            }
+            if (!isset($userLookup[$oldSponsorId]) || !isset($userLookup[$newSponsorId])) {
+                $skipped++;
+                continue;
+            }
+
+            $status = 'pending';
+            $cvStatus = (int)($row['cv_status'] ?? 0);
+            $deletedAt = normalizeContractDateTime($row['deleted_at'] ?? null);
+            if ($deletedAt !== null) {
+                $status = 'failed';
+            } elseif ($cvStatus === 8 || (int)($row['is_transferred'] ?? 0) === 1) {
+                $status = 'transferred';
+            } elseif ($cvStatus === 7) {
+                $status = 'trial';
+            }
+
+            $trialDays = (int)($row['num_day_experimental_work'] ?? 0);
+            if ($trialDays < 0) {
+                $trialDays = 0;
+            }
+
+            $trialStartDate = normalizeContractDate($row['start_date_experimental_work'] ?? null);
+            if ($trialStartDate === null) {
+                $trialStartDate = normalizeContractDate($row['transfer_date'] ?? null);
+            }
+            if ($trialStartDate === null) {
+                $trialStartDate = normalizeContractDate($row['created_at'] ?? null);
+            }
+            if ($trialStartDate === null) {
+                $trialStartDate = date('Y-m-d');
+            }
+
+            $contractValue = normalizeContractFloat($row['full_amount'] ?? null);
+            if ($contractValue === null) {
+                $contractValue = normalizeContractFloat($row['contract_cost'] ?? null);
+            }
+            if ($contractValue === null) {
+                $contractValue = 0.0;
+            }
+
+            $paidAmount = normalizeContractFloat($row['paid_up_value'] ?? null);
+            if ($paidAmount === null) {
+                $paidAmount = 0.0;
+            }
+
+            $remainingAmount = normalizeContractFloat($row['residual_number'] ?? null);
+            if ($remainingAmount === null) {
+                $remainingAmount = 0.0;
+            }
+
+            $createdAt = normalizeContractDateTime($row['created_at'] ?? null);
+            $updatedAt = normalizeContractDateTime($row['updated_at'] ?? null);
+
+            $adminId = normalizeContractInt($row['administrator_id'] ?? null);
+            if ($adminId !== null && !isset($adminLookup[$adminId])) {
+                $adminId = null;
+            }
+
+            $transferDate = normalizeContractDateTime($row['transfer_date'] ?? null);
+            $trialStartDateTime = normalizeContractDateTime($row['start_date_experimental_work'] ?? null);
+
+            $payload = [
+                'id' => (int)$row['id'],
+                'contract_id' => (int)$existingContractId,
+                'old_sponsor_id' => $oldSponsorId,
+                'new_sponsor_id' => $newSponsorId,
+                'trial_days' => $trialDays,
+                'trial_start_date' => $trialStartDate,
+                'contract_value' => $contractValue,
+                'paid_amount' => $paidAmount,
+                'remaining_amount' => $remainingAmount,
+                'notes' => normalizeContractValue($row['notes'] ?? null),
+                'status' => $status,
+                'approved_by' => $adminId,
+                'approved_at' => $status === 'transferred' ? ($transferDate ?? $createdAt) : null,
+                'trial_started_at' => $trialStartDateTime,
+                'transferred_at' => $status === 'transferred' ? ($transferDate ?? $updatedAt ?? $createdAt) : null,
+                'transferred_by' => $status === 'transferred' ? $adminId : null,
+                'failed_at' => $status === 'failed' ? ($deletedAt ?? $updatedAt ?? $createdAt) : null,
+                'failed_by' => $status === 'failed' ? $adminId : null,
+                'failure_reason' => $status === 'failed' ? normalizeContractValue($row['notes'] ?? null) : null,
+                'rejection_reason' => $status === 'failed' ? normalizeContractValue($row['transfer_date_cancellation'] ?? null) : null,
+                'created_at' => $createdAt,
+                'updated_at' => $updatedAt
+            ];
+
+            $payload = array_intersect_key($payload, array_flip($insertCols));
+
+            $stmt->execute(prefixPlaceholders($insertCols, $payload));
+            $affected = $stmt->rowCount();
+            if ($affected === 1) {
+                $inserted++;
+            } elseif ($affected === 2) {
+                $updated++;
+            }
+        }
+
+        $newDb->commit();
+    } catch (Exception $e) {
+        $newDb->rollBack();
+        return [
+            'success' => false,
+            'message' => 'فشل نقل حجوزات نقل الكفالة: ' . $e->getMessage()
+        ];
+    }
+
+    return [
+        'success' => true,
+        'message' => 'تم نقل حجوزات نقل الكفالة بنجاح',
+        'processed' => $processed,
+        'inserted' => $inserted,
+        'updated' => $updated,
+        'skipped' => $skipped
+    ];
+}
+
+function mapPreviousSponsorStatus($value): array
+{
+    $status = is_numeric($value) ? (int)$value : 1;
+
+    return match ($status) {
+        1 => ['contract_status' => 'shelter', 'wants_to_work' => 'unknown'],
+        2 => ['contract_status' => 'shelter', 'wants_to_work' => 'yes'],
+        3 => ['contract_status' => 'shelter', 'wants_to_work' => 'no'],
+        4 => ['contract_status' => 'shelter', 'wants_to_work' => 'no'],
+        5 => ['contract_status' => 'shelter', 'wants_to_work' => 'no'],
+        6 => ['contract_status' => 'completed', 'wants_to_work' => 'no'],
+        7 => ['contract_status' => 'trial', 'wants_to_work' => 'yes'],
+        8 => ['contract_status' => 'transferred', 'wants_to_work' => 'unknown'],
+        default => ['contract_status' => 'shelter', 'wants_to_work' => 'unknown'],
+    };
+}
+
+function mapYesNoEnum($value): ?string
+{
+    if ($value === null || $value === '') {
+        return null;
+    }
+
+    return ((string)$value === '1' || $value === 1) ? 'yes' : 'no';
+}
+
+function mapServiceType($value): ?string
+{
+    if ($value === null || $value === '') {
+        return null;
+    }
+
+    return ((string)$value === '1' || $value === 1) ? 'deportation' : 'transfer';
+}
 // إنهاء output buffer إذا كان مفتوحاً
 if (ob_get_level() > 0) {
     ob_end_flush();
@@ -1058,6 +1796,8 @@ function migrateUsersSimple() {
         $oldDb = get_old_db_connection();
         $newDb = get_db_connection();
 
+        $defaultPasswordHash = '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi';
+
         $oldUsers = $oldDb->query("SELECT * FROM users ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
 
         if (empty($oldUsers)) {
@@ -1091,6 +1831,28 @@ function migrateUsersSimple() {
         $upsertSql = "INSERT INTO users (`" . implode('`, `', $columnsToUse) . "`) VALUES (" . implode(', ', $placeholders) . ") ON DUPLICATE KEY UPDATE " . implode(', ', $updates);
         $stmt = $newDb->prepare($upsertSql);
 
+        $existingPhones = $newDb->query("SELECT phone FROM users WHERE phone IS NOT NULL AND phone <> ''")->fetchAll(PDO::FETCH_COLUMN);
+        $usedPhones = array_fill_keys($existingPhones ?: [], true);
+        $duplicatePhones = 0;
+        $makeUniquePhone = function (string $base, int $userId) use (&$usedPhones, &$duplicatePhones): string {
+            $base = trim($base);
+            if ($base === '') {
+                $base = '000' . $userId;
+            }
+            if (!isset($usedPhones[$base])) {
+                $usedPhones[$base] = true;
+                return $base;
+            }
+            $duplicatePhones++;
+            $suffix = 0;
+            do {
+                $suffix++;
+                $candidate = $base . '-dup-' . ($suffix > 1 ? $suffix : '');
+            } while (isset($usedPhones[$candidate]));
+            $usedPhones[$candidate] = true;
+            return $candidate;
+        };
+
         $migratedCount = 0;
         $updatedCount = 0;
         $unchanged = 0;
@@ -1105,6 +1867,7 @@ function migrateUsersSimple() {
                 continue;
             }
 
+            $userId = (int)$user['id'];
             $fullName = trim((string)($user['name'] ?? ''));
             if ($fullName !== '') {
                 $namesSplit++;
@@ -1112,14 +1875,18 @@ function migrateUsersSimple() {
             $firstName = extractFirstName($fullName);
             $lastName = extractLastName($fullName);
 
-            $phone = cleanPhoneNumber($user['phone'] ?? '');
-            $phone = $phone === '' ? null : $phone;
+            $rawPhone = cleanPhoneNumber($user['phone'] ?? '');
+            $phone = $makeUniquePhone($rawPhone, $userId);
 
             $whatsapp = cleanPhoneNumber($user['whatsapp_phone'] ?? '');
             if ($whatsapp === '') {
-                $whatsapp = $phone ?? null;
+                $whatsapp = $rawPhone !== '' ? $rawPhone : $phone;
             }
-            $whatsapp = $whatsapp === '' ? null : $whatsapp;
+
+            $password = trim((string)($user['password'] ?? ''));
+            if ($password === '') {
+                $password = $defaultPasswordHash;
+            }
 
             $banned = isset($user['banned']) ? (int)$user['banned'] : 0;
             $createdAt = parseDateValue($user['created_at'] ?? null);
@@ -1148,6 +1915,9 @@ function migrateUsersSimple() {
                         break;
                     case 'phone_code':
                         $values[] = '+966';
+                        break;
+                    case 'password':
+                        $values[] = $password;
                         break;
                     case 'is_blocked':
                         $values[] = $banned;
@@ -1210,7 +1980,8 @@ function migrateUsersSimple() {
             'unchanged' => $unchanged,
             'skipped' => $skipped,
             'names_split' => $namesSplit,
-            'message' => "تم ترحيل المستخدمين بنجاح!\nالإجمالي: " . count($oldUsers) . "\nتمت الإضافة: $migratedCount\nتم التحديث: $updatedCount\nبدون تغيير: $unchanged\nتم تخطي: $skipped"
+            'duplicate_phones' => $duplicatePhones,
+            'message' => "تم ترحيل المستخدمين بنجاح!\nالإجمالي: " . count($oldUsers) . "\nتمت الإضافة: $migratedCount\nتم التحديث: $updatedCount\nبدون تغيير: $unchanged\nتم تخطي: $skipped\nأرقام مكررة تم تعديلها: $duplicatePhones"
         ];
 
     } catch (Exception $e) {

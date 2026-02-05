@@ -272,7 +272,7 @@
                     <div class="col-xl-3 col-md-6">
                         <button class="btn btn-danger" id="btnMakeAccounts">
                             {{ helperTrans("ingaz.make_accounts_for_uses") }}
-                        </button>
+                        </button> 
                     </div>
                 </div>
                 <div class="card shadow-sm border-0">

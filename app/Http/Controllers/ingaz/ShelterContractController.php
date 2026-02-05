@@ -661,12 +661,8 @@ class ShelterContractController extends Controller
      */
     public function availableForTransfer(Request $request)
     {
-
-
         $filterStatus = Request('s');
-
         if ($request->ajax()) {
-
             try {
                 $rows = Contract::insideShelter()
                     ->with([
@@ -1603,6 +1599,11 @@ class ShelterContractController extends Controller
 
                     return $html;
                 })
+                ->addColumn('show_site_status', function ($row) {
+                    $html = $row->info->is_available_for_instant == 0 ? '<span class="badge text-bg-dark">مخفي</span>' : '<span class="badge text-bg-success">ظاهر</span>';
+
+                    return $html;
+                })
                 ->addColumn('actions', function ($row) {
                     $actions = '<div class="dropdown actions-dropdown">
                                     <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
@@ -1709,7 +1710,7 @@ class ShelterContractController extends Controller
                 ->orderColumn('added_to_shelter_at', function ($query, $order) {
                     $query->orderBy($this->getShelterOrderExpression(), $order);
                 })
-                ->rawColumns(['maid_data', 'client', 'nationality', 'shelter', 'added_to_shelter_at', 'receipt_source', 'arrival_date', 'return_date', 'guarantee_status', 'work_willingness', 'instant_receipt_availability', 'deportation_status', 'actions'])
+                ->rawColumns(['maid_data', 'client', 'nationality', 'shelter', 'added_to_shelter_at', 'receipt_source', 'arrival_date', 'return_date', 'guarantee_status', 'work_willingness', 'instant_receipt_availability', 'deportation_status', 'show_site_status', 'actions'])
                 ->toJson();
 
             \Log::info('DataTables processing completed');
@@ -2395,7 +2396,7 @@ class ShelterContractController extends Controller
                     return $row->completedBy ? $row->completedBy->name : 'غير محدد';
                 })
                 ->addColumn('status', function ($row) {
-                    return '<span class="badge deported-badge">تم الترحيل</span>';
+                    return '<span class="badge text-bg-danger">تم الترحيل</span>';
                 })
                 ->addColumn('actions', function ($row) {
                     $actions = '<div class="dropdown actions-dropdown">

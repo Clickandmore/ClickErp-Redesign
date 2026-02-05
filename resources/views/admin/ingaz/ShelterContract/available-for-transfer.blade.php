@@ -136,6 +136,7 @@
                                 <th>الإيواء</th>
                                 <th>تاريخ الوصول</th>
                                 <th>حالة الضمان</th>
+                                <th>حالة الظهور على الموقع</th>
                                 <th>الإجراءات</th>
                             </tr>
                         </thead>
@@ -260,6 +261,12 @@
                         orderable: false
                     },
                     {
+                        data: 'show_site_status',
+                        name: 'show_site_status',
+                        orderable: false,
+                        searchable: true
+                    },
+                    {
                         data: 'actions',
                         name: 'actions',
                         orderable: false,
@@ -356,6 +363,52 @@
                         }
                     });
                 }
+            });
+
+            // Handle toggle instant receipt action
+            $(document).on('click', '.toggle-instant-receipt', function(e) {
+                e.preventDefault();
+                const contractId = $(this).data('id');
+                const currentStatus = $(this).data('current');
+                const actionText = $(this).data('text');
+
+                // Show confirmation
+                Swal.fire({
+                    title: 'تأكيد تغيير حالة الاستلام الفوري',
+                    text: actionText,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'نعم، تأكيد',
+                    cancelButtonText: 'إلغاء'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Perform the toggle
+                        $.ajax({
+                            url: '{{ route('ShelterContract.toggleInstantReceipt', ':id') }}'
+                                .replace(':id', contractId),
+                            type: 'POST',
+                            data: {
+                                _token: '{{ csrf_token() }}'
+                            },
+                            success: function(response) {
+                                dataTable.ajax.reload();
+                                Swal.fire('نجح!', response.message ||
+                                    'تم تغيير حالة الاستلام الفوري بنجاح', 'success'
+                                );
+                            },
+                            error: function(xhr) {
+                                let errorMessage =
+                                    'حدث خطأ أثناء تغيير حالة الاستلام الفوري';
+                                if (xhr.responseJSON && xhr.responseJSON.message) {
+                                    errorMessage = xhr.responseJSON.message;
+                                }
+                                Swal.fire('خطأ!', errorMessage, 'error');
+                            }
+                        });
+                    }
+                });
             });
         });
         // Handle change work desire action

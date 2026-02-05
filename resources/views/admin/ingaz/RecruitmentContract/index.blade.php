@@ -68,7 +68,7 @@
                         <div class="col-md-3">
                             <label for="clientPhoneFilter" class="form-label">رقم جوال العميل:</label>
                             <input type="text" id="clientPhoneFilter" class="form-control"
-                                placeholder="ابحث برقم الجوال">
+                                placeholder="ابحث برقم الجوال (5********)">
                         </div>
                     </div>
                     <div class="row mt-3">

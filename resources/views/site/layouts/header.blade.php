@@ -109,7 +109,7 @@
                             </li>
                             <li>
                                 <a class="dropdown-item"
-                                   href="{{route('site.all-workers.index')}}">
+                                   href="{{route('site.laborSelection.index')}}">
                                     {{__("ingaz.recruitment_contract")}}
                                 </a>
                             </li>
