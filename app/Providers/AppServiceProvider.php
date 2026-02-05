@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-
+use App\Enums\ingaz\ContractStatusEnum;
 use App\Models\Contract;
 use App\Models\Country;
 use App\Models\Feature;
@@ -146,18 +146,19 @@ class AppServiceProvider extends ServiceProvider
         ];
 
         if (Schema::hasTable('contracts')) {
-            $contractsCount['new'] = Contract::where('status', 'new')->count();
-            $contractsCount['msaned'] = Contract::where('status', 'msaned')->count();
-            $contractsCount['tafwed'] = Contract::where('status', 'tafwed')->count();
-            $contractsCount['taffez'] = Contract::where('status', 'taffez')->count();
-            $contractsCount['tazker'] = Contract::where('status', 'tazker')->count();
+            // $contractsCount['new'] = Contract::where('status', 'new')->count();
+            // $contractsCount['msaned'] = Contract::where('status', 'msaned')->count();
+            // $contractsCount['tafwed'] = Contract::where('status', 'tafwed')->count();
+            // $contractsCount['taffez'] = Contract::where('status', 'taffez')->count();
+            // $contractsCount['tazker'] = Contract::where('status', 'tazker')->count();
             $contractsCount['under_warranty'] = Contract::where('status', 'arrival')->where('warranty_status', 'active')->count();
             $contractsCount['back'] = Contract::where('status', 'back')->count();
-            $contractsCount['arrival'] = Contract::where('status', 'arrival')->count();
+            // $contractsCount['arrival'] = Contract::where('status', 'arrival')->count();
             $contractsCount['closed'] = Contract::where('status', 'closed')->count();
-            $contractsCount['completed'] = Contract::where('status', 'completed')->count();
             $contractsCount['pending_maid_selection'] = Contract::where('status', 'pending_maid_selection')->count();
-            $contractsCount['all'] = Contract::count();
+            // $contractsCount['all'] = Contract::count();
+            $contractsCount['are_valid'] = Contract::whereIn('status', [ContractStatusEnum::PendingMaidSelection, ContractStatusEnum::New, ContractStatusEnum::Msaned, ContractStatusEnum::Tafwed, ContractStatusEnum::Taffez, ContractStatusEnum::Tazker])->count();
+            $contractsCount['completed'] = Contract::whereIn('status', [ContractStatusEnum::Completed, ContractStatusEnum::Arrival])->count();
         }
 
         View::share('contractsCount', $contractsCount);

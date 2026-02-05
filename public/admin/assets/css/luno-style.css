@@ -12973,6 +12973,9 @@ b, strong {
 .small, small {
     font-size: .875em
 }
+.text-medium {
+    font-size: 14px
+}
 
 .mark, mark {
     padding: .1875em;
@@ -35061,5 +35064,6 @@ table.dataTable.dtr-inline.collapsed.d-row > tbody > tr[role=row] > td:first-chi
 .landing-page .setting-more {
     display: none
 }
+
 
 /*# sourceMappingURL=luno-style.css.map */

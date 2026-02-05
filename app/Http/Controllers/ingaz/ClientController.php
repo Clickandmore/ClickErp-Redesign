@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Client as objModel;
 use App\Http\Requests\ingaz\ClientRequest as objRequest;
 use Illuminate\Http\Request;
- use Illuminate\Support\Str;
+use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 
 class ClientController extends Controller
@@ -31,21 +31,21 @@ class ClientController extends Controller
             $rows = objModel::query()->latest();
             return DataTables::of($rows)
                 ->addIndexColumn()
-             ->editColumn('image', function ($row) {
-    if ($row->image) {
-        return '<img src="' . asset('storage/' . $row->image) . '" width="80" height="80" style="object-fit:cover;border-radius:8px;">';
-    }
-    return '<span class="text-muted">No Image</span>';
-})
+                ->editColumn('image', function ($row) {
+                    if ($row->image) {
+                        return '<img src="' . asset('storage/' . $row->image) . '" width="80" height="80" style="object-fit:cover;border-radius:8px;">';
+                    }
+                    return '<span class="text-muted">No Image</span>';
+                })
                 ->addColumn('actions', function ($row) {
                     $editButton = '';
                     $deleteButton = '';
                     // if (@AdminGuardHasPerm(\App\PermKeys::PARTENR_EDIT)) {
-                        $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->title);
+                    $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->title);
                     // }
 
                     // if (@AdminGuardHasPerm(\App\PermKeys::PARTENR_DELETE)) {
-                        $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                    $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
                     // }
                     return $editButton . " " . $deleteButton;
                 })->escapeColumns([])->make(true);
@@ -61,7 +61,7 @@ class ClientController extends Controller
 
     public function create(Request $request)
     {
-        if ($request->ajax())   {
+        if ($request->ajax()) {
             $returnHTML = view($this->folderPath . ".create")->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
@@ -71,10 +71,9 @@ class ClientController extends Controller
     public function store(objRequest $request, objAction $action)
     {
 
-      $data = $request->validated();
-         $data = $action->store($data);
+        $data = $request->validated();
+        $data = $action->store($data);
         return jsonSuccess($data);
-
     }
 
 
@@ -91,7 +90,7 @@ class ClientController extends Controller
     public function update(objRequest $request, objAction $action, $id)
     {
         $updatedData = $request->only($this->postData);
-        $data = $action->update($id , $updatedData);
+        $data = $action->update($id, $updatedData);
         return jsonSuccess($data);
     }
 

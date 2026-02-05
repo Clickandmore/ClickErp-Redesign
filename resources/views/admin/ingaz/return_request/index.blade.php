@@ -2,28 +2,6 @@
 @section('style')
     <link rel="stylesheet" href="{{ asset('admin') }}/custom/table-actions.css">
     <style>
-        .table-responsive {
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .table thead th {
-            color: rgb(0, 0, 0);
-            border: none;
-            font-weight: 600;
-            text-align: center;
-            padding: 15px 10px;
-        }
-
-        .table tbody tr {
-            transition: all 0.3s ease;
-        }
-
-        .table tbody tr:hover {
-            background-color: #f8f9fa;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
 
         .badge {
             font-size: 0.75em;
@@ -99,6 +77,63 @@
             color: white;
             font-weight: 600;
         }
+
+             /* تحسين أزرار الجدول */
+        .table .btn-sm {
+            border-radius: 6px;
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            margin: 0.25rem 0.1rem;
+            transition: all 0.2s ease;
+        }
+
+        .table .btn-sm:hover {
+            transform: scale(1.05);
+        }
+
+        /* أزرار العمليات المخصصة */
+        .btn-info {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            border: none;
+            color: white !important;
+        }
+
+        .btn-info:hover {
+            background: linear-gradient(135deg, #0056b3, #004085);
+            color: white !important;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            border: none;
+            color: white !important;
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #c82333, #a71e2a);
+            color: white !important;
+        }
+
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107, #e0a800);
+            border: none;
+            color: white !important;
+        }
+
+        .btn-warning:hover {
+            background: linear-gradient(135deg, #e0a800, #d39e00);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #00c73c, #00a616);
+            border: none;
+            color: #f3f3f3 !important;
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #00a616, #00c73c);
+        }
+
     </style>
 @endsection
 @section('page-title')
@@ -161,7 +196,7 @@
         </div>
         <div class="card shadow">
             <div class="card-body">
-                <table id="dataTableObject" class="table table-hover" style="width:100%">
+                <table id="dataTableObject" class="table table-hover table-style" style="width:100%">
                     <thead>
                         <tr>
                             <th>#</th>

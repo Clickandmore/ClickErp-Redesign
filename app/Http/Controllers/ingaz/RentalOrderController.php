@@ -146,7 +146,7 @@ class RentalOrderController extends Controller
                     return ($row->jobType) ? $row->jobType->title : '';
                 })
                 ->editColumn('user_id', function ($row) {
-                    return '<span class="client-name">' . (($row->user) ? $row->user->name : '-') . '</span>';
+                    return '<span class="client-name text-nowrap">' . (($row->user) ? $row->user->name : '-') . '</span>';
                 })
                 ->editColumn('phone', function ($row) {
                     return '<span class="phone-number">' . (($row->user) ? getPhoneWithTag(@$row->user->phone_code . @$row->user->phone) : '-') . '</span>';

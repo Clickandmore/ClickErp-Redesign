@@ -82,38 +82,40 @@ class MaidController extends Controller
 
             return DataTables::of($query)
                 ->addIndexColumn()
-                ->addColumn('profile', function (Maid $row) {
+                ->addColumn('photo', function ($row) {
                     $rawPath = $row->image ?: ($row->cv_preview ?: $row->cv_file);
-                    $imageUrl = $rawPath ? showFile($rawPath) : asset('images/no-image.png');
+                    $imageUrl = $rawPath ? showFile($rawPath) : asset('admin/assets/img/avatar.png');
+                    return '<img src="' . $imageUrl . '" alt="maid-avatar" class="border" style="width:85px;height:110px;object-fit:cover;">';
+                })
+                ->addColumn('profile', function (Maid $row) {
                     $nationality = e($row->nationality?->sub_title ?? helperTrans('ingaz.not_specified'));
                     $religion = e($row->religion?->title ?? helperTrans('ingaz.not_specified'));
                     $name = e($row->name ?? helperTrans('ingaz.not_specified'));
                     $passport = e($row->passport_num ?? helperTrans('ingaz.not_specified'));
                     $cvCode = $row->cv_code ? e($row->cv_code) : null;
+
                     $pinnedBadge = $row->is_pinned
-                        ? '<span class="badge bg-warning-subtle text-warning ms-1"><i class="fas fa-thumbtack"></i> ' . helperTrans('ingaz.pinned') . '</span>'
+                        ? '<span class="badge bg-warning-subtle text-warning ms-1"><i class="fas fa-thumbtack text-secondary"></i> ' . helperTrans('ingaz.pinned') . '</span>'
                         : '';
                     $cvCodeLabel = helperTrans('ingaz.cv_code');
                     $cvCodeLine = $cvCode
-                        ? '<div class="text-muted small"><i class="fas fa-id-card me-1"></i>' . $cvCodeLabel . ': ' . $cvCode . '</div>'
+                        ? '<div class="text-muted text-medium"><i class="fas fa-id-card me-1 text-secondary"></i>' . $cvCodeLabel . ': ' . $cvCode . '</div>'
                         : '';
 
-                    return '<div class="d-flex align-items-center gap-3">'
-                        . '<a href="#" class="maidViewData" data-id="' . $row->id . '">'
-                        . '<img src="' . $imageUrl . '" alt="maid-avatar" class="rounded-circle border" style="width:64px;height:64px;object-fit:cover;">'
-                        . '</a>'
-                        . '<div class="d-flex flex-column gap-1">'
-                        . '<div class="d-flex align-items-center gap-2 flex-wrap">'
-                        . '<span class="fw-semibold text-dark">' . $name . '</span>'
+                    return '<div class="d-flex flex-column gap-2">'
+                        . '<div class="d-flex align-items-center gap-2">'
+                        . '<span class="fw-semibold text-dark maid-name">' . $name . '</span>'
                         . $pinnedBadge
                         . '</div>'
                         . $cvCodeLine
-                        . '<div class="text-muted small"><i class="fas fa-passport me-1"></i>' . $passport . '</div>'
-                        . '<div class="text-muted small">'
-                        . '<i class="fas fa-flag me-1"></i>' . $nationality
-                        . '<span class="mx-1 text-secondary">•</span>'
-                        . '<i class="fas fa-praying-hands me-1"></i>' . $religion
+                        . '<div class="text-muted text-medium">'
+                        . '<i class="fas fa-passport me-1 text-secondary"></i>' . $passport
                         . '</div>'
+                        . '<div class="text-muted text-medium">'
+                        . '<i class="fas fa-flag me-1 text-secondary"></i>' . $nationality
+                        . '</div>'
+                        . '<div class="text-muted text-medium">'
+                        . '<i class="fas fa-praying-hands me-1 text-secondary"></i>' . $religion
                         . '</div>'
                         . '</div>';
                 })
@@ -130,19 +132,21 @@ class MaidController extends Controller
                     $addedBy = $row->addedBy->name ?? __('ingaz.undefined');
                     $isRecent = $row->created_at ? $row->created_at->gte(Carbon::now()->subDay()) : false;
                     $recentBadge = $isRecent
-                        ? '<span class="badge bg-success-subtle text-success"><i class="fas fa-star me-1"></i>' . $recentLabel . '</span>'
+                        ? '<span class="badge bg-success-subtle text-success d-flex align-items-center gap-2 p-0"><i class="fas fa-star me-1"></i>' . $recentLabel . '</span>'
                         : '';
 
                     return '<div class="d-flex flex-column gap-2">'
-                        . '<div class="text-muted small d-flex align-items-center gap-2">'
-                        . '<i class="fas fa-clock"></i>'
-                        . '<span>' . $addedOnLabel . ': ' . $addedAt . '</span>'
+                        . '<div class="text-muted text-medium d-flex align-items-center gap-2">'
+                        . '<i class="fas fa-clock text-secondary"></i>'
+                        . '<span class="p-0">' . $addedOnLabel . ': <span class="fw-medium text-dark p-0">' . $addedAt . '</span></span>'
                         . '</div>'
-                        . '<div class="text-muted small d-flex align-items-center gap-2">'
-                        . '<i class="fas fa-user-plus"></i>'
-                        . '<span>' . $addedByLabel . ': ' . $addedBy . '</span>'
+                        . '<div class="text-muted text-medium d-flex align-items-center gap-2 p-0">'
+                        . '<i class="fas fa-user-plus text-secondary"></i>'
+                        . '<span class="p-0">' . $addedByLabel . ': <span class="fw-medium text-primary p-0">' . $addedBy . '</span></span>'
                         . '</div>'
-                        . ($recentBadge ? '<div>' . $recentBadge . '</div>' : '')
+                        . ($recentBadge
+                            ? '<div class="mt-1">' . $recentBadge . '</div>'
+                            : '')
                         . '</div>';
                 })
                 ->addColumn('status_badge', function (Maid $row) {
@@ -165,9 +169,9 @@ class MaidController extends Controller
                     ];
 
                     $statusMeta = $statuses[$row->status] ?? ['class' => 'bg-secondary-subtle text-secondary', 'icon' => 'fa-question-circle', 'label' => $labelUnknown];
-                    
+
                     $hasActiveOrder = $row->orders->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract'])->isNotEmpty();
-                    
+
                     if ($hasActiveOrder && $row->status === 'available') {
                         $statusMeta = $statuses['reserved'];
                     }
@@ -182,11 +186,11 @@ class MaidController extends Controller
                     $visibilityLabel = $row->is_show ? helperTrans('ingaz.maid_visibility_visible') : helperTrans('ingaz.maid_visibility_hidden');
                     $availabilityLabel = $row->available ? helperTrans('ingaz.maid_available_now') : helperTrans('ingaz.maid_not_available_now');
                     $visibilityBadge = $row->is_show
-                        ? '<span class="badge bg-success-subtle text-success">' . $visibilityLabel . '</span>'
-                        : '<span class="badge bg-dark-subtle text-dark">' . $visibilityLabel . '</span>';
+                        ? '<span class="badge text-success d-flex align-items-center gap-2 p-0"> <i class="fas fa-eye"></i> ' . $visibilityLabel . '</span>'
+                        : '<span class="badge text-dark d-flex align-items-center gap-2 p-0"><i class="fas fa-eye-slash"></i>' . $visibilityLabel . '</span>';
                     $availabilityBadge = $row->available
-                        ? '<span class="badge bg-teal-100 text-teal">' . $availabilityLabel . '</span>'
-                        : '<span class="badge bg-light text-muted border">' . $availabilityLabel . '</span>';
+                        ? '<span class="badge text-success d-flex align-items-center gap-2 p-0"> <i class="fas fa-circle-check"></i>' . $availabilityLabel . '</span>'
+                        : '<span class="badge text-muted d-flex align-items-center gap-2 p-0"> <i class="fas fa-circle-xmark"></i>' . $availabilityLabel . '</span>';
                     $createdAt = $row->created_at?->format('Y-m-d') ?? '-';
                     $today = Carbon::today();
 
@@ -213,27 +217,51 @@ class MaidController extends Controller
                             'expired' => helperTrans('ingaz.offer_badge_expired'),
                         ];
 
-                        $offerBadge = '<span class="badge ' . ($offerClasses[$state] ?? 'bg-light text-muted border') . ' d-inline-flex align-items-center gap-1">'
+                        $offerBadge = '<span class="badge d-flex align-items-center gap-2 p-0' . ($offerClasses[$state] ?? 'bg-light text-muted border') . ' d-inline-flex align-items-center gap-2">'
                             . '<i class="fas fa-tags"></i>' . ($offerLabels[$state] ?? helperTrans('ingaz.offer_badge'))
                             . '</span>';
                     }
 
-                    $statusBadge = '<span class="badge ' . $statusMeta['class'] . ' d-inline-flex align-items-center gap-1">'
+                    $statusBadge = '<span class="badge d-flex align-items-center gap-2 p-0 ' . $statusMeta['class'] . ' d-inline-flex align-items-center gap-2">'
                         . '<i class="fas ' . $statusMeta['icon'] . '"></i>' . $statusMeta['label']
                         . '</span>';
 
                     $statusLine = $offerBadge
-                        ? '<div class="d-flex flex-wrap gap-1">' . $offerBadge . $statusBadge . '</div>'
+                        ? '<div class="d-flex flex-wrap gap-2">' . $offerBadge . $statusBadge . '</div>'
                         : $statusBadge;
 
-                    return '<div class="d-flex flex-column gap-2">'
-                        . $statusLine
-                        . '<div class="d-flex flex-wrap gap-1">' . $visibilityBadge . $availabilityBadge . '</div>'
-                        . '<div class="text-muted small"><i class="fas fa-calendar-day me-1"></i>' . $createdAt . '</div>'
+                    return '<div class="d-flex flex-column gap-3">'
+
+                        // Status & Offer
+                        . '<div class="d-flex flex-column gap-3">'
+                        . ($offerBadge ?? '')
+                        . $statusBadge
+                        . '</div>'
+
+                        // Visibility & Availability
+                        . '<div class="d-flex flex-column gap-3">'
+                        . $visibilityBadge
+                        . $availabilityBadge
+                        . '</div>'
+
+                        // Created at
+                        . '<div class="text-muted text-medium d-flex align-items-center gap-2">'
+                        . '<i class="fas fa-calendar-day text-secondary"></i>'
+                        . '<span style=" white-space: nowrap;">' . $createdAt . '</span>'
+                        . '</div>'
+
                         . '</div>';
                 })
                 ->addColumn('job_info', function (Maid $row) {
                     $jobTypes = e($row->jobTypes->pluck('title')->filter()->take(3)->implode(', ') ?: helperTrans('ingaz.not_specified'));
+                    $primaryJobTypeId = (int) ($row->jobTypes->first()?->id ?? 0);
+                    $jobTypeClass = match ($primaryJobTypeId) {
+                        1 => 'istqdam',
+                        2 => 'egar',
+                        3 => 'transfer',
+                    };
+                    $jobTypeHtml = '<span class="job-type ' . $jobTypeClass . '">' . $jobTypes . '</span>';
+
                     $officeTitle = $row->office?->title ? e(Str::limit($row->office->title, 30)) : helperTrans('ingaz.not_specified');
                     $salaryValue = $row->resolved_salary;
                     $priceValue = $row->resolved_price;
@@ -268,7 +296,7 @@ class MaidController extends Controller
                         $offerPrice = number_format((float) $row->offer_price, 2);
                         $description = $row->offer_description ? e(Str::limit($row->offer_description, 80)) : null;
 
-                        $offerInfo = '<div class="small rounded-3 px-3 py-2 mt-1 ' . ($stateClasses[$state] ?? 'bg-light text-muted border') . '">'
+                        $offerInfo = '<div class="text-medium rounded-3 px-3 py-2 mt-1 ' . ($stateClasses[$state] ?? 'bg-light text-muted border') . '">'
                             . '<div class="fw-semibold d-flex align-items-center gap-2">'
                             . '<i class="fas fa-tags"></i>'
                             . '<span>' . helperTrans('ingaz.offer_price_new') . ': ' . $offerPrice . ' ' . helperTrans('ingaz.SAR') . '</span>'
@@ -283,14 +311,45 @@ class MaidController extends Controller
                         $offerInfo .= '</div></div>';
                     }
 
-                    return '<div class="d-flex flex-column gap-2">'
-                        . '<div><span class="text-muted small d-block">' . $jobTypesLabel . '</span><span class="fw-semibold">' . $jobTypes . '</span></div>'
-                        . '<div class="text-muted small"><i class="fas fa-building me-1"></i>' . $officeTitle . '</div>'
-                        . '<div class="d-flex flex-wrap gap-2">'
-                        . '<span class="badge bg-primary-subtle text-primary"><i class="fas fa-hand-holding-usd me-1"></i>' . $salary . '</span>'
-                        . '<span class="badge bg-secondary-subtle text-secondary"><i class="fas fa-tag me-1"></i>' . $price . '</span>'
+                    $availableAt = $row->available_at ? Carbon::parse($row->available_at)->format('Y-m-d') : helperTrans('ingaz.not_specified');
+                    $experienceYears = $row->experience_status === 'has_experience' ? ($row->experience_years ?? '0') : '0';
+                    $availableFromLabel = helperTrans('ingaz.available_from');
+                    $experienceLabel = helperTrans('ingaz.experience_years');
+
+                    $experienceHtml = $experienceYears > 0 && $experienceYears != 'null' ? '<div class="text-muted text-medium d-flex flex-column gap-3">
+                            <span class="mx-1"><i class="fas fa-user-graduate me-1 text-secondary"></i>' . $experienceLabel . ': ' . $experienceYears .'</span>
+                        </div>' : null;
+
+                    return '<div class="d-flex flex-column gap-3">'
+
+                        // Job type (Primary)
+                        . '<div class="fw-semibold text-dark">'
+                        . $jobTypeHtml
                         . '</div>'
-                        . $offerInfo
+
+                        // Office
+                        . '<div class="text-muted small d-flex align-items-center gap-2">'
+                        . '<i class="fas fa-building text-secondary"></i>'
+                        . '<span>' . $officeTitle . '</span>'
+                        . '</div>'
+
+                        // Salary & Price
+                        . '<div class="d-flex flex-column gap-3">'
+                        . '<span class="badge bg-success-subtle text-success d-inline-flex align-items-center gap-2 p-0">'
+                        . '<i class="fas fa-hand-holding-usd"></i>'
+                        . '<span class=""text-muted">'. helperTrans('ingaz.salary') .' : </span>' .$salary
+                        . '</span>'
+                        // . '<span class="badge bg-primary-subtle text-primary d-inline-flex align-items-center gap-2 p-0">'
+                        // . '<i class="fas fa-tag"></i>'
+                        // . '<span class=""text-muted">'. helperTrans('ingaz.price') .' : </span>' .$price
+                        // . '</span>'
+                        . '</div>'
+
+                        . $experienceHtml
+
+                        // Offer info (if exists)
+                        . ($offerInfo ? '<div class="mt-1">' . $offerInfo . '</div>' : '')
+
                         . '</div>';
                 })
                 ->addColumn('metrics', function (Maid $row) {
@@ -298,26 +357,27 @@ class MaidController extends Controller
                     $activeOrders = $row->orders->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract'])->count();
                     $contractsTotal = $row->contracts->count();
                     $activeContracts = $row->contracts->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival'])->count();
-                    $availableAt = $row->available_at ? Carbon::parse($row->available_at)->format('Y-m-d') : helperTrans('ingaz.not_specified');
-                    $experienceYears = $row->experience_status === 'has_experience' ? ($row->experience_years ?? '0') : '0';
+                    
                     $ordersLabel = helperTrans('ingaz.total_orders_count');
                     $activeOrdersLabel = helperTrans('ingaz.active_orders_count');
                     $contractsLabel = helperTrans('ingaz.rental_contracts_count');
                     $activeContractsLabel = helperTrans('ingaz.active_contracts_count');
-                    $availableFromLabel = helperTrans('ingaz.available_from');
-                    $experienceLabel = helperTrans('ingaz.experience_years');
 
-                    return '<div class="d-flex flex-column gap-2">'
-                        . '<div class="d-flex flex-wrap gap-2">'
-                        . '<span class="badge bg-light text-muted border"><i class="fas fa-clipboard-list me-1"></i>' . $ordersLabel . ': ' . $ordersTotal . '</span>'
-                        . '<span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="fas fa-tasks me-1"></i>' . $activeOrdersLabel . ': ' . $activeOrders . '</span>'
+                    // HTML Elements
+                    $ordersHTML = $ordersTotal > 0 ? '<span class="badge bg-light text-muted border"><i class="fas fa-clipboard-list me-1"></i>' . $ordersLabel . ': ' . $ordersTotal . '</span>' : null;
+                    $activeOrdersHTML = $activeOrders > 0 ? '<span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="fas fa-tasks me-1"></i>' . $activeOrdersLabel . ': ' . $activeOrders . '</span>' : null;
+                    $contractsHTML = $contractsTotal > 0 ? '<span class="badge bg-info-subtle text-info border border-info-subtle"><i class="fas fa-file-contract me-1"></i>' . $contractsLabel . ': ' . $contractsTotal . '</span>' : null;
+                    $activeContractsHTML = $activeContracts > 0 ? '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle"><i class="fas fa-clipboard-check me-1"></i>' . $activeContractsLabel . ': ' . $activeContracts . '</span>' : null;
+                    
+
+                    return $ordersTotal < 1 && $activeOrders < 1 && $contractsTotal < 1 && $activeContracts < 1 ? '<span class="text-primary text-center mx-auto">__</span>' : '<div class="d-flex flex-column gap-3">'
+                        . '<div class="d-flex flex-wrap gap-3">'
+                        . $ordersHTML
+                        . $activeOrdersHTML
                         . '</div>'
-                        . '<div class="d-flex flex-wrap gap-2">'
-                        . '<span class="badge bg-info-subtle text-info border border-info-subtle"><i class="fas fa-file-contract me-1"></i>' . $contractsLabel . ': ' . $contractsTotal . '</span>'
-                        . '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle"><i class="fas fa-clipboard-check me-1"></i>' . $activeContractsLabel . ': ' . $activeContracts . '</span>'
-                        . '</div>'
-                        . '<div class="text-muted small"><i class="fas fa-calendar-check me-1"></i>' . $availableFromLabel . ': ' . $availableAt
-                        . '<span class="mx-1 text-secondary">•</span><i class="fas fa-user-graduate me-1"></i>' . $experienceLabel . ': ' . $experienceYears
+                        . '<div class="d-flex flex-wrap gap-3">'
+                        . $contractsHTML
+                        . $activeContractsHTML
                         . '</div>'
                         . '</div>';
                 })
@@ -378,7 +438,7 @@ class MaidController extends Controller
                                 </ul>
                             </div>';
                 })
-                ->rawColumns(['profile', 'added_info', 'status_badge', 'job_info', 'metrics', 'actions'])
+                ->rawColumns(['photo', 'profile', 'added_info', 'status_badge', 'job_info', 'metrics', 'actions'])
                 ->make(true);
         }
 
@@ -450,13 +510,9 @@ class MaidController extends Controller
                 })
                 ->editColumn('cv_file', function ($row) {
                     $rawPath = $row->image ?: ($row->cv_preview ?: $row->cv_file);
-                    $imageUrl = $rawPath ? showFile($rawPath) : null;
+                    $imageUrl = $rawPath ? showFile($rawPath) : asset('admin/assets/img/avatar.png');
 
-                    if (!$imageUrl) {
-                        return '';
-                    }
-
-                    $imgTag = '<img src="' . $imageUrl . '" alt="cv" style="border-radius: 50%; object-fit: cover; width: 130px; height: 130px;">';
+                    $imgTag = '<img src="' . $imageUrl . '" alt="maid-file" class="border" style="width:90px;height:120px;object-fit:cover;">';
 
                     return '<a href="#" class="maidViewData" data-id="' . $row->id . '">' . $imgTag . '</a>';
                 })
@@ -575,13 +631,9 @@ class MaidController extends Controller
                 ->addIndexColumn()
                 ->editColumn('cv_file', function ($row) {
                     $rawPath = $row->image ?: ($row->cv_preview ?: $row->cv_file);
-                    $imageUrl = $rawPath ? showFile($rawPath) : null;
+                    $imageUrl = $rawPath ? showFile($rawPath) : asset('admin/assets/img/avatar.png');
 
-                    if (!$imageUrl) {
-                        return '';
-                    }
-
-                    $imgTag = '<img src="' . $imageUrl . '" alt="cv" style="border-radius: 50%; object-fit: cover; width: 90px; height: 90px;">';
+                    $imgTag = '<img src="' . $imageUrl . '" alt="maid-file" class="border" style="width:90px;height:120px;object-fit:cover;">';
 
                     return '<a href="#" class="maidViewData" data-id="' . $row->id . '">' . $imgTag . '</a>';
                 })

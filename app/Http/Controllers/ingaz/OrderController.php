@@ -143,12 +143,12 @@ class OrderController extends Controller
                     $statusHtml = $this->getStatusHtml($row->status);
 
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT)) {
-                        $statusHtml .= ' <button type="button" class="btn btn-sm btn-outline-primary edit-status" data-id="' . $row->id . '" title="تعديل الحالة">
-                                <i class="fa fa-pen"></i>
+                        $statusHtml .= ' <button type="button" class="edit-status" data-id="' . $row->id . '" title="تعديل الحالة">
+                                حدث الحالة <i class="fa fa-pen"></i> 
                             </button>';
                     }
 
-                    return '<div class="d-inline-flex align-items-center gap-1">' . $statusHtml . '</div>';
+                    return '<div class="d-inline-flex flex-column gap-3">' . $statusHtml . '</div>';
                 })
                 ->addColumn('timer', function ($row) {
                     return $this->getTimerHtml($row);
@@ -157,7 +157,7 @@ class OrderController extends Controller
                     return ($row->jobType) ? $row->jobType->title : '';
                 })
                 ->editColumn('user_id', function ($row) {
-                    return '<span class="client-name">' . (($row->user) ? $row->user->name : '-') . '</span>';
+                    return '<span class="client-name text-nowrap">' . (($row->user) ? $row->user->name : '-') . '</span>';
                 })
                 ->editColumn('phone', function ($row) {
                     return '<span class="phone-number">' . (($row->user) ? getPhoneWithTag($row->user->phone_code . $row->user->phone) : '-') . '</span>';
@@ -460,7 +460,7 @@ class OrderController extends Controller
 
         if ($arabicTranslation !== "undefined") {
             $colorClass = $this->getStatusColor($status);
-            return '<span class="badge bg-' . $colorClass . ' status-badge">' . $arabicTranslation . '</span>';
+            return '<span class="badge bg-' . $colorClass . ' status-badge" style="width:fit-content;">' . $arabicTranslation . '</span>';
         }
 
         return '<span class="text-muted">غير معروف</span>';
@@ -971,7 +971,7 @@ class OrderController extends Controller
         $meta = $this->buildTimerMeta($order);
 
         if (!$meta['has_deadline']) {
-            return '<div class="timer-chip timer-chip--muted"><span class="timer-chip__value">' . e($meta['remaining_pretty']) . '</span></div>';
+            return '<div class="timer-chip timer-chip--muted"><span class="timer-chip__value text-nowrap">' . e($meta['remaining_pretty']) . '</span></div>';
         }
 
         $stateClass = match ($meta['state']) {
