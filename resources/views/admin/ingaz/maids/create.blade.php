@@ -1079,28 +1079,37 @@
                             var redirectUrl = cvConvertShowRoute.replace(':id', response.data
                                 .id);
                             location.href = redirectUrl;
+                            return;
                         }
                         if (response.code === 200) {
                             Swal.fire({
                                 icon: 'success',
-                                title: 'نجاح',
-                                text: 'تم إضافة العاملة بنجاح',
-                                confirmButtonText: 'حسناً'
+                                title: 'تمت الإضافة',
+                                text: 'تم إضافة العاملة بنجاح. هل تريد إضافة عاملة أخرى؟',
+                                showCancelButton: true,
+                                confirmButtonText: 'إضافة عاملة أخرى',
+                                cancelButtonText: 'الذهاب لجميع السير',
+                                reverseButtons: true,
+                                allowOutsideClick: false,
+                                allowEscapeKey: false
                             }).then((result) => {
                                 if (result.isConfirmed) {
-                                    window.location.href =
-                                        '{{ route('maids.index') }}';
+                                    window.location.href = '{{ route('maids.create') }}';
+                                    return;
                                 }
-
+                                if (result.dismiss === Swal.DismissReason.cancel) {
+                                    window.location.href = '{{ $formRedirectRoute }}';
+                                }
                             });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'خطأ',
-                                text: response.message || 'حدث خطأ أثناء إضافة العاملة',
-                                confirmButtonText: 'حسناً'
-                            });
+                            return;
                         }
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ',
+                            text: response.message || 'حدث خطأ أثناء إضافة العاملة',
+                            confirmButtonText: 'حسناً'
+                        });
                     },
                     error: function(xhr) {
                         var errorMessage = 'حدث خطأ أثناء إضافة العاملة';

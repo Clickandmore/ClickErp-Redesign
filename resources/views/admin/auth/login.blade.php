@@ -76,9 +76,9 @@
                         </div>
                     </div>
                     <div class="form-heading">
-                        <p class="eyebrow">{{ __('auth.login') }}</p>
-                        <h1>{{ __('auth.welcomeback') }} 👋</h1>
-                        <p class="subtitle">{{ $formSubtitle }}</p>
+                        <h2 class="eyebrow">{{ __('auth.login') }}</h2>
+                        {{-- <h1>{{ __('auth.welcomeback') }} 👋</h1>
+                        <p class="subtitle">{{ $formSubtitle }}</p> --}}
                     </div>
                     <form id="loginForm" action="{{ route('admin.login') }}" method="POST" novalidate>
                         @csrf
@@ -101,8 +101,8 @@
                                     <span class="input-icon">
                                         <img src="{{ asset('admin/login') }}/imgs/password.svg" alt="password">
                                     </span>
-                                    <input type="password" id="password" name="password"
-                                        placeholder="•••••••••••••••••••••••" autocomplete="current-password" required>
+                                    <input type="password" id="password" name="password" placeholder="•••••••••••••••"
+                                        autocomplete="current-password" required>
                                 </div>
                             </div>
                         </div>
@@ -118,8 +118,8 @@
                     </form>
                 </div>
                 <p class="footer">
-                    {{ __('auth.copyright') }} © {{ date('Y') }} {{ __('auth.message') }}
-                    <a href="{{ isset($developSettings) ? $developSettings->portfolio_url : 'https://ussusalenjaz.sa/ar' }}"
+                    {{ __('auth.copyright') }} © {{ date('Y') }}
+                    <a href="{{ isset($developSettings) ? $developSettings->portfolio_url : 'https://clickandmore.sa' }}"
                         target="_blank">{{ isset($developSettings) ? $developSettings->name : 'بلاتنيوم الشرقية للاستقدام' }}</a>
                 </p>
             </div>

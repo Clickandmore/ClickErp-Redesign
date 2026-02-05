@@ -313,13 +313,6 @@
                                                     class="badge bg-primary ms-2">{{ $contractsCount['completed'] - $contractsCount['under_warranty'] }}</span>
                                             </a>
                                         </li>
-                                        <li>
-                                            <a class="m-link {{ Route::currentRouteName() == 'contract-return-requests.index' ? 'active' : '' }}"
-                                                href="{{ route('contract-return-requests.index') }}">
-                                                <i class="fa fa-list"></i>
-                                                <span class="ms-2">طلبات استرجاع العقود</span>
-                                            </a>
-                                        </li>
                                     @endif
                                 @endif
 

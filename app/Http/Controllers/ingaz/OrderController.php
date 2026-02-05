@@ -140,7 +140,15 @@ class OrderController extends Controller
                     return $row->created_at->format('Y-m-d H:i:s');
                 })
                 ->editColumn('status', function ($row) {
-                    return $this->getStatusHtml($row->status);
+                    $statusHtml = $this->getStatusHtml($row->status);
+
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT)) {
+                        $statusHtml .= ' <button type="button" class="btn btn-sm btn-outline-primary edit-status" data-id="' . $row->id . '" title="تعديل الحالة">
+                                <i class="fa fa-pen"></i>
+                            </button>';
+                    }
+
+                    return '<div class="d-inline-flex align-items-center gap-1">' . $statusHtml . '</div>';
                 })
                 ->addColumn('timer', function ($row) {
                     return $this->getTimerHtml($row);

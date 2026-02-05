@@ -858,6 +858,8 @@ class MaidController extends Controller
         $data['status'] = 'available';
         $data['added_by'] = auth()->id();
         $data['available'] = $data['available'] ?? 1;
+        // Rapid CVs should not be visible on the public site by default
+        $data['is_show'] = $data['is_show'] ?? 0;
         $data['experience_status'] = $data['experience_status'] ?? 'no_experience';
         $data['experience_years'] = $data['experience_years'] ?? '0';
 
