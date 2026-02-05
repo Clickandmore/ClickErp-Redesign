@@ -1812,5 +1812,11 @@
     'shelter_contract_updated' => ' Shelter contract has been updated successfully',
     'make_accounts_for_uses' => 'Creating clients accounts',
     'Accounts were created for customers' => 'Accounts were created for clients',
-
+    'contracts_are_valid' => 'Contracts Are Valid',
+    'incompleted_contracts' => 'Incompleted Contracts',
+    'last_activity' => 'Last activity',
+    'client_data' => 'Client data',
+    'maid_photo' => 'Maid Photo',
+    'maid_data' => 'Maid Data',
+    '.contracted' => '.contracted',
 );

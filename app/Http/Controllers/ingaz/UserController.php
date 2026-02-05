@@ -122,24 +122,17 @@ class UserController extends Controller
             return DataTables::of($units)
                 ->addIndexColumn()
                 ->editColumn('name', function ($row) {
-                    $nationality = $row->nationality ? $row->nationality->title : helperTrans('ingaz.not_specified');
-                    $city = $row->city ?: helperTrans('ingaz.not_specified');
-                    $idNumber = $row->national_num ? '<span class="badge bg-light text-dark border me-1"><i class="fas fa-id-card me-1"></i>' . e($row->national_num) . '</span>' : '';
+                    
                     $badge = $row->is_blocked == 0
                         ? '<span class="badge bg-success-subtle text-success border border-success-subtle">' . helperTrans('ingaz.active') . '</span>'
                         : '<span class="badge bg-danger-subtle text-danger border border-danger-subtle">' . helperTrans('ingaz.blocked') . '</span>';
 
                     return '<div class="d-flex flex-column gap-1">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="fw-semibold text-dark">' . e($row->name) . '</span>
-                            ' . $badge . '
+                        <div class="d-flex flex-column gap-2 name-column">
+                            <span class="fw-semibold text-dark name">' . e($row->name) . '</span>
+                            <div> ' . $badge . ' </div>
                         </div>
-                        <div class="small text-muted">
-                            <i class="fas fa-flag me-1"></i>' . e($nationality) . '
-                            <span class="mx-2">•</span>
-                            <i class="fas fa-city me-1"></i>' . e($city) . '
-                        </div>
-                        <div>' . $idNumber . '</div>
+                        
                     </div>';
                 })
                 ->editColumn('is_blocked', function ($row) {
@@ -155,7 +148,11 @@ class UserController extends Controller
                         return '<span class="badge bg-danger rounded-pill px-3">' . helperTrans('ingaz.no') . '</span>';
                     }
                 })
-                ->editColumn('phone', function ($row) {
+                ->editColumn('client_data', function ($row) {
+                    $nationality = $row->nationality ? $row->nationality->title : helperTrans('ingaz.not_specified');
+                    $city = $row->city ?: helperTrans('ingaz.not_specified');
+                    $idNumber = $row->national_num ? '<span class="badge bg-light text-dark border me-1"><i class="fas fa-id-card me-1"></i>' . e($row->national_num) . '</span>' : '';
+
                     $primary = $row->phone
                         ? '<a href="tel:' . e($row->phone_code . $row->phone) . '" class="text-decoration-none">
                                 <i class="fas fa-phone-alt me-1 text-success"></i>' . e($row->phone_code . $row->phone) . '
@@ -174,10 +171,18 @@ class UserController extends Controller
                             </a>'
                         : '';
 
-                    return '<div class="d-flex flex-column gap-1">
-                                <div>' . $primary . '</div>
-                                ' . ($secondary ? '<div>' . $secondary . '</div>' : '') . '
-                                ' . ($email ? '<div>' . $email . '</div>' : '') . '
+                    $data = '<div class="small text-muted">
+                            <i class="fas fa-flag me-1"></i>' . e($nationality) . '
+                            <span class="mx-2">•</span>
+                            <i class="fas fa-city me-1"></i>' . e($city) . '
+                        </div>
+                        <div>' . $idNumber . '</div>';
+
+                    return '<div class="d-flex flex-column gap-1 client-data">
+                                <div class="phone">' . $primary . '</div>
+                                ' . ($secondary ? '<div class="phone">' . $secondary . '</div>' : '') . '
+                                ' . ($email ? '<div class="email">' . $email . '</div>' : '') . '
+                                ' . '<div class="data">' . $data . '</div>'  . '
                             </div>';
                 })
                 ->editColumn('created_at', function ($row) {
@@ -199,10 +204,6 @@ class UserController extends Controller
                     $rentalCount = number_format((int)$row->rental_contracts_count);
                     $transferCount = number_format((int)$row->transfer_requests_count);
 
-                    $lastOrder = $row->last_order_at ? Carbon::parse($row->last_order_at)->diffForHumans() : helperTrans('ingaz.not_specified');
-                    $lastRental = $row->last_rental_contract_at ? Carbon::parse($row->last_rental_contract_at)->diffForHumans() : helperTrans('ingaz.not_specified');
-                    $lastTransfer = $row->last_transfer_request_at ? Carbon::parse($row->last_transfer_request_at)->diffForHumans() : helperTrans('ingaz.not_specified');
-
                     return '<div class="d-flex flex-column gap-2">
                                 <div class="d-flex flex-wrap gap-2">
                                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
@@ -220,10 +221,19 @@ class UserController extends Controller
                                         <i class="fas fa-exchange-alt me-1"></i>' . helperTrans('ingaz.transfer_requests_count') . ': ' . $transferCount . '
                                     </span>
                                 </div>
-                                <div class="small text-muted">
-                                    <div><i class="fas fa-history me-1"></i>' . helperTrans('ingaz.last_order_activity') . ': ' . $lastOrder . '</div>
-                                    <div><i class="fas fa-handshake me-1"></i>' . helperTrans('ingaz.last_rental_activity') . ': ' . $lastRental . '</div>
-                                    <div><i class="fas fa-random me-1"></i>' . helperTrans('ingaz.last_transfer_activity') . ': ' . $lastTransfer . '</div>
+                               
+                            </div>';
+                })
+                ->addColumn('last_activity', function ($row) {
+                    $lastOrder = $row->last_order_at ? Carbon::parse($row->last_order_at)->diffForHumans() : helperTrans('ingaz.not_specified');
+                    $lastRental = $row->last_rental_contract_at ? Carbon::parse($row->last_rental_contract_at)->diffForHumans() : helperTrans('ingaz.not_specified');
+                    $lastTransfer = $row->last_transfer_request_at ? Carbon::parse($row->last_transfer_request_at)->diffForHumans() : helperTrans('ingaz.not_specified');
+
+                    return '<div class="d-flex flex-column gap-2">                               
+                                <div class="small text-muted last-activity">
+                                    <div><i class="fas fa-history me-1"></i>' . helperTrans('ingaz.last_order_activity') . ': <span>' . $lastOrder . '</span> </div>
+                                    <div><i class="fas fa-handshake me-1"></i>' . helperTrans('ingaz.last_rental_activity') . ': <span>' . $lastRental . '</span></div>
+                                    <div><i class="fas fa-random me-1"></i>' . helperTrans('ingaz.last_transfer_activity') . ': <span>' . $lastTransfer . '</span></div>
                                 </div>
                             </div>';
                 })
@@ -282,7 +292,7 @@ class UserController extends Controller
                                 </ul>
                             </div>';
                 })
-                ->rawColumns(['name', 'actions', 'is_blocked', 'account_id', 'phone', 'created_at', 'metrics'])
+                ->rawColumns(['name', 'actions', 'is_blocked', 'account_id', 'client_data', 'created_at', 'metrics', 'last_activity'])
                 ->make(true);
         }
         $data["createRoute"] = route($this->mainRoute . ".create");

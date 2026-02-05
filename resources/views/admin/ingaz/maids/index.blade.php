@@ -40,26 +40,9 @@
             font-size: 0.9rem;
         }
 
-        .maids-table th {
-            font-size: 0.82rem;
-            text-transform: uppercase;
-            background-color: #f8f9fc;
-            letter-spacing: 0.06em;
-        }
-
         .badge {
             border-radius: 999px;
         }
-
-        .dataTables_wrapper .table-responsive,
-        .table-responsive {
-            overflow: visible !important;
-        }
-
-        .dataTables_wrapper {
-            overflow: visible;
-        }
-
         @media (max-width: 767.98px) {
             .stats-card {
                 border-radius: 12px;
@@ -68,6 +51,31 @@
             .filter-card {
                 border-radius: 14px;
             }
+        }
+
+        .maid-name {
+            white-space: nowrap;
+        }
+
+        .job-type {
+            border: 0.5px solid #2794eb;
+            padding: 2px 13px;
+            border-radius: 20px;
+        }
+
+        .job-type.istqdam {
+            border-color: #2794eb;
+            color: #2794eb;
+        }
+
+        .job-type.egar {
+            border-color: #00760a;
+            color: #029f0f;
+        }
+
+        .job-type.transfer {
+            border-color: #820000;
+            color: #820000;
         }
     </style>
 @endsection
@@ -311,12 +319,13 @@
                 <div class="card shadow-sm border-0">
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table id="dataTableObject" class="table table-hover align-middle maids-table"
+                            <table id="dataTableObject" class="table table-hover align-middle table-style"
                                 style="width:100%">
                                 <thead>
                                     <tr>
                                         <th>#</th>
-                                        <th>{{ helperTrans('ingaz.profile') }}</th>
+                                        <th>{{ helperTrans('ingaz.maid_photo') }}</th>
+                                        <th>{{ helperTrans('ingaz.maid_data') }}</th>
                                         <th>{{ helperTrans('ingaz.added_details') }}</th>
                                         <th>{{ helperTrans('ingaz.status') }}</th>
                                         <th>{{ helperTrans('ingaz.job_information') }}</th>
@@ -502,6 +511,12 @@
                 columns: [{
                         data: 'DT_RowIndex',
                         name: 'DT_RowIndex',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'photo',
+                        name: 'photo',
                         orderable: false,
                         searchable: false
                     },

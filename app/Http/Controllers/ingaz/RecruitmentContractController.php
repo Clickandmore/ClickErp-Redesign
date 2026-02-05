@@ -90,8 +90,15 @@ class RecruitmentContractController extends Controller
 
             // فلتر الحالة - استخدام query parameter فقط
             $statusFilter = $request->get('status');
-            if ($statusFilter) {
-                $query->where('status', $statusFilter);
+
+            if ($statusFilter !== null && $statusFilter !== '') {
+                if ($statusFilter == 'current') {
+                    $query->whereIn('status', [ContractStatusEnum::PendingMaidSelection, ContractStatusEnum::New, ContractStatusEnum::Msaned, ContractStatusEnum::Tafwed, ContractStatusEnum::Taffez, ContractStatusEnum::Tazker]);
+                } elseif ($statusFilter == 'completed') {
+                    $query->whereIn('status', [ContractStatusEnum::Completed, ContractStatusEnum::Arrival]);
+                } else {
+                    $query->where('status', $statusFilter);
+                }
             }
 
             // فلتر حالة الضمان إذا تم تمريرها (حسب تاريخ انتهاء الضمان)
@@ -228,7 +235,7 @@ class RecruitmentContractController extends Controller
                     // إضافة تاريخ آخر تحديث
                     $lastUpdate = $row->updated_at ? $row->updated_at->format('Y-m-d') : '';
                     if ($lastUpdate) {
-                        $statusDisplay .= '<br><small class="text-muted">آخر تحديث: ' . $lastUpdate . '</small>';
+                        $statusDisplay .= '<br><small class="text-muted text-nowrap"><span class="text-secondary">آخر تحديث: </span>' . $lastUpdate . '</small>';
                     }
 
                     // إضافة حالة الضمان للعقود المكتملة
@@ -286,21 +293,47 @@ class RecruitmentContractController extends Controller
                     return $statusDisplay;
                 })
 
-                ->editColumn('phone', function ($row) {
+                ->editColumn('clirnt_data', function ($row) {
                     $phoneInfo = '';
                     if ($row->user) {
-                        $phoneInfo .= '<div class="user-info">';
-                        $phoneInfo .= '<strong>' . $row->user->name . '</strong><br>';
-                        $phoneInfo .= getPhoneWithTag($row->user->phone_code . $row->user->phone) . '<br>';
+                        $phoneInfo  = '<div class="d-flex flex-column gap-3">';
+
+                        // Name
+                        $phoneInfo .= '<div class="fw-semibold text-dark">'
+                            . $row->user->name
+                            . '</div>';
+
+                        // Phone
+                        $phoneInfo .= '<div>'
+                            . getPhoneWithTag($row->user->phone_code . $row->user->phone)
+                            . '</div>';
+
+                        // Birthdate
                         if ($row->user->birthdate) {
-                            $phoneInfo .= '<small class="text-muted mt-2">تاريخ الميلاد: ' . \Carbon\Carbon::parse($row->user->birthdate)->format('Y-m-d') . '</small>';
+                            $phoneInfo .= '<div class="text-muted small d-flex align-items-center gap-2">'
+                                . '<i class="fas fa-cake-candles text-secondary"></i>'
+                                . '<span><span class="text-secondary">تاريخ الميلاد: </span>'
+                                . \Carbon\Carbon::parse($row->user->birthdate)->format('Y-m-d')
+                                . '</span>'
+                                . '</div>';
                         }
+
+                        // National ID
                         if ($row->user->national_num) {
-                            $phoneInfo .= '<small class="text-muted mt-2">رقم الهوية: ' . $row->user->national_num . '</small>';
+                            $phoneInfo .= '<div class="text-muted small d-flex align-items-center gap-2">'
+                                . '<i class="fas fa-id-card text-secondary"></i>'
+                                . '<span><span class="text-secondary">رقم الهوية: </span>' . $row->user->national_num . '</span>'
+                                . '</div>';
                         }
+
+                        // Address
                         if ($row->user->address) {
-                            $phoneInfo .= '<small class="text-muted mt-2">العنوان: ' . $row->user->address . '</small>';
+                            $phoneInfo .= '<div class="text-muted small d-flex align-items-center gap-2">'
+                                . '<i class="fas fa-location-dot text-secondary"></i>'
+                                . '<span style="max-width:180px;"><span class="text-secondary font-bold"><span class="text-secondary">العنوان: </span></span></br>' . $row->user->address . '</span>'
+                                . '</div>';
                         }
+
                         $phoneInfo .= '</div>';
                     }
                     return $phoneInfo;
@@ -308,81 +341,145 @@ class RecruitmentContractController extends Controller
                 ->editColumn('maid_id', function ($row) {
                     $maidInfo = '';
                     if ($row->maid) {
-                        $maidInfo .= '<div class="maid-info">';
-                        // إضافة تعليق لصورة العاملة
-                        // $maidInfo .= '<div class="maid-image-container" title="صورة العاملة: ' . $row->maid->name . '">';
-                        // $maidInfo .= getImgTag($row->maid->cv_file, "80px", "80px");
-                        // $maidInfo .= '</div>';
-                        $maidInfo .= '<br><strong>' . $row->maid->name . '</strong>';
+                        $maidInfo  = '<div class="d-flex flex-column gap-3">';
+
+                        // Name
+                        $maidInfo .= '<div class="fw-semibold text-dark">'
+                            . $row->maid->name
+                            . '</div>';
+
+                        // Passport
                         if ($row->maid->passport_num) {
-                            $maidInfo .= '<br><small class="text-muted">جواز: ' . $row->maid->passport_num . '</small>';
+                            $maidInfo .= '<div class="text-muted small d-flex align-items-center gap-2">'
+                                . '<i class="fas fa-passport text-secondary"></i>'
+                                . '<span><span class="text-secondary">جواز: </span>' . $row->maid->passport_num . '</span>'
+                                . '</div>';
                         }
+
+                        // Nationality
                         if ($row->maid->nationality) {
-                            $maidInfo .= '<br><small class="text-muted">الجنسية: ' . $row->maid->nationality->sub_title . '</small>';
+                            $maidInfo .= '<div class="text-muted small d-flex align-items-center gap-2">'
+                                . '<i class="fas fa-flag text-secondary"></i>'
+                                . '<span><span class="text-secondary">الجنسية: </span>' . $row->maid->nationality->sub_title . '</span>'
+                                . '</div>';
                         }
+
+                        // Office
                         if ($row->maid->office) {
-                            $maidInfo .= '<br><small class="text-muted">المكتب الخارجي: ' . $row->maid->office->title . '</small>';
+                            $maidInfo .= '<div class="text-muted small d-flex align-items-center gap-2">'
+                                . '<i class="fas fa-building text-secondary"></i>'
+                                . '<span><span class="text-secondary">المكتب الخارجي: </span>' . $row->maid->office->title . '</span>'
+                                . '</div>';
                         }
+
+                        // Religion
                         if ($row->maid->religion) {
-                            $maidInfo .= '<br><small class="text-muted">الديانة: ' . $row->maid->religion->title . '</small>';
+                            $maidInfo .= '<div class="text-muted small d-flex align-items-center gap-2">'
+                                . '<i class="fas fa-praying-hands text-secondary"></i>'
+                                . '<span><span class="text-secondary">الديانة: </span>' . $row->maid->religion->title . '</span>'
+                                . '</div>';
                         }
+
                         $maidInfo .= '</div>';
                     } else {
-                        // رسالة محسنة عندما لا توجد عاملة مع إظهار جميع المتطلبات المفضلة
+                        $maidInfo = '<div class="d-flex flex-column gap-2">';
+
+                        // Status message
                         if ($row->status == ContractStatusEnum::PendingMaidSelection->value) {
-                            $maidInfo = '<div class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i><strong>في انتظار اختيار العاملة</strong></div>';
+                            $maidInfo .= '<div class="text-warning fw-semibold d-flex align-items-center gap-2">'
+                                . '<i class="fas fa-clock"></i>'
+                                . '<span>في انتظار اختيار العاملة</span>'
+                                . '</div>';
                         } else {
-                            $maidInfo = '<div class="text-danger"><i class="fas fa-times-circle me-1"></i><strong>لا توجد عاملة مخصصة</strong></div>';
+                            $maidInfo .= '<div class="text-danger fw-semibold d-flex align-items-center gap-2">'
+                                . '<i class="fas fa-circle-xmark"></i>'
+                                . '<span>لا توجد عاملة مخصصة</span>'
+                                . '</div>';
                         }
 
-                        // إضافة جميع المتطلبات المفضلة
+                        // Preferred requirements
                         $preferredRequirements = [];
 
+                        // Nationality
                         if ($row->required_maid_nationality_id && $row->requiredMaidNationality) {
-                            $preferredRequirements[] = '<span class="badge bg-info">الجنسية: ' . $row->requiredMaidNationality->sub_title . '</span>';
+                            $preferredRequirements[] =
+                                '<span class="badge bg-info-subtle text-info">'
+                                . '<i class="fas fa-flag me-1 text-secondary"></i>'
+                                . $row->requiredMaidNationality->sub_title
+                                . '</span>';
                         }
 
+                        // Religion
                         if ($row->required_maid_religion_id && $row->requiredMaidReligion) {
-                            $preferredRequirements[] = '<span class="badge bg-success">الدين: ' . $row->requiredMaidReligion->title . '</span>';
+                            $preferredRequirements[] =
+                                '<span class="badge bg-success-subtle text-success">'
+                                . '<i class="fas fa-praying-hands me-1 text-secondary"></i>'
+                                . $row->requiredMaidReligion->title
+                                . '</span>';
                         }
 
-                        if ($row->required_maid_age_min && $row->required_maid_age_max) {
-                            $preferredRequirements[] = '<span class="badge bg-warning">العمر: ' . $row->required_maid_age_min . '-' . $row->required_maid_age_max . '</span>';
-                        } elseif ($row->required_maid_age_min) {
-                            $preferredRequirements[] = '<span class="badge bg-warning">العمر: من ' . $row->required_maid_age_min . '</span>';
-                        } elseif ($row->required_maid_age_max) {
-                            $preferredRequirements[] = '<span class="badge bg-warning">العمر: إلى ' . $row->required_maid_age_max . '</span>';
+                        // Age
+                        if ($row->required_maid_age_min || $row->required_maid_age_max) {
+                            $ageText = $row->required_maid_age_min && $row->required_maid_age_max
+                                ? $row->required_maid_age_min . '-' . $row->required_maid_age_max
+                                : ($row->required_maid_age_min
+                                    ? 'من ' . $row->required_maid_age_min
+                                    : 'إلى ' . $row->required_maid_age_max);
+
+                            $preferredRequirements[] =
+                                '<span class="badge bg-warning-subtle text-warning">'
+                                . '<i class="fas fa-user-clock me-1 text-secondary"></i>'
+                                . 'العمر: ' . $ageText
+                                . '</span>';
                         }
 
+                        // Experience
                         if ($row->required_maid_experience_min) {
-                            $preferredRequirements[] = '<span class="badge bg-primary">الخبرة: ' . $row->required_maid_experience_min . ' سنوات</span>';
+                            $preferredRequirements[] =
+                                '<span class="badge bg-primary-subtle text-primary">'
+                                . '<i class="fas fa-briefcase me-1 text-secondary"></i>'
+                                . $row->required_maid_experience_min . ' سنوات خبرة'
+                                . '</span>';
                         }
 
+                        // Job title
                         if ($row->required_maid_job_title_id && $row->requiredMaidJobTitle) {
-                            $preferredRequirements[] = '<span class="badge bg-secondary">المهنة: ' . $row->requiredMaidJobTitle->title . '</span>';
+                            $preferredRequirements[] =
+                                '<span class="badge bg-secondary-subtle text-secondary">'
+                                . '<i class="fas fa-user-tag me-1 text-secondary"></i>'
+                                . $row->requiredMaidJobTitle->title
+                                . '</span>';
                         }
 
+                        // Render requirements
                         if (!empty($preferredRequirements)) {
-                            $maidInfo .= '<div class="mt-2"><strong>المتطلبات المفضلة:</strong><br>' . implode(' ', $preferredRequirements) . '</div>';
+                            $maidInfo .= '<div class="small text-muted">المتطلبات المفضلة:</div>';
+                            $maidInfo .= '<div class="d-flex flex-wrap gap-2">'
+                                . implode('', $preferredRequirements)
+                                . '</div>';
                         }
+
+                        $maidInfo .= '</div>';
                     }
                     return $maidInfo;
                 })
                 ->addColumn('contract_info', function ($row) {
                     $contractInfo = '';
                     if ($row->info) {
-                        $contractInfo .= '<div class="contract-info">';
+                        $contractInfo .= '<div class="contract-info d-flex flex-column gap-3">';
                         if ($row->info->msaned_number) {
-                            $contractInfo .= '<br><div><strong>مساند:</strong> ' . $row->info->msaned_number . '</div>';
+                            $contractInfo .= '<div> <i class="fas fa-file-invoice-dollar text-secondary"></i>
+                            <span class="text-secondary">مساند: </span> ' . $row->info->msaned_number . '
+                            </div>';
                         }
                         // if ($row->info->tafwed_number) {
                         //     $contractInfo .= '<div><strong>تفويض:</strong> ' . $row->info->tafwed_number . '</div>';
                         // }
                         if ($row->info->visa_number) {
-                            $contractInfo .= '<br><div><strong>تأشيرة:</strong> ' . $row->info->visa_number . '</div>';
+                            $contractInfo .= '<div class="d-flex align-items-center gap-2"><i class="fas fa-passport text-secondary"></i><span class="text-secondary">تأشيرة:</span> ' . $row->info->visa_number . '</div>';
                         }
                         if ($row->info->contract_date) {
-                            $contractInfo .= '<br><div><strong>تاريخ العقد:</strong> ' . \Carbon\Carbon::parse($row->info->contract_date)->format('Y-m-d') . '</div>';
+                            $contractInfo .= '<div class="d-flex align-items-center gap-2 text-nowrap"><i class="fas fa-calendar-day text-secondary"></i><span class="text-secondary text-nowrap">تاريخ العقد:</span> ' . \Carbon\Carbon::parse($row->info->contract_date)->format('Y-m-d') . '</div>';
                         }
 
                         // إضافة معلومات الضمان للعقود المكتملة
@@ -392,9 +489,9 @@ class RecruitmentContractController extends Controller
 
                             if ($endDate->isFuture()) {
                                 $remainingDays = $now->diffInDays($endDate);
-                                $contractInfo .= '<br><div class="text-success"><strong>أيام الضمان:</strong> ' . $remainingDays . ' يوم</div>';
+                                $contractInfo .= '<div class="text-success d-flex align-items-center gap-2"><i class="fas fa-shield-check text-secondary"></i><span class="text-secondary">أيام الضمان:</span> ' . $remainingDays . ' يوم</div>';
                             } else {
-                                $contractInfo .= '<br><div class="text-danger"><strong>الضمان:</strong> منتهي</div>';
+                                $contractInfo .= '<div class="text-danger d-flex align-items-center gap-2"><i class="fas fa-shield-exclamation text-secondary"></i><span class="text-secondary">الضمان:</span> منتهي</div>';
                             }
                         }
 
@@ -432,7 +529,7 @@ class RecruitmentContractController extends Controller
                     //     $contractInfo .= '<br><div class="mt-2"><strong>المتطلبات المفضلة:</strong><br>' . implode(' ', $preferredRequirements) . '</div>';
                     // }
 
-                    return $contractInfo ?: '<span class="text-muted">غير محدد</span>';
+                    return $contractInfo ?: '<span class="text-muted"><i class="fas fa-minus-circle me-1"></i>غير محدد</span>';
                 })
                 ->addColumn('marketer', function ($row) {
                     $marketerInfo = '';
@@ -441,9 +538,9 @@ class RecruitmentContractController extends Controller
                     if ($row->marketer_id) {
                         $marketer = \App\Models\auth\Admin::find($row->marketer_id);
                         if ($marketer) {
-                            $marketerInfo = '<div class="marketer-info">';
-                            $marketerInfo .= '<i class="fas fa-user-tie me-1 text-primary"></i>';
-                            $marketerInfo .= '<strong>' . htmlspecialchars($marketer->name) . '</strong>';
+                            $marketerInfo = '<div class="marketer-info text-nowrap text-secondary">';
+                            $marketerInfo .= '<i class="fas fa-user-tie me-1 text-secondary"></i>';
+                            $marketerInfo .= '<span>' . htmlspecialchars($marketer->name) . '</span>';
                             $marketerInfo .= '</div>';
                         }
                     }
@@ -452,7 +549,7 @@ class RecruitmentContractController extends Controller
                     if (empty($marketerInfo) && $row->order && $row->order->details && $row->order->details->admin) {
                         $marketer = $row->order->details->admin;
                         $marketerInfo = '<div class="marketer-info">';
-                        $marketerInfo .= '<i class="fas fa-user-tie me-1 text-info"></i>';
+                        $marketerInfo .= '<i class="fas fa-user-tie me-1 text-secondary"></i>';
                         $marketerInfo .= '<strong>' . htmlspecialchars($marketer->name) . '</strong>';
                         $marketerInfo .= '<br><small class="text-muted">من الطلب</small>';
                         $marketerInfo .= '</div>';

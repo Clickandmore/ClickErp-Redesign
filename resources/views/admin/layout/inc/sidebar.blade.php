@@ -238,11 +238,11 @@
                                 <span class="ms-2"> {{ helperTrans('ingaz.Recruitment contracts') }} </span>
                                 <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                             </a>
-                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RecruitmentContracts.index']) ? 'show' : '' }}"
+                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RecruitmentContracts.index', 'RecruitmentContract.create', 'contract-return-requests.index']) ? 'show' : '' }}"
                                 id="contracts">
                                 @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE))
                                     <li>
-                                        <a class="m-link" href="{{ route('RecruitmentContract.create') }}">
+                                        <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.create' ? 'active' : '' }}" href="{{ route('RecruitmentContract.create') }}">
                                             <i class="icon-star"></i>
                                             <span
                                                 class="ms-2">{{ helperTrans('ingaz.add Recruitment contract') }}</span>
@@ -251,14 +251,35 @@
                                 @endif
                                 @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
                                     <li>
-                                        <a class="m-link" href="{{ route('RecruitmentContract.index') }}">
+                                        <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.index' && request()->input('status') == 'current' ? 'active' : '' }}"
+                                            href="{{ route('RecruitmentContract.index', ['status' => 'current']) }}">
                                             <i class="fa fa-list"></i>
                                             <span
-                                                class="ms-2">{{ helperTrans('ingaz.All Recruitment contracts') }}</span>&nbsp;&nbsp;
-                                            <span class="badge bg-primary ms-2">{{ $contractsCount['all'] }}</span>
+                                                class="ms-2">{{ helperTrans('ingaz.contracts_are_valid') }}</span>&nbsp;&nbsp;
+                                            <span class="badge bg-primary ms-2">{{ $contractsCount['are_valid'] }}</span>
                                         </a>
                                     </li>
-                                    @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED))
+
+                                    <li>
+                                        <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.index' && request()->input('status') == 'completed' ? 'active' : '' }}"
+                                            href="{{ route('RecruitmentContract.index', ['status' => 'completed', 'warranty_status' => 'expired,not_applicable']) }}">
+                                            <i class="fa fa-check-circle"></i>
+                                            <span class="ms-2">عقود مكتملة</span>&nbsp;&nbsp;
+                                            <span
+                                                class="badge bg-success ms-2">{{ $contractsCount['completed'] }}</span>
+                                        </a>
+                                    </li>
+
+                                    <li>
+                                        <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.index' && request()->input('status') == $backStatus->value ? 'active' : '' }}"
+                                            href="{{ route('RecruitmentContract.index', ['status' => $backStatus->value]) }}">
+                                            <i class="fa fa-undo"></i>
+                                            <span class="ms-2">عقود غير مكتملة</span>&nbsp;
+                                            <span class="badge bg-danger">{{ $contractsCount['back'] }}</span>
+                                        </a>
+                                    </li>
+
+                                    {{-- @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED))
                                         <li>
                                             <a class="m-link"
                                                 href="{{ route('RecruitmentContract.index', ['status' => $newStatus->value]) }}">
@@ -327,7 +348,7 @@
                                             <span class="badge bg-warning">{{ $contractsCount['arrival'] }}
                                             </span>
                                         </a>
-                                    </li>
+                                    </li> --}}
                                     {{-- <li>
                                         <a class="m-link"
                                             href="{{ route('RecruitmentContract.index', ['status' => 'arrival', 'warranty_status' => 'active']) }}">
@@ -338,7 +359,7 @@
                                         </a>
                                     </li> --}}
                                     @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
-                                        <li>
+                                        {{-- <li>
                                             <a class="m-link"
                                                 href="{{ route('RecruitmentContract.index', ['status' => $backStatus->value]) }}">
                                                 <i class="fa fa-undo"></i>
@@ -355,7 +376,7 @@
                                                 <span
                                                     class="badge bg-primary ms-2">{{ $contractsCount['completed'] - $contractsCount['under_warranty'] }}</span>
                                             </a>
-                                        </li>
+                                        </li> --}}
                                         <li>
                                             <a class="m-link {{ Route::currentRouteName() == 'contract-return-requests.index' ? 'active' : '' }}"
                                                 href="{{ route('contract-return-requests.index') }}">

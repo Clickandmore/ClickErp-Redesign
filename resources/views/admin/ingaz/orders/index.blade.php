@@ -69,7 +69,7 @@
         }
 
         .timer-chip__value {
-            font-size: 1.4rem;
+            font-size: 1.1rem;
             font-weight: 600;
             color: #1b2240;
         }
@@ -122,13 +122,28 @@
             border-radius: 999px;
         }
 
-        .dataTables_wrapper .table-responsive,
-        .table-responsive {
-            overflow: visible !important;
+        button.edit-status{
+            padding: 4px 12px;
+            border: #2794eb 1px solid;
+            outline: none;
+            background: white;
+            color: #2794eb;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            border-radius: 9px;
+            white-space: nowrap;
+            transition: all 0.3s ease-in-out;
+        }
+        button.edit-status:hover{
+            background: #111c3a;
+            color: white;
+            border-color: #111c3a;
         }
 
-        .dataTables_wrapper {
-            overflow: visible;
+        /* To show actions */
+        .dataTables_scrollBody{
+            overflow-x: visible !important;
         }
     </style>
 @endsection
@@ -288,7 +303,7 @@
                             </div> --}}
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table id="dataTableObject" class="table table-hover align-middle custom-table"
+                            <table id="dataTableObject" class="table table-hover align-middle table-style"
                                 style="width:100%">
                                 <thead>
                                     <tr>

@@ -1,7 +1,9 @@
 @extends('admin.layout.indexs.index')
+
 @section('style')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 @endsection
+
 @section('page-title')
     {{ helperTrans('ingaz.All Recruitment contracts') }}
 @endsection
@@ -42,6 +44,8 @@
                             <label for="statusFilter" class="form-label">حالة العقد:</label>
                             <select id="statusFilter" class="form-select">
                                 <option value="">جميع الحالات</option>
+                                <option value="current">{{ helperTrans('ingaz.contracts_are_valid') }}</option>
+
                                 <option value="new">جديد</option>
                                 <option value="msaned">مساند</option>
                                 <option value="tafwed">تفويض</option>
@@ -96,12 +100,14 @@
                             <label for="nationalityFilter" class="form-label">جنسية العاملة:</label>
                             <select id="nationalityFilter" class="form-select">
                                 <option value="">جميع الجنسيات</option>
+
                                 @if (isset($filterOptions) && isset($filterOptions['nationalities']))
                                     @foreach ($filterOptions['nationalities'] as $nationality)
                                         <option value="{{ $nationality->sub_title }}">{{ $nationality->sub_title }}</option>
                                     @endforeach
                                 @else
                                     <option value="">لا توجد بيانات</option>
+
                                 @endif
                             </select>
                         </div>
@@ -109,12 +115,14 @@
                             <label for="religionFilter" class="form-label">ديانة العاملة:</label>
                             <select id="religionFilter" class="form-select">
                                 <option value="">جميع الديانات</option>
+
                                 @if (isset($filterOptions) && isset($filterOptions['religions']))
                                     @foreach ($filterOptions['religions'] as $religion)
                                         <option value="{{ $religion->title }}">{{ $religion->title }}</option>
                                     @endforeach
                                 @else
                                     <option value="">لا توجد بيانات</option>
+
                                 @endif
                             </select>
                         </div>
@@ -122,12 +130,14 @@
                             <label for="officeFilter" class="form-label"> المكتب الخارجي:</label>
                             <select id="officeFilter" class="form-select">
                                 <option value="">جميع المكاتب الخارجية</option>
+
                                 @if (isset($filterOptions) && isset($filterOptions['offices']))
                                     @foreach ($filterOptions['offices'] as $office)
                                         <option value="{{ $office->id }}">{{ $office->title }}</option>
                                     @endforeach
                                 @else
                                     <option value="">لا توجد بيانات</option>
+
                                 @endif
                             </select>
                         </div>
@@ -135,6 +145,7 @@
                             <label for="warrantyStatusFilter" class="form-label">حالة الضمان:</label>
                             <select id="warrantyStatusFilter" class="form-select">
                                 <option value="">جميع حالات الضمان</option>
+
                                 <option value="active">نشط (تحت الضمان)</option>
                                 <option value="expired">منتهي (خارج الضمان)</option>
                                 <option value="not_applicable">غير قابل للتطبيق</option>
@@ -144,12 +155,14 @@
                             <label for="marketerFilter" class="form-label">المسوق:</label>
                             <select id="marketerFilter" class="form-select">
                                 <option value="">جميع المسوقين</option>
+
                                 @if (isset($filterOptions) && isset($filterOptions['marketers']))
                                     @foreach ($filterOptions['marketers'] as $marketer)
                                         <option value="{{ $marketer->id }}">{{ $marketer->name }}</option>
                                     @endforeach
                                 @else
                                     <option value="">لا توجد بيانات</option>
+
                                 @endif
                             </select>
                         </div>
@@ -207,12 +220,6 @@
 
         <div class="table-responsive">
             <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-table me-2"></i>
-                        قائمة العقود
-                    </h5>
-                </div>
                 <div class="card-body">
                     <!-- Modern Loading Overlay -->
                     <div id="loadingOverlay"
@@ -233,7 +240,7 @@
                         </div>
                     </div>
 
-                    <table id="dataTableObject" class="table table-hover align-middle mb-0" style="width:100%">
+                    <table id="dataTableObject" class="table table-hover align-middle mb-0 table-style" style="width:100%">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -433,10 +440,11 @@
             }
 
             function toggleWarrantyFilter() {
-                const isArrival = $('#statusFilter').val() === 'arrival';
+                const statusValue = $('#statusFilter').val();
+                const shouldShow = statusValue === 'arrival' || statusValue === 'completed';
                 const wrapper = $('#warrantyStatusFilter').closest('.col-md-3');
 
-                if (isArrival) {
+                if (shouldShow) {
                     wrapper.show();
                     $('#warrantyStatusFilter').show();
                 } else {
@@ -459,7 +467,7 @@
                 toggleWarrantyFilter();
 
                 // تطبيق فلتر warranty_status إذا كان موجود في URL
-                if (urlStatus === 'arrival' && urlWarrantyStatus) {
+                if (urlWarrantyStatus) {
                     $('#warrantyStatusFilter').val(urlWarrantyStatus);
                     console.log('Warranty status from URL applied to filter:', urlWarrantyStatus);
                 }
@@ -472,7 +480,7 @@
                     searchable: false
                 },
                 {
-                    "data": "phone",
+                    "data": "clirnt_data",
                     orderable: true,
                     searchable: true
                 },
@@ -553,7 +561,8 @@
                         d.marketer_id = $('#marketerFilter').val(); // Add marketer filter
 
                         // إضافة فلتر حالة الضمان فقط إذا كانت الحالة "عقود مكتملة"
-                        if ($('#statusFilter').val() === 'arrival') {
+                        const statusValue = $('#statusFilter').val();
+                        if ((statusValue === 'arrival' || statusValue === 'completed') && $('#warrantyStatusFilter').val()) {
                             d.warranty_status = $('#warrantyStatusFilter').val();
                         }
                     },
@@ -1662,3 +1671,7 @@
         });
     </script>
 @endsection
+
+
+
+

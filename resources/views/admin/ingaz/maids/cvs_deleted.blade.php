@@ -39,20 +39,8 @@
             }
         }
 
-        /* تحسين مظهر الجدول */
-        .table th,
-        .table td {
-            vertical-align: middle;
-        }
-
         .badge {
             font-size: 0.75rem;
-        }
-
-        /* تحسين مظهر الصور في الجدول */
-        .table img {
-            max-width: 100%;
-            height: auto;
         }
 
         /* تحسين شكل الأزرار */
@@ -271,6 +259,52 @@
             font-size: 0.75rem;
             font-weight: 600;
         }
+
+        .maids-non-table th {
+            font-size: 1rem !important;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: #2794eb;
+            color: white !important;
+            border: 0;
+            padding: 0.9rem 1rem !important;
+            position: relative;
+            box-shadow: inset 0 -1px 0 rgba(15, 23, 42, 0.08);
+        }
+
+        .maids-non-table thead {
+            position: relative;
+        }
+
+        .maids-non-table thead::after {
+            content: "";
+            position: absolute;
+            left: 16px;
+            right: 16px;
+            bottom: -4px;
+            height: 2px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(37, 99, 235, 0.18), rgba(99, 102, 241, 0.35), rgba(37, 99, 235, 0.18));
+        }
+
+        .dataTables_wrapper .table-responsive,
+        .table-responsive {
+            overflow: visible !important;
+        }
+
+        .dataTables_wrapper {
+            overflow: visible;
+        }
+
+        .table tr td {
+            border-color: var(--border-color);
+            color: var(--color-500);
+            padding: .8rem .6rem !important;
+        }
+
+        #dataTableObject_wrapper {
+            overflow-x: auto;
+        }
     </style>
 @endsection
 @section('page-title')
@@ -356,7 +390,7 @@
             </div>
         </div>
 
-        <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
+        <table id="dataTableObject" class="table display dataTable table-hover maids-non-table" style="width:100%">
             <thead>
                 <tr>
                     <th class="d-none d-md-table-cell">ID</th>

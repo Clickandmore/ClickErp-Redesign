@@ -89,7 +89,17 @@ class ReturnRequestController extends Controller
                     return '<span class="phone-number">' . ($row->user ? getPhoneWithTag($row->user->phone_code . $row->user->phone) : '-') . '</span>';
                 })
                 ->editColumn('maid_id', function ($row) {
-                    return ($row->maid) ? getImgTag($row->maid->cv_file, "50px", "50px", "maid-image") : '<span class="text-muted">-</span>';
+                    if ($row->maid) {
+                        $rawPath = $row->maid->image ?: ($row->maid->cv_preview ?: $row->maid->cv_file);
+                        $imageUrl = $rawPath ? showFile($rawPath) : asset('admin/assets/img/avatar.png');
+
+                        $imgTag = '<img src="' . $imageUrl . '" alt="maid-file" class="border" style="width:90px;height:120px;object-fit:cover;">';
+                        
+                        return '<a href="#" class="maidViewData" data-id="' . $row->id . '">' . $imgTag . '</a>';
+                    } else {
+
+                        return  '<span class="text-muted">-</span>';
+                    }
                 })
                 ->editColumn('order_code', function ($row) {
                     return '<span class="order-code">' . $row->order_code . '</span>';
@@ -121,7 +131,7 @@ class ReturnRequestController extends Controller
 
                     // Restore button (only for deleted orders)
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE) && $row->deleted_at) {
-                        $actions .= '<button class="btn btn-success restore-order" data-id="' . $row->id . '" title="استعادة">
+                        $actions .= '<button class="btn btn-sm btn-success restore-order" data-id="' . $row->id . '" title="استعادة">
                             <i class="fa fa-undo"></i>
                         </button>';
                     }
@@ -136,7 +146,6 @@ class ReturnRequestController extends Controller
                             <i class="fa fa-trash"></i>
                                            </button>';
                         }
-
                     }
                     $actions .= '</div>';
                     return $actions;

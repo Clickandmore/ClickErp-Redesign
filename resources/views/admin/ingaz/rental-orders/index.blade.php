@@ -131,7 +131,7 @@
                     </div> --}}
                     <div class="card-body">
 
-                        <table id="dataTableObject" class="table table-hover align-middle rental-table" style="width:100%">
+                        <table id="dataTableObject" class="table table-hover align-middle rental-table table-style" style="width:100%">
                             <thead>
                                 <tr>
                                     <th>ID</th>

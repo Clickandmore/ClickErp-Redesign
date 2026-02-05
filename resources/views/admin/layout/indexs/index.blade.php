@@ -21,6 +21,8 @@
     @stack("style")
     @stack("css")
 
+    {{-- Table some styles --}}
+    <link rel="stylesheet" type="text/css" href="{{ asset('admin/assets/css/tables.css') }}">
 
 </head>
 <body class="layout-1  @if (app()->getLocale() == 'ar') rtl_mode @endif " data-luno="theme-blue"> <!-- h-menu  -->
