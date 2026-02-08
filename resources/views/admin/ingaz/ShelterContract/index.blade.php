@@ -267,15 +267,15 @@
 
                 <!-- جدول العقود -->
                 <div class="card shadow">
-                    <div class="card-header bg-primary text-white">
+                    {{-- <div class="card-header bg-primary text-white">
                         <h6 class="m-0 font-weight-bold">
                             <i class="fas fa-list me-2"></i>
                             {{ helperTrans('ingaz.All Shelter contracts') }}
                         </h6>
-                    </div>
+                    </div> --}}
                     <div class="card-body">
 
-                        <table id="shelterContractsTable" class="table table-hover align-middle mb-0"
+                        <table id="shelterContractsTable" class="table table-hover align-middle mb-0 table-style"
                             style="width: 100%;">
                             <thead>
                                 <tr>

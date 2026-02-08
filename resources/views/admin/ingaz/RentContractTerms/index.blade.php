@@ -13,8 +13,8 @@
                         </a>
                     </div>
                     <div class="card-body">
-                            <table class="table table-bordered table-striped">
-                                <thead>
+                        <table class="table table-hover table-style">
+                            <thead>
                                 <tr>
                                     <th>#</th>
                                     <th>عنوان القسم</th>
@@ -23,36 +23,36 @@
                                     <th>محتوي البند</th>
                                     <th>ترتيب البند</th>
                                     <th>رقم الصفحةد</th>
+                                    <th>الحالة</th>
                                     <th>الإجراءات</th>
                                 </tr>
-                                </thead>
-                                <tbody>
-                                @foreach($terms as $key => $term)
+                            </thead>
+                            <tbody>
+                                @foreach ($terms as $key => $term)
                                     <tr>
-                                        <td>{{++$key}}</td>
-                                        <td>{{$term->section_title}}</td>
-                                        <td>{{$term->section_order}}</td>
-                                        <td>{{$term->term_number}}</td>
-                                        <td>{{\Illuminate\Support\Str::limit($term->term_content , 20 ,'...')}}</td>
-                                        <td>{{$term->term_order}}</td>
-                                        <td>{{$term->page_number}}</td>
-                                        <td>{{$term->is_active == 1 ? 'نشط' : 'غير نشط'}}</td>
+                                        <td>{{ ++$key }}</td>
+                                        <td>{{ $term->section_title }}</td>
+                                        <td>{{ $term->section_order }}</td>
+                                        <td>{{ $term->term_number }}</td>
+                                        <td>{{ \Illuminate\Support\Str::limit($term->term_content, 20, '...') }}</td>
+                                        <td>{{ $term->term_order }}</td>
+                                        <td>{{ $term->page_number }}</td>
+                                        <td>{{ $term->is_active == 1 ? 'نشط' : 'غير نشط' }}</td>
                                         <td>
-                                            <a href="{{route('rent-contract-terms.edit',$term->id)}}"
-                                               title="تعديل"
-                                               class="btn btn-sm btn-primary">
+                                            <a href="{{ route('rent-contract-terms.edit', $term->id) }}" title="تعديل"
+                                                class="btn btn-sm btn-primary">
                                                 <i class="fa fa-pencil"></i>
                                             </a>
 
-                                            <button type="button" class="btn btn-sm btn-danger btn-delete deleteButton"
-                                                    title="حذف">
+                                            <button type="button" class="btn btn-sm btn-danger btn-delete deleteButton" data-id="{{ $term->id }}"
+                                                title="حذف">
                                                 <i class="fa fa-trash-o"></i>
                                             </button>
                                         <td>
                                     </tr>
                                 @endforeach
-                                </tbody>
-                            </table>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -60,12 +60,12 @@
     </div>
 @endsection
 
-@push('scripts')
+@push('js')
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
     <script>
-        $(document).ready(function () {
-            $(document).on('click', '.btn-delete', function () {
+        $(document).ready(function() {
+            $(document).on('click', '.btn-delete', function() {
                 var id = $(this).data('id');
                 Swal.fire({
                     title: 'هل أنت متأكد؟',
@@ -79,20 +79,20 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
-                            url: "{{ route('rent-contract-terms.index') }}/" + id,
+                            url: "{{ route('rent-contract-terms.destroy', ':id') }}".replace(':id', id),
                             type: 'DELETE',
                             data: {
                                 _token: '{{ csrf_token() }}'
                             },
-                            success: function (response) {
+                            success: function(response) {
                                 if (response.success) {
                                     Swal.fire('تم الحذف!', response.message, 'success');
-                                    table.ajax.reload();
+                                    window.location.reload();
                                 } else {
                                     Swal.fire('خطأ!', response.message, 'error');
                                 }
                             },
-                            error: function () {
+                            error: function() {
                                 Swal.fire('خطأ!', 'حدث خطأ أثناء الحذف', 'error');
                             }
                         });

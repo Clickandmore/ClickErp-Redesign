@@ -142,7 +142,8 @@ Route::group(
             Route::get('/travel/{id}/edit', [AdminTravelHistoryController::class, 'edit'])->name('travel.edit');
             Route::post('/travel', [AdminTravelHistoryController::class, 'store'])->name('travel.store');
             Route::post('/travel/{shelter_worker}', [AdminTravelHistoryController::class, 'update'])->name('travel.update');
-            Route::post('/travel/{shelter_worker}', [AdminTravelHistoryController::class, 'destroy'])->name('travel.delete');
+            
+            Route::delete('/travel/{shelter_worker}', [AdminTravelHistoryController::class, 'destroy'])->name('travel.delete');
             Route::post('/store-travel-history', [AdminTravelHistoryController::class, 'storeTravelHistory'])->name('storeTravelHistory');
             Route::get('/travel/download/{id}', [AdminTravelHistoryController::class, 'downloadFile'])->name('travel.file.download');
             Route::delete('/travel/file/delete/{id}', [AdminTravelHistoryController::class, 'deleteFile'])->name('travel.file.delete');
@@ -272,6 +273,7 @@ Route::group(
             Route::get('rent-contract-terms/edit/{id}', [RentalContractTermsController::class, 'edit'])->name('rent-contract-terms.edit');
             Route::put('rent-contract-terms/update/{id}', [RentalContractTermsController::class, 'update'])->name('rent-contract-terms.update');
             Route::get('rent-contract-terms/import-default', [RentalContractTermsController::class, 'importDefault'])->name('rent-contract-terms.import-default');
+            Route::delete('rent-contract-terms/{id}', [RentalContractTermsController::class, 'destroy'])->name('rent-contract-terms.destroy');
 
             // إعدادات عقد التأجير
             Route::get('rent-contract/settings', [RentalContractTermsController::class, 'showSettings'])->name('rent-contract.settings');
@@ -401,9 +403,9 @@ Route::group(
             // طلبات استرجاع العقود - الإدارة
             Route::prefix('contract-return-requests')->name('contract-return-requests.')->group(function () {
                 Route::get('/', [ContractReturnRequestController::class, 'index'])->name('index');
+                Route::get('/statistics', [ContractReturnRequestController::class, 'statistics'])->name('statistics');
                 Route::get('/{returnRequest}', [ContractReturnRequestController::class, 'show'])->name('show');
                 Route::post('/{returnRequest}/process', [ContractReturnRequestController::class, 'process'])->name('process');
-                Route::get('/statistics', [ContractReturnRequestController::class, 'statistics'])->name('statistics');
             });
         });
     }

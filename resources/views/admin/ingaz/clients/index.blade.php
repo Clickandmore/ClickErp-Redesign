@@ -257,15 +257,17 @@
                                 <label class="form-label">{{ helperTrans('ingaz.to_date') }}</label>
                                 <input type="date" id="filter-date-to" class="form-control">
                             </div>
-                            <div class="col-lg-2 col-md-4 col-6">
-                                <button type="submit" class="btn btn-primary w-100">
-                                    <i class="fas fa-filter me-1"></i>{{ helperTrans('ingaz.filter') }}
-                                </button>
-                            </div>
-                            <div class="col-lg-2 col-md-4 col-6">
-                                <button type="button" class="btn btn-outline-secondary w-100" id="resetFilters">
-                                    <i class="fas fa-undo me-1"></i>{{ helperTrans('ingaz.reset') }}
-                                </button>
+                            <div class="col-12 row mt-4">
+                                <div class="col-lg-2 col-md-4 col-6">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="fas fa-filter me-1"></i>{{ helperTrans('ingaz.filter') }}
+                                    </button>
+                                </div>
+                                <div class="col-lg-2 col-md-4 col-6">
+                                    <button type="button" class="btn btn-outline-secondary w-100" id="resetFilters">
+                                        <i class="fas fa-undo me-1"></i>{{ helperTrans('ingaz.reset') }}
+                                    </button>
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -280,7 +282,8 @@
                 <div class="card shadow-sm border-0">
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table id="dataTableObject" class="table table-hover align-middle table-style
+                            <table id="dataTableObject"
+                                class="table table-hover align-middle table-style
                                 style="width:100%">
                                 <thead>
                                     <tr>

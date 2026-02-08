@@ -228,7 +228,7 @@
         <!-- رأس العقد -->
         <div class="header">
             <h1>عقد نقل كفالة العمالة المنزلية</h1>
-            <div class="company-info">{{ $contractSettings['company_name'] ?? 'شركة إنجاز للاستقدام' }}</div>
+            <div class="company-info">{{ $contractSettings['company_name'] ?? 'شركة بلاتينيوم الشرقية للاستقدام' }}</div>
             <div class="company-info">ترخيص رقم: {{ $contractSettings['license_number'] ?? '1234567890' }}</div>
             <div class="company-info">{{ $contractSettings['address'] ?? 'الرياض، المملكة العربية السعودية' }}</div>
             <div class="company-info">هاتف: {{ $contractSettings['phone'] ?? '+966 11 123 4567' }} | البريد الإلكتروني: {{ $contractSettings['email'] ?? 'info@ingaz.com' }}</div>
@@ -239,7 +239,7 @@
             <div class="party">
                 <div class="party-title">الطرف الأول (مقدم الخدمة):</div>
                 <div class="party-info">
-                    {{ $contractSettings['company_name'] ?? 'شركة إنجاز للاستقدام' }}<br>
+                    {{ $contractSettings['company_name'] ?? 'شركة بلاتينيوم الشرقية للاستقدام' }}<br>
                     ترخيص رقم: {{ $contractSettings['license_number'] ?? '1234567890' }}<br>
                     العنوان: {{ $contractSettings['address'] ?? 'الرياض، المملكة العربية السعودية' }}
                 </div>
@@ -362,7 +362,7 @@
             <div class="signature-box">
                 <div class="signature-title">الطرف الأول (الشركة)</div>
                 <div class="signature-info">
-                    {{ $contractSettings['company_name'] ?? 'شركة إنجاز للاستقدام' }}<br>
+                    {{ $contractSettings['company_name'] ?? 'شركة بلاتينيوم الشرقية للاستقدام' }}<br>
                     التوقيع: ___________________<br>
                     التاريخ: ___________________
                 </div>

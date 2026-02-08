@@ -153,10 +153,10 @@
         }
     tbody tr ,  tbody tr:hover , tbody tr:not(:hover) {
         position: relative !important;
-        z-index: unset !important;
+        /* z-index: unset !important; */
     }
     tbody tr:hover td{
         position: relative !important;
-        z-index: unset !important;
+        /* z-index: unset !important; */
     }
 </style>

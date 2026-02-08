@@ -43,6 +43,7 @@
         .badge {
             border-radius: 999px;
         }
+
         @media (max-width: 767.98px) {
             .stats-card {
                 border-radius: 12px;
@@ -279,6 +280,16 @@
                                 </select>
                             </div>
                             <div class="col-xl-2 col-lg-3 col-md-4">
+                                <label class="form-label">{{ helperTrans('ingaz.outside_agent') }}</label>
+                                <select id="filter-office" class="form-select filter-trigger">
+                                    <option value="">{{ helperTrans('ingaz.all') }}</option>
+                                    @foreach ($filters['offices'] as $office)
+                                        <option value="{{ $office->id }}">
+                                            {{ $office->title ?? '-' }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-xl-2 col-lg-3 col-md-4">
                                 <label class="form-label">{{ helperTrans('ingaz.maid_visibility_filter') }}</label>
                                 <select id="filter-visibility" class="form-select filter-trigger">
                                     <option value="">{{ helperTrans('ingaz.all') }}</option>
@@ -302,15 +313,17 @@
                                 <label class="form-label">{{ helperTrans('ingaz.to_date') }}</label>
                                 <input type="date" id="filter-date-to" class="form-control">
                             </div>
-                            <div class="col-lg-2 col-md-4 col-6">
-                                <button type="submit" class="btn btn-primary w-100">
-                                    <i class="fas fa-filter me-1"></i>{{ helperTrans('ingaz.filter') }}
-                                </button>
-                            </div>
-                            <div class="col-lg-2 col-md-4 col-6">
-                                <button type="button" class="btn btn-outline-secondary w-100" id="resetFilters">
-                                    <i class="fas fa-undo me-1"></i>{{ helperTrans('ingaz.reset') }}
-                                </button>
+                            <div class="col-12 row mt-4">
+                                <div class="col-lg-2 col-md-4 col-6">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="fas fa-filter me-1"></i>{{ helperTrans('ingaz.filter') }}
+                                    </button>
+                                </div>
+                                <div class="col-lg-2 col-md-4 col-6">
+                                    <button type="button" class="btn btn-outline-secondary w-100" id="resetFilters">
+                                        <i class="fas fa-undo me-1"></i>{{ helperTrans('ingaz.reset') }}
+                                    </button>
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -502,6 +515,7 @@
                         d.status = $('#filter-status').val();
                         d.job_type_id = $('#filter-job-type').val();
                         d.nationality_id = $('#filter-nationality').val();
+                        d.office_id = $('#filter-office').val();
                         d.visibility = $('#filter-visibility').val();
                         d.pinned = $('#filter-pinned').val();
                         d.date_from = $('#filter-date-from').val();

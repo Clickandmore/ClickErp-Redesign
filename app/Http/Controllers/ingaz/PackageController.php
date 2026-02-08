@@ -30,9 +30,13 @@ class PackageController extends Controller
     public function index(Request $request, objAction $Action)
     {
         if ($request->ajax()) {
-            $rows = objModel::latest();
+            $rows = objModel::query()->with('nationality')->latest();
             return DataTables::of($rows)
                 ->addIndexColumn()
+                ->addColumn('nationality', function ($row) {
+                    $nationality = $row->nationality?->sub_title ?? $row->nationality?->title ?? '-';
+                    return e($nationality);
+                })
                 ->addColumn('actions', function ($row) {
                     $editButton = '';
                     $deleteButton = '';

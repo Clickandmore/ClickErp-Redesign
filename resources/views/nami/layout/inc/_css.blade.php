@@ -146,6 +146,6 @@
     }
     tbody tr , tbody td{
         position: relative;
-        z-index: unset !important;
+        /* z-index: unset !important; */
     }
 </style>

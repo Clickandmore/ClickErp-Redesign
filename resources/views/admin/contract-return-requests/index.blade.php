@@ -132,7 +132,7 @@
                                                 {{ Str::limit($request->notes, 50) }}
                                             </span>
                                         </td>
-                                        <td>{!! $request->status_badge !!}</td>
+                                        <td data-search="{{ $request->status }}">{!! $request->status_badge !!}</td>
                                         <td>{{ $request->created_at->format('Y-m-d H:i') }}</td>
                                         <td>
                                             <div class="btn-group gap-2" role="group">
@@ -202,7 +202,7 @@
     </div>
 @endsection
 
-@section('scripts')
+@section('js')
     <script>
         $(document).ready(function() {
             // Initialize DataTable
@@ -245,7 +245,12 @@
                     $('#statistics-cards').show();
                 })
                 .fail(function() {
-                    alert('حدث خطأ أثناء تحميل الإحصائيات');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'حدث خطأ',
+                        text: 'حدث خطأ أثناء تحميل الإحصائيات',
+                    })
+                    // alert('حدث خطأ أثناء تحميل الإحصائيات');
                 });
         }
 
@@ -265,7 +270,12 @@
             const adminNotes = $('#admin-notes').val();
 
             if (!adminNotes.trim()) {
-                alert('يرجى كتابة ملاحظات الإدارة');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'حدث خطأ',
+                    text: 'يرجى كتابة ملاحظات الإدارة',
+                })
+                // alert('يرجى كتابة ملاحظات الإدارة');
                 return;
             }
 
@@ -294,7 +304,12 @@
                                 location.reload();
                             });
                         } else {
-                            alert(response.message);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'حدث خطأ',
+                                text: response.message,
+                            })
+                            // alert(response.message);
                             location.reload();
                         }
                     }
@@ -312,7 +327,12 @@
                             text: errorMessage
                         });
                     } else {
-                        alert(errorMessage);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'حدث خطأ',
+                            text: errorMessage,
+                        })
+                        // alert(errorMessage);
                     }
                 }
             });
@@ -320,7 +340,7 @@
     </script>
 @endsection
 
-@section('styles')
+@section('style')
     <style>
         .card {
             border-radius: 10px;
@@ -355,6 +375,10 @@
 
         #statistics-cards .card:hover {
             transform: translateY(-5px);
+        }
+
+        .card-header h4.card-title {
+            color: #f8f9fa !important;
         }
     </style>
 @endsection

@@ -325,10 +325,11 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
-                            url: `{{ route('travel.delete', '') }}/${id}`,
-                            type: 'Post',
+                            url: "{{ route('travel.delete', ':id') }}".replace(':id', id),
+                            type: 'POST',
                             data: {
-                                _token: '{{ csrf_token() }}'
+                                _token: '{{ csrf_token() }}',
+                                _method: 'DELETE'
                             },
                             success: function(response) {
                                 Swal.fire('تم الحذف!', 'تم حذف الرحلة بنجاح.', 'success');

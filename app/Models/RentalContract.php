@@ -150,7 +150,7 @@ class RentalContract extends Model
     public function getStatusTextAttribute()
     {
         $statusTexts = [
-            'new' => 'جديد',
+            'new' => 'جديد', 
             'waiting_contract_send' => 'انتظار إرسال العقد',
             'contract_sent' => 'تم إرسال العقد',
             'contract_signed' => 'تم توقيع العقد',
