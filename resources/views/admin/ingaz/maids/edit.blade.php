@@ -306,7 +306,7 @@
                         </select>
                     </div>
 
-                    <div class="col-4" id="experience_years_container"
+                    {{-- <div class="col-4" id="experience_years_container"
                          style="display: {{$obj->experience_status == 'has_experience' ? 'block' : 'none'}};">
                         <label for="TextInput" class="form-label">
                             {{helperTrans("ingaz.experience_years")}} <small class="text-muted">(مطلوب)</small>
@@ -319,7 +319,7 @@
                                         value="{{$i}}" {{$obj->experience_years == $i ? 'selected' : ''}}>{{$i}} {{$i == 1 ? 'سنة' : 'سنوات'}}</option>
                             @endfor
                         </select>
-                    </div>
+                    </div> --}}
 
                     <!-- اللغات والحالة الاجتماعية -->
                     <div class="col-12">
@@ -393,7 +393,7 @@
                                 <td>
                                     <div class="experience-duration-wrapper">
                                         <div class="input-group">
-                                            <input type="number" min="0" step="0.1" class="form-control exp-duration-value" placeholder="{{ helperTrans('ingaz.duration_value_placeholder') }}" data-exp-required="true">
+                                            <input type="number" min="0" step="0.001" class="form-control exp-duration-value" placeholder="{{ helperTrans('ingaz.duration_value_placeholder') }}" data-exp-required="true">
                                             <select class="form-select exp-duration-unit" data-exp-required="true">
                                                 <option value="years">{{ helperTrans('ingaz.years') }}</option>
                                                 <option value="months">{{ helperTrans('ingaz.months') }}</option>

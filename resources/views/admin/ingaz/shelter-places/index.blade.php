@@ -13,7 +13,7 @@
     @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_PLACES_CONTROL))
         {!! addButton(route("shelter-places.create") ,helperTrans("ingaz.shelter_place")) !!}
     @endif
-    <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
+    <table id="dataTableObject" class="table display dataTable table-hover table-style" style="width:100%">
         <thead>
         <tr>
             <th>#</th>

@@ -14,8 +14,10 @@
                 $todayDate = now()->toDateString();
                 $offerStartsRaw = $maid->getRawOriginal('offer_starts_at');
                 $offerExpiresRaw = $maid->getRawOriginal('offer_expires_at');
-                $offerStarts = is_string($offerStartsRaw) && $offerStartsRaw !== '' ? substr($offerStartsRaw, 0, 10) : null;
-                $offerExpires = is_string($offerExpiresRaw) && $offerExpiresRaw !== '' ? substr($offerExpiresRaw, 0, 10) : null;
+                $offerStarts =
+                    is_string($offerStartsRaw) && $offerStartsRaw !== '' ? substr($offerStartsRaw, 0, 10) : null;
+                $offerExpires =
+                    is_string($offerExpiresRaw) && $offerExpiresRaw !== '' ? substr($offerExpiresRaw, 0, 10) : null;
 
                 $offerPriceRaw = $maid->offer_price !== null ? (float) $maid->offer_price : null;
                 $salaryRaw = $maid->resolved_salary !== null ? (float) $maid->resolved_salary : null;
@@ -29,10 +31,10 @@
                 $salaryAfterOfferRaw = $offerActive && $salaryRaw !== null ? $salaryRaw - $offerPriceRaw : null;
 
                 /* التنسيق للعرض فقط */
-                $offerPriceDisplay = $offerPriceRaw !== null ? number_format($offerPriceRaw, 2) : null;
-                $salaryDisplay = $salaryRaw !== null ? number_format($salaryRaw, 2) : null;
-                $priceDisplay = $priceRaw !== null ? number_format($priceRaw, 2) : null;
-                $salaryAfterOffer = $salaryAfterOfferRaw !== null ? number_format($salaryAfterOfferRaw, 2) : null;
+                $offerPriceDisplay = $offerPriceRaw !== null ? formatMoney($offerPriceRaw) : null;
+                $salaryDisplay = $salaryRaw !== null ? formatMoney($salaryRaw) : null;
+                $priceDisplay = $priceRaw !== null ? formatMoney($priceRaw) : null;
+                $salaryAfterOffer = $salaryAfterOfferRaw !== null ? formatMoney($salaryAfterOfferRaw) : null;
                 $cvFile = $maid->cv_file ?? $maid->cv_preview;
                 $cv_code = $maid->cv_code ? $maid->cv_code : null;
             @endphp
@@ -101,14 +103,18 @@
                                         <p>{{ __('ingaz.job') }} :
                                             <span>{{ $maid->jobTitles->first()?->title ?? '' }}</span>
                                         </p>
+
+                                        @php
+                                            if ($maid->experience_status === 'has_experience') {
+                                                $result = format_experience($maid->experience_years);
+                                            }
+                                        @endphp
+
                                         <p>{{ __('ingaz.experience') }} :
                                             <span>
                                                 {{ $maid->experience_status === 'has_experience' ? __('ingaz.has_experience_label') : __('ingaz.no_experience_label') }}
-                                                @if (
-                                                    $maid->experience_status === 'has_experience' &&
-                                                        is_numeric($maid->experience_years) &&
-                                                        (float) $maid->experience_years > 0)
-                                                    - {{ $maid->experience_years }} {{ __('ingaz.year') }}
+                                                @if ($result)
+                                                    - <span class="text-wrap">{{ $result }}</span>
                                                 @endif
                                             </span>
                                         </p>
@@ -168,7 +174,8 @@
                                         @endif
                                         <a href="{{ route('site.all-workers.show', $maid->id) }}"
                                             class="btn action-btn">
-                                            {{ __('ingaz.recruitment_request') }}
+                                            {{-- {{ __('ingaz.recruitment_request') }} --}}
+                                            {{ __('ingaz.cv_details') }}
                                         </a>
                                     </div>
                                 </div>
@@ -213,20 +220,23 @@
                                         <p>{{ __('ingaz.job') }} :
                                             <span>{{ $maid->jobTitles->first()?->title ?? '' }}</span>
                                         </p>
+                                        @php
+                                            if ($maid->experience_status === 'has_experience') {
+                                                $result = format_experience($maid->experience_years);
+                                            }
+                                        @endphp
+
                                         <p>{{ __('ingaz.experience') }} :
                                             <span>
                                                 {{ $maid->experience_status === 'has_experience' ? __('ingaz.has_experience_label') : __('ingaz.no_experience_label') }}
-                                                @if (
-                                                    $maid->experience_status === 'has_experience' &&
-                                                        is_numeric($maid->experience_years) &&
-                                                        (float) $maid->experience_years > 0)
-                                                    - {{ $maid->experience_years }} {{ __('ingaz.year') }}
+                                                @if ($result)
+                                                    - <span class="text-wrap">{{ $result }}</span>
                                                 @endif
                                             </span>
                                         </p>
                                         {{-- <p>{{ __('ingaz.monthly_rental') }}: {{ $maid->resolved_salary ?? '0.00' }} {{ __('ingaz.SAR') }} --}}
                                         <p>{{ __('ingaz.monthly_rental') }}: <span>
-                                                {{ $maid->price ?? '0.00' }}
+                                                {{ formatMoney($maid->price ?? 0) }}
                                                 {{ __('ingaz.SAR') }}
                                             </span>
                                         </p>
@@ -321,20 +331,24 @@
                                         <p>{{ __('ingaz.job') }} :
                                             <span>{{ $maid->jobTitles->first()?->title ?? '' }}</span>
                                         </p>
+
+                                        @php
+                                            if ($maid->experience_status === 'has_experience') {
+                                                $result = format_experience($maid->experience_years);
+                                            }
+                                        @endphp
+
                                         <p>{{ __('ingaz.experience') }} :
                                             <span>
                                                 {{ $maid->experience_status === 'has_experience' ? __('ingaz.has_experience_label') : __('ingaz.no_experience_label') }}
-                                                @if (
-                                                    $maid->experience_status === 'has_experience' &&
-                                                        is_numeric($maid->experience_years) &&
-                                                        (float) $maid->experience_years > 0)
-                                                    - {{ $maid->experience_years }} {{ __('ingaz.year') }}
+                                                @if ($result)
+                                                    - <span class="text-wrap">{{ $result }}</span>
                                                 @endif
                                             </span>
                                         </p>
                                         <p>{{ __('ingaz.cost_with_tax') }} :
                                             <span>
-                                                {{ $maid->resolved_price ?? '' }}
+                                                {{ $maid->resolved_price !== null ? formatMoney($maid->resolved_price) : '' }}
                                                 {{ __('ingaz.SAR') }}
                                             </span>
                                         </p>

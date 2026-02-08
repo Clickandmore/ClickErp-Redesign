@@ -14,11 +14,12 @@
         {!! addButton(route("packages.create") ,helperTrans("ingaz.packages")) !!}
    @endif
 {{--    <p>{{helperTrans('ingaz.click in the show button to change appearance status')}}</p>--}}
-    <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
+    <table id="dataTableObject" class="table display dataTable table-hover table-style" style="width:100%">
         <thead>
         <tr>
             <th>#</th>
             <th>{{helperTrans("ingaz.title")}}</th>
+            <th>{{helperTrans("ingaz.nationality")}}</th>
             <th>{{helperTrans("ingaz.original_price")}}</th>
             <th>{{helperTrans("ingaz.price_after_discount")}}</th>
             <th>{{helperTrans("ingaz.price_with_tax")}}</th>
@@ -43,6 +44,7 @@
             let columns = [
                 {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                 {"data": "title", orderable: true, searchable: true},
+                {"data": "nationality", orderable: false, searchable: true},
                 {"data": "original_price", orderable: true, searchable: true},
                 {"data": "price_after_discount", orderable: true, searchable: true},
                 {"data": "price_with_tax", orderable: true, searchable: true},

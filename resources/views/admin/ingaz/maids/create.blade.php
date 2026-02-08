@@ -374,7 +374,7 @@
                                     <td>
                                         <div class="experience-duration-wrapper">
                                             <div class="input-group">
-                                                <input type="number" min="0" step="0.1"
+                                                <input type="number" min="0" step="0.001"
                                                     class="form-control exp-duration-value"
                                                     placeholder="{{ helperTrans('ingaz.duration_value_placeholder') }}"
                                                     data-exp-required="true">

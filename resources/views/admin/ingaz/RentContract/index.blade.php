@@ -1,4 +1,4 @@
-@extends('admin.layout.indexs.index')
+﻿@extends('admin.layout.indexs.index')
 @section('style')
     <!-- DataTables CSS من CDN -->
     {{-- <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
@@ -162,14 +162,26 @@
                     <div class="col-md-3">
                         <label for="statusFilter" class="form-label">حالة العقد:</label>
                         <select id="statusFilter" class="form-select">
-                            <option value="">جميع الحالات</option>
-                            <option value="new">جديد</option>
-                            <option value="active">نشط</option>
-                            <option value="completed">مكتمل</option>
-                            <option value="available">مغلق - متاحة</option>
-                            <option value="transferred">تم النقل</option>
-                            <option value="cancelled">ملغي</option>
-                            <option value="suspended">معلق</option>
+                            <option value="" {{ request('status') ? '' : 'selected' }}>جميع الحالات</option>
+                            <option value="new" {{ request('status') === 'new' ? 'selected' : '' }}>جديد</option>
+                            <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>نشط</option>
+                            <option value="waiting_contract_send" {{ request('status') === 'waiting_contract_send' ? 'selected' : '' }}>
+                                انتظار إرسال العقد
+                            </option>
+                            <option value="contract_sent" {{ request('status') === 'contract_sent' ? 'selected' : '' }}>
+                                تم إرسال العقد
+                            </option>
+                            <option value="contract_signed" {{ request('status') === 'contract_signed' ? 'selected' : '' }}>
+                                تم توقيع العقد
+                            </option>
+                            <option value="maid_delivered" {{ request('status') === 'maid_delivered' ? 'selected' : '' }}>
+                               تم تسليم العاملة
+                            </option>
+                            <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>مكتمل</option>
+                            {{-- <option value="available">مغلق - متاحة</option> --}}
+                            <option value="transferred" {{ request('status') === 'transferred' ? 'selected' : '' }}>تم النقل</option>
+                            <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>ملغي</option>
+                            <option value="suspended" {{ request('status') === 'suspended' ? 'selected' : '' }}>معلق</option>
                         </select>
                     </div>
 
@@ -265,7 +277,7 @@
             </div>
             <div class="card-body">
 
-                <table class="table table-bordered" id="dataTableObject" width="100%" cellspacing="0">
+                <table class="table table-bordered table-style" id="dataTableObject" width="100%" cellspacing="0">
                     <thead>
                         <tr>
                             <th>#</th>
@@ -991,3 +1003,4 @@
         });
     </script>
 @endsection
+

@@ -85,7 +85,7 @@
                         <span class="ms-2">{{ __('ingaz.crm') }}</span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
-                    <ul class="sub-menu collapse {{ $isCrm ? 'show' : '' }}" id="crm">
+                    <ul class="sub-menu collapse {{ $isCrm || in_array(Route::currentRouteName(), ['clients.index']) ? 'show' : '' }}" id="crm">
                         <li>
                             <a class="m-link {{ Route::currentRouteName() == 'clients.index' ? 'active' : '' }}"
                                 href="{{ route('clients.index') }}">
@@ -164,7 +164,7 @@
                                 <span class="ms-2">{{ helperTrans('ingaz.orders') }} </span>
                                 <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                             </a>
-                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['orders.current', 'orders.ended']) ? 'show' : '' }}"
+                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['orders.index', 'return_requests.index', 'orders.current', 'orders.ended', 'professional_application.index', 'recruitment_requests.index', 'renew-contracts.index']) ? 'show' : '' }}"
                                 id="my_dashboard2">
                                 @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW))
                                     <li>
@@ -398,7 +398,7 @@
                                 <span class="ms-2"> {{ helperTrans('ingaz.Rent contracts') }} </span>
                                 <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                             </a>
-                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RentContract.index', 'RentContract.create', 'RentContract.show', 'RentContract.edit']) ? 'show' : '' }}"
+                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RentContract.index', 'RentContract.create', 'RentContract.show', 'RentContract.edit', 'packages.index', 'rent-contract-terms.index']) ? 'show' : '' }}"
                                 id="rentcontracts">
                                 @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE))
                                     <li>
@@ -489,7 +489,7 @@
                                 <span class="ms-2"> {{ __('ingaz.shelter_management') }} </span>
                                 <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                             </a>
-                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['ShelterContract.index', 'ShelterContract.availableForTransfer', 'ShelterContract.deportationStage', 'ShelterContract.generalShelter', 'ShelterContract.deported']) ? 'show' : '' }}"
+                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['ShelterContract.index', 'ShelterContract.availableForTransfer', 'ShelterContract.deportationStage', 'ShelterContract.generalShelter', 'ShelterContract.deported', 'shelter-places.index']) ? 'show' : '' }}"
                                 id="sheltercontracts">
                                 @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_CONTRACT_CONTROL))
                                     <li>

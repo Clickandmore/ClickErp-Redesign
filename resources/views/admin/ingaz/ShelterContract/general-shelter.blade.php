@@ -322,7 +322,7 @@
                 </div>
             </div>
 
-                <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
+                <table id="dataTableObject" class="table display dataTable table-hover table-style" style="width:100%">
                     <thead>
                         <tr>
                             <th>ID</th>

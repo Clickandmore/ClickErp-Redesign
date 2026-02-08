@@ -67,27 +67,38 @@ class RentalContractTermsController extends Controller
     /**
      * تحديث البنود
      */
-    public function update(Request $request)
+    public function update(Request $request, $id)
     {
         // حذف جميع البنود القديمة
-        RentalContractTerm::truncate();
+        // RentalContractTerm::truncate();
 
-        // إضافة البنود الجديدة
-        if ($request->has('terms')) {
-            foreach ($request->terms as $term) {
-                if (!empty($term['term_content'])) {
-                    RentalContractTerm::create([
-                        'section_title' => $term['section_title'],
-                        'section_order' => $term['section_order'] ?? 1,
-                        'term_number' => $term['term_number'] ?? null,
-                        'term_content' => $term['term_content'],
-                        'term_order' => $term['term_order'] ?? 1,
-                        'page_number' => $term['page_number'] ?? 1,
-                        'is_active' => isset($term['is_active']) ? true : false
-                    ]);
-                }
-            }
-        }
+        // // إضافة البنود الجديدة
+        // if ($request->has('terms')) {
+        //     foreach ($request->terms as $term) {
+        //         if (!empty($term['term_content'])) {
+        //             RentalContractTerm::create([
+        //                 'section_title' => $term['section_title'],
+        //                 'section_order' => $term['section_order'] ?? 1,
+        //                 'term_number' => $term['term_number'] ?? null,
+        //                 'term_content' => $term['term_content'],
+        //                 'term_order' => $term['term_order'] ?? 1,
+        //                 'page_number' => $term['page_number'] ?? 1,
+        //                 'is_active' => isset($term['is_active']) ? true : false
+        //             ]);
+        //         }
+        //     }
+        // }
+
+        $rentalContractTerm = RentalContractTerm::findOrFail($id);
+        $rentalContractTerm->section_title = $request->section_title;
+        $rentalContractTerm->section_order = $request->section_order ?? 1;
+        $rentalContractTerm->term_number = $request->term_number ?? null;
+        $rentalContractTerm->term_content = $request->term_content;
+        $rentalContractTerm->term_order = $request->term_order ?? 1;
+        $rentalContractTerm->page_number = $request->page_number ?? 1;
+        $rentalContractTerm->is_active = isset($request->is_active) ? true : false;
+
+        $rentalContractTerm->save();
 
         return redirect()->route('rent-contract-terms.index')
             ->with('success', 'تم تحديث بنود العقد بنجاح');
@@ -199,10 +210,24 @@ class RentalContractTermsController extends Controller
         // جلب الإعدادات الحالية
         $settings = [];
         $settingKeys = [
-            'company_name', 'license_number', 'license_date', 'commercial_register',
-            'commercial_date', 'city', 'address', 'po_box', 'postal_code',
-            'phone', 'mobile', 'fax', 'email', 'default_trial_period',
-            'default_working_hours', 'daily_deduction', 'notice_period', 'logo'
+            'company_name',
+            'license_number',
+            'license_date',
+            'commercial_register',
+            'commercial_date',
+            'city',
+            'address',
+            'po_box',
+            'postal_code',
+            'phone',
+            'mobile',
+            'fax',
+            'email',
+            'default_trial_period',
+            'default_working_hours',
+            'daily_deduction',
+            'notice_period',
+            'logo'
         ];
 
         foreach ($settingKeys as $key) {
@@ -239,6 +264,14 @@ class RentalContractTermsController extends Controller
             );
         }
         return jsonSuccess(['url' => route('rent-contract.settings')], __("تم حفظ الإعدادات بنجاح"), 201);
+    }
 
+    public function destroy($id){
+        $rent_contract_term = RentalContractTerm::findOrFail($id);
+        $rent_contract_term->delete();
+        return response()->json(
+            ['success' => true, 'message' => 'تم حذف البند بنجاح.'],
+            200
+        );
     }
 }

@@ -105,8 +105,8 @@
         }
 
         /* .table-responsive {
-                    border-radius: 0 0 24px 24px;
-                } */
+                        border-radius: 0 0 24px 24px;
+                    } */
 
         .orders-table th {
             font-size: 0.82rem;
@@ -114,15 +114,16 @@
             background-color: #f8f9fc;
             letter-spacing: 0.06em;
         }
+
         /* .orders-table .dropdown-menu .dropdown-menu-end {
-            top: 0px !important;
-        } */
+                top: 0px !important;
+            } */
 
         .badge {
             border-radius: 999px;
         }
 
-        button.edit-status{
+        button.edit-status {
             padding: 4px 12px;
             border: #2794eb 1px solid;
             outline: none;
@@ -135,15 +136,27 @@
             white-space: nowrap;
             transition: all 0.3s ease-in-out;
         }
-        button.edit-status:hover{
+
+        button.edit-status:hover {
             background: #111c3a;
             color: white;
             border-color: #111c3a;
         }
 
         /* To show actions */
-        .dataTables_scrollBody{
+        .dataTables_scrollBody {
             overflow-x: visible !important;
+        }
+
+        table tbody tr:first-child .dropdown-menu.dropdown-menu-end {
+            right: 3% !important;
+            left: unset !important;
+            transform: translateX(50%) !important;
+            /* top: 0 !important; */
+            top: -50px !important;
+            position: absolute !important;
+            z-index: 99999 !important;
+            min-width: 150px !important;
         }
     </style>
 @endsection
@@ -567,19 +580,24 @@
                                     dataTable.ajax.reload();
                                     // toastr.success(
                                     //     '{{ helperTrans('ingaz.order_deleted') }}');
-                                     Swal.fire('نجح!', response.message || '{{ helperTrans('ingaz.order_deleted_successfully') }}',
-                                    'success');
+                                    Swal.fire('نجح!', response.message ||
+                                        '{{ helperTrans('ingaz.order_deleted_successfully') }}',
+                                        'success');
                                 } else {
                                     dataTable.ajax.reload();
                                     // toastr.error(
                                     //     '{{ helperTrans('ingaz.delete_error') }}');
-                                     Swal.fire('خطأ!', '{{ helperTrans('ingaz.delete_error') }}', 'error');
+                                    Swal.fire('خطأ!',
+                                        '{{ helperTrans('ingaz.delete_error') }}',
+                                        'error');
                                 }
                             },
                             error: function() {
                                 // toastr.error(
                                 //     '{{ helperTrans('ingaz.delete_error') }}');
-                                    Swal.fire('خطأ!', '{{ helperTrans('ingaz.delete_error') }}', 'error');
+                                Swal.fire('خطأ!',
+                                    '{{ helperTrans('ingaz.delete_error') }}',
+                                    'error');
                             }
                         });
                         // deleteOrder(orderId);
@@ -849,11 +867,11 @@
 
             // Old change maid code removed - using new advanced system below
             /*
-                                $(document).on('click', '.change-maid', function() {
-                                    const orderId = $(this).data('id');
+                                    $(document).on('click', '.change-maid', function() {
+                                        const orderId = $(this).data('id');
 
-                                    // Show modal to select new maid with search
-                                    const modal = `
+                                        // Show modal to select new maid with search
+                                        const modal = `
             <div class="modal fade" id="changeMaidModal" tabindex="-1">
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
@@ -888,142 +906,142 @@
             </div>
         `;
 
-                                    $('#changeMaidModal').remove();
-                                    $('body').append(modal);
-                                    $('#changeMaidModal').modal('show');
+                                        $('#changeMaidModal').remove();
+                                        $('body').append(modal);
+                                        $('#changeMaidModal').modal('show');
 
-                                    // Handle modal close for change maid modal
-                                    $('#changeMaidModal .btn-close, #changeMaidModal [data-bs-dismiss="modal"]').on('click', function() {
-                                        $('#changeMaidModal').modal('hide');
-                                        $('.modal-backdrop').remove();
-                                        $('body').removeClass('modal-open');
+                                        // Handle modal close for change maid modal
+                                        $('#changeMaidModal .btn-close, #changeMaidModal [data-bs-dismiss="modal"]').on('click', function() {
+                                            $('#changeMaidModal').modal('hide');
+                                            $('.modal-backdrop').remove();
+                                            $('body').removeClass('modal-open');
+                                        });
+
+                                        $('#changeMaidModal').on('hidden.bs.modal', function() {
+                                            $('.modal-backdrop').remove();
+                                            $('body').removeClass('modal-open');
+                                        });
+
+                                        // Load available maids
+                                        loadAvailableMaids();
+
+                                        // Handle search
+                                        $('#maidSearch').on('input', function() {
+                                            const searchTerm = $(this).val();
+                                            if (searchTerm.length >= 2) {
+                                                searchMaids(searchTerm);
+                                            } else {
+                                                loadAvailableMaids();
+                                            }
+                                        });
+
+                                        // Handle maid selection
+                                        $('#changeMaidForm select[name="maid_id"]').on('change', function() {
+                                            const maidId = $(this).val();
+                                            if (maidId) {
+                                                showMaidInfo(maidId);
+                                            } else {
+                                                $('#maidInfo').hide();
+                                            }
+                                        });
+
+                                        // Handle save
+                                        $('#saveMaid').on('click', function() {
+                                            const maidId = $('#changeMaidForm select[name="maid_id"]').val();
+                                            if (!maidId) {
+                                                toastr.error('{{ helperTrans('ingaz.please_select_maid') }}');
+                                                return;
+                                            }
+
+                                            $.ajax({
+                                                url: '/admin/orders/' + orderId + '/change-maid',
+                                                type: 'POST',
+                                                data: {
+                                                    _token: '{{ csrf_token() }}',
+                                                    maid_id: maidId
+                                                },
+                                                success: function(response) {
+                                                    if (response.success) {
+                                                        $('#changeMaidModal').modal('hide');
+                                                        $('.modal-backdrop').remove();
+                                                        $('body').removeClass('modal-open');
+                                                        dataTable.ajax.reload();
+                                                        toastr.success('{{ helperTrans('ingaz.maid_updated') }}');
+                                                    } else {
+                                                        toastr.error(response.message || '{{ helperTrans('ingaz.update_error') }}');
+                                                    }
+                                                },
+                                                error: function(xhr) {
+                                                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                                                        toastr.error(xhr.responseJSON.message);
+                                                    } else {
+                                                        toastr.error('{{ helperTrans('ingaz.update_error') }}');
+                                                    }
+                                                }
+                                            });
+                                        });
                                     });
 
-                                    $('#changeMaidModal').on('hidden.bs.modal', function() {
-                                        $('.modal-backdrop').remove();
-                                        $('body').removeClass('modal-open');
-                                    });
-
-                                    // Load available maids
-                                    loadAvailableMaids();
-
-                                    // Handle search
-                                    $('#maidSearch').on('input', function() {
-                                        const searchTerm = $(this).val();
-                                        if (searchTerm.length >= 2) {
-                                            searchMaids(searchTerm);
-                                        } else {
-                                            loadAvailableMaids();
-                                        }
-                                    });
-
-                                    // Handle maid selection
-                                    $('#changeMaidForm select[name="maid_id"]').on('change', function() {
-                                        const maidId = $(this).val();
-                                        if (maidId) {
-                                            showMaidInfo(maidId);
-                                        } else {
-                                            $('#maidInfo').hide();
-                                        }
-                                    });
-
-                                    // Handle save
-                                    $('#saveMaid').on('click', function() {
-                                        const maidId = $('#changeMaidForm select[name="maid_id"]').val();
-                                        if (!maidId) {
-                                            toastr.error('{{ helperTrans('ingaz.please_select_maid') }}');
-                                            return;
-                                        }
-
+                                    // Function to load available maids
+                                    function loadAvailableMaids() {
                                         $.ajax({
-                                            url: '/admin/orders/' + orderId + '/change-maid',
-                                            type: 'POST',
-                                            data: {
-                                                _token: '{{ csrf_token() }}',
-                                                maid_id: maidId
-                                            },
+                                            url: '/admin/maids/available',
+                                            type: 'GET',
                                             success: function(response) {
                                                 if (response.success) {
-                                                    $('#changeMaidModal').modal('hide');
-                                                    $('.modal-backdrop').remove();
-                                                    $('body').removeClass('modal-open');
-                                                    dataTable.ajax.reload();
-                                                    toastr.success('{{ helperTrans('ingaz.maid_updated') }}');
-                                                } else {
-                                                    toastr.error(response.message || '{{ helperTrans('ingaz.update_error') }}');
-                                                }
-                                            },
-                                            error: function(xhr) {
-                                                if (xhr.responseJSON && xhr.responseJSON.message) {
-                                                    toastr.error(xhr.responseJSON.message);
-                                                } else {
-                                                    toastr.error('{{ helperTrans('ingaz.update_error') }}');
+                                                    const select = $('#changeMaidForm select[name="maid_id"]');
+                                                    select.empty();
+                                                    select.append('<option value="">{{ helperTrans('ingaz.select_maid') }}</option>');
+
+                                                    response.maids.forEach(function(maid) {
+                                                        select.append(`<option value="${maid.id}">${maid.name} - ${maid.passport_num} - ${maid.nationality}</option>`);
+                                                    });
                                                 }
                                             }
                                         });
-                                    });
-                                });
+                                    }
 
-                                // Function to load available maids
-                                function loadAvailableMaids() {
-                                    $.ajax({
-                                        url: '/admin/maids/available',
-                                        type: 'GET',
-                                        success: function(response) {
-                                            if (response.success) {
-                                                const select = $('#changeMaidForm select[name="maid_id"]');
-                                                select.empty();
-                                                select.append('<option value="">{{ helperTrans('ingaz.select_maid') }}</option>');
+                                    // Function to search maids
+                                    function searchMaids(searchTerm) {
+                                        $.ajax({
+                                            url: '/admin/maids/search',
+                                            type: 'GET',
+                                            data: { search: searchTerm },
+                                            success: function(response) {
+                                                if (response.success) {
+                                                    const select = $('#changeMaidForm select[name="maid_id"]');
+                                                    select.empty();
+                                                    select.append('<option value="">{{ helperTrans('ingaz.select_maid') }}</option>');
 
-                                                response.maids.forEach(function(maid) {
-                                                    select.append(`<option value="${maid.id}">${maid.name} - ${maid.passport_num} - ${maid.nationality}</option>`);
-                                                });
+                                                    response.maids.forEach(function(maid) {
+                                                        select.append(`<option value="${maid.id}">${maid.name} - ${maid.passport_num} - ${maid.nationality}</option>`);
+                                                    });
+                                                }
                                             }
-                                        }
-                                    });
-                                }
+                                        });
+                                    }
 
-                                // Function to search maids
-                                function searchMaids(searchTerm) {
-                                    $.ajax({
-                                        url: '/admin/maids/search',
-                                        type: 'GET',
-                                        data: { search: searchTerm },
-                                        success: function(response) {
-                                            if (response.success) {
-                                                const select = $('#changeMaidForm select[name="maid_id"]');
-                                                select.empty();
-                                                select.append('<option value="">{{ helperTrans('ingaz.select_maid') }}</option>');
-
-                                                response.maids.forEach(function(maid) {
-                                                    select.append(`<option value="${maid.id}">${maid.name} - ${maid.passport_num} - ${maid.nationality}</option>`);
-                                                });
-                                            }
-                                        }
-                                    });
-                                }
-
-                                // Function to show maid info
-                                function showMaidInfo(maidId) {
-                                    $.ajax({
-                                        url: '/admin/maids/' + maidId + '/info',
-                                        type: 'GET',
-                                        success: function(response) {
-                                            if (response.success) {
-                                                const maid = response.maid;
-                                                $('#maidDetails').html(`
+                                    // Function to show maid info
+                                    function showMaidInfo(maidId) {
+                                        $.ajax({
+                                            url: '/admin/maids/' + maidId + '/info',
+                                            type: 'GET',
+                                            success: function(response) {
+                                                if (response.success) {
+                                                    const maid = response.maid;
+                                                    $('#maidDetails').html(`
                         <p><strong>{{ helperTrans('ingaz.name') }}:</strong> ${maid.name}</p>
                         <p><strong>{{ helperTrans('ingaz.passport_num') }}:</strong> ${maid.passport_num}</p>
                         <p><strong>{{ helperTrans('ingaz.nationality') }}:</strong> ${maid.nationality}</p>
                         <p><strong>{{ helperTrans('ingaz.age') }}:</strong> ${maid.age}</p>
                         <p><strong>{{ helperTrans('ingaz.experience') }}:</strong> ${maid.experience}</p>
                     `);
-                                                $('#maidInfo').show();
+                                                    $('#maidInfo').show();
+                                                }
                                             }
-                                        }
-                                    });
-                                }
-                                */
+                                        });
+                                    }
+                                    */
 
             // Handle change responsible employee
             $(document).on('click', '.change-responsible', function() {
@@ -1082,7 +1100,8 @@
                     const adminId = $('#changeResponsibleForm select[name="admin_id"]').val();
                     if (!adminId) {
                         // toastr.error('{{ helperTrans('ingaz.please_select_employee') }}');
-                            Swal.fire('خطأ!', '{{ helperTrans('ingaz.please_select_employee') }}', 'error');
+                        Swal.fire('خطأ!', '{{ helperTrans('ingaz.please_select_employee') }}',
+                            'error');
                         return;
                     }
 
@@ -1102,17 +1121,22 @@
                                 // toastr.success(
                                 //     '{{ helperTrans('ingaz.responsible_updated') }}'
                                 // );
-                                 Swal.fire('نجح!', response.message || '{{ helperTrans('ingaz.responsible_updated') }}',
+                                Swal.fire('نجح!', response.message ||
+                                    '{{ helperTrans('ingaz.responsible_updated') }}',
                                     'success');
                             } else {
                                 // toastr.error(response.message ||
                                 //     '{{ helperTrans('ingaz.update_error') }}');
-                                 Swal.fire('خطأ!', response.message || '{{ helperTrans('ingaz.update_error') }}', 'error');
+                                Swal.fire('خطأ!', response.message ||
+                                    '{{ helperTrans('ingaz.update_error') }}',
+                                    'error');
                             }
                         },
                         error: function() {
                             // toastr.error('{{ helperTrans('ingaz.update_error') }}');
-                             Swal.fire('خطأ!', '{{ helperTrans('ingaz.update_error') }}', 'error');
+                            Swal.fire('خطأ!',
+                                '{{ helperTrans('ingaz.update_error') }}', 'error'
+                                );
                         }
                     });
                 });
@@ -1207,18 +1231,23 @@
                                 dataTable.ajax.reload();
                                 // toastr.success(
                                 //     '{{ helperTrans('ingaz.order_updated') }}');
-                                Swal.fire('نجح!', response.message || '{{ helperTrans('ingaz.order_updated') }}',
+                                Swal.fire('نجح!', response.message ||
+                                    '{{ helperTrans('ingaz.order_updated') }}',
                                     'success');
                             } else {
                                 dataTable.ajax.reload();
                                 // toastr.error(
                                 //     '{{ helperTrans('ingaz.update_error') }}');
-                                Swal.fire('خطأ!', response.message || '{{ helperTrans('ingaz.update_error') }}', 'error');
+                                Swal.fire('خطأ!', response.message ||
+                                    '{{ helperTrans('ingaz.update_error') }}',
+                                    'error');
                             }
                         },
                         error: function() {
                             // toastr.error('{{ helperTrans('ingaz.update_error') }}');
-                                Swal.fire('خطأ!', '{{ helperTrans('ingaz.update_error') }}', 'error');
+                            Swal.fire('خطأ!',
+                                '{{ helperTrans('ingaz.update_error') }}', 'error'
+                                );
                         }
                     });
                 });

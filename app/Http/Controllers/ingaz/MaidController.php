@@ -45,7 +45,7 @@ class MaidController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index(Request $request, objAction $Action)
+    public function index(Request $request, objAction $Action, RecruitmentOfficeAction $officeAct)
     {
         $query = objModel::query()
             ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders', 'office', 'creatorActivity.causer', 'addedBy'])
@@ -312,7 +312,8 @@ class MaidController extends Controller
                     }
 
                     $availableAt = $row->available_at ? Carbon::parse($row->available_at)->format('Y-m-d') : helperTrans('ingaz.not_specified');
-                    $experienceYears = $row->experience_status === 'has_experience' ? ($row->experience_years ?? '0') : '0';
+                    // $experienceYears = $row->experience_status === 'has_experience' ? ($row->experience_years ?? '0') : '0';
+                    $experienceYears = $row->experience_status === 'has_experience' ? (format_experience($row->experience_years) ?? '0') : '0';
                     $availableFromLabel = helperTrans('ingaz.available_from');
                     $experienceLabel = helperTrans('ingaz.experience_years');
 
@@ -456,6 +457,7 @@ class MaidController extends Controller
 
         $filters = [
             'nationalities' => Nationality::orderByTranslation('sub_title', 'asc')->get(['id']),
+            'offices' => $officeAct->getAllOffices(),
             'job_types' => JobType::with('translations')->orderByTranslation('title', 'asc')->get(['id']),
             'statuses' => [
                 'available' => helperTrans('ingaz.maid_status_available'),
@@ -1569,6 +1571,9 @@ class MaidController extends Controller
         }
         if ($request->has('nationality_id') && $request->nationality_id != null) {
             $rows->where('nationality_id', $request->nationality_id);
+        }
+        if ($request->has('office_id') && $request->office_id != null) {
+            $rows->where('office_id', $request->office_id);
         }
         if ($request->has('order_by') && $request->order_by != null) {
             if ($request->order_by == 'low_price') {

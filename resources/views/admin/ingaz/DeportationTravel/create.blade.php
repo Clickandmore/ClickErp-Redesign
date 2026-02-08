@@ -14,7 +14,7 @@
 
         <div class="card">
             <div class="card-body">
-                @if($contract)
+                @if ($contract)
                     <div class="alert alert-info mb-4">
                         <h5><i class="fa fa-info-circle"></i> معلومات العقد</h5>
                         <div class="row mt-3">
@@ -34,7 +34,7 @@
                 <form id="form-deportation-travel" action="{{ route('DeportationTravel.store') }}" method="POST">
                     @csrf
 
-                    @if($contract)
+                    @if ($contract)
                         <input type="hidden" name="contract_id" value="{{ $contract->id }}">
                     @else
                         <div class="mb-3">
@@ -115,8 +115,8 @@
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
 <script>
-    $(document).ready(function () {
-        $('#form-deportation-travel').on('submit', function (e) {
+    $(document).ready(function() {
+        $('#form-deportation-travel').on('submit', function(e) {
             e.preventDefault();
 
             let form = $(this);
@@ -131,32 +131,44 @@
                 data: formData,
                 processData: false,
                 contentType: false,
-                beforeSend: function () {
+                beforeSend: function() {
                     $btn.prop('disabled', true).html(
                         '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> جاري الحفظ...'
                     );
                 },
-                success: function (response) {
+                success: function(response) {
                     handleSuccessResponce(response)
                     $('#form-deportation-travel')[0].reset();
                 },
-                error: function (xhr) {
+                error: function(xhr) {
+                    // console.log(xhr);
+                    
                     if (xhr.status === 422) {
                         let errors = xhr.responseJSON.errors;
                         let errorMessages = '';
                         for (let key in errors) {
-                            errorMessages += `<p style="margin:0 0 5px; color:red; text-align:center;">${errors[key][0]}</p>`;
+                            errorMessages +=
+                                `<p style="margin:0 0 5px; color:red; text-align:center;">${errors[key][0]}</p>`;
                         }
                         Swal.fire({
                             icon: 'error',
-                            title: '{{ __("ingaz.error") }}',
+                            title: '{{ __('ingaz.error') }}',
                             html: `<div>${errorMessages}</div>`,
                         });
                     } else {
-                        Swal.fire('{{ __("ingaz.error") }}', '{{ __("ingaz.error_from_server") }}', 'error');
+                        let errors = xhr.responseJSON.errors
+                        if (errors) {
+                            for (let key in errors) {
+                                errorMessages +=
+                                    `<p style="margin:0 0 5px; color:red; text-align:center;">${errors[key][0]}</p>`;
+                            }
+                        } else {
+                            Swal.fire('{{ __('ingaz.error') }}', xhr.responseJSON.message || '{{ __('ingaz.error_from_server') }}', 'error');
+                        }
+
                     }
                 },
-                complete: function () {
+                complete: function() {
                     // ⬅️ بعد ما يخلص (سواء نجاح أو خطأ) يرجع الزرار زي ما كان
                     $btn.prop('disabled', false).html(originalHtml);
                 }

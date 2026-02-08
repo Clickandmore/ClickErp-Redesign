@@ -1819,4 +1819,5 @@
     'maid_photo' => 'Maid Photo',
     'maid_data' => 'Maid Data',
     '.contracted' => '.contracted',
+    'outside_agent' => 'outside_agent',
 );

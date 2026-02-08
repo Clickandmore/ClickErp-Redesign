@@ -305,7 +305,7 @@
                                     <div class="info-item">
                                         <span class="info-label">الجنسية</span>
                                         <span
-                                            class="info-value">{{ $contract->maid->nationality->translations->first()->sub_title ?? 'غير محدد' }}</span>
+                                            class="info-value">{{ $contract?->maid?->nationality?->translations?->first()->sub_title ?? 'غير محدد' }}</span>
                                     </div>
                                 </div>
                             </div>

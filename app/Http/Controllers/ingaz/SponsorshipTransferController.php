@@ -1207,7 +1207,7 @@ class SponsorshipTransferController extends Controller
 
         // إعدادات العقد (يمكن تخزينها في جدول منفصل لاحقاً)
         $contractSettings = [
-            'company_name' => 'شركة إنجاز للاستقدام',
+            'company_name' => 'شركة بلاتينيوم الشرقية للاستقدام',
             'license_number' => '1234567890',
             'address' => 'الرياض، المملكة العربية السعودية',
             'phone' => '+966 11 123 4567',

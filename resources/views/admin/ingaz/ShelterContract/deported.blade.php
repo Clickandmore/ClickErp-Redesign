@@ -126,7 +126,7 @@
     <!-- Table Section -->
     <div class="card">
         <div class="card-body">
-                <table id="deportedTable" class="table table-bordered table-hover">
+                <table id="deportedTable" class="table table-bordered table-hover table-style">
                     <thead>
                         <tr>
                             <th>#</th>
