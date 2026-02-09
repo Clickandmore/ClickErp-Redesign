@@ -390,6 +390,55 @@
                 <div class="card client-card">
                     <div class="card-body">
                         <div class="card-section-title mb-3">
+                            <i class="fas fa-file-invoice-dollar text-success"></i>
+                            الفواتير
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-clean">
+                                <thead>
+                                    <tr>
+                                        <th>رقم الفاتورة</th>
+                                        <th>رقم العقد</th>
+                                        <th>الإجمالي</th>
+                                        <th>الضريبة</th>
+                                        <th>الخصم</th>
+                                        <th>المطلوب</th>
+                                        <th>تاريخ الإنشاء</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                        <tr>
+                                            <td>#{{ $invoice->id }}</td>
+                                            <td>#{{ $invoice->contract_id }}</td>
+                                            <td>{{ number_format($invoice->subtotal, 2) }}</td>
+                                            <td>{{ number_format($invoice->vat_amount, 2) }}</td>
+                                            <td>{{ number_format($invoice->discount, 2) }}</td>
+                                            <td>{{ number_format($invoice->total_due, 2) }}</td>
+                                            <td>{{ $invoice->created_at?->format('Y-m-d H:i') ?? '-' }}</td>
+                                            <td class="text-end d-flex justify-content-end gap-2">
+                                                <a href="{{ route('invoices.show', $invoice->id) }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="{{ route('invoice.download', $invoice->id) }}" class="btn btn-sm btn-outline-secondary" target="_blank">
+                                                    <i class="fas fa-file-pdf"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="9" class="text-center text-muted">{{ helperTrans('ingaz.no_records') }}</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card client-card">
+                    <div class="card-body">
+                        <div class="card-section-title mb-3">
                             <i class="fas fa-file-contract text-info"></i>
                             {{ helperTrans('ingaz.rental_contracts') }}
                         </div>

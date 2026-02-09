@@ -61,6 +61,7 @@ use App\Http\Controllers\ingaz\ComplaintTypeController;
 use App\Http\Controllers\ingaz\CvConvertController;
 use App\Http\Controllers\ingaz\FastNewController;
 use App\Http\Controllers\ingaz\FeatureController;
+use App\Http\Controllers\ingaz\InvoiceController;
 use App\Http\Controllers\ingaz\ProfessionalApplicationController;
 use App\Http\Controllers\ingaz\RecruitmentRequestController;
 use App\Http\Controllers\ingaz\RenewContractController;
@@ -253,6 +254,10 @@ Route::group(
             Route::get('RentContract/statistics/data', [RentContractController::class, 'statistics'])->name('RentContract.statistics');
             Route::get('RentContract/export/excel', [RentContractController::class, 'exportExcel'])->name('RentContract.export.excel');
             Route::get('RentContract/existing-clients', [RentContractController::class, 'getExistingClients'])->name('RentContract.existing.clients');
+
+            // الفواتير
+            Route::resource('invoices', InvoiceController::class);
+            Route::get('invoices/download/{id}', [InvoiceController::class, 'downloadInvoice'])->name('invoice.download');
 
             // إغلاق عقود الإيجار
             Route::get('RentContract/{id}/details', [RentContractController::class, 'getContractDetails'])->name('RentContract.details');

@@ -238,7 +238,7 @@
                                 <span class="ms-2"> {{ helperTrans('ingaz.Recruitment contracts') }} </span>
                                 <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                             </a>
-                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RecruitmentContracts.index', 'RecruitmentContract.create', 'contract-return-requests.index']) ? 'show' : '' }}"
+                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RecruitmentContracts.index', 'RecruitmentContract.create', 'contract-return-requests.index', 'invoices.index']) ? 'show' : '' }}"
                                 id="contracts">
                                 @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE))
                                     <li>
@@ -382,6 +382,14 @@
                                                 href="{{ route('contract-return-requests.index') }}">
                                                 <i class="fa fa-list"></i>
                                                 <span class="ms-2">طلبات استرجاع العقود</span>
+                                            </a>
+                                        </li>
+                                        
+                                        <li>
+                                            <a class="m-link {{ Route::currentRouteName() == 'invoices.index' ? 'active' : '' }}"
+                                                href="{{ route('invoices.index') }}">
+                                                <i class="fa fa-list"></i>
+                                                <span class="ms-2"> فواتير العقود</span>
                                             </a>
                                         </li>
                                     @endif
