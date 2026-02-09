@@ -157,6 +157,10 @@
         background: linear-gradient(135deg, #007bff, #0056b3);
     }
 
+    .btn-invoice {
+        background: linear-gradient(135deg, #7f24ff, #310076);
+    }
+
     .btn-edit {
         background: linear-gradient(135deg, #28a745, #1e7e34);
     }
@@ -770,6 +774,13 @@
                     class="btn-icon btn-print" title="طباعة العقد" target="_blank">
                     <i class="fas fa-print"></i>
                 </a>
+
+                @if ($contract->invoice)
+                    <a href="{{ route('invoices.show', $contract->invoice->id) }}" class="btn-icon btn-invoice"
+                        title="عرض الفاتورة" target="_blank">
+                        <i class="fas fa-file-pdf"></i>
+                    </a>
+                @endif
 
                 @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EDIT))
                     <a href="{{ route('RecruitmentContract.edit', $contract->id) }}" class="btn-icon btn-edit"

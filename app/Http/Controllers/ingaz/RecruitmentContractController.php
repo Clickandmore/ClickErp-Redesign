@@ -31,7 +31,7 @@ use App\Actions\JobTypeAction;
 use Illuminate\Support\Facades\DB;
 use App\Helpers\NewPermKeys;
 use PDF;
-
+use App\Models\ingaz\Invoice;
 
 class RecruitmentContractController extends Controller
 {
@@ -731,6 +731,18 @@ class RecruitmentContractController extends Controller
                     $actions .= '<li><a class="dropdown-item" href="' . route('contract_download_form.download', $row->id) . '?type=download" target="_blank">
                                     <i class="fas fa-print"></i> طباعة العقد (PDF)
                                 </a></li>';
+
+                    // الفاتورة
+                    $invoice = Invoice::where('contract_id', $row->id)->first();
+                    if ($invoice) {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('invoices.show', $invoice->id) . '" target="_blank">
+                                    <i class="fas fa-file-pdf"></i> عرض الفاتورة
+                                </a></li>';
+                    } else {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('invoices.create') . '?contract_id='. $row->id . '" target="_blank">
+                                    <i class="fas fa-file-invoice"></i> اضافة فاتورة
+                                </a></li>';
+                    }
 
                     // منع التعديل والحذف للعقود المكتملة والمرتجعة والتي في الإيواء
                     if (

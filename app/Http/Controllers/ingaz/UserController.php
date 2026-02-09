@@ -6,6 +6,7 @@ use App\Http\Actions\ingaz\UserAction as objAction;
 use App\Http\Controllers\Controller;
 use App\Models\ingaz\User as objModel;
 use App\Models\ingaz\Order;
+use App\Models\ingaz\Invoice;
 use App\Models\Country;
 use App\Models\City;
 use App\Models\RentalContract;
@@ -471,6 +472,13 @@ class UserController extends Controller
                 ->orWhere('new_sponsor_id', $client->id);
         })->orderBy('created_at', 'desc')->get();
 
+        $invoices = Invoice::with(['contract'])
+            ->whereHas('contract', function ($query) use ($client) {
+                $query->where('user_id', $client->id);
+            })
+            ->latest()
+            ->get();
+
         $stats = [
             'total_orders' => $client->orders->count(),
             'active_orders' => $client->orders->whereNotIn('status', ['completed', 'done', 'refused', 'return'])->count(),
@@ -492,6 +500,7 @@ class UserController extends Controller
         return view($this->folderPath . '.show', compact(
             'client',
             'sponsorshipTransfers',
+            'invoices',
             'stats',
             'activities',
             'lastInteractionAt'
