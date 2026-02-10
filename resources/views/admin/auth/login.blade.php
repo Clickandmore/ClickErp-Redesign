@@ -6,30 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ isset($developSettings) ? $developSettings->name : 'بلاتنيوم الشرقية للاستقدام' }} |
         {{ __('auth.login') }}</title>
-    <link rel="stylesheet" href="{{ asset('admin/login') }}/css/style.css?v=1">
+    <link rel="stylesheet" href="{{ asset('admin/login') }}/css/style-dashboard.css?v=1">
     <link rel="stylesheet" href="{{ asset('admin/login') }}/css/fontawesome.min.css">
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/vendor/toster/css/jquery.toast.css">
 </head>
 
 <body @if (app()->getLocale() == 'ar') dir="rtl" @endif>
-    @php
-        $heroTitle =
-            app()->getLocale() === 'ar'
-                ? 'لوحة تحكم لإدارة عمليات الاستقدام'
-                : 'A refined control hub for your operations';
-        $heroSubtitle =
-            app()->getLocale() === 'ar'
-                ? 'تابع الأداء والطلبات من أي مكان واستجب لفريقك بسرعة.'
-                : 'Monitor performance and requests anywhere and respond fast.';
-        $heroMetrics =
-            app()->getLocale() === 'ar'
-                ? ['دعم مباشر', 'تنبيهات فورية', 'أمان معزز']
-                : ['Live support', 'Instant alerts', 'Enhanced security'];
-        $formSubtitle =
-            app()->getLocale() === 'ar'
-                ? 'أدخل بياناتك للوصول إلى لوحة التحكم ومتابعة سير العمل بكل سهولة.'
-                : 'Enter your details to reach the dashboard and keep work flowing.';
-    @endphp
     @php
         $loginBg = null;
         if (isset($settings) && !empty($settings->cover_image)) {
@@ -41,89 +23,75 @@
         }
     @endphp
     <div class="auth-page" style="--login-bg-image: url('{{ $loginBg }}');">
-        <div class="auth-card">
-            <div class="auth-media">
-                <div class="media-content">
-                    <span class="media-chip">{{ __('auth.welcomeback') }}</span>
-                    <h2>{{ $heroTitle }}</h2>
-                    <p>{{ $heroSubtitle }}</p>
-
-                    <ul class="media-metrics mt-4">
-                        @foreach ($heroMetrics as $metric)
-                            <li>{{ $metric }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-                <div class="media-visual" id="globe">
-                    <canvas></canvas>
-                </div>
-            </div>
-            <div class="auth-form">
-                <div class="form-wrap">
-                    <div class="brand-lockup">
-                        <div class="brand-logo">
-                            @if (isset($developSettings))
-                                <img class="logo" src="{{ showFile($developSettings->logo_login) }}" alt="">
-                            @else
-                                <img class="logo" src="{{ asset('web/assets') }}/images/logoh.svg" alt="">
-                            @endif
-                        </div>
-                        <div class="brand-text">
-                            <p class="eyebrow">
-                                {{ isset($developSettings) ? $developSettings->name : 'بلاتنيوم الشرقية للاستقدام' }}
-                            </p>
-                            <p class="subtext">{{ __('auth.login') }}</p>
-                        </div>
+        @php
+            $formSubtitle =
+                app()->getLocale() === 'ar'
+                    ? 'سجل دخولك للوصول السريع إلى لوحة التحكم.'
+                    : 'Sign in for quick access to the dashboard.';
+        @endphp
+        <div class="auth-frame">
+            <div class="auth-card">
+                <div class="brand-lockup">
+                    <div class="brand-logo">
+                        @if (isset($developSettings) && !empty($developSettings->logo_login))
+                            <img class="logo" src="{{ showFile($developSettings->logo_login) }}" alt="">
+                        @else
+                            <img class="logo" src="{{ asset('site/assets/images/company_logo.png') }}" alt="">
+                        @endif
                     </div>
-                    <div class="form-heading">
-                        <h2 class="eyebrow">{{ __('auth.login') }}</h2>
-                        {{-- <h1>{{ __('auth.welcomeback') }} 👋</h1>
-                        <p class="subtitle">{{ $formSubtitle }}</p> --}}
-                    </div>
-                    <form id="loginForm" action="{{ route('admin.login') }}" method="POST" novalidate>
-                        @csrf
-                        <div class="form-alert" role="alert" aria-live="assertive"></div>
-                        <div class="form-group">
-                            <div class="input-field">
-                                <label for="email">{{ __('auth.email') }}*</label>
-                                <div class="input-shell">
-                                    <span class="input-icon">
-                                        <img src="{{ asset('admin/login') }}/imgs/email.svg" alt="email">
-                                    </span>
-                                    <input type="email" id="email" name="login" value="{{ old('login') }}"
-                                        placeholder="{{ __('auth.placeholderEmail') }}" autocomplete="username"
-                                        required>
-                                </div>
-                            </div>
-                            <div class="input-field">
-                                <label for="password">{{ __('auth.password') }}*</label>
-                                <div class="input-shell">
-                                    <span class="input-icon">
-                                        <img src="{{ asset('admin/login') }}/imgs/password.svg" alt="password">
-                                    </span>
-                                    <input type="password" id="password" name="password" placeholder="•••••••••••••••"
-                                        autocomplete="current-password" required>
-                                </div>
+                    {{-- <div class="brand-text">
+                        <p class="eyebrow">
+                            {{ isset($developSettings) ? $developSettings->name : 'بلاتنيوم الشرقية للاستقدام' }}
+                        </p>
+                        <p class="subtext">{{ __('auth.login') }}</p>
+                    </div> --}}
+                </div>
+                <div class="form-heading">
+                    <h1>{{ __('auth.login') }}</h1>
+                    <p class="subtitle">{{ $formSubtitle }}</p>
+                </div>
+                <form id="loginForm" action="{{ route('admin.login') }}" method="POST" novalidate>
+                    @csrf
+                    <div class="form-alert" role="alert" aria-live="assertive"></div>
+                    <div class="form-group">
+                        <div class="input-field">
+                            <label for="email">{{ __('auth.email') }}*</label>
+                            <div class="input-shell">
+                                <span class="input-icon">
+                                    <img src="{{ asset('admin/login') }}/imgs/email.svg" alt="email">
+                                </span>
+                                <input type="email" id="email" name="login" value="{{ old('login') }}"
+                                    placeholder="{{ __('auth.placeholderEmail') }}" autocomplete="username" required>
                             </div>
                         </div>
-                        <div class="form-meta">
-                            <label for="rememberme" class="checkbox-control">
-                                <input type="checkbox" name="rememberme" id="rememberme">
-                                <span>{{ __('auth.rememberme') }}</span>
-                            </label>
-                            <span
-                                class="meta-hint">{{ app()->getLocale() === 'ar' ? 'يبقى الدخول فعالاً على أجهزتك الموثوقة.' : 'Keep access active on your trusted devices.' }}</span>
+                        <div class="input-field">
+                            <label for="password">{{ __('auth.password') }}*</label>
+                            <div class="input-shell">
+                                <span class="input-icon">
+                                    <img src="{{ asset('admin/login') }}/imgs/password.svg" alt="password">
+                                </span>
+                                <input type="password" id="password" name="password" placeholder="•••••••••••••••"
+                                    autocomplete="current-password" required>
+                            </div>
                         </div>
-                        <button type="submit" class="primary-btn">{{ __('auth.sign in') }}</button>
-                    </form>
-                </div>
-                <p class="footer">
-                    {{ __('auth.copyright') }} © {{ date('Y') }}
-                    <a href="{{ isset($developSettings) ? $developSettings->portfolio_url : 'https://clickandmore.sa' }}"
-                        target="_blank">{{ isset($developSettings) ? $developSettings->name : 'بلاتنيوم الشرقية للاستقدام' }}</a>
-                </p>
+                    </div>
+                    <div class="form-meta">
+                        <label for="rememberme" class="checkbox-control">
+                            <input type="checkbox" name="rememberme" id="rememberme">
+                            <span>{{ __('auth.rememberme') }}</span>
+                        </label>
+                        <span
+                            class="meta-hint">{{ app()->getLocale() === 'ar' ? 'يبقى الدخول فعالاً على أجهزتك الموثوقة.' : 'Keep access active on your trusted devices.' }}</span>
+                    </div>
+                    <button type="submit" class="primary-btn">{{ __('auth.sign in') }}</button>
+                </form>
             </div>
         </div>
+        <p class="footer">
+            {{ __('auth.copyright') }} © {{ date('Y') }}
+            <a href="{{ isset($developSettings) ? $developSettings->portfolio_url : 'https://clickandmore.sa' }}"
+                target="_blank">{{ isset($developSettings) ? $developSettings->name : 'بلاتنيوم الشرقية للاستقدام' }}</a>
+        </p>
     </div>
     <!-- orbit -->
     <script src="https://unpkg.com/bootstrap-show-password@1.2.1/dist/bootstrap-show-password.min.js"></script>
@@ -136,9 +104,6 @@
     <script src="{{ asset('admin') }}/assets/js/theme.js"></script>
     <script src="{{ asset('admin') }}/assets/vendor/toster/js/jquery.toast.js"></script>
     <script src="{{ asset('admin') }}/assets/js/custom.js"></script>
-    <script src="{{ asset('admin/login') }}/js/three.js"></script>
-    <script src="{{ asset('admin/login') }}/js/orbit.js"></script>
-    <script src="{{ asset('admin/login') }}/js/custom_orbit.js"></script>
     <script type="text/javascript">
         $(function() {
 
