@@ -11,25 +11,25 @@
         }
 
         .settings-shell .settings-nav .nav-link {
-            border: 1px solid #e6e9f0;
+            border: 1px solid var(--bs-border-color, #e6e9f0);
             border-radius: 12px;
-            background: #f8fafc;
-            color: #1f2937;
+            background: var(--bs-light, #f8f9fa);
+            color: var(--bs-body-color, #212529);
             padding: 0.75rem 1rem;
             text-align: start;
             transition: all 0.2s ease-in-out;
         }
 
         .settings-shell .settings-nav .nav-link:hover {
-            background: #eef2ff;
-            color: #1f2937;
+            background: rgba(var(--bs-primary-rgb, 13, 110, 253), 0.08);
+            color: var(--bs-body-color, #212529);
         }
 
         .settings-shell .settings-nav .nav-link.active {
-            background: #0d6efd;
-            border-color: #0d6efd;
+            background: var(--bs-primary, #0d6efd);
+            border-color: var(--bs-primary, #0d6efd);
             color: #fff;
-            box-shadow: 0 10px 24px rgba(13, 110, 253, 0.2);
+            box-shadow: 0 10px 24px rgba(var(--bs-primary-rgb, 13, 110, 253), 0.2);
         }
 
         .settings-shell .settings-card {

@@ -138,6 +138,33 @@
             </div>
         </div>
 
+        <div class="col-12">
+            <hr>
+        </div>
+
+        <div class="col-12">
+            <h6 class="text-muted mb-2">الموقع الخارجي</h6>
+            <div class="row g-3 align-items-center">
+                <div class="col-md-6">
+                    <label class="form-label d-block">إظهار الموقع الخارجي للعميل</label>
+                    <input type="hidden" name="show_public_site" value="0">
+                    <div class="form-check form-switch">
+                        <input
+                            type="checkbox"
+                            name="show_public_site"
+                            id="show_public_site"
+                            class="form-check-input"
+                            value="1"
+                            {{ (int)($settings->show_public_site ?? 1) === 1 ? 'checked' : '' }}>
+                        <label class="form-check-label" for="show_public_site">
+                            {{ (int)($settings->show_public_site ?? 1) === 1 ? 'مفعل' : 'غير مفعل' }}
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-1">عند تعطيله سيتم تحويل الزائر مباشرة إلى صفحة الدخول للوحة التحكم.</small>
+                </div>
+            </div>
+        </div>
+
         <div class="col-12 text-end">
             @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CONTROL))
                 <button class="btn btn-primary" type="submit">{{ __('buttons.save') }}</button>

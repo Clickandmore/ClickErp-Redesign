@@ -20,13 +20,13 @@
     @stack("css")
 
     <link rel="stylesheet" type="text/css" href="{{ asset('admin/assets/css/tables.css') }}">
-    <link rel="stylesheet" href="{{ asset('admin/assets/css/theme-clickmore.css') }}?v=9">
+    <link rel="stylesheet" href="{{ asset('admin/assets/css/theme-clickmore.css') }}?v=10">
 
 
 </head>
 <body class="layout-1  @if (app()->getLocale() == 'ar') rtl_mode @endif " data-luno="theme-blue"> <!-- h-menu  -->
 
-@include("nami.layout.inc.sidebar")
+@include("admin.layout.inc.sidebar")
 
 
 <div class="wrapper">
@@ -46,7 +46,7 @@
 
 @include("nami.layout.inc._js")
 @include("nami.layout.inc._js_custom")
-<script src="{{ asset('admin/assets/js/clickmore-loader.js') }}?v=1"></script>
+<script src="{{ asset('admin/assets/js/clickmore-loader.js') }}?v=2"></script>
 <script src="{{ asset('admin/assets/js/clickmore-sidebar-state.js') }}?v=1"></script>
 
 <script>

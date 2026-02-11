@@ -50,6 +50,7 @@ class SettingRequest extends MainRequest
             'website_name:en' => 'nullable|string',
             'privacy:ar' => 'nullable|string',
             'privacy:en' => 'nullable|string',
+            'show_public_site' => 'nullable|boolean',
         ];
     }
 }

@@ -4,8 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ isset($developSettings) ? $developSettings->name : 'بلاتنيوم الشرقية للاستقدام' }} |
-        {{ __('auth.login') }}</title>
+    @php
+        $locale = app()->getLocale();
+        $settingsName = isset($settings) ? optional($settings->translate($locale))->website_name : null;
+        $copyrightText = isset($settings) ? optional($settings->translate($locale))->copyright : null;
+        $brandName = $settingsName ?: (isset($developSettings) ? $developSettings->name : 'بلاتنيوم الشرقية للاستقدام');
+    @endphp
+    <title>{{ $brandName }} | {{ __('auth.login') }}</title>
     <link rel="stylesheet" href="{{ asset('admin/login') }}/css/style-dashboard.css?v=1">
     <link rel="stylesheet" href="{{ asset('admin/login') }}/css/fontawesome.min.css">
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/vendor/toster/css/jquery.toast.css">
@@ -32,13 +37,18 @@
         <div class="auth-frame">
             <div class="auth-card">
                 <div class="brand-lockup">
-                    <div class="brand-logo">
-                        @if (isset($developSettings) && !empty($developSettings->logo_login))
-                            <img class="logo" src="{{ showFile($developSettings->logo_login) }}" alt="">
-                        @else
-                            <img class="logo" src="{{ asset('site/assets/images/company_logo.png') }}" alt="">
-                        @endif
-                    </div>
+                <div class="brand-logo">
+                    @php
+                        $loginLogo =
+                            isset($settings) && !empty($settings->logo_header)
+                                ? showFile($settings->logo_header)
+                                : (isset($developSettings) && !empty($developSettings->logo_login)
+                                    ? showFile($developSettings->logo_login)
+                                    : asset('site/assets/images/company_logo.png'));
+                    @endphp
+                    <img class="logo" src="{{ $loginLogo }}" alt="logo"
+                        onerror="this.onerror=null;this.src='{{ asset('site/assets/images/company_logo.png') }}';">
+                </div>
                     {{-- <div class="brand-text">
                         <p class="eyebrow">
                             {{ isset($developSettings) ? $developSettings->name : 'بلاتنيوم الشرقية للاستقدام' }}
@@ -88,9 +98,8 @@
             </div>
         </div>
         <p class="footer">
-            {{ __('auth.copyright') }} © {{ date('Y') }}
-            <a href="{{ isset($developSettings) ? $developSettings->portfolio_url : 'https://clickandmore.sa' }}"
-                target="_blank">{{ isset($developSettings) ? $developSettings->name : 'بلاتنيوم الشرقية للاستقدام' }}</a>
+            {{ $copyrightText ?: __('auth.copyright') }} © {{ date('Y') }}
+            <a href="{{ url('/') }}" target="_blank">{{ $brandName }}</a>
         </p>
     </div>
     <!-- orbit -->

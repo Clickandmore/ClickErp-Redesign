@@ -295,14 +295,14 @@
 
     <!-- العلامة المائية -->
     <div class="watermark">
-        <img src="{{ asset('admin/assets/img/company_logo.png') }}" alt="Logo" style="width: 100%; height: 100%; opacity: 0.1;">
+        <img src="{{ isset($settings) && !empty($settings->logo_header) ? showFile($settings->logo_header) : asset('admin/assets/img/company_logo.png') }}" alt="Logo" style="width: 100%; height: 100%; opacity: 0.1;">
     </div>
 
     <div class="contract-container">
         <!-- رأس العقد -->
         <div class="header">
             <div class="logo-container">
-                <img src="{{ asset('admin/assets/img/company_logo.png') }}" alt="شعار الشركة">
+                <img src="{{ isset($settings) && !empty($settings->logo_header) ? showFile($settings->logo_header) : asset('admin/assets/img/company_logo.png') }}" alt="شعار الشركة">
             </div>
             <h1>عقد نقل كفالة العمالة المنزلية</h1>
             <p style="font-size: 14pt; margin: 5px 0;">{{ $contractSettings['company_name'] ?? 'شركة بلاتينيوم الشرقية للاستقدام' }}</p>
@@ -662,4 +662,3 @@
     </script>
 </body>
 </html>
-

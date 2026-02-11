@@ -65,6 +65,7 @@ class SettingRequest extends MainRequest
             'footer_text:en' => 'nullable|string',
             'years' => 'nullable|numeric',
             'show_customer_service_during_booking' => 'nullable|boolean',
+            'show_public_site' => 'nullable|boolean',
             'note_ar' => 'nullable|string',
             'note_en' => 'nullable|string',
             'link_rights_and_duties' => 'nullable|string',

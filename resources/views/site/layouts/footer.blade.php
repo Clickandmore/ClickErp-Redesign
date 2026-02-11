@@ -12,6 +12,8 @@
     $footerEmail = (isset($settings) && !empty($settings->email)) ? $settings->email : 'info@platinumeastern.com';
     $footerPhone = (isset($settings) && !empty($settings->phone)) ? $settings->phone : '920003174';
     $footerOtherPhone = (isset($settings) && !empty($settings->other_phone)) ? $settings->other_phone : '0552333182';
+    $footerBrandName = isset($settings) ? optional($settings->translate(app()->getLocale()))->website_name : null;
+    $footerBrandName = $footerBrandName ?: 'شركة بلاتنيوم الشرقية';
 @endphp
 <div class="container">
     <div class="row align-items-start">
@@ -79,7 +81,7 @@
             <p>
                 {{ __("ingaz.all_rights_reserved") }} ©
                 <script>document.write(new Date().getFullYear());</script>
-                <a target="_blank" href="https://platinum.istqdim.com"> شركة بلاتنيوم الشرقية </a>
+                <a target="_blank" href="{{ url('/') }}"> {{ $footerBrandName }} </a>
             </p>
             <ul class="footer-social">
                 @if(isset($settings) && $settings->facebook)
