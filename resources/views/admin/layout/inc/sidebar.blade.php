@@ -85,7 +85,7 @@
                         <span class="ms-2">{{ __('ingaz.crm') }}</span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
-                    <ul class="sub-menu collapse {{ $isCrm || request()->routeIs('admin.sms-templates.*') || in_array(Route::currentRouteName(), ['clients.index']) ? 'show' : '' }}"
+                    <ul class="sub-menu collapse {{ $isCrm || in_array(Route::currentRouteName(), ['clients.index']) ? 'show' : '' }}"
                         id="crm">
                         <li>
                             <a class="m-link {{ Route::currentRouteName() == 'clients.index' ? 'active' : '' }}"
@@ -94,13 +94,13 @@
                                 <span class="ms-2"> {{ helperTrans('ingaz.clients') }}</span>
                             </a>
                         </li>
-                        <li>
+                        {{-- <li>
                             <a class="m-link {{ request()->routeIs('admin.sms-templates.*') ? 'active' : '' }}"
                                 href="{{ route('admin.sms-templates.index') }}">
                                 <i class="fa fa-sms"></i>
                                 <span class="ms-2">قوالب الرسائل النصية</span>
                             </a>
-                        </li>
+                        </li> --}}
                         @include('crm::crm')
                     </ul>
                 </li>
@@ -769,6 +769,44 @@
                 </li>
                 {{--                @include('finance::stock') --}}
                 @include('finance::zatca')
+
+                {{-- اعدادات الرسائل النصية --}}
+                <li class="collapsed">
+                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#smsManagement" href="#">
+                        <i class="fa fa-sms"></i>
+                        <span class="ms-2">إدارة الرسائل النصية</span>
+                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                    </a>
+                    <ul class="sub-menu collapse {{ Route::currentRouteName() == 'notifications.index' || Route::currentRouteName() == 'messages.index' || Request::is('admin/sms-templates*') ? 'show' : '' }}"
+                        id="smsManagement">
+                        @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
+                            <li>
+                                <a class="m-link {{ Route::currentRouteName() == 'notifications.index' ? 'active' : '' }}"
+                                    href="{{ route('notifications.index') }}">
+                                    <i class="fa fa-paper-plane"></i>
+                                    <span class="ms-2">إرسال الرسائل</span>
+                                </a>
+                            </li>
+                        @endif
+                        @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
+                            <li>
+                                <a class="m-link {{ Route::currentRouteName() == 'messages.index' ? 'active' : '' }}"
+                                    href="{{ route('messages.index') }}">
+                                    <i class="fa fa-inbox"></i>
+                                    <span class="ms-2">جميع الرسائل المرسلة</span>
+                                </a>
+                            </li>
+                        @endif
+                        <li>
+                            <a class="m-link {{ Request::is('admin/sms-templates*') ? 'active' : '' }}"
+                                href="/admin/sms-templates">
+                                <i class="fa fa-sms"></i>
+                                <span class="ms-2">قوالب الرسائل النصية</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#settingsOperation" href="#">
                         <i class="fa fa-cog fa-lg"></i>

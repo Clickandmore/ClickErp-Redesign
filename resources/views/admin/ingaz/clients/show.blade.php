@@ -408,6 +408,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    @forelse($invoices as $invoice)
                                         <tr>
                                             <td>#{{ $invoice->id }}</td>
                                             <td>#{{ $invoice->contract_id }}</td>
