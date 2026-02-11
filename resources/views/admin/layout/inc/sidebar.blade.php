@@ -79,18 +79,25 @@
                     $isCrm = request()->is('crm*');
                 @endphp
 
-                <li class="{{ $isCrm ? '' : 'collapsed' }}">
+                <li class="{{ $isCrm || request()->routeIs('admin.sms-templates.*') ? '' : 'collapsed' }}">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#crm" href="#">
                         <i class="fa-regular fa-file-lines me-2"></i>
                         <span class="ms-2">{{ __('ingaz.crm') }}</span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
-                    <ul class="sub-menu collapse {{ $isCrm || in_array(Route::currentRouteName(), ['clients.index']) ? 'show' : '' }}" id="crm">
+                    <ul class="sub-menu collapse {{ $isCrm || request()->routeIs('admin.sms-templates.*') || in_array(Route::currentRouteName(), ['clients.index']) ? 'show' : '' }}" id="crm">
                         <li>
                             <a class="m-link {{ Route::currentRouteName() == 'clients.index' ? 'active' : '' }}"
                                 href="{{ route('clients.index') }}">
                                 <i class="fa fa-user"></i>
                                 <span class="ms-2"> {{ helperTrans('ingaz.clients') }}</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="m-link {{ request()->routeIs('admin.sms-templates.*') ? 'active' : '' }}"
+                                href="{{ route('admin.sms-templates.index') }}">
+                                <i class="fa fa-sms"></i>
+                                <span class="ms-2">قوالب الرسائل النصية</span>
                             </a>
                         </li>
                         @include('crm::crm')
@@ -778,7 +785,6 @@
                                 $websiteManagementOpen = request()->routeIs('settings.*')
                                     || request()->routeIs('about-us.*')
                                     || request()->routeIs('questions.*')
-                                    || request()->routeIs('admin.sms-templates.index')
                                     || request()->routeIs('dash.settings');
                             @endphp
                             <ul class="sub-menu collapse {{ $websiteManagementOpen ? 'show' : '' }}"
@@ -793,13 +799,6 @@
                                     </li>
                                 @endif
 
-                                <li>
-                                    <a class="m-link {{ Route::currentRouteName() == 'admin.sms-templates.index' ? 'active' : '' }}"
-                                        href="/admin/sms-templates">
-                                        <i class="fa fa-sms"></i>
-                                        <span class="ms-2">قوالب الرسائل النصية</span>
-                                    </a>
-                                </li>
                                 <li>
                                     <a class="m-link" href="{{ route('istiqdam.index') }}">
                                         <i class="fa fa-building"></i>

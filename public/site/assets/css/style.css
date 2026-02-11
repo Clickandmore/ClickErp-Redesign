@@ -1080,10 +1080,7 @@ header .news-ticker .news-items li.is-active {
     }
 }
 
-main {
-    /* Testimonials */
-    /* Media Queries */
-}
+/* Removed empty `main {}` ruleset (styles are defined further below) */
 
 main .goDown {
     width: 50px;
