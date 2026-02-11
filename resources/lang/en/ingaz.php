@@ -1349,6 +1349,7 @@
     'download' => 'Download',
     'renew_contract' => 'Renew Contract',
     'renew-contracts' => 'Renew Contracts',
+    'no_renew_contracts' => 'There are no contract renewal requests yet.',
 
     'sponsor_card' => 'Sponsor Card',
     'first_page_of_the_worker_passport' => 'First Page of Worker\'s Passport',

@@ -85,7 +85,8 @@
                         <span class="ms-2">{{ __('ingaz.crm') }}</span>
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
-                    <ul class="sub-menu collapse {{ $isCrm || request()->routeIs('admin.sms-templates.*') || in_array(Route::currentRouteName(), ['clients.index']) ? 'show' : '' }}" id="crm">
+                    <ul class="sub-menu collapse {{ $isCrm || request()->routeIs('admin.sms-templates.*') || in_array(Route::currentRouteName(), ['clients.index']) ? 'show' : '' }}"
+                        id="crm">
                         <li>
                             <a class="m-link {{ Route::currentRouteName() == 'clients.index' ? 'active' : '' }}"
                                 href="{{ route('clients.index') }}">
@@ -249,7 +250,8 @@
                                 id="contracts">
                                 @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE))
                                     <li>
-                                        <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.create' ? 'active' : '' }}" href="{{ route('RecruitmentContract.create') }}">
+                                        <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.create' ? 'active' : '' }}"
+                                            href="{{ route('RecruitmentContract.create') }}">
                                             <i class="icon-star"></i>
                                             <span
                                                 class="ms-2">{{ helperTrans('ingaz.add Recruitment contract') }}</span>
@@ -263,7 +265,8 @@
                                             <i class="fa fa-list"></i>
                                             <span
                                                 class="ms-2">{{ helperTrans('ingaz.contracts_are_valid') }}</span>&nbsp;&nbsp;
-                                            <span class="badge bg-primary ms-2">{{ $contractsCount['are_valid'] }}</span>
+                                            <span
+                                                class="badge bg-primary ms-2">{{ $contractsCount['are_valid'] }}</span>
                                         </a>
                                     </li>
 
@@ -391,7 +394,7 @@
                                                 <span class="ms-2">طلبات استرجاع العقود</span>
                                             </a>
                                         </li>
-                                        
+
                                         <li>
                                             <a class="m-link {{ Route::currentRouteName() == 'invoices.index' ? 'active' : '' }}"
                                                 href="{{ route('invoices.index') }}">
@@ -782,10 +785,11 @@
                             </a>
 
                             @php
-                                $websiteManagementOpen = request()->routeIs('settings.*')
-                                    || request()->routeIs('about-us.*')
-                                    || request()->routeIs('questions.*')
-                                    || request()->routeIs('dash.settings');
+                                $websiteManagementOpen =
+                                    request()->routeIs('settings.*') ||
+                                    request()->routeIs('about-us.*') ||
+                                    request()->routeIs('questions.*') ||
+                                    request()->routeIs('dash.settings');
                             @endphp
                             <ul class="sub-menu collapse {{ $websiteManagementOpen ? 'show' : '' }}"
                                 id="websiteManagement">

@@ -73,6 +73,17 @@
                         </div>
                     </a>
                 </li>
+                <li class="nav_item {{ (Route::currentRouteName() == 'site.renew-contracts.index') ? 'active' : '' }}">
+                    <a href="{{route('site.renew-contracts.index')}}" class="nav_link">
+                        <div class="nav_icon">
+                            <i class="fa-regular fa-file-signature"></i>
+                        </div>
+                        <div class="nav_content">
+                            <span class="nav_title">{{ helperTrans('ingaz.renew-contracts') }}</span>
+                            <span class="nav_desc">{{ __('ingaz.contract_renewal') }}</span>
+                        </div>
+                    </a>
+                </li>
                 <li class="nav_item {{ (Route::currentRouteName() == 'site.sponsorship-transfers.index') ? 'active' : '' }}">
                     <a href="{{route('site.sponsorship-transfers.index')}}" class="nav_link">
                         <div class="nav_icon">

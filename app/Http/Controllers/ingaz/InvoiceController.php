@@ -8,6 +8,10 @@ use App\Models\ingaz\Invoice;
 use Illuminate\Http\Request;
 use PDF;
 use Yajra\DataTables\Facades\DataTables;
+use Nami\Finance\Services\ConstraintService as ObjService;
+use Nami\Finance\Services\YearService;
+use Nami\Finance\Models\Account;
+use Illuminate\Support\Facades\DB;
 
 class InvoiceController extends Controller
 {
@@ -95,7 +99,7 @@ class InvoiceController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(Request $request, ObjService $service, YearService $yearService)
     {
         $request->validate([
             'contract_id' => 'required|exists:contracts,id',
@@ -111,24 +115,93 @@ class InvoiceController extends Controller
             ], 422);
         }
 
-        $invoice = Invoice::create([
-            'contract_id' => $request->contract_id,
-            'insurance_company' => $request->insurance_company ?? null,
-            'direct_recruitment_cost' => $request->direct_recruitment_cost ?? 0,
-            'external_recruitment_cost' => $request->external_recruitment_cost ?? 0,
-            'government_cost' => $request->government_cost ?? 0,
-            'internal_ticket_cost' => $request->internal_ticket_cost ?? 0,
-            'visa_recruited_count' => $request->visa_recruited_count ?? 0,
-            'direct_recruitment_count' => $request->direct_recruitment_count ?? 0,
-            'external_recruitment_count' => $request->external_recruitment_count ?? 0,
-            'insured_count' => $request->insured_count ?? 0,
-            'government_cost_count' => $request->government_cost_count ?? 0,
-            'internal_ticket_count' => $request->internal_ticket_count ?? 0,
-            'subtotal' => $request->subtotal ?? 0,
-            'discount' => $request->discount ?? 0,
-            'vat_amount' => $request->vat_amount ?? 0,
-            'total_due' => $request->total_due ?? 0,
-        ]);
+        try {
+            $invoice = DB::transaction(function () use ($request, $service, $yearService) {
+                $contract = Contract::with(['user', 'maid.nationality', 'requiredMaidNationality'])->findOrFail($request->contract_id);
+
+                $clientAccountId = $contract->user?->account_id;
+
+                $nationality = $contract->maid?->nationality ?? $contract->requiredMaidNationality;
+                $nationalityAccountId = $nationality?->account_id;
+
+                if (!$nationalityAccountId && $nationality) {
+                    $nationalityName = $nationality->sub_title ?? $nationality->title ?? null;
+                    if ($nationalityName) {
+                        $nationalityAccountId = $this->resolveNationalityAccountId($nationalityName);
+                    }
+                }
+
+                // dd( $contract, $clientAccountId, $nationality, $nationalityAccountId);
+
+                if (!$clientAccountId) {
+                    // throw new \RuntimeException('Cannot create entry: client account is missing');
+                    return response()->json([
+                        'success' => false,
+                        'message' => "لا يوجد حساب لهذا العميل , الرجاء اضافة حساب له اولا.",
+                    ], 422);
+                }
+
+                if (!$nationalityAccountId) {
+                    // throw new \RuntimeException('Cannot create entry: nationality account is missing');
+                    return response()->json([
+                        'success' => false,
+                        'message' => "لا يوجد حساب لهذه الجنسية : $nationalityName , الرجاء اضافة حساب اولا.",
+                    ], 422);
+                }
+
+                $invoice = Invoice::create([
+                    'contract_id' => $request->contract_id,
+                    'insurance_company' => $request->insurance_company ?? null,
+                    'direct_recruitment_cost' => $request->direct_recruitment_cost ?? 0,
+                    'external_recruitment_cost' => $request->external_recruitment_cost ?? 0,
+                    'government_cost' => $request->government_cost ?? 0,
+                    'internal_ticket_cost' => $request->internal_ticket_cost ?? 0,
+                    'visa_recruited_count' => $request->visa_recruited_count ?? 0,
+                    'direct_recruitment_count' => $request->direct_recruitment_count ?? 0,
+                    'external_recruitment_count' => $request->external_recruitment_count ?? 0,
+                    'insured_count' => $request->insured_count ?? 0,
+                    'government_cost_count' => $request->government_cost_count ?? 0,
+                    'internal_ticket_count' => $request->internal_ticket_count ?? 0,
+                    'subtotal' => $request->subtotal ?? 0,
+                    'discount' => $request->discount ?? 0,
+                    'vat_amount' => $request->vat_amount ?? 0,
+                    'total_due' => $request->total_due ?? 0,
+                ]);
+
+                $date = $invoice->created_at ? $invoice->created_at->toDateString() : now()->toDateString();
+                $activeYear = $yearService->checkDateRange($date);
+                if (!$activeYear) {
+                    throw new \RuntimeException('Cannot create entry: no active fiscal year for this date');
+                }
+
+                $statement = 'Invoice entry #' . $invoice->id . ' for contract #' . $contract->id;
+                $totalDue = (float) ($invoice->total_due ?? 0);
+
+                $data = [
+                    'code' => $service->lastCode(),
+                    'date' => $date,
+                    'statement' => $statement,
+                    'account_id' => [$clientAccountId, $nationalityAccountId],
+                    'account_type' => ['debtor', 'creditor'],
+                    'debtor_value' => [$totalDue, 0],
+                    'creditor_value' => [0, $totalDue],
+                    'statement_account' => [$statement, $statement],
+                    'cost_center_required' => 'off',
+                    'cost_center_id' => [null, null],
+                ];
+
+                $storeConstraint = $service->storeConstraint($data, $activeYear);
+                $service->storeConstraintDetails($data['account_id'], $storeConstraint->id, $data);
+                $service->storeFiles($storeConstraint, $data);
+
+                return $invoice;
+            });
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 422);
+        }
 
         return response()->json([
             'success' => true,
@@ -137,7 +210,6 @@ class InvoiceController extends Controller
             'redirect' => route('invoices.show', $invoice->id),
         ]);
     }
-
 
     /**
      * Display the specified resource.
@@ -297,5 +369,59 @@ class InvoiceController extends Controller
 
         // return $pdf->download('invoice-' . $invoice->id . '.pdf');
         return $pdf->stream('invoice-' . $invoice->id . '.pdf');
+    }
+
+    private function resolveNationalityAccountId(string $nationalityName): ?int
+    {
+        $name = trim($nationalityName);
+        if ($name === '') {
+            return null;
+        }
+
+        $accountId = Account::query()->where('name', $name)->value('id');
+        if ($accountId) {
+            return (int) $accountId;
+        }
+
+        $prefixes = [
+            'التزامات عقود ',
+            'التزامات عقود الاستقدام ',
+        ];
+
+        foreach ($prefixes as $prefix) {
+            $accountId = Account::query()->where('name', $prefix . $name)->value('id');
+            if ($accountId) {
+                return (int) $accountId;
+            }
+        }
+
+        $parentId = Account::query()
+            ->where('name', 'التزامات عقود الاستقدام')
+            ->value('id');
+
+        if (!$parentId) {
+            $parentId = Account::query()
+                ->where('name', 'التزامات عقود')
+                ->value('id');
+        }
+
+        if ($parentId) {
+            $accountId = Account::query()
+                ->where('parent_id', $parentId)
+                ->where('name', 'like', '%' . $name . '%')
+                ->orderBy('id')
+                ->value('id');
+
+            if ($accountId) {
+                return (int) $accountId;
+            }
+        }
+
+        $accountId = Account::query()
+            ->where('name', 'like', '%' . $name . '%')
+            ->orderBy('id')
+            ->value('id');
+
+        return $accountId ? (int) $accountId : null;
     }
 }

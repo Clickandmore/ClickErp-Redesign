@@ -27,6 +27,7 @@ use App\Http\Controllers\site\profile\ChatController;
 use App\Http\Controllers\site\profile\ComplaintController;
 use App\Http\Controllers\site\profile\ContractReturnRequestController;
 use App\Http\Controllers\site\profile\ContractsController;
+use App\Http\Controllers\site\profile\RenewContractController as ProfileRenewContractController;
 use App\Http\Controllers\site\profile\NotificationController;
 use App\Http\Controllers\site\profile\OrderController;
 use App\Http\Controllers\site\profile\ProfileController;
@@ -111,6 +112,7 @@ Route::group(
                 Route::resource('logout', LogoutController::class);
                 Route::post('/contracts/cancel', [ContractsController::class, 'cancel'])->name('contracts.cancel');
                 Route::resource('contracts', ContractsController::class);
+                Route::get('renew-contracts', [ProfileRenewContractController::class, 'index'])->name('renew-contracts.index');
                 Route::resource('sponsorship-transfers', SponsorshipTransferController::class);
                 Route::get('return-requests', [ContractReturnRequestController::class, 'index'])->name('contract-return-requests.index');
                 Route::resource('complaints', ComplaintController::class);

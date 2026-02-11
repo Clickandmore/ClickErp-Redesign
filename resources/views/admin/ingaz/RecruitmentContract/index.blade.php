@@ -2,6 +2,157 @@
 
 @section('style')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .stat-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            width: 100%;
+            padding: 16px 18px;
+            border-radius: 14px;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            background: #fff;
+            text-align: start;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+            border-color: rgba(0, 0, 0, 0.12);
+        }
+
+        .stat-card.active {
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.2);
+            border-color: rgba(13, 110, 253, 0.6);
+        }
+
+        .stat-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .stat-body {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+
+        .stat-title {
+            font-size: 0.95rem;
+            color: #4b5563;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .stat-card-current {
+            background: linear-gradient(135deg, #f8fafc, #eef2ff);
+        }
+
+        .stat-card-pending {
+            background: linear-gradient(135deg, #f0fdfa, #ecfeff);
+        }
+
+        .stat-card-new {
+            background: linear-gradient(135deg, #eff6ff, #e0f2fe);
+        }
+
+        .stat-card-msaned {
+            background: linear-gradient(135deg, #eff6ff, #e0e7ff);
+        }
+
+        .stat-card-tafwed {
+            background: linear-gradient(135deg, #e0f2fe, #e0f7ff);
+        }
+
+        .stat-card-taffez {
+            background: linear-gradient(135deg, #ecfeff, #ecfdf5);
+        }
+
+        .stat-card-tazker {
+            background: linear-gradient(135deg, #fff7ed, #ffedd5);
+        }
+
+        .stat-card-completed {
+            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+        }
+
+        .stat-card-arrival {
+            background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+        }
+
+        .stat-card-warranty-active {
+            background: linear-gradient(135deg, #e0f2fe, #dbeafe);
+        }
+
+        .stat-card-warranty-expired {
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+        }
+
+        .stat-card-warranty-na {
+            background: linear-gradient(135deg, #f9fafb, #f3f4f6);
+        }
+
+        .stat-card-current .stat-icon {
+            background: #64748b;
+        }
+
+        .stat-card-pending .stat-icon {
+            background: #0f766e;
+        }
+
+        .stat-card-new .stat-icon {
+            background: #2563eb;
+        }
+
+        .stat-card-msaned .stat-icon {
+            background: #1d4ed8;
+        }
+
+        .stat-card-tafwed .stat-icon {
+            background: #0ea5e9;
+        }
+
+        .stat-card-taffez .stat-icon {
+            background: #14b8a6;
+        }
+
+        .stat-card-tazker .stat-icon {
+            background: #f97316;
+        }
+
+        .stat-card-completed .stat-icon {
+            background: #16a34a;
+        }
+
+        .stat-card-arrival .stat-icon {
+            background: #22c55e;
+        }
+
+        .stat-card-warranty-active .stat-icon {
+            background: #0ea5e9;
+        }
+
+        .stat-card-warranty-expired .stat-icon {
+            background: #ef4444;
+        }
+
+        .stat-card-warranty-na .stat-icon {
+            background: #6b7280;
+        }
+    </style>
 @endsection
 
 @section('page-title')
@@ -22,6 +173,196 @@
                 {{ helperTrans('ingaz.add_recruitment_contract') }}
             </a>
         </div>
+
+        {{-- احصائيات العقود --}}
+        <div class="row mb-3" id="contractStatsSection">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            احصائيات مراحل العقود
+                        </h6>
+                        <small class="text-muted">اضغط على الإحصائية لتصفية العقود</small>
+                    </div>
+                    <div class="card-body">
+                        <div id="currentStatsSection">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="fw-semibold">احصائيات العقود السارية</span>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <button type="button" class="stat-card stat-filter stat-card-current"
+                                        data-status="current">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-layer-group"></i>
+                                        </div>
+                                        <div class="stat-body">
+                                            <div class="stat-title">السارية (إجمالي)</div>
+                                            <div class="stat-value" data-stat-key="current_total">0</div>
+                                        </div>
+                                    </button>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <button type="button" class="stat-card stat-filter stat-card-pending"
+                                        data-status="pending_maid_selection">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-user-clock"></i>
+                                        </div>
+                                        <div class="stat-body">
+                                            <div class="stat-title">انتظار اختيار العاملة</div>
+                                            <div class="stat-value" data-stat-key="stage_pending_maid_selection">0</div>
+                                        </div>
+                                    </button>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <button type="button" class="stat-card stat-filter stat-card-new" data-status="new">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-file"></i>
+                                        </div>
+                                        <div class="stat-body">
+                                            <div class="stat-title">جديد</div>
+                                            <div class="stat-value" data-stat-key="stage_new">0</div>
+                                        </div>
+                                    </button>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <button type="button" class="stat-card stat-filter stat-card-msaned"
+                                        data-status="msaned">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-handshake"></i>
+                                        </div>
+                                        <div class="stat-body">
+                                            <div class="stat-title">مساند</div>
+                                            <div class="stat-value" data-stat-key="stage_msaned">0</div>
+                                        </div>
+                                    </button>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <button type="button" class="stat-card stat-filter stat-card-tafwed"
+                                        data-status="tafwed">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-file-signature"></i>
+                                        </div>
+                                        <div class="stat-body">
+                                            <div class="stat-title">تفويض</div>
+                                            <div class="stat-value" data-stat-key="stage_tafwed">0</div>
+                                        </div>
+                                    </button>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <button type="button" class="stat-card stat-filter stat-card-taffez"
+                                        data-status="taffez">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-passport"></i>
+                                        </div>
+                                        <div class="stat-body">
+                                            <div class="stat-title">التفييز</div>
+                                            <div class="stat-value" data-stat-key="stage_taffez">0</div>
+                                        </div>
+                                    </button>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <button type="button" class="stat-card stat-filter stat-card-tazker"
+                                        data-status="tazker">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-ticket"></i>
+                                        </div>
+                                        <div class="stat-body">
+                                            <div class="stat-title">التذاكر</div>
+                                            <div class="stat-value" data-stat-key="stage_tazker">0</div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- <hr> --}}
+
+                        <div id="completedStatsSection">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="fw-semibold">احصائيات العقود المكتملة</span>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <button type="button" class="stat-card stat-filter stat-card-completed"
+                                        data-status="completed">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-clipboard-check"></i>
+                                        </div>
+                                        <div class="stat-body">
+                                            <div class="stat-title">المكتملة (إجمالي)</div>
+                                            <div class="stat-value" data-stat-key="completed_total">0</div>
+                                        </div>
+                                    </button>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <button type="button" class="stat-card stat-filter stat-card-arrival"
+                                        data-status="arrival">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-plane-arrival"></i>
+                                        </div>
+                                        <div class="stat-body">
+                                            <div class="stat-title">وصول</div>
+                                            <div class="stat-value" data-stat-key="stage_arrival">0</div>
+                                        </div>
+                                    </button>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <button type="button" class="stat-card stat-filter stat-card-completed"
+                                        data-status="completed">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-circle-check"></i>
+                                        </div>
+                                        <div class="stat-body">
+                                            <div class="stat-title">مكتمل</div>
+                                            <div class="stat-value" data-stat-key="stage_completed">0</div>
+                                        </div>
+                                    </button>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <button type="button" class="stat-card stat-filter stat-card-warranty-active"
+                                        data-status="completed" data-warranty="active">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-shield"></i>
+                                        </div>
+                                        <div class="stat-body">
+                                            <div class="stat-title">ضمان نشط</div>
+                                            <div class="stat-value" data-stat-key="warranty_active">0</div>
+                                        </div>
+                                    </button>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <button type="button" class="stat-card stat-filter stat-card-warranty-expired"
+                                        data-status="completed" data-warranty="expired">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-times-circle"></i>
+                                        </div>
+                                        <div class="stat-body">
+                                            <div class="stat-title">ضمان منتهي</div>
+                                            <div class="stat-value" data-stat-key="warranty_expired">0</div>
+                                        </div>
+                                    </button>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <button type="button" class="stat-card stat-filter stat-card-warranty-na"
+                                        data-status="completed" data-warranty="not_applicable">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-minus-circle"></i>
+                                        </div>
+                                        <div class="stat-body">
+                                            <div class="stat-title">بدون ضمان</div>
+                                            <div class="stat-value" data-stat-key="warranty_not_applicable">0</div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Filters Section -->
         <div class="card filter-card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
@@ -78,7 +419,8 @@
                     <div class="row mt-3">
                         <div class="col-md-3">
                             <label for="clientNameFilter" class="form-label">اسم العميل:</label>
-                            <input type="text" id="clientNameFilter" class="form-control" placeholder="ابحث باسم العميل">
+                            <input type="text" id="clientNameFilter" class="form-control"
+                                placeholder="ابحث باسم العميل">
                         </div>
                         <div class="col-md-3">
                             <label for="maidPassportFilter" class="form-label">رقم جواز العاملة:</label>
@@ -87,7 +429,8 @@
                         </div>
                         <div class="col-md-3">
                             <label for="maidNameFilter" class="form-label">اسم العاملة:</label>
-                            <input type="text" id="maidNameFilter" class="form-control" placeholder="ابحث باسم العاملة">
+                            <input type="text" id="maidNameFilter" class="form-control"
+                                placeholder="ابحث باسم العاملة">
                         </div>
                         <div class="col-md-3">
                             <label for="contractNumberFilter" class="form-label">رقم العقد:</label>
@@ -103,11 +446,11 @@
 
                                 @if (isset($filterOptions) && isset($filterOptions['nationalities']))
                                     @foreach ($filterOptions['nationalities'] as $nationality)
-                                        <option value="{{ $nationality->sub_title }}">{{ $nationality->sub_title }}</option>
+                                        <option value="{{ $nationality->sub_title }}">{{ $nationality->sub_title }}
+                                        </option>
                                     @endforeach
                                 @else
                                     <option value="">لا توجد بيانات</option>
-
                                 @endif
                             </select>
                         </div>
@@ -122,7 +465,6 @@
                                     @endforeach
                                 @else
                                     <option value="">لا توجد بيانات</option>
-
                                 @endif
                             </select>
                         </div>
@@ -137,7 +479,6 @@
                                     @endforeach
                                 @else
                                     <option value="">لا توجد بيانات</option>
-
                                 @endif
                             </select>
                         </div>
@@ -162,7 +503,6 @@
                                     @endforeach
                                 @else
                                     <option value="">لا توجد بيانات</option>
-
                                 @endif
                             </select>
                         </div>
@@ -240,7 +580,8 @@
                         </div>
                     </div>
 
-                    <table id="dataTableObject" class="table table-hover align-middle mb-0 table-style" style="width:100%">
+                    <table id="dataTableObject" class="table table-hover align-middle mb-0 table-style"
+                        style="width:100%">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -416,6 +757,48 @@
                 </div>
             </div>
         </div>
+
+
+        @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE))
+            <!-- دايلوج إضافة ملاحظة -->
+            <div class="modal fade" id="addContractNoteModal" tabindex="-1" aria-labelledby="addContractNoteModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog">
+                    <form method="POST" id="addContractNoteForm">
+                        @csrf
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="addContractNoteModalLabel">
+                                    <i class="fas fa-sticky-note"></i>
+                                    إضافة ملاحظة للعقد
+                                    <span id="contractNoteContractId"></span>
+                                    <span class="badge bg-info ms-2" id="contractNotesCountBadge">0</span>
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label for="contract_note" class="form-label">الملاحظة</label>
+                                    <textarea class="form-control" id="contract_note" name="note" rows="4" maxlength="1000" required>{{ old('note') }}</textarea>
+                                    @error('note')
+                                        <div class="text-danger small mt-1">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    إلغاء
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    حفظ الملاحظة
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endif
     @else
         @include('components.no_permissions')
     @endif
@@ -454,6 +837,57 @@
                 }
             }
 
+            function toggleStatsSections() {
+                const statusValue = $('#statusFilter').val();
+                const currentStatuses = ['current', 'pending_maid_selection', 'new', 'msaned', 'tafwed', 'taffez',
+                    'tazker'
+                ];
+                const completedStatuses = ['completed', 'arrival'];
+
+                if (!statusValue) {
+                    $('#currentStatsSection').show();
+                    $('#completedStatsSection').show();
+                    return;
+                }
+
+                if (currentStatuses.includes(statusValue)) {
+                    $('#currentStatsSection').show();
+                    $('#completedStatsSection').hide();
+                    return;
+                }
+
+                if (completedStatuses.includes(statusValue)) {
+                    $('#currentStatsSection').hide();
+                    $('#completedStatsSection').show();
+                    return;
+                }
+
+                $('#currentStatsSection').show();
+                $('#completedStatsSection').show();
+            }
+
+            function syncStatSelection() {
+                $('.stat-filter').removeClass('active');
+
+                const statusValue = $('#statusFilter').val();
+                const warrantyValue = $('#warrantyStatusFilter').val();
+
+                if (warrantyValue) {
+                    const warrantyBtn = $(`.stat-filter[data-warranty="${warrantyValue}"]`).first();
+                    if (warrantyBtn.length) {
+                        warrantyBtn.addClass('active');
+                    }
+                    return;
+                }
+
+                if (statusValue) {
+                    const statusBtn = $(`.stat-filter[data-status="${statusValue}"]:not([data-warranty])`).first();
+                    if (statusBtn.length) {
+                        statusBtn.addClass('active');
+                    }
+                }
+            }
+
             // تطبيق الـ status من الـ URL على الفلتر أولاً
             const urlStatus = getStatusFromUrl();
             const urlWarrantyStatus = getWarrantyStatusFromUrl();
@@ -472,6 +906,9 @@
                     console.log('Warranty status from URL applied to filter:', urlWarrantyStatus);
                 }
             }
+
+            toggleStatsSections();
+            syncStatSelection();
 
             let columns = [{
                     "data": 'id',
@@ -562,7 +999,8 @@
 
                         // إضافة فلتر حالة الضمان فقط إذا كانت الحالة "عقود مكتملة"
                         const statusValue = $('#statusFilter').val();
-                        if ((statusValue === 'arrival' || statusValue === 'completed') && $('#warrantyStatusFilter').val()) {
+                        if ((statusValue === 'arrival' || statusValue === 'completed') && $(
+                                '#warrantyStatusFilter').val()) {
                             d.warranty_status = $('#warrantyStatusFilter').val();
                         }
                     },
@@ -638,6 +1076,8 @@
             // تحديث الجدول عند تغيير الفلتر
             $('#statusFilter').on('change', function() {
                 toggleWarrantyFilter();
+                toggleStatsSections();
+                syncStatSelection();
 
                 // لا تحدث الجدول إذا كان التغيير من الـ URL
                 if (urlStatus && $(this).val() === urlStatus) {
@@ -658,6 +1098,33 @@
 
             // تحديث الجدول عند تغيير فلتر حالة الضمان
             $('#warrantyStatusFilter').on('change', function() {
+                syncStatSelection();
+                $('#dataTableObject').addClass('loading');
+                dataTable.ajax.reload(function() {
+                    $('#dataTableObject').removeClass('loading');
+                });
+            });
+
+            // الفلترة من خلال بطاقات الإحصائيات
+            $(document).on('click', '.stat-filter', function() {
+                const statusValue = $(this).data('status');
+                const warrantyValue = $(this).data('warranty');
+
+                if (statusValue !== undefined) {
+                    $('#statusFilter').val(statusValue);
+                }
+
+                toggleWarrantyFilter();
+
+                if (warrantyValue !== undefined) {
+                    $('#warrantyStatusFilter').val(warrantyValue);
+                } else {
+                    $('#warrantyStatusFilter').val('');
+                }
+
+                toggleStatsSections();
+                syncStatSelection();
+
                 $('#dataTableObject').addClass('loading');
                 dataTable.ajax.reload(function() {
                     $('#dataTableObject').removeClass('loading');
@@ -691,6 +1158,8 @@
                 localStorage.removeItem('contractFilters'); // مسح الفلاتر المحفوظة
 
                 toggleWarrantyFilter();
+                toggleStatsSections();
+                syncStatSelection();
 
                 $('#dataTableObject').addClass('loading');
                 dataTable.ajax.reload(function() {
@@ -700,8 +1169,7 @@
 
             // تحديث الإحصائيات عند تحميل البيانات
             dataTable.on('xhr', function() {
-                // تحديث الإحصائيات فقط إذا كانت معطلة
-                // updateStatistics();
+                updateStatistics();
 
                 // إظهار إشعار إذا لم توجد نتائج فقط عند البحث (وليس عند فلتر الحالة الأساسي)
                 var info = dataTable.page.info();
@@ -756,32 +1224,41 @@
 
             // دالة تحديث الإحصائيات
             function updateStatistics() {
-                // تم تعطيل الإحصائيات مؤقتاً
-                return;
-
                 $.ajax({
                     url: '{{ route('RecruitmentContract.statistics') }}',
                     method: 'GET',
                     data: {
                         status: $('#statusFilter').val(),
+                        warranty_status: $('#warrantyStatusFilter').val(),
                         date_from: $('#dateFromFilter').val(),
-                        date_to: $('#dateToFilter').val()
+                        date_to: $('#dateToFilter').val(),
+                        client_phone: $('#clientPhoneFilter').val(),
+                        client_name: $('#clientNameFilter').val(),
+                        maid_passport: $('#maidPassportFilter').val(),
+                        maid_name: $('#maidNameFilter').val(),
+                        contract_number: $('#contractNumberFilter').val(),
+                        nationality: $('#nationalityFilter').val(),
+                        religion: $('#religionFilter').val(),
+                        office_id: $('#officeFilter').val(),
+                        city: $('#cityFilter').val(),
+                        marketer_id: $('#marketerFilter').val()
                     },
                     success: function(response) {
                         if (response.success) {
-                            $('#totalContracts').text(response.data.total || 0);
-                            $('#activeContracts').text(response.data.active || 0);
-                            $('#pendingContracts').text(response.data.pending || 0);
-                            $('#completedContracts').text(response.data.completed || 0);
-                            $('#returnedContracts').text(response.data.returned || 0);
-                            $('#closedContracts').text(response.data.closed || 0);
+                            const data = response.data || {};
+                            $('[data-stat-key]').each(function() {
+                                const key = $(this).data('statKey');
+                                $(this).text(data[key] ?? 0);
+                            });
+                            toggleStatsSections();
+                            syncStatSelection();
                         }
+                    },
+                    error: function(xhr) {
+                        console.error('Statistics error:', xhr.responseText);
                     }
                 });
             }
-
-            // تحديث الإحصائيات عند تحميل الصفحة
-            updateStatistics();
 
             // حفظ الفلاتر في localStorage
             function saveFilters() {
@@ -833,6 +1310,9 @@
             // تحميل الفلاتر عند تحميل الصفحة
             loadFilters();
             toggleWarrantyFilter();
+            toggleStatsSections();
+            syncStatSelection();
+            updateStatistics();
 
             // حفظ الفلاتر عند تغييرها (فقط إذا لم يكن هناك status في الـ URL)
             $('.form-control, .form-select').on('change', function() {
@@ -1431,7 +1911,7 @@
 
                                     // If we're on the tazker status page, redirect to under warranty page
                                     if (window.location.href.includes(
-                                        'status=tazker')) {
+                                            'status=tazker')) {
                                         setTimeout(function() {
                                             window.location.href =
                                                 '{{ route('RecruitmentContract.index', ['status' => 'under_warranty']) }}';
@@ -1668,10 +2148,99 @@
             $('#deleteContractModal').on('hidden.bs.modal', function() {
                 contractToDelete = null;
             });
+
+
+            // حفظ ملاحظة العقد
+            let currentNoteContractId = null;
+            let currentNotesCount = 0;
+            let currentNoteButton = null;
+
+            $(document).on('click', '.add-contract-note-btn', function() {
+                currentNoteButton = this;
+                currentNoteContractId = $(this).data('contract-id');
+                currentNotesCount = parseInt($(this).data('notes-count'), 10) || 0;
+
+                const url = "{{ route('RecruitmentContract.notes.store', ':id') }}".replace(':id', currentNoteContractId);
+                $('#addContractNoteForm').attr('action', url);
+                $('#contractNoteContractId').text('#' + currentNoteContractId);
+                $('#contractNotesCountBadge').text(`هناك ${currentNotesCount} ملاحظات سابقة`);
+            });
+
+            $('#addContractNoteForm').on('submit', function(e) {
+                e.preventDefault();
+                const $form = $(this);
+                const url = $form.attr('action');
+                const data = $form.serialize();
+                const $submitBtn = $form.find('button[type="submit"]');
+
+                if (!url) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: 'لم يتم تحديد العقد'
+                    });
+                    return;
+                }
+
+                $submitBtn.prop('disabled', true);
+
+                $.ajax({
+                    url: url,
+                    method: "POST",
+                    data: data,
+                    headers: {
+                        'Accept': 'application/json'
+                    },
+                    success: function(res) {
+                        if (res && res.success) {
+                            if (typeof res.notes_count !== 'undefined') {
+                                currentNotesCount = res.notes_count;
+                            } else {
+                                currentNotesCount = (currentNotesCount || 0) + 1;
+                            }
+
+                            $('#contractNotesCountBadge').text(currentNotesCount);
+                            if (currentNoteButton) {
+                                $(currentNoteButton).data('notes-count', currentNotesCount);
+                            }
+
+                            $('#addContractNoteModal').modal('hide');
+                            $form[0].reset();
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'نجاح',
+                                text: res.message || 'تم إضافة الملاحظة بنجاح'
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'خطأ',
+                                text: res.message || 'حدث خطأ أثناء إضافة الملاحظة'
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        let message = 'حدث خطأ أثناء إضافة الملاحظة';
+                        if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                            const errors = Object.values(xhr.responseJSON.errors).flat();
+                            if (errors.length) {
+                                message = errors.join('\\n');
+                            }
+                        } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        }
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ',
+                            text: message
+                        });
+                    },
+                    complete: function() {
+                        $submitBtn.prop('disabled', false);
+                    }
+                });
+            });
         });
     </script>
 @endsection
-
-
-
-

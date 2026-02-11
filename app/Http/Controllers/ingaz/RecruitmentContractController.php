@@ -11,6 +11,7 @@ use App\Models\Contract;
 use App\Models\ContractInfo;
 use App\Models\ContractStatusLog;
 use App\Models\ingaz\Contact;
+use App\Models\ingaz\ContractNote;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Order;
@@ -86,6 +87,7 @@ class RecruitmentContractController extends Controller
                 'order.details', // تفاصيل الطلب
                 'order.details.admin' // بيانات المسوق
             ])
+                ->withCount('notes')
                 ->whereIn('type', ['recruitment', 'maid']);
 
             // فلتر الحالة - استخدام query parameter فقط
@@ -739,7 +741,7 @@ class RecruitmentContractController extends Controller
                                     <i class="fas fa-file-pdf"></i> عرض الفاتورة
                                 </a></li>';
                     } else {
-                        $actions .= '<li><a class="dropdown-item" href="' . route('invoices.create') . '?contract_id='. $row->id . '" target="_blank">
+                        $actions .= '<li><a class="dropdown-item" href="' . route('invoices.create') . '?contract_id=' . $row->id . '" target="_blank">
                                     <i class="fas fa-file-invoice"></i> اضافة فاتورة
                                 </a></li>';
                     }
@@ -834,6 +836,12 @@ class RecruitmentContractController extends Controller
                                         </button></li>';
                         }
                     }
+                    
+                    // اضافة ملاحظة على العقد
+                    $actions .= '<li><button class="dropdown-item add-contract-note-btn" data-contract-id="' . $row->id . '" data-notes-count="' . ($row->notes_count ?? 0) . '" data-bs-toggle="modal"
+                                    data-bs-target="#addContractNoteModal">
+                                            <i class="fas fa-plus"></i> اضافة ملاحظة
+                                        </button></li>';
 
                     $actions .= '</ul></div>';
 
@@ -870,7 +878,11 @@ class RecruitmentContractController extends Controller
             'maid.religion',
             'maid.jobTitles',
             'info',
-            'contract_status_logs'
+            'contract_status_logs',
+            'notes' => function ($query) {
+                $query->latest();
+            },
+            'notes.admin'
         ])->findOrFail($id);
 
         // إضافة علاقة order فقط إذا كان order_id موجود
@@ -902,6 +914,52 @@ class RecruitmentContractController extends Controller
 
         //        return $contract;
         return view('admin.ingaz.RecruitmentContract.details', compact('contract', 'info', 'marketer'));
+    }
+
+    public function storeNote(Request $request, $contractId)
+    {
+        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE)) {
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية لإضافة ملاحظات للعقد'
+                ], 403);
+            }
+
+            return redirect()->back()->with('error', 'ليس لديك صلاحية لإضافة ملاحظات للعقد');
+        }
+
+        $request->validate([
+            'note' => 'required|string|max:1000'
+        ]);
+
+        $contract = Contract::findOrFail($contractId);
+
+        $note = ContractNote::create([
+            'contract_id' => $contract->id,
+            'admin_id' => Auth::guard('admin')->id() ?? auth()->id(),
+            'note' => $request->note
+        ]);
+
+        if ($request->ajax() || $request->expectsJson()) {
+            $note->load('admin');
+            $notesCount = $contract->notes()->count();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم إضافة الملاحظة بنجاح',
+                'note' => [
+                    'id' => $note->id,
+                    'note' => $note->note,
+                    'admin_name' => $note->admin->name ?? 'غير محدد',
+                    'created_at' => $note->created_at ? $note->created_at->format('Y-m-d H:i') : ''
+                ],
+                'notes_count' => $notesCount,
+                'contract_id' => $contract->id
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'تم إضافة الملاحظة بنجاح');
     }
 
     public function create()
@@ -1208,6 +1266,15 @@ class RecruitmentContractController extends Controller
                         'contract_id' => $contract->id
                     ]);
                 }
+            }
+
+            // حفظ ملاحظة العقد
+            if ($request->filled('contract_note')) {
+                ContractNote::create([
+                    'contract_id' => $contract->id,
+                    'admin_id'    => auth()->id(),
+                    'note'        => $request->contract_note,
+                ]);
             }
 
             DB::commit();
@@ -2504,140 +2571,54 @@ class RecruitmentContractController extends Controller
     public function statistics(Request $request)
     {
         try {
-            $query = Contract::where('type', 'recruitment');
+            $baseQuery = Contract::query()
+                ->whereIn('type', ['recruitment', 'maid']);
 
-            // فلتر الحالة
-            if ($request->filled('status')) {
-                $query->where('status', $request->status);
-            }
+            // تطبيق نفس فلاتر البحث (بدون الحالة وحالة الضمان) للحصول على إحصائيات قابلة للتنقل
+            $this->applyContractFilters($baseQuery, $request, true, true);
 
-            // فلتر حالة الضمان إذا تم تمريرها (حسب تاريخ انتهاء الضمان)
-            if ($request->filled('warranty_status')) {
-                $warrantyStatuses = array_filter(array_map('trim', explode(',', $request->warranty_status)));
-                if (!empty($warrantyStatuses)) {
-                    $today = \Carbon\Carbon::now()->toDateString();
-                    $query->where(function ($q) use ($warrantyStatuses, $today) {
-                        foreach ($warrantyStatuses as $status) {
-                            switch ($status) {
-                                case 'active':
-                                    $q->orWhere(function ($sub) use ($today) {
-                                        $sub->whereNotNull('warranty_end_date')
-                                            ->whereDate('warranty_end_date', '>=', $today);
-                                    });
-                                    break;
-                                case 'expired':
-                                    $q->orWhere(function ($sub) use ($today) {
-                                        $sub->whereNotNull('warranty_end_date')
-                                            ->whereDate('warranty_end_date', '<', $today);
-                                    });
-                                    break;
-                                case 'not_applicable':
-                                    $q->orWhereNull('warranty_end_date');
-                                    break;
-                                default:
-                                    $q->orWhere('warranty_status', $status);
-                                    break;
-                            }
-                        }
-                    });
-                }
-            }
-
-            // فلتر التاريخ من
-            if ($request->filled('date_from')) {
-                $query->whereDate('created_at', '>=', $request->date_from);
-            }
-
-            // فلتر التاريخ إلى
-            if ($request->filled('date_to')) {
-                $query->whereDate('created_at', '<=', $request->date_to);
-            }
-
-            // فلتر رقم جوال العميل
-            if ($request->filled('client_phone')) {
-                $query->whereHas('user', function ($q) use ($request) {
-                    $q->where('phone', 'like', '%' . $request->client_phone . '%');
-                });
-            }
-
-            // فلتر اسم العميل
-            if ($request->filled('client_name')) {
-                $query->whereHas('user', function ($q) use ($request) {
-                    $q->where('name', 'like', '%' . $request->client_name . '%');
-                });
-            }
-
-            // فلتر رقم جواز العاملة
-            if ($request->filled('maid_passport')) {
-                $query->whereHas('maid', function ($q) use ($request) {
-                    $q->where('passport_num', 'like', '%' . $request->maid_passport . '%');
-                });
-            }
-
-            // فلتر اسم العاملة
-            if ($request->filled('maid_name')) {
-                $query->whereHas('maid', function ($q) use ($request) {
-                    $q->where('name', 'like', '%' . $request->maid_name . '%');
-                });
-            }
-
-            // فلتر رقم العقد
-            if ($request->filled('contract_number')) {
-                $query->where('id', 'like', '%' . $request->contract_number . '%');
-            }
-
-            // فلتر جنسية العاملة
-            if ($request->filled('nationality')) {
-                $query->whereHas('maid.nationality.translations', function ($q) use ($request) {
-                    $q->where('sub_title', $request->nationality);
-                });
-            }
-
-            // فلتر ديانة العاملة
-            if ($request->filled('religion')) {
-                $query->whereHas('maid.religion.translations', function ($q) use ($request) {
-                    $q->where('title', $request->religion);
-                });
-            }
-
-            // فلتر المكتب الخارجي
-            if ($request->filled('office_id')) {
-                $query->whereHas('maid', function ($q) use ($request) {
-                    $q->where('office_id', $request->office_id);
-                });
-            }
-
-            // فلتر مدينة العميل
-            if ($request->filled('city')) {
-                $query->whereHas('user', function ($q) use ($request) {
-                    $q->where('city', 'like', '%' . $request->city . '%');
-                });
-            }
-
-            $total = $query->count();
-            $active = $query->whereIn('status', [
+            $today = \Carbon\Carbon::now()->toDateString();
+            $currentStatuses = [
+                ContractStatusEnum::PendingMaidSelection->value,
                 ContractStatusEnum::New->value,
                 ContractStatusEnum::Msaned->value,
                 ContractStatusEnum::Tafwed->value,
                 ContractStatusEnum::Taffez->value,
                 ContractStatusEnum::Tazker->value,
-                ContractStatusEnum::Arrival->value
-            ])->count();
-            $pending = $query->where('status', ContractStatusEnum::PendingMaidSelection->value)->count();
-            $completed = $query->where('status', ContractStatusEnum::Completed->value)->count();
-            $returned = $query->where('status', ContractStatusEnum::Back->value)->count();
-            $closed = $query->where('status', ContractStatusEnum::Completed->value)->count();
+            ];
+            $completedStatuses = [
+                ContractStatusEnum::Arrival->value,
+                ContractStatusEnum::Completed->value,
+            ];
+
+            $counts = [
+                'total' => (clone $baseQuery)->count(),
+                'current_total' => (clone $baseQuery)->whereIn('status', $currentStatuses)->count(),
+                'completed_total' => (clone $baseQuery)->whereIn('status', $completedStatuses)->count(),
+                'stage_pending_maid_selection' => (clone $baseQuery)->where('status', ContractStatusEnum::PendingMaidSelection->value)->count(),
+                'stage_new' => (clone $baseQuery)->where('status', ContractStatusEnum::New->value)->count(),
+                'stage_msaned' => (clone $baseQuery)->where('status', ContractStatusEnum::Msaned->value)->count(),
+                'stage_tafwed' => (clone $baseQuery)->where('status', ContractStatusEnum::Tafwed->value)->count(),
+                'stage_taffez' => (clone $baseQuery)->where('status', ContractStatusEnum::Taffez->value)->count(),
+                'stage_tazker' => (clone $baseQuery)->where('status', ContractStatusEnum::Tazker->value)->count(),
+                'stage_arrival' => (clone $baseQuery)->where('status', ContractStatusEnum::Arrival->value)->count(),
+                'stage_completed' => (clone $baseQuery)->where('status', ContractStatusEnum::Completed->value)->count(),
+                'warranty_active' => (clone $baseQuery)->whereIn('status', $completedStatuses)
+                    ->whereNotNull('warranty_end_date')
+                    ->whereDate('warranty_end_date', '>=', $today)
+                    ->count(),
+                'warranty_expired' => (clone $baseQuery)->whereIn('status', $completedStatuses)
+                    ->whereNotNull('warranty_end_date')
+                    ->whereDate('warranty_end_date', '<', $today)
+                    ->count(),
+                'warranty_not_applicable' => (clone $baseQuery)->whereIn('status', $completedStatuses)
+                    ->whereNull('warranty_end_date')
+                    ->count(),
+            ];
 
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'total' => $total,
-                    'active' => $active,
-                    'pending' => $pending,
-                    'completed' => $completed,
-                    'returned' => $returned,
-                    'closed' => $closed
-                ]
+                'data' => $counts
             ]);
         } catch (\Exception $e) {
             logger()->error('Error in contract statistics:', [
@@ -2649,6 +2630,133 @@ class RecruitmentContractController extends Controller
                 'success' => false,
                 'message' => 'حدث خطأ أثناء جلب الإحصائيات'
             ], 500);
+        }
+    }
+
+    private function applyContractFilters($query, Request $request, bool $ignoreStatus = false, bool $ignoreWarranty = false): void
+    {
+        // فلتر الحالة - استخدام query parameter فقط
+        if (!$ignoreStatus) {
+            $statusFilter = $request->get('status');
+            if ($statusFilter !== null && $statusFilter !== '') {
+                if ($statusFilter == 'current') {
+                    $query->whereIn('status', [
+                        ContractStatusEnum::PendingMaidSelection,
+                        ContractStatusEnum::New,
+                        ContractStatusEnum::Msaned,
+                        ContractStatusEnum::Tafwed,
+                        ContractStatusEnum::Taffez,
+                        ContractStatusEnum::Tazker
+                    ]);
+                } elseif ($statusFilter == 'completed') {
+                    $query->whereIn('status', [ContractStatusEnum::Completed, ContractStatusEnum::Arrival]);
+                } else {
+                    $query->where('status', $statusFilter);
+                }
+            }
+        }
+
+        // فلتر حالة الضمان
+        if (!$ignoreWarranty && $request->filled('warranty_status')) {
+            $warrantyStatuses = array_filter(array_map('trim', explode(',', $request->warranty_status)));
+            if (!empty($warrantyStatuses)) {
+                $today = \Carbon\Carbon::now()->toDateString();
+                $query->where(function ($q) use ($warrantyStatuses, $today) {
+                    foreach ($warrantyStatuses as $status) {
+                        switch ($status) {
+                            case 'active':
+                                $q->orWhere(function ($sub) use ($today) {
+                                    $sub->whereNotNull('warranty_end_date')
+                                        ->whereDate('warranty_end_date', '>=', $today);
+                                });
+                                break;
+                            case 'expired':
+                                $q->orWhere(function ($sub) use ($today) {
+                                    $sub->whereNotNull('warranty_end_date')
+                                        ->whereDate('warranty_end_date', '<', $today);
+                                });
+                                break;
+                            case 'not_applicable':
+                                $q->orWhereNull('warranty_end_date');
+                                break;
+                            default:
+                                $q->orWhere('warranty_status', $status);
+                                break;
+                        }
+                    }
+                });
+            }
+        }
+
+        // فلتر التاريخ من
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        // فلتر التاريخ إلى
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        // فلتر رقم جوال العميل
+        if ($request->filled('client_phone')) {
+            $query->whereHas('user', function ($q) use ($request) {
+                $q->where('phone', 'like', '%' . $request->client_phone . '%');
+            });
+        }
+
+        // فلتر اسم العميل
+        if ($request->filled('client_name')) {
+            $query->whereHas('user', function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->client_name . '%');
+            });
+        }
+
+        // فلتر رقم جواز العاملة
+        if ($request->filled('maid_passport')) {
+            $query->whereHas('maid', function ($q) use ($request) {
+                $q->where('passport_num', 'like', '%' . $request->maid_passport . '%');
+            });
+        }
+
+        // فلتر اسم العاملة
+        if ($request->filled('maid_name')) {
+            $query->whereHas('maid', function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->maid_name . '%');
+            });
+        }
+
+        // فلتر رقم العقد
+        if ($request->filled('contract_number')) {
+            $query->where('id', 'like', '%' . $request->contract_number . '%');
+        }
+
+        // فلتر جنسية العاملة
+        if ($request->filled('nationality')) {
+            $query->whereHas('maid.nationality.translations', function ($q) use ($request) {
+                $q->where('sub_title', $request->nationality);
+            });
+        }
+
+        // فلتر ديانة العاملة
+        if ($request->filled('religion')) {
+            $query->whereHas('maid.religion.translations', function ($q) use ($request) {
+                $q->where('title', $request->religion);
+            });
+        }
+
+        // فلتر المكتب الخارجي
+        if ($request->filled('office_id')) {
+            $query->whereHas('maid', function ($q) use ($request) {
+                $q->where('office_id', $request->office_id);
+            });
+        }
+
+        // فلتر مدينة العميل
+        if ($request->filled('city')) {
+            $query->whereHas('user', function ($q) use ($request) {
+                $q->where('city', 'like', '%' . $request->city . '%');
+            });
         }
     }
 
@@ -3023,3 +3131,4 @@ class RecruitmentContractController extends Controller
         }
     }
 }
+

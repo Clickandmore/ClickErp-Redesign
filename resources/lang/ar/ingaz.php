@@ -1414,6 +1414,7 @@
   'worker_brought_from' => 'مكان استقدام العاملة',
   'attachments' => 'المرفقات',
   'renew-contract' => 'طلب تجديد العقود',
+  'no_renew_contracts' => 'لا توجد طلبات تجديد عقود حالياً',
   'sponsor_card' => 'بطاقة الكفيل',
   'first_page_of_the_worker_passport' => 'أول صفحة من جواز العاملة',
   'visa_printed_in_the_worker_passport' => 'الفيزا المطبوعة بالجواز',
