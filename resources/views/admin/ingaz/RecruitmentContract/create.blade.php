@@ -482,6 +482,12 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <div class="col-12 mb-2">
+                                <label class="form-label">اضافة ملاحظة (اختياري) : </label>
+                                <textarea id="contract_note" name="contract_note" class="form-control" id="" cols="30"
+                                    rows="6"></textarea>
+                            </div>
                         </div>
                     </div>
                     <!-- زر الحفظ في تبويب عقد جديد بدون طلب مسبق -->
@@ -582,6 +588,23 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="col-12 mb-4">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <h4 class="mb-0">ملاحظات على العقد</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="col-12 mb-2">
+                                    <label class="form-label">اضافة ملاحظة (اختياري) : </label>
+                                    <textarea id="contract_note" name="contract_note" class="form-control" id="" cols="30"
+                                        rows="6"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
 
                     <div class="col-12">
                         <div class="card">
@@ -1568,7 +1591,7 @@
                             isValid = false;
                             $('#required_maid_nationality').addClass('is-invalid');
                             $('#err_required_maid_nationality').text(
-                            'يرجى اختيار الجنسية المطلوبة للعاملة');
+                                'يرجى اختيار الجنسية المطلوبة للعاملة');
                             console.log('Required maid nationality validation failed: empty');
                         } else {
                             $('#required_maid_nationality').removeClass('is-invalid');
@@ -1886,7 +1909,7 @@
                     maid_job: isNewContractTab ? (maidId ? $('#new_maid_job').val() : 'Postponed') :
                         'From existing order',
                     maid_nationality: isNewContractTab ? (maidId ? $('#new_maid_nationality')
-                    .val() : 'Postponed') : 'From existing order',
+                        .val() : 'Postponed') : 'From existing order',
                     maid_salary: isNewContractTab ? (maidId ? $('#new_maid_salary').val() :
                         'Postponed') : 'From existing order',
                     maid_experience_years: isNewContractTab ? (maidId ? $(
@@ -1960,7 +1983,7 @@
                     formData.append('required_maid_age_min', $('#required_maid_age_min').val() || '');
                     formData.append('required_maid_age_max', $('#required_maid_age_max').val() || '');
                     formData.append('required_maid_experience_min', $('#required_maid_experience_min')
-                    .val() || '');
+                        .val() || '');
                     formData.append('required_maid_job_title', $('#required_maid_job_title').val() || '');
                     formData.append('required_maid_notes', $('#required_maid_notes').val() || '');
                 }
@@ -2018,9 +2041,11 @@
                                 text: response.message || 'تم إنشاء العقد بنجاح',
                                 confirmButtonText: 'حسناً'
                             }).then((result) => {
-                                 if (redirectToInvoice && response.contract && response.contract.id) {
+                                if (redirectToInvoice && response.contract && response
+                                    .contract.id) {
                                     window.location.href =
-                                        invoiceCreateUrl + '?contract_id=' + response.contract.id;
+                                        invoiceCreateUrl + '?contract_id=' + response
+                                        .contract.id;
                                 } else {
                                     window.location.href =
                                         "{{ route('RecruitmentContract.index') }}";

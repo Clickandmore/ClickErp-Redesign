@@ -6,6 +6,7 @@ use App\Models\ingaz\Maid;
 use App\Models\ContractReturnRequest;use App\Models\ingaz\User;
 use App\Models\ContractInfo;
 use App\Enums\ingaz\ContractStatusEnum;
+use App\Models\ingaz\ContractNote;
 use App\Models\ingaz\Invoice;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -82,6 +83,10 @@ class Contract extends Model
     public function invoice(){
         return $this->hasOne(Invoice::class, 'contract_id');
     }
+    public function notes(){
+        return $this->hasMany(ContractNote::class, 'contract_id');
+    }
+    
 
     public function latestShelterLog()
     {

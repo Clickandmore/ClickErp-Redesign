@@ -61,6 +61,7 @@ class StoreContractRequest extends MainRequest
             'maid_selection_postponed' => 'nullable|boolean',
             'marketer_id' => 'required|exists:admins,id',
             'required_maid_nationality' => 'nullable|exists:nationalities,id',
+            'contract_note' => 'nullable|string|max:2000',
         ];
     }
 

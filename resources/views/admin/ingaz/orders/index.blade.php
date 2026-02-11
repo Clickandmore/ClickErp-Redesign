@@ -135,6 +135,7 @@
             border-radius: 9px;
             white-space: nowrap;
             transition: all 0.3s ease-in-out;
+            font-size: 13px;
         }
 
         button.edit-status:hover {
@@ -321,7 +322,7 @@
                                 <thead>
                                     <tr>
                                         <th>ID</th>
-                                        <th>{{ helperTrans('ingaz.order_code') }}</th>
+                                        <th>{{ helperTrans('ingaz.maid_photo') }}</th>
                                         <th>{{ helperTrans('ingaz.client') }}</th>
                                         <th>{{ helperTrans('ingaz.phone') }}</th>
                                         <th>{{ helperTrans('ingaz.nationality') }}</th>
@@ -365,7 +366,7 @@
                     searchable: false
                 },
                 {
-                    "data": "order_code",
+                    "data": "maid_photo",
                     orderable: true,
                     searchable: true
                 },

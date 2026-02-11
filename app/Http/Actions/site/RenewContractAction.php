@@ -19,6 +19,9 @@ class RenewContractAction extends MainAction
 
     public function storeRenewContract($data)
     {
+        if (Auth::check() && empty($data['user_id'])) {
+            $data['user_id'] = Auth::id();
+        }
         if (isset($data['sponsor_card'])) {
             $data['sponsor_card'] = uploadFile($data['sponsor_card'], $this->fileFolder);
 

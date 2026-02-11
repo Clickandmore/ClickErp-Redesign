@@ -144,11 +144,11 @@ class OrderController extends Controller
 
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT)) {
                         $statusHtml .= ' <button type="button" class="edit-status" data-id="' . $row->id . '" title="تعديل الحالة">
-                                حدث الحالة <i class="fa fa-pen"></i> 
+                                <i class="fa fa-pen"></i> 
                             </button>';
                     }
 
-                    return '<div class="d-inline-flex flex-column gap-3">' . $statusHtml . '</div>';
+                    return '<div class="d-flex align-items-center gap-2">' . $statusHtml . '</div>';
                 })
                 ->addColumn('timer', function ($row) {
                     return $this->getTimerHtml($row);
@@ -184,8 +184,10 @@ class OrderController extends Controller
                     }
                     return '<span class="badge bg-danger status-badge">' . __('ingaz.no_contract') . '</span>';
                 })
-                ->editColumn('order_code', function ($row) {
-                    return '<span class="order-code">' . $row->order_code . '</span>';
+                ->editColumn('maid_photo', function ($row) {
+                    $rawPath = $row->maid->image ?: ($row->maid->cv_preview ?: $row->maid->cv_file);
+                    $imageUrl = $rawPath ? showFile($rawPath) : asset('admin/assets/img/avatar.png');
+                    return '<img src="' . $imageUrl . '" alt="maid-avatar" class="border" style="width:65px;height:80px;object-fit:cover;border-radius: 5px;">';
                 })
                 ->editColumn('created_at', function ($row) {
                     return '<span class="text-muted">' . $row->created_at->format('Y-m-d H:i') . '</span>';

@@ -765,6 +765,54 @@
                 </div>
             </div>
 
+            <!-- ملاحظات العقد -->
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="info-card">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div class="card-title mb-0">
+                                <i class="fas fa-sticky-note text-warning"></i>
+                                ملاحظات العقد
+                            </div>
+                            @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE))
+                                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                                    data-bs-target="#addContractNoteModal">
+                                    <i class="fas fa-plus"></i>
+                                    إضافة ملاحظة
+                                </button>
+                            @endif
+                        </div>
+
+                        @if ($contract->notes && $contract->notes->count())
+                            <div class="table-responsive">
+                                <table class="info-table">
+                                    <thead>
+                                        <tr>
+                                            <th>الملاحظة</th>
+                                            <th>المستخدم</th>
+                                            <th>التاريخ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="contractNotesTableBody">
+                                        @foreach ($contract->notes as $note)
+                                            <tr>
+                                                <td>{!! nl2br(e($note->note)) !!}</td>
+                                                <td>{{ $note->admin->name ?? 'غير محدد' }}</td>
+                                                <td>{{ $note->created_at ? $note->created_at->format('Y-m-d H:i') : '' }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <div class="alert alert-info mb-0" id="contractNotesEmpty">
+                                لا توجد ملاحظات لهذا العقد بعد.
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
             <!-- أزرار الإجراءات -->
             <div class="action-buttons">
                 {{-- <button type="button" class="btn-icon btn-print" onclick="printDiv()" title="طباعة العقد">
@@ -808,6 +856,45 @@
                 @endif
             </div>
         </div>
+
+        @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE))
+            <!-- دايلوج إضافة ملاحظة -->
+            <div class="modal fade" id="addContractNoteModal" tabindex="-1" aria-labelledby="addContractNoteModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog">
+                    <form method="POST" action="{{ route('RecruitmentContract.notes.store', $contract->id) }}" id="addContractNoteForm">
+                        @csrf
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="addContractNoteModalLabel">
+                                    <i class="fas fa-sticky-note"></i>
+                                    إضافة ملاحظة للعقد رقم #{{ $contract->id }}
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="form-group">
+                                    <label for="contract_note" class="form-label">الملاحظة</label>
+                                    <textarea class="form-control" id="contract_note" name="note" rows="4" maxlength="1000" required>{{ old('note') }}</textarea>
+                                    @error('note')
+                                        <div class="text-danger small mt-1">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    إلغاء
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    حفظ الملاحظة
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        @endif
 
         <!-- دايلوج تغيير العاملة -->
         <div class="modal fade" id="changeMaidModal" tabindex="-1" aria-labelledby="changeMaidModalLabel"
