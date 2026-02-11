@@ -236,6 +236,9 @@ Route::group(
             Route::get('orders/export/pdf', [OrderController::class, 'exportPdf'])->name('orders.export.pdf');
             Route::get('orders/export/excel', [OrderController::class, 'exportExcel'])->name('orders.export.excel');
 
+            // Messages
+            Route::get('messages', [\App\Http\Controllers\ingaz\MessageController::class, 'index'])->name('messages.index');
+
             // RecruitmentContract specific routes - MUST come before resource route
             Route::get('RecruitmentContract/available-maids', [RecruitmentContractController::class, 'getAvailableMaids'])->name('RecruitmentContract.availableMaids');
             Route::get('RecruitmentContract/filter-options', [RecruitmentContractController::class, 'getFilterOptions'])->name('RecruitmentContract.filterOptions');

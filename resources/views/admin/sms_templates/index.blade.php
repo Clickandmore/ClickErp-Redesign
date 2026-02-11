@@ -55,7 +55,7 @@
                             </div>
                         @endif
 
-                        <table class="table table-bordered table-striped">
+                        <table class="table table-bordered table-striped table-style">
                             <thead class="table-dark">
                                 <tr>
                                     <th>#</th>
