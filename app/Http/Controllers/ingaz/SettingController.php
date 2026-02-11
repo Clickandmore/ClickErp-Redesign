@@ -84,11 +84,27 @@ class SettingController extends Controller
      */
     public function index(Request $request, objAction $objAction)
     {
+        return $this->renderSection('general');
+    }
+
+    public function section(string $section)
+    {
+        return $this->renderSection($section);
+    }
+
+    private function renderSection(string $section)
+    {
+        $allowedSections = ['general', 'social', 'branding', 'content', 'policies'];
+        if (!in_array($section, $allowedSections, true)) {
+            $section = 'general';
+        }
+
         $settings = Setting::first();
         if (!$settings) {
             $settings = Setting::create();
         }
-        return view('admin.ingaz.settings.index', compact('settings'));
+
+        return view('admin.settings.sections.' . $section, compact('settings'));
     }
 
     /**

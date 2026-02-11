@@ -234,9 +234,10 @@
     position: relative;
     overflow: hidden;
     background: linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--stat-accent-from) 10%, var(--surface)),
-        color-mix(in srgb, var(--stat-accent-to) 8%, var(--surface))
+        145deg,
+        #ffffff 0%,
+        color-mix(in srgb, var(--stat-accent-from) 6%, var(--surface)) 55%,
+        color-mix(in srgb, var(--stat-accent-to) 8%, #ffffff) 100%
     );
 }
 
@@ -255,7 +256,7 @@
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(15, 23, 42, 0.06));
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.16));
     pointer-events: none;
 }
 
@@ -320,6 +321,29 @@
 
 .stat-card .btn-light.text-dark {
     color: var(--text);
+}
+
+.stat-label {
+    display: block;
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 2px;
+}
+
+.stat-meta {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.stat-card .progress {
+    background: rgba(var(--dash-primary-rgb), 0.12);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.stat-card .progress .progress-bar {
+    filter: saturate(0.95);
 }
 
 .operations-showcase {
@@ -448,15 +472,39 @@
     gap: 12px;
 }
 
+.operations-column-head {
+    background: color-mix(in srgb, var(--surface) 68%, var(--dash-chart-2) 32%);
+    border: 1px solid var(--stroke);
+    border-radius: 14px;
+    padding: 10px 12px;
+}
+
+.operations-column-head strong {
+    display: block;
+    color: var(--text);
+    font-size: 14px;
+}
+
+.operations-column-head small {
+    color: var(--muted);
+    font-size: 12px;
+}
+
 .mini-operation-card {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: stretch;
     padding: 14px 18px;
     border-radius: 18px;
     border: 1px solid var(--stroke);
     background: var(--surface-muted);
     box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+    gap: 10px;
+}
+
+.mini-operation-main {
+    display: flex;
+    align-items: center;
     gap: 12px;
 }
 
@@ -474,18 +522,114 @@
 
 .mini-operation-text {
     flex: 1;
+    min-width: 0;
+}
+
+.mini-operation-text strong {
+    display: block;
+    color: var(--text);
+    font-size: 14px;
 }
 
 .mini-operation-text small {
     display: block;
     color: var(--muted);
-    margin-top: 2px;
+    margin-top: 3px;
+    font-size: 12px;
 }
 
 .mini-operation-value {
     font-size: 22px;
     font-weight: 600;
     color: var(--text);
+    margin-inline-start: auto;
+    flex-shrink: 0;
+}
+
+.mini-operation-meter {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.mini-operation-meter small {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.mini-operation-meter .stage-progress {
+    margin-top: 0;
+    height: 6px;
+}
+
+.contract-stage-panel {
+    border: 1px solid var(--stroke);
+    border-radius: 18px;
+    background: linear-gradient(
+        165deg,
+        #ffffff 0%,
+        color-mix(in srgb, var(--surface-muted) 78%, var(--dash-chart-1) 22%) 100%
+    );
+    padding: 14px;
+}
+
+.contract-stage-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.contract-stage-heading {
+    min-width: 0;
+}
+
+.contract-stage-heading strong {
+    display: block;
+    color: var(--text);
+    font-size: 16px;
+}
+
+.contract-stage-heading small {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.contract-stage-total {
+    min-width: 94px;
+    border: 1px solid var(--stroke);
+    border-radius: 12px;
+    background: #ffffff;
+    text-align: center;
+    padding: 7px 8px;
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
+}
+
+.contract-stage-total small {
+    display: block;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+.contract-stage-total strong {
+    display: block;
+    color: var(--text);
+    font-size: 18px;
+    line-height: 1.2;
+}
+
+.contract-stage-link {
+    display: inline-flex;
+    align-self: flex-start;
+    margin-top: 10px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(var(--dash-primary-rgb), 0.22);
+    color: var(--primary);
+    background: rgba(var(--dash-primary-rgb), 0.08);
+    font-size: 12px;
+    text-decoration: none;
 }
 
 .contract-stages {
@@ -507,12 +651,48 @@
     align-items: center;
     font-size: 14px;
     color: var(--text);
+    gap: 8px;
 }
 
-.contract-stage-row small {
-    display: block;
+.contract-stage-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.contract-stage-title strong {
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.stage-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.contract-stage-value {
+    color: var(--text);
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.contract-stage-meta {
     margin-top: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.contract-stage-meta small {
+    display: block;
     color: var(--muted);
+    margin: 0;
 }
 
 .stage-progress {
@@ -591,6 +771,20 @@
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
+}
+
+.section-head > div,
+.panel-head > div,
+.card-header > h5 {
+    min-width: 0;
+}
+
+.section-head h3,
+.panel-head h4,
+.card-header h5 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .section-eyebrow {
@@ -887,5 +1081,11 @@
 
     .hero-controls {
         width: 100%;
+    }
+
+    .section-head h3,
+    .panel-head h4,
+    .card-header h5 {
+        white-space: normal;
     }
 }

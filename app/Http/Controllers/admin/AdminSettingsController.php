@@ -58,6 +58,7 @@ class AdminSettingsController extends Controller
                 'warrenty_period' => 'nullable|numeric|min:0',
                 'bank_transfer_data' => 'nullable|string',
                 'sadad_transfer_data' => 'nullable|string',
+                'order_expiration_hours' => 'nullable|integer|min:1|max:720',
                 'popup_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
 
@@ -78,6 +79,10 @@ class AdminSettingsController extends Controller
                 if ($request->has($field)) {
                     $settings->setSetting($field, $request->$field);
                 }
+            }
+
+            if ($request->filled('order_expiration_hours')) {
+                \App\Models\ingaz\Setting::setValue('order_expiration_hours', $request->order_expiration_hours, 'orders');
             }
 
             // Handle popup image upload

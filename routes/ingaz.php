@@ -156,6 +156,7 @@ Route::group(
             //** END NEW *//
 
             Route::resource('settings', SettingController::class);
+            Route::get('settings/section/{section}', [SettingController::class, 'section'])->name('settings.section');
             Route::resource('develop-settings', DevelopSettingController::class);
             Route::resource('job-titles', JobTitleController::class);
             Route::resource('nationalities', NationalityController::class);

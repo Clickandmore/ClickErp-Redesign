@@ -1,7 +1,7 @@
 @extends('admin.layout.indexs.index')
 
 @section('style')
-    <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}">
+    <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=9">
 @endsection
 
 @section('page-title')
@@ -62,12 +62,12 @@
         <div class="stat-card is-1">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
-                    <small class="text-light opacity-75">طلبات الاستقدام</small>
-                    <h3 class="text-white mb-0">{{ number_format($ordersStats['total'] ?? 0) }}</h3>
+                    <small class="stat-label">طلبات الاستقدام</small>
+                    <h3 class="mb-0">{{ number_format($ordersStats['total'] ?? 0) }}</h3>
                 </div>
                 <a href="{{ url('admin/orders') }}" class="btn btn-sm btn-light text-dark">عرض</a>
             </div>
-            <div class="mt-3 text-white small">جديدة: {{ number_format($ordersStats['new'] ?? 0) }} | تحت الإجراء:
+            <div class="mt-3 stat-meta">جديدة: {{ number_format($ordersStats['new'] ?? 0) }} | تحت الإجراء:
                 {{ number_format($ordersStats['under_process'] ?? 0) }} | تم التعاقد:
                 {{ number_format($ordersStats['contracted'] ?? 0) }}</div>
             <div class="progress mt-2" style="height:6px;">
@@ -82,12 +82,12 @@
         <div class="stat-card is-2">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
-                    <small class="text-light opacity-75">عقود الاستقدام</small>
-                    <h3 class="text-white mb-0">{{ number_format($contractsStats['total'] ?? 0) }}</h3>
+                    <small class="stat-label">عقود الاستقدام</small>
+                    <h3 class="mb-0">{{ number_format($contractsStats['total'] ?? 0) }}</h3>
                 </div>
                 <a href="{{ url('admin/contracts') }}" class="btn btn-sm btn-light text-dark">عرض</a>
             </div>
-            <div class="mt-3 text-white small">قبل الوصول: {{ number_format($contractsPipeline['pre_arrival'] ?? 0) }} |
+            <div class="mt-3 stat-meta">قبل الوصول: {{ number_format($contractsPipeline['pre_arrival'] ?? 0) }} |
                 مرحلة الوصول: {{ number_format($contractsPipeline['arrival_stage'] ?? 0) }} | تحت الضمان:
                 {{ number_format($contractsPipeline['under_warranty'] ?? 0) }}</div>
             <div class="progress mt-2" style="height:6px;">
@@ -102,12 +102,12 @@
         <div class="stat-card is-3">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
-                    <small class="text-light opacity-75">السير الذاتية</small>
-                    <h3 class="text-white mb-0">{{ number_format($cvStats['total'] ?? 0) }}</h3>
+                    <small class="stat-label">السير الذاتية</small>
+                    <h3 class="mb-0">{{ number_format($cvStats['total'] ?? 0) }}</h3>
                 </div>
                 <a href="{{ url('admin/maids') }}" class="btn btn-sm btn-light text-dark">عرض</a>
             </div>
-            <div class="mt-3 text-white small">متاحة: {{ number_format($cvStats['available'] ?? 0) }} | محجوزة:
+            <div class="mt-3 stat-meta">متاحة: {{ number_format($cvStats['available'] ?? 0) }} | محجوزة:
                 {{ number_format($cvStats['booked'] ?? 0) }}</div>
             <div class="progress mt-2" style="height:6px;">
                 @php $cvTotal = max($cvStats['total'] ?? 1, 1); @endphp
@@ -121,12 +121,12 @@
         <div class="stat-card is-4">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
-                    <small class="text-light opacity-75">العملاء</small>
-                    <h3 class="text-white mb-0">{{ number_format($clientsStats['total'] ?? 0) }}</h3>
+                    <small class="stat-label">العملاء</small>
+                    <h3 class="mb-0">{{ number_format($clientsStats['total'] ?? 0) }}</h3>
                 </div>
                 <a href="{{ url('admin/clients') }}" class="btn btn-sm btn-light text-dark">عرض</a>
             </div>
-            <div class="mt-3 text-white small">لديهم طلبات: {{ number_format($clientsStats['with_orders'] ?? 0) }} | بدون
+            <div class="mt-3 stat-meta">لديهم طلبات: {{ number_format($clientsStats['with_orders'] ?? 0) }} | بدون
                 طلبات: {{ number_format($clientsStats['no_orders'] ?? 0) }}</div>
             <div class="progress mt-2" style="height:6px;">
                 @php $clTotal = max($clientsStats['total'] ?? 1, 1); @endphp
@@ -243,6 +243,13 @@
                 'color' => 'var(--danger)'
             ],
         ];
+
+        $operationsTotal = max(
+            1,
+            array_reduce(array_merge($operationsLeft, $operationsRight), function ($carry, $row) {
+                return $carry + ($row['value'] ?? 0);
+            }, 0)
+        );
     @endphp
 
     <div class="data-section" id="operations">
@@ -274,30 +281,60 @@
 
             <div class="operations-detail-grid">
                 <div class="operations-column">
+                    <div class="operations-column-head">
+                        <strong>مراحل ما قبل الوصول</strong>
+                        <small>سير التنفيذ من الاعتماد حتى التذاكر</small>
+                    </div>
                     @foreach ($operationsLeft as $card)
+                        @php
+                            $cardShare = $operationsTotal ? round((($card['value'] ?? 0) / $operationsTotal) * 100) : 0;
+                        @endphp
                         <div class="mini-operation-card">
-                            <span class="mini-operation-icon" style="background: {{ $card['color'] }};">
-                                <i class="{{ $card['icon'] }}"></i>
-                            </span>
-                            <div class="mini-operation-text">
-                                <strong>{{ $card['title'] }}</strong>
-                                <small>{{ $card['subtitle'] }}</small>
+                            <div class="mini-operation-main">
+                                <span class="mini-operation-icon" style="background: {{ $card['color'] }};">
+                                    <i class="{{ $card['icon'] }}"></i>
+                                </span>
+                                <div class="mini-operation-text">
+                                    <strong>{{ $card['title'] }}</strong>
+                                    <small>{{ $card['subtitle'] }}</small>
+                                </div>
+                                <span class="mini-operation-value">{{ number_format($card['value']) }}</span>
                             </div>
-                            <span class="mini-operation-value">{{ number_format($card['value']) }}</span>
+                            <div class="mini-operation-meter">
+                                <small>{{ $cardShare }}% من مؤشرات العمليات</small>
+                                <div class="stage-progress">
+                                    <span style="width: {{ $cardShare }}%; background: {{ $card['color'] }};"></span>
+                                </div>
+                            </div>
                         </div>
                     @endforeach
                 </div>
                 <div class="operations-column">
+                    <div class="operations-column-head">
+                        <strong>مراحل ما بعد الوصول</strong>
+                        <small>الضمان والإغلاق وإعادة المعالجة</small>
+                    </div>
                     @foreach ($operationsRight as $card)
+                        @php
+                            $cardShare = $operationsTotal ? round((($card['value'] ?? 0) / $operationsTotal) * 100) : 0;
+                        @endphp
                         <div class="mini-operation-card">
-                            <span class="mini-operation-icon" style="background: {{ $card['color'] }};">
-                                <i class="{{ $card['icon'] }}"></i>
-                            </span>
-                            <div class="mini-operation-text">
-                                <strong>{{ $card['title'] }}</strong>
-                                <small>{{ $card['subtitle'] }}</small>
+                            <div class="mini-operation-main">
+                                <span class="mini-operation-icon" style="background: {{ $card['color'] }};">
+                                    <i class="{{ $card['icon'] }}"></i>
+                                </span>
+                                <div class="mini-operation-text">
+                                    <strong>{{ $card['title'] }}</strong>
+                                    <small>{{ $card['subtitle'] }}</small>
+                                </div>
+                                <span class="mini-operation-value">{{ number_format($card['value']) }}</span>
                             </div>
-                            <span class="mini-operation-value">{{ number_format($card['value']) }}</span>
+                            <div class="mini-operation-meter">
+                                <small>{{ $cardShare }}% من مؤشرات العمليات</small>
+                                <div class="stage-progress">
+                                    <span style="width: {{ $cardShare }}%; background: {{ $card['color'] }};"></span>
+                                </div>
+                            </div>
                         </div>
                     @endforeach
                 </div>
@@ -309,12 +346,12 @@
         <div class="stat-card is-5">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
-                    <small class="text-light opacity-75">عقود الإيجار</small>
-                    <h3 class="text-white mb-0">{{ number_format($rentalStats['total'] ?? 0) }}</h3>
+                    <small class="stat-label">عقود الإيجار</small>
+                    <h3 class="mb-0">{{ number_format($rentalStats['total'] ?? 0) }}</h3>
                 </div>
                 <a href="{{ url('dashboard/rental-orders') }}" class="btn btn-sm btn-light text-dark">عرض</a>
             </div>
-            <div class="mt-3 text-white small">نشطة: {{ number_format($rentalStats['active'] ?? 0) }} | تحت الإجراء:
+            <div class="mt-3 stat-meta">نشطة: {{ number_format($rentalStats['active'] ?? 0) }} | تحت الإجراء:
                 {{ number_format($rentalStats['in_workflow'] ?? 0) }} | مكتملة:
                 {{ number_format($rentalStats['completed'] ?? 0) }}</div>
         </div>
@@ -322,12 +359,12 @@
         <div class="stat-card is-6">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
-                    <small class="text-light opacity-75">نقل الكفالة</small>
-                    <h3 class="text-white mb-0">{{ number_format($transferStats['total'] ?? 0) }}</h3>
+                    <small class="stat-label">نقل الكفالة</small>
+                    <h3 class="mb-0">{{ number_format($transferStats['total'] ?? 0) }}</h3>
                 </div>
                 <a href="{{ url('dashboard/transfer-service-contract') }}" class="btn btn-sm btn-light text-dark">عرض</a>
             </div>
-            <div class="mt-3 text-white small">قيد المراجعة: {{ number_format($transferStats['pending'] ?? 0) }} | معتمدة:
+            <div class="mt-3 stat-meta">قيد المراجعة: {{ number_format($transferStats['pending'] ?? 0) }} | معتمدة:
                 {{ number_format($transferStats['approved'] ?? 0) }} | منقولة:
                 {{ number_format($transferStats['transferred'] ?? 0) }}</div>
         </div>
@@ -335,12 +372,12 @@
         <div class="stat-card is-7">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
-                    <small class="text-light opacity-75">الإيواء</small>
-                    <h3 class="text-white mb-0">{{ number_format($shelterStats['total'] ?? 0) }}</h3>
+                    <small class="stat-label">الإيواء</small>
+                    <h3 class="mb-0">{{ number_format($shelterStats['total'] ?? 0) }}</h3>
                 </div>
                 <a href="{{ url('dashboard') }}" class="btn btn-sm btn-light text-dark">عرض</a>
             </div>
-            <div class="mt-3 text-white small">مشغول: {{ number_format($shelterStats['occupied'] ?? 0) }} | متاح:
+            <div class="mt-3 stat-meta">مشغول: {{ number_format($shelterStats['occupied'] ?? 0) }} | متاح:
                 {{ number_format($shelterStats['available'] ?? 0) }}</div>
         </div>
     </div>
@@ -399,18 +436,23 @@
                                 'color' => 'var(--danger)'
                             ],
                         ];
-                        $contractStagesTotal = max(
-                            1,
-                            array_reduce($contractStageRows, function ($carry, $row) {
-                                return $carry + ($row['value'] ?? 0);
-                            }, 0)
-                        );
+                        $contractStagesRawTotal = array_reduce($contractStageRows, function ($carry, $row) {
+                            return $carry + ($row['value'] ?? 0);
+                        }, 0);
+                        $contractStagesTotal = max(1, $contractStagesRawTotal);
                     @endphp
-                    <div class="p-3 border rounded-3 h-100 d-flex flex-column">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <strong>مراحل العقود</strong>
-                            <a href="{{ url('dashboard/contracts') }}" class="small text-primary">عرض</a>
+                    <div class="contract-stage-panel h-100 d-flex flex-column">
+                        <div class="contract-stage-head">
+                            <div class="contract-stage-heading">
+                                <strong>مراحل العقود</strong>
+                                <small>متابعة مباشرة لتدفق العقود حسب المرحلة</small>
+                            </div>
+                            <div class="contract-stage-total">
+                                <small>الإجمالي</small>
+                                <strong>{{ number_format($contractStagesRawTotal) }}</strong>
+                            </div>
                         </div>
+                        <a href="{{ url('dashboard/contracts') }}" class="contract-stage-link">عرض جميع العقود</a>
                         <div class="contract-stages mt-3 flex-grow-1">
                             @foreach ($contractStageRows as $stage)
                                 @php
@@ -418,14 +460,20 @@
                                 @endphp
                                 <div class="contract-stage-row">
                                     <header>
-                                        <strong>{{ $stage['label'] }}</strong>
-                                        <span>{{ number_format($stage['value']) }}</span>
+                                        <div class="contract-stage-title">
+                                            <span class="stage-dot" style="background: {{ $stage['color'] }};"></span>
+                                            <strong>{{ $stage['label'] }}</strong>
+                                        </div>
+                                        <span class="contract-stage-value">{{ number_format($stage['value']) }}</span>
                                     </header>
-                                    @if (!empty($stage['meta']))
-                                        <small>{{ $stage['meta'] }} • {{ $stageWidth }}%</small>
-                                    @else
+                                    <div class="contract-stage-meta">
+                                        @if (!empty($stage['meta']))
+                                            <small>{{ $stage['meta'] }}</small>
+                                        @else
+                                            <small>بدون وصف إضافي</small>
+                                        @endif
                                         <small>{{ $stageWidth }}%</small>
-                                    @endif
+                                    </div>
                                     <div class="stage-progress">
                                         <span style="width: {{ $stageWidth }}%; background: {{ $stage['color'] }};"></span>
                                     </div>

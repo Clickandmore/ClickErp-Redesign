@@ -1,0 +1,119 @@
+@extends('admin.layout.indexs.index')
+
+@section('page-title')
+    {{ __('admin.settings') }}
+@endsection
+
+@section('style')
+    <style>
+        .settings-shell .settings-nav {
+            gap: 0.5rem;
+        }
+
+        .settings-shell .settings-nav .nav-link {
+            border: 1px solid #e6e9f0;
+            border-radius: 12px;
+            background: #f8fafc;
+            color: #1f2937;
+            padding: 0.75rem 1rem;
+            text-align: start;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .settings-shell .settings-nav .nav-link:hover {
+            background: #eef2ff;
+            color: #1f2937;
+        }
+
+        .settings-shell .settings-nav .nav-link.active {
+            background: #0d6efd;
+            border-color: #0d6efd;
+            color: #fff;
+            box-shadow: 0 10px 24px rgba(13, 110, 253, 0.2);
+        }
+
+        .settings-shell .settings-card {
+            min-height: 320px;
+        }
+
+        @media (max-width: 991.98px) {
+            .settings-shell .settings-nav {
+                flex-direction: row !important;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                padding-bottom: 0.5rem;
+            }
+
+            .settings-shell .settings-nav .nav-link {
+                min-width: 180px;
+                white-space: normal;
+            }
+        }
+    </style>
+@endsection
+
+@section('content')
+    @php
+        $activeSection = $activeSection ?? request()->route('section');
+        if (!$activeSection && Route::currentRouteName() === 'dash.settings') {
+            $activeSection = 'additional';
+        }
+        $activeSection = $activeSection ?: 'general';
+    @endphp
+
+    <div class="settings-shell">
+        <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
+            <div>
+                <h4 class="mb-1">{{ __('admin.settings') }}</h4>
+                <div class="text-muted small">{{ __('admin.settings_manage_sections_hint') }}</div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-3">
+                <nav class="nav flex-lg-column nav-pills settings-nav" aria-label="Settings Sections">
+                    <a class="nav-link {{ $activeSection === 'general' ? 'active' : '' }}" href="{{ route('settings.section', 'general') }}">
+                        <span class="fw-semibold">{{ __('admin.settings_section_general') }}</span>
+                    </a>
+                    <a class="nav-link {{ $activeSection === 'social' ? 'active' : '' }}" href="{{ route('settings.section', 'social') }}">
+                        <span class="fw-semibold">{{ __('admin.settings_section_social') }}</span>
+                    </a>
+                    <a class="nav-link {{ $activeSection === 'branding' ? 'active' : '' }}" href="{{ route('settings.section', 'branding') }}">
+                        <span class="fw-semibold">{{ __('admin.settings_section_branding') }}</span>
+                    </a>
+                    <a class="nav-link {{ $activeSection === 'content' ? 'active' : '' }}" href="{{ route('settings.section', 'content') }}">
+                        <span class="fw-semibold">{{ __('admin.settings_section_content') }}</span>
+                    </a>
+                    <a class="nav-link {{ $activeSection === 'policies' ? 'active' : '' }}" href="{{ route('settings.section', 'policies') }}">
+                        <span class="fw-semibold">{{ __('admin.settings_section_policies') }}</span>
+                    </a>
+                    <a class="nav-link {{ $activeSection === 'additional' ? 'active' : '' }}" href="{{ route('dash.settings') }}">
+                        <span class="fw-semibold">{{ __('admin.settings_section_additional') }}</span>
+                    </a>
+                </nav>
+            </div>
+
+            <div class="col-lg-9">
+                <div class="card border-0 shadow-sm settings-card">
+                    <div class="card-body">
+                        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
+                            <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
+                                <div>
+                                    <h5 class="mb-1">@yield('settings-title')</h5>
+                                    @hasSection('settings-description')
+                                        <p class="text-muted small mb-0">@yield('settings-description')</p>
+                                    @endif
+                                </div>
+                            </div>
+
+                            @yield('settings-alerts')
+                            @yield('settings-content')
+                        @else
+                            @include('components.no_permissions')
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection

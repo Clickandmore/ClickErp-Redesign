@@ -130,12 +130,19 @@ class SettingAction extends MainAction
             $image = $data['about_image'];
             $data['about_image'] = uploadFile($image, $this->fileFolder, 1);
         }
-//new keys
-        $setting['note_en'] = $data['note_en'];
-        $setting['note_ar'] = $data['note_ar'];
-        $setting['years'] = $data['years'];
-        $setting['show_customer_service_during_booking'] = $data['show_customer_service_during_booking'];
-        $setting['link_rights_and_duties'] = $data['link_rights_and_duties'];
+        // Optional keys that may not be present in every section update
+        $optionalKeys = [
+            'note_en',
+            'note_ar',
+            'years',
+            'show_customer_service_during_booking',
+            'link_rights_and_duties',
+        ];
+        foreach ($optionalKeys as $key) {
+            if (array_key_exists($key, $data)) {
+                $setting->{$key} = $data[$key];
+            }
+        }
 
         // Separate translation data from main data
         $translationData = [];

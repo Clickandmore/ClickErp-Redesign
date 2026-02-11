@@ -23,7 +23,7 @@
 
     {{-- Table some styles --}}
     <link rel="stylesheet" type="text/css" href="{{ asset('admin/assets/css/tables.css') }}">
-    <link rel="stylesheet" href="{{ asset('admin/assets/css/theme-clickmore.css') }}?v=8">
+    <link rel="stylesheet" href="{{ asset('admin/assets/css/theme-clickmore.css') }}?v=10">
 
 </head>
 <body class="layout-1  @if (app()->getLocale() == 'ar') rtl_mode @endif " data-luno="theme-blue"> <!-- h-menu  -->
@@ -48,6 +48,8 @@
 
 @include("admin.layout.inc._js")
 @include("admin.layout.inc._js_custom")
+<script src="{{ asset('admin/assets/js/clickmore-loader.js') }}?v=2"></script>
+<script src="{{ asset('admin/assets/js/clickmore-sidebar-state.js') }}?v=1"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 

@@ -8,7 +8,20 @@
 
     @include("admin.layout.inc._css")
 
+    <link href="{{ asset('admin/custom/style.css') }}" rel="stylesheet" type="text/css" />
+    @if (App::getLocale() == 'ar')
+        <link href="{{ asset('admin/custom/style-rtl.css') }}" rel="stylesheet" type="text/css" />
+    @endif
+
+    <link rel="stylesheet" type="text/css" href="{{ asset('plugins/sweetalert/sweetalert.css') }}">
+
     @yield("style")
+    @yield("css")
+    @stack("style")
+    @stack("css")
+
+    <link rel="stylesheet" type="text/css" href="{{ asset('admin/assets/css/tables.css') }}">
+    <link rel="stylesheet" href="{{ asset('admin/assets/css/theme-clickmore.css') }}?v=9">
 
 
 </head>
@@ -33,8 +46,11 @@
 
 @include("admin.layout.inc._js")
 @include("admin.layout.inc._js_custom")
+<script src="{{ asset('admin/assets/js/clickmore-loader.js') }}?v=1"></script>
+<script src="{{ asset('admin/assets/js/clickmore-sidebar-state.js') }}?v=1"></script>
 
 
 @yield("js")
+@stack("js")
 </body>
 </html>

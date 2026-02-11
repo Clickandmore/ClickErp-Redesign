@@ -774,22 +774,21 @@
                                 <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                             </a>
 
-                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['settings.index', 'about-us.index', 'questions.index', 'dash.settings', 'admin.sms-templates.index']) ? 'show' : '' }}"
+                            @php
+                                $websiteManagementOpen = request()->routeIs('settings.*')
+                                    || request()->routeIs('about-us.*')
+                                    || request()->routeIs('questions.*')
+                                    || request()->routeIs('admin.sms-templates.index')
+                                    || request()->routeIs('dash.settings');
+                            @endphp
+                            <ul class="sub-menu collapse {{ $websiteManagementOpen ? 'show' : '' }}"
                                 id="websiteManagement">
                                 @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                                     <li>
-                                        <a class="m-link {{ Route::currentRouteName() == 'settings.index' ? 'active' : '' }}"
-                                            href="{{ route('settings.index') }}">
+                                        <a class="m-link {{ request()->routeIs('settings.*') ? 'active' : '' }}"
+                                            href="{{ route('settings.section', 'general') }}">
                                             <i class="fa fa-cogs"></i>
                                             <span class="ms-2">{{ helperTrans('ingaz.website_settings') }}</span>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="m-link {{ Route::currentRouteName() == 'dash.settings' ? 'active' : '' }}"
-                                            href="{{ route('dash.settings') }}">
-                                            <i class="fa fa-cog"></i>
-                                            <span
-                                                class="ms-2">{{ helperTrans('ingaz.additional_settings') }}</span>
                                         </a>
                                     </li>
                                 @endif

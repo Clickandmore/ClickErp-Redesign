@@ -202,16 +202,24 @@
             cancelButtonText: "{{__('buttons.cancel')}}",
         }).then((result) => {
             if (result.isConfirmed) {
-                $.ajax({
-                    url: deleteRoute,
-                    type: 'DELETE',
-                    beforeSend: function () {
-                        $('#loading-wrapper').fadeIn();
-                    },
-                    complete: function () {
-                        $('#loading-wrapper').fadeOut();
-                    },
-                    success: function (data) {
+                    $.ajax({
+                        url: deleteRoute,
+                        type: 'DELETE',
+                        beforeSend: function () {
+                            if (window.cmShowLoader) {
+                                window.cmShowLoader();
+                            } else {
+                                $('#loading-wrapper').show();
+                            }
+                        },
+                        complete: function () {
+                            if (window.cmHideLoader) {
+                                window.cmHideLoader();
+                            } else {
+                                $('#loading-wrapper').hide();
+                            }
+                        },
+                        success: function (data) {
                         Swal.fire({
                             icon: 'success',
                             title: "{{__('buttons.Deleted successfully')}}",
@@ -243,11 +251,19 @@
             contentType: false,
             processData: false,
             beforeSend: function () {
-                $('#loading-wrapper').fadeIn();
+                if (window.cmShowLoader) {
+                    window.cmShowLoader();
+                } else {
+                    $('#loading-wrapper').show();
+                }
                 submitButton.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' + buttonText)
             },
             complete: function () {
-                $('#loading-wrapper').fadeOut();
+                if (window.cmHideLoader) {
+                    window.cmHideLoader();
+                } else {
+                    $('#loading-wrapper').hide();
+                }
             },
             success: function (result) {
                 console.log(200)
@@ -285,11 +301,19 @@
             contentType: false,
             processData: false,
             beforeSend: function () {
-                $('#loading-wrapper').fadeIn();
+                if (window.cmShowLoader) {
+                    window.cmShowLoader();
+                } else {
+                    $('#loading-wrapper').show();
+                }
                 submitButton.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' + buttonText)
             },
             complete: function () {
-                $('#loading-wrapper').fadeOut();
+                if (window.cmHideLoader) {
+                    window.cmHideLoader();
+                } else {
+                    $('#loading-wrapper').hide();
+                }
             },
             success: function (result) {
                 handleSuccessResponce(result);
@@ -350,5 +374,4 @@
         loadJqerySelectors();
     }
 </script>
-
 

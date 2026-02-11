@@ -79,7 +79,11 @@
 
 <script>
     $(window).on('load', function() {
-        $('#loading-wrapper').fadeOut();
+        if (window.cmHideLoader) {
+            window.cmHideLoader();
+            return;
+        }
+        $('#loading-wrapper').hide();
     });
 </script>
 
