@@ -387,21 +387,13 @@
                                                     class="badge bg-primary ms-2">{{ $contractsCount['completed'] - $contractsCount['under_warranty'] }}</span>
                                             </a>
                                         </li> --}}
-                                        <li>
+                                        {{-- <li>
                                             <a class="m-link {{ Route::currentRouteName() == 'contract-return-requests.index' ? 'active' : '' }}"
                                                 href="{{ route('contract-return-requests.index') }}">
                                                 <i class="fa fa-list"></i>
                                                 <span class="ms-2">طلبات استرجاع العقود</span>
                                             </a>
-                                        </li>
-
-                                        <li>
-                                            <a class="m-link {{ Route::currentRouteName() == 'invoices.index' ? 'active' : '' }}"
-                                                href="{{ route('invoices.index') }}">
-                                                <i class="fa fa-list"></i>
-                                                <span class="ms-2"> فواتير العقود</span>
-                                            </a>
-                                        </li>
+                                        </li> --}}
                                     @endif
                                 @endif
 
@@ -755,7 +747,9 @@
                     </ul>
                 </li>
                 @php
-                    $isFinance = request()->is('finance*');
+                    $isFinance =
+                        request()->is('finance*') ||
+                        \Illuminate\Support\Str::startsWith((string) Route::currentRouteName(), 'invoices.');
                 @endphp
                 <li class="{{ $isFinance ? '' : 'collapsed' }}">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#finance" href="#">

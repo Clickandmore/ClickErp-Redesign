@@ -54,7 +54,7 @@
                 <div class="card-body">
                     <div class="invoice-header mb-4">
                         <div class="d-flex align-items-center gap-2 no-print">
-                            <a href="{{ route('invoice.download', $invoice->id) }}" class="btn btn-light border"
+                            <a href="{{ route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1]) }}" class="btn btn-light border"
                                 target="_blank" title="طباعة الفاتورة">
                                 <i class="fa-solid fa-print"></i>
                             </a>
@@ -80,11 +80,11 @@
                                 <span>{{ $serviceDesc }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
-                                <strong>اسم المورد</strong>
+                                <strong>اسم مقدم الخدمة</strong>
                                 <span>{{ $supplierName }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
-                                <strong>عنوان المورد</strong>
+                                <strong>عنوان مقدم الخدمة</strong>
                                 <span>{{ $supplierAddress }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">

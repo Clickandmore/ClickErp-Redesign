@@ -161,6 +161,19 @@
 
 @section('content')
     @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
+        @php
+            $requestedStatus = request()->get('status');
+            $showCurrentStatsInitially = !$requestedStatus || in_array($requestedStatus, [
+                'current',
+                'pending_maid_selection',
+                'new',
+                'msaned',
+                'tafwed',
+                'taffez',
+                'tazker',
+            ]);
+            $showCompletedStatsInitially = !$requestedStatus || in_array($requestedStatus, ['completed', 'arrival']);
+        @endphp
 
         <!-- Header Section -->
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
@@ -186,7 +199,7 @@
                         <small class="text-muted">اضغط على الإحصائية لتصفية العقود</small>
                     </div>
                     <div class="card-body">
-                        <div id="currentStatsSection">
+                        <div id="currentStatsSection" @if (!$showCurrentStatsInitially) style="display: none;" @endif>
                             <div class="d-flex align-items-center gap-2 mb-2">
                                 <span class="fw-semibold">احصائيات العقود السارية</span>
                             </div>
@@ -279,7 +292,7 @@
 
                         {{-- <hr> --}}
 
-                        <div id="completedStatsSection">
+                        <div id="completedStatsSection" @if (!$showCompletedStatsInitially) style="display: none;" @endif>
                             <div class="d-flex align-items-center gap-2 mb-2">
                                 <span class="fw-semibold">احصائيات العقود المكتملة</span>
                             </div>
@@ -873,7 +886,7 @@
                 const warrantyValue = $('#warrantyStatusFilter').val();
 
                 if (warrantyValue) {
-                    const warrantyBtn = $(`.stat-filter[data-warranty="${warrantyValue}"]`).first();
+                    const warrantyBtn = $(`.stat-card.stat-filter[data-warranty="${warrantyValue}"]`).first();
                     if (warrantyBtn.length) {
                         warrantyBtn.addClass('active');
                     }
@@ -881,9 +894,10 @@
                 }
 
                 if (statusValue) {
-                    const statusBtn = $(`.stat-filter[data-status="${statusValue}"]:not([data-warranty])`).first();
-                    if (statusBtn.length) {
-                        statusBtn.addClass('active');
+                    const statusCard = $(`.stat-card.stat-filter[data-status="${statusValue}"]:not([data-warranty])`)
+                        .first();
+                    if (statusCard.length) {
+                        statusCard.addClass('active');
                     }
                 }
             }

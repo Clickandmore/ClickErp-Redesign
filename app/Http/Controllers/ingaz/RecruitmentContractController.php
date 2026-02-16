@@ -639,13 +639,6 @@ class RecruitmentContractController extends Controller
                                 }
                                 break;
                             case ContractStatusEnum::Arrival->value:
-                                // التحقق من صلاحية إغلاق العقد بعد الضمان
-                                $nextStatus = ContractStatusEnum::Closed->value;
-                                $buttonText = 'إغلاق العقد';
-                                if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CLOSE_AFTER_WARRANTY)) {
-                                    $hasPermission = true;
-                                }
-
                                 // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
                                 $travelHistory = TravelHistory::where('order_id', $row->id)->first();
                                 if ($travelHistory && $travelHistory->status !== 'completed' && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
@@ -653,7 +646,7 @@ class RecruitmentContractController extends Controller
                                         <i class="fas fa-check me-1"></i>إكمال الرحلة
                                     </button>';
                                 }
-                                break;
+                                return '<span class="text-muted">يُستكمل تلقائياً بعد انتهاء الضمان</span>';
                             case ContractStatusEnum::Sari->value:
                                 // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
                                 $travelHistory = TravelHistory::where('order_id', $row->id)->first();
@@ -1340,6 +1333,14 @@ class RecruitmentContractController extends Controller
                 $nextStatus = $request->next_status;
                 $statusDate = $request->date ?? now()->format('Y-m-d');
 
+                // منع الإغلاق اليدوي للعقود في مرحلة الضمان
+                if ($nextStatus === ContractStatusEnum::Closed->value) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'إغلاق العقد يتم تلقائياً بعد انتهاء فترة الضمان'
+                    ], 400);
+                }
+
                 // التحقق من الصلاحيات حسب حالة العقد الحالية
                 $hasPermission = false;
                 $permissionRequired = '';
@@ -1370,10 +1371,8 @@ class RecruitmentContractController extends Controller
                         }
                         break;
                     case ContractStatusEnum::Arrival->value:
-                        // التحقق من صلاحية إغلاق العقد بعد الضمان
-                        if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CLOSE_AFTER_WARRANTY)) {
-                            $hasPermission = true;
-                        }
+                        // لا يوجد انتقال يدوي من حالة الوصول/الضمان
+                        $hasPermission = false;
                         break;
                     default:
                         break;
@@ -2106,6 +2105,14 @@ class RecruitmentContractController extends Controller
             $nextStatus = $request->next_status;
             $date = $request->date;
 
+            // منع الإغلاق اليدوي للعقود في مرحلة الضمان
+            if ($nextStatus === ContractStatusEnum::Closed->value) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'إغلاق العقد يتم تلقائياً بعد انتهاء فترة الضمان'
+                ], 400);
+            }
+
             $contract = Contract::find($rowId);
             if (!$contract) {
                 return response()->json([
@@ -2144,9 +2151,6 @@ class RecruitmentContractController extends Controller
                     break;
                 case ContractStatusEnum::Tazker->value:
                     $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER);
-                    break;
-                case ContractStatusEnum::Closed->value:
-                    $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CLOSE_AFTER_WARRANTY);
                     break;
                 default:
                     $hasPermission = false;
@@ -3131,4 +3135,3 @@ class RecruitmentContractController extends Controller
         }
     }
 }
-

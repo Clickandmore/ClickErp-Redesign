@@ -153,5 +153,51 @@
             }
         });
     });
+
+    $(document).on('click', '.generate-nationality-accounts', function () {
+        let button = $(this);
+        let route = button.data('route');
+        let nationalityName = button.data('name') || 'هذه الجنسية';
+        let originalHtml = button.html();
+
+        swal.fire({
+            title: 'تأكيد إنشاء الحسابات',
+            text: 'سيتم إنشاء حسابات الشجرة المالية تلقائياً للجنسية: ' + nationalityName,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#198754',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'تنفيذ',
+            cancelButtonText: 'إلغاء',
+        }).then((result) => {
+            if (!result.isConfirmed) {
+                return;
+            }
+
+            button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+            $.ajax({
+                url: route,
+                type: 'POST',
+                data: {
+                    _token: "{{ csrf_token() }}"
+                },
+                success: function (response) {
+                    successToster('{{ helperTrans('ingaz.done successfully') }}', response.message);
+                    reloadDataTable();
+                },
+                error: function (errorObj) {
+                    if (errorObj.responseJSON && errorObj.responseJSON.message) {
+                        errorToster('{{ __("auth.an error occurred") }}', errorObj.responseJSON.message);
+                        return;
+                    }
+                    handleErrorResponce(errorObj);
+                },
+                complete: function () {
+                    button.prop('disabled', false).html(originalHtml);
+                }
+            });
+        });
+    });
 </script>
 @endsection

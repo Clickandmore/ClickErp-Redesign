@@ -5,6 +5,7 @@ namespace App\Http\Controllers\ingaz;
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Models\ingaz\Invoice;
+use App\Models\ingaz\Setting;
 use Illuminate\Http\Request;
 use PDF;
 use Yajra\DataTables\Facades\DataTables;
@@ -12,6 +13,7 @@ use Nami\Finance\Services\ConstraintService as ObjService;
 use Nami\Finance\Services\YearService;
 use Nami\Finance\Models\Account;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class InvoiceController extends Controller
 {
@@ -59,14 +61,14 @@ class InvoiceController extends Controller
                 })
                 ->addColumn('actions', function ($row) {
                     $viewUrl = route('invoices.show', $row->id);
-                    $pdfUrl = route('invoice.download', $row->id);
+                    $pdfUrl = route('invoice.download', ['id' => $row->id, 'autoprint' => 1]);
 
                     return '<div class="d-flex justify-content-end gap-2">
                                 <a href="' . $viewUrl . '" class="btn btn-sm btn-outline-primary">
                                     <i class="fas fa-eye"></i>
                                 </a>
                                 <a href="' . $pdfUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank">
-                                    <i class="fas fa-file-pdf"></i>
+                                    <i class="fas fa-print"></i>
                                 </a>
                             </div>';
                 })
@@ -219,58 +221,9 @@ class InvoiceController extends Controller
      */
     public function show($id)
     {
-        $invoice = Invoice::with(['contract.user', 'contract.maid', 'contract.info'])->findOrFail($id);
+        $viewData = $this->prepareInvoiceViewData((int) $id);
 
-        $supplierName = 'شركة بلاتنيوم الشرقية للاستقدام';
-        $supplierAddress = 'الرياض، المملكة العربية السعودية';
-        $serviceDesc = 'طلب تعاقد';
-
-        $items = [
-            [
-                'label' => 'تكاليف الاستقدام المباشر',
-                'qty' => (int) $invoice->direct_recruitment_count,
-                'unit' => (float) $invoice->direct_recruitment_cost,
-                'vat_rate' => 0.15,
-                'vat_amount' => (float) $invoice->vat_amount,
-            ],
-            [
-                'label' => 'تكاليف الاستقدام الخارجية',
-                'qty' => (int) $invoice->external_recruitment_count,
-                'unit' => (float) $invoice->external_recruitment_cost,
-                'vat_rate' => 0,
-                'vat_amount' => 0,
-            ],
-            [
-                'label' => 'تكاليف حكومية',
-                'qty' => (int) $invoice->government_cost_count,
-                'unit' => (float) $invoice->government_cost,
-                'vat_rate' => 0,
-                'vat_amount' => 0,
-            ],
-            [
-                'label' => 'تكلفة التذكرة الداخلية',
-                'qty' => (int) $invoice->internal_ticket_count,
-                'unit' => (float) $invoice->internal_ticket_cost,
-                'vat_rate' => 0,
-                'vat_amount' => 0,
-            ],
-        ];
-
-        foreach ($items as &$item) {
-            $item['line_total'] = $item['qty'] * $item['unit'];
-        }
-        unset($item);
-
-        $invoiceStatus = $invoice->total_due <= 0 ? 'مدفوعة' : 'غير مدفوعة';
-
-        return view('admin.ingaz.invoices.show', compact(
-            'invoice',
-            'supplierName',
-            'supplierAddress',
-            'serviceDesc',
-            'items',
-            'invoiceStatus'
-        ));
+        return view('admin.ingaz.invoices.show', $viewData);
     }
 
     /**
@@ -310,13 +263,126 @@ class InvoiceController extends Controller
 
     public function downloadInvoice($id)
     {
-        $invoice = Invoice::with(['contract.user', 'contract.maid', 'contract.info'])->findOrFail($id);
+        $viewData = $this->prepareInvoiceViewData((int) $id);
+        $invoice = $viewData['invoice'];
 
-        $supplierName = 'شركة بلاتنيوم الشرقية للاستقدام';
-        $supplierAddress = 'الرياض، المملكة العربية السعودية';
+        // dompdf does not shape Arabic text well in many cases, so browser print is the default.
+        if (request()->query('driver') !== 'dompdf') {
+            return response()->view('admin.ingaz.invoices.print', $viewData, 200, [
+                'Content-Type' => 'text/html; charset=UTF-8',
+            ]);
+        }
+
+        $pdf = PDF::loadView('admin.ingaz.invoices.invoice', $viewData)->setPaper('a4', 'portrait');
+
+        $pdf->setOptions([
+            'defaultFont' => 'dejavu sans',
+            'isHtml5ParserEnabled' => true,
+        ]);
+
+        if (request()->boolean('download')) {
+            return $pdf->download('invoice-' . $invoice->id . '.pdf');
+        }
+
+        return $pdf->stream('invoice-' . $invoice->id . '.pdf');
+    }
+
+    private function prepareInvoiceViewData(int $id): array
+    {
+        $invoice = Invoice::with([
+            'contract.user',
+            'contract.maid.nationality',
+            'contract.maid.religion',
+            'contract.requiredMaidNationality',
+            'contract.requiredMaidReligion',
+            'contract.requiredMaidJobTitle',
+            'contract.info',
+        ])->findOrFail($id);
+
+        $settings = Setting::query()->first();
+        $settingsLogo = ($settings && $settings->logo_header) ? showFile($settings->logo_header) : null;
+        $settingsZatcaLogo = ($settings && $settings->zatch_logo) ? showFile($settings->zatch_logo) : null;
+        $settingsQr = ($settings && $settings->qr_image) ? showFile($settings->qr_image) : null;
+        $settingsSecondQr = ($settings && $settings->second_qr_image) ? showFile($settings->second_qr_image) : null;
+
+        $supplierName = (string) ($settings?->website_name ?: 'شركة بلاتنيوم الشرقية للاستقدام');
+        $supplierAddress = (string) ($settings?->location ?: 'الرياض، المملكة العربية السعودية');
+        $supplierPhone = (string) ($settings?->phone ?: '-');
+        $supplierOtherPhone = (string) ($settings?->other_phone ?: '-');
+        $supplierEmail = (string) ($settings?->email ?: '-');
+        $supplierTaxNumber = (string) ($settings?->tax_number ?: '314232024200003');
+        $supplierLogo = $settingsLogo ?: asset('admin/assets/img/company_logo.png');
+        $zatcaLogo = $settingsZatcaLogo ?: asset('site/assets/images/zatca-logo.png');
+        $qrImage = $settingsQr ?: ($settingsSecondQr ?: asset('site/assets/images/qr1.png'));
+
         $serviceDesc = 'طلب تعاقد';
+        $serviceLongDescription = $this->buildServiceDescription($invoice);
+        $items = $this->buildInvoiceItems($invoice);
+        $invoiceStatus = $invoice->total_due <= 0 ? 'مدفوعة' : 'غير مدفوعة';
+        $printedBy = optional(Auth::guard('admin')->user())->name
+            ?? optional(Auth::user())->name
+            ?? 'النظام';
+        $printedAt = now();
 
-        $items = [
+        $client = $invoice->contract?->user;
+        $customerName = $client?->name ?: '---';
+        $customerNationalId = $client?->national_num ?: '---';
+        $customerPhone = $this->formatPhone((string) ($client?->phone_code ?? ''), (string) ($client?->phone ?? ''));
+        $customerAddress = $client?->address ?: '---';
+        $accountNumber = $client?->account_id ?: ($client?->id ?: $invoice->contract_id);
+
+        $contractInfo = $invoice->contract?->info;
+        $matchedHijriDate = $contractInfo?->visa_hijry_date
+            ? date('Y-m-d', strtotime((string) $contractInfo->visa_hijry_date))
+            : '-';
+
+        $invoiceDateTime = optional($invoice->created_at)->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s');
+        $invoiceDate = optional($invoice->created_at)->format('Y-m-d') ?? now()->format('Y-m-d');
+
+        $subtotalBeforeDiscount = (float) $invoice->subtotal;
+        $discountTotal = (float) $invoice->discount;
+        $netSubtotal = $subtotalBeforeDiscount - $discountTotal;
+        $vatAmount = (float) $invoice->vat_amount;
+        $grandTotal = (float) $invoice->total_due;
+
+        return [
+            'invoice' => $invoice,
+            'settings' => $settings,
+            'supplierName' => $supplierName,
+            'supplierAddress' => $supplierAddress,
+            'supplierPhone' => $supplierPhone,
+            'supplierOtherPhone' => $supplierOtherPhone,
+            'supplierEmail' => $supplierEmail,
+            'supplierTaxNumber' => $supplierTaxNumber,
+            'supplierLogo' => $supplierLogo,
+            'zatcaLogo' => $zatcaLogo,
+            'qrImage' => $qrImage,
+            'serviceDesc' => $serviceDesc,
+            'serviceLongDescription' => $serviceLongDescription,
+            'items' => $items,
+            'invoiceStatus' => $invoiceStatus,
+            'printedBy' => $printedBy,
+            'printedAt' => $printedAt,
+            'customerName' => $customerName,
+            'customerNationalId' => $customerNationalId,
+            'customerPhone' => $customerPhone,
+            'customerAddress' => $customerAddress,
+            'accountNumber' => $accountNumber,
+            'matchedHijriDate' => $matchedHijriDate,
+            'invoiceDate' => $invoiceDate,
+            'invoiceDateTime' => $invoiceDateTime,
+            'invoiceUrl' => url('/admin/invoices/download/' . $invoice->id),
+            'subtotalBeforeDiscount' => $subtotalBeforeDiscount,
+            'discountTotal' => $discountTotal,
+            'netSubtotal' => $netSubtotal,
+            'vatAmount' => $vatAmount,
+            'grandTotal' => $grandTotal,
+        ];
+    }
+
+    private function buildInvoiceItems(Invoice $invoice): array
+    {
+        $rawItems = [
             [
                 'label' => 'تكاليف الاستقدام المباشر',
                 'qty' => (int) $invoice->direct_recruitment_count,
@@ -347,28 +413,81 @@ class InvoiceController extends Controller
             ],
         ];
 
+        $items = array_values(array_filter($rawItems, function ($item) {
+            return $item['qty'] > 0 || $item['unit'] > 0 || $item['vat_amount'] > 0;
+        }));
+
+        if (empty($items)) {
+            $items = $rawItems;
+        }
+
         foreach ($items as &$item) {
-            $item['line_total'] = $item['qty'] * $item['unit'];
+            $item['line_subtotal'] = $item['qty'] * $item['unit'];
+            $item['line_discount'] = 0;
+            $item['line_total'] = $item['line_subtotal'] - $item['line_discount'];
+            $item['line_grand_total'] = $item['line_total'] + $item['vat_amount'];
         }
         unset($item);
 
-        $invoiceStatus = $invoice->total_due <= 0 ? 'مدفوعة' : 'غير مدفوعة';
+        return $items;
+    }
 
-        $pdf = PDF::loadView('admin.ingaz.invoices.invoice', [
-            'invoice' => $invoice,
-            'supplierName' => $supplierName,
-            'supplierAddress' => $supplierAddress,
-            'serviceDesc' => $serviceDesc,
-            'items' => $items,
-            'invoiceStatus' => $invoiceStatus
-        ], [], [
-            'title' => 'Contract Form',
-            'format' => 'A4-P',
-            'orientation' => 'P'
-        ]);
+    private function buildServiceDescription(Invoice $invoice): string
+    {
+        $contract = $invoice->contract;
+        if (!$contract) {
+            return 'طلب استقدام';
+        }
 
-        // return $pdf->download('invoice-' . $invoice->id . '.pdf');
-        return $pdf->stream('invoice-' . $invoice->id . '.pdf');
+        $clientName = $contract->user?->name ?: 'غير محدد';
+        $jobTitle = $contract->requiredMaidJobTitle?->title ?: 'عاملة منزلية';
+        $nationality = $contract->requiredMaidNationality?->title
+            ?: $contract->maid?->nationality?->title
+            ?: $contract->maid?->nationality?->sub_title
+            ?: 'غير محدد';
+        $religion = $contract->requiredMaidReligion?->title
+            ?: $contract->maid?->religion?->title
+            ?: 'غير محدد';
+        $experience = $contract->required_maid_experience_min
+            ? 'خبرة لا تقل عن ' . $contract->required_maid_experience_min . ' سنة'
+            : (($contract->maid?->experience_status === 'has_experience')
+                ? 'سبق لها العمل'
+                : (($contract->maid?->experience_status === 'no_experience') ? 'غير سبق لها العمل' : 'غير محدد'));
+        $arrivalPlace = $contract->user?->address ?: 'غير محدد';
+        $visaType = $contract->contract_visa_type ?: 'مساند';
+        $msanedNo = $contract->info?->msaned_number ?: ($contract->msaned_number ?: '-');
+        $visaNo = $contract->info?->visa_number ?: ($contract->visa_number ?: '-');
+
+        return 'طلب استقدام - العميل: ' . $clientName
+            . ' - رقم العقد: ' . $contract->id
+            . ' - المهنة: ' . $jobTitle
+            . ' - الجنسية: ' . $nationality
+            . ' - الديانة: ' . $religion
+            . ' - الخبرة: ' . $experience
+            . ' - محل الوصول: ' . $arrivalPlace
+            . ' - نوع التأشيرة: ' . $visaType
+            . ' - رقم التأشيرة: ' . $visaNo
+            . ' - رقم مساند: ' . $msanedNo;
+    }
+
+    private function formatPhone(string $code, string $phone): string
+    {
+        $code = trim($code);
+        $phone = trim($phone);
+
+        if ($code === '' && $phone === '') {
+            return '---';
+        }
+
+        if ($code === '') {
+            return $phone;
+        }
+
+        if ($phone === '') {
+            return $code;
+        }
+
+        return $code . $phone;
     }
 
     private function resolveNationalityAccountId(string $nationalityName): ?int

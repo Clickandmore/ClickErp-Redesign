@@ -382,11 +382,7 @@ class ContractController extends Controller
             'client_address' => $clientAddress,
             'adminStaff' => $adminStaff,
             'arrive_date' => $arriveDate,
-        ],[], [
-            'title' => 'Contract Form',
-            'format' => 'A4-P',
-            'orientation' => 'P'
-        ]);
+        ])->setPaper('a4', 'portrait');
 
         if (request()->query('type') === 'download') {
             return $pdf->download('contract-' . $contract->id . '.pdf');

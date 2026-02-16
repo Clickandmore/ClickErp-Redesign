@@ -2635,11 +2635,7 @@ class ShelterContractController extends Controller
             'date_receipt' => $dateReceipt,
             'cvs_name' => $maidName,
             'text_receipt' => $textReceipt,
-        ], [], [
-            'title' => 'Shelter Contract Receipt',
-            'format' => 'A4-P',
-            'orientation' => 'P'
-        ]);
+        ])->setPaper('a4', 'portrait');
 
         return $pdf->stream('contract-' . $contract->id . '.pdf');
     }

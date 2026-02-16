@@ -159,6 +159,7 @@ Route::group(
             Route::get('settings/section/{section}', [SettingController::class, 'section'])->name('settings.section');
             Route::resource('develop-settings', DevelopSettingController::class);
             Route::resource('job-titles', JobTitleController::class);
+            Route::post('nationalities/{id}/generate-financial-accounts', [NationalityController::class, 'generateFinancialAccounts'])->name('nationalities.generate-financial-accounts');
             Route::resource('nationalities', NationalityController::class);
             Route::resource('sliders', SliderController::class);
             Route::resource('religions', ReligionController::class);

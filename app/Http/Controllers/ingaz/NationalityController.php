@@ -9,7 +9,10 @@ use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Nationality as objModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Nami\Finance\Models\Account;
+use Throwable;
 use Yajra\DataTables\Facades\DataTables;
 
 class NationalityController extends Controller
@@ -143,7 +146,16 @@ class NationalityController extends Controller
                 })
                 ->addColumn('actions', function ($row) {
                     $menu = '';
+                    $title = e($row->sub_title ?? $row->title ?? helperTrans('ingaz.not_specified'));
+
                     if (@AdminGuardHasPerm(\App\PermKeys::NATIONALITIES_CONTROL)) {
+                        $menu .= '<button type="button" class="btn btn-sm btn-info text-white generate-nationality-accounts ms-1"
+                            data-route="' . route('nationalities.generate-financial-accounts', $row->id) . '"
+                            data-name="' . $title . '"
+                            title="إنشاء الحسابات المالية">
+                            <i class="fas fa-sitemap"></i>
+                        </button> ';
+
                         $menu .= editButton(route($this->mainRoute . ".edit", $row->id), $row->title);
                     }
 
@@ -222,9 +234,272 @@ class NationalityController extends Controller
         return jsonSuccess($data);
     }
 
+    public function generateFinancialAccounts(int $id)
+    {
+        $nationality = objModel::findOrFail($id);
+        $nationalityName = $this->resolveNationalityAccountName($nationality);
+
+        if ($nationalityName === '') {
+            return jsonError('لا يمكن إنشاء الحسابات لأن اسم الجنسية غير متوفر.', 422);
+        }
+
+        $createdNodes = 0;
+        $createdLeaves = 0;
+
+        try {
+            DB::transaction(function () use ($nationalityName, &$createdNodes, &$createdLeaves) {
+                foreach ($this->buildNationalityAccountPaths($nationalityName) as $path) {
+                    $result = $this->ensureAccountPath($path);
+                    $createdNodes += $result['created_nodes'];
+                    $createdLeaves += $result['leaf_was_created'] ? 1 : 0;
+                }
+            });
+        } catch (Throwable $throwable) {
+            return jsonError($throwable->getMessage(), 422);
+        }
+
+        $message = 'تمت معالجة حسابات الجنسية (' . $nationalityName . '). ';
+        if ($createdNodes === 0) {
+            $message .= 'جميع الحسابات المطلوبة موجودة مسبقًا.';
+        } else {
+            $message .= 'تم إنشاء ' . $createdLeaves . ' حساب نهائي و' . ($createdNodes - $createdLeaves) . ' حساب وسيط.';
+        }
+
+        return jsonSuccess([
+            'nationality' => $nationalityName,
+            'created_nodes' => $createdNodes,
+            'created_leaves' => $createdLeaves,
+        ], $message);
+    }
+
     public function destroy($id, objAction $action)
     {
         $action->deleteWithFile($id, 'image');
         return jsonSuccess();
+    }
+
+    private function resolveNationalityAccountName(objModel $nationality): string
+    {
+        $arTranslation = $nationality->translations->firstWhere('locale', 'ar');
+
+        return trim((string) (
+            $arTranslation?->sub_title
+            ?? $arTranslation?->title
+            ?? $nationality->sub_title
+            ?? $nationality->title
+            ?? ''
+        ));
+    }
+
+    private function buildNationalityAccountPaths(string $nationalityName): array
+    {
+        return [
+            [
+                $this->accountNode('الإيرادات'),
+                $this->accountNode('إيراد مبيعات الاستقدام', ['إيرادات مبيعات الاستقدام']),
+                $this->accountNode('مبيعات الاستقدام'),
+                $this->accountNode('مبيعات'),
+                $this->accountNode('مبيعات (' . $nationalityName . ')', ['مبيعات ' . $nationalityName]),
+            ],
+            [
+                $this->accountNode('المصروفات'),
+                $this->accountNode('تكاليف مبيعات الاستقدام'),
+                $this->accountNode('تكاليف مبيعات', ['تكاليف المبيعات']),
+                $this->accountNode('تكاليف مبيعات (' . $nationalityName . ')', ['تكاليف مبيعات ' . $nationalityName]),
+            ],
+            [
+                $this->accountNode('الخصوم'),
+                $this->accountNode('الخصوم قصيرة الأجل', ['الخصوم قصيرة الاجل']),
+                $this->accountNode('التزامات عقود الاستقدام', ['إلتزامات عقود الاستقدام']),
+                $this->accountNode('التزامات عقود', ['إلتزامات عقود']),
+                $this->accountNode('التزامات عقود (' . $nationalityName . ')', ['التزامات عقود ' . $nationalityName, 'إلتزامات عقود ' . $nationalityName]),
+            ],
+            [
+                $this->accountNode('الإيرادات'),
+                $this->accountNode('إيراد مبيعات الاستقدام', ['إيرادات مبيعات الاستقدام']),
+                $this->accountNode('خصم مبيعات'),
+                $this->accountNode('خصم مبيعات ' . $nationalityName),
+            ],
+            [
+                $this->accountNode('الإيرادات'),
+                $this->accountNode('إيراد نقل الخدمات'),
+                $this->accountNode('ايرادات نقل خدمات', ['إيراد نقل خدمات']),
+                $this->accountNode('ايراد نقل خدمات ' . $nationalityName, ['إيراد نقل خدمات ' . $nationalityName]),
+            ],
+            [
+                $this->accountNode('المصروفات'),
+                $this->accountNode('مصروفات تشغيلية اخرى'),
+                $this->accountNode('مصروفات سفارات اجنبية', ['مصروفات سفارات أجنبية']),
+                $this->accountNode('مصروفات جوب اوردر ' . $nationalityName),
+            ],
+            [
+                $this->accountNode('المصروفات'),
+                $this->accountNode('مصروفات تشغيلية اخرى'),
+                $this->accountNode('مصروفات سفارات اجنبية', ['مصروفات سفارات أجنبية']),
+                $this->accountNode('مصروفات انهاء اجراءات سفارة ' . $nationalityName),
+            ],
+            [
+                $this->accountNode('المصروفات'),
+                $this->accountNode('تكاليف مبيعات الاستقدام'),
+                $this->accountNode('مردودات تكلفة الاستقدام'),
+                $this->accountNode('مردودات تكلفة ' . $nationalityName),
+            ],
+            [
+                $this->accountNode('الإيرادات'),
+                $this->accountNode('إيراد مبيعات الاستقدام', ['إيرادات مبيعات الاستقدام']),
+                $this->accountNode('مردودات مبيعات الاستقدام', ['مرتد مبيعات الاستقدام']),
+                $this->accountNode('مردودات مبيعات استقدام ' . $nationalityName),
+            ],
+            [
+                $this->accountNode('الإيرادات'),
+                $this->accountNode('إيراد نقل الخدمات'),
+                $this->accountNode('مردودات مبيعات نقل الخدمات'),
+                $this->accountNode('مردودات نقل خدمات ' . $nationalityName),
+            ],
+            [
+                $this->accountNode('الأصول'),
+                $this->accountNode('الأصول المتداولة قصيرة الأجل', ['الأصول المتداولة قصيرة الاجل']),
+                $this->accountNode('مصروفات مدفوعة مقدما - الايواء', ['مصروفات مدفوعة مقدما الايواء']),
+                $this->accountNode('مصروفات مدفوعة مقدما ايواء ' . $nationalityName),
+            ],
+            [
+                $this->accountNode('الخصوم'),
+                $this->accountNode('الخصوم قصيرة الأجل', ['الخصوم قصيرة الاجل']),
+                $this->accountNode('دفعات مقدمة نقل خدمات'),
+                $this->accountNode('دفعات مقدمة نقل خدمات ' . $nationalityName),
+            ],
+        ];
+    }
+
+    private function accountNode(string $createName, array $aliases = []): array
+    {
+        $allNames = array_merge([$createName], $aliases);
+        $allNames = array_map(static fn($name) => trim((string) $name), $allNames);
+        $allNames = array_values(array_unique(array_filter($allNames)));
+
+        return [
+            'create' => $createName,
+            'aliases' => $allNames,
+        ];
+    }
+
+    private function ensureAccountPath(array $path): array
+    {
+        $parent = null;
+        $createdNodes = 0;
+        $leafWasCreated = false;
+        $lastIndex = count($path) - 1;
+
+        foreach ($path as $index => $node) {
+            $account = $this->findAccountByAliases($node['aliases'] ?? [], $parent?->id);
+
+            if (!$account) {
+                if ($index === 0) {
+                    throw new \RuntimeException('الحساب الرئيسي "' . ($node['create'] ?? '') . '" غير موجود في الشجرة المالية.');
+                }
+
+                $account = $this->createChildAccount($parent, $node['create']);
+                $createdNodes++;
+                if ($index === $lastIndex) {
+                    $leafWasCreated = true;
+                }
+            }
+
+            $parent = $account;
+        }
+
+        return [
+            'created_nodes' => $createdNodes,
+            'leaf_was_created' => $leafWasCreated,
+            'leaf_id' => $parent?->id,
+        ];
+    }
+
+    private function findAccountByAliases(array $aliases, ?int $parentId): ?Account
+    {
+        $aliases = array_map(static fn($name) => trim((string) $name), $aliases);
+        $aliases = array_values(array_unique(array_filter($aliases)));
+
+        if (empty($aliases)) {
+            return null;
+        }
+
+        $query = Account::query();
+        if ($parentId === null) {
+            $query->whereNull('parent_id');
+        } else {
+            $query->where('parent_id', $parentId);
+        }
+
+        $accounts = $query->whereIn('name', $aliases)->get()->keyBy('name');
+        foreach ($aliases as $alias) {
+            if (isset($accounts[$alias])) {
+                return $accounts[$alias];
+            }
+        }
+
+        $query = Account::query();
+        if ($parentId === null) {
+            $query->whereNull('parent_id');
+        } else {
+            $query->where('parent_id', $parentId);
+        }
+
+        $siblings = $query->get();
+        $normalizedAliases = array_map([$this, 'normalizeAccountName'], $aliases);
+        foreach ($siblings as $sibling) {
+            if (in_array($this->normalizeAccountName($sibling->name), $normalizedAliases, true)) {
+                return $sibling;
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeAccountName(string $name): string
+    {
+        $normalized = trim(preg_replace('/\s+/u', ' ', $name));
+        $normalized = str_replace(['أ', 'إ', 'آ', 'ة', 'ى'], ['ا', 'ا', 'ا', 'ه', 'ي'], $normalized);
+
+        return $normalized;
+    }
+
+    private function createChildAccount(Account $parent, string $accountName): Account
+    {
+        $status = $parent->status;
+        if ($status instanceof \BackedEnum) {
+            $status = $status->value;
+        }
+
+        return Account::query()->create([
+            'name' => $accountName,
+            'operation_type' => $parent->operation_type,
+            'status' => $status,
+            'level' => (int) $parent->level + 1,
+            'type' => $parent->type,
+            'parent_id' => $parent->id,
+            'code' => $this->nextChildCode($parent),
+            'statement_type' => $parent->statement_type,
+            'created_by_id' => auth('admin')->id() ?: Auth::id() ?: 1,
+        ]);
+    }
+
+    private function nextChildCode(Account $parent): int
+    {
+        $lastChildCode = (int) Account::query()
+            ->where('parent_id', $parent->id)
+            ->lockForUpdate()
+            ->max('code');
+
+        if ($lastChildCode > 0) {
+            return $lastChildCode + 1;
+        }
+
+        $parentCode = (int) $parent->code;
+        if ($parentCode > 0) {
+            return ($parentCode * 100) + 1;
+        }
+
+        return ((int) Account::query()->lockForUpdate()->max('code')) + 1;
     }
 }
