@@ -7,6 +7,7 @@ use App\Models\Contract;
 use App\Models\ingaz\Invoice;
 use App\Models\ingaz\Setting;
 use Illuminate\Http\Request;
+use Nami\Finance\Models\CostCenter;
 use PDF;
 use Yajra\DataTables\Facades\DataTables;
 use Nami\Finance\Services\ConstraintService as ObjService;
@@ -121,8 +122,11 @@ class InvoiceController extends Controller
             $invoice = DB::transaction(function () use ($request, $service, $yearService) {
                 $contract = Contract::with(['user', 'maid.nationality', 'requiredMaidNationality'])->findOrFail($request->contract_id);
 
+                // جلب حساب العميل المسجل في الشجرة المحاسبية
                 $clientAccountId = $contract->user?->account_id;
 
+                // جلب حساب الجنسية المسجلة في الشجرة المحاسبية، أو محاولة إيجاد حساب بناءً على اسم الجنسية
+                // التزامات عقود الاستقدام + اسم الجنسية
                 $nationality = $contract->maid?->nationality ?? $contract->requiredMaidNationality;
                 $nationalityAccountId = $nationality?->account_id;
 
@@ -151,6 +155,7 @@ class InvoiceController extends Controller
                     ], 422);
                 }
 
+                //1- انشاء الفاتورة وربطها بالعقد
                 $invoice = Invoice::create([
                     'contract_id' => $request->contract_id,
                     'insurance_company' => $request->insurance_company ?? null,
@@ -170,31 +175,31 @@ class InvoiceController extends Controller
                     'total_due' => $request->total_due ?? 0,
                 ]);
 
-                $date = $invoice->created_at ? $invoice->created_at->toDateString() : now()->toDateString();
-                $activeYear = $yearService->checkDateRange($date);
-                if (!$activeYear) {
-                    throw new \RuntimeException('Cannot create entry: no active fiscal year for this date');
+                //2- انشاء قيد الفاتورة في النظام المحاسبي بين العميل-مدين والتزامات عقود الجنسية-دائن
+                $statement = 'Invoice entry #' . $invoice->id . ' for contract #' . $invoice->contract->id;
+
+                // بعد قيد الفاتورة يتم عمل مركز تكلفة لهذه الجنسية - مركز تكلفة طلبات الاستقدام لدولة+اسم الدولة
+                $costCenterName = 'مركز تكلفة طلبات استقدام دولة ' . ($nationality->sub_title ?? $nationality->title ?? null);
+                $nationality_cost_center = CostCenter::where('title', 'like', '%' . $costCenterName . '%')->first();
+                if (!$nationality_cost_center) {
+                    throw new \RuntimeException("لا يوجد مركز تكلفة باسم '$costCenterName'");
                 }
 
-                $statement = 'Invoice entry #' . $invoice->id . ' for contract #' . $contract->id;
-                $totalDue = (float) ($invoice->total_due ?? 0);
+                $cost_center_ids = [$nationality_cost_center->id, null];
 
-                $data = [
-                    'code' => $service->lastCode(),
-                    'date' => $date,
-                    'statement' => $statement,
-                    'account_id' => [$clientAccountId, $nationalityAccountId],
-                    'account_type' => ['debtor', 'creditor'],
-                    'debtor_value' => [$totalDue, 0],
-                    'creditor_value' => [0, $totalDue],
-                    'statement_account' => [$statement, $statement],
-                    'cost_center_required' => 'off',
-                    'cost_center_id' => [null, null],
-                ];
+                $this->storeConstraintForInvoice($invoice, $service, $yearService, $nationalityAccountId, $clientAccountId, $statement, $cost_center_ids);
 
-                $storeConstraint = $service->storeConstraint($data, $activeYear);
-                $service->storeConstraintDetails($data['account_id'], $storeConstraint->id, $data);
-                $service->storeFiles($storeConstraint, $data);
+
+                //3- انشاء قيد سند قبض بين العميل-دائن و حساب مساند-مدين 
+                $musandName = 'عمولات مساند';
+                $musandAccountId = Account::query()->where('name', $musandName)->value('id');
+
+                if (!$musandAccountId) {
+                    throw new \RuntimeException("لا يوجد حساب باسم '$musandName' في الشجرة المحاسبية");
+                }
+                $statement = "Musand receipt for invoice #{$invoice->id}";
+
+                $this->storeConstraintForInvoice($invoice, $service, $yearService, $clientAccountId, $musandAccountId, $statement);
 
                 return $invoice;
             });
@@ -211,6 +216,37 @@ class InvoiceController extends Controller
             'data' => $invoice,
             'redirect' => route('invoices.show', $invoice->id),
         ]);
+    }
+
+    public function storeConstraintForInvoice(Invoice $invoice, ObjService $service, YearService $yearService, $creditAccountId, $debitAccountId, $statement = null, $costCenterIds = null)
+    {
+        $date = $invoice->created_at ? $invoice->created_at->toDateString() : now()->toDateString();
+        $activeYear = $yearService->checkDateRange($date);
+        if (!$activeYear) {
+            throw new \RuntimeException('لا يوجد سنة مالية نشطة للتاريخ المحدد');
+        }
+
+        $statement = 'Invoice entry #' . $invoice->id . ' for contract #' . $invoice->contract->id;
+        $totalDue = (float) ($invoice->total_due ?? 0);
+
+        $data = [
+            'code' => $service->lastCode(),
+            'date' => $date,
+            'statement' => $statement,
+            'account_id' => [$creditAccountId, $debitAccountId],
+            'account_type' => ['creditor', 'debtor'],
+            'debtor_value' => [0, $totalDue],
+            'creditor_value' => [$totalDue, 0],
+            'statement_account' => [$statement, $statement],
+            'cost_center_required' => 'off',
+            'cost_center_id' => $costCenterIds ?? [null, null],
+            'value' => $totalDue,
+
+        ];
+
+        $storeConstraint = $service->storeConstraint($data, $activeYear);
+        $service->storeConstraintDetails($data['account_id'], $storeConstraint->id, $data);
+        $service->storeFiles($storeConstraint, $data);
     }
 
     /**
