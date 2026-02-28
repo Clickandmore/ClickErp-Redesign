@@ -37,8 +37,10 @@ class NotificationAction extends MainAction
     {
         $senderNameType = (string) $request->input('sender_name_type', 'advertising');
 
+        $templateId = $request->input('sms_template_id');
+
         $template = SmsTemplate::query()
-            ->whereKey($request->integer('sms_template_id'))
+            ->whereKey($templateId)
             ->where('is_active', true)
             ->first();
 
