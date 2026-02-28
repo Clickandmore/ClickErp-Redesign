@@ -40,7 +40,7 @@ class ContractsController extends Controller
             return  redirect()->back();
         $info = getContractInfo($id);
         $cancelExists = CancelContractRequests::where('user_id', Auth::user()->id)->where('contract_id', $id)->exists();
-        return view('web.ingaz.contracts.show', compact('data','info','cancelExists'));
+        return view('site.pages.profile.contracts.show', compact('data','info','cancelExists'));
     }
 
     public function cancel(Request $request)
