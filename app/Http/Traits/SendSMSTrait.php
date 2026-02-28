@@ -2,11 +2,9 @@
 
 namespace App\Http\Traits;
 
-use Illuminate\Support\Facades\Http;
-
 trait SendSMSTrait
 {
-    function sendSMS($phone, $msg, $code = null)
+    function sendSMS($phone, $msg, $code = null, $senderType = null)
     {
         // $phone = preg_replace('/[^0-9]/', '', $phone);
 
@@ -21,12 +19,14 @@ trait SendSMSTrait
         //     $phone = '966' . $phone;
         // }
 
+        $resolvedSender = $this->resolveSenderName($senderType, $code);
+
         $ch = curl_init(config('msegat.url'));
         $data = array(
             'userName' => config('msegat.username'),
             'apiKey' => config('msegat.api_key'),
             'numbers' => $phone,
-            "userSender" => config('msegat.sender'),
+            "userSender" => $resolvedSender,
             'msg' => $msg,
             'msgEncoding' => config('msegat.encoding'),
         );
@@ -41,8 +41,35 @@ trait SendSMSTrait
 
         $result = curl_exec($ch);
 
-        logger()->info("Msegat SMS Sent Successfully: ", ['code' => $code, 'phone' => $phone, 'msg' => $msg, 'response' => $result]);
+        logger()->info("Msegat SMS Sent Successfully: ", [
+            'code' => $code,
+            'phone' => $phone,
+            'msg' => $msg,
+            'sender_type' => $senderType,
+            'sender' => $resolvedSender,
+            'response' => $result,
+        ]);
 
         return $result;
+    }
+
+    private function resolveSenderName($senderType = null, $code = null): string
+    {
+        $resolvedType = strtolower(trim((string) ($senderType ?? '')));
+        if ($resolvedType === '') {
+            $resolvedType = $code !== null
+                ? 'verification'
+                : strtolower((string) config('msegat.default_sender_type', 'advertising'));
+        }
+
+        if ($resolvedType === 'verification') {
+            return (string) config('msegat.verification_sender', config('msegat.sender', ''));
+        }
+
+        if ($resolvedType === 'advertising') {
+            return (string) config('msegat.advertising_sender', config('msegat.sender', ''));
+        }
+
+        return (string) config('msegat.sender', '');
     }
 }

@@ -1026,16 +1026,6 @@
                                 <span class="ms-2"> {{ helperTrans('ingaz.offices') }}</span>
                             </a>
                         </li>
-                        @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
-                            <li>
-                                <a class="m-link {{ Route::currentRouteName() == 'notifications.index' ? 'active' : '' }}"
-                                    href="{{ route('notifications.index') }}">
-                                    <i class="fa fa-bell"></i>
-                                    <span class="ms-2"> {{ helperTrans('ingaz.notifications') }}</span>
-                                </a>
-                            </li>
-                        @endif
-
                     </ul>
                 </li>
                 <!-- Clients Section -->

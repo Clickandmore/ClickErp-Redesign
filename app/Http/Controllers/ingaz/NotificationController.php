@@ -5,7 +5,7 @@ namespace App\Http\Controllers\ingaz;
 use App\Http\Actions\ingaz\NotificationAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ingaz\StoreNotificationRequest;
-use App\Models\ingaz\Notification as objModel;
+use App\Models\SmsTemplate;
 use App\Models\ingaz\User;
 use Illuminate\Http\Request;
 
@@ -14,7 +14,6 @@ class NotificationController extends Controller
 {
 
        public $folderPath = "admin.ingaz.notifications";
-        public $postData = ["title",'description','to_user_id','type'];
         public $mainRoute = "notifications";
 
     function __construct()
@@ -28,8 +27,21 @@ class NotificationController extends Controller
 
     public function index()
     {
-        $appUsers = User::where('is_blocked',false)->select('name','id')->latest()->get();
-        return view($this->folderPath . '.index', compact('appUsers'));
+        $appUsers = User::where('is_blocked', false)
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->select('name', 'id', 'phone')
+            ->latest()
+            ->get();
+
+        $smsTemplates = SmsTemplate::query()
+            ->where('is_active', true)
+            ->orderBy('title')
+            ->get(['id', 'name', 'title', 'message', 'variables']);
+
+        $totalEligibleUsers = $appUsers->count();
+
+        return view($this->folderPath . '.index', compact('appUsers', 'smsTemplates', 'totalEligibleUsers'));
     }
 
     /**
@@ -44,9 +56,16 @@ class NotificationController extends Controller
 
     public function store(StoreNotificationRequest $request, NotificationAction $action)
     {
-        $data = $request->only($this->postData);
-        $action->storeNotification($data, $request);
-        return jsonSuccess(null,'تم ارسال الاشعار بنجاح',201);
+        $result = $action->storeNotification($request->validated(), $request);
+
+        $message = 'تم إرسال الرسائل النصية بنجاح.';
+        if (($result['failed_count'] ?? 0) > 0) {
+            $message = "تم إرسال {$result['sent_count']} رسالة وتعذر إرسال {$result['failed_count']} رسالة.";
+        } elseif (isset($result['sent_count'])) {
+            $message = "تم إرسال {$result['sent_count']} رسالة نصية بنجاح.";
+        }
+
+        return jsonSuccess($result, $message, 201);
 
     }
 

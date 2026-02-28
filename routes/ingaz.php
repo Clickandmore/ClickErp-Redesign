@@ -311,7 +311,8 @@ Route::group(
             Route::post('SponsorshipTransfer/{id}/complete', [SponsorshipTransferController::class, 'complete'])->name('SponsorshipTransfer.complete');
             Route::post('SponsorshipTransfer/{id}/confirm-transfer', [SponsorshipTransferController::class, 'confirmTransfer'])->name('SponsorshipTransfer.confirmTransfer');
             Route::post('SponsorshipTransfer/{id}/cancel-transfer', [SponsorshipTransferController::class, 'cancelTransfer'])->name('SponsorshipTransfer.cancelTransfer');
-            Route::resource('notifications', NotificationController::class);
+            Route::get('sms-dispatch', [NotificationController::class, 'index'])->name('notifications.index');
+            Route::post('sms-dispatch', [NotificationController::class, 'store'])->name('notifications.store');
             Route::resource('statistics', StatisticController::class);
 
             Route::resource('steps', StepController::class);
