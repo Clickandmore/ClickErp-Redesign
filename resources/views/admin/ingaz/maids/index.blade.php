@@ -108,7 +108,8 @@
                             <i class="fas fa-user-friends text-primary me-2"></i>{{ helperTrans('ingaz.maids_management') }}
                         </h3>
                         <div class="text-muted small">{{ helperTrans('ingaz.total_maids') }}:
-                            {{ number_format($stats['total']) }}</div>
+                            <span data-stat-value="total">{{ number_format($stats['total']) }}</span>
+                        </div>
                     </div>
                     <div class="btn-toolbar gap-2">
                         @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
@@ -135,7 +136,8 @@
                             <div class="card-body d-flex align-items-center justify-content-between">
                                 <div>
                                     <div class="text-muted small fw-semibold">{{ helperTrans('ingaz.total_maids') }}</div>
-                                    <div class="fs-4 fw-bold">{{ number_format($stats['total']) }}</div>
+                                    <div class="fs-4 fw-bold" data-stat-value="total">{{ number_format($stats['total']) }}
+                                    </div>
                                 </div>
                                 <span class="stats-icon bg-primary-subtle text-primary"><i class="fas fa-users"></i></span>
                             </div>
@@ -147,7 +149,8 @@
                                 <div>
                                     <div class="text-muted small fw-semibold">{{ helperTrans('ingaz.available_maids') }}
                                     </div>
-                                    <div class="fs-4 fw-bold text-success">{{ number_format($stats['available']) }}</div>
+                                    <div class="fs-4 fw-bold text-success" data-stat-value="available">
+                                        {{ number_format($stats['available']) }}</div>
                                 </div>
                                 <span class="stats-icon bg-success-subtle text-success"><i
                                         class="fas fa-check-circle"></i></span>
@@ -160,7 +163,8 @@
                                 <div>
                                     <div class="text-muted small fw-semibold">{{ helperTrans('ingaz.reserved_maids') }}
                                     </div>
-                                    <div class="fs-4 fw-bold text-warning">{{ number_format($stats['reserved']) }}</div>
+                                    <div class="fs-4 fw-bold text-warning" data-stat-value="reserved">
+                                        {{ number_format($stats['reserved']) }}</div>
                                 </div>
                                 <span class="stats-icon bg-warning-subtle text-warning"><i
                                         class="fas fa-hand-paper"></i></span>
@@ -174,8 +178,8 @@
                                 <div>
                                     <div class="text-muted small fw-semibold">{{ helperTrans('ingaz.shelter_maids') }}
                                     </div>
-                                    <div class="fs-4 fw-bold text-info">{{ number_format($stats['in_accommodation']) }}
-                                    </div>
+                                    <div class="fs-4 fw-bold text-info" data-stat-value="in_accommodation">
+                                        {{ number_format($stats['in_accommodation']) }}</div>
                                 </div>
                                 <span class="stats-icon bg-info-subtle text-info"><i class="fas fa-warehouse"></i></span>
                             </div>
@@ -187,7 +191,8 @@
                                 <div>
                                     <div class="text-muted small fw-semibold">{{ helperTrans('ingaz.backout_maids') }}
                                     </div>
-                                    <div class="fs-4 fw-bold text-danger">{{ number_format($stats['backout']) }}</div>
+                                    <div class="fs-4 fw-bold text-danger" data-stat-value="backout">
+                                        {{ number_format($stats['backout']) }}</div>
                                 </div>
                                 <span class="stats-icon bg-danger-subtle text-danger"><i class="fas fa-undo"></i></span>
                             </div>
@@ -198,7 +203,8 @@
                             <div class="card-body d-flex align-items-center justify-content-between">
                                 <div>
                                     <div class="text-muted small fw-semibold">{{ helperTrans('ingaz.pinned_maids') }}</div>
-                                    <div class="fs-4 fw-bold text-secondary">{{ number_format($stats['pinned']) }}</div>
+                                    <div class="fs-4 fw-bold text-secondary" data-stat-value="pinned">
+                                        {{ number_format($stats['pinned']) }}</div>
                                 </div>
                                 <span class="stats-icon bg-secondary-subtle text-secondary"><i
                                         class="fas fa-thumbtack"></i></span>
@@ -211,7 +217,8 @@
                                 <div>
                                     <div class="text-muted small fw-semibold">{{ helperTrans('ingaz.suspended_maids') }}
                                     </div>
-                                    <div class="fs-4 fw-bold text-dark">{{ number_format($stats['suspended']) }}</div>
+                                    <div class="fs-4 fw-bold text-dark" data-stat-value="suspended">
+                                        {{ number_format($stats['suspended']) }}</div>
                                 </div>
                                 <span class="stats-icon bg-dark-subtle text-dark"><i class="fas fa-ban"></i></span>
                             </div>
@@ -223,7 +230,8 @@
                                 <div>
                                     <div class="text-muted small fw-semibold">{{ helperTrans('ingaz.deported_maids') }}
                                     </div>
-                                    <div class="fs-4 fw-bold text-secondary">{{ number_format($stats['deported']) }}</div>
+                                    <div class="fs-4 fw-bold text-secondary" data-stat-value="deported">
+                                        {{ number_format($stats['deported']) }}</div>
                                 </div>
                                 <span class="stats-icon bg-secondary-subtle text-secondary"><i
                                         class="fas fa-plane-departure"></i></span>
@@ -505,6 +513,18 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(function() {
+            const statNumberFormat = new Intl.NumberFormat();
+            const updateStats = (stats) => {
+                if (!stats) {
+                    return;
+                }
+                Object.keys(stats).forEach((key) => {
+                    const value = stats[key] ?? 0;
+                    document.querySelectorAll(`[data-stat-value="${key}"]`).forEach((el) => {
+                        el.textContent = statNumberFormat.format(value);
+                    });
+                });
+            };
             const table = $('#dataTableObject').DataTable({
                 processing: true,
                 serverSide: true,
@@ -520,6 +540,12 @@
                         d.pinned = $('#filter-pinned').val();
                         d.date_from = $('#filter-date-from').val();
                         d.date_to = $('#filter-date-to').val();
+                    },
+                    dataSrc: function(json) {
+                        if (json && json.stats) {
+                            updateStats(json.stats);
+                        }
+                        return json.data || [];
                     }
                 },
                 columns: [{
