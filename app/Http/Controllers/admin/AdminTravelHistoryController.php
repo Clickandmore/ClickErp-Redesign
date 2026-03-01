@@ -5,10 +5,14 @@ namespace App\Http\Controllers\admin;
 use App\Constants;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Traits\SendSMSTrait;
+use App\Models\AdminNotification;
 use App\Models\Contract;
+use App\Models\auth\Admin;
 use App\Models\ingaz\Order;
 use App\Models\TravelHistory;
 use App\Models\TravelHistoryFiles;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
@@ -17,6 +21,8 @@ use DataTables;
 
 class AdminTravelHistoryController extends Controller
 {
+    use SendSMSTrait;
+
     public function index(Request $request)
     {
         if ($request->ajax()) {
@@ -205,6 +211,260 @@ class AdminTravelHistoryController extends Controller
                 'completed' => 0,
                 'upcoming' => 0
             ]);
+        }
+    }
+
+    public function calendarEvents(Request $request)
+    {
+        $query = TravelHistory::with([
+            'user:id,name,phone',
+            'maid:id,name',
+            'assignedTo:id,name',
+        ])->orderBy('arrival_date', 'asc')
+            ->orderBy('arrival_time', 'asc');
+
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('travel_type') && $request->travel_type !== 'all') {
+            $query->where('travel_type', $request->travel_type);
+        }
+
+        $now = Carbon::now();
+        $events = [];
+
+        foreach ($query->get() as $trip) {
+            $arrivalAt = $this->resolveArrivalDateTime($trip);
+            if (!$arrivalAt && $trip->created_at) {
+                $arrivalAt = Carbon::parse($trip->created_at);
+            }
+
+            if (!$arrivalAt) {
+                continue;
+            }
+
+            $remainingSeconds = $now->diffInSeconds($arrivalAt, false);
+            $travelTypeLabel = $trip->travel_type === 'deportation' ? 'ترحيل' : 'استقدام';
+            $statusLabel = __('travel_types.status.' . $trip->status);
+            if ($statusLabel === 'travel_types.status.' . $trip->status) {
+                $statusLabel = $trip->status;
+            }
+
+            $events[] = [
+                'id' => (string) $trip->id,
+                'title' => $travelTypeLabel . ' - ' . ($trip->maid->name ?? ('رحلة #' . $trip->id)),
+                'start' => $arrivalAt->toIso8601String(),
+                'allDay' => false,
+                'backgroundColor' => $this->calendarEventColor($trip),
+                'borderColor' => $this->calendarEventColor($trip),
+                'extendedProps' => [
+                    'trip_id' => $trip->id,
+                    'travel_type' => $trip->travel_type,
+                    'travel_type_label' => $travelTypeLabel,
+                    'status' => $trip->status,
+                    'status_label' => $statusLabel,
+                    'client_name' => optional($trip->user)->name,
+                    'maid_name' => optional($trip->maid)->name,
+                    'order_id' => $trip->order_id,
+                    'arrival_airport' => $trip->arrival_airport,
+                    'arrival_date' => $arrivalAt->format('Y-m-d'),
+                    'arrival_time' => $arrivalAt->format('H:i'),
+                    'remaining_seconds' => $remainingSeconds,
+                    'remaining_label' => $this->formatRemainingTimeLabel($remainingSeconds),
+                    'assigned_to' => optional($trip->assignedTo)->name,
+                    'assigned_to_id' => $trip->assigned_to,
+                    'assignment_note' => $trip->assignment_note,
+                ],
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'events' => $events,
+        ]);
+    }
+
+    public function assignableStaff()
+    {
+        $staff = Admin::query()
+            ->select('id', 'name', 'phone', 'admin_type', 'status')
+            ->where(function ($query) {
+                $query->whereNull('status')
+                    ->orWhere('status', '!=', 'suspended');
+            })
+            ->orderBy('name')
+            ->get()
+            ->map(function ($admin) {
+                $typeLabel = $admin->admin_type ?: 'employee';
+
+                return [
+                    'id' => $admin->id,
+                    'name' => $admin->name,
+                    'phone' => $admin->phone,
+                    'admin_type' => $admin->admin_type,
+                    'label' => $admin->name . ' (' . $typeLabel . ')',
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $staff,
+        ]);
+    }
+
+    public function assignTrip(Request $request, $id)
+    {
+        $request->validate([
+            'assigned_to' => 'required|exists:admins,id',
+            'assignment_note' => 'nullable|string|max:2000',
+        ]);
+
+        try {
+            $trip = TravelHistory::with(['user', 'maid'])->findOrFail($id);
+            $assignee = Admin::findOrFail($request->assigned_to);
+
+            DB::beginTransaction();
+
+            $trip->update([
+                'assigned_to' => $assignee->id,
+                'assigned_by' => auth('admin')->id(),
+                'assigned_at' => now(),
+                'assignment_note' => $request->assignment_note,
+            ]);
+
+            $notificationText = $this->buildAssignmentMessage($trip);
+
+            AdminNotification::create([
+                'admin_id' => $assignee->id,
+                'created_by' => auth('admin')->id(),
+                'title' => 'إسناد رحلة جديدة',
+                'message' => $notificationText,
+                'type' => 'travel_assignment',
+                'link' => route('travel'),
+                'data' => [
+                    'trip_id' => $trip->id,
+                    'travel_type' => $trip->travel_type,
+                    'arrival_date' => $trip->arrival_date,
+                    'arrival_time' => $trip->arrival_time,
+                    'order_id' => $trip->order_id,
+                ],
+            ]);
+
+            $smsSent = $this->sendAssignmentSms($assignee, $notificationText);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => $smsSent
+                    ? 'تم إسناد الرحلة وإرسال التنبيه بنجاح'
+                    : 'تم إسناد الرحلة بنجاح (تعذر إرسال SMS)',
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            \Log::error('Trip assignment failed', [
+                'trip_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء إسناد الرحلة',
+            ], 500);
+        }
+    }
+
+    private function resolveArrivalDateTime(TravelHistory $trip): ?Carbon
+    {
+        if (empty($trip->arrival_date)) {
+            return null;
+        }
+
+        try {
+            if (!empty($trip->arrival_time)) {
+                return Carbon::parse($trip->arrival_date . ' ' . $trip->arrival_time);
+            }
+
+            return Carbon::parse($trip->arrival_date);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    private function calendarEventColor(TravelHistory $trip): string
+    {
+        if ($trip->status === 'completed') {
+            return '#6c757d';
+        }
+
+        if ($trip->travel_type === 'deportation') {
+            return '#dc3545';
+        }
+
+        return '#0d6efd';
+    }
+
+    private function formatRemainingTimeLabel(int $seconds): string
+    {
+        if ($seconds === 0) {
+            return 'لحظات للوصول';
+        }
+
+        $isFuture = $seconds > 0;
+        $seconds = abs($seconds);
+
+        $days = intdiv($seconds, 86400);
+        $seconds %= 86400;
+        $hours = intdiv($seconds, 3600);
+        $seconds %= 3600;
+        $minutes = intdiv($seconds, 60);
+
+        $parts = [];
+        if ($days > 0) {
+            $parts[] = $days . ' يوم';
+        }
+        if ($hours > 0) {
+            $parts[] = $hours . ' ساعة';
+        }
+        if ($minutes > 0) {
+            $parts[] = $minutes . ' دقيقة';
+        }
+
+        if (empty($parts)) {
+            $parts[] = 'أقل من دقيقة';
+        }
+
+        return ($isFuture ? 'متبقي ' : 'متأخر ') . implode(' و ', array_slice($parts, 0, 2));
+    }
+
+    private function buildAssignmentMessage(TravelHistory $trip): string
+    {
+        $travelType = $trip->travel_type === 'deportation' ? 'ترحيل' : 'استقدام';
+        $maidName = optional($trip->maid)->name ?: 'غير محدد';
+        $arrivalDate = $trip->arrival_date ?: 'غير محدد';
+        $arrivalTime = $trip->arrival_time ?: 'غير محدد';
+        $airport = $trip->arrival_airport ?: 'غير محدد';
+
+        return "تم إسناد رحلة {$travelType} لكم. العاملة: {$maidName}، موعد الوصول: {$arrivalDate} {$arrivalTime}، المطار: {$airport}.";
+    }
+
+    private function sendAssignmentSms(Admin $assignee, string $message): bool
+    {
+        if (empty($assignee->phone)) {
+            return false;
+        }
+
+        try {
+            $this->sendSMS(formatSaudiPhone($assignee->phone), $message);
+            return true;
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to send assignment SMS', [
+                'admin_id' => $assignee->id,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
         }
     }
 
@@ -623,4 +883,3 @@ class AdminTravelHistoryController extends Controller
         }
     }
 }
-

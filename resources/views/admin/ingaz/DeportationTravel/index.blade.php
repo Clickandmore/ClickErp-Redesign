@@ -8,6 +8,19 @@
 {{-- <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"> --}}
 {{-- <link rel="stylesheet" href="{{asset("admin")}}/custom/admin-tables.css"> --}}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css" rel="stylesheet" />
+<style>
+    #logisticsCalendar {
+        min-height: 540px;
+    }
+
+    .calendar-side-card {
+        border: 1px dashed #dce1ec;
+        border-radius: 10px;
+        padding: 12px;
+        background: #fafcff;
+    }
+</style>
 
 @endsection
 
@@ -128,6 +141,43 @@
             </div>
         </div>
 
+        <div class="card shadow mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">
+                    <i class="fa fa-calendar-alt"></i> تقويم الخدمات اللوجستية (الاستقدام + الترحيل)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-lg-8">
+                        <div id="logisticsCalendar"></div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="calendar-side-card">
+                            <h6 class="mb-3">إسناد الرحلة</h6>
+                            <div id="calendarTripInfo" class="small text-muted mb-3">
+                                اختر رحلة من التقويم لعرض التفاصيل وإسنادها.
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label">الموظف / السائق</label>
+                                <select id="assignStaffSelect" class="form-select">
+                                    <option value="">-- اختر --</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">ملاحظة الإسناد</label>
+                                <textarea id="assignmentNote" class="form-control" rows="3"
+                                    placeholder="ملاحظة اختيارية"></textarea>
+                            </div>
+                            <button id="assignTripBtn" type="button" class="btn btn-primary w-100" disabled>
+                                <i class="fa fa-paper-plane"></i> إسناد وإرسال تنبيه
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Table -->
         <div class="row">
             <div class="col-12">
@@ -168,12 +218,163 @@
 <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
 <script src="{{asset("admin")}}/custom/admin-tables.js"></script>
 <script>
+let logisticsCalendar = null;
+let selectedCalendarTripId = null;
+const travelAssignRouteTemplate = @json(route('travel.assign', ['id' => '__ID__']));
+
 $(document).ready(function() {
     loadTable();
     updateStatistics();
+    initLogisticsCalendar();
+    loadAssignableStaff();
+
+    $('#assignStaffSelect').on('change', toggleAssignButtonState);
+    $('#assignTripBtn').on('click', assignSelectedTrip);
 });
+
+function initLogisticsCalendar() {
+    const calendarEl = document.getElementById('logisticsCalendar');
+    if (!calendarEl || typeof FullCalendar === 'undefined') {
+        return;
+    }
+
+    logisticsCalendar = new FullCalendar.Calendar(calendarEl, {
+        locale: 'ar',
+        direction: 'rtl',
+        initialView: 'dayGridMonth',
+        height: 540,
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        events: function(fetchInfo, successCallback, failureCallback) {
+            $.ajax({
+                url: "{{ route('travel.calendar.events') }}",
+                method: 'GET',
+                success: function(response) {
+                    successCallback(response.events || []);
+                },
+                error: function() {
+                    failureCallback();
+                }
+            });
+        },
+        eventClick: function(info) {
+            selectedCalendarTripId = info.event.id;
+            renderSelectedTripInfo(info.event);
+            toggleAssignButtonState();
+        },
+        eventContent: function(arg) {
+            const wrapper = document.createElement('div');
+            const title = document.createElement('div');
+            title.className = 'fw-bold';
+            title.textContent = arg.event.title;
+
+            const remaining = document.createElement('small');
+            remaining.textContent = arg.event.extendedProps.remaining_label || '';
+
+            wrapper.appendChild(title);
+            wrapper.appendChild(remaining);
+
+            return {
+                domNodes: [wrapper]
+            };
+        },
+        eventDidMount: function(info) {
+            info.el.title = `${info.event.title}\n${info.event.extendedProps.remaining_label || ''}`;
+        }
+    });
+
+    logisticsCalendar.render();
+}
+
+function renderSelectedTripInfo(event) {
+    const p = event.extendedProps || {};
+    const html = `
+        <div class="mb-1"><strong>نوع الرحلة:</strong> ${p.travel_type_label || '-'}</div>
+        <div class="mb-1"><strong>الحالة:</strong> ${p.status_label || '-'}</div>
+        <div class="mb-1"><strong>العميلة:</strong> ${p.client_name || 'غير محدد'}</div>
+        <div class="mb-1"><strong>العاملة:</strong> ${p.maid_name || 'غير محدد'}</div>
+        <div class="mb-1"><strong>موعد الوصول:</strong> ${p.arrival_date || '-'} ${p.arrival_time || ''}</div>
+        <div class="mb-1"><strong>المتبقي:</strong> ${p.remaining_label || '-'}</div>
+        <div class="mb-1"><strong>المكلّف الحالي:</strong> ${p.assigned_to || 'غير مسند'}</div>
+    `;
+
+    $('#calendarTripInfo').html(html);
+    if (p.assigned_to_id) {
+        $('#assignStaffSelect').val(String(p.assigned_to_id));
+    } else {
+        $('#assignStaffSelect').val('');
+    }
+    $('#assignmentNote').val(p.assignment_note || '');
+}
+
+function loadAssignableStaff() {
+    $.ajax({
+        url: "{{ route('travel.assignable-staff') }}",
+        method: 'GET',
+        success: function(response) {
+            const select = $('#assignStaffSelect');
+            select.empty().append('<option value="">-- اختر --</option>');
+
+            (response.data || []).forEach(function(staff) {
+                select.append(
+                    `<option value="${staff.id}">${staff.label || staff.name}</option>`
+                );
+            });
+        },
+        error: function() {
+            console.log('Failed to load assignable staff');
+        }
+    });
+}
+
+function toggleAssignButtonState() {
+    const canAssign = !!selectedCalendarTripId && !!$('#assignStaffSelect').val();
+    $('#assignTripBtn').prop('disabled', !canAssign);
+}
+
+function assignSelectedTrip() {
+    if (!selectedCalendarTripId) {
+        Swal.fire('تنبيه', 'يرجى اختيار رحلة من التقويم أولاً', 'warning');
+        return;
+    }
+
+    const assignedTo = $('#assignStaffSelect').val();
+    if (!assignedTo) {
+        Swal.fire('تنبيه', 'يرجى اختيار الموظف/السائق', 'warning');
+        return;
+    }
+
+    const assignUrl = travelAssignRouteTemplate.replace('__ID__', selectedCalendarTripId);
+    $.ajax({
+        url: assignUrl,
+        method: 'POST',
+        data: {
+            _token: '{{ csrf_token() }}',
+            assigned_to: assignedTo,
+            assignment_note: $('#assignmentNote').val()
+        },
+        success: function(response) {
+            Swal.fire('تم', response.message || 'تم إسناد الرحلة بنجاح', 'success');
+            if (logisticsCalendar) {
+                logisticsCalendar.refetchEvents();
+            }
+            if ($.fn.DataTable.isDataTable('#deportationTravelTable')) {
+                $('#deportationTravelTable').DataTable().ajax.reload();
+            }
+            updateStatistics();
+        },
+        error: function(xhr) {
+            const message = xhr.responseJSON?.message || 'حدث خطأ أثناء إسناد الرحلة';
+            Swal.fire('خطأ', message, 'error');
+        }
+    });
+}
 
 function resetFilters() {
     $('#contract_number').val('');

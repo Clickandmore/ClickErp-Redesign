@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\auth\Admin;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\User;
 use App\Models\ingaz\Order;
@@ -28,6 +29,10 @@ class TravelHistory extends Model
         'arrival_time',
         'flight_company',
         'flight_number',
+        'assigned_to',
+        'assigned_by',
+        'assigned_at',
+        'assignment_note',
     ];
 
     public function user()
@@ -48,6 +53,16 @@ class TravelHistory extends Model
     public function files()
     {
         return $this->hasMany(TravelHistoryFiles::class, 'travel_id');
+    }
+
+    public function assignedTo()
+    {
+        return $this->belongsTo(Admin::class, 'assigned_to');
+    }
+
+    public function assignedBy()
+    {
+        return $this->belongsTo(Admin::class, 'assigned_by');
     }
 
     public function getActivitylogOptions(): LogOptions

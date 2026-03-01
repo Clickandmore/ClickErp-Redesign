@@ -835,6 +835,12 @@
                 return urlParams.get('warranty_status');
             }
 
+            // دالة لقراءة marketer_id من الـ URL
+            function getMarketerFromUrl() {
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get('marketer_id');
+            }
+
             function toggleWarrantyFilter() {
                 const statusValue = $('#statusFilter').val();
                 const shouldShow = statusValue === 'arrival' || statusValue === 'completed';
@@ -905,6 +911,7 @@
             // تطبيق الـ status من الـ URL على الفلتر أولاً
             const urlStatus = getStatusFromUrl();
             const urlWarrantyStatus = getWarrantyStatusFromUrl();
+            const urlMarketer = getMarketerFromUrl();
 
             if (urlStatus) {
                 $('#statusFilter').val(urlStatus);
@@ -919,6 +926,11 @@
                     $('#warrantyStatusFilter').val(urlWarrantyStatus);
                     console.log('Warranty status from URL applied to filter:', urlWarrantyStatus);
                 }
+            }
+
+            if (urlMarketer) {
+                $('#marketerFilter').val(urlMarketer);
+                console.log('Marketer from URL applied to filter:', urlMarketer);
             }
 
             toggleStatsSections();

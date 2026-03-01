@@ -158,6 +158,7 @@
                 'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::New->value] ?? 0,
                 'meta' => 'اليوم: ' . number_format($contractsStats['today'] ?? 0),
                 'video' => asset('admin/assets/img/new-dashboard/contracted.webm'),
+                'link' => route('RecruitmentContract.index', ['status' => \App\Enums\ingaz\ContractStatusEnum::New->value]),
             ],
             [
                 'title' => 'حركة وصول اليوم',
@@ -165,6 +166,7 @@
                 'value' => $arrivalTodayCount,
                 'meta' => 'تذاكر جاهزة: ' . number_format($ticketsReady),
                 'video' => asset('admin/assets/img/new-dashboard/daily-arraivel.webm'),
+                'link' => route('RecruitmentContract.index', ['status' => \App\Enums\ingaz\ContractStatusEnum::Arrival->value]),
             ],
             [
                 'title' => 'المتأخرة بالوصول',
@@ -172,6 +174,7 @@
                 'value' => $delayedWithoutTickets,
                 'meta' => 'مطلوب متابعة عاجلة',
                 'video' => asset('admin/assets/img/new-dashboard/ezgif.com-resize.webm'),
+                'link' => route('RecruitmentContract.index', ['status' => 'current']),
             ],
             [
                 'title' => 'عقود منتهية',
@@ -179,6 +182,7 @@
                 'value' => $expiredLongTerm,
                 'meta' => 'ضمان ' . number_format($warrantyActive) . ' | مكتملة ' . number_format($completedContracts) . ' | مرتجع ' . number_format($returnedContracts),
                 'video' => asset('admin/assets/img/new-dashboard/ended-contracted.webm'),
+                'link' => route('RecruitmentContract.index', ['status' => \App\Enums\ingaz\ContractStatusEnum::Completed->value]),
             ]
         ];
 
@@ -188,28 +192,32 @@
                 'subtitle' => __('ingaz.new'),
                 'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::New->value] ?? 0,
                 'icon' => 'fas fa-file-signature',
-                'color' => 'var(--dash-chart-1)'
+                'color' => 'var(--dash-chart-1)',
+                'link' => route('RecruitmentContract.index', ['status' => \App\Enums\ingaz\ContractStatusEnum::New->value]),
             ],
             [
                 'title' => __('ingaz.msaned'),
                 'subtitle' => 'بعد الاعتماد',
                 'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::Msaned->value] ?? 0,
                 'icon' => 'fas fa-folder-open',
-                'color' => 'var(--dash-chart-2)'
+                'color' => 'var(--dash-chart-2)',
+                'link' => route('RecruitmentContract.index', ['status' => \App\Enums\ingaz\ContractStatusEnum::Msaned->value]),
             ],
             [
                 'title' => __('ingaz.tafwed'),
                 'subtitle' => 'إجراءات التفويض',
                 'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::Tafwed->value] ?? 0,
                 'icon' => 'fas fa-key',
-                'color' => 'var(--dash-chart-3)'
+                'color' => 'var(--dash-chart-3)',
+                'link' => route('RecruitmentContract.index', ['status' => \App\Enums\ingaz\ContractStatusEnum::Tafwed->value]),
             ],
             [
                 'title' => __('ingaz.taffez'),
                 'subtitle' => 'التفييز والتجهيز',
                 'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::Taffez->value] ?? 0,
                 'icon' => 'fas fa-check-double',
-                'color' => 'var(--dash-chart-4)'
+                'color' => 'var(--dash-chart-4)',
+                'link' => route('RecruitmentContract.index', ['status' => \App\Enums\ingaz\ContractStatusEnum::Taffez->value]),
             ],
         ];
 
@@ -219,28 +227,32 @@
                 'subtitle' => 'تذاكر معتمدة',
                 'value' => $ticketsReady,
                 'icon' => 'fas fa-ticket-alt',
-                'color' => 'var(--dash-chart-5)'
+                'color' => 'var(--dash-chart-5)',
+                'link' => route('RecruitmentContract.index', ['status' => \App\Enums\ingaz\ContractStatusEnum::Tazker->value]),
             ],
             [
                 'title' => 'تحت الضمان',
                 'subtitle' => 'آخر 90 يوماً',
                 'value' => $warrantyActive,
                 'icon' => 'fas fa-shield-alt',
-                'color' => 'var(--warning)'
+                'color' => 'var(--warning)',
+                'link' => route('RecruitmentContract.index', ['status' => \App\Enums\ingaz\ContractStatusEnum::Completed->value, 'warranty_status' => 'active']),
             ],
             [
                 'title' => 'عقود مكتملة',
                 'subtitle' => 'محصلة نهائية',
                 'value' => $completedContracts,
                 'icon' => 'fas fa-check-circle',
-                'color' => 'var(--success)'
+                'color' => 'var(--success)',
+                'link' => route('RecruitmentContract.index', ['status' => \App\Enums\ingaz\ContractStatusEnum::Completed->value]),
             ],
             [
                 'title' => 'عقود مرتجعة',
                 'subtitle' => 'تحت إعادة المعالجة',
                 'value' => $returnedContracts,
                 'icon' => 'fas fa-undo-alt',
-                'color' => 'var(--danger)'
+                'color' => 'var(--danger)',
+                'link' => route('RecruitmentContract.index', ['status' => \App\Enums\ingaz\ContractStatusEnum::Back->value]),
             ],
         ];
 
@@ -265,7 +277,8 @@
         <div class="section-body operations-showcase" data-section-body="operations">
             <div class="operations-highlight-grid">
                 @foreach ($operationsHighlights as $index => $highlight)
-                    <div class="operation-tile op-tile-{{ $index }}">
+                    <a href="{{ $highlight['link'] ?? route('RecruitmentContract.index') }}"
+                        class="operation-tile op-tile-{{ $index }} operation-link">
                         <div class="operation-icon">
                             <video src="{{ $highlight['video'] }}" autoplay muted loop playsinline></video>
                         </div>
@@ -275,7 +288,8 @@
                             <span>{{ $highlight['title'] }}</span>
                             <span>{{ $highlight['meta'] }}</span>
                         </div>
-                    </div>
+                        <span class="operation-cta">عرض التفاصيل <i class="fas fa-arrow-left ms-1"></i></span>
+                    </a>
                 @endforeach
             </div>
 
@@ -289,7 +303,8 @@
                         @php
                             $cardShare = $operationsTotal ? round((($card['value'] ?? 0) / $operationsTotal) * 100) : 0;
                         @endphp
-                        <div class="mini-operation-card">
+                        <a href="{{ $card['link'] ?? route('RecruitmentContract.index') }}"
+                            class="mini-operation-card mini-operation-link">
                             <div class="mini-operation-main">
                                 <span class="mini-operation-icon" style="background: {{ $card['color'] }};">
                                     <i class="{{ $card['icon'] }}"></i>
@@ -306,7 +321,7 @@
                                     <span style="width: {{ $cardShare }}%; background: {{ $card['color'] }};"></span>
                                 </div>
                             </div>
-                        </div>
+                        </a>
                     @endforeach
                 </div>
                 <div class="operations-column">
@@ -318,7 +333,8 @@
                         @php
                             $cardShare = $operationsTotal ? round((($card['value'] ?? 0) / $operationsTotal) * 100) : 0;
                         @endphp
-                        <div class="mini-operation-card">
+                        <a href="{{ $card['link'] ?? route('RecruitmentContract.index') }}"
+                            class="mini-operation-card mini-operation-link">
                             <div class="mini-operation-main">
                                 <span class="mini-operation-icon" style="background: {{ $card['color'] }};">
                                     <i class="{{ $card['icon'] }}"></i>
@@ -335,7 +351,7 @@
                                     <span style="width: {{ $cardShare }}%; background: {{ $card['color'] }};"></span>
                                 </div>
                             </div>
-                        </div>
+                        </a>
                     @endforeach
                 </div>
             </div>
@@ -592,17 +608,48 @@
                 <div class="panel-head">
                     <div>
                         <p class="section-eyebrow">طاقم العمل</p>
-                        <h4 class="mb-0">حجوزات الموظفين</h4>
+                        <h4 class="mb-0">حجوزات وعقود الموظفين</h4>
                     </div>
-                    <a href="{{ url('dashboard/admins') }}" class="btn btn-outline-primary btn-sm">إدارة</a>
+                    <a href="{{ route('admins.index') }}" class="btn btn-outline-primary btn-sm">إدارة</a>
                 </div>
-                <div class="d-flex flex-column gap-2" style="max-height: 320px; overflow: auto;">
+                <div class="employee-summary-row">
+                    <span class="employee-summary-pill">نشطون:
+                        {{ number_format($employeeBookingSummary['employees_with_activity'] ?? 0) }}</span>
+                    <span class="employee-summary-pill">الحجوزات:
+                        {{ number_format($employeeBookingSummary['orders_total'] ?? 0) }}</span>
+                    <span class="employee-summary-pill">العقود:
+                        {{ number_format($employeeBookingSummary['contracts_total'] ?? 0) }}</span>
+                </div>
+                <div class="employee-performance-list">
                     @forelse($employeeBookings ?? [] as $emp)
-                        <div class="p-3 rounded-3"
-                            style="background: var(--surface-muted); border: 1px solid var(--stroke);">
-                            <div class="d-flex justify-content-between">
+                        @php
+                            $handledTotal = (int) ($emp->handled_total ?? 0);
+                        @endphp
+                        <div class="employee-performance-card">
+                            <div class="employee-performance-head">
                                 <strong>{{ $emp->name }}</strong>
-                                <span class="badge bg-primary-subtle text-primary">{{ $emp->orders_count }}</span>
+                                <span class="employee-total-badge">{{ number_format($handledTotal) }} متابعة</span>
+                            </div>
+                            <div class="employee-performance-metrics">
+                                <span class="employee-metric-chip chip-orders">حجوزات: {{ number_format((int) $emp->orders_count) }}</span>
+                                <span class="employee-metric-chip">جديد: {{ number_format((int) $emp->orders_new) }}</span>
+                                <span class="employee-metric-chip">تحت الإجراء: {{ number_format((int) $emp->orders_under_process) }}</span>
+                                <span class="employee-metric-chip">تم التعاقد: {{ number_format((int) $emp->orders_contracted) }}</span>
+                                <span class="employee-metric-chip">مغلقة: {{ number_format((int) $emp->orders_completed) }}</span>
+                                <span class="employee-metric-chip chip-contracts">عقود: {{ number_format((int) $emp->contracts_count) }}</span>
+                                <span class="employee-metric-chip">جارية: {{ number_format((int) $emp->contracts_current) }}</span>
+                                <span class="employee-metric-chip">مكتملة: {{ number_format((int) $emp->contracts_completed) }}</span>
+                                <span class="employee-metric-chip">مرتجعة: {{ number_format((int) $emp->contracts_returned) }}</span>
+                            </div>
+                            <div class="employee-performance-footer">
+                                <small>نسبة التعاقد من الحجوزات:
+                                    {{ number_format((int) ($emp->conversion_rate ?? 0)) }}%</small>
+                                <div class="employee-performance-actions">
+                                    <a href="{{ route('orders.index', ['admin_id' => $emp->id]) }}"
+                                        class="btn btn-outline-primary btn-sm">الحجوزات</a>
+                                    <a href="{{ route('RecruitmentContract.index', ['marketer_id' => $emp->id]) }}"
+                                        class="btn btn-outline-success btn-sm">العقود</a>
+                                </div>
                             </div>
                         </div>
                     @empty

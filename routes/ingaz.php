@@ -138,6 +138,9 @@ Route::group(
             //** */
             Route::get('/travel', [AdminTravelHistoryController::class, 'index'])->name('travel');
             Route::get('/travel/statistics', [AdminTravelHistoryController::class, 'statistics'])->name('travel.statistics');
+            Route::get('/travel/calendar/events', [AdminTravelHistoryController::class, 'calendarEvents'])->name('travel.calendar.events');
+            Route::get('/travel/assignable-staff', [AdminTravelHistoryController::class, 'assignableStaff'])->name('travel.assignable-staff');
+            Route::post('/travel/{id}/assign', [AdminTravelHistoryController::class, 'assignTrip'])->name('travel.assign');
             Route::post('/travel/{id}/complete', [AdminTravelHistoryController::class, 'completeTrip'])->name('travel.complete');
             Route::get('/travel/create/{id?}', [AdminTravelHistoryController::class, 'create'])->name('travel.control');
             Route::get('/travel/{id}/edit', [AdminTravelHistoryController::class, 'edit'])->name('travel.edit');

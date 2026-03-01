@@ -455,7 +455,7 @@
                         d.to_date = $('#to_date').val();
                         d.status = $('#status').val() || getUrlParameter('status');
                         d.job_type = $('#job_type').val();
-                        d.admin_id = $('#admin_id').val();
+                        d.admin_id = $('#admin_id').val() || getUrlParameter('admin_id');
                         d.timer_status = $('#timer_status').val();
                         d.client_name = $('#client_name').val();
                         d.phone = $('#phone').val();
@@ -519,8 +519,12 @@
 
             // Set form values from URL parameters on page load
             var urlStatus = getUrlParameter('status');
+            var urlAdminId = getUrlParameter('admin_id');
             if (urlStatus) {
                 $('#status').val(urlStatus);
+            }
+            if (urlAdminId) {
+                $('#admin_id').val(urlAdminId);
             }
 
             setActiveCard($('#status').val());

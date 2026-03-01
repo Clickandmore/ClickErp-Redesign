@@ -16,6 +16,7 @@ use App\Models\ingaz\Order;
 use App\Models\ingaz\User;
 use App\Models\ingaz\JobType;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -165,14 +166,124 @@ class DashboardController extends Controller
             }
         ])->orderByDesc('maids_total')->get();
 
-        // حجوزات الموظفين (Top 5)
-        $employeeBookings = Admin::select('admins.id', 'admins.name')
-            ->selectRaw('COUNT(order_details.id) as orders_count')
-            ->leftJoin('order_details', 'admins.id', '=', 'order_details.admin_id')
-            ->groupBy('admins.id', 'admins.name')
-            ->orderByDesc('orders_count')
-            ->limit(5)
-            ->get();
+        // حجوزات/عقود الموظفين (تفصيلي)
+        $orderStatsByEmployee = DB::table('order_details as od')
+            ->join('orders as o', 'o.id', '=', 'od.order_id')
+            ->whereNotNull('od.admin_id')
+            ->whereNull('o.deleted_at')
+            ->where('o.job_type_id', 1)
+            ->groupBy('od.admin_id')
+            ->selectRaw(
+                'od.admin_id,
+                COUNT(DISTINCT o.id) as orders_count,
+                SUM(CASE WHEN o.status = ? THEN 1 ELSE 0 END) as orders_new,
+                SUM(CASE WHEN o.status = ? THEN 1 ELSE 0 END) as orders_under_process,
+                SUM(CASE WHEN o.status = ? THEN 1 ELSE 0 END) as orders_contracted,
+                SUM(CASE WHEN o.status IN (?, ?) THEN 1 ELSE 0 END) as orders_completed',
+                [
+                    OrderEnum::New->value,
+                    OrderEnum::UnderProcess->value,
+                    OrderEnum::Contracted->value,
+                    OrderEnum::Completed->value,
+                    OrderEnum::Done->value,
+                ]
+            );
+
+        $contractAssignmentRows = DB::table('contracts')
+            ->selectRaw('id as contract_id, marketer_id as admin_id')
+            ->whereNotNull('marketer_id')
+            ->whereIn('type', ['recruitment', 'maid'])
+            ->unionAll(
+                DB::table('contracts as c')
+                    ->join('order_details as od', 'od.order_id', '=', 'c.order_id')
+                    ->whereNotNull('od.admin_id')
+                    ->whereIn('c.type', ['recruitment', 'maid'])
+                    ->selectRaw('c.id as contract_id, od.admin_id as admin_id')
+            );
+
+        $contractAssignments = DB::query()
+            ->fromSub($contractAssignmentRows, 'contract_assignments')
+            ->select('contract_id', 'admin_id')
+            ->distinct();
+
+        $currentContractStatuses = [
+            ContractStatusEnum::PendingMaidSelection->value,
+            ContractStatusEnum::New->value,
+            ContractStatusEnum::Msaned->value,
+            ContractStatusEnum::Tafwed->value,
+            ContractStatusEnum::Taffez->value,
+            ContractStatusEnum::Tazker->value,
+            ContractStatusEnum::InProgress->value,
+        ];
+
+        $completedContractStatuses = [
+            ContractStatusEnum::Completed->value,
+            ContractStatusEnum::Arrival->value,
+        ];
+
+        $currentStatusPlaceholders = implode(', ', array_fill(0, count($currentContractStatuses), '?'));
+        $completedStatusPlaceholders = implode(', ', array_fill(0, count($completedContractStatuses), '?'));
+
+        $contractStatsByEmployee = DB::query()
+            ->fromSub($contractAssignments, 'ca')
+            ->join('contracts as c', 'c.id', '=', 'ca.contract_id')
+            ->groupBy('ca.admin_id')
+            ->selectRaw(
+                "ca.admin_id,
+                COUNT(*) as contracts_count,
+                SUM(CASE WHEN c.status IN ($currentStatusPlaceholders) THEN 1 ELSE 0 END) as contracts_current,
+                SUM(CASE WHEN c.status IN ($completedStatusPlaceholders) THEN 1 ELSE 0 END) as contracts_completed,
+                SUM(CASE WHEN c.status = ? THEN 1 ELSE 0 END) as contracts_returned",
+                array_merge(
+                    $currentContractStatuses,
+                    $completedContractStatuses,
+                    [ContractStatusEnum::Back->value]
+                )
+            );
+
+        $employeeBookings = Admin::query()
+            ->select('admins.id', 'admins.name')
+            ->leftJoinSub($orderStatsByEmployee, 'order_stats', function ($join) {
+                $join->on('admins.id', '=', 'order_stats.admin_id');
+            })
+            ->leftJoinSub($contractStatsByEmployee, 'contract_stats', function ($join) {
+                $join->on('admins.id', '=', 'contract_stats.admin_id');
+            })
+            ->selectRaw('COALESCE(order_stats.orders_count, 0) as orders_count')
+            ->selectRaw('COALESCE(order_stats.orders_new, 0) as orders_new')
+            ->selectRaw('COALESCE(order_stats.orders_under_process, 0) as orders_under_process')
+            ->selectRaw('COALESCE(order_stats.orders_contracted, 0) as orders_contracted')
+            ->selectRaw('COALESCE(order_stats.orders_completed, 0) as orders_completed')
+            ->selectRaw('COALESCE(contract_stats.contracts_count, 0) as contracts_count')
+            ->selectRaw('COALESCE(contract_stats.contracts_current, 0) as contracts_current')
+            ->selectRaw('COALESCE(contract_stats.contracts_completed, 0) as contracts_completed')
+            ->selectRaw('COALESCE(contract_stats.contracts_returned, 0) as contracts_returned')
+            ->selectRaw('(COALESCE(order_stats.orders_count, 0) + COALESCE(contract_stats.contracts_count, 0)) as handled_total')
+            ->orderByDesc('handled_total')
+            ->orderBy('admins.name')
+            ->limit(8)
+            ->get()
+            ->map(function ($employee) {
+                $ordersCount = (int) $employee->orders_count;
+                $contractsCount = (int) $employee->contracts_count;
+                $employee->conversion_rate = $ordersCount > 0
+                    ? round(($contractsCount / $ordersCount) * 100)
+                    : 0;
+                return $employee;
+            })
+            ->values();
+
+        $employeeBookingSummary = [
+            'employees_with_activity' => $employeeBookings->filter(function ($employee) {
+                return ((int) $employee->orders_count + (int) $employee->contracts_count) > 0;
+            })->count(),
+            'orders_total' => (int) $employeeBookings->sum(function ($employee) {
+                return (int) $employee->orders_count;
+            }),
+            'contracts_total' => (int) $employeeBookings->sum(function ($employee) {
+                return (int) $employee->contracts_count;
+            }),
+        ];
 
         // الموظفون
         try {
@@ -327,6 +438,7 @@ class DashboardController extends Controller
             'jobTypesList',
             'officeStats',
             'employeeBookings',
+            'employeeBookingSummary',
             'employeesStats',
             'shelterStats',
             'chartLabels',
