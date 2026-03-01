@@ -57,6 +57,7 @@
                 <th>{{ __('auth.SL') }}</th>
                 <th>{{__("auth.name")}}</th>
                 <th>{{helperTrans("ingaz.admin_type")}}</th>
+                <th>{{helperTrans("ingaz.role")}}</th>
                 <th>{{__("auth.phone")}}</th>
                 <th>{{__("auth.email")}}</th>
                 <th>{{helperTrans("ingaz.sex_type")}}</th>
@@ -85,6 +86,7 @@
                 {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                 {"data": "name", orderable: true, searchable: true},
                 {"data": "admin_type", orderable: true, searchable: true},
+                {"data": "role", orderable: true, searchable: true},
                 {"data": "phone", orderable: true, searchable: true},
                 {"data": "email", orderable: true, searchable: true},
                 {"data": "sex_type", orderable: false, searchable: false},
