@@ -1876,9 +1876,11 @@ function migrateUsersSimple() {
             $lastName = extractLastName($fullName);
 
             $rawPhone = cleanPhoneNumber($user['phone'] ?? '');
+            $rawPhone = stripLeadingZero($rawPhone);
             $phone = $makeUniquePhone($rawPhone, $userId);
 
             $whatsapp = cleanPhoneNumber($user['whatsapp_phone'] ?? '');
+            $whatsapp = stripLeadingZero($whatsapp);
             if ($whatsapp === '') {
                 $whatsapp = $rawPhone !== '' ? $rawPhone : $phone;
             }
@@ -2912,6 +2914,14 @@ function cleanPhoneNumber($phone) {
     }
 
     return $phone;
+}
+
+function stripLeadingZero($phone) {
+    $phone = (string)$phone;
+    if ($phone === '') {
+        return $phone;
+    }
+    return $phone[0] === '0' ? substr($phone, 1) : $phone;
 }
 
 /**

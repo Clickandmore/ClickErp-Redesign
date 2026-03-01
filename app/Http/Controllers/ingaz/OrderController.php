@@ -185,7 +185,7 @@ class OrderController extends Controller
                     return '<span class="badge bg-danger status-badge">' . __('ingaz.no_contract') . '</span>';
                 })
                 ->editColumn('maid_photo', function ($row) {
-                    $rawPath = $row->maid->image ?: ($row->maid->cv_preview ?: $row->maid->cv_file);
+                    $rawPath = $row?->maid?->image ?: ($row?->maid?->cv_preview ?: $row?->maid?->cv_file);
                     $imageUrl = $rawPath ? showFile($rawPath) : asset('admin/assets/img/avatar.png');
                     return '<img src="' . $imageUrl . '" alt="maid-avatar" class="border" style="width:65px;height:80px;object-fit:cover;border-radius: 5px;">';
                 })
