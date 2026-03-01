@@ -169,6 +169,15 @@ class PermissionsController extends Controller
             } elseif (str_starts_with($name, 'services_')) {
                 $section = 'content_management';
                 $group = 'services';
+            } elseif (str_starts_with($name, 'crm_')) {
+                $section = 'modules';
+                $group = 'crm';
+            } elseif (str_starts_with($name, 'hr_')) {
+                $section = 'modules';
+                $group = 'hr';
+            } elseif (str_starts_with($name, 'finance_')) {
+                $section = 'modules';
+                $group = 'finance';
             } elseif (in_array($name, ['contract_settings', 'full_contract', 'set_perms', 'developers_perms', 'test_perm'])) {
                 $section = 'settings';
                 $group = 'contract_settings';
@@ -228,6 +237,7 @@ class PermissionsController extends Controller
             'setting_management' => 'إدارة الإعدادات',
             'activity_management' => 'إدارة النشاطات',
             'backup_management' => 'إدارة النسخ الاحتياطية',
+            'modules' => 'الأنظمة',
         ];
 
         return $titles[$sectionName] ?? $sectionName;
@@ -301,6 +311,9 @@ class PermissionsController extends Controller
             'step' => 'الخطوات',
             'service' => 'الخدمات',
             'report' => 'التقارير',
+            'crm' => 'CRM',
+            'hr' => 'الموارد البشرية',
+            'finance' => 'المالية',
         ];
 
         return $titles[$groupName] ?? $groupName;

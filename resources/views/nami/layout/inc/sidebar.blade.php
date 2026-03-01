@@ -59,6 +59,20 @@
                 $sariStatus = \App\Enums\ingaz\ContractStatusEnum::Sari;
                 $closedStatus = \App\Enums\ingaz\ContractStatusEnum::Closed;
                 $completedStatus = \App\Enums\ingaz\ContractStatusEnum::Completed;
+
+                $canViewCrmModule = @AdminGuardHasPerm(\App\PermKeys::CRM_MODULE);
+                $canViewHrModule = @AdminGuardHasPerm(\App\PermKeys::HR_MODULE);
+                $canViewFinanceModule = @AdminGuardHasPerm(\App\PermKeys::FINANCE_MODULE);
+
+                $canViewCrm = $canViewCrmModule || @AdminGuardHasAnyPerm([
+                    \App\PermKeys::CLIENTS_VIEW,
+                    \App\PermKeys::CLIENTS_CREATE,
+                    \App\PermKeys::CLIENTS_EDIT,
+                    \App\PermKeys::CLIENTS_DELETE,
+                    \App\PermKeys::CLIENTS_EXPORT,
+                    \App\PermKeys::CLIENTS_SHOW,
+                    \App\PermKeys::CLIENTS_SETTINGS,
+                ]);
             @endphp
             <ul class="menu-list">
                 <!-- Dashboard Section -->
@@ -644,6 +658,7 @@
                     </ul>
                 </li>
 
+                @if ($canViewCrm)
                 <li class="{{ $isCrm || request()->routeIs('admin.sms-templates.*') ? '' : 'collapsed' }}">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#crm" href="#">
                         <i class="fa-regular fa-file-lines me-2"></i>
@@ -668,34 +683,41 @@
                         @include('crm::crm')
                     </ul>
                 </li>
+                @endif
                 @php
                     $isHr = request()->is('hr*');
                 @endphp
-                <li class="{{ $isHr ? '' : 'collapsed' }}">
-                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#hr" href="#">
-                        <i class="fa fa-user-tie me-2"></i>
-                        <span class="ms-2">{{ __('ingaz.hr') }}</span>
-                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
-                    </a>
-                    <ul class="sub-menu collapse {{ $isHr ? 'show' : '' }}" id="hr">
-                        @include('hr::hr')
-                    </ul>
-                </li>
+                @if ($canViewHrModule)
+                    <li class="{{ $isHr ? '' : 'collapsed' }}">
+                        <a class="m-link" data-bs-toggle="collapse" data-bs-target="#hr" href="#">
+                            <i class="fa fa-user-tie me-2"></i>
+                            <span class="ms-2">{{ __('ingaz.hr') }}</span>
+                            <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                        </a>
+                        <ul class="sub-menu collapse {{ $isHr ? 'show' : '' }}" id="hr">
+                            @include('hr::hr')
+                        </ul>
+                    </li>
+                @endif
                 @php
                     $isFinance = request()->is('finance*');
                 @endphp
-                <li class="{{ $isFinance ? '' : 'collapsed' }}">
-                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#finance" href="#">
-                        <i class="fa fa-dollar-sign me-2"></i>
-                        <span class="ms-2">{{ __('ingaz.finance') }}</span>
-                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
-                    </a>
-                    <ul class="sub-menu collapse {{ $isFinance ? 'show' : '' }}" id="finance">
-                        @include('finance::finance')
-                    </ul>
-                </li>
+                @if ($canViewFinanceModule)
+                    <li class="{{ $isFinance ? '' : 'collapsed' }}">
+                        <a class="m-link" data-bs-toggle="collapse" data-bs-target="#finance" href="#">
+                            <i class="fa fa-dollar-sign me-2"></i>
+                            <span class="ms-2">{{ __('ingaz.finance') }}</span>
+                            <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                        </a>
+                        <ul class="sub-menu collapse {{ $isFinance ? 'show' : '' }}" id="finance">
+                            @include('finance::finance')
+                        </ul>
+                    </li>
+                @endif
                 {{--                @include('finance::stock') --}}
-                @include('finance::zatca')
+                @if ($canViewFinanceModule)
+                    @include('finance::zatca')
+                @endif
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#settingsOperation" href="#">
                         <i class="fa fa-cog fa-lg"></i>

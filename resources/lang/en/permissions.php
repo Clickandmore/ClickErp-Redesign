@@ -315,6 +315,9 @@ return [
     'set_perms' => 'Set Permissions',
     'developers_perms' => 'Developer Permissions',
     'test_perm' => 'Test Permission',
+    'crm_module' => 'CRM Module',
+    'hr_module' => 'HR Module',
+    'finance_module' => 'Finance Module',
 
     // ========================================
     // Group Names (for organization)

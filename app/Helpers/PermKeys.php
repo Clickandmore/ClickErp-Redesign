@@ -301,6 +301,13 @@ const PARTENR_CONTROL = 'partenr_control';
     const TEST_PERM = 'test_perm';
 
     // ========================================
+    // Package Modules Permissions
+    // ========================================
+    const CRM_MODULE = 'crm_module';
+    const HR_MODULE = 'hr_module';
+    const FINANCE_MODULE = 'finance_module';
+
+    // ========================================
     // صلاحيات قديمة (للتوافق مع النظام الحالي)
     // ========================================
     // هذه الصلاحيات موجودة للتوافق مع النظام الحالي
