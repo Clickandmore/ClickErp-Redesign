@@ -1,3 +1,13 @@
+---
+
+### 00. تشغيل Seeder الخاص بالصلاحيات بالموديول crm, finance, hr
+قم بتشغيل Seeder الأساسي:
+```bash
+php artisan db:seed --class=AddPackageModulePermissionsSeeder
+```
+
+---
+
 **1. Run the Command to Start a New Project:**
    bash
    Copy code
