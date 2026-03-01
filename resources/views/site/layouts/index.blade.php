@@ -55,6 +55,17 @@
     </footer>
     @include('site.includes.js')
     @yield('scripts')
+    <script>
+        window.$zoho = window.$zoho || {};
+        $zoho.salesiq = $zoho.salesiq || {
+            ready: function() {}
+        }
+    </script>
+    <script id="zsiqscript"
+        src="https://salesiq.zohopublic.sa/widget?wc=e8345d69f3cb2a0945e374d8901771ae6b79f887aa0dd1ef960b4169df0f9cae"
+        defer></script>
+
+
 </body>
 
 </html>

@@ -4,7 +4,7 @@
 @section('content')
     <!-- Main Banner  -->
     <section class="mainBanner"
-        style="background-image: linear-gradient(45deg, var(--mainColor10), var(--mainColor40)), url({{ $settings && $settings->cover_image ? showFile($settings->cover_image) : asset('site/assets/images/ban.png') }});">
+        style="background-image: linear-gradient(45deg, var(--mainColor10), var(--mainColor40)), url({{ $settings && $settings->cover_image ? showFile($settings->cover_image) : asset('site/assets/images/ban.jpg') }});">
         >
         <button onclick="goBack()" class="Back">
             <i class="fas fa-angle-left"></i>
@@ -323,7 +323,7 @@
                     beforeSend: function() {
                         $("#maids_list").html(
                             "<div class='loading-text'><div class='spinner-border' role='status'><span class='visually-hidden'>Loading...</span></div></div>"
-                            );
+                        );
                     },
                     success: function(response) {
                         console.log("success", response);
