@@ -41,7 +41,7 @@ class AdminController extends Controller
     public function index(Request $request, ObjAction $action)
     {
         if ($request->ajax()) {
-            $dataTable = ObjModel::query()->latest();
+            $dataTable = ObjModel::query()->with('role')->latest();
 
             // Filters
             if ($request->filled('admin_type')) {
@@ -62,6 +62,9 @@ class AdminController extends Controller
                 ->addColumn('admin_type', function ($row) {
                     $key = $row->admin_type;
                     return Arr::get(Constant::globalArray['admin_typeis'], "{$key}." . App::getLocale(), __('admin.not_specified'));
+                })
+                ->addColumn('role', function ($row) {
+                    return $row->role?->name ?? '-';
                 })
                 ->editColumn('phone', function ($row) {
                     return $row->phone;

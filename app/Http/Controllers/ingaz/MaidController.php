@@ -80,6 +80,20 @@ class MaidController extends Controller
         if ($request->ajax()) {
             $this->applyMaidFilter($request, $query);
 
+            $statsQuery = objModel::query();
+            $this->applyMaidFilter($request, $statsQuery);
+            $statsBase = clone $statsQuery;
+            $stats = [
+                'total' => (clone $statsBase)->count(),
+                'available' => (clone $statsBase)->where('status', 'available')->count(),
+                'reserved' => (clone $statsBase)->where('status', 'reserved')->count(),
+                'in_accommodation' => (clone $statsBase)->where('maid_accommodation_type', 2)->count(),
+                'backout' => (clone $statsBase)->where('status', 'backout')->count(),
+                'suspended' => (clone $statsBase)->where('status', 'suspended')->count(),
+                'deported' => (clone $statsBase)->where('status', 'deported')->count(),
+                'pinned' => (clone $statsBase)->where('is_pinned', 1)->count(),
+            ];
+
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('photo', function ($row) {
@@ -440,6 +454,7 @@ class MaidController extends Controller
                             </div>';
                 })
                 ->rawColumns(['photo', 'profile', 'added_info', 'status_badge', 'job_info', 'metrics', 'actions'])
+                ->with('stats', $stats)
                 ->make(true);
         }
 
