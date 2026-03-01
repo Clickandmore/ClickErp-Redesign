@@ -296,6 +296,58 @@ class OrderController extends Controller
         return view($this->folderPath . '.index', $data);
     }
 
+    public function quickRecruitment(Request $request)
+    {
+        if (!@AdminGuardHasPerm(\App\PermKeys::ORDERS_CREATE)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ليس لديك صلاحية إنشاء طلب سريع.'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+        ], [
+            'name.required' => 'اسم العميل مطلوب.',
+            'phone.required' => 'رقم الجوال مطلوب.',
+        ]);
+
+        $normalizedPhone = $this->normalizeSaudiPhone($validated['phone']);
+        if (!$normalizedPhone) {
+            return response()->json([
+                'success' => false,
+                'message' => 'رقم الجوال غير صحيح. الصيغة المتاحة: 05XXXXXXXX أو 5XXXXXXXX أو +9665XXXXXXXX.',
+            ], 422);
+        }
+
+        $defaultPassword = '123456';
+        $user = User::where('phone', $normalizedPhone)->first();
+        $isNewClient = false;
+
+        if (!$user) {
+            $user = User::create([
+                'name' => $validated['name'],
+                'phone_code' => '+966',
+                'phone' => $normalizedPhone,
+                'password' => bcrypt($defaultPassword),
+                'register_from' => 'dashboard',
+                'is_blocked' => 0,
+            ]);
+            $isNewClient = true;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $isNewClient
+                ? 'تم إنشاء العميل وتحويلك لاختيار السيرة الذاتية.'
+                : 'تم العثور على عميل بنفس رقم الجوال وتحويلك لاختيار السيرة الذاتية.',
+            'client_id' => $user->id,
+            'redirect_url' => route('admin.recruitment.select.maid', ['client_id' => $user->id]),
+            'default_password_set' => $isNewClient,
+        ]);
+    }
+
     private function getSelectedStatus($status)
     {
         return match ($status) {
@@ -311,6 +363,26 @@ class OrderController extends Controller
                 ? [$status]
                 : array_map(fn ($case) => $case->value, OrderEnum::cases()),
         };
+    }
+
+    private function normalizeSaudiPhone(string $phone): ?string
+    {
+        $digits = preg_replace('/\D+/', '', $phone);
+        if (!$digits) {
+            return null;
+        }
+
+        if (str_starts_with($digits, '00966')) {
+            $digits = substr($digits, 5);
+        } elseif (str_starts_with($digits, '966')) {
+            $digits = substr($digits, 3);
+        }
+
+        if (str_starts_with($digits, '05')) {
+            $digits = substr($digits, 1);
+        }
+
+        return preg_match('/^5\d{8}$/', $digits) ? $digits : null;
     }
 
     public function edit(Request $request, $id)

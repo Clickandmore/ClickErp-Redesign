@@ -211,6 +211,7 @@ Route::group(
             Route::delete('complaints/complaint-comment/{id}', [ComplaintController::class, 'deleteComment']);
             Route::post('completeOrder/{id}', [OrderController::class, 'completeOrder'])->name('orders.completeOrder');
             Route::post('getOrderById/{id}', [OrderController::class, 'getOrderById'])->name('orders.getOrderById');
+            Route::post('orders/quick-recruitment', [OrderController::class, 'quickRecruitment'])->name('orders.quickRecruitment');
             Route::resource('orders', OrderController::class);
             Route::post('orders/{id}/restore', [OrderController::class, 'restore'])->name('orders.restore');
 

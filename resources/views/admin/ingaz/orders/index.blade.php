@@ -175,7 +175,13 @@
                         <i class="fas fa-exchange-alt text-primary me-2"></i>
                         طلبات الاستقدام
                     </h3>
-                    <div class="export-buttons text-end">
+                    <div class="export-buttons text-end d-flex flex-wrap gap-2 justify-content-end">
+                        @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CREATE))
+                            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#quickRecruitmentModal">
+                                <i class="fa fa-bolt"></i> طلب سريع
+                            </button>
+                        @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EXPORT))
                             <a href="{{ route('orders.export.pdf') }}" class="btn btn-outline-danger btn-sm" target="_blank">
                                 <i class="fa fa-file-pdf"></i> {{ helperTrans('ingaz.export_pdf') }}
@@ -346,6 +352,43 @@
                 </div>
             </div> <!-- end container -->
         </div> <!-- end page body -->
+
+        @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CREATE))
+            <div class="modal fade" id="quickRecruitmentModal" tabindex="-1" aria-labelledby="quickRecruitmentModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form id="quickRecruitmentForm">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="quickRecruitmentModalLabel">طلب استقدام سريع</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="quick_client_name" class="form-label">اسم العميل</label>
+                                    <input type="text" class="form-control" id="quick_client_name" name="name"
+                                        placeholder="مثال: محمد أحمد" required>
+                                    <div class="invalid-feedback" data-error-for="name"></div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="quick_client_phone" class="form-label">رقم الجوال</label>
+                                    <input type="text" class="form-control" id="quick_client_phone" name="phone"
+                                        placeholder="05XXXXXXXX" required>
+                                    <div class="invalid-feedback" data-error-for="phone"></div>
+                                </div>
+                                <small class="text-muted">سيتم تعيين كلمة مرور افتراضية للعميل الجديد: <strong>123456</strong></small>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                <button type="submit" class="btn btn-primary" id="quickRecruitmentSubmitBtn">
+                                    <i class="fa fa-check"></i> متابعة لاختيار السيرة
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endif
     @else
         @include('components.no_permissions')
     @endif
@@ -434,6 +477,84 @@
                 var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
                 var results = regex.exec(location.search);
                 return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+            }
+
+            const quickRecruitmentModal = $('#quickRecruitmentModal');
+            const quickRecruitmentForm = $('#quickRecruitmentForm');
+            const quickRecruitmentSubmitBtn = $('#quickRecruitmentSubmitBtn');
+            const quickRecruitmentSubmitDefaultHtml = quickRecruitmentSubmitBtn.length ?
+                quickRecruitmentSubmitBtn.html() : '';
+
+            function resetQuickRecruitmentValidation() {
+                if (!quickRecruitmentForm.length) {
+                    return;
+                }
+
+                quickRecruitmentForm.find('.form-control').removeClass('is-invalid');
+                quickRecruitmentForm.find('[data-error-for]').text('');
+            }
+
+            if (quickRecruitmentModal.length) {
+                quickRecruitmentModal.on('hidden.bs.modal', function() {
+                    resetQuickRecruitmentValidation();
+                    quickRecruitmentForm.trigger('reset');
+                    quickRecruitmentSubmitBtn.prop('disabled', false).html(
+                        quickRecruitmentSubmitDefaultHtml);
+                });
+            }
+
+            if (quickRecruitmentForm.length) {
+                quickRecruitmentForm.on('submit', function(e) {
+                    e.preventDefault();
+                    resetQuickRecruitmentValidation();
+
+                    quickRecruitmentSubmitBtn.prop('disabled', true).html(
+                        '<i class="fa fa-spinner fa-spin"></i> جاري التحويل...');
+
+                    $.ajax({
+                        url: '{{ route('orders.quickRecruitment') }}',
+                        type: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            name: $('#quick_client_name').val(),
+                            phone: $('#quick_client_phone').val()
+                        },
+                        success: function(response) {
+                            if (!response.success) {
+                                Swal.fire('خطأ', response.message || 'تعذر إنشاء الطلب السريع.', 'error');
+                                quickRecruitmentSubmitBtn.prop('disabled', false).html(
+                                    quickRecruitmentSubmitDefaultHtml);
+                                return;
+                            }
+
+                            quickRecruitmentModal.modal('hide');
+                            if (response.redirect_url) {
+                                window.location.href = response.redirect_url;
+                            }
+                        },
+                        error: function(xhr) {
+                            const response = xhr.responseJSON || {};
+                            const errors = response.errors || {};
+
+                            if (errors.name) {
+                                $('#quick_client_name').addClass('is-invalid');
+                                quickRecruitmentForm.find('[data-error-for="name"]').text(errors.name[0]);
+                            }
+
+                            if (errors.phone) {
+                                $('#quick_client_phone').addClass('is-invalid');
+                                quickRecruitmentForm.find('[data-error-for="phone"]').text(errors.phone[0]);
+                            }
+
+                            if (!errors.name && !errors.phone) {
+                                Swal.fire('خطأ', response.message || 'تعذر إنشاء الطلب السريع.', 'error');
+                            }
+
+                            quickRecruitmentSubmitBtn.prop('disabled', false).html(
+                                quickRecruitmentSubmitDefaultHtml);
+                        }
+                    });
+                });
             }
 
             let dataTable = $('#dataTableObject').DataTable({
