@@ -1,7 +1,7 @@
 @extends('admin.layout.indexs.index')
 
 @section('style')
-    <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=9">
+    <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=10">
 @endsection
 
 @section('page-title')
@@ -158,6 +158,7 @@
                 'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::New->value] ?? 0,
                 'meta' => 'اليوم: ' . number_format($contractsStats['today'] ?? 0),
                 'video' => asset('admin/assets/img/new-dashboard/contracted.webm'),
+                'icon' => 'fas fa-file-signature',
                 'link' => route('RecruitmentContract.index', ['status' => \App\Enums\ingaz\ContractStatusEnum::New->value]),
             ],
             [
@@ -166,6 +167,7 @@
                 'value' => $arrivalTodayCount,
                 'meta' => 'تذاكر جاهزة: ' . number_format($ticketsReady),
                 'video' => asset('admin/assets/img/new-dashboard/daily-arraivel.webm'),
+                'icon' => 'fas fa-plane-arrival',
                 'link' => route('RecruitmentContract.index', ['status' => \App\Enums\ingaz\ContractStatusEnum::Arrival->value]),
             ],
             [
@@ -174,6 +176,7 @@
                 'value' => $delayedWithoutTickets,
                 'meta' => 'مطلوب متابعة عاجلة',
                 'video' => asset('admin/assets/img/new-dashboard/ezgif.com-resize.webm'),
+                'icon' => 'fas fa-triangle-exclamation',
                 'link' => route('RecruitmentContract.index', ['status' => 'current']),
             ],
             [
@@ -182,6 +185,7 @@
                 'value' => $expiredLongTerm,
                 'meta' => 'ضمان ' . number_format($warrantyActive) . ' | مكتملة ' . number_format($completedContracts) . ' | مرتجع ' . number_format($returnedContracts),
                 'video' => asset('admin/assets/img/new-dashboard/ended-contracted.webm'),
+                'icon' => 'fas fa-hourglass-end',
                 'link' => route('RecruitmentContract.index', ['status' => \App\Enums\ingaz\ContractStatusEnum::Completed->value]),
             ]
         ];
@@ -280,7 +284,8 @@
                     <a href="{{ $highlight['link'] ?? route('RecruitmentContract.index') }}"
                         class="operation-tile op-tile-{{ $index }} operation-link">
                         <div class="operation-icon">
-                            <video src="{{ $highlight['video'] }}" autoplay muted loop playsinline></video>
+                            {{-- <video src="{{ $highlight['video'] }}" autoplay muted loop playsinline></video> --}}
+                            <i class="{{ $highlight['icon'] ?? 'fas fa-layer-group' }}"></i>
                         </div>
                         <p class="operation-subtitle">{{ $highlight['subtitle'] }}</p>
                         <p class="operation-value">{{ number_format($highlight['value']) }}</p>
