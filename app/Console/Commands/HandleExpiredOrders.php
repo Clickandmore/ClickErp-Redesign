@@ -2,15 +2,17 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\ingaz\NotificationActionEnum;
 use Illuminate\Console\Command;
 use App\Models\ingaz\Order;
 use App\Enums\ingaz\OrderEnum;
 use Carbon\Carbon;
 use App\Http\Traits\SendSMSTrait;
+use App\Http\Traits\StoreMessageTrait;
 
 class HandleExpiredOrders extends Command
 {
-    use SendSMSTrait;
+    use SendSMSTrait, StoreMessageTrait;
     protected $signature = 'orders:handle-expired';
     protected $description = 'Handle expired orders by updating their status';
 
@@ -42,7 +44,11 @@ class HandleExpiredOrders extends Command
             $userPhone = $order->user?->phone;
             if ($userPhone) {
                 $body = " عزيزي العميل : تخطي الطلب الخاص بكم المدة المسموحة له في النظام والغاءه برقم جواز : " . $order->maid->passport_num . " ورقم الطلب : " . $order->order_code;
-                $this->sendSMS(formatSaudiPhone($userPhone), $body);
+                $result = $this->sendSMS(formatSaudiPhone($userPhone), $body);
+
+                if (isset($result['code']) && $result['code'] == "1") {
+                    $this->storeMessage('ارسال رسالة نصية الى العميل', $body, NotificationActionEnum::SMS->value, $order->user->id);
+                }
             } else {
                 \Log::warning('Expired order SMS skipped: missing user phone', [
                     'order_id' => $order->id

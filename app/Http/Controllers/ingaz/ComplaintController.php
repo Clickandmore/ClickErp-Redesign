@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\ingaz;
 
+use App\Enums\ingaz\NotificationActionEnum;
 use App\Http\Actions\ingaz\ComplaintAction;
 use App\Http\Actions\ingaz\UserAction;
 use App\Http\Controllers\Controller;
@@ -13,6 +14,7 @@ use Yajra\DataTables\Facades\DataTables;
 use App\Models\ingaz\ComplaintType;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Traits\SendSMSTrait;
+use App\Http\Traits\StoreMessageTrait;
 use App\Models\ingaz\Nationality;
 use App\Models\auth\Admin;
 use App\Models\ingaz\ComplaintComment;
@@ -20,7 +22,7 @@ use Illuminate\Validation\ValidationException;
 
 class ComplaintController extends Controller
 {
-    use SendSMSTrait;
+    use SendSMSTrait, StoreMessageTrait;
 
     public $folderPath = "admin.ingaz.complaints";
     public $mainRoute = "complaints";
@@ -146,7 +148,6 @@ class ComplaintController extends Controller
                                     $qq->where('name', 'LIKE', "%{$search}%");
                                 });
                         });
-
                     }
                 })
                 ->rawColumns(['status', 'actions', 'response', 'phone'])
@@ -249,7 +250,6 @@ class ComplaintController extends Controller
 
             return redirect()->route($this->mainRoute . '.index')
                 ->with('success', 'تم إضافة الشكوى بنجاح');
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             if ($request->ajax()) {
                 return response()->json([
@@ -354,7 +354,6 @@ class ComplaintController extends Controller
 
             return redirect()->route($this->mainRoute . '.index')
                 ->with('success', 'تم تحديث الشكوى بنجاح');
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             if ($request->ajax()) {
                 return response()->json([
@@ -445,10 +444,10 @@ class ComplaintController extends Controller
 
         // Add Comment for this complant
         ComplaintComment::create([
-          'comment' => $request->comment ?? '-',
-          'complaint_id' => $request->complaint_id,
-          'added_by' => auth()->user()->id,
-          'attachments' => $request->attachments ?? null
+            'comment' => $request->comment ?? '-',
+            'complaint_id' => $request->complaint_id,
+            'added_by' => auth()->user()->id,
+            'attachments' => $request->attachments ?? null
         ]);
 
         return response()->json(['success' => true, 'message' => 'تم إضافة التحديث بنجاح']);
@@ -564,14 +563,19 @@ class ComplaintController extends Controller
             $message .= "{$statusText}\n";
             $message .= "الرد: {$request->response}";
 
-            $this->sendSMS(formatSaudiPhone($complaint->user->phone), $message);
+            $result = $this->sendSMS(formatSaudiPhone($complaint->user->phone), $message);
+
+            if (isset($result['code']) && $result['code'] == "1") {
+                $this->storeMessage('ارسال رسالة نصية الى العميل', $message, NotificationActionEnum::SMS->value, $complaint->user->id);
+            }
         }
 
         return jsonSuccess(null, 'تم حفظ الرد بنجاح');
     }
 
 
-    public function deleteComment($id){
+    public function deleteComment($id)
+    {
         $complaint_comment = ComplaintComment::findOrFail($id);
 
         if (!$complaint_comment) {
@@ -579,7 +583,7 @@ class ComplaintController extends Controller
         }
 
         $complaint_comment->delete();
-        
+
         return jsonSuccess(['success' => 'تم حذف التعليق بنجاح']);
     }
 }

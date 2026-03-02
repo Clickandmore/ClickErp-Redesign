@@ -15,10 +15,11 @@ use App\Models\ingaz\Notification;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Enums\ingaz\NotificationActionEnum;
+use App\Http\Traits\StoreMessageTrait;
 
 class OrderAction extends MainAction
 {
-    use Firebase, SendSMSTrait;
+    use Firebase, SendSMSTrait, StoreMessageTrait;
     public function __construct(Order $model)
     {
         $this->model = $model;
@@ -84,6 +85,10 @@ class OrderAction extends MainAction
                 }
 
                 $result = $this->sendSMS(formatSaudiPhone($order->admin->phone), $msg);
+
+                if (isset($result['code']) && $result['code'] == "1") {
+                    $this->storeMessage('ارسال رسالة نصية الى العميل', $msg, NotificationActionEnum::SMS->value, $data['user_id']);
+                }
             }
         }catch(\Exception $ex){
             //msg not sent
