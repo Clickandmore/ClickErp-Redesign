@@ -1,42 +1,56 @@
 @extends('admin.layout.indexs.index')
+@php
+    $isEditMode = $isEditMode ?? false;
+    $editingContract = $editingContract ?? null;
+    $editingInfo = optional($editingContract)->info;
+    $selectedContractId = old('contract_id', $selectedContractId ?? optional($editingContract)->id);
+    $defaultReceiptText =
+        ' الى مكتب بلاتنيوم الشرقية للاستقدام وأمل من المكتب حل مشكلتها وذلك بنقل خدماتها  لتعمل عند صاحب عمل آخر او ترحيلها  حسب ما يراه المكتب مناسبا، كما اتعهد بعدم عمل خروج نهائي او بلاغ هروب أو اي اجراء يخص العاملة إلا بموافقة من المكتب، علماً أنه في حالة نقل خدمات العاملة يحق لي استرجاع مستحقاتي وفقاً للعقد الموحد والنظام الصادر من وزارة الموارد البشرية والتنمية الاجتماعية ، حيث انه حسب التعميم الصادر من مساند والذي ينص على الزام ارجاع المبالغ المستحقة للعملاء من خلال منصة مساند وليس عن طريق حساب المكتب المستقدم وعلى ان يكون ارجاع المبلغ خلال عشرين يوم عمل من تاريخ تسليم العاملة .';
+@endphp
 @section('page-title')
-    {{ helperTrans('ingaz.add Shelter contract') }}
+    {{ $isEditMode ? helperTrans('ingaz.edit Shelter contract') : helperTrans('ingaz.add Shelter contract') }}
 @endsection
 @section('content')
     @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_CONTRACT_CONTROL))
         <script>
-            console.log('=== Page Loaded - ShelterContract Create ===');
+            console.log('=== Page Loaded - ShelterContract {{ $isEditMode ? 'Edit' : 'Create' }} ===');
             console.log('jQuery version:', $.fn.jquery);
             console.log('Document ready state:', document.readyState);
         </script>
 
-        <!-- زر إضافة العقد -->
-        <div class="row mb-3">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">
-                            {{ helperTrans('ingaz.quick_create_contract') }}
-                        </h5>
-                        <p class="card-text">{{ helperTrans('ingaz.create_completed_contract_description') }}</p>
-                        <div class="d-flex gap-2">
-                            {{-- <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createContractModal">
-                            <i class="fas fa-plus me-1"></i>
-                            {{helperTrans("ingaz.create_completed_contract")}}
-                        </button> --}}
-                            <a href="{{ route('Contract.createCompletedPage') }}" class="btn btn-primary">
-                                <i class="fas fa-external-link-alt me-1"></i>
-                                {{ helperTrans('ingaz.add_completed_contract') }}
-                            </a>
+        @if (!$isEditMode)
+            <!-- زر إضافة العقد -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                {{ helperTrans('ingaz.quick_create_contract') }}
+                            </h5>
+                            <p class="card-text">{{ helperTrans('ingaz.create_completed_contract_description') }}</p>
+                            <div class="d-flex gap-2">
+                                {{-- <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createContractModal">
+                                <i class="fas fa-plus me-1"></i>
+                                {{helperTrans("ingaz.create_completed_contract")}}
+                            </button> --}}
+                                <a href="{{ route('Contract.createCompletedPage') }}" class="btn btn-primary">
+                                    <i class="fas fa-external-link-alt me-1"></i>
+                                    {{ helperTrans('ingaz.add_completed_contract') }}
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        @endif
 
-        <form class="row g-3 contractForm" method="post" action="{{ route('ShelterContract.store') }}"
+        <form class="row g-3 contractForm" method="post"
+            action="{{ $isEditMode ? route('ShelterContract.update', $editingContract->id) : route('ShelterContract.store') }}"
             enctype="multipart/form-data">
             @csrf
+            @if ($isEditMode)
+                @method('PUT')
+            @endif
             <div class="row p-3">
 
                 <div class="col-4">
@@ -85,9 +99,14 @@
                 <div class="col-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.shelter-places') }}</label>
                     <select name="shelter_id" class="form-select form-control select2" data-validation="required">
-                        <option disabled selected>{{ helperTrans('ingaz.choose') }}</option>
+                        <option disabled {{ old('shelter_id', optional($editingInfo)->shelter_id) ? '' : 'selected' }}>
+                            {{ helperTrans('ingaz.choose') }}
+                        </option>
                         @foreach ($shelters ?? [] as $shelter)
-                            <option value="{{ $shelter->id }}"> {{ $shelter->title }} </option>
+                            <option value="{{ $shelter->id }}"
+                                {{ (string) old('shelter_id', optional($editingInfo)->shelter_id) === (string) $shelter->id ? 'selected' : '' }}>
+                                {{ $shelter->title }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
@@ -95,9 +114,12 @@
                 <div class="col-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.receipt_source') }}</label>
                     <select name="receipt_source" class="form-select form-control select2" data-validation="required">
-                        <option disabled selected>{{ helperTrans('ingaz.choose') }}</option>
+                        <option disabled {{ old('receipt_source', optional($editingInfo)->receipt_source) ? '' : 'selected' }}>
+                            {{ helperTrans('ingaz.choose') }}
+                        </option>
                         @forelse (__('shelter_worker_statuses.received_by') ?? [] as $k => $name)
-                            <option value="{{ $k }}">
+                            <option value="{{ $k }}"
+                                {{ (string) old('receipt_source', optional($editingInfo)->receipt_source) === (string) $k ? 'selected' : '' }}>
                                 {{ $name }}
                             </option>
                         @empty
@@ -107,36 +129,58 @@
 
                 <div class="col-4 mt-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.maid date back') }}</label>
-                    <input type="date" name="maid_date_back" class="form-control" data-validation="required" readonly>
+                    <input type="date" name="maid_date_back" class="form-control" data-validation="required" readonly
+                        value="{{ old('maid_date_back', optional($editingInfo)->maid_date_back) }}">
                     <small class="form-text text-muted">سيتم تعيين تاريخ الإرجاع تلقائياً إلى اليوم الحالي</small>
                 </div>
 
                 <div class="col-4 mt-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.arrival_date') }}</label>
                     <input type="date" name="arrival_date" id="arrival_date" class="form-control"
-                        data-validation="required" value="{{ old('arrival_date') }}">
+                        data-validation="required" value="{{ old('arrival_date', optional($editingInfo)->arrival_date) }}">
                 </div>
                 <div class="col-4 mt-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.duration_from_enter') }}</label>
                     <input type="text" name="duration_from_enter" class="form-control" readonly
-                        placeholder="سيتم الحساب تلقائياً">
+                        placeholder="سيتم الحساب تلقائياً"
+                        value="{{ old('duration_from_enter', optional($editingInfo)->duration_from_enter) }}">
                     <small class="form-text text-muted">المدة من دخول المملكة بناءً على تاريخ الوصول</small>
                 </div>
                 <div class="col-4 mt-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.salary_final_status') }}</label>
                     <select name="salary_final_status" class="form-select form-control select2" data-validation="required">
-                        <option disabled selected>{{ helperTrans('ingaz.choose') }}</option>
-                        <option value="received">تم استلام الراتب</option>
-                        <option value="not_received">لم يتم استلام الراتب</option>
+                        <option disabled
+                            {{ old('salary_final_status', optional($editingInfo)->salary_final_status) ? '' : 'selected' }}>
+                            {{ helperTrans('ingaz.choose') }}
+                        </option>
+                        <option value="received"
+                            {{ old('salary_final_status', optional($editingInfo)->salary_final_status) === 'received' ? 'selected' : '' }}>
+                            تم استلام الراتب
+                        </option>
+                        <option value="not_received"
+                            {{ old('salary_final_status', optional($editingInfo)->salary_final_status) === 'not_received' ? 'selected' : '' }}>
+                            لم يتم استلام الراتب
+                        </option>
                     </select>
                 </div>
                 <div class="col-4 mt-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.work_willingness') }}</label>
                     <select name="wants_to_work" class="form-select form-control select2" data-validation="required">
-                        <option disabled selected>{{ helperTrans('ingaz.choose') }}</option>
-                        <option value="yes">{{ helperTrans('ingaz.work_willingness_yes') }}</option>
-                        <option value="no">{{ helperTrans('ingaz.work_willingness_no') }}</option>
-                        <option value="unknown">{{ helperTrans('ingaz.work_willingness_unknown') }}</option>
+                        <option disabled {{ old('wants_to_work', optional($editingInfo)->wants_to_work) ? '' : 'selected' }}>
+                            {{ helperTrans('ingaz.choose') }}
+                        </option>
+                        <option value="yes"
+                            {{ old('wants_to_work', optional($editingInfo)->wants_to_work) === 'yes' ? 'selected' : '' }}>
+                            {{ helperTrans('ingaz.work_willingness_yes') }}
+                        </option>
+                        <option value="no"
+                            {{ old('wants_to_work', optional($editingInfo)->wants_to_work) === 'no' ? 'selected' : '' }}>
+                            {{ helperTrans('ingaz.work_willingness_no') }}
+                        </option>
+                        <option value="unknown"
+                            {{ old('wants_to_work', optional($editingInfo)->wants_to_work) === 'unknown' ? 'selected' : '' }}>
+                            {{ helperTrans('ingaz.work_willingness_unknown') }}
+                        </option>
                     </select>
                 </div>
 
@@ -144,12 +188,16 @@
                     <label class="form-label">هل العاملة لديها اقامة؟</label>
                     <select name="workers_have_residency" id="workers_have_residency"
                         class="form-select form-control select2" data-validation="required">
-                        <option disabled {{ old('workers_have_residency') ? '' : 'selected' }}>
+                        <option disabled {{ old('workers_have_residency', optional($editingInfo)->workers_have_residency) ? '' : 'selected' }}>
                             {{ helperTrans('ingaz.choose') }}</option>
-                        <option value="yes" {{ old('workers_have_residency') === 'yes' ? 'selected' : '' }}>لديها اقامة
+                        <option value="yes"
+                            {{ old('workers_have_residency', optional($editingInfo)->workers_have_residency) === 'yes' ? 'selected' : '' }}>
+                            لديها اقامة
                         </option>
-                        <option value="no" {{ old('workers_have_residency') === 'no' ? 'selected' : '' }}>ليس لديها
-                            اقامة</option>
+                        <option value="no"
+                            {{ old('workers_have_residency', optional($editingInfo)->workers_have_residency) === 'no' ? 'selected' : '' }}>
+                            ليس لديها اقامة
+                        </option>
                     </select>
                 </div>
 
@@ -157,11 +205,16 @@
                     <label class="form-label">هل تم عمل الفحص الطبي؟</label>
                     <select name="performing_medical_examination" id="performing_medical_examination"
                         class="form-select form-control select2" data-validation="required">
-                        <option disabled {{ old('performing_medical_examination') ? '' : 'selected' }}>
+                        <option disabled
+                            {{ old('performing_medical_examination', optional($editingInfo)->performing_medical_examination) ? '' : 'selected' }}>
                             {{ helperTrans('ingaz.choose') }}</option>
-                        <option value="yes" {{ old('performing_medical_examination') === 'yes' ? 'selected' : '' }}>نعم
+                        <option value="yes"
+                            {{ old('performing_medical_examination', optional($editingInfo)->performing_medical_examination) === 'yes' ? 'selected' : '' }}>
+                            نعم
                         </option>
-                        <option value="no" {{ old('performing_medical_examination') === 'no' ? 'selected' : '' }}>لا
+                        <option value="no"
+                            {{ old('performing_medical_examination', optional($editingInfo)->performing_medical_examination) === 'no' ? 'selected' : '' }}>
+                            لا
                         </option>
                     </select>
                 </div>
@@ -170,22 +223,35 @@
                     <label class="form-label">هل العاملة للتسفير ام لنقل الخدمات؟</label>
                     <select name="worker_service_type" id="worker_service_type" class="form-select form-control select2"
                         data-validation="required">
-                        <option disabled {{ old('worker_service_type') ? '' : 'selected' }}>
+                        <option disabled
+                            {{ old('worker_service_type', optional($editingInfo)->worker_service_type) ? '' : 'selected' }}>
                             {{ helperTrans('ingaz.choose') }}</option>
-                        <option value="deportation" {{ old('worker_service_type') === 'deportation' ? 'selected' : '' }}>
+                        <option value="deportation"
+                            {{ old('worker_service_type', optional($editingInfo)->worker_service_type) === 'deportation' ? 'selected' : '' }}>
                             التسفير</option>
-                        <option value="transfer" {{ old('worker_service_type') === 'transfer' ? 'selected' : '' }}>نقل
-                            خدمات</option>
+                        <option value="transfer"
+                            {{ old('worker_service_type', optional($editingInfo)->worker_service_type) === 'transfer' ? 'selected' : '' }}>
+                            نقل خدمات</option>
                     </select>
                 </div>
 
                 <div class="col-4 mt-4" id="instant_display_wrapper" style="display:none;">
                     <label for="is_available_for_instant"
                         class="form-label">{{ helperTrans('ingaz.display_on_site') }}</label>
+                    @php
+                        $instantAvailability = old(
+                            'is_available_for_instant',
+                            $editingInfo ? (int) (bool) $editingInfo->is_available_for_instant : 0,
+                        );
+                    @endphp
                     <select name="is_available_for_instant" id="is_available_for_instant"
                         class="form-select form-control select2">
-                        <option value="0" selected>{{ helperTrans('ingaz.no') }}</option>
-                        <option value="1">{{ helperTrans('ingaz.yes') }}</option>
+                        <option value="0" {{ (string) $instantAvailability === '0' ? 'selected' : '' }}>
+                            {{ helperTrans('ingaz.no') }}
+                        </option>
+                        <option value="1" {{ (string) $instantAvailability === '1' ? 'selected' : '' }}>
+                            {{ helperTrans('ingaz.yes') }}
+                        </option>
                     </select>
                     <small class="form-text text-muted">{{ helperTrans('ingaz.display_on_site_hint') }}</small>
                 </div>
@@ -200,28 +266,32 @@
                                 <div class="col-md-6 col-lg-3">
                                     <label class="form-label">اسم العميل</label>
                                     <input readonly type="text" name="client_name_snapshot" id="client_name_snapshot"
-                                        class="form-control" value="{{ old('client_name_snapshot') }}">
+                                        class="form-control"
+                                        value="{{ old('client_name_snapshot', optional($editingInfo)->client_name_snapshot ?? optional(optional($editingContract)->user)->name) }}">
                                 </div>
                                 <div class="col-md-6 col-lg-3">
                                     <label class="form-label">رقم الهوية الوطنية</label>
                                     <input readonly type="text" name="client_national_id" id="client_national_id"
-                                        class="form-control" value="{{ old('client_national_id') }}">
+                                        class="form-control"
+                                        value="{{ old('client_national_id', optional($editingInfo)->client_national_id ?? optional(optional($editingContract)->user)->national_num) }}">
                                 </div>
                                 <div class="col-md-6 col-lg-3">
                                     <label class="form-label">اسم العاملة</label>
                                     <input readonly type="text" name="maid_name_snapshot" id="maid_name_snapshot"
-                                        class="form-control" value="{{ old('maid_name_snapshot') }}">
+                                        class="form-control"
+                                        value="{{ old('maid_name_snapshot', optional($editingInfo)->worker_name_snapshot ?? optional(optional($editingContract)->maid)->name) }}">
                                 </div>
                                 <div class="col-md-6 col-lg-3">
                                     <label class="form-label">الجنسية</label>
                                     {{-- <input type="text" name="maid_nationality_snapshot" id="maid_nationality_snapshot" class="form-control" value="{{ old('maid_nationality_snapshot') }}"> --}}
                                     <select readonly name="maid_nationality_snapshot" id="maid_nationality_snapshot"
                                         class="form-select form-control select2">
-                                        <option disabled {{ !old('maid_nationality_snapshot') ? 'selected' : '' }}>
+                                        <option disabled
+                                            {{ !old('maid_nationality_snapshot', optional($editingInfo)->worker_nationality_snapshot) ? 'selected' : '' }}>
                                             {{ helperTrans('ingaz.choose') }}</option>
                                         @foreach ($nationalities as $nationality)
                                             <option value="{{ $nationality->id }}"
-                                                {{ old('maid_nationality_snapshot') == $nationality->id ? 'selected' : '' }}>
+                                                {{ (string) old('maid_nationality_snapshot', optional($editingInfo)->worker_nationality_snapshot) === (string) $nationality->id ? 'selected' : '' }}>
                                                 {{ $nationality->translations->where('locale', app()->getLocale())->first()?->title ?? $nationality->translations->first()?->title }}
                                             </option>
                                         @endforeach
@@ -231,18 +301,19 @@
                                     <label class="form-label">سعر نقل الكفالة</label>
                                     <input readonly type="number" step="0.01" name="sponsorship_price"
                                         id="sponsorship_price" class="form-control"
-                                        value="{{ old('sponsorship_price') }}">
+                                        value="{{ old('sponsorship_price', optional($editingInfo)->sponsorship_price) }}">
                                 </div>
                                 <div class="col-md-6 col-lg-3">
                                     <label class="form-label">رقم جواز السفر</label>
                                     <input readonly type="text" name="passport_number_snapshot"
                                         id="passport_number_snapshot" class="form-control"
-                                        value="{{ old('passport_number_snapshot') }}">
+                                        value="{{ old('passport_number_snapshot', optional($editingInfo)->passport_number_snapshot ?? optional(optional($editingContract)->maid)->passport_num) }}">
                                 </div>
                                 <div class="col-md-6 col-lg-3">
                                     <label class="form-label">تاريخ نموذج الاستلام</label>
                                     <input readonly type="date" name="receipt_form_date" id="receipt_form_date"
-                                        class="form-control" value="{{ old('receipt_form_date') }}">
+                                        class="form-control"
+                                        value="{{ old('receipt_form_date', optional($editingInfo)->receipt_form_date) }}">
                                 </div>
                             </div>
                         </div>
@@ -251,16 +322,44 @@
 
                 <div class="col-12 mt-4">
                     <label class="form-label">نص النموذج</label>
-                    <textarea name="receipt_form_text" id="receipt_form_text" rows="8" class="form-control"> الى مكتب بلاتنيوم الشرقية للاستقدام وأمل من المكتب حل مشكلتها وذلك بنقل خدماتها  لتعمل عند صاحب عمل آخر او ترحيلها  حسب ما يراه المكتب مناسبا، كما اتعهد بعدم عمل خروج نهائي او بلاغ هروب أو اي اجراء يخص العاملة إلا بموافقة من المكتب، علماً أنه في حالة نقل خدمات العاملة يحق لي استرجاع مستحقاتي وفقاً للعقد الموحد والنظام الصادر من وزارة الموارد البشرية والتنمية الاجتماعية ، حيث انه حسب التعميم الصادر من مساند والذي ينص على الزام ارجاع المبالغ المستحقة للعملاء من خلال منصة مساند وليس عن طريق حساب المكتب المستقدم وعلى ان يكون ارجاع المبلغ خلال عشرين يوم عمل من تاريخ تسليم العاملة .</textarea>
+                    <textarea name="receipt_form_text" id="receipt_form_text" rows="8" class="form-control">{{ old('receipt_form_text', optional($editingInfo)->receipt_form_text ?: $defaultReceiptText) }}</textarea>
                 </div>
 
                 <div class="col-12 mt-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.back_reasons') }}</label>
-                    <textarea name="back_reasons" rows="4" class="form-control" data-validation="required"></textarea>
+                    <textarea name="back_reasons" rows="4" class="form-control" data-validation="required">{{ old('back_reasons', optional($editingInfo)->back_reasons) }}</textarea>
                 </div>
 
                 <div class="col-12 mt-4">
                     <label for="attachments" class="form-label">{{ helperTrans('ingaz.shelter_attachments') }}</label>
+                    @php
+                        $existingAttachments = [];
+                        if ($isEditMode && $editingInfo && $editingInfo->shelter_attachments) {
+                            $existingAttachments = is_array($editingInfo->shelter_attachments)
+                                ? $editingInfo->shelter_attachments
+                                : (json_decode($editingInfo->shelter_attachments, true) ?: []);
+                        }
+                    @endphp
+                    @if ($isEditMode && count($existingAttachments))
+                        <div class="mb-2">
+                            <small class="form-text d-block">المرفقات الحالية:</small>
+                            <ul class="mb-2">
+                                @foreach ($existingAttachments as $attachment)
+                                    @php
+                                        $path = $attachment['path'] ?? null;
+                                        $name = $attachment['name'] ?? ($path ? basename($path) : '');
+                                    @endphp
+                                    @if ($path)
+                                        <li>
+                                            <a href="{{ asset('storage/' . ltrim($path, '/')) }}" target="_blank">
+                                                {{ $name }}
+                                            </a>
+                                        </li>
+                                    @endif
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
                     <input type="file" name="attachments[]" id="attachments" class="form-control" multiple
                         accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
                     <small class="form-text text-muted">{{ helperTrans('ingaz.shelter_attachments_hint') }}</small>
@@ -269,28 +368,32 @@
 
             <div class="col-12 modal-footer">
                 <button class="btn btn-primary" type="submit">{{ __('buttons.save') }}</button>
+                @if ($isEditMode)
+                    <a href="{{ route('ShelterContract.index') }}" class="btn btn-secondary">{{ __('buttons.cancel') }}</a>
+                @endif
             </div>
         </form>
     @else
         @include('components.no_permissions')
     @endif
 
-    <!-- Modal لإنشاء عقد جديد -->
-    <div class="modal fade" id="createContractModal" tabindex="-1" aria-labelledby="createContractModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title" id="createContractModalLabel">
-                        <i class="fas fa-check-circle me-2"></i>{{ helperTrans('ingaz.create_completed_contract') }}
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                        aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="createContractForm">
-                        @csrf
-                        <div class="row">
+    @if (!$isEditMode)
+        <!-- Modal لإنشاء عقد جديد -->
+        <div class="modal fade" id="createContractModal" tabindex="-1" aria-labelledby="createContractModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title" id="createContractModalLabel">
+                            <i class="fas fa-check-circle me-2"></i>{{ helperTrans('ingaz.create_completed_contract') }}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="createContractForm">
+                            @csrf
+                            <div class="row">
                             <!-- نوع العميل -->
                             <div class="col-12 mb-3">
                                 <div class="card border-primary">
@@ -505,21 +608,23 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-1"></i>{{ helperTrans('ingaz.cancel') }}
-                    </button>
-                    <button type="button" class="btn btn-success" id="createContractBtn">
-                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                        <i class="fas fa-check-circle me-1"></i>{{ helperTrans('ingaz.create_completed_contract') }}
-                    </button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>{{ helperTrans('ingaz.cancel') }}
+                        </button>
+                        <button type="button" class="btn btn-success" id="createContractBtn">
+                            <span class="spinner-border spinner-border-sm d-none" role="status"
+                                aria-hidden="true"></span>
+                            <i class="fas fa-check-circle me-1"></i>{{ helperTrans('ingaz.create_completed_contract') }}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    @endif
 
 @endsection
 @section('js')
@@ -532,6 +637,7 @@
 
     <script>
         var indexRoute = "{{ route('ShelterContract.index') }}";
+        var isEditMode = @json($isEditMode);
     </script>
 
     <script>
@@ -799,8 +905,11 @@
 
             // تعيين تاريخ الإرجاع عند تحميل الصفحة
             $(document).ready(function() {
-                setReturnDateToToday();
+                if (!isEditMode || !$('input[name="maid_date_back"]').val()) {
+                    setReturnDateToToday();
+                }
                 toggleInstantDisplayField();
+                calculateDurationFromArrivalDate($('#arrival_date').val());
 
                 const initialOption = $('#contract_id').find('option:selected');
                 if (initialOption.length && initialOption.val()) {
@@ -810,7 +919,9 @@
 
             // تعيين تاريخ الإرجاع عند تغيير العقد
             $('#contract_id').on('change', function() {
-                setReturnDateToToday();
+                if (!isEditMode) {
+                    setReturnDateToToday();
+                }
             });
 
             $('select[name="wants_to_work"]').on('change', function() {
@@ -906,14 +1017,6 @@
                         }
                     @endforeach
                 }
-            });
-
-            // إضافة event handler للـ contract_id عند التغيير العادي
-            $('#contract_id').on('change', function() {
-                console.log('=== Regular Change Event ===');
-                console.log('Selected value:', $(this).val());
-                console.log('Calling calculateDuration from regular change event');
-                calculateDuration();
             });
 
             // Select2 AJAX للعملاء

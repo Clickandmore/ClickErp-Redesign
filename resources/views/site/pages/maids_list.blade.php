@@ -105,6 +105,7 @@
                                         </p>
 
                                         @php
+                                            $result = null;
                                             if ($maid->experience_status === 'has_experience') {
                                                 $result = format_experience($maid->experience_years);
                                             }
@@ -221,6 +222,7 @@
                                             <span>{{ $maid->jobTitles->first()?->title ?? '' }}</span>
                                         </p>
                                         @php
+                                            $result = null;
                                             if ($maid->experience_status === 'has_experience') {
                                                 $result = format_experience($maid->experience_years);
                                             }
@@ -333,6 +335,7 @@
                                         </p>
 
                                         @php
+                                            $result = null;
                                             if ($maid->experience_status === 'has_experience') {
                                                 $result = format_experience($maid->experience_years);
                                             }

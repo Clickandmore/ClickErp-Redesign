@@ -469,10 +469,25 @@ class ShelterContractController extends Controller
 
     public function edit($id)
     {
-        $contract = Contract::with(['info', 'maid'])->findOrFail($id);
+        $contract = Contract::with(['info', 'maid.nationality', 'user'])->findOrFail($id);
         $shelters = \App\Models\ShelterPlaces::latest()->get();
+        $contracts = collect([$contract]);
+        $selectedContractId = $contract->id;
+        $nationalities = Nationality::with('translations')->where('status', 1)->get();
+        $isEditMode = true;
+        $editingContract = $contract;
 
-        return view($this->folderPath . '.edit', compact('contract', 'shelters'));
+        return view(
+            $this->folderPath . '.create',
+            compact(
+                'shelters',
+                'contracts',
+                'selectedContractId',
+                'nationalities',
+                'isEditMode',
+                'editingContract'
+            )
+        );
     }
 
 
@@ -488,6 +503,10 @@ class ShelterContractController extends Controller
             'is_available_for_instant' => 'required|boolean',
             'back_reasons' => 'nullable|string',
             'arrival_date' => 'required|date',
+            'workers_have_residency' => 'required|in:yes,no',
+            'performing_medical_examination' => 'required|in:yes,no',
+            'worker_service_type' => 'required|in:deportation,transfer',
+            'receipt_form_text' => 'nullable|string',
             'attachments' => 'nullable|array',
             'attachments.*' => 'nullable|file|max:10240|mimes:jpg,jpeg,png,pdf,doc,docx',
         ]);
@@ -514,6 +533,10 @@ class ShelterContractController extends Controller
             'is_available_for_instant' => $displayOnSite,
             'back_reasons' => $request->back_reasons,
             'arrival_date' => $request->arrival_date,
+            'workers_have_residency' => $request->workers_have_residency,
+            'performing_medical_examination' => $request->performing_medical_examination,
+            'worker_service_type' => $request->worker_service_type,
+            'receipt_form_text' => $request->receipt_form_text,
             'shelter_attachments' => $attachments,
         ]);
 

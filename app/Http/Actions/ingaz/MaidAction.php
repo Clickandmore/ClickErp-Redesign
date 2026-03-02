@@ -857,8 +857,8 @@ class MaidAction extends MainAction
         //     ->whereDoesntHave('orders', function ($orderQuery) {
         //         $orderQuery->whereIn('status', ['new', 'under_process', 'contracted']);
         //     });
-        $query->whereIn('status', ['available', 'completed'])
-            ->where('maid_accommodation_type', 2)
+        $query
+            ->whereIn('status', ['in_accommodation', 'available', 'completed', 'reserved'])
             ->whereHas('contracts', function ($contractQuery) {
                 $contractQuery->where('status', ContractStatusEnum::Shelter->value)
                     ->whereHas('info', function ($infoQuery) {
@@ -869,9 +869,6 @@ class MaidAction extends MainAction
                                     ->orWhereIn('wants_to_work', [1, '1', true]);
                             });
                     });
-            })
-            ->whereDoesntHave('orders', function ($orderQuery) {
-                $orderQuery->whereIn('status', ['new', 'under_process', 'contracted']);
             });
     }
 
@@ -938,7 +935,6 @@ class MaidAction extends MainAction
         return $this->availableQuery()->find($id);
     }
 }
-
 
 
 
