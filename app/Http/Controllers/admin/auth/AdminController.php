@@ -11,7 +11,11 @@ use Illuminate\Support\Facades\App;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Models\auth\Admin as objModel;
+use App\Models\Contract;
+use App\Models\RentalContract;
+use App\Models\ingaz\Order;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -34,14 +38,14 @@ class AdminController extends Controller
         $this->middleware('permission:users_view,admin', ['only' => ['index']]);
         $this->middleware('permission:users_create,admin', ['only' => ['create', 'store']]);
         $this->middleware('permission:users_edit,admin', ['only' => ['edit', 'update']]);
-        $this->middleware('permission:users_delete,admin', ['only' => ['destroy']]);
+        $this->middleware('permission:users_delete,admin', ['only' => ['destroy', 'restore']]);
     }
 
 
     public function index(Request $request, ObjAction $action)
     {
         if ($request->ajax()) {
-            $dataTable = ObjModel::query()->with('role')->latest();
+            $dataTable = ObjModel::query()->with('role')->orderBy('id', 'asc');
 
             // Filters
             if ($request->filled('admin_type')) {
@@ -50,8 +54,16 @@ class AdminController extends Controller
             if ($request->filled('sex_type')) {
                 $dataTable->where('sex_type', $request->sex_type);
             }
-            if ($request->boolean('suspended')) {
-                $dataTable->where('status', 'suspended');
+
+            $statusFilter = $request->get('status');
+            if (!$statusFilter && $request->has('suspended') && $request->boolean('suspended')) {
+                $statusFilter = 'suspended';
+            }
+
+            if ($statusFilter === 'deleted') {
+                $dataTable->onlyTrashed();
+            } elseif (in_array($statusFilter, ['active', 'suspended'], true)) {
+                $dataTable->where('status', $statusFilter);
             }
 
             return DataTables::of($dataTable)
@@ -79,6 +91,10 @@ class AdminController extends Controller
                     return $row->note ? e(Str::limit($row->note, 80)) : '-';
                 })
                 ->addColumn('status', function ($row) {
+                    if ($row->trashed()) {
+                        return '<span class="badge bg-secondary"> ' . __('ingaz.deleted') . ' </span>';
+                    }
+
                     return $row->status === 'suspended'
                         ? '<span class="badge bg-danger"> ' . __('admin.suspended') . ' </span>'
                         : '<span class="badge bg-success"> ' . __('admin.active') . ' </span>';
@@ -87,6 +103,17 @@ class AdminController extends Controller
                     $editButton = '';
                     $deleteButton = '';
                     $suspendAction = '';
+                    $restoreButton = '';
+
+                    if ($row->trashed()) {
+                        if (Auth::guard('admin')->user()->can('users_delete')) {
+                            $restoreButton = '<button type="button" class="btn btn-sm btn-info restore-admin" data-id="' . $row->id . '">' .
+                                __('ingaz.restore') .
+                                '</button>';
+                        }
+
+                        return $restoreButton;
+                    }
 
                     if (Auth::guard('admin')->user()->can('users_edit')) {
                         $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
@@ -141,6 +168,14 @@ class AdminController extends Controller
         }
 
         $newStatus = $admin->status === 'suspended' ? 'active' : 'suspended';
+
+        if ($newStatus === 'suspended') {
+            $assignmentCounts = $this->getActiveAssignmentCounts((int) $admin->id);
+            if ($assignmentCounts['total'] > 0) {
+                return $this->assignmentBlockedResponse($assignmentCounts);
+            }
+        }
+
         $admin->update([
             'status' => $newStatus,
             'note' => $request->note ?? $admin->note,
@@ -211,8 +246,96 @@ class AdminController extends Controller
 
     public function destroy($id, ObjAction $action)
     {
-        $action->delete($id);
-        return jsonSuccess();
+        $admin = ObjModel::findOrFail($id);
+
+        if ((int) $admin->id === (int) Auth::guard('admin')->id()) {
+            return response()->json([
+                'message' => __('admin.dontDeleteYourself'),
+                'errors' => [
+                    'admin' => [__('admin.dontDeleteYourself')],
+                ],
+            ], 422);
+        }
+
+        $assignmentCounts = $this->getActiveAssignmentCounts((int) $admin->id);
+        if ($assignmentCounts['total'] > 0) {
+            return $this->assignmentBlockedResponse($assignmentCounts);
+        }
+
+        $admin->delete();
+        return jsonSuccess(null, __('admin.deletedSuccessfully'));
+    }
+
+    public function restore($id)
+    {
+        $admin = ObjModel::withTrashed()->findOrFail($id);
+        if (!$admin->trashed()) {
+            $message = 'الموظف غير محذوف.';
+            return response()->json([
+                'message' => $message,
+                'errors' => [
+                    'admin' => [$message],
+                ],
+            ], 422);
+        }
+
+        $admin->restore();
+        return jsonSuccess(['id' => $admin->id], 'تم استرجاع الموظف بنجاح.');
+    }
+
+    private function getActiveAssignmentCounts(int $adminId): array
+    {
+        $ordersQuery = Order::query()
+            ->whereNotIn('status', ['done', 'refused', 'return', 'cancelled', 'canceled', 'completed'])
+            ->where(function ($query) use ($adminId) {
+                if (Schema::hasColumn('orders', 'customer_id')) {
+                    $query->where('customer_id', $adminId)
+                        ->orWhereHas('details', function ($detailsQuery) use ($adminId) {
+                            $detailsQuery->where('admin_id', $adminId);
+                        });
+                    return;
+                }
+
+                $query->whereHas('details', function ($detailsQuery) use ($adminId) {
+                    $detailsQuery->where('admin_id', $adminId);
+                });
+            });
+
+        $ordersCount = $ordersQuery->count();
+
+        $bookingsCount = Schema::hasTable('rental_contracts')
+            ? RentalContract::query()
+                ->where('marketer_id', $adminId)
+                ->whereNotIn('status', ['completed', 'cancelled', 'closed'])
+                ->count()
+            : 0;
+
+        $contractsCount = Schema::hasTable('contracts')
+            ? Contract::query()
+                ->where('marketer_id', $adminId)
+                ->whereNotIn('status', ['completed', 'back', 'closed'])
+                ->count()
+            : 0;
+
+        return [
+            'orders' => $ordersCount,
+            'bookings' => $bookingsCount,
+            'contracts' => $contractsCount,
+            'total' => $ordersCount + $bookingsCount + $contractsCount,
+        ];
+    }
+
+    private function assignmentBlockedResponse(array $assignmentCounts)
+    {
+        $message = "لا يمكن تنفيذ العملية قبل إعادة إسناد الأعمال إلى موظف آخر. "
+            . "الطلبات: {$assignmentCounts['orders']}، الحجوزات: {$assignmentCounts['bookings']}، العقود: {$assignmentCounts['contracts']}.";
+
+        return response()->json([
+            'message' => $message,
+            'errors' => [
+                'admin' => [$message],
+            ],
+        ], 422);
     }
     /** login */
     public function formLogin()

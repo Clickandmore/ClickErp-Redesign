@@ -41,6 +41,7 @@
                             <option value="">{{ __('admin.all') }}</option>
                             <option value="active">{{ __('admin.active') }}</option>
                             <option value="suspended">{{ __('admin.suspended') }}</option>
+                            <option value="deleted">{{ __('ingaz.deleted') }}</option>
                         </select>
                     </div>
                     <div class="col-md-3 d-flex gap-2">
@@ -80,6 +81,7 @@
     <script>
         $(document).ready(function () {
             let baseUrl = "{{route("admins.index")}}";
+            const restoreAdminRouteTemplate = "{{ route('admins.restore', ['id' => 'ADMIN_ID']) }}";
             let tableInstance;
 
             let columns = [
@@ -102,12 +104,13 @@
                 let status = $('#filter_status').val();
                 if (adminType) params.append('admin_type', adminType);
                 if (sexType !== '') params.append('sex_type', sexType);
-                if (status) params.append('suspended', status === 'suspended');
+                if (status) params.append('status', status);
                 if (tableInstance) {
                     $("#dataTableObject").DataTable().clear().destroy();
                 }
                 showDataTable(baseUrl + (params.toString() ? '?' + params.toString() : ''), columns);
                 tableInstance = $("#dataTableObject").DataTable();
+                tableInstance.order([0, 'asc']).draw();
             }
 
             reloadWithFilters();
@@ -132,6 +135,23 @@
                     data: {
                         _token: "{{ csrf_token() }}",
                         note: note
+                    },
+                    success: function () {
+                        reloadWithFilters();
+                    },
+                    error: handleErrorResponce
+                });
+            });
+
+            $(document).on('click', '.restore-admin', function (e) {
+                e.preventDefault();
+                let adminId = $(this).data('id');
+                let restoreUrl = restoreAdminRouteTemplate.replace('ADMIN_ID', adminId);
+
+                $.post({
+                    url: restoreUrl,
+                    data: {
+                        _token: "{{ csrf_token() }}"
                     },
                     success: function () {
                         reloadWithFilters();
