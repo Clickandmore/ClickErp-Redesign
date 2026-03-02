@@ -186,7 +186,7 @@ Route::group(
             function () {
                 Route::get('profile', [AuthController::class, 'profile'])->name('profile');
                 Route::post('update-profile', [AuthController::class, 'updateProfile'])->name('update-profile');
-Route::get('edit-profile', [AuthController::class, 'editProfile'])->name('edit-profile');
+                Route::get('edit-profile', [AuthController::class, 'editProfile'])->name('edit-profile');
                 Route::get('deleteAccount', [AuthController::class, 'deleteAccount'])->name('deleteAccount');
                 Route::get("logout", [AuthController::class, "logout"])->name("logout");
                 Route::resource('orders', \App\Http\Controllers\Web\OrderController::class);
@@ -226,7 +226,7 @@ Route::get('edit-profile', [AuthController::class, 'editProfile'])->name('edit-p
         Route::get('dashboard', [\App\Http\Controllers\Web\AuthController::class, 'dashboard'])->name('dashboard')->middleware('auth_web');
 
         // Test route for orders
-        Route::get('test-orders', function() {
+        Route::get('test-orders', function () {
             return response()->json([
                 'orders_count' => \App\Models\ingaz\Order::count(),
                 'latest_orders' => \App\Models\ingaz\Order::latest()->take(3)->get(['id', 'user_id', 'maid_id', 'status', 'created_at'])
@@ -234,7 +234,7 @@ Route::get('edit-profile', [AuthController::class, 'editProfile'])->name('edit-p
         });
 
         // Test route for admin orders
-        Route::get('test-admin-orders', function() {
+        Route::get('test-admin-orders', function () {
             return response()->json([
                 'orders_count' => \App\Models\ingaz\Order::count(),
                 'orders' => \App\Models\ingaz\Order::with(['user', 'maid', 'jobType'])->latest()->take(5)->get()
@@ -242,7 +242,7 @@ Route::get('edit-profile', [AuthController::class, 'editProfile'])->name('edit-p
         });
 
         // Test route for orders display (no auth required)
-        Route::get('orders-display', function() {
+        Route::get('orders-display', function () {
             $orders = \App\Models\ingaz\Order::with(['user', 'maid', 'jobType', 'details.admin'])->latest()->get();
             return view('admin.ingaz.orders.index', [
                 'totalOrders' => $orders->count(),
@@ -256,7 +256,7 @@ Route::get('edit-profile', [AuthController::class, 'editProfile'])->name('edit-p
         });
 
         // Test route for client orders display (no auth required)
-        Route::get('client-orders-display', function() {
+        Route::get('client-orders-display', function () {
             // Get a test user ID (first user with orders)
             $testUserId = \App\Models\ingaz\Order::first()?->user_id ?? 1;
 
@@ -275,13 +275,13 @@ Route::get('edit-profile', [AuthController::class, 'editProfile'])->name('edit-p
 
             $data['current'] = $currentOrders;
             $data['previous'] = $previousOrders;
-            $data['order_progressbar'] = ['refused'=> 0,'new'=>20,'paid'=>40,'completed'=>60,'started'=>80,'done'=>100];
+            $data['order_progressbar'] = ['refused' => 0, 'new' => 20, 'paid' => 40, 'completed' => 60, 'started' => 80, 'done' => 100];
 
             return view('web.ingaz.orders.index', $data);
         });
 
         // AJAX route for DataTable (no auth required)
-        Route::get('orders-ajax', function(\Illuminate\Http\Request $request) {
+        Route::get('orders-ajax', function (\Illuminate\Http\Request $request) {
             $query = \App\Models\ingaz\Order::query();
 
             // Eager load relationships
@@ -302,7 +302,7 @@ Route::get('edit-profile', [AuthController::class, 'editProfile'])->name('edit-p
                 'draw' => intval($request->get('draw')),
                 'recordsTotal' => $orders->count(),
                 'recordsFiltered' => $orders->count(),
-                'data' => $orders->map(function($order) {
+                'data' => $orders->map(function ($order) {
                     return [
                         'DT_RowId' => 'row_' . $order->id,
                         'id' => $order->id,
@@ -330,46 +330,46 @@ Route::get('edit-profile', [AuthController::class, 'editProfile'])->name('edit-p
     }
 );
 
-    Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () {
-        // Orders routes will be handled by routes/ingaz.php
+Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () {
+    // Orders routes will be handled by routes/ingaz.php
 
-        Route::group(['prefix' => 'ingaz'], function () {
-            Route::get('/clients/export/pdf', [UserController::class, 'exportPdf'])->name('clients.export.pdf');
-            Route::get('/clients/export/excel', [UserController::class, 'exportExcel'])->name('clients.export.excel');
-            Route::get('/get-offices-by-nationality', [App\Http\Controllers\ingaz\MaidController::class, 'getOfficesByNationality'])->name('getOfficesByNationality');
+    Route::group(['prefix' => 'ingaz'], function () {
+        Route::get('/clients/export/pdf', [UserController::class, 'exportPdf'])->name('clients.export.pdf');
+        Route::get('/clients/export/excel', [UserController::class, 'exportExcel'])->name('clients.export.excel');
+        Route::get('/get-offices-by-nationality', [App\Http\Controllers\ingaz\MaidController::class, 'getOfficesByNationality'])->name('getOfficesByNationality');
 
-            // تحديث مسارات الإعدادات
-            Route::get('settings', [App\Http\Controllers\ingaz\SettingController::class, 'index'])->name('admin.ingaz.settings.index');
-            Route::put('settings', [App\Http\Controllers\ingaz\SettingController::class, 'update'])->name('admin.ingaz.settings.update');
-    // مسارات الدول
-    Route::get('countries', [App\Http\Controllers\admin\CountryController::class, 'index'])->name('countries.index');
-    Route::get('countries/create', [App\Http\Controllers\admin\CountryController::class, 'create'])->name('countries.create');
-    Route::get('countries/{country}', [App\Http\Controllers\admin\CountryController::class, 'show'])->name('countries.show');
+        // تحديث مسارات الإعدادات
+        Route::get('settings', [App\Http\Controllers\ingaz\SettingController::class, 'index'])->name('admin.ingaz.settings.index');
+        Route::put('settings', [App\Http\Controllers\ingaz\SettingController::class, 'update'])->name('admin.ingaz.settings.update');
+        // مسارات الدول
+        Route::get('countries', [App\Http\Controllers\admin\CountryController::class, 'index'])->name('countries.index');
+        Route::get('countries/create', [App\Http\Controllers\admin\CountryController::class, 'create'])->name('countries.create');
+        Route::get('countries/{country}', [App\Http\Controllers\admin\CountryController::class, 'show'])->name('countries.show');
 
 
 
-    Route::post('countries', [App\Http\Controllers\admin\CountryController::class, 'store'])->name('countries.store');
-    Route::get('countries/{country}/edit', [App\Http\Controllers\admin\CountryController::class, 'edit'])->name('countries.edit');
-    Route::put('countries/{country}', [App\Http\Controllers\admin\CountryController::class, 'update'])->name('countries.update');
-    Route::delete('countries/{country}', [App\Http\Controllers\admin\CountryController::class, 'destroy'])->name('countries.destroy');
-    Route::post('countries/{country}/toggle-status', [App\Http\Controllers\admin\CountryController::class, 'toggleStatus'])->name('countries.toggle-status');
-    Route::post('countries/update-order', [App\Http\Controllers\admin\CountryController::class, 'updateOrder'])->name('countries.update-order');
+        Route::post('countries', [App\Http\Controllers\admin\CountryController::class, 'store'])->name('countries.store');
+        Route::get('countries/{country}/edit', [App\Http\Controllers\admin\CountryController::class, 'edit'])->name('countries.edit');
+        Route::put('countries/{country}', [App\Http\Controllers\admin\CountryController::class, 'update'])->name('countries.update');
+        Route::delete('countries/{country}', [App\Http\Controllers\admin\CountryController::class, 'destroy'])->name('countries.destroy');
+        Route::post('countries/{country}/toggle-status', [App\Http\Controllers\admin\CountryController::class, 'toggleStatus'])->name('countries.toggle-status');
+        Route::post('countries/update-order', [App\Http\Controllers\admin\CountryController::class, 'updateOrder'])->name('countries.update-order');
 
-    // مسارات المدن
- Route::get('cities', [App\Http\Controllers\admin\CountryController::class, 'citiesIndex'])->name('cities.index');
- Route::get('cities/create', [App\Http\Controllers\admin\CountryController::class, 'createCity'])->name('cities.create');
- Route::post('cities', [App\Http\Controllers\admin\CountryController::class, 'storeCity'])->name('cities.store');
- Route::get('cities/{city}/edit', [App\Http\Controllers\admin\CountryController::class, 'editCity'])->name('cities.edit');
- Route::put('cities/{city}', [App\Http\Controllers\admin\CountryController::class, 'updateCity'])->name('cities.update');
- Route::delete('cities/{city}', [App\Http\Controllers\admin\CountryController::class, 'destroyCity'])->name('cities.destroy');
+        // مسارات المدن
+        Route::get('cities', [App\Http\Controllers\admin\CountryController::class, 'citiesIndex'])->name('cities.index');
+        Route::get('cities/create', [App\Http\Controllers\admin\CountryController::class, 'createCity'])->name('cities.create');
+        Route::post('cities', [App\Http\Controllers\admin\CountryController::class, 'storeCity'])->name('cities.store');
+        Route::get('cities/{city}/edit', [App\Http\Controllers\admin\CountryController::class, 'editCity'])->name('cities.edit');
+        Route::put('cities/{city}', [App\Http\Controllers\admin\CountryController::class, 'updateCity'])->name('cities.update');
+        Route::delete('cities/{city}', [App\Http\Controllers\admin\CountryController::class, 'destroyCity'])->name('cities.destroy');
 
- // API routes للدول والمدن
- Route::get('api/countries', [App\Http\Controllers\admin\CountryController::class, 'getCountries'])->name('api.countries');
- Route::get('api/countries/{countryId}/cities', [App\Http\Controllers\admin\CountryController::class, 'getCities'])->name('api.countries.cities');
- Route::get('api/countries/search', [App\Http\Controllers\admin\CountryController::class, 'search'])->name('api.countries.search');
- Route::get('api/cities', [App\Http\Controllers\admin\CountryController::class, 'getAllCities'])->name('api.cities');
- Route::get('api/cities/{city}', [App\Http\Controllers\admin\CountryController::class, 'getCityDetails'])->name('api.cities.show');
- Route::get('api/cities/search', [App\Http\Controllers\admin\CountryController::class, 'searchCities'])->name('api.cities.search');
+        // API routes للدول والمدن
+        Route::get('api/countries', [App\Http\Controllers\admin\CountryController::class, 'getCountries'])->name('api.countries');
+        Route::get('api/countries/{countryId}/cities', [App\Http\Controllers\admin\CountryController::class, 'getCities'])->name('api.countries.cities');
+        Route::get('api/countries/search', [App\Http\Controllers\admin\CountryController::class, 'search'])->name('api.countries.search');
+        Route::get('api/cities', [App\Http\Controllers\admin\CountryController::class, 'getAllCities'])->name('api.cities');
+        Route::get('api/cities/{city}', [App\Http\Controllers\admin\CountryController::class, 'getCityDetails'])->name('api.cities.show');
+        Route::get('api/cities/search', [App\Http\Controllers\admin\CountryController::class, 'searchCities'])->name('api.cities.search');
         // Recruitment routes
         Route::get('/recruitment/select-maid/{client_id}', [RecruitmentController::class, 'create'])->name('admin.recruitment.select.maid');
         Route::get('/recruitment/show-maid-form/{client_id}/{maid_id}', [RecruitmentController::class, 'showMaidForm'])->name('admin.recruitment.show.maid.form');
@@ -413,4 +413,5 @@ Route::get('/migration-system', function () {
 })->name('migration.redirect');
 
 Route::get('/simple-migration', function () {
-    return redirect('/migration.php');})->name('simple.migration.redirect');
+    return redirect('/migration.php');
+})->name('simple.migration.redirect');

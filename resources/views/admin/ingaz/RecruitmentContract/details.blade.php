@@ -390,6 +390,14 @@
                                 <span
                                     class="info-value">{{ $contract->maid && $contract->maid->nationality ? $contract->maid->nationality->sub_title : 'غير محدد' }}</span>
                             </div>
+                            @php
+                                $office = $contract->maid?->office ?? $contract->maid?->recruitmentOffice;
+                            @endphp
+                            <div class="info-row">
+                                <span class="info-label">المكتب الخارجي:</span>
+                                <span
+                                    class="info-value">{{ $office->title ?? 'غير محدد' }}</span>
+                            </div>
                             <div class="info-row">
                                 <span class="info-label">الدين:</span>
                                 <span

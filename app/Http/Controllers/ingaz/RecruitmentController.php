@@ -171,16 +171,15 @@ class RecruitmentController extends Controller
             // Send SMS
             $userPhone = formatSaudiPhone($recruitment->client->phone);
             $customerPhone = formatSaudiPhone($recruitment?->customer?->phone);
+
             if (!empty($customerPhone)) {
                 $body =  "يوجد لديكم حجز باسم " . auth()->user()->name . "برقم جوال " . auth()->user()->phone;
-                $recipients = [$customerPhone];
-                $this->sendSMS($recipients, $body);
+                $this->sendSMS($customerPhone, $body);
             }
 
             if (!empty($userPhone)) {
                 $body = "عزيزي العميل، تم حجز سيرة ذاتية جديدة بنجاح. رقم الطلب {$recruitment->order_code}. للمتابعة يرجى التواصل مع المندوب المسؤول عن طلبكم.";
-                $recipients = [$userPhone];
-                $this->sendSMS($recipients, $body);
+                $this->sendSMS($userPhone, $body);
             }
 
             return response()->json([

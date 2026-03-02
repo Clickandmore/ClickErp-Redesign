@@ -213,7 +213,7 @@ function migrateMaids(PDO $oldDb, PDO $newDb, int $chunkSize): array
     $allowedColumns = array_intersect(
         [
             'id', 'name', 'nationality_id', 'passport_num', 'price', 'salary', 'religion_id', 'age', 'birth_date',
-            'cv_file', 'available', 'is_pinned', 'available_at', 'status', 'is_show', 'created_at', 'updated_at',
+            'cv_file', 'cv_code', 'available', 'is_pinned', 'available_at', 'status', 'is_show', 'created_at', 'updated_at',
             'experience_years', 'experience_status', 'cv_preview', 'office_id', 'image', 'height', 'weight',
             'id_number', 'id_expiry_date', 'skills', 'languages', 'experience_country', 'video_preview',
             'video', 'video_link',
@@ -387,6 +387,7 @@ function buildMaidsMappings(PDO $oldDb, PDO $newDb): array
         'skills' => array_map('intval', $newDb->query('SELECT id FROM skills')->fetchAll(PDO::FETCH_COLUMN) ?: []),
         'social_status' => buildSocialStatusMap($oldDb),
         'office_map' => buildOfficeMap($newDb),
+        'office_names' => buildOfficeNameMap($oldDb),
         'users' => buildUserMap($newDb),
         'occupations' => buildOccupationMapping($oldDb, $newDb),
         'default_nationality' => getDefaultValue($newDb, 'nationalities'),
@@ -636,6 +637,7 @@ function transformCvRow(array $cv, array $mappings, array $allowedColumns): ?arr
     $maritalStatus = mapSocialStatus((int)($cv['social_id'] ?? 0), $mappings['social_status']);
 
     $officeId = resolveOfficeId($cv['office'] ?? null, $mappings['office_map']);
+    $cvCode = buildCvCode($cv['office'] ?? null, $maidId, $mappings['office_names'] ?? []);
 
     $image = extractImage($cv);
     $cvFile = normalizeCvFile($cv);
@@ -664,6 +666,7 @@ function transformCvRow(array $cv, array $mappings, array $allowedColumns): ?arr
         ':age' => $age,
         ':birth_date' => $birthDate,
         ':cv_file' => $cvFile,
+        ':cv_code' => $cvCode,
         ':available' => $statusData['available'],
         ':is_pinned' => (int)($cv['profile_dropdown'] ?? 0) === 1 ? 1 : 0,
         ':available_at' => normalizeTimestamp($cv['arrived_date'] ?? null, 'date') ?: date('Y-m-d'),
@@ -809,6 +812,10 @@ function computeExperienceData(array $cv, array $experienceMap, array $countryMa
 
     $countryName = trimString($cv['experience_country'] ?? null);
     $countryId = resolveCountryId($countryName, $countryMap);
+
+    if ($countryName === null || $countryName === 'null') {
+        $status = 'no_experience';
+    }
 
     return [
         'years' => (string)$years,
@@ -961,6 +968,46 @@ function mapCvStatus(int $cvStatus): array
     }
 }
 
+function buildCvCode($officeValue, int $maidId, array $officeNameMap = []): ?string
+{
+    $officeName = null;
+
+    if (is_numeric($officeValue)) {
+        $officeId = (int)$officeValue;
+        if ($officeId > 0 && isset($officeNameMap[$officeId])) {
+            $officeName = $officeNameMap[$officeId];
+        }
+    }
+
+    if ($officeName === null) {
+        if (is_numeric($officeValue)) {
+            $officeName = '';
+        } else {
+            $officeName = is_string($officeValue) ? $officeValue : '';
+        }
+    }
+
+    $officeName = trim((string)$officeName);
+    $clean = preg_replace('/[^\p{L}\p{N}]+/u', '', $officeName);
+    if ($clean === null) {
+        $clean = '';
+    }
+
+    if ($clean === '') {
+        $prefix = 'OFF';
+    } else {
+        $prefix = function_exists('mb_substr')
+            ? mb_substr($clean, 0, 3, 'UTF-8')
+            : substr($clean, 0, 3);
+    }
+
+    if ($prefix === '') {
+        $prefix = 'OFF';
+    }
+
+    return $prefix . '/' . $maidId;
+}
+
 function buildCountryMap(PDO $newDb): array
 {
     $map = [];
@@ -975,6 +1022,35 @@ function buildCountryMap(PDO $newDb): array
     } catch (Throwable $e) {
         // ignore, we will fallback to null country id
     }
+    return $map;
+}
+
+function buildOfficeNameMap(PDO $oldDb): array
+{
+    $map = [];
+
+    try {
+        $stmt = $oldDb->query('SELECT office_id, name, lang FROM office_translations');
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $officeId = (int)($row['office_id'] ?? 0);
+            if ($officeId <= 0) {
+                continue;
+            }
+
+            $name = trimString($row['name'] ?? null);
+            if ($name === null) {
+                continue;
+            }
+
+            $lang = strtolower(trim((string)($row['lang'] ?? '')));
+            if ($lang === 'ar' || !isset($map[$officeId])) {
+                $map[$officeId] = $name;
+            }
+        }
+    } catch (Throwable $e) {
+        return $map;
+    }
+
     return $map;
 }
 
