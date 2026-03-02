@@ -1821,5 +1821,6 @@
     'maid_data' => 'Maid Data',
     '.contracted' => '.contracted',
     'outside_agent' => 'outside_agent',
-    'save_and_issue_an_invoice' => 'Save And Issue An Invoice'
+    'save_and_issue_an_invoice' => 'Save And Issue An Invoice',
+    'recruitment_office' => 'Recruitment Office',
 );

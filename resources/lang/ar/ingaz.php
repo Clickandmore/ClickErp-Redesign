@@ -1731,4 +1731,5 @@
   'contracted' => 'تم التعاقد',
   'outside_agent' => 'الوكيل الخارجي',
   'save_and_issue_an_invoice' => 'حفظ واصدار فاتورة',
+  'recruitment_office' => 'المكتب الخارجي', 
 );

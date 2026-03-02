@@ -601,6 +601,7 @@
                                 <th>معلومات العميل</th>
                                 <th>العاملة</th>
                                 <th>معلومات العقد</th>
+                                <th>{{ helperTrans('ingaz.recruitment_office') }}</th>
                                 <th>المسوق</th>
                                 <th>الحالة</th>
                                 <th>تحديث الحالة</th>
@@ -956,6 +957,11 @@
                     "data": "contract_info",
                     orderable: false,
                     searchable: false
+                },
+                {
+                    "data": "recruitment_office",
+                    orderable: false,
+                    searchable: true
                 },
                 {
                     "data": "marketer",

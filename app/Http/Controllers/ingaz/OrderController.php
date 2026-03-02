@@ -54,6 +54,7 @@ class OrderController extends Controller
             $query->with([
                 'user',
                 'maid.nationality',
+                'maid.office',
                 'jobType',
                 'details.admin',
                 'contracts'
@@ -113,6 +114,15 @@ class OrderController extends Controller
                 });
             }
 
+            // Apply recruitment office name search
+            if ($request->filled('office_name')) {
+                $officeName = trim($request->office_name);
+                $query->whereHas('maid.office.translations', function ($q) use ($officeName) {
+                    $q->where('title', 'like', '%' . $officeName . '%')
+                        ->where('locale', app()->getLocale());
+                });
+            }
+
             // Apply timer status filter
             if ($request->filled('timer_status')) {
                 $query->where(function ($q) use ($request) {
@@ -152,6 +162,10 @@ class OrderController extends Controller
                 })
                 ->addColumn('timer', function ($row) {
                     return $this->getTimerHtml($row);
+                })
+                ->addColumn('recruitment_office', function ($row) {
+                    $office = $row->maid?->office ?? $row->maid?->recruitmentOffice;
+                    return $office?->title ?? '-';
                 })
                 ->editColumn('job_type_id', function ($row) {
                     return ($row->jobType) ? $row->jobType->title : '';

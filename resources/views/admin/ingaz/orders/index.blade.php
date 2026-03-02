@@ -298,6 +298,11 @@
                                         <input type="text" class="form-control" name="passport_num" id="passport_num"
                                             placeholder="{{ helperTrans('ingaz.search_by_passport') }}">
                                     </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">{{ helperTrans('ingaz.recruitment_office') }}</label>
+                                        <input type="text" class="form-control" name="office_name" id="office_name"
+                                            placeholder="{{ helperTrans('ingaz.recruitment_office') }}">
+                                    </div>
                                     <div class="col-12">
                                         <div class="d-flex gap-2">
                                             <button type="submit" class="btn btn-primary btn-sm">
@@ -337,7 +342,8 @@
                                         {{-- <th>{{helperTrans("ingaz.deliver_status")}}</th> --}}
                                         <th>{{ helperTrans('ingaz.order_job_type') }}</th>
                                         <th>{{ helperTrans('ingaz.status') }}</th>
-                                        <th>{{ helperTrans('ingaz.timer') }}</th>
+                                        {{-- <th>{{ helperTrans('ingaz.timer') }}</th> --}}
+                                        <th>{{ helperTrans('ingaz.recruitment_office') }}</th>
                                         <th>{{ helperTrans('ingaz.contract_status') }}</th>
                                         <th>{{ helperTrans('ingaz.order_date') }}</th>
                                         <th>{{ helperTrans('ingaz.responsible_employee') }}</th>
@@ -444,9 +450,9 @@
                     searchable: true
                 },
                 {
-                    "data": "timer",
+                    "data": "recruitment_office",
                     orderable: false,
-                    searchable: false
+                    searchable: true
                 },
                 {
                     "data": "contract_status",
@@ -581,6 +587,7 @@
                         d.client_name = $('#client_name').val();
                         d.phone = $('#phone').val();
                         d.passport_num = $('#passport_num').val();
+                        d.office_name = $('#office_name').val();
                     },
                     error: function(xhr, error, thrown) {
                         console.error('DataTables AJAX Error:', error);
@@ -1510,7 +1517,7 @@
 
             // Clear filters
             $('#clearFilters').on('click', function() {
-                $('#from_date, #to_date, #status, #job_type, #admin_id, #timer_status, #client_name, #phone, #passport_num')
+                $('#from_date, #to_date, #status, #job_type, #admin_id, #timer_status, #client_name, #phone, #passport_num, #office_name')
                     .val('');
                 dataTable.ajax.reload();
             });
@@ -1527,6 +1534,7 @@
                     client_name: $('#client_name').val(),
                     phone: $('#phone').val(),
                     passport_num: $('#passport_num').val()
+                    ,office_name: $('#office_name').val()
                 });
             });
 
@@ -1541,6 +1549,7 @@
                     client_name: $('#client_name').val(),
                     phone: $('#phone').val(),
                     passport_num: $('#passport_num').val()
+                    ,office_name: $('#office_name').val()
                 });
             });
 
