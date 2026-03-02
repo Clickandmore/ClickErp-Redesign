@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\site;
 
 use App\Enums\auth\AdminTypes;
+use App\Enums\ingaz\NotificationActionEnum;
 use App\Enums\ingaz\OrderEnum;
 use App\Http\Actions\auth\AdminAction;
 use App\Http\Actions\ingaz\MaidAction;
@@ -12,10 +13,11 @@ use App\Http\Requests\site\CustomerServiceRequest;
 use App\Models\ingaz\RecruitmentRequest;
 use Illuminate\Http\Request;
 use App\Http\Traits\SendSMSTrait;
+use App\Http\Traits\StoreMessageTrait;
 
 class CustomerServiceController extends Controller
 {
-    use SendSMSTrait;
+    use SendSMSTrait, StoreMessageTrait;
     public function index()
     {
         return redirect(route('site.all-workers.index'));
@@ -69,7 +71,11 @@ class CustomerServiceController extends Controller
         $userPhone = formatSaudiPhone(auth()->user()->phone);
         if (!empty($userPhone)) {
             $body = "عزيزي العميل، تم حجز سيرة ذاتية جديدة بنجاح. رقم الطلب {$order->order_code}. للمتابعة يرجى التواصل مع المندوب المسؤول عن طلبكم.";
-            $this->sendSMS($userPhone, $body);
+            $result = $this->sendSMS($userPhone, $body);
+
+            if (isset($result['code']) && $result['code'] == "1") {
+                $this->storeMessage('ارسال رسالة نصية الى العميل', $body, NotificationActionEnum::SMS->value, auth()->user()->id);
+            }
         }
 
         $customer_services = $adminAction->getWhere(['admin_type' => AdminTypes::CustomerService->value]);

@@ -10,6 +10,7 @@ use App\Enums\ingaz\OrderEnum;
 use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\Religion;
 use App\Enums\auth\AdminTypeis;
+use App\Enums\ingaz\NotificationActionEnum;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\UserAddress;
 use App\Models\ingaz\MaidJobTitles;
@@ -24,10 +25,11 @@ use Yajra\DataTables\Facades\DataTables;
 use App\Http\Actions\ingaz\OrderAction as objAction;
 use App\Models\ingaz\Notification;
 use App\Http\Traits\SendSMSTrait;
+use App\Http\Traits\StoreMessageTrait;
 
 class OrderController extends Controller
 {
-    use SendSMSTrait;
+    use SendSMSTrait, StoreMessageTrait;
     public $folderPath = "admin.ingaz.orders";
     public $postData = ["status"];
     public $mainRoute = "orders";
@@ -375,7 +377,7 @@ class OrderController extends Controller
             'not_completed' => [OrderEnum::Refused->value, OrderEnum::Return->value],
             default => OrderEnum::tryFrom($status)
                 ? [$status]
-                : array_map(fn ($case) => $case->value, OrderEnum::cases()),
+                : array_map(fn($case) => $case->value, OrderEnum::cases()),
         };
     }
 
@@ -436,7 +438,7 @@ class OrderController extends Controller
     {
         try {
             $validated = $request->validate([
-                'status' => ['required', Rule::in(array_map(fn ($case) => $case->value, OrderEnum::cases()))],
+                'status' => ['required', Rule::in(array_map(fn($case) => $case->value, OrderEnum::cases()))],
                 'refuse_reason' => ['nullable', 'string', 'max:500'],
             ]);
 
@@ -469,7 +471,7 @@ class OrderController extends Controller
             // Status Notification
             Notification::create([
                 'title' => __('ingaz.update_order_status'),
-                'description' => __('ingaz.order_status_updated', ['order_id' => $order->id]) . " " . __('ingaz.'. $order->status),
+                'description' => __('ingaz.order_status_updated', ['order_id' => $order->id]) . " " . __('ingaz.' . $order->status),
                 'order_id' => $order->id,
                 'user_id' => $order->user_id,
                 'type' => 'order_status',
@@ -840,12 +842,10 @@ class OrderController extends Controller
                         ]
                     ]
                 ]);
-
             } catch (\Exception $e) {
                 \DB::rollback();
                 throw $e;
             }
-
         } catch (\Exception $e) {
             return jsonError(['message' => 'An error occurred while changing the maid']);
         }
@@ -907,21 +907,26 @@ class OrderController extends Controller
             $order->save();
 
             // Send SMS
-            if($validated['action'] == "refused"){
+            if ($validated['action'] == "refused") {
                 $body = "عزيزي العميل، تم رفض طلب الاستقدام رقم {$order->order_code}. لمزيد من التفاصيل يرجى التواصل مع خدمة العملاء.";
-            }else if($validated['action'] == "return"){
+            } else if ($validated['action'] == "return") {
                 $body = "عزيزي العميل، نود إشعاركم بأنه تم إرجاع طلب الاستقدام رقم {$order->order_code}. يرجى مراجعة الطلب عبر حسابكم.";
             }
             $userPhone = formatSaudiPhone($order->user->phone);
             $customerPhone = formatSaudiPhone($order->customer?->phone);
             $recipients = [$userPhone, $customerPhone];
-            $this->sendSMS($recipients, $body);
+
+            $result = $this->sendSMS($recipients, $body);
+
+            if (isset($result['code']) && $result['code'] == "1") {
+                $this->storeMessage('ارسال رسالة نصية الى العميل', $body, NotificationActionEnum::SMS->value, $order->user->id);
+            }
 
 
             // Refuse/Return Notification
             Notification::create([
                 'title' => __('ingaz.update_order_status'),
-                'description' => __('ingaz.order_status_updated', ['order_id' => $order->id]) . " " . __('ingaz.'. $order->status),
+                'description' => __('ingaz.order_status_updated', ['order_id' => $order->id]) . " " . __('ingaz.' . $order->status),
                 'order_id' => $order->id,
                 'user_id' => $order->user_id,
                 'type' => 'order_status',
@@ -929,7 +934,7 @@ class OrderController extends Controller
 
             $this->releaseMaid($order);
 
-            return jsonSuccess(['success'=> true], __('ingaz.status_updated'),200);
+            return jsonSuccess(['success' => true], __('ingaz.status_updated'), 200);
         } catch (\Exception $e) {
             return jsonError(['message' => 'An error occurred while updating the order status']);
         }
@@ -1382,7 +1387,6 @@ class OrderController extends Controller
                 'success' => true,
                 'message' => 'تم تحديث حالة الطلب بنجاح من ' . $oldStatus . ' إلى ' . $request->status
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

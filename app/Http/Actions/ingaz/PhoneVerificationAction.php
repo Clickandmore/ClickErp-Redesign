@@ -2,16 +2,18 @@
 
 namespace App\Http\Actions\ingaz;
 
+use App\Enums\ingaz\NotificationActionEnum;
 use App\Http\Actions\MainAction;
 use App\Http\Resources\Api\UserResource;
 use App\Http\Traits\SendSMSTrait;
+use App\Http\Traits\StoreMessageTrait;
 use App\Models\ingaz\PhoneVerification;
 use App\Models\ingaz\User;
 use Illuminate\Support\Facades\Auth;
 
 class PhoneVerificationAction extends MainAction
 {
-    use SendSMSTrait;
+    use SendSMSTrait, StoreMessageTrait;
     public function __construct(PhoneVerification $model)
     {
         $this->model = $model;
@@ -38,6 +40,14 @@ class PhoneVerificationAction extends MainAction
 
         $msg = "مرحبًا بك، نأمل استخدام رمز التفعيل للتحقق من الهاتف: {$code}. للدخول إلى منصة platinumeastern.com";
         $result = $this->sendSMS(formatSaudiPhone($request->phone), $msg, $code);
+
+        $user = User::where('phone', $request->phone)
+            ->where('phone_code', $request->phone_code)
+            ->first();
+
+        if (isset($result['code']) && $result['code'] == "1") {
+            $this->storeMessage('ارسال رسالة نصية الى العميل', $msg, NotificationActionEnum::SMS->value, $user->id);
+        }
 
         return ["code" => $code];
     }

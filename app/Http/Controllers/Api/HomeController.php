@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\auth\AdminTypes;
+use App\Enums\ingaz\NotificationActionEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Traits\SendSMSTrait;
+use App\Http\Traits\StoreMessageTrait;
 use App\Models\auth\Admin;
 use App\Models\Contract;
 use App\Models\ingaz\Complaint;
@@ -15,7 +17,7 @@ use Illuminate\Support\Str;
 
 class HomeController extends Controller
 {
-    use SendSMSTrait;
+    use SendSMSTrait, StoreMessageTrait;
 
     public function contractStatus(Request $request)
     {
@@ -116,7 +118,11 @@ class HomeController extends Controller
             $ticket->code = $ticket->id;
             $msg = " عزيزنا العميل ,تم تسليم الشكوى لدى مكتب بلاتنيوم الشرقية للاستقدام بنجاح . وهى محل اهتمامنا و سيتم المتابعة و أعلامك بالمستجدات رقم الشكوى" . $ticket->code;
             if (!empty($user->phone)) {
-                $this->sendSMS(formatSaudiPhone($user->phone), $msg);
+                $result = $this->sendSMS(formatSaudiPhone($user->phone), $msg);
+
+                if (isset($result['code']) && $result['code'] == "1") {
+                    $this->storeMessage('ارسال رسالة نصية الى العميل', $msg, NotificationActionEnum::SMS->value, $user->id);
+                }
             }
             return [
                 "status" => 1,
