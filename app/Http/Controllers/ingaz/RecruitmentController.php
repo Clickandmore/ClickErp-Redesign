@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\ingaz;
 
+use App\Enums\ingaz\NotificationActionEnum;
 use App\Http\Controllers\Controller;
 use App\Models\ingaz\User;
 use App\Models\ingaz\Maid;
@@ -16,10 +17,12 @@ use App\Models\ingaz\Client;
 use App\Models\ingaz\RecruitmentRequest;
 use App\Models\RecruitmentOffices;
 use App\Http\Traits\SendSMSTrait;
+use App\Http\Traits\StoreMessageTrait;
+use App\Models\ingaz\Notification;
 
 class RecruitmentController extends Controller
 {
-    use SendSMSTrait;
+    use SendSMSTrait, StoreMessageTrait;
     public function create($client_id)
     {
         $client = User::findOrFail($client_id);
@@ -39,15 +42,15 @@ class RecruitmentController extends Controller
             'jobTypes',
             'translations'
         ])
-        ->where('status', 'available') // Use constant for better maintainability
-        ->where('available', true) // Also check the available boolean field
-        ->where('is_show', true)
-        ->whereDoesntHave('contracts', function($q) {
-            $q->whereIn('status', ['active', 'pending']);
-        })
-        ->whereDoesntHave('orders', function($q) {
-            $q->whereIn('status', ['pending', 'approved', 'in_progress']);
-        });
+            ->where('status', 'available') // Use constant for better maintainability
+            ->where('available', true) // Also check the available boolean field
+            ->where('is_show', true)
+            ->whereDoesntHave('contracts', function ($q) {
+                $q->whereIn('status', ['active', 'pending']);
+            })
+            ->whereDoesntHave('orders', function ($q) {
+                $q->whereIn('status', ['pending', 'approved', 'in_progress']);
+            });
 
         // Apply filters
         if ($nationality_id) {
@@ -57,7 +60,7 @@ class RecruitmentController extends Controller
             $query->where('religion_id', $religion_id);
         }
         if ($job_type_id) {
-            $query->whereHas('jobTypes', function($q) use ($job_type_id) {
+            $query->whereHas('jobTypes', function ($q) use ($job_type_id) {
                 $q->where('job_type_id', $job_type_id);
             });
         }
@@ -171,23 +174,27 @@ class RecruitmentController extends Controller
             // Send SMS
             $userPhone = formatSaudiPhone($recruitment->client->phone);
             $customerPhone = formatSaudiPhone($recruitment?->customer?->phone);
+
             if (!empty($customerPhone)) {
                 $body =  "يوجد لديكم حجز باسم " . auth()->user()->name . "برقم جوال " . auth()->user()->phone;
-                $recipients = [$customerPhone];
-                $this->sendSMS($recipients, $body);
+                $this->sendSMS($customerPhone, $body);
             }
 
             if (!empty($userPhone)) {
                 $body = "عزيزي العميل، تم حجز سيرة ذاتية جديدة بنجاح. رقم الطلب {$recruitment->order_code}. للمتابعة يرجى التواصل مع المندوب المسؤول عن طلبكم.";
-                $recipients = [$userPhone];
-                $this->sendSMS($recipients, $body);
+                $response = $this->sendSMS($userPhone, $body);
+
+                $result = json_decode($response, true);
+
+                if (isset($result['code']) && $result['code'] == "1") {
+                    $this->storeMessage('ارسال رسالة نصية الى العميل', $body, NotificationActionEnum::SMS->value, $request->client_id);
+                }
             }
 
             return response()->json([
                 'success' => true,
                 'message' => __('ingaz.recruitment_request_created')
             ]);
-
         } catch (\Exception $e) {
             DB::rollback();
             \Log::error('Order Creation Error: ' . $e->getMessage());
@@ -216,7 +223,7 @@ class RecruitmentController extends Controller
     {
         $maid = Maid::findOrFail($maid_id);
         $client = User::findOrFail($client_id);
-        $employees = Admin::whereHas('roles', function($query) {
+        $employees = Admin::whereHas('roles', function ($query) {
             $query->where('name', 'employee');
         })->get();
 

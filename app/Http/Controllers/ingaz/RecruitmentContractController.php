@@ -559,7 +559,10 @@ class RecruitmentContractController extends Controller
 
                     return $marketerInfo ?: '<span class="text-muted"><i class="fas fa-user-slash me-1"></i>غير محدد</span>';
                 })
-
+                ->addColumn('recruitment_office', function ($row) {
+                    $office = $row->maid?->office ?? $row->maid?->recruitmentOffice;
+                    return $office?->title ?  '<span class="text-muted">' . $office?->title .'</span>' : '<span class="text-muted">غير محدد</span>';
+                })
                 ->addColumn('updateStatus', function ($row) {
                     if ($row->status == ContractStatusEnum::PendingMaidSelection->value) {
                         // زر إضافة عاملة للعقود التي في حالة بانتظار اختيار العاملة

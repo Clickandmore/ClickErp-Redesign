@@ -5,12 +5,13 @@ namespace App\Http\Traits;
 use App\Models\Contract;
 use App\Models\SmsTemplate;
 use App\Enums\ingaz\ContractStatusEnum;
+use App\Enums\ingaz\NotificationActionEnum;
 use Illuminate\Support\Facades\Log;
 use App\Http\Traits\SendSMSTrait;
 
 trait ContractSMSTrait
 {
-    use SendSMSTrait;
+    use SendSMSTrait, StoreMessageTrait;
     /**
      * Send SMS notification to client about contract status update
      *
@@ -41,7 +42,7 @@ trait ContractSMSTrait
             }
 
             // إرسال الرسالة (يمكن تخصيص هذا الجزء حسب مزود الخدمة)
-            $result = $this->sendSMSMessage($contract->user->phone, $message);
+            $result = $this->sendSMSMessage($contract->user->phone, $message, $contract->user->id);
 
             // تسجيل العملية
             Log::info('Contract status SMS sent', [
@@ -121,7 +122,7 @@ trait ContractSMSTrait
      * @param string $message
      * @return bool
      */
-    private function sendSMSMessage(string $phone, string $message)
+    private function sendSMSMessage(string $phone, string $message, $user_id = null)
     {
         try {
             // هنا يمكن تنفيذ إرسال الرسالة الفعلي باستخدام مزود الخدمة
@@ -142,6 +143,10 @@ trait ContractSMSTrait
             
             // Send SMS using the existing SendSMSTrait
             $result = $this->sendSMS(formatSaudiPhone($phone), $message);
+
+            if (isset($result['code']) && $result['code'] == "1") {
+                $this->storeMessage('ارسال رسالة نصية الى العميل', $message, NotificationActionEnum::SMS->value, $user_id);
+            }
 
             return $result;
 

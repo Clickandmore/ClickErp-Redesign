@@ -8,4 +8,5 @@ enum NotificationActionEnum: string
     case OrderStatus = "order_status";
     case General = "general";
     case Saved = "saved";
+    case SMS = "sms";
 }

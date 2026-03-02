@@ -115,6 +115,8 @@ class MaidController extends Controller
                     $cvCodeLine = $cvCode
                         ? '<div class="text-muted text-medium"><i class="fas fa-id-card me-1 text-secondary"></i>' . $cvCodeLabel . ': ' . $cvCode . '</div>'
                         : '';
+                    
+                    $officeTitle = $row->office?->title ? e(Str::limit($row->office->title, 30)) : helperTrans('ingaz.not_specified');
 
                     return '<div class="d-flex flex-column gap-2">'
                         . '<div class="d-flex align-items-center gap-2">'
@@ -130,6 +132,10 @@ class MaidController extends Controller
                         . '</div>'
                         . '<div class="text-muted text-medium">'
                         . '<i class="fas fa-praying-hands me-1 text-secondary"></i>' . $religion
+                        . '</div>'
+                        . '</div>'
+                        . '<div class="text-muted text-medium mt-1">'
+                        . '<i class="fas fa-building text-secondary ps-1"></i>' . __('ingaz.recruitment_office') . ": " . $officeTitle
                         . '</div>'
                         . '</div>';
                 })
@@ -343,10 +349,10 @@ class MaidController extends Controller
                         . '</div>'
 
                         // Office
-                        . '<div class="text-muted small d-flex align-items-center gap-2">'
-                        . '<i class="fas fa-building text-secondary"></i>'
-                        . '<span>' . $officeTitle . '</span>'
-                        . '</div>'
+                        // . '<div class="text-muted small d-flex align-items-center gap-2">'
+                        // . '<i class="fas fa-building text-secondary"></i>'
+                        // . '<span>' . $officeTitle . '</span>'
+                        // . '</div>'
 
                         // Salary & Price
                         . '<div class="d-flex flex-column gap-3">'

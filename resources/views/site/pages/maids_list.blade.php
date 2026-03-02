@@ -113,7 +113,7 @@
                                         <p>{{ __('ingaz.experience') }} :
                                             <span>
                                                 {{ $maid->experience_status === 'has_experience' ? __('ingaz.has_experience_label') : __('ingaz.no_experience_label') }}
-                                                @if ($result)
+                                                @if (isset($result))
                                                     - <span class="text-wrap">{{ $result }}</span>
                                                 @endif
                                             </span>
