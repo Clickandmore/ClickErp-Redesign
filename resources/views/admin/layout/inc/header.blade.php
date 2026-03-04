@@ -27,16 +27,11 @@ $user = getAuthUser();
                         isset($settings) && !empty($settings->logo_header)
                             ? showFile($settings->logo_header)
                             : asset('site/assets/images/company_logo.png');
-                    $headerSystemName =
-                        isset($settings) && !empty($settings->website_name)
-                            ? $settings->website_name
-                            : 'بلاتنيوم الشرقية للاستقدام';
                 @endphp
                 <a href="{{ route('dashboard.index') }}" class="brand-icon cm-brand d-flex align-items-center mx-2 mx-sm-3">
                     <img class="cm-header-logo" src="{{ $headerLogo }}" alt="logo"
                         onerror="this.onerror=null;this.src='{{ asset('site/assets/images/company_logo.png') }}';">
                     <span class="cm-brand-text">
-                        <span class="cm-brand-title">{{ $headerSystemName }}</span>
                         <small class="cm-brand-subtitle">{{ helperTrans('ingaz.dashboard') }}</small>
                     </span>
                 </a>
