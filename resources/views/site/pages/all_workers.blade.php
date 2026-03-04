@@ -65,7 +65,9 @@
                         </div>
 
                         @php
-                            $currentExperienceStatus = request()->experience_status ?? '';
+                            $currentExperienceStatus = request()->filled('experience_status')
+                                ? request()->experience_status
+                                : 'has_experience';
                         @endphp
                         <form action="" class="row" id="maids_filter">
                             <input type="hidden" name="experience_status" id="experience_status_input"
@@ -128,8 +130,14 @@
                                     <i class="fa-duotone fa-briefcase me-1"></i>{{ __('ingaz.experience') }}
                                 </label>
                                 <select id="experience_status_input" class="select2" name="experience_status">
-                                    <option value="has_experience"> {{ __('ingaz.has_experience_label') }}</option>
-                                    <option value="no_experience"> {{ __('ingaz.no_experience_label') }}</option>
+                                    <option value="has_experience"
+                                        {{ $currentExperienceStatus === 'has_experience' ? 'selected' : '' }}>
+                                        {{ __('ingaz.has_experience_label') }}
+                                    </option>
+                                    <option value="no_experience"
+                                        {{ $currentExperienceStatus === 'no_experience' ? 'selected' : '' }}>
+                                        {{ __('ingaz.no_experience_label') }}
+                                    </option>
                                 </select>
                             </div>
 

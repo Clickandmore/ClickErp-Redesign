@@ -116,6 +116,13 @@ class OrderController extends Controller
                 });
             }
 
+            // Apply nationality filter
+            if ($request->filled('nationality_id')) {
+                $query->whereHas('maid', function ($q) use ($request) {
+                    $q->where('nationality_id', $request->nationality_id);
+                });
+            }
+
             // Apply recruitment office name search
             if ($request->filled('office_name')) {
                 $officeName = trim($request->office_name);
@@ -163,7 +170,12 @@ class OrderController extends Controller
                     return '<div class="d-flex align-items-center gap-2">' . $statusHtml . '</div>';
                 })
                 ->addColumn('timer', function ($row) {
-                    return $this->getTimerHtml($row);
+                    $office = $row->maid?->office ?? $row->maid?->recruitmentOffice;
+                    $officeTitle = $office?->title ?? '-';
+
+                    return '<div>'. $this->getTimerHtml($row) .' <div class="text-muted text-medium mt-2 d-flex align-items-center gap-2 p-0">'
+                        . '<i class="fas fa-building text-secondary ps-1"></i>' . __('ingaz.recruitment_office') . ": " . $officeTitle
+                        . '</div></div>';
                 })
                 ->addColumn('recruitment_office', function ($row) {
                     $office = $row->maid?->office ?? $row->maid?->recruitmentOffice;
@@ -286,6 +298,10 @@ class OrderController extends Controller
         // Cache filter data for 5 minutes to avoid repeated queries
         $data['jobTypes'] = \Cache::remember('job_types_list', 300, function () {
             return JobTitle::with('translations')->get();
+        });
+
+        $data['nationalities'] = \Cache::remember('nationalities_list', 300, function () {
+            return Nationality::with('translations')->get()->sortBy('title');
         });
 
         $data['admins'] = \Cache::remember('admins_list', 300, function () {
