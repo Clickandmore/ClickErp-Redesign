@@ -12,10 +12,15 @@
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
                         <h4 class="mb-0">
                             <i class="fa fa-inbox me-2"></i>
-                            سجل الرسائل النصية المرسلة
+                            سجل الرسائل المرسلة (SMS / WhatsApp)
                         </h4>
-                        <form class="d-flex" method="get" action="{{ route('messages.index') }}">
-                            <input type="text" name="q" class="form-control me-2"
+                        <form class="d-flex flex-wrap gap-2" method="get" action="{{ route('messages.index') }}">
+                            <select name="type" class="form-control">
+                                <option value="all" {{ ($type ?? 'all') === 'all' ? 'selected' : '' }}>كل القنوات</option>
+                                <option value="sms" {{ ($type ?? 'all') === 'sms' ? 'selected' : '' }}>SMS</option>
+                                <option value="whatsapp" {{ ($type ?? 'all') === 'whatsapp' ? 'selected' : '' }}>WhatsApp</option>
+                            </select>
+                            <input type="text" name="q" class="form-control"
                                 placeholder="بحث بالاسم أو الهاتف أو نص الرسالة"
                                 value="{{ request('q') }}">
                             <button class="btn btn-primary" type="submit">بحث</button>
@@ -27,10 +32,11 @@
                         <thead class="table-dark">
                             <tr>
                                 <th>#</th>
+                                <th>القناة</th>
                                 <th>العميل</th>
                                 <th>الهاتف</th>
                                 <th>التاريخ</th>
-                                <th>القالب</th>
+                                <th>العنوان</th>
                                 <th>الرسالة</th>
                                 <th>الإجراءات</th>
                             </tr>
@@ -44,9 +50,17 @@
                                     $smsDescription = is_array($smsLog->description)
                                         ? ($smsLog->description[app()->getLocale()] ?? reset($smsLog->description))
                                         : $smsLog->description;
+                                    $channel = strtolower((string) $smsLog->type) === 'whatsapp' ? 'whatsapp' : 'sms';
                                 @endphp
                                 <tr>
                                     <td>{{ $smsLogs->firstItem() + $index }}</td>
+                                    <td>
+                                        @if ($channel === 'whatsapp')
+                                            <span class="badge bg-success">WhatsApp</span>
+                                        @else
+                                            <span class="badge bg-primary">SMS</span>
+                                        @endif
+                                    </td>
                                     <td>{{ $smsLog->user->name ?? 'غير معروف' }}</td>
                                     <td>{{ $smsLog->user->phone ?? '-' }}</td>
                                     <td>{{ $smsLog->created_at?->format('d-m-Y H:i') }}</td>
@@ -65,7 +79,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted">لا توجد رسائل نصية مرسلة.</td>
+                                    <td colspan="8" class="text-center text-muted">لا توجد رسائل مرسلة بهذا الفلتر.</td>
                                 </tr>
                             @endforelse
                         </tbody>

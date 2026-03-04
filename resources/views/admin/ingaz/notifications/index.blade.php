@@ -11,25 +11,28 @@
             <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <h4 class="mb-0">
                     <i class="fa fa-sms me-2"></i>
-                    إرسال رسائل نصية للعملاء
+                    إرسال رسائل SMS
                 </h4>
                 <div class="d-flex gap-2">
+                    <a href="{{ route('whatsapp.notifications.index') }}" class="btn btn-outline-success">
+                        <i class="fa fa-whatsapp me-1"></i>
+                        إرسال واتساب (تحقق/متابعة)
+                    </a>
                     <a href="{{ route('messages.index') }}" class="btn btn-outline-secondary">
                         <i class="fa fa-inbox me-1"></i>
                         سجل الرسائل
                     </a>
                     <a href="{{ route('admin.sms-templates.index') }}" class="btn btn-outline-primary">
                         <i class="fa fa-layer-group me-1"></i>
-                        إدارة القوالب
+                        إدارة قوالب SMS
                     </a>
                 </div>
             </div>
             <div class="card-body">
                 <div class="alert alert-warning mb-4">
                     <strong>تنبيه:</strong>
-                    الإرسال الجماعي لكل العملاء يتطلب تأكيدًا إضافيًا ويخضع لحد أقصى
-                    <strong>{{ (int) config('msegat.bulk_send_limit', 200) }}</strong> رسالة لكل دفعة
-                    لحماية باقة الرسائل.
+                    الإرسال الجماعي يتطلب تأكيدًا إضافيًا ويخضع لحد أقصى
+                    <strong>{{ (int) config('msegat.bulk_send_limit', 200) }}</strong> رسالة لكل دفعة.
                 </div>
 
                 <form id="smsDispatchForm" class="row g-3 from-submit-global" method="post" action="{{ route('notifications.store') }}">
@@ -71,9 +74,7 @@
                             <div class="card-body">
                                 <h6 class="mb-3">متغيرات القالب</h6>
                                 <div id="templateVariablesRow" class="row g-3">
-                                    <div class="col-12 text-muted">
-                                        اختر قالبًا أولًا لعرض المتغيرات المطلوبة.
-                                    </div>
+                                    <div class="col-12 text-muted">اختر قالبًا أولًا لعرض المتغيرات المطلوبة.</div>
                                 </div>
                             </div>
                         </div>
@@ -114,11 +115,8 @@
                                 سيتم الإرسال لكل العملاء الذين لديهم رقم جوال صالح. أكمل التأكيد أدناه قبل التنفيذ.
                             </p>
                             <div class="form-check mb-3">
-                                <input class="form-check-input" type="checkbox" name="confirm_bulk_send"
-                                    id="confirm_bulk_send" value="1">
-                                <label class="form-check-label" for="confirm_bulk_send">
-                                    أؤكد أنني أريد الإرسال لكل العملاء
-                                </label>
+                                <input class="form-check-input" type="checkbox" name="confirm_bulk_send" id="confirm_bulk_send" value="1">
+                                <label class="form-check-label" for="confirm_bulk_send">أؤكد أنني أريد الإرسال لكل العملاء</label>
                             </div>
                             <div>
                                 <label for="bulk_confirmation_text" class="form-label">
@@ -135,9 +133,6 @@
                             <i class="fa fa-paper-plane me-1"></i>
                             إرسال الرسائل النصية
                         </button>
-                        <a href="{{ route('admin.sms-templates.index') }}" class="btn btn-outline-secondary">
-                            القوالب
-                        </a>
                     </div>
                 </form>
             </div>

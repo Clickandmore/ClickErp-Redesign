@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\ApiAuthController;
 use App\Http\Controllers\Api\ApiPhoneVerificationController;
 use App\Http\Controllers\Api\ApiUserFirebaseTokenController;
+use App\Http\Controllers\Webhook\WhatsAppWebhookController;
 use \Api\ApiContactController;
 use \Api\ApiSettingController;
 use \Api\ApiUserAddressController;
@@ -34,6 +35,9 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+Route::get('webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify'])->name('api.webhooks.whatsapp.verify');
+Route::post('webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive'])->name('api.webhooks.whatsapp.receive');
 
 Route::group(
     [

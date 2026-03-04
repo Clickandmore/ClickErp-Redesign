@@ -35,4 +35,17 @@ return [
         'secret_key' => env('RECAPTCHA_SECRET_KEY'),
     ],
 
+    'whatsapp' => [
+        'graph_version' => env('WHATSAPP_GRAPH_VERSION', 'v23.0'),
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'access_token' => env('WHATSAPP_ACCESS_TOKEN'),
+        'webhook_verify_token' => env('WHATSAPP_WEBHOOK_VERIFY_TOKEN'),
+        'default_country_code' => env('WHATSAPP_DEFAULT_COUNTRY_CODE', '966'),
+        'timeout' => (int) env('WHATSAPP_TIMEOUT', 15),
+        'bulk_send_limit' => (int) env('WHATSAPP_BULK_SEND_LIMIT', 200),
+        'bulk_confirmation_keyword' => env('WHATSAPP_BULK_CONFIRMATION_KEYWORD', 'SEND_ALL_WHATSAPP'),
+        'default_purpose' => env('WHATSAPP_DEFAULT_PURPOSE', 'verification'),
+        'allow_advertising' => filter_var(env('WHATSAPP_ALLOW_ADVERTISING', false), FILTER_VALIDATE_BOOLEAN),
+    ],
+
 ];

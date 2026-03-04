@@ -9,25 +9,36 @@ use App\Http\Traits\SendSMSTrait;
 use App\Models\ingaz\Notification;
 use App\Models\ingaz\User;
 use App\Models\SmsTemplate;
+use App\Services\WhatsApp\MetaWhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class NotificationAction extends MainAction
 {
     use Firebase, SendSMSTrait;
 
-    public function __construct(Notification $model)
+    private MetaWhatsAppService $whatsAppService;
+
+    public function __construct(Notification $model, MetaWhatsAppService $whatsAppService)
     {
         $this->model = $model;
         $this->fileFolder = 'images/Notification/';
+        $this->whatsAppService = $whatsAppService;
     }
 
 
     public function storeNotification($data, Request $request): array
     {
-        if ($request->input('type', 'sms') === 'sms') {
+        $type = (string) $request->input('type', 'sms');
+
+        if ($type === 'sms') {
             return $this->storeSmsMessages($request);
+        }
+
+        if ($type === 'whatsapp') {
+            return $this->storeWhatsAppMessages($request);
         }
 
         return $this->storeGeneralNotifications($data, $request);
@@ -59,7 +70,7 @@ class NotificationAction extends MainAction
             ]);
         }
 
-        $this->assertBulkProtection($request, $users->count());
+        $this->assertBulkProtection($request, $users->count(), 'sms');
 
         $sentCount = 0;
         $failedCount = 0;
@@ -80,6 +91,73 @@ class NotificationAction extends MainAction
             'template_id' => $template->id,
             'template_title' => $template->title,
             'sender_name_type' => $senderNameType,
+            'channel' => 'sms',
+            'total_count' => $users->count(),
+            'sent_count' => $sentCount,
+            'failed_count' => $failedCount,
+        ];
+    }
+
+    private function storeWhatsAppMessages(Request $request): array
+    {
+        $purpose = (string) $request->input('whatsapp_purpose', config('services.whatsapp.default_purpose', 'verification'));
+        $message = trim((string) $request->input('message_override', ''));
+
+        $allowedPurposes = ['verification', 'follow_up'];
+        if ((bool) config('services.whatsapp.allow_advertising', false)) {
+            $allowedPurposes[] = 'advertising';
+        }
+
+        if (!in_array($purpose, $allowedPurposes, true)) {
+            throw ValidationException::withMessages([
+                'whatsapp_purpose' => 'نوع رسالة واتساب غير مسموح في الإعدادات الحالية.',
+            ]);
+        }
+
+        if ($message === '') {
+            throw ValidationException::withMessages([
+                'message_override' => 'نص رسالة واتساب لا يمكن أن يكون فارغًا.',
+            ]);
+        }
+
+        if (!$this->whatsAppService->isConfigured()) {
+            $missing = implode(', ', $this->whatsAppService->missingConfigKeys());
+            throw ValidationException::withMessages([
+                'type' => "إعدادات واتساب غير مكتملة. القيم المفقودة: {$missing}",
+            ]);
+        }
+
+        $users = $this->resolveTargetUsers($request);
+
+        if ($users->isEmpty()) {
+            throw ValidationException::withMessages([
+                'user_id' => 'لا يوجد عملاء صالحون للإرسال.',
+            ]);
+        }
+
+        $this->assertBulkProtection($request, $users->count(), 'whatsapp');
+
+        $sentCount = 0;
+        $failedCount = 0;
+
+        foreach ($users as $user) {
+            $response = $this->whatsAppService->sendText((string) $user->phone, $message, [
+                'purpose' => $purpose,
+                'user_id' => $user->id,
+            ]);
+
+            if (!$this->isSuccessfulWhatsAppResponse($response)) {
+                $failedCount++;
+                continue;
+            }
+
+            $this->storeWhatsAppLog($user, $purpose, $message);
+            $sentCount++;
+        }
+
+        return [
+            'channel' => 'whatsapp',
+            'purpose' => $purpose,
             'total_count' => $users->count(),
             'sent_count' => $sentCount,
             'failed_count' => $failedCount,
@@ -128,7 +206,7 @@ class NotificationAction extends MainAction
         return $usersQuery->get();
     }
 
-    private function assertBulkProtection(Request $request, int $totalRecipients): void
+    private function assertBulkProtection(Request $request, int $totalRecipients, string $channel = 'sms'): void
     {
         if ($request->input('all_or_some') !== 'all') {
             return;
@@ -140,7 +218,9 @@ class NotificationAction extends MainAction
             ]);
         }
 
-        $keyword = strtoupper((string) config('msegat.bulk_confirmation_keyword', 'SEND_ALL_SMS'));
+        [$keyword, $bulkLimit] = $this->resolveBulkProtectionConfig($channel);
+
+        $keyword = strtoupper($keyword);
         $providedKeyword = strtoupper(trim((string) $request->input('bulk_confirmation_text')));
         if ($providedKeyword !== $keyword) {
             throw ValidationException::withMessages([
@@ -148,12 +228,26 @@ class NotificationAction extends MainAction
             ]);
         }
 
-        $bulkLimit = max(1, (int) config('msegat.bulk_send_limit', 200));
         if ($totalRecipients > $bulkLimit) {
             throw ValidationException::withMessages([
                 'all_or_some' => "عدد المستلمين ({$totalRecipients}) يتجاوز الحد الآمن للإرسال الجماعي ({$bulkLimit}) في الدفعة الواحدة.",
             ]);
         }
+    }
+
+    private function resolveBulkProtectionConfig(string $channel): array
+    {
+        if ($channel === 'whatsapp') {
+            $keyword = (string) config('services.whatsapp.bulk_confirmation_keyword', 'SEND_ALL_WHATSAPP');
+            $limit = max(1, (int) config('services.whatsapp.bulk_send_limit', 200));
+
+            return [$keyword, $limit];
+        }
+
+        $keyword = (string) config('msegat.bulk_confirmation_keyword', 'SEND_ALL_SMS');
+        $limit = max(1, (int) config('msegat.bulk_send_limit', 200));
+
+        return [$keyword, $limit];
     }
 
     private function storeSmsLog(User $user, SmsTemplate $template, string $message): void
@@ -171,6 +265,31 @@ class NotificationAction extends MainAction
             'description' => $descriptionTranslations,
             'user_id' => $user->id,
             'type' => 'sms',
+        ]);
+    }
+
+    private function storeWhatsAppLog(User $user, string $purpose, string $message): void
+    {
+        $title = match ($purpose) {
+            'verification' => 'واتساب - تحقق',
+            'follow_up' => 'واتساب - متابعة',
+            default => 'واتساب - إعلاني',
+        };
+        $summary = Str::limit($message, 320, '...');
+
+        $titleTranslations = [];
+        $descriptionTranslations = [];
+
+        foreach (config('translatable.locales', ['ar']) as $locale) {
+            $titleTranslations[$locale] = $title;
+            $descriptionTranslations[$locale] = $summary;
+        }
+
+        $this->model->create([
+            'title' => $titleTranslations,
+            'description' => $descriptionTranslations,
+            'user_id' => $user->id,
+            'type' => 'whatsapp',
         ]);
     }
 
@@ -203,6 +322,11 @@ class NotificationAction extends MainAction
         }
 
         return true;
+    }
+
+    private function isSuccessfulWhatsAppResponse(array $response): bool
+    {
+        return (bool) ($response['success'] ?? false);
     }
 
     private function storeGeneralNotifications(array $data, Request $request): array

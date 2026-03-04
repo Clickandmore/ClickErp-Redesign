@@ -852,17 +852,26 @@
                     <li class="collapsed">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#smsManagement" href="#">
                             <i class="fa fa-sms"></i>
-                            <span class="ms-2">إدارة الرسائل النصية</span>
+                            <span class="ms-2">إدارة الرسائل</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ Route::currentRouteName() == 'notifications.index' || Route::currentRouteName() == 'messages.index' || Request::is('admin/sms-templates*') ? 'show' : '' }}"
+                        <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['notifications.index', 'whatsapp.notifications.index', 'messages.index']) || Request::is('admin/sms-templates*') ? 'show' : '' }}"
                             id="smsManagement">
                             @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
                                 <li>
                                     <a class="m-link {{ Route::currentRouteName() == 'notifications.index' ? 'active' : '' }}"
                                         href="{{ route('notifications.index') }}">
                                         <i class="fa fa-paper-plane"></i>
-                                        <span class="ms-2">إرسال الرسائل النصية</span>
+                                        <span class="ms-2">إرسال الرسائل النصية (SMS)</span>
+                                    </a>
+                                </li>
+                            @endif
+                            @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
+                                <li>
+                                    <a class="m-link {{ Route::currentRouteName() == 'whatsapp.notifications.index' ? 'active' : '' }}"
+                                        href="{{ route('whatsapp.notifications.index') }}">
+                                        <i class="fa fa-whatsapp text-success"></i>
+                                        <span class="ms-2">إرسال رسائل واتساب</span>
                                     </a>
                                 </li>
                             @endif

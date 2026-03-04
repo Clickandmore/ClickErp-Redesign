@@ -14,11 +14,20 @@ class MessageController extends Controller
             abort(403, 'ليس لديك صلاحية لعرض الرسائل');
         }
 
+        $type = (string) $request->input('type', 'all');
+        $allowedTypes = ['sms', 'whatsapp'];
+
         $connection = (new \App\Models\ingaz\User())->getConnectionName();
         $smsLogsQuery = Notification::on($connection)
             ->with('user')
-            ->where('type', 'sms')
             ->latest();
+
+        if (in_array($type, $allowedTypes, true)) {
+            $smsLogsQuery->where('type', $type);
+        } else {
+            $smsLogsQuery->whereIn('type', $allowedTypes);
+            $type = 'all';
+        }
 
         if ($request->filled('q')) {
             $search = trim($request->input('q'));
@@ -34,6 +43,6 @@ class MessageController extends Controller
 
         $smsLogs = $smsLogsQuery->paginate(25)->withQueryString();
 
-        return view('admin.ingaz.messages.index', compact('smsLogs'));
+        return view('admin.ingaz.messages.index', compact('smsLogs', 'type'));
     }
 }

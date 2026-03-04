@@ -317,6 +317,8 @@ Route::group(
             Route::post('SponsorshipTransfer/{id}/cancel-transfer', [SponsorshipTransferController::class, 'cancelTransfer'])->name('SponsorshipTransfer.cancelTransfer');
             Route::get('sms-dispatch', [NotificationController::class, 'index'])->name('notifications.index');
             Route::post('sms-dispatch', [NotificationController::class, 'store'])->name('notifications.store');
+            Route::get('whatsapp-dispatch', [NotificationController::class, 'indexWhatsApp'])->name('whatsapp.notifications.index');
+            Route::post('whatsapp-dispatch', [NotificationController::class, 'storeWhatsApp'])->name('whatsapp.notifications.store');
             Route::resource('statistics', StatisticController::class);
 
             Route::resource('steps', StepController::class);

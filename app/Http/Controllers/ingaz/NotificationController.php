@@ -7,33 +7,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ingaz\StoreNotificationRequest;
 use App\Models\SmsTemplate;
 use App\Models\ingaz\User;
-use Illuminate\Http\Request;
-
+use App\Services\WhatsApp\MetaWhatsAppService;
 
 class NotificationController extends Controller
 {
-
-       public $folderPath = "admin.ingaz.notifications";
-        public $mainRoute = "notifications";
-
-    function __construct()
-    {
-        // $this->middleware('permission:الإشعارات-قراءة,admin', ['only' => ['index']]);
-        // $this->middleware('permission:الإشعارات-انشاء,admin', ['only' => ['create', 'store']]);
-        // $this->middleware('permission:الإشعارات-تعديل,admin', ['only' => ['edit', 'update']]);
-        // $this->middleware('permission:الإشعارات-حذف,admin', ['only' => ['destroy']]);
-    }
-
+    public $folderPath = 'admin.ingaz.notifications';
+    public $mainRoute = 'notifications';
 
     public function index()
     {
-        $appUsers = User::where('is_blocked', false)
-            ->whereNotNull('phone')
-            ->where('phone', '!=', '')
-            ->select('name', 'id', 'phone')
-            ->latest()
-            ->get();
-
+        $appUsers = $this->eligibleUsers();
         $smsTemplates = SmsTemplate::query()
             ->where('is_active', true)
             ->orderBy('title')
@@ -44,19 +27,59 @@ class NotificationController extends Controller
         return view($this->folderPath . '.index', compact('appUsers', 'smsTemplates', 'totalEligibleUsers'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
+    public function indexWhatsApp(MetaWhatsAppService $whatsAppService)
     {
-        //
+        $appUsers = $this->eligibleUsers();
+        $totalEligibleUsers = $appUsers->count();
+
+        $whatsappConfig = [
+            'configured' => $whatsAppService->isConfigured(),
+            'missing' => $whatsAppService->missingConfigKeys(),
+            'bulk_limit' => (int) config('services.whatsapp.bulk_send_limit', 200),
+            'bulk_keyword' => (string) config('services.whatsapp.bulk_confirmation_keyword', 'SEND_ALL_WHATSAPP'),
+            'default_purpose' => (string) config('services.whatsapp.default_purpose', 'verification'),
+            'allow_advertising' => (bool) config('services.whatsapp.allow_advertising', false),
+            'webhook_verify_url' => route('api.webhooks.whatsapp.verify', [], false),
+            'webhook_receive_url' => route('api.webhooks.whatsapp.receive', [], false),
+        ];
+
+        return view($this->folderPath . '.whatsapp', compact('appUsers', 'totalEligibleUsers', 'whatsappConfig'));
     }
 
     public function store(StoreNotificationRequest $request, NotificationAction $action)
     {
+        return $this->dispatchByChannel($request, $action, 'sms');
+    }
+
+    public function storeWhatsApp(StoreNotificationRequest $request, NotificationAction $action)
+    {
+        return $this->dispatchByChannel($request, $action, 'whatsapp');
+    }
+
+    private function dispatchByChannel(StoreNotificationRequest $request, NotificationAction $action, string $channel)
+    {
+        if ((string) $request->input('type', $channel) !== $channel) {
+            return jsonError('نوع القناة غير صحيح.', 422);
+        }
+
+        if ($channel === 'whatsapp' && !$request->filled('whatsapp_purpose')) {
+            $request->merge([
+                'whatsapp_purpose' => (string) config('services.whatsapp.default_purpose', 'verification'),
+            ]);
+        }
+
         $result = $action->storeNotification($request->validated(), $request);
+
+        if ($channel === 'whatsapp') {
+            $message = 'تم إرسال رسائل واتساب بنجاح.';
+            if (($result['failed_count'] ?? 0) > 0) {
+                $message = "تم إرسال {$result['sent_count']} رسالة واتساب وتعذر إرسال {$result['failed_count']} رسالة.";
+            } elseif (isset($result['sent_count'])) {
+                $message = "تم إرسال {$result['sent_count']} رسالة واتساب بنجاح.";
+            }
+
+            return jsonSuccess($result, $message, 201);
+        }
 
         $message = 'تم إرسال الرسائل النصية بنجاح.';
         if (($result['failed_count'] ?? 0) > 0) {
@@ -66,51 +89,16 @@ class NotificationController extends Controller
         }
 
         return jsonSuccess($result, $message, 201);
-
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param int $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
+    private function eligibleUsers()
     {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param int $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @param int $id
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param int $id
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy($id)
-    {
-        //
+        return User::query()
+            ->where('is_blocked', false)
+            ->whereNotNull('phone')
+            ->where('phone', '!=', '')
+            ->select('name', 'id', 'phone')
+            ->latest()
+            ->get();
     }
 }

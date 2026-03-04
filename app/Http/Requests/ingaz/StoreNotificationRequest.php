@@ -25,12 +25,13 @@ class StoreNotificationRequest extends MainRequest
     public function rules()
     {
         return [
-            'type' => 'nullable|in:sms,normal',
-            'sms_template_id' => 'required_unless:type,normal|integer|exists:sms_templates,id',
+            'type' => 'nullable|in:sms,normal,whatsapp',
+            'sms_template_id' => 'required_if:type,sms|integer|exists:sms_templates,id',
             'sender_name_type' => 'required_if:type,sms|in:advertising,verification',
+            'whatsapp_purpose' => 'required_if:type,whatsapp|in:verification,follow_up,advertising',
             'template_variables' => 'nullable|array',
             'template_variables.*' => 'nullable|string|max:255',
-            'message_override' => 'nullable|string|max:1000',
+            'message_override' => 'nullable|string|max:1000|required_if:type,whatsapp',
             'all_or_some' => 'required|in:all,some',
             'user_id' => 'required_if:all_or_some,some|array|min:1',
             'user_id.*' => 'integer|exists:users,id',
@@ -48,8 +49,17 @@ class StoreNotificationRequest extends MainRequest
         $validator->after(function (Validator $validator) {
             $type = $this->input('type', 'sms');
 
-            if ($type !== 'sms') {
+            if (!in_array($type, ['sms', 'whatsapp'], true)) {
                 return;
+            }
+
+            if ($type === 'whatsapp') {
+                $purpose = (string) $this->input('whatsapp_purpose', config('services.whatsapp.default_purpose', 'verification'));
+                $allowAdvertising = (bool) config('services.whatsapp.allow_advertising', false);
+
+                if ($purpose === 'advertising' && !$allowAdvertising) {
+                    $validator->errors()->add('whatsapp_purpose', 'الإرسال الدعائي عبر واتساب غير مفعل حاليًا.');
+                }
             }
 
             if ($this->input('all_or_some') !== 'all') {
@@ -60,7 +70,7 @@ class StoreNotificationRequest extends MainRequest
                 $validator->errors()->add('confirm_bulk_send', 'يجب تفعيل تأكيد الإرسال الجماعي قبل المتابعة.');
             }
 
-            $expectedKeyword = (string) config('msegat.bulk_confirmation_keyword', 'SEND_ALL_SMS');
+            $expectedKeyword = $this->resolveExpectedKeyword($type);
             $providedKeyword = strtoupper(trim((string) $this->input('bulk_confirmation_text')));
 
             if ($providedKeyword !== strtoupper($expectedKeyword)) {
@@ -72,16 +82,28 @@ class StoreNotificationRequest extends MainRequest
     public function messages(): array
     {
         return [
-            'sms_template_id.required_unless' => 'اختيار قالب رسالة نصية مطلوب.',
+            'sms_template_id.required_if' => 'اختيار قالب رسالة نصية مطلوب.',
             'sms_template_id.exists' => 'القالب المحدد غير موجود.',
             'sender_name_type.required_if' => 'اختيار نوع اسم المرسل مطلوب.',
             'sender_name_type.in' => 'نوع اسم المرسل غير صحيح.',
+            'whatsapp_purpose.required_if' => 'اختيار غرض رسالة واتساب مطلوب.',
+            'whatsapp_purpose.in' => 'غرض رسالة واتساب يجب أن يكون تحقق أو متابعة أو دعائي.',
             'all_or_some.required' => 'حدد نطاق الإرسال.',
             'all_or_some.in' => 'نطاق الإرسال غير صحيح.',
             'user_id.required_if' => 'اختر عميلًا واحدًا على الأقل.',
             'user_id.array' => 'اختيار العملاء غير صحيح.',
             'user_id.*.exists' => 'أحد العملاء المحددين غير موجود.',
+            'message_override.required_if' => 'نص الرسالة مطلوب لواتساب.',
             'message_override.max' => 'نص الرسالة طويل جدًا.',
         ];
+    }
+
+    private function resolveExpectedKeyword(string $type): string
+    {
+        if ($type === 'whatsapp') {
+            return (string) config('services.whatsapp.bulk_confirmation_keyword', 'SEND_ALL_WHATSAPP');
+        }
+
+        return (string) config('msegat.bulk_confirmation_keyword', 'SEND_ALL_SMS');
     }
 }
