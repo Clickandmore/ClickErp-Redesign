@@ -2,6 +2,7 @@
 
 @section('style')
     <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=10">
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css' rel='stylesheet' />
 @endsection
 
 @section('page-title')
@@ -603,7 +604,7 @@
                         <p class="section-eyebrow">الجدول الزمني</p>
                         <h4 class="mb-0">مواعيد وتذكيرات حرجة</h4>
                     </div>
-                    <small>{{ count($calendarEvents ?? []) }} موعداً</small>
+                    <small id="calendarCount">{{ count($calendarEvents ?? []) }} موعداً</small>
                 </div>
                 <div id="calendar" class="calendar-shell"></div>
             </div>
@@ -668,7 +669,6 @@
 @section('js')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
-    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css' rel='stylesheet' />
     <script>
         $(document).ready(function() {
             const rootStyles = getComputedStyle(document.documentElement);
@@ -863,6 +863,9 @@
             // التقويم
             const calendarEl = document.getElementById('calendar');
             if (calendarEl) {
+                const calendarEventsUrl = "{{ route('travel.calendar.events') }}";
+                const calendarCountEl = document.getElementById('calendarCount');
+
                 const calendar = new FullCalendar.Calendar(calendarEl, {
                     locale: 'ar',
                     direction: 'rtl',
@@ -873,10 +876,47 @@
                         right: 'dayGridMonth,timeGridWeek,timeGridDay'
                     },
                     height: 500,
-                    events: {!! json_encode($calendarEvents ?? []) !!},
+                    events: function(fetchInfo, successCallback, failureCallback) {
+                        $.ajax({
+                            url: calendarEventsUrl,
+                            type: 'GET',
+                            data: {
+                                start: fetchInfo.startStr,
+                                end: fetchInfo.endStr
+                            },
+                            success: function(response) {
+                                if (response && response.success && Array.isArray(response.events)) {
+                                    successCallback(response.events);
+                                    if (calendarCountEl) {
+                                        calendarCountEl.textContent = `${response.events.length} موعداً`;
+                                    }
+                                } else {
+                                    successCallback([]);
+                                    if (calendarCountEl) {
+                                        calendarCountEl.textContent = '0 موعداً';
+                                    }
+                                }
+                            },
+                            error: function(xhr) {
+                                console.error('Calendar events load failed', xhr);
+                                failureCallback(xhr);
+                                if (calendarCountEl) {
+                                    calendarCountEl.textContent = '0 موعداً';
+                                }
+                            }
+                        });
+                    },
                     eventClick: function(info) {
-                        if (info.event.extendedProps.url) {
-                            window.location.href = info.event.extendedProps.url;
+                        const eventUrl = info.event.extendedProps.url;
+                        if (eventUrl) {
+                            window.location.href = eventUrl;
+                            return;
+                        }
+
+                        const tripId = info.event.extendedProps.trip_id || info.event.id;
+                        if (tripId) {
+                            const editUrl = "{{ route('travel.edit', ':id') }}".replace(':id', tripId);
+                            window.location.href = editUrl;
                         }
                     }
                 });

@@ -116,7 +116,6 @@ class MaidController extends Controller
                         ? '<div class="text-muted text-medium"><i class="fas fa-id-card me-1 text-secondary"></i>' . $cvCodeLabel . ': ' . $cvCode . '</div>'
                         : '';
                     
-                    $officeTitle = $row->office?->title ? e(Str::limit($row->office->title, 30)) : helperTrans('ingaz.not_specified');
 
                     return '<div class="d-flex flex-column gap-2">'
                         . '<div class="d-flex align-items-center gap-2">'
@@ -133,9 +132,6 @@ class MaidController extends Controller
                         . '<div class="text-muted text-medium">'
                         . '<i class="fas fa-praying-hands me-1 text-secondary"></i>' . $religion
                         . '</div>'
-                        . '</div>'
-                        . '<div class="text-muted text-medium mt-1">'
-                        . '<i class="fas fa-building text-secondary ps-1"></i>' . __('ingaz.recruitment_office') . ": " . $officeTitle
                         . '</div>'
                         . '</div>';
                 })
@@ -154,6 +150,8 @@ class MaidController extends Controller
                     $recentBadge = $isRecent
                         ? '<span class="badge bg-success-subtle text-success d-flex align-items-center gap-2 p-0"><i class="fas fa-star me-1"></i>' . $recentLabel . '</span>'
                         : '';
+                    
+                    $officeTitle = $row->office?->title ? e(Str::limit($row->office->title, 30)) : helperTrans('ingaz.not_specified');
 
                     return '<div class="d-flex flex-column gap-2">'
                         . '<div class="text-muted text-medium d-flex align-items-center gap-2">'
@@ -167,6 +165,10 @@ class MaidController extends Controller
                         . ($recentBadge
                             ? '<div class="mt-1">' . $recentBadge . '</div>'
                             : '')
+                        
+                        . '<div class="text-muted text-medium mt-1 d-flex align-items-center gap-2 p-0">'
+                        . '<i class="fas fa-building text-secondary ps-1"></i>' . __('ingaz.recruitment_office') . ": " . $officeTitle
+                        . '</div>'
                         . '</div>';
                 })
                 ->addColumn('status_badge', function (Maid $row) {
