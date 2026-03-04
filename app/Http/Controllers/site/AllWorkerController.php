@@ -12,6 +12,9 @@ class AllWorkerController extends Controller
 {
     public function index(Request $request,MaidAction $maidAction, JobTitleAction $jobTitleAction, NationalityAction $nationalityAction)
     {
+        if (!$request->ajax() && !$request->filled('experience_status')) {
+            $request->merge(['experience_status' => 'has_experience']);
+        }
     // dd(request()->all());
         if($request->ajax()){
 

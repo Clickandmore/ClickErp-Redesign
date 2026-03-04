@@ -263,6 +263,19 @@
                                         </select>
                                     </div>
                                     <div class="col-md-2">
+                                        <label class="form-label">{{ helperTrans('ingaz.nationality') }}</label>
+                                        <select class="form-select" name="nationality_id" id="nationality_id">
+                                            <option value="">{{ helperTrans('ingaz.all') }}</option>
+                                            @if (isset($nationalities))
+                                                @foreach ($nationalities as $nationality)
+                                                    <option value="{{ $nationality->id }}">
+                                                        {{ $nationality->title ?? $nationality->sub_title ?? $nationality->name }}
+                                                    </option>
+                                                @endforeach
+                                            @endif
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
                                         <label class="form-label">{{ helperTrans('ingaz.responsible_employee') }}</label>
                                         <select class="form-select" name="admin_id" id="admin_id">
                                             <option value="">{{ helperTrans('ingaz.all') }}</option>
@@ -342,8 +355,7 @@
                                         {{-- <th>{{helperTrans("ingaz.deliver_status")}}</th> --}}
                                         <th>{{ helperTrans('ingaz.order_job_type') }}</th>
                                         <th>{{ helperTrans('ingaz.status') }}</th>
-                                        {{-- <th>{{ helperTrans('ingaz.timer') }}</th> --}}
-                                        <th>{{ helperTrans('ingaz.recruitment_office') }}</th>
+                                        <th>{{ helperTrans('ingaz.timer') }}</th>
                                         <th>{{ helperTrans('ingaz.contract_status') }}</th>
                                         <th>{{ helperTrans('ingaz.order_date') }}</th>
                                         <th>{{ helperTrans('ingaz.responsible_employee') }}</th>
@@ -450,7 +462,7 @@
                     searchable: true
                 },
                 {
-                    "data": "recruitment_office",
+                    "data": "timer",
                     orderable: false,
                     searchable: true
                 },
@@ -582,6 +594,7 @@
                         d.to_date = $('#to_date').val();
                         d.status = $('#status').val() || getUrlParameter('status');
                         d.job_type = $('#job_type').val();
+                        d.nationality_id = $('#nationality_id').val();
                         d.admin_id = $('#admin_id').val() || getUrlParameter('admin_id');
                         d.timer_status = $('#timer_status').val();
                         d.client_name = $('#client_name').val();
@@ -1529,6 +1542,7 @@
                     to_date: $('#to_date').val(),
                     status: $('#status').val() || getUrlParameter('status'),
                     job_type: $('#job_type').val(),
+                    nationality_id: $('#nationality_id').val(),
                     admin_id: $('#admin_id').val(),
                     timer_status: $('#timer_status').val(),
                     client_name: $('#client_name').val(),
@@ -1544,6 +1558,7 @@
                     to_date: $('#to_date').val(),
                     status: $('#status').val() || getUrlParameter('status'),
                     job_type: $('#job_type').val(),
+                    nationality_id: $('#nationality_id').val(),
                     admin_id: $('#admin_id').val(),
                     timer_status: $('#timer_status').val(),
                     client_name: $('#client_name').val(),
