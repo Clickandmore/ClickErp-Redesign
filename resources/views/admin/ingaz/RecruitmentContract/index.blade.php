@@ -889,7 +889,7 @@
             function toggleStatsSections() {
                 const statusValue = $('#statusFilter').val();
                 const currentStatuses = ['current', 'pending_maid_selection', 'new', 'msaned', 'tafwed', 'taffez',
-                    'tazker'
+                    'tazker', 'accreditation_contracts'
                 ];
                 const completedStatuses = ['completed', 'arrival'];
 
@@ -1674,7 +1674,8 @@
                     'sari': 'عقد ساري',
                     'closed': 'عقد مغلق',
                     'shelter': 'عقد إيواء',
-                    'pending_maid_selection': 'بانتظار اختيار العاملة'
+                    'pending_maid_selection': 'بانتظار اختيار العاملة',
+                    'accreditation_contracts': 'اعتماد العقود'
                 };
                 return statusMap[status] || status;
             }
