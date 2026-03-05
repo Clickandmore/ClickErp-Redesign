@@ -194,7 +194,7 @@
                                     <a class="m-link {{ Route::currentRouteName() == 'recruitment_requests.index' ? 'active' : '' }}"
                                         href="{{ route('recruitment_requests.index') }}">
                                         <i class="fa fa-envelope"></i>
-                                        <span class="ms-2"> {{ helperTrans('ingaz.recruitment_requests') }}</span>
+                                        <span class="ms-2">طلبات خاصة</span>
                                     </a>
                                 </li>
                                 {{-- @endif --}}

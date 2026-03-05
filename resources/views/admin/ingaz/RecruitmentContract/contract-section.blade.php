@@ -46,19 +46,31 @@
 
         <div class="col-6">
             <label class="form-label">المسوق <span class="text-danger">*</span></label>
-            <select name="marketer_id" id="marketer_id" class="form-select" data-validation="required">
-                <option value="">اختر المسوق</option>
-                @php
-                    $currentAdmin = auth('admin')->user();
-                    $admins = \App\Models\auth\Admin::whereNull('deleted_at')->orderBy('name')->get();
-                @endphp
-                @foreach($admins as $admin)
-                    <option value="{{ $admin->id }}"
-                        @if($currentAdmin && $currentAdmin->id == $admin->id) selected @endif>
-                        {{ $admin->name }}
-                    </option>
-                @endforeach
-            </select>
+            @php
+                $currentAdmin = $currentUser ?? auth('admin')->user();
+                $canSelectMarketer = $canSelectAnyMarketer ?? ($currentAdmin && (
+                    $currentAdmin->admin_type === 'super_admin'
+                    || $currentAdmin->hasAnyRole(['super_admin', 'admin', 'Administrator'])
+                ));
+                $availableMarketers = $marketers ?? ($canSelectMarketer
+                    ? \App\Models\auth\Admin::whereNull('deleted_at')->orderBy('name')->get()
+                    : collect([$currentAdmin])->filter());
+            @endphp
+
+            @if ($canSelectMarketer)
+                <select name="marketer_id" id="marketer_id" class="form-select" data-validation="required">
+                    <option value="">اختر المسوق</option>
+                    @foreach ($availableMarketers as $admin)
+                        <option value="{{ $admin->id }}" @selected($currentAdmin && $currentAdmin->id == $admin->id)>
+                            {{ $admin->name }}
+                        </option>
+                    @endforeach
+                </select>
+            @else
+                <input type="text" class="form-control" value="{{ $currentAdmin?->name }}" readonly>
+                <input type="hidden" name="marketer_id" id="marketer_id" value="{{ $currentAdmin?->id }}">
+                <small class="text-muted">يمكنك تسجيل العقد باسمك فقط</small>
+            @endif
             <div class="invalid-feedback" id="err_marketer_id"></div>
         </div>
     </div>

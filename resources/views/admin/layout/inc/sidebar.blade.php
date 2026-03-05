@@ -279,8 +279,7 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'recruitment_requests.index' ? 'active' : '' }}"
                                                     href="{{ route('recruitment_requests.index') }}">
                                                     <i class="fa fa-envelope"></i>
-                                                    <span class="ms-2">
-                                                        {{ helperTrans('ingaz.recruitment_requests') }}</span>
+                                                    <span class="ms-2">طلبات خاصة</span>
                                                 </a>
                                             </li>
                                             <li>
@@ -323,7 +322,7 @@
                                                     href="{{ route('RecruitmentContract.index', ['status' => 'current']) }}">
                                                     <i class="fa fa-list"></i>
                                                     <span
-                                                        class="ms-2">{{ helperTrans('ingaz.contracts_are_valid') }}</span>&nbsp;&nbsp;
+                                                        class="ms-2">{{ helperTrans('ingaz.contracts_are_valid') }}</span>
                                                     <span
                                                         class="badge bg-primary ms-2">{{ $contractsCount['are_valid'] }}</span>
                                                 </a>
@@ -333,7 +332,7 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.index' && request()->input('status') == 'completed' ? 'active' : '' }}"
                                                     href="{{ route('RecruitmentContract.index', ['status' => 'completed', 'warranty_status' => 'expired,not_applicable']) }}">
                                                     <i class="fa fa-check-circle"></i>
-                                                    <span class="ms-2">عقود مكتملة</span>&nbsp;&nbsp;
+                                                    <span class="ms-2">عقود مكتملة</span>
                                                     <span
                                                         class="badge bg-success ms-2">{{ $contractsCount['completed'] }}</span>
                                                 </a>
@@ -343,8 +342,9 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.index' && request()->input('status') == $backStatus->value ? 'active' : '' }}"
                                                     href="{{ route('RecruitmentContract.index', ['status' => $backStatus->value]) }}">
                                                     <i class="fa fa-undo"></i>
-                                                    <span class="ms-2">عقود غير مكتملة</span>&nbsp;
-                                                    <span class="badge bg-danger">{{ $contractsCount['back'] }}</span>
+                                                    <span class="ms-2">عقود مرتجعة </span>
+                                                    <span
+                                                        class="badge bg-danger ms-2">{{ $contractsCount['back'] }}</span>
                                                 </a>
                                             </li>
 
@@ -575,8 +575,7 @@
                                             <li>
                                                 <a class="m-link" href="{{ route('ShelterContract.create') }}">
                                                     <i class="icon-star"></i>
-                                                    <span
-                                                        class="ms-2">{{ helperTrans('ingaz.add_shelter') }}</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.add_shelter') }}</span>
                                                 </a>
                                             </li>
                                         @endif

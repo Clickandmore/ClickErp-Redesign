@@ -329,6 +329,12 @@ body.rtl_mode .cm-brand-text {
   min-width: 0;
 }
 
+.layout-1 .sidebar .menu-list .m-link > span.badge {
+  flex: 0 0 auto;
+  min-width: max-content;
+  width: auto;
+}
+
 .layout-1 .sidebar .menu-list .ms-link > span {
   width: 100%;
 }

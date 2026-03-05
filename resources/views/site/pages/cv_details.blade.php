@@ -2,7 +2,7 @@
 @section('title')
     {{ __('ingaz.cv_details') }}
 @endsection
-@push('styles')
+@section('style')
     <style>
         .cv-profile-photo {
             width: 100%;
@@ -35,6 +35,181 @@
             border: none;
         }
 
+        .booking-modal-stepper {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        #cvBookingModal .modal-content {
+            border: none;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 55px rgba(0, 0, 0, 0.16);
+        }
+
+        #cvBookingModal .modal-header {
+            background: linear-gradient(180deg, var(--mainColor10) 0%, #ffffff 100%);
+            border-bottom: 1px solid var(--mainColor20);
+        }
+
+        #cvBookingModal .modal-title {
+            font-weight: 800;
+            color: var(--mainColor);
+        }
+
+        .booking-hint {
+            border: 1px dashed var(--mainColor40);
+            background: var(--mainColor10);
+            border-radius: 10px;
+            color: var(--mainColor);
+            font-size: 13px;
+            padding: 9px 12px;
+            margin-bottom: 14px;
+        }
+
+        .booking-step {
+            flex: 1;
+            min-width: 140px;
+            border-radius: 10px;
+            border: 1px solid #d9d9d9;
+            background: #f7f7f7;
+            color: #6b7280;
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .booking-step.is-active {
+            border-color: var(--mainColor);
+            background: var(--mainColor10);
+            color: var(--mainColor);
+        }
+
+        .booking-step.is-done {
+            border-color: #198754;
+            background: #edf9f2;
+            color: #198754;
+        }
+
+        .booking-auth-card {
+            border: 1px solid #ececec;
+            border-radius: 12px;
+            padding: 14px;
+            background: #ffffff;
+        }
+
+        .booking-auth-tabs {
+            gap: 8px;
+        }
+
+        .booking-auth-tabs .nav-link {
+            border: 1px solid #d9d9d9;
+            border-radius: 10px;
+            background: #f7f7f7;
+            color: #545454;
+            font-weight: 700;
+            padding: 8px 14px;
+        }
+
+        .booking-auth-tabs .nav-link.active {
+            background: var(--mainColor10);
+            border-color: var(--mainColor40);
+            color: var(--mainColor);
+        }
+
+        .booking-customer-choose {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .booking-customer-choose .customerOption {
+            margin-bottom: 0;
+        }
+
+        .booking-customer-choose .customerOption .btn {
+            width: 100%;
+            justify-content: flex-start;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-radius: 10px;
+        }
+
+        .booking-customer-choose .customerOption .btn img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .booking-customer-choose .customerOption .btn {
+            transition: all 0.2s ease;
+        }
+
+        .booking-customer-choose .customerOption .btn.is-selected {
+            border-color: var(--mainColor) !important;
+            background: var(--mainColor10);
+            position: relative;
+        }
+
+        .booking-customer-choose .customerOption .btn.is-selected::after {
+            content: "✓";
+            margin-inline-start: auto;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #198754;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        #cvBookingSubmitBtn {
+            min-width: 170px;
+            font-weight: 700;
+        }
+
+        #cvBookingPrimaryActionBtn {
+            min-width: 210px;
+            font-weight: 700;
+        }
+
+        .booking-modal-footer {
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: #fff;
+            border-top: 1px solid var(--mainColor20);
+        }
+
+        .booking-footer-link {
+            color: var(--mainColor);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .booking-footer-link:hover {
+            text-decoration: underline;
+            color: var(--mainColor);
+        }
+
+        .booking-footer-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-inline-start: auto;
+        }
+
         @media (max-width: 768px) {
             .cv-profile-photo {
                 height: 220px;
@@ -48,9 +223,28 @@
             .cv-full-photo {
                 height: 100%;
             }
+
+            .booking-customer-choose {
+                grid-template-columns: 1fr;
+            }
+
+            #cvBookingPrimaryActionBtn,
+            #cvBookingSubmitBtn {
+                width: 100%;
+            }
+
+            .booking-modal-footer {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .booking-footer-actions {
+                margin-inline-start: 0;
+                width: 100%;
+            }
         }
     </style>
-@endpush
+@endsection
 @section('content')
     @php
         $todayDate = now()->toDateString();
@@ -485,11 +679,9 @@
             <a href="{{ route('site.packages.show', $maid->id) }}"
                 class="btn book">{{ __('ingaz.labor_rental_request') }}</a>
         @else
-            <form action="{{ route('site.customer-service.store') }}" method="POST" style="margin-top: 0 !important ">
-                @csrf
-                <input type="hidden" name="maid_id" value="{{ $maid->id }}">
-                <button type="submit" class="btn book">{{ __('ingaz.book_cv') }}</button>
-            </form>
+            <button type="button" class="btn book" data-bs-toggle="modal" data-bs-target="#cvBookingModal">
+                {{ __('ingaz.book_cv') }}
+            </button>
         @endif
 
         @if (!empty($maid->video_link) || (!empty($maid->video) && $maid->video !== '#'))
@@ -503,8 +695,192 @@
             </a>
         @endif
     </div>
+
+    @if ($type != 'egar')
+        @php
+            $servicesEmpty = empty($customerServices) || $customerServices->isEmpty();
+        @endphp
+        <div class="modal fade" id="cvBookingModal" tabindex="-1" aria-labelledby="cvBookingModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <form id="cv-booking-form" action="{{ route('site.customer-service.store') }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="maid_id" value="{{ $maid->id }}">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="cvBookingModalLabel">{{ __('ingaz.book_cv') }}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                aria-label="{{ __('ingaz.close') }}"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="booking-modal-stepper">
+                                <div id="bookingStepAuth"
+                                    class="booking-step {{ auth()->guard('web')->check() ? 'is-done' : 'is-active' }}">
+                                    1. {{ __('ingaz.login') }} / {{ __('ingaz.create_account') }}
+                                </div>
+                                <div id="bookingStepService"
+                                    class="booking-step {{ auth()->guard('web')->check() ? 'is-active' : '' }}">
+                                    2. {{ __('ingaz.choose_customer_service') }}
+                                </div>
+                            </div>
+                            <div id="bookingModalHint" class="booking-hint">
+                                أكمل بيانات الحساب أولاً، ثم اختر ممثل خدمة العملاء لتأكيد الحجز.
+                            </div>
+
+                            @guest('web')
+                                <div id="cvAuthSection">
+                                    <div class="booking-auth-card mb-3">
+                                        <ul class="nav nav-pills booking-auth-tabs mb-3">
+                                            <li class="nav-item">
+                                                <button type="button" class="nav-link active"
+                                                    data-auth-tab="login">{{ __('ingaz.login') }}</button>
+                                            </li>
+                                            <li class="nav-item">
+                                                <button type="button" class="nav-link"
+                                                    data-auth-tab="register">{{ __('ingaz.create_account') }}</button>
+                                            </li>
+                                        </ul>
+
+                                        <div id="bookingAuthLoginPane" class="booking-auth-pane">
+                                            <p class="text-muted small mb-3">{{ __('ingaz.please_login_first') }}</p>
+                                            <div class="row g-3 mb-2">
+                                                <div class="col-md-6">
+                                                    <label for="cvBookingPhone"
+                                                        class="form-label">{{ __('ingaz.phone') }}</label>
+                                                    <div class="input-group ltr">
+                                                        <span class="input-group-text">+966</span>
+                                                        <input type="tel" autocomplete="off" class="form-control"
+                                                            id="cvBookingPhone" placeholder="5XXXXXXXX">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="cvBookingPassword"
+                                                        class="form-label">{{ __('ingaz.password') }}</label>
+                                                    <input type="password" autocomplete="off" class="form-control"
+                                                        id="cvBookingPassword">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div id="bookingAuthRegisterPane" class="booking-auth-pane d-none">
+                                            <div class="row g-3 mb-2">
+                                                <div class="col-md-12">
+                                                    <label for="cvBookingRegisterName"
+                                                        class="form-label">{{ __('ingaz.full_name') }}</label>
+                                                    <input type="text" autocomplete="off" class="form-control"
+                                                        id="cvBookingRegisterName"
+                                                        placeholder="{{ __('ingaz.enter_full_name') }}">
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <label for="cvBookingRegisterPhone"
+                                                        class="form-label">{{ __('ingaz.phone') }}</label>
+                                                    <div class="input-group ltr">
+                                                        <span class="input-group-text">+966</span>
+                                                        <input type="tel" autocomplete="off" class="form-control"
+                                                            id="cvBookingRegisterPhone" placeholder="5XXXXXXXX">
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="cvBookingRegisterPassword"
+                                                        class="form-label">{{ __('ingaz.password') }}</label>
+                                                    <input type="password" autocomplete="off" class="form-control"
+                                                        id="cvBookingRegisterPassword">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="cvBookingRegisterPasswordConfirmation"
+                                                        class="form-label">{{ __('ingaz.confirm_password') }}</label>
+                                                    <input type="password" autocomplete="off" class="form-control"
+                                                        id="cvBookingRegisterPasswordConfirmation">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div id="bookingAuthOtpPane" class="booking-auth-pane d-none">
+                                            <p class="small mb-1">
+                                                {{ __('ingaz.Please enter the verification code that was sent to you') }}
+                                            </p>
+                                            <p class="small fw-bold mb-3">
+                                                <span id="bookingOtpPhonePreview"></span> +966
+                                            </p>
+                                            <div class="otp booking-otp mb-3">
+                                                <input class="otp-input booking-otp-input" type="text" maxlength="1">
+                                                <input class="otp-input booking-otp-input" type="text" maxlength="1">
+                                                <input class="otp-input booking-otp-input" type="text" maxlength="1">
+                                                <input class="otp-input booking-otp-input" type="text" maxlength="1">
+                                                <input class="otp-input booking-otp-input" type="text" maxlength="1">
+                                            </div>
+                                        </div>
+
+                                        <div id="cvBookingCaptchaWrap" class="mb-2 mt-3">
+                                            {!! NoCaptcha::display() !!}
+                                        </div>
+                                        <div id="cvBookingLoginErrors"
+                                            class="alert alert-danger d-none py-2 px-3 small mt-2"></div>
+                                    </div>
+                                </div>
+                            @endguest
+
+                            <div id="cvServiceSection" @if (auth()->guard('web')->guest()) style="display: none;" @endif>
+                                <div class="alert alert-info small mb-3">
+                                    {{ __('ingaz.customer_service_desc') }}
+                                </div>
+
+                                <h6 class="mb-2">{{ __('ingaz.choose_customer_service') }}</h6>
+                                <div class="choose booking-customer-choose">
+                                    @forelse ($customerServices ?? collect() as $customerService)
+                                        <div class="customerOption">
+                                            <input type="radio" class="btn-check" value="{{ $customerService->id }}"
+                                                name="customer" id="customer_{{ $customerService->id }}">
+                                            <label class="btn btn-outline" for="customer_{{ $customerService->id }}">
+                                                <img src="{{ asset('site') }}/assets/images/avater2.webp"
+                                                    alt="{{ $customerService->name }}">
+                                                <span>{{ $customerService->name }}</span>
+                                            </label>
+                                        </div>
+                                    @empty
+                                        <div class="alert alert-danger mb-0">لا يوجد مسوقون متاحون حاليا.</div>
+                                    @endforelse
+                                </div>
+                                <p class="small text-muted mt-2 mb-0">اختر ممثل واحد وسيظهر زر "تأكيد حجز السيرة"
+                                    تلقائيًا.</p>
+                            </div>
+                        </div>
+                        <div class="modal-footer booking-modal-footer">
+                            <a href="{{ route('site.forget-password.index') }}"
+                                class="booking-footer-link d-none js-auth-forgot-redirect" id="cvModalForgotLink"
+                                data-target="{{ route('site.forget-password.index') }}">
+                                {{ __('ingaz.password_forget') }}
+                            </a>
+                            <div class="booking-footer-actions">
+                                <button type="button" id="cvModalBackToRegisterBtn"
+                                    class="btn btn-link p-0 small d-none">
+                                    تعديل بيانات التسجيل
+                                </button>
+                                <button type="button" id="cvModalResendOtpBtn"
+                                    class="btn btn-outline-secondary btn-sm d-none">
+                                    {{ __('web.resend_code') }}
+                                </button>
+                                <button type="button" id="cvBookingPrimaryActionBtn" class="btn book">
+                                    تسجيل الدخول والمتابعة
+                                </button>
+                                <button type="submit" id="cvBookingSubmitBtn" class="btn book d-none"
+                                    @if ($servicesEmpty || auth()->guard('web')->guest()) disabled @endif>
+                                    تأكيد حجز السيرة
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary"
+                                    data-bs-dismiss="modal">{{ __('ingaz.cancel') }}</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endif
 @endsection
 @section('js')
+    @if ($type != 'egar' && auth()->guard('web')->guest())
+        {!! NoCaptcha::renderJs(app()->getLocale()) !!}
+    @endif
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"
         referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"
@@ -584,6 +960,586 @@
             });
         });
     </script>
+    @if ($type != 'egar')
+        <script>
+            $(document).ready(function() {
+                const bookingForm = $('#cv-booking-form');
+                const modalElement = document.getElementById('cvBookingModal');
+                const authSection = $('#cvAuthSection');
+                const serviceSection = $('#cvServiceSection');
+                const authTabs = $('.booking-auth-tabs .nav-link');
+                const loginPane = $('#bookingAuthLoginPane');
+                const registerPane = $('#bookingAuthRegisterPane');
+                const otpPane = $('#bookingAuthOtpPane');
+                const captchaWrap = $('#cvBookingCaptchaWrap');
+                const primaryActionBtn = $('#cvBookingPrimaryActionBtn');
+                const forgotLink = $('#cvModalForgotLink');
+                const resendOtpBtn = $('#cvModalResendOtpBtn');
+                const backToRegisterBtn = $('#cvModalBackToRegisterBtn');
+                const submitBtn = $('#cvBookingSubmitBtn');
+                const loginErrors = $('#cvBookingLoginErrors');
+                const modalHint = $('#bookingModalHint');
+                const stepAuth = $('#bookingStepAuth');
+                const stepService = $('#bookingStepService');
+                const serviceCards = $('.booking-customer-choose .customerOption .btn');
+                const hasServices = bookingForm.find('input[name="customer"]').length > 0;
+                const resendDefaultText = resendOtpBtn.length ? resendOtpBtn.text().trim() : '';
+                const resendWaitPrefix = "{{ app()->getLocale() === 'ar' ? 'إعادة الإرسال خلال' : 'Resend in' }}";
+                const secondUnit = "{{ app()->getLocale() === 'ar' ? 'ث' : 's' }}";
+                const loginActionText = 'تسجيل الدخول والمتابعة';
+                const registerActionText = 'إنشاء الحساب وإرسال الكود';
+                const verifyActionText = 'تأكيد الكود والمتابعة';
+                let registerPhoneForOtp = '';
+                let isUserAuthenticated = {{ auth()->guard('web')->check() ? 'true' : 'false' }};
+                let resendTimer = null;
+
+                if (!bookingForm.length) {
+                    return;
+                }
+
+                function setBtnLoading($btn, loading, text) {
+                    if (!$btn.length) {
+                        return;
+                    }
+                    if (loading) {
+                        $btn.prop('disabled', true);
+                        $btn.data('original-text', $btn.html());
+                        $btn.html(
+                            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>'
+                        );
+                        return;
+                    }
+                    $btn.prop('disabled', false);
+                    $btn.html($btn.data('original-text') || text || $btn.html());
+                }
+
+                function clearError() {
+                    loginErrors.addClass('d-none').empty();
+                }
+
+                function showError(message) {
+                    loginErrors.removeClass('d-none').html(message);
+                }
+
+                function parseAjaxErrors(xhr) {
+                    const res = xhr.responseJSON || {};
+                    let errorMessages = [];
+
+                    if (res.errors) {
+                        Object.keys(res.errors).forEach(function(key) {
+                            if (res.errors[key] && res.errors[key][0]) {
+                                errorMessages.push(res.errors[key][0]);
+                            }
+                        });
+                    } else if (res.message) {
+                        errorMessages.push(res.message);
+                    } else {
+                        errorMessages.push("{{ __('ingaz.error_from_server') }}");
+                    }
+
+                    return errorMessages.join('<br>');
+                }
+
+                function updateHint(message) {
+                    if (modalHint.length) {
+                        modalHint.text(message);
+                    }
+                }
+
+                function stopResendTimer() {
+                    if (resendTimer) {
+                        clearInterval(resendTimer);
+                        resendTimer = null;
+                    }
+                }
+
+                function startResendTimer(seconds = 30) {
+                    if (!resendOtpBtn.length) {
+                        return;
+                    }
+
+                    stopResendTimer();
+                    let remaining = seconds;
+                    resendOtpBtn.prop('disabled', true).text(`${resendWaitPrefix} ${remaining}${secondUnit}`);
+
+                    resendTimer = setInterval(function() {
+                        remaining -= 1;
+                        if (remaining <= 0) {
+                            stopResendTimer();
+                            resendOtpBtn.prop('disabled', false).text(resendDefaultText);
+                            return;
+                        }
+                        resendOtpBtn.text(`${resendWaitPrefix} ${remaining}${secondUnit}`);
+                    }, 1000);
+                }
+
+                function refreshServiceCards() {
+                    serviceCards.removeClass('is-selected');
+                    bookingForm.find('input[name="customer"]:checked').each(function() {
+                        $(this).next('label').addClass('is-selected');
+                    });
+                }
+
+                function getCurrentAuthMode() {
+                    if (isUserAuthenticated) {
+                        return 'service';
+                    }
+
+                    if (!otpPane.hasClass('d-none')) {
+                        return 'otp';
+                    }
+
+                    const activeTab = authTabs.filter('.active').data('auth-tab');
+                    return activeTab === 'register' ? 'register' : 'login';
+                }
+
+                function setPrimaryAction(mode) {
+                    if (!primaryActionBtn.length) {
+                        return;
+                    }
+
+                    const modeTextMap = {
+                        login: loginActionText,
+                        register: registerActionText,
+                        otp: verifyActionText
+                    };
+                    const text = modeTextMap[mode] || loginActionText;
+
+                    primaryActionBtn.data('mode', mode);
+                    primaryActionBtn.text(text);
+                    primaryActionBtn.prop('disabled', false).removeClass('d-none');
+                }
+
+                function updateFooterActions() {
+                    const selectedCustomer = bookingForm.find('input[name="customer"]:checked').val();
+
+                    if (forgotLink.length) {
+                        forgotLink.addClass('d-none');
+                    }
+                    if (resendOtpBtn.length) {
+                        resendOtpBtn.addClass('d-none');
+                    }
+                    if (backToRegisterBtn.length) {
+                        backToRegisterBtn.addClass('d-none');
+                    }
+
+                    if (isUserAuthenticated) {
+                        if (primaryActionBtn.length) {
+                            primaryActionBtn.addClass('d-none').prop('disabled', true);
+                        }
+
+                        if (hasServices && selectedCustomer) {
+                            submitBtn.removeClass('d-none').prop('disabled', false);
+                        } else {
+                            submitBtn.addClass('d-none').prop('disabled', true);
+                        }
+                        return;
+                    }
+
+                    submitBtn.addClass('d-none').prop('disabled', true);
+
+                    const mode = getCurrentAuthMode();
+                    setPrimaryAction(mode);
+
+                    if (mode === 'login' && forgotLink.length) {
+                        forgotLink.removeClass('d-none');
+                    }
+
+                    if (mode === 'otp') {
+                        if (resendOtpBtn.length) {
+                            resendOtpBtn.removeClass('d-none');
+                        }
+                        if (backToRegisterBtn.length) {
+                            backToRegisterBtn.removeClass('d-none');
+                        }
+                    }
+                }
+
+                function showAuthTab(tab) {
+                    clearError();
+
+                    if (!authSection.length) {
+                        updateFooterActions();
+                        return;
+                    }
+
+                    stopResendTimer();
+                    if (resendOtpBtn.length) {
+                        resendOtpBtn.prop('disabled', false).text(resendDefaultText);
+                    }
+
+                    authTabs.removeClass('active');
+                    loginPane.addClass('d-none');
+                    registerPane.addClass('d-none');
+                    otpPane.addClass('d-none');
+                    captchaWrap.show();
+
+                    if (tab === 'register') {
+                        authTabs.filter('[data-auth-tab="register"]').addClass('active');
+                        registerPane.removeClass('d-none');
+                        updateHint('أنشئ حسابًا جديدًا، ثم أدخل كود التحقق للمتابعة.');
+                        updateFooterActions();
+                        return;
+                    }
+
+                    authTabs.filter('[data-auth-tab="login"]').addClass('active');
+                    loginPane.removeClass('d-none');
+                    updateHint('سجّل الدخول أولًا ثم انتقل لاختيار ممثل خدمة العملاء.');
+                    updateFooterActions();
+                }
+
+                function showOtpPane(phone) {
+                    registerPhoneForOtp = phone;
+                    clearError();
+
+                    authTabs.removeClass('active').addClass('d-none');
+                    loginPane.addClass('d-none');
+                    registerPane.addClass('d-none');
+                    otpPane.removeClass('d-none');
+                    captchaWrap.hide();
+
+                    $('#bookingOtpPhonePreview').text(phone);
+                    otpPane.find('.booking-otp-input').val('');
+                    otpPane.find('.booking-otp-input').first().focus();
+                    startResendTimer(30);
+                    updateHint('أدخل رمز التحقق المرسل إلى رقم جوالك لإكمال إنشاء الحساب.');
+                    updateFooterActions();
+                }
+
+                function syncSteps() {
+                    if (isUserAuthenticated) {
+                        stepAuth.removeClass('is-active').addClass('is-done');
+                        stepService.addClass('is-active').removeClass('is-done');
+
+                        if (authSection.length) {
+                            authSection.hide();
+                        }
+                        serviceSection.show();
+                        if (hasServices) {
+                            updateHint('اختر ممثل خدمة العملاء المناسب، وبعد الاختيار سيظهر زر "تأكيد حجز السيرة".');
+                        } else {
+                            updateHint('لا يوجد ممثلو خدمة عملاء متاحون حاليًا، حاول لاحقًا.');
+                        }
+                        updateFooterActions();
+                        return;
+                    }
+
+                    stepAuth.addClass('is-active').removeClass('is-done');
+                    stepService.removeClass('is-active is-done');
+
+                    if (authSection.length) {
+                        authSection.show();
+                        authTabs.removeClass('d-none');
+                    }
+                    serviceSection.hide();
+                    submitBtn.addClass('d-none').prop('disabled', true);
+                    updateFooterActions();
+                }
+
+                function handleLoginAction() {
+                    if (isUserAuthenticated) {
+                        return;
+                    }
+
+                    clearError();
+
+                    const phone = $('#cvBookingPhone').val().trim();
+                    const password = $('#cvBookingPassword').val();
+                    const captchaResponse = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse() : '';
+
+                    if (!phone || !password) {
+                        showError('يرجى إدخال رقم الجوال وكلمة المرور');
+                        return;
+                    }
+
+                    if (!/^5\d{8}$/.test(phone)) {
+                        showError("{{ __('web.phone_validation_text') }}");
+                        return;
+                    }
+
+                    if (!captchaResponse) {
+                        showError("{{ __('ingaz.captcha_required') }}");
+                        return;
+                    }
+
+                    setBtnLoading(primaryActionBtn, true, loginActionText);
+
+                    $.ajax({
+                        url: "{{ route('site.login.store') }}",
+                        type: 'POST',
+                        data: {
+                            _token: "{{ csrf_token() }}",
+                            phone: phone,
+                            password: password,
+                            'g-recaptcha-response': captchaResponse
+                        },
+                    }).done(function(response) {
+                        if (!response.success) {
+                            showError(response.message || "{{ __('ingaz.error_from_server') }}");
+                            return;
+                        }
+
+                        isUserAuthenticated = true;
+                        clearError();
+                        syncSteps();
+                        toastr.success(response.message || "{{ __('ingaz.login_successfully') }}");
+                    }).fail(function(xhr) {
+                        showError(parseAjaxErrors(xhr));
+                    }).always(function() {
+                        setBtnLoading(primaryActionBtn, false, loginActionText);
+
+                        if (typeof grecaptcha !== 'undefined') {
+                            grecaptcha.reset();
+                        }
+                    });
+                }
+
+                function handleRegisterAction() {
+                    clearError();
+
+                    const name = $('#cvBookingRegisterName').val().trim();
+                    const phone = $('#cvBookingRegisterPhone').val().trim();
+                    const password = $('#cvBookingRegisterPassword').val();
+                    const passwordConfirmation = $('#cvBookingRegisterPasswordConfirmation').val();
+                    const captchaResponse = typeof grecaptcha !== 'undefined' ? grecaptcha.getResponse() : '';
+
+                    if (!name || !phone || !password || !passwordConfirmation) {
+                        showError('يرجى استكمال جميع بيانات التسجيل');
+                        return;
+                    }
+
+                    if (!/^5\d{8}$/.test(phone)) {
+                        showError("{{ __('web.phone_validation_text') }}");
+                        return;
+                    }
+
+                    if (password.length < 6) {
+                        showError("{{ __('ingaz.password_min', ['min' => 6]) }}");
+                        return;
+                    }
+
+                    if (password !== passwordConfirmation) {
+                        showError("{{ __('ingaz.password_confirmed') }}");
+                        return;
+                    }
+
+                    if (!captchaResponse) {
+                        showError("{{ __('ingaz.captcha_required') }}");
+                        return;
+                    }
+
+                    setBtnLoading(primaryActionBtn, true, registerActionText);
+
+                    $.ajax({
+                        url: "{{ route('site.register.store') }}",
+                        type: 'POST',
+                        data: {
+                            _token: "{{ csrf_token() }}",
+                            name: name,
+                            phone: phone,
+                            password: password,
+                            password_confirmation: passwordConfirmation,
+                            'g-recaptcha-response': captchaResponse
+                        },
+                    }).done(function(response) {
+                        showOtpPane(phone);
+                        toastr.success(response.message || "{{ __('ingaz.register_successfully') }}");
+                    }).fail(function(xhr) {
+                        showError(parseAjaxErrors(xhr));
+                    }).always(function() {
+                        setBtnLoading(primaryActionBtn, false, registerActionText);
+                        if (typeof grecaptcha !== 'undefined') {
+                            grecaptcha.reset();
+                        }
+                    });
+                }
+
+                function handleVerifyOtpAction() {
+                    clearError();
+                    const code = otpPane.find('.booking-otp-input').map(function() {
+                        return $(this).val().trim();
+                    }).get().join('');
+
+                    if (!registerPhoneForOtp || code.length !== 5) {
+                        showError('يرجى إدخال رمز التحقق المكوّن من 5 أرقام');
+                        return;
+                    }
+
+                    setBtnLoading(primaryActionBtn, true, verifyActionText);
+
+                    $.ajax({
+                        url: "{{ route('site.otp-register.store') }}",
+                        type: 'POST',
+                        data: {
+                            _token: "{{ csrf_token() }}",
+                            phone: registerPhoneForOtp,
+                            code: code
+                        },
+                    }).done(function(response) {
+                        if (response.code === 422) {
+                            showError(response.message || "{{ __('ingaz.code_is_wrong') }}");
+                            return;
+                        }
+
+                        isUserAuthenticated = true;
+                        clearError();
+                        syncSteps();
+                        toastr.success(response.message || "{{ __('ingaz.login_successfully') }}");
+                    }).fail(function(xhr) {
+                        showError(parseAjaxErrors(xhr));
+                    }).always(function() {
+                        setBtnLoading(primaryActionBtn, false, verifyActionText);
+                    });
+                }
+
+                refreshServiceCards();
+                syncSteps();
+
+                bookingForm.on('change', 'input[name="customer"]', function() {
+                    refreshServiceCards();
+                    updateFooterActions();
+                });
+
+                authTabs.on('click', function() {
+                    showAuthTab($(this).data('auth-tab'));
+                });
+
+                if (primaryActionBtn.length) {
+                    primaryActionBtn.on('click', function() {
+                        const mode = primaryActionBtn.data('mode');
+
+                        if (mode === 'register') {
+                            handleRegisterAction();
+                            return;
+                        }
+
+                        if (mode === 'otp') {
+                            handleVerifyOtpAction();
+                            return;
+                        }
+
+                        handleLoginAction();
+                    });
+                }
+
+                otpPane.on('input', '.booking-otp-input', function() {
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                    if (this.value.length === 1) {
+                        $(this).next('.booking-otp-input').focus();
+                    }
+                });
+
+                otpPane.on('keydown', '.booking-otp-input', function(e) {
+                    if (e.key === 'Backspace' && !this.value) {
+                        $(this).prev('.booking-otp-input').focus();
+                    }
+                });
+
+                if (resendOtpBtn.length) {
+                    resendOtpBtn.on('click', function() {
+                        if (!registerPhoneForOtp) {
+                            return;
+                        }
+
+                        if (resendOtpBtn.prop('disabled')) {
+                            return;
+                        }
+
+                        const originalText = resendOtpBtn.text();
+                        resendOtpBtn.prop('disabled', true).html(
+                            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>'
+                        );
+                        $.ajax({
+                            url: "{{ route('site.resend-otp.store') }}",
+                            type: 'POST',
+                            data: {
+                                _token: "{{ csrf_token() }}",
+                                phone: registerPhoneForOtp
+                            },
+                        }).done(function(response) {
+                            toastr.success(response.message || response.code ||
+                                "{{ __('web.resend_code_successfuly') }}");
+                        }).fail(function(xhr) {
+                            showError(parseAjaxErrors(xhr));
+                        }).always(function() {
+                            resendOtpBtn.html(originalText);
+                            startResendTimer(30);
+                        });
+                    });
+                }
+
+                if (backToRegisterBtn.length) {
+                    backToRegisterBtn.on('click', function() {
+                        stopResendTimer();
+                        if (resendOtpBtn.length) {
+                            resendOtpBtn.prop('disabled', false).text(resendDefaultText);
+                        }
+                        authTabs.removeClass('d-none');
+                        showAuthTab('register');
+                    });
+                }
+
+                bookingForm.on('submit', function(e) {
+                    const selectedCustomer = bookingForm.find('input[name="customer"]:checked').val();
+
+                    if (!isUserAuthenticated) {
+                        e.preventDefault();
+                        toastr.error("{{ __('ingaz.please_login_first') }}");
+                        return;
+                    }
+
+                    if (!selectedCustomer) {
+                        e.preventDefault();
+                        toastr.error("{{ __('ingaz.customer_is_required') }}");
+                        return;
+                    }
+
+                    submitBtn.prop('disabled', true);
+                    submitBtn.html(
+                        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>'
+                    );
+                });
+
+                $('.js-auth-forgot-redirect').on('click', function(e) {
+                    e.preventDefault();
+                    const target = $(this).data('target');
+                    const redirectUrl = new URL(window.location.href);
+                    redirectUrl.searchParams.set('booking_modal', '1');
+
+                    $.ajax({
+                        url: "{{ route('site.store.intended.url') }}",
+                        type: 'POST',
+                        data: {
+                            _token: "{{ csrf_token() }}",
+                            redirect_url: redirectUrl.toString()
+                        }
+                    }).always(function() {
+                        window.location.href = target;
+                    });
+                });
+
+                const params = new URLSearchParams(window.location.search);
+                if (params.get('booking_modal') === '1' && modalElement) {
+                    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                        const bookingModal = new bootstrap.Modal(modalElement);
+                        bookingModal.show();
+                    } else if (typeof $('#cvBookingModal').modal === 'function') {
+                        $('#cvBookingModal').modal('show');
+                    }
+
+                    params.delete('booking_modal');
+                    const nextQuery = params.toString();
+                    const cleanUrl = window.location.pathname + (nextQuery ? '?' + nextQuery : '') + window
+                        .location.hash;
+                    window.history.replaceState({}, '', cleanUrl);
+                }
+
+                if (!isUserAuthenticated && authSection.length) {
+                    showAuthTab('login');
+                }
+            });
+        </script>
+    @endif
     <script>
         @if (Session::has('error'))
             toastr.error("{{ Session::get('error') }}");

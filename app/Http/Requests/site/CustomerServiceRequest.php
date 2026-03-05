@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\site;
 
+use App\Enums\auth\AdminTypes;
 use App\Http\Requests\MainRequest;
+use Illuminate\Validation\Rule;
 
 class CustomerServiceRequest extends MainRequest
 {
@@ -19,7 +21,17 @@ class CustomerServiceRequest extends MainRequest
     public function rules()
     {
         return [
-            'customer' => ['required' , 'exists:admins,id'],
+            'customer' => [
+                'required',
+                Rule::exists('admins', 'id')->where(function ($query) {
+                    $query
+                        ->whereNull('deleted_at')
+                        ->where('admin_type', AdminTypes::CustomerService->value)
+                        ->where(function ($statusQuery) {
+                            $statusQuery->whereNull('status')->orWhere('status', 'active');
+                        });
+                }),
+            ],
             // 'maid_id' => ['required' , 'exists:maids,id'],
         ];
     }

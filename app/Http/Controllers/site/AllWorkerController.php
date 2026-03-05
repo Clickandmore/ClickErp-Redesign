@@ -2,19 +2,18 @@
 
 namespace App\Http\Controllers\site;
 
+use App\Enums\auth\AdminTypes;
 use App\Http\Actions\ingaz\JobTitleAction;
 use App\Http\Actions\ingaz\MaidAction;
 use App\Http\Actions\ingaz\NationalityAction;
 use App\Http\Controllers\Controller;
+use App\Models\auth\Admin;
 use Illuminate\Http\Request;
 
 class AllWorkerController extends Controller
 {
     public function index(Request $request,MaidAction $maidAction, JobTitleAction $jobTitleAction, NationalityAction $nationalityAction)
     {
-        if (!$request->ajax() && !$request->filled('experience_status')) {
-            $request->merge(['experience_status' => 'has_experience']);
-        }
     // dd(request()->all());
         if($request->ajax()){
 
@@ -48,12 +47,20 @@ class AllWorkerController extends Controller
     {
         $maid = $maidAction->find($id);
         $type = $request->query('type') ?? null;
+        $customerServices = Admin::query()
+            ->whereNull('deleted_at')
+            ->where('admin_type', AdminTypes::CustomerService->value)
+            ->where(function ($query) {
+                $query->whereNull('status')->orWhere('status', 'active');
+            })
+            ->orderBy('name')
+            ->get();
 
         if(!$maid){
             return redirect()->route('site.all-workers.index');
         }
 
-        return view('site.pages.cv_details', ['maid' => $maid, 'type' => $type]);
+        return view('site.pages.cv_details', ['maid' => $maid, 'type' => $type, 'customerServices' => $customerServices]);
     }
 
 

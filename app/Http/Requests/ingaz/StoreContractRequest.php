@@ -5,6 +5,8 @@ namespace App\Http\Requests\ingaz;
 use App\Http\Requests\MainRequest;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\ingaz\Order;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class StoreContractRequest extends MainRequest
 {
@@ -25,6 +27,17 @@ class StoreContractRequest extends MainRequest
      */
     public function rules()
     {
+        $currentAdmin = Auth::guard('admin')->user();
+        $canSelectAnyMarketer = $currentAdmin && (
+            $currentAdmin->admin_type === 'super_admin'
+            || $currentAdmin->hasAnyRole(['super_admin', 'admin', 'Administrator'])
+        );
+
+        $marketerRules = ['required', 'exists:admins,id'];
+        if ($currentAdmin && !$canSelectAnyMarketer) {
+            $marketerRules[] = Rule::in([$currentAdmin->id]);
+        }
+
         return [
             'contract_date' => 'required',
             'msaned_number' => 'required',
@@ -59,7 +72,7 @@ class StoreContractRequest extends MainRequest
             'new_client_birthdate' => 'nullable',
             'maid_id' => 'nullable',
             'maid_selection_postponed' => 'nullable|boolean',
-            'marketer_id' => 'required|exists:admins,id',
+            'marketer_id' => $marketerRules,
             'required_maid_nationality' => 'nullable|exists:nationalities,id',
             'contract_note' => 'nullable|string|max:2000',
         ];

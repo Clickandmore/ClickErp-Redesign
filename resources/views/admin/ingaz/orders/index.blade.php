@@ -146,7 +146,8 @@
 
         /* To show actions */
         .dataTables_scrollBody {
-            overflow-x: visible !important;
+            overflow-x: auto !important;
+            overflow-y: visible !important;
         }
 
         table tbody tr:first-child .dropdown-menu.dropdown-menu-end {
@@ -159,6 +160,82 @@
             z-index: 99999 !important;
             min-width: 150px !important;
         }
+
+        .orders-page .table-responsive {
+            overflow-x: auto !important;
+            overflow-y: visible !important;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .orders-page #dataTableObject_wrapper,
+        .orders-page .dataTables_scroll,
+        .orders-page .dataTables_scrollHead,
+        .orders-page .dataTables_scrollBody {
+            width: 100% !important;
+        }
+
+        @media (max-width: 991.98px) {
+            .layout-1 .wrapper {
+                overflow-y: auto !important;
+            }
+
+            .orders-page .container-fluid {
+                padding-inline: 12px;
+            }
+
+            .orders-page .order-stats-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 12px;
+            }
+
+            .orders-page .order-stat-card {
+                padding: 12px;
+            }
+
+            .orders-page .order-stat-card strong {
+                font-size: 1.5rem;
+            }
+
+            .orders-page .export-buttons {
+                width: 100%;
+                margin-top: 10px;
+                justify-content: stretch !important;
+            }
+
+            .orders-page .export-buttons .btn {
+                flex: 1 1 auto;
+            }
+
+            .orders-page .table-responsive {
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+            }
+
+            .orders-page .dataTables_scrollBody {
+                overflow-x: auto !important;
+                overflow-y: visible !important;
+                max-height: none !important;
+            }
+
+            .orders-page table tbody tr:first-child .dropdown-menu.dropdown-menu-end {
+                right: 0 !important;
+                left: auto !important;
+                transform: none !important;
+                top: auto !important;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .orders-page .order-stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .orders-page .table-style th,
+            .orders-page table.dataTable tbody td {
+                white-space: nowrap;
+                font-size: 0.82rem;
+            }
+        }
     </style>
 @endsection
 @section('page-title')
@@ -167,7 +244,7 @@
 
 @section('content')
     @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW))
-        <div class="page-body">
+        <div class="page-body orders-page">
             <div class="container-fluid">
                 <!-- Header Section -->
                 <div class="d-sm-flex align-items-center justify-content-between mb-4">
@@ -575,16 +652,27 @@
                 });
             }
 
+            const isMobileTableView = window.matchMedia('(max-width: 991.98px)').matches;
+
             let dataTable = $('#dataTableObject').DataTable({
                 processing: true,
                 serverSide: true,
-                responsive: false,
+                responsive: isMobileTableView,
                 searching: false,
                 deferRender: true, // تأجيل رسم الصفوف لتحسين الأداء
                 pageLength: 25, // عرض 25 صف فقط بدلاً من 10
                 lengthMenu: [
                     [10, 25, 50, 100],
                     [10, 25, 50, 100]
+                ],
+                columnDefs: [{
+                        responsivePriority: 1,
+                        targets: [0, 2, 7, 10, 12]
+                    },
+                    {
+                        responsivePriority: 2,
+                        targets: [3, 6, 8]
+                    }
                 ],
                 ajax: {
                     url: "{{ route('orders.index') }}",
@@ -635,12 +723,12 @@
                 drawCallback: function() {
                     // admin-tables.js يتولى معالجة القوائم المنسدلة
                 },
-                scrollX: true,
-                scrollCollapse: true,
-                fixedColumns: {
+                scrollX: !isMobileTableView,
+                scrollCollapse: !isMobileTableView,
+                fixedColumns: !isMobileTableView ? {
                     leftColumns: 0,
                     rightColumns: 1
-                },
+                } : false,
                 stateSave: false, // عدم حفظ حالة الجدول
                 autoWidth: false // عدم حساب العرض تلقائياً
             });
@@ -688,9 +776,18 @@
                 dataTable.ajax.reload();
                 const tableOffset = $('#dataTableObject').offset();
                 if (tableOffset) {
-                    $('html, body').animate({
-                        scrollTop: tableOffset.top - 120
-                    }, 300);
+                    const $wrapper = $('.layout-1 .wrapper');
+                    if ($wrapper.length) {
+                        const wrapperTop = $wrapper.offset().top;
+                        const targetScroll = $wrapper.scrollTop() + tableOffset.top - wrapperTop - 120;
+                        $wrapper.stop().animate({
+                            scrollTop: Math.max(targetScroll, 0)
+                        }, 300);
+                    } else {
+                        $('html, body').animate({
+                            scrollTop: tableOffset.top - 120
+                        }, 300);
+                    }
                 }
             });
 

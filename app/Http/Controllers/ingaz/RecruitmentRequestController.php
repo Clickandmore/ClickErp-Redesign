@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\ingaz;
 
+use App\Enums\ingaz\NotificationActionEnum;
 use App\Enums\ingaz\RequestsStatusEnum;
 use App\Enums\Office\MaritalStatusEnum;
 use App\Http\Actions\ingaz\JobTitleAction;
@@ -10,12 +11,15 @@ use App\Http\Actions\ingaz\RecruitmentRequestAction as objAction;
 use App\Http\Actions\ingaz\ReligionAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ingaz\ProfessionalApplicationRequest as objRequest;
+use App\Http\Traits\SendSMSTrait;
+use App\Http\Traits\StoreMessageTrait;
 use App\Models\ingaz\RecruitmentRequestMaid as objModel;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
 class RecruitmentRequestController extends Controller
 {
+    use SendSMSTrait, StoreMessageTrait;
 
     public $folderPath = "admin.ingaz.RecruitmentRequest";
     public $postData = ["image"];
@@ -33,6 +37,7 @@ class RecruitmentRequestController extends Controller
     {
         if ($request->ajax()) {
             $rows = objModel::query()
+                ->with(['client', 'religion'])
                 ->when($request->filled('status'), function ($query) use ($request) {
                     $query->where('status', $request->get('status'));
                 })
@@ -57,8 +62,23 @@ class RecruitmentRequestController extends Controller
                 ->editColumn('client_id', function ($row) {
                     return $row->client->name ?? '-';
                 })
+                ->addColumn('client_phone', function ($row) {
+                    $phone = trim((string)(optional($row->client)->phone ?? ''));
+                    if ($phone === '') {
+                        return '-';
+                    }
+
+                    $phoneCode = trim((string)(optional($row->client)->phone_code ?? ''));
+                    return trim($phoneCode . ' ' . $phone);
+                })
                 ->editColumn('nationality', function ($row) {
                     return $row->nationality ?? '-';
+                })
+                ->addColumn('request_date', function ($row) {
+                    return $row->created_at ? $row->created_at->format('Y-m-d') : '-';
+                })
+                ->addColumn('request_time', function ($row) {
+                    return $row->created_at ? $row->created_at->format('h:i A') : '-';
                 })
                 ->editColumn('religion_id ', function ($row) {
                     return $row->religion?->title ?? '-';
@@ -158,22 +178,50 @@ class RecruitmentRequestController extends Controller
 
     public function update(objRequest $request, objAction $action, $id)
     {
-    $contract = objModel::findOrFail($id);
+        $contract = objModel::with('client')->findOrFail($id);
 
-    // لو جاي من toggle status
-    if ($request->has('status')) {
-        $contract->update([
-            'status' => $request->status
-        ]);
+        // لو جاي من toggle status
+        if ($request->has('status')) {
+            $oldStatus = $contract->status;
+            $newStatus = (string)$request->status;
 
-        return response()->json(['success' => true, 'status' => $request->status]);
-    }
+            $contract->update([
+                'status' => $newStatus
+            ]);
 
-    // التحديث العادي (مثلاً صورة أو غيره)
-    $updatedData = $request->only($this->postData);
-    $data = $action->find($id)->update($updatedData);
+            if ($oldStatus !== $newStatus) {
+                $statusLabel = RequestsStatusEnum::tryFrom($newStatus)?->lang() ?? $newStatus;
+                $message = "عزيزي العميل، تم تحديث حالة طلبكم الخاص رقم #{$contract->id} إلى: {$statusLabel}.";
 
-    return jsonSuccess($data);
+                $this->storeMessage('تحديث حالة الطلب الخاص', $message, NotificationActionEnum::OrderStatus->value, $contract->client_id);
+
+                $rawClientPhone = trim((string)($contract->client->phone ?? ''));
+                if ($rawClientPhone !== '') {
+                    try {
+                        $smsResponse = $this->sendSMS(formatSaudiPhone($rawClientPhone), $message);
+                        $smsResult = json_decode((string)$smsResponse, true);
+
+                        if (is_array($smsResult) && isset($smsResult['code']) && (string)$smsResult['code'] === '1') {
+                            $this->storeMessage('ارسال رسالة نصية الى العميل', $message, NotificationActionEnum::SMS->value, $contract->client_id);
+                        }
+                    } catch (\Throwable $e) {
+                        \Log::warning('Failed to send recruitment request status SMS', [
+                            'recruitment_request_id' => $contract->id,
+                            'client_id' => $contract->client_id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                }
+            }
+
+            return response()->json(['success' => true, 'status' => $newStatus]);
+        }
+
+        // التحديث العادي (مثلاً صورة أو غيره)
+        $updatedData = $request->only($this->postData);
+        $data = $action->find($id)->update($updatedData);
+
+        return jsonSuccess($data);
     }
 public function show($id)
 {

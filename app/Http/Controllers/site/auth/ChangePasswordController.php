@@ -33,7 +33,8 @@ class ChangePasswordController extends Controller
         // logout from other devices
         Auth::logoutOtherDevices($data['password']);
 
-        return jsonSuccess(['redirect_url' => route('site.login.index')], __("ingaz.change_password_successfully"));
+        $target = session()->pull('url.intended', route('site.login.index'));
+        return jsonSuccess(['redirect_url' => $target], __("ingaz.change_password_successfully"));
     }
 
     public function update(ChangePasswordRequest $request, $id, UserAction $userAction)

@@ -105,6 +105,10 @@
             background: linear-gradient(135deg, #f9fafb, #f3f4f6);
         }
 
+        .stat-card-back {
+            background: linear-gradient(135deg, #fef2f2, #ffe4e6);
+        }
+
         .stat-card-current .stat-icon {
             background: #64748b;
         }
@@ -152,6 +156,10 @@
         .stat-card-warranty-na .stat-icon {
             background: #6b7280;
         }
+
+        .stat-card-back .stat-icon {
+            background: #dc2626;
+        }
     </style>
 @endsection
 
@@ -163,6 +171,7 @@
     @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
         @php
             $requestedStatus = request()->get('status');
+            $showBackStatsInitially = $requestedStatus === 'back';
             $showCurrentStatsInitially = !$requestedStatus || in_array($requestedStatus, [
                 'current',
                 'pending_maid_selection',
@@ -366,6 +375,26 @@
                                         <div class="stat-body">
                                             <div class="stat-title">بدون ضمان</div>
                                             <div class="stat-value" data-stat-key="warranty_not_applicable">0</div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="backStatsSection" @if (!$showBackStatsInitially) style="display: none;" @endif>
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="fw-semibold">احصائيات العقود المرتجعة</span>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <button type="button" class="stat-card stat-filter stat-card-back"
+                                        data-status="back">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-undo"></i>
+                                        </div>
+                                        <div class="stat-body">
+                                            <div class="stat-title">غير مكتملة (مرتجع)</div>
+                                            <div class="stat-value" data-stat-key="stage_back">0</div>
                                         </div>
                                     </button>
                                 </div>
@@ -867,23 +896,34 @@
                 if (!statusValue) {
                     $('#currentStatsSection').show();
                     $('#completedStatsSection').show();
+                    $('#backStatsSection').hide();
+                    return;
+                }
+
+                if (statusValue === 'back') {
+                    $('#currentStatsSection').hide();
+                    $('#completedStatsSection').hide();
+                    $('#backStatsSection').show();
                     return;
                 }
 
                 if (currentStatuses.includes(statusValue)) {
                     $('#currentStatsSection').show();
                     $('#completedStatsSection').hide();
+                    $('#backStatsSection').hide();
                     return;
                 }
 
                 if (completedStatuses.includes(statusValue)) {
                     $('#currentStatsSection').hide();
                     $('#completedStatsSection').show();
+                    $('#backStatsSection').hide();
                     return;
                 }
 
                 $('#currentStatsSection').show();
                 $('#completedStatsSection').show();
+                $('#backStatsSection').hide();
             }
 
             function syncStatSelection() {

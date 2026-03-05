@@ -67,11 +67,15 @@
                         @php
                             $currentExperienceStatus = request()->filled('experience_status')
                                 ? request()->experience_status
-                                : 'has_experience';
+                                : '';
+                            $hasActiveFilters = ($type !== 'all')
+                                || request()->filled('experience_status')
+                                || request()->filled('age')
+                                || request()->filled('job')
+                                || request()->filled('nationality_id');
                         @endphp
                         <form action="" class="row" id="maids_filter">
-                            <input type="hidden" name="experience_status" id="experience_status_input"
-                                value="{{ $currentExperienceStatus }}">
+                            <input type="hidden" id="experience_status_input" value="{{ $currentExperienceStatus }}">
                             <!-- Experience Status -->
                             <div class="py-3 col-12 col-md-12">
                                 <div class="toggleBtns mb-2">
@@ -94,10 +98,16 @@
                                     <i class="fa-duotone fa-hourglass me-1"></i> {{ __('ingaz.age') }}
                                 </label>
                                 <select id="age" class="select2">
-                                    <option value="" selected>{{ __('ingaz.all') }}</option>
-                                    <option value="20_30">{{ __('ingaz.from_20_to_30_years') }}</option>
-                                    <option value="31_40">{{ __('ingaz.from_31_to_40_years') }}</option>
-                                    <option value="41_50">{{ __('ingaz.from_41_to_50_years') }}</option>
+                                    <option value="" {{ request('age') ? '' : 'selected' }}>{{ __('ingaz.all') }}</option>
+                                    <option value="20_30" {{ request('age') === '20_30' ? 'selected' : '' }}>
+                                        {{ __('ingaz.from_20_to_30_years') }}
+                                    </option>
+                                    <option value="31_40" {{ request('age') === '31_40' ? 'selected' : '' }}>
+                                        {{ __('ingaz.from_31_to_40_years') }}
+                                    </option>
+                                    <option value="41_50" {{ request('age') === '41_50' ? 'selected' : '' }}>
+                                        {{ __('ingaz.from_41_to_50_years') }}
+                                    </option>
                                 </select>
                             </div>
                             <!-- Occupation -->
@@ -106,9 +116,12 @@
                                     <i class="fa-duotone fa-briefcase me-1"></i> {{ __('ingaz.occupation') }}
                                 </label>
                                 <select id="job" class="select2">
-                                    <option value="" selected>{{ __('ingaz.all') }}</option>
+                                    <option value="" {{ request('job') ? '' : 'selected' }}>{{ __('ingaz.all') }}</option>
                                     @foreach ($jobTitles as $jobTitle)
-                                        <option value="{{ $jobTitle->id }}">{{ $jobTitle->title }}</option>
+                                        <option value="{{ $jobTitle->id }}"
+                                            {{ (string) request('job') === (string) $jobTitle->id ? 'selected' : '' }}>
+                                            {{ $jobTitle->title }}
+                                        </option>
                                     @endforeach
                                 </select>
                             </div>
@@ -118,9 +131,13 @@
                                     <i class="fa-duotone fa-flag me-1"></i> {{ __('ingaz.nationality') }}
                                 </label>
                                 <select id="nationality_id" class="select2">
-                                    <option value="" selected>{{ __('ingaz.all') }}</option>
+                                    <option value=""
+                                        {{ request('nationality_id') ? '' : 'selected' }}>{{ __('ingaz.all') }}</option>
                                     @foreach ($nationalities as $nationality)
-                                        <option value="{{ $nationality->id }}">{{ $nationality->title }}</option>
+                                        <option value="{{ $nationality->id }}"
+                                            {{ (string) request('nationality_id') === (string) $nationality->id ? 'selected' : '' }}>
+                                            {{ $nationality->title }}
+                                        </option>
                                     @endforeach
                                 </select>
                             </div>
@@ -129,7 +146,10 @@
                                 <label for="workExperience">
                                     <i class="fa-duotone fa-briefcase me-1"></i>{{ __('ingaz.experience') }}
                                 </label>
-                                <select id="experience_status_input" class="select2" name="experience_status">
+                                <select id="workExperience" name="experience_status">
+                                    <option value="" {{ $currentExperienceStatus === '' ? 'selected' : '' }}>
+                                        {{ __('ingaz.all') }}
+                                    </option>
                                     <option value="has_experience"
                                         {{ $currentExperienceStatus === 'has_experience' ? 'selected' : '' }}>
                                         {{ __('ingaz.has_experience_label') }}
@@ -142,7 +162,8 @@
                             </div>
 
                             <div class="pt-4 d-flex align-items-center justify-content-center flex-wrap">
-                                <button type="button" class="btn clear m-1">
+                                <button type="button" class="btn clear m-1"
+                                    style="{{ $hasActiveFilters ? '' : 'display:none;' }}">
                                     {{ __('ingaz.clear') }}
                                     <span></span>
                                 </button>
@@ -255,74 +276,102 @@
 @section('js')
     <script>
         $(document).ready(function() {
-            // 🔹 Helpers
-            function collectFilters() {
-                let filters = {};
-                let type = $(".toggle-btn[data-role='type'].active").data("target");
-                let experience = $("#experience_status_input").val();
-                let age = $("#age").val();
-                let job = $("#job").val();
-                let nationality_id = $("#nationality_id").val();
-
-                if (type) filters.type = type;
-                if (experience) filters.experience_status = experience;
-                if (age) filters.age = age;
-                if (job) filters.job = job;
-                if (nationality_id) filters.nationality_id = nationality_id;
-                console.log(filters);
-
-                return filters;
-            }
-
+            const typeButtons = $(".toggle-btn[data-role='type']");
             const experienceButtons = $(".experience-toggle");
             const experienceInput = $("#experience_status_input");
+            const experienceSelect = $("#workExperience");
+            const clearButton = $("#maids_filter .clear");
 
-            function syncExperienceButtons() {
-                const current = experienceInput.val();
+            function hasActiveFilters() {
+                const type = typeButtons.filter(".active").data("target");
+                return (type && type !== "all") ||
+                    !!experienceInput.val() ||
+                    !!$("#age").val() ||
+                    !!$("#job").val() ||
+                    !!$("#nationality_id").val();
+            }
+
+            function updateClearButtonVisibility() {
+                clearButton.toggle(hasActiveFilters());
+            }
+
+            function syncExperienceControls() {
+                const current = experienceInput.val() || "";
                 experienceButtons.removeClass("active");
                 if (current) {
                     experienceButtons.filter(`[data-experience='${current}']`).addClass("active");
                 }
+                experienceSelect.val(current);
             }
 
-            syncExperienceButtons();
+            function collectFilters() {
+                let filters = {};
+                let type = typeButtons.filter(".active").data("target");
+                let experience = experienceInput.val();
+                let age = $("#age").val();
+                let job = $("#job").val();
+                let nationality_id = $("#nationality_id").val();
 
-            // 🔹 Toggle buttons (type)
-            const typeButtons = $(".toggle-btn[data-role='type']");
+                if (type && type !== "all") filters.type = type;
+                if (experience) filters.experience_status = experience;
+                if (age) filters.age = age;
+                if (job) filters.job = job;
+                if (nationality_id) filters.nationality_id = nationality_id;
+
+                return filters;
+            }
+
+            syncExperienceControls();
+            updateClearButtonVisibility();
+
             typeButtons.on("click", function() {
                 typeButtons.removeClass("active");
                 $(this).addClass("active");
 
+                updateClearButtonVisibility();
                 fetchWorkers(collectFilters());
             });
 
-            // 🔹 Experience toggle buttons
             experienceButtons.on("click", function() {
                 const selectedExperience = $(this).data("experience") || "";
                 experienceInput.val(selectedExperience);
-                syncExperienceButtons();
+                syncExperienceControls();
 
+                updateClearButtonVisibility();
                 fetchWorkers(collectFilters());
             });
 
-            // 🔹 Form submit
+            experienceSelect.on("change", function() {
+                experienceInput.val($(this).val() || "");
+                syncExperienceControls();
+
+                updateClearButtonVisibility();
+                fetchWorkers(collectFilters());
+            });
+
+            $("#age, #job, #nationality_id").on("change", function() {
+                updateClearButtonVisibility();
+            });
+
             $("#maids_filter").on("submit", function(e) {
                 e.preventDefault();
 
+                updateClearButtonVisibility();
                 fetchWorkers(collectFilters());
             });
 
-            // 🔹 Clear button
-            $("#maids_filter .clear").on("click", function() {
+            clearButton.on("click", function() {
                 $("#maids_filter")[0].reset();
-                $(".select2").val(null).trigger("change"); // reset select2
+                $("#maids_filter .select2").val("").trigger("change");
                 experienceInput.val("");
-                syncExperienceButtons();
+                syncExperienceControls();
+                typeButtons.removeClass("active");
+                typeButtons.filter("[data-target='all']").addClass("active");
 
-                fetchWorkers(collectFilters()); // reload with current type
+                updateClearButtonVisibility();
+                fetchWorkers(collectFilters());
             });
 
-            // 🔹 Reusable function
             function fetchWorkers(params) {
                 $.ajax({
                     url: "{{ route('site.all-workers.index') }}",
@@ -334,12 +383,9 @@
                         );
                     },
                     success: function(response) {
-                        console.log("success", response);
-
                         $("#maids_list").html(response);
                     },
                     error: function(xhr) {
-                        console.log("error", xhr);
                         $("#maids_list").html("<p class='text-danger'>Something went wrong.</p>");
                     },
                 });

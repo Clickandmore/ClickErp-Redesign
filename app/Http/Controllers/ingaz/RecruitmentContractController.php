@@ -58,6 +58,16 @@ class RecruitmentContractController extends Controller
         'tafwed_number'
     ];
 
+    private function canSelectAnyMarketer($admin): bool
+    {
+        if (!$admin) {
+            return false;
+        }
+
+        return $admin->admin_type === 'super_admin'
+            || $admin->hasAnyRole(['super_admin', 'admin', 'Administrator']);
+    }
+
 
     public function index(Request $request)
     {
@@ -1037,8 +1047,12 @@ class RecruitmentContractController extends Controller
 
         // Get current user info
         $currentUser = Auth::guard('admin')->user();
+        $canSelectAnyMarketer = $this->canSelectAnyMarketer($currentUser);
+        $marketers = $canSelectAnyMarketer
+            ? \App\Models\auth\Admin::whereNull('deleted_at')->orderBy('name')->get()
+            : collect([$currentUser])->filter();
 
-        return view('admin.ingaz.RecruitmentContract.create', compact('orders', 'endedOrders', 'countries', 'all_available_maids', 'selectedOrder', 'orderId', 'existing_clients', 'currentUser'));
+        return view('admin.ingaz.RecruitmentContract.create', compact('orders', 'endedOrders', 'countries', 'all_available_maids', 'selectedOrder', 'orderId', 'existing_clients', 'currentUser', 'canSelectAnyMarketer', 'marketers'));
     }
 
 
@@ -1051,6 +1065,19 @@ class RecruitmentContractController extends Controller
                 'message' => 'ليس لديك صلاحية لإنشاء عقد جديد'
             ], 403);
         }
+
+        $currentAdmin = Auth::guard('admin')->user();
+        if (!$currentAdmin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكن تحديد المستخدم الحالي'
+            ], 401);
+        }
+
+        $canSelectAnyMarketer = $this->canSelectAnyMarketer($currentAdmin);
+        $marketerId = $canSelectAnyMarketer
+            ? (int) $request->marketer_id
+            : (int) $currentAdmin->id;
 
         // logger()->info('Recruitment Contract Creation Request:', $request->all());
         // logger()->info('Request validation:', [
@@ -1136,7 +1163,7 @@ class RecruitmentContractController extends Controller
                 $contractData['user_id'] = $order->user_id;
                 $contractData['maid_id'] = $isNoMaid ? null : $order->maid_id;
                 $contractData['order_id'] = $order->id; // إضافة order_id للعقد
-                $contractData['marketer_id'] = $request->marketer_id ?: Auth::guard('admin')->id(); // أخذ المسوق من الطلب أو المستخدم الحالي
+                $contractData['marketer_id'] = $marketerId; // تقييد المسوق حسب صلاحية المستخدم الحالي
 
                 logger()->info('Contract data from order:', $contractData);
             } else {
@@ -1197,7 +1224,7 @@ class RecruitmentContractController extends Controller
                     logger()->info('Updated existing user:', ['user' => $user->toArray()]);
                 }
                 $contractData['user_id'] = $user->id;
-                $contractData['marketer_id'] = $request->marketer_id ?: Auth::guard('admin')->id(); // إضافة المسوق تلقائياً
+                $contractData['marketer_id'] = $marketerId; // تقييد المسوق حسب صلاحية المستخدم الحالي
             }
 
             logger()->info('Creating contract with data:', $contractData);
@@ -1517,8 +1544,13 @@ class RecruitmentContractController extends Controller
         }
 
         $countries = Country::all();
+        $currentAdmin = Auth::guard('admin')->user();
+        $canSelectAnyMarketer = $this->canSelectAnyMarketer($currentAdmin);
+        $marketers = $canSelectAnyMarketer
+            ? \App\Models\auth\Admin::whereNull('deleted_at')->orderBy('name')->get()
+            : collect([$currentAdmin])->filter();
 
-        return view('admin.ingaz.RecruitmentContract.edit', compact('contract', 'countries'));
+        return view('admin.ingaz.RecruitmentContract.edit', compact('contract', 'countries', 'currentAdmin', 'canSelectAnyMarketer', 'marketers'));
     }
 
     /**
@@ -1537,6 +1569,27 @@ class RecruitmentContractController extends Controller
                 'message' => 'ليس لديك صلاحية لتعديل العقد'
             ], 403);
         }
+
+        $currentAdmin = Auth::guard('admin')->user();
+        if (!$currentAdmin) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكن تحديد المستخدم الحالي'
+            ], 401);
+        }
+
+        $canSelectAnyMarketer = $this->canSelectAnyMarketer($currentAdmin);
+        $marketerRules = ['required', 'exists:admins,id'];
+        if (!$canSelectAnyMarketer) {
+            $marketerRules[] = 'in:' . $currentAdmin->id;
+        }
+        $request->validate([
+            'marketer_id' => $marketerRules,
+        ]);
+
+        $marketerId = $canSelectAnyMarketer
+            ? (int) $request->marketer_id
+            : (int) $currentAdmin->id;
 
         $contract = Contract::find($id);
         if (!$contract) {
@@ -1607,7 +1660,8 @@ class RecruitmentContractController extends Controller
 
             // تحديث حالة العقد
             $contract->update([
-                'status' => $request->status
+                'status' => $request->status,
+                'marketer_id' => $marketerId,
             ]);
 
             // تحديث حالة العاملات تلقائياً
@@ -2602,6 +2656,7 @@ class RecruitmentContractController extends Controller
                 'total' => (clone $baseQuery)->count(),
                 'current_total' => (clone $baseQuery)->whereIn('status', $currentStatuses)->count(),
                 'completed_total' => (clone $baseQuery)->whereIn('status', $completedStatuses)->count(),
+                'stage_back' => (clone $baseQuery)->where('status', ContractStatusEnum::Back->value)->count(),
                 'stage_pending_maid_selection' => (clone $baseQuery)->where('status', ContractStatusEnum::PendingMaidSelection->value)->count(),
                 'stage_new' => (clone $baseQuery)->where('status', ContractStatusEnum::New->value)->count(),
                 'stage_msaned' => (clone $baseQuery)->where('status', ContractStatusEnum::Msaned->value)->count(),

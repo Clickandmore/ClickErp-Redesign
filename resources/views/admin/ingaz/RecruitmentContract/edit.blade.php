@@ -226,6 +226,30 @@
                                                     </select>
                                                 </div>
                                                 <div class="col-md-4 mb-3">
+                                                    <label class="form-label">الموظف/المسوق <span
+                                                            class="text-danger">*</span></label>
+                                                    @php
+                                                        $selectedMarketerId = old('marketer_id', $contract->marketer_id ?? $currentAdmin?->id);
+                                                    @endphp
+                                                    @if ($canSelectAnyMarketer)
+                                                        <select name="marketer_id" id="marketer_id" class="form-select"
+                                                            required>
+                                                            <option value="">اختر الموظف</option>
+                                                            @foreach ($marketers as $marketer)
+                                                                <option value="{{ $marketer->id }}"
+                                                                    @selected((string) $selectedMarketerId === (string) $marketer->id)>
+                                                                    {{ $marketer->name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    @else
+                                                        <input type="text" class="form-control"
+                                                            value="{{ $currentAdmin?->name }}" readonly>
+                                                        <input type="hidden" name="marketer_id" id="marketer_id"
+                                                            value="{{ $currentAdmin?->id }}" required>
+                                                    @endif
+                                                </div>
+                                                <div class="col-md-4 mb-3">
                                                     <label class="form-label">حالة العقد</label>
                                                     <select name="status" id="status" class="form-select">
                                                         <option value="new"

@@ -200,6 +200,9 @@
                             <th>#</th>
                             <th>{{helperTrans("ingaz.job_title")}}</th>
                             <th>{{helperTrans("ingaz.client")}}</th>
+                            <th>{{helperTrans("ingaz.phone")}}</th>
+                            <th>{{helperTrans("ingaz.order_date")}}</th>
+                            <th>وقت الطلب</th>
                             <th>{{helperTrans("ingaz.nationality")}}</th>
                             <th>{{helperTrans("ingaz.social_status")}}</th>
                             <th>{{helperTrans("ingaz.religion")}}</th>
@@ -286,6 +289,9 @@
                     {data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                     {data: 'job_title', name: 'job_title'},
                     {data: 'client_id', name: 'client_id'},
+                    {data: 'client_phone', name: 'client_phone', orderable: false, searchable: false},
+                    {data: 'request_date', name: 'created_at'},
+                    {data: 'request_time', name: 'created_at', orderable: false, searchable: false},
                     {data: 'nationality', name: 'nationality'},
                     {data: 'social_status', name: 'social_status'},
                     {data: 'religion_id ', name: 'religion_id '},
