@@ -5,6 +5,7 @@ namespace App\Enums\ingaz;
 enum ContractStatusEnum: string
 {
     case New = 'new'; // بانتظار الاعتماد
+    case AccreditationContracts = 'accreditation_contracts'; // اعتماد العقود
     case Msaned = 'msaned'; // عقود مساند
     case Tafwed = 'tafwed'; // تفويض
     case Taffez = 'taffez'; // التفييز

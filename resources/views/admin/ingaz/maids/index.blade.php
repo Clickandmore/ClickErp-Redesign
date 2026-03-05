@@ -62,6 +62,7 @@
             border: 0.5px solid #2794eb;
             padding: 2px 13px;
             border-radius: 20px;
+            white-space: nowrap !important;
         }
 
         .job-type.istqdam {

@@ -617,6 +617,14 @@ class RecruitmentContractController extends Controller
                                     $hasPermission = true;
                                 }
                                 break;
+                            case ContractStatusEnum::AccreditationContracts->value:
+                                $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED;
+                                $nextStatus = ContractStatusEnum::Msaned->value;
+                                $buttonText = 'اعتماد العقد إلى مساند';
+                                if (@AdminGuardHasPerm($permissionRequired)) {
+                                    $hasPermission = true;
+                                }
+                                break;
                             case ContractStatusEnum::Msaned->value:
                                 $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED;
                                 $nextStatus = ContractStatusEnum::Tafwed->value;
