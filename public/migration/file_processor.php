@@ -1012,6 +1012,23 @@ function migratePreviousSponsor()
         ];
     }
 
+    $maidJobsColumns = [];
+    try {
+        $maidJobsColumns = getTableColumnsLocal($newDb, 'maid_jobs');
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'تعذر قراءة جدول maid_jobs: ' . $e->getMessage()
+        ];
+    }
+    $maidJobsColumns = array_map('strtolower', $maidJobsColumns);
+    if (!in_array('maid_id', $maidJobsColumns, true) || !in_array('job_type_id', $maidJobsColumns, true)) {
+        return [
+            'success' => false,
+            'message' => 'تعذر تحديد الأعمدة المطلوبة في جدول maid_jobs'
+        ];
+    }
+
     $contractUpdateSql = "UPDATE contracts SET " . implode(', ', array_map(fn($c) => "`{$c}` = :{$c}", $contractUpdateCols)) . " WHERE id = :id";
 
     $contractUpdateStmt = $newDb->prepare($contractUpdateSql);
@@ -1038,6 +1055,7 @@ function migratePreviousSponsor()
     $deportationInsertStmt = $newDb->prepare($deportationInsertSql);
     $deportationUpdateStmt = $newDb->prepare($deportationUpdateSql);
     $findDeportationStmt = $newDb->prepare('SELECT id FROM deportation_procedures WHERE contract_id = :contract_id LIMIT 1');
+    $maidJobsUpdateStmt = $newDb->prepare('UPDATE maid_jobs SET job_type_id = :job_type_id WHERE maid_id = :maid_id');
 
     $processed = 0;
     $inserted = 0;
@@ -1046,6 +1064,8 @@ function migratePreviousSponsor()
     $deportationInserted = 0;
     $deportationUpdated = 0;
     $deportationSkipped = 0;
+    $maidJobsUpdated = 0;
+    $maidJobsSkipped = 0;
     $skipped = 0;
     $errors = [];
 
@@ -1186,6 +1206,16 @@ function migratePreviousSponsor()
                     $deportationInserted++;
                 }
             }
+
+            $maidJobsUpdateStmt->execute([
+                ':job_type_id' => 3,
+                ':maid_id' => $maidId
+            ]);
+            if ($maidJobsUpdateStmt->rowCount() > 0) {
+                $maidJobsUpdated += $maidJobsUpdateStmt->rowCount();
+            } else {
+                $maidJobsSkipped++;
+            }
         }
 
         $newDb->commit();
@@ -1207,6 +1237,8 @@ function migratePreviousSponsor()
         'deportation_inserted' => $deportationInserted,
         'deportation_updated' => $deportationUpdated,
         'deportation_skipped' => $deportationSkipped,
+        'maid_jobs_updated' => $maidJobsUpdated,
+        'maid_jobs_skipped' => $maidJobsSkipped,
         'skipped' => $skipped,
         'errors' => $errors
     ];
@@ -1344,8 +1376,26 @@ function migrateReservationSponsor()
         }
     }
 
+    $maidJobsColumns = [];
+    try {
+        $maidJobsColumns = getTableColumnsLocal($newDb, 'maid_jobs');
+    } catch (Exception $e) {
+        return [
+            'success' => false,
+            'message' => 'تعذر قراءة جدول maid_jobs: ' . $e->getMessage()
+        ];
+    }
+    $maidJobsColumns = array_map('strtolower', $maidJobsColumns);
+    if (!in_array('maid_id', $maidJobsColumns, true) || !in_array('job_type_id', $maidJobsColumns, true)) {
+        return [
+            'success' => false,
+            'message' => 'تعذر تحديد الأعمدة المطلوبة في جدول maid_jobs'
+        ];
+    }
+
     $insertSql = buildUpsertSql('sponsorship_transfers', $insertCols);
     $stmt = $newDb->prepare($insertSql);
+    $maidJobsUpdateStmt = $newDb->prepare('UPDATE maid_jobs SET job_type_id = :job_type_id WHERE maid_id = :maid_id');
 
     $findContractStmt = $newDb->prepare('SELECT id FROM contracts WHERE id = :id LIMIT 1');
     $findContractByOrderStmt = null;
@@ -1356,6 +1406,8 @@ function migrateReservationSponsor()
     $processed = 0;
     $inserted = 0;
     $updated = 0;
+    $maidJobsUpdated = 0;
+    $maidJobsSkipped = 0;
     $skipped = 0;
 
     $newDb->beginTransaction();
@@ -1496,6 +1548,16 @@ function migrateReservationSponsor()
             } elseif ($affected === 2) {
                 $updated++;
             }
+
+            $maidJobsUpdateStmt->execute([
+                ':job_type_id' => 3,
+                ':maid_id' => $cvId
+            ]);
+            if ($maidJobsUpdateStmt->rowCount() > 0) {
+                $maidJobsUpdated += $maidJobsUpdateStmt->rowCount();
+            } else {
+                $maidJobsSkipped++;
+            }
         }
 
         $newDb->commit();
@@ -1513,6 +1575,8 @@ function migrateReservationSponsor()
         'processed' => $processed,
         'inserted' => $inserted,
         'updated' => $updated,
+        'maid_jobs_updated' => $maidJobsUpdated,
+        'maid_jobs_skipped' => $maidJobsSkipped,
         'skipped' => $skipped
     ];
 }

@@ -15,7 +15,14 @@ class MakeAccountsForClientsController extends Controller
     public function store(Request $request)
     {
         return DB::transaction(function () {
-            $parentAccount = Account::where('type', AccountTypesEnum::Clients->value)->lockForUpdate()->firstOrFail();
+            // $parentAccount = Account::where('type', AccountTypesEnum::Clients->value)->lockForUpdate()->firstOrFail();
+            $parentAccount = Account::where('type', AccountTypesEnum::Clients->value)->lockForUpdate()->first();
+            if (!$parentAccount) {
+                return response()->json([
+                    'code' => 422,
+                    'message' => 'لا يوجد حساب رئيسي للعملاء في جدول الحسابات. يرجى إنشاء حساب من نوع Clients أولاً.'
+                ], 422);
+            }
             
             $lastCode = Account::where('parent_id', $parentAccount->id)->max('code');
             if (!$lastCode) {

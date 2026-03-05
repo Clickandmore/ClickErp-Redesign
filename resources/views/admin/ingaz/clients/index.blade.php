@@ -443,7 +443,10 @@
                     $('#dataTableObject').DataTable().ajax.reload();
                 },
                 error: function(xhr) {
-                    alert('حصل خطأ، حاول مرة أخرى ❌');
+                    console.log(xhr);
+                    
+                    errorToster('خطأ!', xhr.responseJSON.message || 'حصل خطأ، حاول مرة أخرى ❌');
+                    // alert('حصل خطأ، حاول مرة أخرى ❌');
                 },
                 complete: function() {
                     btn.prop('disabled', false).text(
