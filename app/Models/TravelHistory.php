@@ -20,6 +20,7 @@ class TravelHistory extends Model
         'user_id',
         'maid_id',
         'order_id',//null
+        'trip_group_code',
         'travel_type',
         'travel_with',
         'status',

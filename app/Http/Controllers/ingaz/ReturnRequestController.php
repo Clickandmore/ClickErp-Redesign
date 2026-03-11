@@ -2,20 +2,19 @@
 
 namespace App\Http\Controllers\ingaz;
 
+use App\Enums\ingaz\OrderEnum;
 use App\Http\Actions\ingaz\ReturnRequestAction as objAction;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\ingaz\JobTitleRequest;
 use App\Http\Requests\ingaz\NationalityRequest;
-use App\Models\ingaz\ReturnRequest as objModel;
-use App\Models\ingaz\ReturnRequest;
+use App\Models\ingaz\JobTitle;
+use App\Models\ingaz\Nationality as NationalityModel;
+use App\Models\ingaz\Order;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
 
 class ReturnRequestController extends Controller
 {
-
-
     public $folderPath = "admin.ingaz.return_request";
     public $postData = ["status"];
     public $mainRoute = "return_requests";
@@ -28,152 +27,272 @@ class ReturnRequestController extends Controller
         // $this->middleware('permission:طلبات الارجاع-حذف,admin', ['only' => ['destroy']]);
     }
 
-    public function index(Request $request, objAction $Action)
+    public function index(Request $request)
     {
         if ($request->ajax()) {
-            // عرض الطلبات المحذوفة أو الملغاة (refused, return) أو المحذوفة soft deleted
-            $rows = \App\Models\ingaz\Order::withTrashed()
-                ->where(function ($query) {
-                    $query->whereIn('status', [
-                        \App\Enums\ingaz\OrderEnum::Refused->value,
-                        \App\Enums\ingaz\OrderEnum::Return->value
-                    ])
-                        ->orWhereNotNull('deleted_at'); // إضافة الطلبات المحذوفة soft deleted
-                })
-                ->with(['user', 'maid', 'details.admin']);
-
-            // فلتر الحالة
-            if ($request->filled('status')) {
-                if ($request->status === 'deleted') {
-                    $rows->whereNotNull('deleted_at');
-                } else {
-                    $rows->where('status', $request->status);
-                }
-            }
-
-            // فلتر التاريخ من
-            if ($request->filled('from_date')) {
-                $rows->whereDate('created_at', '>=', $request->from_date);
-            }
-
-            // فلتر التاريخ إلى
-            if ($request->filled('to_date')) {
-                $rows->whereDate('created_at', '<=', $request->to_date);
-            }
-
-            // فلتر اسم العميل
-            if ($request->filled('client_name')) {
-                $rows->whereHas('user', function ($q) use ($request) {
-                    $q->where('name', 'like', '%' . $request->client_name . '%');
-                });
-            }
-
-            $rows = $rows->latest();
+            $rows = $this->buildBaseQuery();
+            $this->applyFilters($rows, $request);
+            $rows->orderByDesc('created_at');
 
             return DataTables::of($rows)
-                ->addIndexColumn()
-                ->editColumn('status', function ($row) {
-                    if ($row->deleted_at) {
-                        return '<span class="badge bg-secondary status-badge">محذوفة</span>';
-                    } elseif ($row->status == \App\Enums\ingaz\OrderEnum::Refused->value) {
-                        return '<span class="badge bg-danger status-badge">مرفوضة</span>';
-                    } elseif ($row->status == \App\Enums\ingaz\OrderEnum::Return->value) {
-                        return '<span class="badge bg-warning status-badge">ملغية</span>';
-                    }
-                    return '<span class="badge bg-secondary status-badge">' . getEnumValue('orders_statuses', $row->status) . '</span>';
+                ->addColumn('maid_photo', function (Order $row) {
+                    return $this->maidSummaryHtml($row);
                 })
-                ->editColumn('user_id', function ($row) {
-                    return '<span class="client-name">' . ($row->user ? $row->user->name : '-') . '</span>';
+                ->editColumn('user_id', function (Order $row) {
+                    $name = e($row->user?->name ?? '-');
+                    $idNumber = e($row->user?->id_number ?? '-');
+
+                    return '<div class="d-flex flex-column">'
+                        . '<span class="fw-semibold text-nowrap">' . $name . '</span>'
+                        . '<small class="text-muted">' . e(helperTrans('ingaz.id_number')) . ': ' . $idNumber . '</small>'
+                        . '</div>';
                 })
-                ->editColumn('phone', function ($row) {
+                ->editColumn('phone', function (Order $row) {
                     return '<span class="phone-number">' . ($row->user ? getPhoneWithTag($row->user->phone_code . $row->user->phone) : '-') . '</span>';
                 })
-                ->editColumn('maid_id', function ($row) {
-                    if ($row->maid) {
-                        $rawPath = $row->maid->image ?: ($row->maid->cv_preview ?: $row->maid->cv_file);
-                        $imageUrl = $rawPath ? showFile($rawPath) : asset('admin/assets/img/avatar.png');
-
-                        $imgTag = '<img src="' . $imageUrl . '" alt="maid-file" class="border" style="width:90px;height:120px;object-fit:cover;">';
-                        
-                        return '<a href="#" class="maidViewData" data-id="' . $row->id . '">' . $imgTag . '</a>';
-                    } else {
-
-                        return  '<span class="text-muted">-</span>';
-                    }
+                ->editColumn('nationality_name', function (Order $row) {
+                    return e($row->maid?->nationality?->sub_title ?? $row->maid?->nationality?->title ?? '-');
                 })
-                ->editColumn('order_code', function ($row) {
-                    return '<span class="order-code">' . $row->order_code . '</span>';
+                ->editColumn('maid_passport_num', function (Order $row) {
+                    return e($row->maid?->passport_num ?? '-');
                 })
-                ->editColumn('created_at', function ($row) {
-                    return '<span class="text-muted">' . $row->created_at->format('Y-m-d H:i') . '</span>';
+                ->editColumn('job_type_id', function (Order $row) {
+                    return e($row->jobType?->title ?? '-');
                 })
-                ->editColumn('admin_name', function ($row) {
-                    return '<span class="text-info">' . ($row->details->admin->name ?? '-') . '</span>';
+                ->editColumn('status', function (Order $row) {
+                    return $this->statusHtml($row);
                 })
-                ->addColumn('actions', function ($row) {
-                    $actions = '<div class="btn-group btn-group-sm" role="group">';
-
-                    // View button
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW)) {
-                        if (!isset($row->deleted_at)) {
-                            $actions .= '<a href="' . route('showSingleOrder', ['orderId' => $row->id]) . '" class="btn btn-info" title="عرض التفاصيل">
-                            <i class="fa fa-eye"></i>
-                        </a>';
-                        }
-                    }
-
-                    // Edit button (only for non-deleted orders)
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && !$row->deleted_at) {
-                        $actions .= '<a href="' . route('orders.edit', $row->id) . '" class="btn btn-warning" title="تعديل">
-                            <i class="fa fa-edit"></i>
-                        </a>';
-                    }
-
-                    // Restore button (only for deleted orders)
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE) && $row->deleted_at) {
-                        $actions .= '<button class="btn btn-sm btn-success restore-order" data-id="' . $row->id . '" title="استعادة">
-                            <i class="fa fa-undo"></i>
-                        </button>';
-                    }
-                    // Delete button
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE)) {
-                        if (isset($row->deleted_at)) {
-                            $actions .= '<button class="btn btn-danger force-delete-order" data-id="' . $row->id . '" title="حذف نهائي">
-                            <i class="fa fa-trash"></i>
-                                         </button>';
-                        } else {
-                            $actions .= '<button class="btn btn-danger delete-order" data-id="' . $row->id . '" title="حذف ">
-                            <i class="fa fa-trash"></i>
-                                           </button>';
-                        }
-                    }
-                    $actions .= '</div>';
-                    return $actions;
-                })->escapeColumns([])->make(true);
+                ->editColumn('created_at', function (Order $row) {
+                    return '<span class="text-muted">' . optional($row->created_at)->format('Y-m-d H:i') . '</span>';
+                })
+                ->addColumn('admin_name', function (Order $row) {
+                    return '<span class="text-info">' . e($row->details?->admin?->name ?? '-') . '</span>';
+                })
+                ->addColumn('actions', function (Order $row) {
+                    return $this->actionsHtml($row);
+                })
+                ->escapeColumns([])
+                ->rawColumns([
+                    'maid_photo',
+                    'user_id',
+                    'phone',
+                    'status',
+                    'created_at',
+                    'admin_name',
+                    'actions',
+                ])->make(true);
         }
+
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = helperTrans('ingaz.cancelled_orders');
         $data["modalType"] = "modal-lg";
+        $data['jobTypes'] = \Cache::remember('return_requests_job_types_list', 300, function () {
+            return JobTitle::with('translations')->get();
+        });
+        $data['nationalities'] = \Cache::remember('return_requests_nationalities_list', 300, function () {
+            return NationalityModel::with('translations')->get()->sortBy('title');
+        });
+        $data['admins'] = \Cache::remember('return_requests_admins_list', 300, function () {
+            return \App\Models\auth\Admin::select('id', 'name')->whereNull('deleted_at')->get();
+        });
 
-        // Add statistics
-        if ($request->ajax() && $request->has('statistics')) {
-            $statistics = [
-                'refused' => \App\Models\ingaz\Order::where('status', \App\Enums\ingaz\OrderEnum::Refused->value)->count(),
-                'return' => \App\Models\ingaz\Order::where('status', \App\Enums\ingaz\OrderEnum::Return->value)->count(),
-                'deleted' => \App\Models\ingaz\Order::withTrashed()->whereNotNull('deleted_at')->count(),
-                'total' => \App\Models\ingaz\Order::withTrashed()
-                    ->where(function ($query) {
-                        $query->whereIn('status', [
-                            \App\Enums\ingaz\OrderEnum::Refused->value,
-                            \App\Enums\ingaz\OrderEnum::Return->value
-                        ])
-                            ->orWhereNotNull('deleted_at');
-                    })->count()
-            ];
-            return response()->json(['statistics' => $statistics]);
-        }
+        $data['totalOrders'] = \Cache::remember('return_requests_total_count', 60, function () {
+            return $this->buildBaseQuery()->count();
+        });
+        $data['refusedOrders'] = \Cache::remember('return_requests_refused_count', 60, function () {
+            return Order::where('status', OrderEnum::Refused->value)->count();
+        });
+        $data['returnedOrders'] = \Cache::remember('return_requests_returned_count', 60, function () {
+            return Order::where('status', OrderEnum::Return->value)->count();
+        });
+        $data['deletedOrders'] = \Cache::remember('return_requests_deleted_count', 60, function () {
+            return Order::onlyTrashed()->count();
+        });
 
         return view($this->folderPath . '.index', $data);
+    }
+
+    private function buildBaseQuery(): Builder
+    {
+        return Order::query()
+            ->withTrashed()
+            ->where(function (Builder $query) {
+                $query->whereIn('status', [
+                    OrderEnum::Refused->value,
+                    OrderEnum::Return->value,
+                ])->orWhereNotNull('deleted_at');
+            })
+            ->with([
+                'user',
+                'maid.nationality',
+                'maid.office.translations',
+                'jobType',
+                'details.admin',
+            ]);
+    }
+
+    private function applyFilters(Builder $query, Request $request): void
+    {
+        if ($request->filled('status')) {
+            if ($request->status === 'deleted') {
+                $query->whereNotNull('deleted_at');
+            } else {
+                $query->where('status', $request->status);
+            }
+        }
+
+        if ($request->filled('from_date')) {
+            $query->whereDate('created_at', '>=', $request->from_date);
+        }
+
+        if ($request->filled('to_date')) {
+            $query->whereDate('created_at', '<=', $request->to_date);
+        }
+
+        if ($request->filled('job_type')) {
+            $query->where('job_type_id', $request->job_type);
+        }
+
+        if ($request->filled('admin_id')) {
+            $query->whereHas('details', function (Builder $q) use ($request) {
+                $q->where('admin_id', $request->admin_id);
+            });
+        }
+
+        if ($request->filled('client_name')) {
+            $query->whereHas('user', function (Builder $q) use ($request) {
+                $q->where('name', 'like', '%' . trim($request->client_name) . '%');
+            });
+        }
+
+        if ($request->filled('phone')) {
+            $query->whereHas('user', function (Builder $q) use ($request) {
+                $search = trim($request->phone);
+                $q->where('phone', 'like', '%' . $search . '%')
+                    ->orWhere('phone_code', 'like', '%' . $search . '%');
+            });
+        }
+
+        if ($request->filled('passport_num')) {
+            $query->whereHas('maid', function (Builder $q) use ($request) {
+                $q->where('passport_num', 'like', '%' . trim($request->passport_num) . '%');
+            });
+        }
+
+        if ($request->filled('nationality_id')) {
+            $query->whereHas('maid', function (Builder $q) use ($request) {
+                $q->where('nationality_id', $request->nationality_id);
+            });
+        }
+
+        if ($request->filled('office_name')) {
+            $officeName = trim($request->office_name);
+            $query->whereHas('maid.office.translations', function (Builder $q) use ($officeName) {
+                $q->where('title', 'like', '%' . $officeName . '%')
+                    ->where('locale', app()->getLocale());
+            });
+        }
+    }
+
+    private function statusHtml(Order $order): string
+    {
+        if ($order->deleted_at) {
+            return '<span class="badge bg-secondary status-badge">' . e(helperTrans('ingaz.deleted')) . '</span>';
+        }
+
+        if ($order->status === OrderEnum::Refused->value) {
+            return '<span class="badge bg-danger status-badge">' . e(helperTrans('ingaz.refused')) . '</span>';
+        }
+
+        if ($order->status === OrderEnum::Return->value) {
+            return '<span class="badge bg-warning text-dark status-badge">' . e(helperTrans('ingaz.return')) . '</span>';
+        }
+
+        $translated = getEnumValue('orders_statuses', $order->status);
+        return '<span class="badge bg-' . $this->statusColor($order->status) . ' status-badge">' . e($translated) . '</span>';
+    }
+
+    private function statusColor(?string $status): string
+    {
+        return match ($status) {
+            OrderEnum::Refused->value => 'danger',
+            OrderEnum::Return->value => 'warning',
+            OrderEnum::Completed->value,
+            OrderEnum::Done->value,
+            OrderEnum::Contracted->value,
+            OrderEnum::ContractedWithoutContract->value => 'success',
+            OrderEnum::UnderProcess->value => 'info',
+            default => 'secondary',
+        };
+    }
+
+    private function maidSummaryHtml(Order $order): string
+    {
+        if (!$order->maid) {
+            return '<span class="text-muted">-</span>';
+        }
+
+        $rawPath = $order->maid->image ?: ($order->maid->cv_preview ?: $order->maid->cv_file);
+        $imageUrl = $rawPath ? showFile($rawPath) : asset('admin/assets/img/avatar.png');
+        $maidName = e($order->maid->name ?? '-');
+        $passport = e($order->maid->passport_num ?? '-');
+
+        return '<div class="d-flex align-items-center gap-2">'
+            . '<img src="' . $imageUrl . '" alt="maid-avatar" class="border" style="width:60px;height:75px;object-fit:cover;border-radius: 6px;">'
+            . '<div class="d-flex flex-column">'
+            . '<span class="fw-semibold text-nowrap">' . $maidName . '</span>'
+            . '<small class="text-muted">' . e(helperTrans('ingaz.passport_num')) . ': ' . $passport . '</small>'
+            . '</div>'
+            . '</div>';
+    }
+
+    private function actionsHtml(Order $order): string
+    {
+        $actions = [];
+
+        if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW) && !$order->deleted_at) {
+            $actions[] = '<li><a class="dropdown-item" href="' . route('showSingleOrder', ['orderId' => $order->id]) . '">
+                            <i class="fa fa-eye"></i> ' . e(helperTrans('ingaz.show')) . '
+                        </a></li>';
+        }
+
+        if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && !$order->deleted_at) {
+            $actions[] = '<li><button class="dropdown-item edit-status" data-id="' . $order->id . '">
+                            <i class="fa fa-edit"></i> ' . e(helperTrans('ingaz.edit_order_status')) . '
+                        </button></li>';
+        }
+
+        if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE) && $order->deleted_at) {
+            $actions[] = '<li><button class="dropdown-item restore-order" data-id="' . $order->id . '">
+                            <i class="fa fa-undo"></i> ' . e(helperTrans('ingaz.restore_order')) . '
+                        </button></li>';
+        }
+
+        if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE)) {
+            $actions[] = '<li><hr class="dropdown-divider"></li>';
+
+            if ($order->deleted_at) {
+                $actions[] = '<li><button class="dropdown-item force-delete-order text-danger" data-id="' . $order->id . '">
+                                <i class="fa fa-trash"></i> ' . e(helperTrans('ingaz.force_delete')) . '
+                            </button></li>';
+            } else {
+                $actions[] = '<li><button class="dropdown-item delete-order text-danger" data-id="' . $order->id . '">
+                                <i class="fa fa-trash"></i> ' . e(helperTrans('ingaz.delete_order')) . '
+                            </button></li>';
+            }
+        }
+
+        if (empty($actions)) {
+            return '<span class="text-muted">-</span>';
+        }
+
+        return ' <div class="dropdown actions-dropdown">
+                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="الإجراءات المتاحة">
+                        <i class="fas fa-cogs me-1"></i> الإجراءات
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg top-0">'
+            . implode('', $actions)
+            . '</ul></div>';
     }
 
 
@@ -198,7 +317,15 @@ class ReturnRequestController extends Controller
     public function edit(Request $request, $id)
     {
         if ($request->ajax()) {
-            $obj = Nationality::findorfail($id);
+            $obj = Order::with([
+                'user',
+                'maid',
+                'jobType',
+                'details.admin',
+                'details.package',
+                'details.address'
+            ])->withTrashed()->findOrFail($id);
+
             $returnHTML = view($this->folderPath . '.edit')
                 ->with(['obj' => $obj])->render();
             return jsonSuccess(["html" => $returnHTML]);
@@ -231,41 +358,9 @@ class ReturnRequestController extends Controller
      */
     public function exportPdf(Request $request)
     {
-        // Get filtered data
-        $rows = \App\Models\ingaz\Order::withTrashed()
-            ->where(function ($query) {
-                $query->whereIn('status', [
-                    \App\Enums\ingaz\OrderEnum::Refused->value,
-                    \App\Enums\ingaz\OrderEnum::Return->value
-                ])
-                    ->orWhereNotNull('deleted_at');
-            })
-            ->with(['user', 'maid', 'details.admin']);
-
-        // Apply filters
-        if ($request->filled('status')) {
-            if ($request->status === 'deleted') {
-                $rows->whereNotNull('deleted_at');
-            } else {
-                $rows->where('status', $request->status);
-            }
-        }
-
-        if ($request->filled('from_date')) {
-            $rows->whereDate('created_at', '>=', $request->from_date);
-        }
-
-        if ($request->filled('to_date')) {
-            $rows->whereDate('created_at', '<=', $request->to_date);
-        }
-
-        if ($request->filled('client_name')) {
-            $rows->whereHas('user', function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->client_name . '%');
-            });
-        }
-
-        $data = $rows->latest()->get();
+        $rows = $this->buildBaseQuery();
+        $this->applyFilters($rows, $request);
+        $data = $rows->orderByDesc('created_at')->get();
 
         // Generate PDF
         $pdf = \PDF::loadView('admin.ingaz.return_request.pdf', compact('data'));
@@ -277,41 +372,9 @@ class ReturnRequestController extends Controller
      */
     public function exportExcel(Request $request)
     {
-        // Get filtered data
-        $rows = \App\Models\ingaz\Order::withTrashed()
-            ->where(function ($query) {
-                $query->whereIn('status', [
-                    \App\Enums\ingaz\OrderEnum::Refused->value,
-                    \App\Enums\ingaz\OrderEnum::Return->value
-                ])
-                    ->orWhereNotNull('deleted_at');
-            })
-            ->with(['user', 'maid', 'details.admin']);
-
-        // Apply filters
-        if ($request->filled('status')) {
-            if ($request->status === 'deleted') {
-                $rows->whereNotNull('deleted_at');
-            } else {
-                $rows->where('status', $request->status);
-            }
-        }
-
-        if ($request->filled('from_date')) {
-            $rows->whereDate('created_at', '>=', $request->from_date);
-        }
-
-        if ($request->filled('to_date')) {
-            $rows->whereDate('created_at', '<=', $request->to_date);
-        }
-
-        if ($request->filled('client_name')) {
-            $rows->whereHas('user', function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->client_name . '%');
-            });
-        }
-
-        $data = $rows->latest()->get();
+        $rows = $this->buildBaseQuery();
+        $this->applyFilters($rows, $request);
+        $data = $rows->orderByDesc('created_at')->get();
 
         // Generate Excel
         return \Excel::download(new \App\Exports\ReturnRequestsExport($data), 'return_requests_' . date('Y-m-d') . '.xlsx');

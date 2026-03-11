@@ -20,6 +20,37 @@
         padding: 12px;
         background: #fafcff;
     }
+
+    .calendar-trip-list {
+        border: 1px solid #e4e9f2;
+        border-radius: 10px;
+        background: #fff;
+        max-height: 280px;
+        overflow-y: auto;
+        padding: 8px;
+    }
+
+    .calendar-trip-item {
+        display: block;
+        width: 100%;
+        text-align: right;
+        border: 1px solid #edf1f7;
+        border-radius: 8px;
+        background: #f9fbff;
+        padding: 8px 10px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all .2s ease;
+    }
+
+    .calendar-trip-item:hover {
+        border-color: #f6c47a;
+        background: #fff8ec;
+    }
+
+    .calendar-trip-item:last-child {
+        margin-bottom: 0;
+    }
 </style>
 
 @endsection
@@ -144,7 +175,7 @@
         <div class="card shadow mb-4">
             <div class="card-header bg-dark text-white">
                 <h5 class="mb-0">
-                    <i class="fa fa-calendar-alt"></i> تقويم الخدمات اللوجستية (الاستقدام + الترحيل)
+                    <i class="fa fa-calendar-alt"></i> تقويم رحلات الترحيل
                 </h5>
             </div>
             <div class="card-body">
@@ -172,6 +203,11 @@
                             <button id="assignTripBtn" type="button" class="btn btn-primary w-100" disabled>
                                 <i class="fa fa-paper-plane"></i> إسناد وإرسال تنبيه
                             </button>
+                            <hr>
+                            <h6 class="mb-2">جميع رحلات الترحيل</h6>
+                            <div id="calendarTripList" class="calendar-trip-list small text-muted">
+                                جاري تحميل الرحلات...
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -223,6 +259,7 @@
 <script>
 let logisticsCalendar = null;
 let selectedCalendarTripId = null;
+const calendarScope = 'deportation';
 const travelAssignRouteTemplate = @json(route('travel.assign', ['id' => '__ID__']));
 
 $(document).ready(function() {
@@ -233,6 +270,22 @@ $(document).ready(function() {
 
     $('#assignStaffSelect').on('change', toggleAssignButtonState);
     $('#assignTripBtn').on('click', assignSelectedTrip);
+    $(document).on('click', '.calendar-trip-item', function() {
+        const eventId = String($(this).data('event-id'));
+        if (!logisticsCalendar) {
+            return;
+        }
+
+        const event = logisticsCalendar.getEventById(eventId);
+        if (!event) {
+            return;
+        }
+
+        logisticsCalendar.gotoDate(event.start);
+        selectedCalendarTripId = event.id;
+        renderSelectedTripInfo(event);
+        toggleAssignButtonState();
+    });
 });
 
 function initLogisticsCalendar() {
@@ -255,10 +308,16 @@ function initLogisticsCalendar() {
             $.ajax({
                 url: "{{ route('travel.calendar.events') }}",
                 method: 'GET',
+                data: {
+                    travel_scope: calendarScope
+                },
                 success: function(response) {
-                    successCallback(response.events || []);
+                    const events = response.events || [];
+                    successCallback(events);
+                    renderCalendarTripList(events);
                 },
                 error: function() {
+                    renderCalendarTripList([]);
                     failureCallback();
                 }
             });
@@ -290,6 +349,31 @@ function initLogisticsCalendar() {
     });
 
     logisticsCalendar.render();
+}
+
+function renderCalendarTripList(events) {
+    const container = $('#calendarTripList');
+    if (!events || !events.length) {
+        container.html('<div class="text-muted">لا توجد رحلات في هذا النطاق.</div>');
+        return;
+    }
+
+    const sortedEvents = [...events].sort((a, b) => new Date(a.start) - new Date(b.start));
+    const html = sortedEvents.map(function(event) {
+        const p = event.extendedProps || {};
+        const dateLabel = p.arrival_date || '-';
+        const timeLabel = p.arrival_time || '';
+        const statusLabel = p.status_label || '-';
+        return `
+            <button type="button" class="calendar-trip-item" data-event-id="${event.id}">
+                <div class="fw-bold mb-1">${event.title}</div>
+                <div class="text-muted">${dateLabel} ${timeLabel}</div>
+                <div class="text-muted">الحالة: ${statusLabel}</div>
+            </button>
+        `;
+    }).join('');
+
+    container.html(html);
 }
 
 function renderSelectedTripInfo(event) {

@@ -12,10 +12,13 @@ use Illuminate\Http\Request;
 
 class AllWorkerController extends Controller
 {
-    public function index(Request $request,MaidAction $maidAction, JobTitleAction $jobTitleAction, NationalityAction $nationalityAction)
+    public function index(Request $request, MaidAction $maidAction, JobTitleAction $jobTitleAction, NationalityAction $nationalityAction)
     {
-    // dd(request()->all());
-        if($request->ajax()){
+        if (!$request->filled('type') && $request->filled('nationality_id')) {
+            $request->merge(['type' => 'estqdam']);
+        }
+
+        if ($request->ajax()) {
 
             $maids = $maidAction->paginate($request);
 
@@ -38,8 +41,6 @@ class AllWorkerController extends Controller
             default => __('ingaz.recruitment_request')
         };
 
-        // dd($request->all());
-        
         return view('site.pages.all_workers', $data);
     }
 

@@ -14,9 +14,11 @@ use App\Models\TravelHistory;
 use App\Models\TravelHistoryFiles;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use DataTables;
 
 class AdminTravelHistoryController extends Controller
@@ -67,40 +69,63 @@ class AdminTravelHistoryController extends Controller
                 $query->where('travel_type', $request->travel_type);
             }
 
-            if ($request->filled('status')) {
-                $query->where('status', $request->status);
-            }
+            $groupedTrips = $this->buildGroupedTripsCollection($query->get());
 
-            return DataTables::of($query)
+            return DataTables::of($groupedTrips)
                 ->addIndexColumn()
                 ->addColumn('user_data', function($row) {
-                    $html = '<div class="user-info">';
-                    if ($row->user) {
-                        $html .= '<span class="fw-bold">' . $row->user->name . '</span><br>';
-                        $html .= '<small class="text-muted">رقم: ' . $row->user->id . '</small><br>';
-                        $html .= '<small class="text-muted">' . ($row->user->mobile ?? 'لا يوجد هاتف') . '</small>';
-                    } else {
-                        $html .= '<span class="text-muted">غير محدد</span>';
+                    $users = collect(data_get($row, 'users', []));
+                    if ($users->isEmpty()) {
+                        return '<span class="text-muted">غير محدد</span>';
                     }
+
+                    $html = '<div class="user-info">';
+                    $contractsCount = (int) data_get($row, 'contracts_count', 0);
+                    if ($contractsCount > 1) {
+                        $html .= '<span class="badge bg-primary mb-1">رحلة مجمعة (' . $contractsCount . ' عقود)</span><br>';
+                    }
+
+                    $users->take(3)->each(function ($user) use (&$html) {
+                        $html .= '<div class="mb-1">';
+                        $html .= '<span class="fw-bold">' . e($user->name ?? 'غير محدد') . '</span><br>';
+                        $html .= '<small class="text-muted">رقم: ' . e($user->id ?? '-') . '</small>';
+                        if (!empty($user->mobile)) {
+                            $html .= '<br><small class="text-muted">' . e($user->mobile) . '</small>';
+                        }
+                        $html .= '</div>';
+                    });
+
+                    if ($users->count() > 3) {
+                        $html .= '<small class="text-muted">+' . ($users->count() - 3) . ' عميلات إضافية</small>';
+                    }
+
                     $html .= '</div>';
                     return $html;
                 })
                 ->addColumn('maid_data', function($row) {
+                    $maids = collect(data_get($row, 'maids', []));
                     $html = '<div class="maid-info">';
-                    if ($row->maid) {
-                        $html .= '<span class="fw-bold">' . $row->maid->name . '</span><br>';
-                        $html .= '<small class="text-muted">الجواز: ' . ($row->maid->passport_num ?? 'غير محدد') . '</small>';
+                    if ($maids->isNotEmpty()) {
+                        $maids->take(3)->each(function ($maid) use (&$html) {
+                            $html .= '<div class="mb-1">';
+                            $html .= '<span class="fw-bold">' . e($maid->name ?? 'غير محدد') . '</span><br>';
+                            $html .= '<small class="text-muted">الجواز: ' . e($maid->passport_num ?? 'غير محدد') . '</small>';
 
-                        // الجنسية
-                        if ($row->maid->nationality) {
-                            $nationality = 'غير محدد';
-                            if ($row->maid->nationality->translations && $row->maid->nationality->translations->count() > 0) {
-                                $translation = $row->maid->nationality->translations->where('locale', app()->getLocale())->first();
-                                if ($translation) {
-                                    $nationality = $translation->sub_title;
+                            if ($maid->nationality) {
+                                $nationality = 'غير محدد';
+                                if ($maid->nationality->translations && $maid->nationality->translations->count() > 0) {
+                                    $translation = $maid->nationality->translations->where('locale', app()->getLocale())->first();
+                                    if ($translation) {
+                                        $nationality = $translation->sub_title;
+                                    }
                                 }
+                                $html .= '<br><small class="text-muted">الجنسية: ' . e($nationality) . '</small>';
                             }
-                            $html .= '<br><small class="text-muted">الجنسية: ' . $nationality . '</small>';
+                            $html .= '</div>';
+                        });
+
+                        if ($maids->count() > 3) {
+                            $html .= '<small class="text-muted">+' . ($maids->count() - 3) . ' عاملات إضافية</small>';
                         }
                     } else {
                         $html .= '<span class="text-muted">غير محدد</span>';
@@ -127,23 +152,43 @@ class AdminTravelHistoryController extends Controller
                         'GIZ' => 'جازان',
                     ];
 
-                    $airport = $airports[$row->arrival_airport] ?? $row->arrival_airport;
-                    $html .= '<i class="fa fa-plane"></i> ' . $airport . '<br>';
+                    $arrivalAirport = data_get($row, 'arrival_airport');
+                    $airport = $airports[$arrivalAirport] ?? $arrivalAirport ?? 'غير محدد';
+                    $html .= '<i class="fa fa-plane"></i> ' . e($airport) . '<br>';
 
                     // التاريخ
-                    if ($row->arrival_date) {
-                        $html .= '<i class="fa fa-calendar"></i> ' . \Carbon\Carbon::parse($row->arrival_date)->format('Y-m-d') . '<br>';
+                    $arrivalDate = data_get($row, 'arrival_date');
+                    if ($arrivalDate) {
+                        $html .= '<i class="fa fa-calendar"></i> ' . Carbon::parse($arrivalDate)->format('Y-m-d') . '<br>';
                     }
 
                     // الوقت
-                    if ($row->arrival_time) {
-                        $html .= '<i class="fa fa-clock"></i> ' . $row->arrival_time;
+                    if (data_get($row, 'arrival_time')) {
+                        $html .= '<i class="fa fa-clock"></i> ' . data_get($row, 'arrival_time');
                     }
 
                     $html .= '</div>';
                     return $html;
                 })
+                ->addColumn('order_id', function ($row) {
+                    $orderIds = collect(data_get($row, 'order_ids', []))->filter();
+                    if ($orderIds->isEmpty()) {
+                        return '<span class="text-muted">-</span>';
+                    }
+
+                    $html = $orderIds->take(4)->map(function ($orderId) {
+                        return '<span class="badge bg-light text-dark border me-1">#' . e($orderId) . '</span>';
+                    })->implode(' ');
+
+                    if ($orderIds->count() > 4) {
+                        $html .= '<span class="badge bg-secondary">+' . ($orderIds->count() - 4) . '</span>';
+                    }
+
+                    return $html;
+                })
                 ->addColumn('actions', function($row) {
+                    $tripId = data_get($row, 'id');
+                    $status = data_get($row, 'status');
                     $actions = '<div class="dropdown actions-dropdown">
                                     <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button"  aria-expanded="false" title="الإجراءات المتاحة">
                                         <i class="fas fa-cogs me-1"></i> الإجراءات
@@ -151,13 +196,13 @@ class AdminTravelHistoryController extends Controller
                                     <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
 
                     // تعديل
-                    $actions .= '<li><a class="dropdown-item" href="' . route('travel.control') . '?id=' . $row->id . '&userId=' . $row->user_id . '&maidId=' . $row->maid_id . '&orderId=' . $row->order_id . '">
+                    $actions .= '<li><a class="dropdown-item" href="' . route('travel.control') . '?id=' . $tripId . '">
                                     <i class="fas fa-edit"></i> ' . __('admin.edit') . '
                                 </a></li>';
 
                     // إكتمال الرحلة (للرحلات النشطة أو غير المكتملة)
-                    if (in_array($row->status, ['pending', 'scheduled', 'new', 'active', 'in_progress', 'confirmed'])) {
-                        $actions .= '<li><a class="dropdown-item text-success" href="javascript:void(0)" onclick="completeTrip(' . $row->id . ')">
+                    if (in_array($status, ['pending', 'scheduled', 'new', 'active', 'in_progress', 'confirmed'])) {
+                        $actions .= '<li><a class="dropdown-item text-success" href="javascript:void(0)" onclick="completeTrip(' . $tripId . ')">
                                         <i class="fas fa-check-circle"></i> إكتمال الرحلة
                                     </a></li>';
                     }
@@ -166,7 +211,7 @@ class AdminTravelHistoryController extends Controller
                         $actions .= '<li><hr class="dropdown-divider"></li>';
 
                         // حذف
-                        $actions .= '<li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="deleteTravel(' . $row->id . ')">
+                        $actions .= '<li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="deleteTravel(' . $tripId . ')">
                                         <i class="fas fa-trash"></i> ' . __('admin.delete') . '
                                     </a></li>';
                     }
@@ -175,7 +220,7 @@ class AdminTravelHistoryController extends Controller
 
                     return $actions;
                 })
-                ->rawColumns(['user_data', 'maid_data', 'travel_details', 'actions'])
+                ->rawColumns(['user_data', 'maid_data', 'travel_details', 'order_id', 'actions'])
                 ->make(true);
         }
 
@@ -186,17 +231,34 @@ class AdminTravelHistoryController extends Controller
     public function statistics()
     {
         try {
-            $total = TravelHistory::where('travel_type', '!=', 'deportation')->count();
-            $active = TravelHistory::where('travel_type', '!=', 'deportation')
-                ->whereIn('status', ['new', 'active', 'scheduled', 'in_progress', 'pending', 'confirmed'])
-                ->count();
-            $completed = TravelHistory::where('travel_type', '!=', 'deportation')
-                ->where('status', 'completed')
-                ->count();
-            $upcoming = TravelHistory::where('travel_type', '!=', 'deportation')
-                ->whereIn('status', ['new', 'scheduled', 'pending'])
-                ->where('arrival_date', '>', now())
-                ->count();
+            $tripGroups = TravelHistory::where('travel_type', '!=', 'deportation')
+                ->get()
+                ->groupBy(fn (TravelHistory $trip) => $this->resolveTripGroupKey($trip));
+
+            $activeStatuses = ['new', 'active', 'scheduled', 'in_progress', 'pending', 'confirmed'];
+            $upcomingStatuses = ['new', 'scheduled', 'pending'];
+
+            $total = $tripGroups->count();
+            $completed = $tripGroups->filter(function (Collection $group) {
+                return $group->every(fn (TravelHistory $trip) => $trip->status === 'completed');
+            })->count();
+            $active = $tripGroups->filter(function (Collection $group) use ($activeStatuses) {
+                return $group->contains(fn (TravelHistory $trip) => in_array($trip->status, $activeStatuses, true));
+            })->count();
+            $upcoming = $tripGroups->filter(function (Collection $group) use ($upcomingStatuses) {
+                $status = $this->resolveGroupStatus($group);
+                $firstTrip = $group->sortBy('arrival_date')->first();
+                if (!$firstTrip || !$firstTrip->arrival_date) {
+                    return false;
+                }
+
+                try {
+                    return in_array($status, $upcomingStatuses, true)
+                        && Carbon::parse($firstTrip->arrival_date)->isFuture();
+                } catch (\Throwable $e) {
+                    return false;
+                }
+            })->count();
 
             return response()->json([
                 'total' => $total,
@@ -223,6 +285,14 @@ class AdminTravelHistoryController extends Controller
         ])->orderBy('arrival_date', 'asc')
             ->orderBy('arrival_time', 'asc');
 
+        if ($request->filled('travel_scope')) {
+            if ($request->travel_scope === 'arrival') {
+                $query->where('travel_type', '!=', 'deportation');
+            } elseif ($request->travel_scope === 'deportation') {
+                $query->where('travel_type', 'deportation');
+            }
+        }
+
         if ($request->filled('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
         }
@@ -233,8 +303,14 @@ class AdminTravelHistoryController extends Controller
 
         $now = Carbon::now();
         $events = [];
+        $tripGroups = $query->get()->groupBy(fn (TravelHistory $trip) => $this->resolveTripGroupKey($trip));
 
-        foreach ($query->get() as $trip) {
+        foreach ($tripGroups as $group) {
+            $trip = $group->sortByDesc('id')->first();
+            if (!$trip) {
+                continue;
+            }
+
             $arrivalAt = $this->resolveArrivalDateTime($trip);
             if (!$arrivalAt && $trip->created_at) {
                 $arrivalAt = Carbon::parse($trip->created_at);
@@ -245,15 +321,34 @@ class AdminTravelHistoryController extends Controller
             }
 
             $remainingSeconds = $now->diffInSeconds($arrivalAt, false);
-            $travelTypeLabel = $trip->travel_type === 'deportation' ? 'ترحيل' : 'استقدام';
-            $statusLabel = __('travel_types.status.' . $trip->status);
-            if ($statusLabel === 'travel_types.status.' . $trip->status) {
-                $statusLabel = $trip->status;
+            $travelTypeLabel = $trip->travel_type === 'deportation' ? 'ترحيل' : 'وصول';
+            $status = $this->resolveGroupStatus($group);
+            $statusLabel = __('travel_types.status.' . $status);
+            if ($statusLabel === 'travel_types.status.' . $status) {
+                $statusLabel = $status;
+            }
+
+            $orderIds = $group->pluck('order_id')->filter()->unique()->sort()->values();
+            $maidNames = $group->map(fn (TravelHistory $item) => optional($item->maid)->name)
+                ->filter()
+                ->unique()
+                ->values();
+            $clientNames = $group->map(fn (TravelHistory $item) => optional($item->user)->name)
+                ->filter()
+                ->unique()
+                ->values();
+
+            $contractsCount = $orderIds->count();
+            $singleTitleName = $maidNames->first() ?: ('رحلة #' . $trip->id);
+            if ($contractsCount > 1) {
+                $title = $travelTypeLabel . ' مجمعة (' . $contractsCount . ' عقود)';
+            } else {
+                $title = $travelTypeLabel . ' - ' . $singleTitleName;
             }
 
             $events[] = [
                 'id' => (string) $trip->id,
-                'title' => $travelTypeLabel . ' - ' . ($trip->maid->name ?? ('رحلة #' . $trip->id)),
+                'title' => $title,
                 'start' => $arrivalAt->toIso8601String(),
                 'allDay' => false,
                 'backgroundColor' => $this->calendarEventColor($trip),
@@ -262,11 +357,15 @@ class AdminTravelHistoryController extends Controller
                     'trip_id' => $trip->id,
                     'travel_type' => $trip->travel_type,
                     'travel_type_label' => $travelTypeLabel,
-                    'status' => $trip->status,
+                    'status' => $status,
                     'status_label' => $statusLabel,
-                    'client_name' => optional($trip->user)->name,
-                    'maid_name' => optional($trip->maid)->name,
+                    'client_name' => $clientNames->count() > 1 ? ('متعدد (' . $clientNames->count() . ')') : ($clientNames->first() ?? null),
+                    'maid_name' => $maidNames->count() > 1 ? ('متعدد (' . $maidNames->count() . ')') : ($maidNames->first() ?? null),
                     'order_id' => $trip->order_id,
+                    'order_ids' => $orderIds->all(),
+                    'contracts_count' => $contractsCount,
+                    'order_ids_text' => $orderIds->map(fn ($id) => '#' . $id)->implode(' • '),
+                    'is_grouped' => $contractsCount > 1,
                     'arrival_airport' => $trip->arrival_airport,
                     'arrival_date' => $arrivalAt->format('Y-m-d'),
                     'arrival_time' => $arrivalAt->format('H:i'),
@@ -323,17 +422,28 @@ class AdminTravelHistoryController extends Controller
         try {
             $trip = TravelHistory::with(['user', 'maid'])->findOrFail($id);
             $assignee = Admin::findOrFail($request->assigned_to);
+            $groupTrips = $this->resolveTripRecords($trip)->load(['user', 'maid']);
+            $orderIds = $groupTrips->pluck('order_id')->filter()->unique()->values();
 
             DB::beginTransaction();
 
-            $trip->update([
-                'assigned_to' => $assignee->id,
-                'assigned_by' => auth('admin')->id(),
-                'assigned_at' => now(),
-                'assignment_note' => $request->assignment_note,
-            ]);
+            foreach ($groupTrips as $item) {
+                $item->update([
+                    'assigned_to' => $assignee->id,
+                    'assigned_by' => auth('admin')->id(),
+                    'assigned_at' => now(),
+                    'assignment_note' => $request->assignment_note,
+                ]);
+            }
 
-            $notificationText = $this->buildAssignmentMessage($trip);
+            $notificationTrip = $groupTrips->first() ?: $trip;
+            $notificationText = $this->buildAssignmentMessage($notificationTrip);
+            if ($orderIds->count() > 1) {
+                $travelTypeLabel = $notificationTrip->travel_type === 'deportation' ? 'ترحيل' : 'استقدام';
+                $notificationText = 'تم إسناد رحلة ' . $travelTypeLabel . ' مجمعة (' . $orderIds->count() . ' عقود). موعد الوصول: '
+                    . ($notificationTrip->arrival_date ?: 'غير محدد') . ' '
+                    . ($notificationTrip->arrival_time ?: 'غير محدد') . '.';
+            }
 
             AdminNotification::create([
                 'admin_id' => $assignee->id,
@@ -343,11 +453,13 @@ class AdminTravelHistoryController extends Controller
                 'type' => 'travel_assignment',
                 'link' => route('travel'),
                 'data' => [
-                    'trip_id' => $trip->id,
-                    'travel_type' => $trip->travel_type,
-                    'arrival_date' => $trip->arrival_date,
-                    'arrival_time' => $trip->arrival_time,
-                    'order_id' => $trip->order_id,
+                    'trip_id' => $notificationTrip->id,
+                    'travel_type' => $notificationTrip->travel_type,
+                    'arrival_date' => $notificationTrip->arrival_date,
+                    'arrival_time' => $notificationTrip->arrival_time,
+                    'order_id' => $notificationTrip->order_id,
+                    'order_ids' => $orderIds->all(),
+                    'contracts_count' => $orderIds->count(),
                 ],
             ]);
 
@@ -475,67 +587,77 @@ class AdminTravelHistoryController extends Controller
     {
         try {
             $travel = TravelHistory::findOrFail($id);
+            $tripRecords = $this->resolveTripRecords($travel);
+            $updatedContracts = 0;
 
             \DB::beginTransaction();
 
-            // تحديث حالة الرحلة إلى مكتملة
-            $travel->status = 'completed';
-            $travel->arrived_at = now();
-            $travel->arrival_confirmed_by = auth('admin')->id();
-            $travel->save();
+            foreach ($tripRecords as $tripRecord) {
+                // تحديث حالة الرحلة إلى مكتملة
+                $tripRecord->status = 'completed';
+                $tripRecord->arrived_at = now();
+                $tripRecord->arrival_confirmed_by = auth('admin')->id();
+                $tripRecord->save();
 
-            // البحث عن العقد المرتبط بالرحلة
-            $contract = null;
-            if ($travel->order_id) {
-                // البحث في جدول العقود العادية
-                $contract = \App\Models\Contract::where('id', $travel->order_id)->first();
+                // البحث عن العقد المرتبط بالرحلة
+                $contract = null;
+                if ($tripRecord->order_id) {
+                    // البحث في جدول العقود العادية
+                    $contract = \App\Models\Contract::where('id', $tripRecord->order_id)->first();
 
-                // إذا لم يوجد في العقود العادية، البحث في عقود الإيجار
-                if (!$contract) {
-                    $contract = \App\Models\RentalContract::where('id', $travel->order_id)->first();
+                    // إذا لم يوجد في العقود العادية، البحث في عقود الإيجار
+                    if (!$contract) {
+                        $contract = \App\Models\RentalContract::where('id', $tripRecord->order_id)->first();
+                    }
                 }
-            }
 
-            // إذا وجد العقد، تحديث حالته وتفعيل الضمان
-            if ($contract) {
-                // تحديث حالة العقد إلى مكتمل
-                $contract->update(['status' => 'completed']);
+                // إذا وجد العقد، تحديث حالته وتفعيل الضمان
+                if ($contract) {
+                    // تحديث حالة العقد إلى مكتمل
+                    $contract->update(['status' => 'completed']);
+                    $updatedContracts++;
 
-                // حساب وتفعيل الضمان إذا كان العقد من نوع Contract
-                if ($contract instanceof \App\Models\Contract) {
-                    $contract->calculateWarrantyStatus();
+                    // حساب وتفعيل الضمان إذا كان العقد من نوع Contract
+                    if ($contract instanceof \App\Models\Contract) {
+                        $contract->calculateWarrantyStatus();
 
-                    // إنشاء سجل حالة العقد
-                    $contract->contract_status_logs()->create([
-                        'status' => 'completed',
-                        'date' => now(),
-                        'notes' => 'تم إكمال الرحلة وتحديث حالة العقد إلى مكتمل وتفعيل الضمان'
+                        // إنشاء سجل حالة العقد
+                        $contract->contract_status_logs()->create([
+                            'status' => 'completed',
+                            'date' => now(),
+                            'notes' => 'تم إكمال الرحلة وتحديث حالة العقد إلى مكتمل وتفعيل الضمان'
+                        ]);
+                    }
+                    // إذا كان عقد إيجار، تفعيل الضمان بشكل مختلف
+                    else if ($contract instanceof \App\Models\RentalContract) {
+                        $contract->update([
+                            'warranty_status' => 'active',
+                            'warranty_start_date' => now(),
+                            'warranty_end_date' => now()->addDays(90), // 90 يوم ضمان
+                        ]);
+                    }
+
+                    \Log::info('Trip completed and contract updated', [
+                        'travel_id' => $tripRecord->id,
+                        'contract_id' => $contract->id,
+                        'contract_type' => get_class($contract),
+                        'contract_status' => $contract->status,
+                        'warranty_status' => $contract->warranty_status ?? 'N/A'
                     ]);
                 }
-                // إذا كان عقد إيجار، تفعيل الضمان بشكل مختلف
-                else if ($contract instanceof \App\Models\RentalContract) {
-                    $contract->update([
-                        'warranty_status' => 'active',
-                        'warranty_start_date' => now(),
-                        'warranty_end_date' => now()->addDays(90), // 90 يوم ضمان
-                    ]);
-                }
-
-                \Log::info('Trip completed and contract updated', [
-                    'travel_id' => $travel->id,
-                    'contract_id' => $contract->id,
-                    'contract_type' => get_class($contract),
-                    'contract_status' => $contract->status,
-                    'warranty_status' => $contract->warranty_status ?? 'N/A'
-                ]);
             }
 
             \DB::commit();
 
+            $orderCount = $tripRecords->pluck('order_id')->filter()->unique()->count();
+            $isGrouped = $orderCount > 1;
+
             return response()->json([
                 'success' => true,
-                'message' => $contract
-                    ? 'تم إكتمال الرحلة وتحديث حالة العقد إلى مكتمل وتفعيل الضمان بنجاح'
+                'message' => $updatedContracts > 0
+                    ? ($isGrouped
+                        ? 'تم إكتمال الرحلة المجمعة وتحديث ' . $updatedContracts . ' عقد بنجاح'
+                        : 'تم إكتمال الرحلة وتحديث حالة العقد إلى مكتمل وتفعيل الضمان بنجاح')
                     : 'تم إكتمال الرحلة بنجاح'
             ]);
 
@@ -557,12 +679,17 @@ class AdminTravelHistoryController extends Controller
 
     public function create(Request $request, $id = null)
     {
+        $id = $id ?: $request->get('id');
         $userId = $request->get('userId');
         $maidId = $request->get('maidId');
         $orderId = $request->get('orderId');
         $contractId = $request->get('contract_id');
         $data = null;
         $order = null;
+        $selectedOrderIds = collect($request->input('order_ids', []))
+            ->filter()
+            ->map(fn ($value) => (int) $value)
+            ->values();
 
         // First check if there's an existing travel record for this order
         if ($orderId) {
@@ -587,6 +714,21 @@ class AdminTravelHistoryController extends Controller
             $maidId = $data->maid_id;
             $orderId = $data->order_id;
             $order = $data->order;
+
+            if ($data->trip_group_code) {
+                $selectedOrderIds = TravelHistory::where('trip_group_code', $data->trip_group_code)
+                    ->pluck('order_id')
+                    ->filter()
+                    ->unique()
+                    ->map(fn ($value) => (int) $value)
+                    ->values();
+            } elseif ($data->order_id) {
+                $selectedOrderIds = collect([(int) $data->order_id]);
+            }
+        }
+
+        if ($selectedOrderIds->isEmpty() && $orderId) {
+            $selectedOrderIds = collect([(int) $orderId]);
         }
 
         $clientsList = $this->usersList();
@@ -598,17 +740,6 @@ class AdminTravelHistoryController extends Controller
             ->get();
 
         // If we have an order from the travel record or from the request, get it
-        if ($orderId) {
-            $selectedOrder = Contract::with(['user', 'maid', 'maid.nationality', 'maid.religion', 'maid.jobTitles', 'info'])
-                ->where('id', $orderId)
-                ->first();
-
-            if ($selectedOrder && !$contracts->contains('id', $selectedOrder->id)) {
-                $contracts->push($selectedOrder);
-            }
-        }
-
-        // If we have a contract_id from the request, use it to get the contract with maid info
         if ($contractId) {
             $selectedContract = Contract::with(['user', 'maid', 'maid.nationality', 'maid.religion', 'maid.jobTitles', 'info'])
                 ->where('id', $contractId)
@@ -619,10 +750,34 @@ class AdminTravelHistoryController extends Controller
                 $userId = $selectedContract->user_id;
                 $maidId = $selectedContract->maid_id;
                 $order = $selectedContract; // Set the contract as order for display
+                $selectedOrderIds = collect([(int) $selectedContract->id]);
 
                 if (!$contracts->contains('id', $selectedContract->id)) {
                     $contracts->push($selectedContract);
                 }
+            }
+        }
+
+        if ($selectedOrderIds->isNotEmpty()) {
+            $selectedContracts = Contract::with(['user', 'maid', 'maid.nationality', 'maid.religion', 'maid.jobTitles', 'info'])
+                ->whereIn('id', $selectedOrderIds->all())
+                ->get();
+
+            foreach ($selectedContracts as $selectedContract) {
+                if (!$contracts->contains('id', $selectedContract->id)) {
+                    $contracts->push($selectedContract);
+                }
+            }
+
+            if (!$order) {
+                $order = $selectedContracts->first();
+            }
+
+            if (!$userId && $selectedContracts->count() === 1) {
+                $userId = optional($selectedContracts->first())->user_id;
+            }
+            if (!$maidId && $selectedContracts->count() === 1) {
+                $maidId = optional($selectedContracts->first())->maid_id;
             }
         }
 
@@ -639,116 +794,162 @@ class AdminTravelHistoryController extends Controller
         ]);
 
         $ordersList = [];
-        return view('admin.travel_history.control', compact('data', 'clientsList', 'maidsList', 'ordersList', 'contracts', 'id', 'userId', 'maidId', 'order', 'orderId'));
+        return view('admin.travel_history.control', compact('data', 'clientsList', 'maidsList', 'ordersList', 'contracts', 'id', 'userId', 'maidId', 'order', 'orderId', 'selectedOrderIds'));
     }
 
     public function store(Request $request, $id = null)
     {
         // Validation
         $request->validate([
-            'user_id' => 'required',
-            'maid_id' => 'required',
             'travel_type' => 'required',
             'travel_with' => 'required',
+            'order_ids' => 'nullable|array|min:1',
+            'order_ids.*' => 'nullable|exists:contracts,id',
+            'order_id' => 'nullable|exists:contracts,id',
+            'contract_id' => 'nullable|exists:contracts,id',
+            'files.*' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:4096',
         ]);
 
-        // First check if there's an existing travel record for this order
-        if ($request->order_id || $request->contract_id) {
-            $orderId = $request->order_id ?: $request->contract_id;
-            $existingTravel = TravelHistory::where('order_id', $orderId)->first();
+        $orderIds = collect($request->input('order_ids', []))
+            ->merge(array_filter([$request->order_id, $request->contract_id]))
+            ->filter()
+            ->map(fn ($value) => (int) $value)
+            ->unique()
+            ->values();
 
-            if ($existingTravel) {
-                // Update existing record
-                $data = $existingTravel;
-                $data->update([
-                    'user_id' => $request->user_id,
-                    'maid_id' => $request->maid_id,
-                    'travel_type' => $request->travel_type,
-                    'travel_with' => $request->travel_with,
-                    'status' => $request->status ?? 'pending',
-                    'notes' => $request->notes,
-                    'arrival_airport' => $request->arrival_airport,
-                    'arrival_date' => $request->arrival_date,
-                    'arrival_time' => $request->arrival_time,
-                    'flight_company' => $request->flight_company,
-                    'flight_number' => $request->flight_number,
-                ]);
-            } else {
-                // Create new record only if no existing record found
-                $data = TravelHistory::create([
-                    'user_id' => $request->user_id,
-                    'maid_id' => $request->maid_id,
-                    'order_id' => $orderId,
-                    'travel_type' => $request->travel_type,
-                    'travel_with' => $request->travel_with,
-                    'status' => $request->status ?? 'pending',
-                    'notes' => $request->notes,
-                    'arrival_airport' => $request->arrival_airport,
-                    'arrival_date' => $request->arrival_date,
-                    'arrival_time' => $request->arrival_time,
-                    'flight_company' => $request->flight_company,
-                    'flight_number' => $request->flight_number,
-                ]);
-            }
-        } else {
-            // If no order_id provided, create new record
-            $data = TravelHistory::create([
-                'user_id' => $request->user_id,
-                'maid_id' => $request->maid_id,
-                'order_id' => $request->order_id,
-                'travel_type' => $request->travel_type,
-                'travel_with' => $request->travel_with,
-                'status' => $request->status ?? 'pending',
-                'notes' => $request->notes,
-                'arrival_airport' => $request->arrival_airport,
-                'arrival_date' => $request->arrival_date,
-                'arrival_time' => $request->arrival_time,
-                'flight_company' => $request->flight_company,
-                'flight_number' => $request->flight_number,
-            ]);
+        if ($orderIds->isEmpty()) {
+            return redirect()->back()
+                ->withErrors(['order_ids' => 'يجب اختيار عقد واحد على الأقل'])
+                ->withInput();
         }
 
-        //** FILES */
-        if (!empty($request->file('files'))) {
-            foreach ($request->file('files') as $k => $file) {
-                $originalFileName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-                $fileName = $originalFileName . '-' . time() . $k . '.' . $file->extension();
-                $file->move(Constants::PUBLIC_TRAVEL_DIR, $fileName);
-                TravelHistoryFiles::create([
-                    'travel_id' => $data->id,
-                    'file' => $fileName,
-                ]);
-            }
+        $contracts = Contract::with('info')
+            ->whereIn('id', $orderIds->all())
+            ->get()
+            ->keyBy('id');
+
+        if ($contracts->isEmpty()) {
+            return redirect()->back()
+                ->withErrors(['order_ids' => 'العقود المختارة غير متاحة'])
+                ->withInput();
         }
 
-        // تحديث تاريخ الوصول في contract_info إذا كان هناك عقد مرتبط
-        if ($request->arrival_date && ($request->order_id || $request->contract_id)) {
-            $orderId = $request->order_id ?: $request->contract_id;
+        $editingTrip = null;
+        if ($id || $request->id) {
+            $editingTrip = TravelHistory::find($id ?: $request->id);
+        }
 
-            // البحث عن العقد المرتبط
-            $contract = Contract::where('id', $orderId)->first();
+        $savedTrips = collect();
 
-            if ($contract) {
-                // تحديث أو إنشاء contract_info
-                if ($contract->info) {
-                    // تحديث contract_info الموجود
-                    $contract->info->update([
-                        'arrival_date' => $request->arrival_date
-                    ]);
-                } else {
-                    // إنشاء contract_info جديد
-                    $contract->info()->create([
-                        'arrival_date' => $request->arrival_date
-                    ]);
+        DB::transaction(function () use (
+            $request,
+            $orderIds,
+            $contracts,
+            $editingTrip,
+            &$savedTrips
+        ) {
+            $existingGroupRecords = collect();
+            if ($editingTrip) {
+                $existingGroupRecords = $this->resolveTripRecords($editingTrip);
+            }
+
+            $tripGroupCode = null;
+            if ($orderIds->count() > 1) {
+                $tripGroupCode = $editingTrip && $editingTrip->trip_group_code
+                    ? $editingTrip->trip_group_code
+                    : $this->generateTripGroupCode();
+            }
+
+            foreach ($orderIds as $orderId) {
+                $contract = $contracts->get($orderId);
+                if (!$contract) {
+                    continue;
                 }
 
-                \Log::info('Updated contract_info arrival_date', [
-                    'contract_id' => $contract->id,
+                $tripRecord = $existingGroupRecords->firstWhere('order_id', $orderId);
+                if (!$tripRecord) {
+                    $tripRecord = TravelHistory::where('order_id', $orderId)
+                        ->where('travel_type', '!=', 'deportation')
+                        ->latest('id')
+                        ->first();
+                }
+
+                $statusValue = $request->filled('status')
+                    ? $request->status
+                    : ($tripRecord ? $tripRecord->status : 'pending');
+
+                $payload = [
+                    'user_id' => $contract->user_id ?: ($request->user_id ?: 0),
+                    'maid_id' => $contract->maid_id ?: ($request->maid_id ?: 0),
+                    'order_id' => $orderId,
+                    'trip_group_code' => $tripGroupCode,
+                    'travel_type' => $request->travel_type,
+                    'travel_with' => $request->travel_with,
+                    'status' => $statusValue,
+                    'notes' => $request->notes,
+                    'arrival_airport' => $request->arrival_airport,
                     'arrival_date' => $request->arrival_date,
-                    'travel_history_id' => $data->id
-                ]);
+                    'arrival_time' => $request->arrival_time,
+                    'flight_company' => $request->flight_company,
+                    'flight_number' => $request->flight_number,
+                ];
+
+                if ($tripRecord) {
+                    $tripRecord->update($payload);
+                } else {
+                    $tripRecord = TravelHistory::create($payload);
+                }
+
+                $savedTrips->push($tripRecord);
             }
-        }
+
+            if ($existingGroupRecords->isNotEmpty()) {
+                $existingGroupRecords
+                    ->whereNotIn('order_id', $orderIds->all())
+                    ->each(function (TravelHistory $oldTrip) {
+                        $oldTrip->delete();
+                    });
+            }
+
+            if (!empty($request->file('files')) && $savedTrips->isNotEmpty()) {
+                foreach ($request->file('files') as $k => $file) {
+                    $originalFileName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                    $fileName = $originalFileName . '-' . time() . $k . '.' . $file->extension();
+                    $file->move(Constants::PUBLIC_TRAVEL_DIR, $fileName);
+
+                    foreach ($savedTrips as $savedTrip) {
+                        TravelHistoryFiles::create([
+                            'travel_id' => $savedTrip->id,
+                            'file' => $fileName,
+                        ]);
+                    }
+                }
+            }
+
+            if ($request->arrival_date) {
+                foreach ($orderIds as $orderId) {
+                    $contract = $contracts->get($orderId);
+                    if (!$contract) {
+                        continue;
+                    }
+
+                    if ($contract->info) {
+                        $contract->info->update([
+                            'arrival_date' => $request->arrival_date
+                        ]);
+                    } else {
+                        $contract->info()->create([
+                            'arrival_date' => $request->arrival_date
+                        ]);
+                    }
+
+                    \Log::info('Updated contract_info arrival_date', [
+                        'contract_id' => $contract->id,
+                        'arrival_date' => $request->arrival_date,
+                    ]);
+                }
+            }
+        });
 
         return redirect(route('travel'))->with('success', __('admin.success'));
     }
@@ -766,14 +967,106 @@ class AdminTravelHistoryController extends Controller
     public function destroy(string $id)
     {
         $data = TravelHistory::find($id);
-        // get order by order_id
-        $order = Order::find($data->order_id);
-        if ($order) {
-            $order->status = ContractStatusEnum::Taffez;
-            $order->save();
+        if (!$data) {
+            return redirect()->back()->with('error', __('admin.not_found'));
         }
-        $data ? $data->delete() : '';
+
+        $tripRecords = $this->resolveTripRecords($data);
+        foreach ($tripRecords as $tripRecord) {
+            $order = Order::find($tripRecord->order_id);
+            if ($order) {
+                $order->status = ContractStatusEnum::Taffez;
+                $order->save();
+            }
+            $tripRecord->delete();
+        }
+
         return redirect()->back()->with('success', __('admin.success'));
+    }
+
+    private function buildGroupedTripsCollection(Collection $trips): Collection
+    {
+        return $trips
+            ->groupBy(fn (TravelHistory $trip) => $this->resolveTripGroupKey($trip))
+            ->map(function (Collection $group) {
+                $primaryTrip = $group->sortByDesc('id')->first();
+                $orderIds = $group->pluck('order_id')->filter()->unique()->values();
+                $users = $group->map(fn (TravelHistory $trip) => $trip->user)
+                    ->filter()
+                    ->unique('id')
+                    ->values();
+                $maids = $group->map(fn (TravelHistory $trip) => $trip->maid)
+                    ->filter()
+                    ->unique('id')
+                    ->values();
+
+                return (object) [
+                    'id' => $primaryTrip->id,
+                    'trip_group_code' => $primaryTrip->trip_group_code,
+                    'contracts_count' => $orderIds->count(),
+                    'order_ids' => $orderIds->all(),
+                    'order_id' => $orderIds->implode(', '),
+                    'travel_type' => $primaryTrip->travel_type,
+                    'travel_with' => $primaryTrip->travel_with,
+                    'arrival_airport' => $primaryTrip->arrival_airport,
+                    'arrival_date' => $primaryTrip->arrival_date,
+                    'arrival_time' => $primaryTrip->arrival_time,
+                    'flight_company' => $primaryTrip->flight_company,
+                    'flight_number' => $primaryTrip->flight_number,
+                    'status' => $this->resolveGroupStatus($group),
+                    'users' => $users,
+                    'maids' => $maids,
+                ];
+            })
+            ->sortByDesc('id')
+            ->values();
+    }
+
+    private function resolveTripGroupKey(TravelHistory $trip): string
+    {
+        if (!empty($trip->trip_group_code)) {
+            return 'group:' . $trip->trip_group_code;
+        }
+
+        return 'single:' . $trip->id;
+    }
+
+    private function resolveGroupStatus(Collection $group): string
+    {
+        if ($group->isEmpty()) {
+            return 'pending';
+        }
+
+        if ($group->every(fn (TravelHistory $trip) => $trip->status === 'completed')) {
+            return 'completed';
+        }
+
+        $priorityStatuses = ['in_progress', 'active', 'scheduled', 'confirmed', 'pending', 'new'];
+        foreach ($priorityStatuses as $status) {
+            if ($group->contains(fn (TravelHistory $trip) => $trip->status === $status)) {
+                return $status;
+            }
+        }
+
+        return (string) ($group->first()->status ?? 'pending');
+    }
+
+    private function resolveTripRecords(TravelHistory $trip): Collection
+    {
+        if (!empty($trip->trip_group_code)) {
+            return TravelHistory::where('trip_group_code', $trip->trip_group_code)->get();
+        }
+
+        return collect([$trip]);
+    }
+
+    private function generateTripGroupCode(): string
+    {
+        do {
+            $code = 'GRP-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(4));
+        } while (TravelHistory::where('trip_group_code', $code)->exists());
+
+        return $code;
     }
 
     public function storeTravelHistory(Request $request)

@@ -331,6 +331,32 @@
             text-align: center;
         }
 
+        .credit-strip {
+            margin-top: 10px;
+            padding: 10px 8px 0;
+            border-top: 1px dashed #cbd5e1;
+            text-align: center;
+            color: #334155;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        .credit-strip img {
+            width: 20px;
+            height: 20px;
+            object-fit: contain;
+            vertical-align: middle;
+            margin-left: 6px;
+        }
+
+        .credit-strip a {
+            color: #0f7a87;
+            font-weight: 700;
+            text-decoration: none;
+            direction: ltr;
+            unicode-bidi: embed;
+        }
+
         @media print {
             @page {
                 size: A4 portrait;
@@ -355,6 +381,11 @@
 </head>
 
 <body>
+    @php
+        $clickUrl = 'https://clickerp.com.sa';
+        $clickLogoExists = file_exists(public_path('admin/assets/img/fav.png'));
+    @endphp
+
     <div class="page">
         <div class="tools">
             <button type="button" class="btn" data-action="print">طباعة الفاتورة</button>
@@ -522,6 +553,16 @@
                     <div class="col">هاتف: {{ $supplierPhone }} | إضافي: {{ $supplierOtherPhone }}</div>
                     <div class="col">الرقم الضريبي: {{ $supplierTaxNumber }}</div>
                 </div>
+            </div>
+
+            <div class="credit-strip">
+                @if ($clickLogoExists)
+                    <img src="{{ asset('admin/assets/img/fav.png') }}" alt="Click Logo">
+                @endif
+                تم تصميم وتطوير هذه الفاتورة بواسطة
+                <a href="{{ $clickUrl }}" target="_blank" rel="noopener">
+                    نظام كليك لإدارة مكاتب وشركات الاستقدام - clickerp.com.sa
+                </a>
             </div>
         </div>
     </div>

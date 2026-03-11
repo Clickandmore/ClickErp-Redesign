@@ -127,10 +127,41 @@
             color: #6b7280;
             font-size: 11px;
         }
+
+        .credit-note {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed #d1d5db;
+            color: #374151;
+            font-size: 11px;
+            text-align: center;
+            line-height: 1.7;
+        }
+
+        .credit-note img {
+            width: 16px;
+            height: 16px;
+            object-fit: contain;
+            vertical-align: middle;
+            margin-left: 5px;
+        }
+
+        .credit-note a {
+            color: #0f7a87;
+            text-decoration: none;
+            font-weight: 700;
+            direction: ltr;
+            unicode-bidi: embed;
+        }
     </style>
 </head>
 
 <body>
+    @php
+        $clickUrl = 'https://clickerp.com.sa';
+        $clickLogoExists = file_exists(public_path('admin/assets/img/fav.png'));
+    @endphp
+
     <div class="invoice-wrap">
         <div class="title-row">
             <p class="title">فاتورة ضريبية مبسطة</p>
@@ -239,6 +270,13 @@
 
         <p class="note">تمت الطباعة بواسطة: {{ $printedBy ?? '---' }} | وقت الطباعة: {{ optional($printedAt)->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s') }}</p>
         <p class="note">رابط الفاتورة: {{ $invoiceUrl }}</p>
+        <p class="credit-note">
+            @if ($clickLogoExists)
+                <img src="{{ asset('admin/assets/img/fav.png') }}" alt="Click Logo">
+            @endif
+            تم تصميم وتطوير هذه الفاتورة بواسطة
+            <a href="{{ $clickUrl }}">نظام كليك لإدارة مكاتب وشركات الاستقدام - clickerp.com.sa</a>
+        </p>
     </div>
 </body>
 

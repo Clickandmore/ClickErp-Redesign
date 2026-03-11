@@ -7,6 +7,48 @@
 
 
 @section('css')
+<style>
+    .travel-form-panel {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 16px;
+        background: #fcfdff;
+    }
+
+    .contracts-preview {
+        border: 1px dashed #cfd8e3;
+        border-radius: 10px;
+        background: #fff;
+        padding: 12px;
+        min-height: 56px;
+    }
+
+    .contract-preview-item {
+        border: 1px solid #e9eef5;
+        border-radius: 8px;
+        padding: 8px 10px;
+        margin-bottom: 8px;
+        background: #f8fbff;
+    }
+
+    .contract-preview-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .travel-default-hint {
+        color: #6b7280;
+        font-size: 12px;
+        margin-top: 6px;
+        display: block;
+    }
+
+    #order_ids + .select2-container .select2-selection--multiple {
+        min-height: 46px;
+        border-radius: 10px;
+        border: 1px solid #d1d9e6;
+        padding: 4px 6px;
+    }
+</style>
 @endsection
 
 
@@ -65,40 +107,53 @@
     <input type="hidden" name="user_id" id="user_id" value="{{ @$data->user_id ?? @$userId ?? '' }}">
     <input type="hidden" name="maid_id" id="maid_id" value="{{ @$data->maid_id ?? @$maidId ?? '' }}">
 
-    {{-- $contracts, name=order_id --}}
-    <div class="mb-3 row">
+    @php
+        $selectedContracts = old('order_ids', @$selectedOrderIds ? collect($selectedOrderIds)->all() : []);
+        if (empty($selectedContracts) && old('order_id')) {
+            $selectedContracts = [old('order_id')];
+        }
+        if (empty($selectedContracts) && @$orderId) {
+            $selectedContracts = [@$orderId];
+        }
+        $selectedTravelType = old('travel_type') ?: (@$data->travel_type ?: 'international');
+        $selectedTravelWith = old('travel_with') ?: (@$data->travel_with ?: 'airport');
+    @endphp
+
+    {{-- اختيار العقود (يدعم متعدد) --}}
+    <div class="mb-4 row">
         <label for="" class="col-sm-3 col-form-label">{{ __('ingaz.contract') }}</label>
-        <div class="col-sm-5">
-            <select name="order_id" id="order_id" class="form-control cu-form-design select2">
-                <option value="">@lang('ingaz.select_contract')</option>
-                @forelse ($contracts as $contract)
-                    <option value="{{$contract->id}}"
-                        @if ((@$data && @$data->order_id == $contract->id) ||
-                            (request()->get('id') == $contract->id) ||
-                            (@$order && @$order->id == $contract->id) ||
-                            (@$orderId == $contract->id))
-                            selected
-                        @endif>
-                        @lang('ingaz.contract'): {{$contract->id}}
-                        @if(@$contract->info->visa_number) (تأشيرة: {{@$contract->info->visa_number}}) @endif
-                        ({{@$contract->status}})
-                        @if(@$contract->info->contract_date) ({{@$contract->info->contract_date}}) @endif -
-                        @lang('ingaz.client'): {{@$contract->user->name ?? 'غير محدد'}}
-                        @if(@$contract->user->phone) ({{@$contract->user->phone}}) @endif -
-                        @lang('ingaz.maid'): {{@$contract->maid->name ?? 'غير محدد'}}
-                        @if(@$contract->maid->passport_num) (جواز: {{@$contract->maid->passport_num}}) @endif
-                        @if(@$contract->maid->nationality) - {{@$contract->maid->nationality->sub_title}} @endif
-                        @if(@$contract->maid->religion) - {{@$contract->maid->religion->title}} @endif
-                        @if(@$contract->maid->office) - {{@$contract->maid->office->title}} @endif
-                        @if(@$contract->maid->jobTitles && @$contract->maid->jobTitles->count() > 0) - {{@$contract->maid->jobTitles->first()->title}} @endif
-                    </option>
-                @empty
-                @endforelse
-            </select>
-            <div>
-                @error('order_id')
-                <div class="text-danger">{{ $message }}</div>
-                @enderror
+        <div class="col-sm-7">
+            <div class="travel-form-panel">
+                <select name="order_ids[]" id="order_ids" class="form-control cu-form-design select2" multiple
+                    data-placeholder="@lang('ingaz.select_contract')">
+                    @forelse ($contracts as $contract)
+                        <option value="{{$contract->id}}"
+                            @if (in_array($contract->id, $selectedContracts))
+                                selected
+                            @endif>
+                            عقد #{{$contract->id}} | العميل: {{@$contract->user->name ?? 'غير محدد'}} | العاملة: {{@$contract->maid->name ?? 'غير محدد'}}
+                            @if(@$contract->info->visa_number) | تأشيرة: {{@$contract->info->visa_number}} @endif
+                        </option>
+                    @empty
+                    @endforelse
+                </select>
+                <small class="text-muted d-block mt-2">يمكن اختيار أكثر من عقد لنفس الرحلة.</small>
+
+                <div id="selected_contracts_preview" class="contracts-preview mt-2">
+                    <span class="text-muted">لم يتم اختيار عقود بعد.</span>
+                </div>
+
+                <div>
+                    @error('order_ids')
+                    <div class="text-danger">{{ $message }}</div>
+                    @enderror
+                    @error('order_ids.*')
+                    <div class="text-danger">{{ $message }}</div>
+                    @enderror
+                    @error('order_id')
+                    <div class="text-danger">{{ $message }}</div>
+                    @enderror
+                </div>
             </div>
         </div>
     </div>
@@ -158,10 +213,10 @@
         <label for="" class="col-sm-3 col-form-label">{{ __('admin.travel_type') }}</label>
         <div class="col-sm-5">
             <select name="travel_type" id="travel_type" class="form-control cu-form-design select2">
-                <option value="">اختر نوع الرحلة</option>
-                <option value="international" @if (@$data->travel_type == 'international') selected @endif>رحلة دولية</option>
-                <option value="domestic" @if (@$data->travel_type == 'domestic') selected @endif>رحلة داخلية</option>
+                <option value="international" @if ($selectedTravelType == 'international') selected @endif>رحلة دولية</option>
+                <option value="domestic" @if ($selectedTravelType == 'domestic') selected @endif>رحلة داخلية</option>
             </select>
+            <span class="travel-default-hint">الاختيار الافتراضي: رحلة دولية.</span>
             <div>
                 @error('travel_type')
                 <div class="text-danger">{{ $message }}</div>
@@ -170,11 +225,11 @@
         </div>
     </div>
 
-    {{-- عرض مدينة تسليم العميل --}}
+    {{-- عرض مدن تسليم العملاء --}}
     <div class="mb-3 row">
-        <label for="" class="col-sm-3 col-form-label">مدينة تسليم العميل</label>
+        <label for="" class="col-sm-3 col-form-label">مدن تسليم العملاء</label>
         <div class="col-sm-5">
-            <input type="text" class="form-control" id="client_city" readonly placeholder="سيتم ملؤها تلقائياً عند اختيار العقد">
+            <textarea class="form-control" id="client_city" rows="2" readonly placeholder="سيتم ملؤها تلقائياً عند اختيار العقود"></textarea>
         </div>
     </div>
 
@@ -182,11 +237,11 @@
         <label for="" class="col-sm-3 col-form-label">وسيلة السفر</label>
         <div class="col-sm-5">
             <select name="travel_with" id="travel_with" class="form-control cu-form-design select2">
-                <option value="">اختر وسيلة السفر</option>
-                <option value="airport" @if (@$data->travel_with == 'airport') selected @endif>مطار</option>
-                <option value="group_transport" @if (@$data->travel_with == 'group_transport') selected @endif>نقل جماعي</option>
-                <option value="train" @if (@$data->travel_with == 'train') selected @endif>قطار</option>
+                <option value="airport" @if ($selectedTravelWith == 'airport') selected @endif>مطار</option>
+                <option value="group_transport" @if ($selectedTravelWith == 'group_transport') selected @endif>نقل جماعي</option>
+                <option value="train" @if ($selectedTravelWith == 'train') selected @endif>قطار</option>
             </select>
+            <span class="travel-default-hint">الاختيار الافتراضي: مطار.</span>
             <div>
                 @error('travel_with')
                 <div class="text-danger">{{ $message }}</div>
@@ -393,227 +448,107 @@
 @push('js')
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 <script>
-    $(document).ready(function () {
-        // Initialize select2 with specific options
-        $('.select2').select2({
-            allowClear: false,
-            width: '100%'
-        });
-
-        // Function to set select2 value
-        function setSelect2Value(selector, value) {
-            if (value) {
-                $(selector).val(value).trigger('change');
-            }
-        }
-
-        // Set initial values after a short delay to ensure select2 is fully initialized
-        setTimeout(function() {
-            // Set order
-            var orderId = "{{ @$orderId }}";
-            if(orderId) {
-                setSelect2Value('#order_id', orderId);
-            }
-
-            // Set user
-            var userId = "{{ @$userId }}";
-            if(userId) {
-                setSelect2Value('#user_id', userId);
-            }
-
-            // Set maid
-            var maidId = "{{ @$maidId }}";
-            if(maidId) {
-                setSelect2Value('#maid_id', maidId);
-            }
-        }, 100);
-
-        // Prevent order selection from being cleared
-        $('#order_id').on('select2:unselecting', function(e) {
-            e.preventDefault();
-        });
-
-        // Additional event handler to ensure selection persists
-        $('#order_id').on('change', function(e) {
-            var currentValue = $(this).val();
-            if (!currentValue && "{{ @$orderId }}") {
-                $(this).val("{{ @$orderId }}").trigger('change');
-            }
-        });
-
-        // Handle mark as completed button click
-        $('#markCompletedBtn').click(function() {
-            $('#status').val('completed').trigger('change');
-        });
-
-        // Handle review trip button click
-        $('#reviewTripBtn').click(function() {
-            // Add your review trip logic here
-            swal({
-                title: '{{ __("admin.review_trip") }}',
-                text: '{{ __("admin.review_trip_confirmation") }}',
-                icon: 'info',
-                buttons: {
-                    cancel: '{{ __("admin.cancel") }}',
-                    confirm: '{{ __("admin.confirm") }}'
-                }
-            }).then((willReview) => {
-                if (willReview) {
-                    // Add your review trip API call here
-                    // For example:
-                    // $.ajax({
-                    //     url: '/api/trip/review',
-                    //     method: 'POST',
-                    //     data: {
-                    //         trip_id: "{{ @$data->id }}"
-                    //     },
-                    //     success: function(response) {
-                    //         swal('{{ __("admin.success") }}', response.message, 'success');
-                    //     }
-                    // });
-                }
-            });
-        });
-
-        // Check if trip already exists for this order
-        // @if(!@$data)
-        // $('#order_id').on('change', function() {
-        //     var orderId = $(this).val();
-        //     if (orderId) {
-        //         $.ajax({
-        //             url: '/api/admin/check-trip-exists',
-        //             method: 'GET',
-        //             data: {
-        //                 order_id: orderId
-        //             },
-        //             success: function(response) {
-        //                 if (response.exists) {
-        //                     swal({
-        //                         title: '{{ __("admin.error") }}',
-        //                         text: '{{ __("admin.trip_already_exists") }}',
-        //                         icon: 'error'
-        //                     });
-        //                     $('#order_id').val('').trigger('change');
-        //                 }
-        //             }
-        //         });
-        //     }
-        // });
-        // @endif
-    });
-</script>
-@endpush
-
-
-@push('js')
-<script>
 $(document).ready(function () {
+    const contracts = @json($contracts);
+    const initialSelectedOrderIds = @json(array_values(array_map('strval', $selectedContracts ?? [])));
+    const contractIdFromUrl = "{{ request()->contract_id }}";
 
-    // auto select order id if it is in the url
-    var orderId = "{{ request()->id }}";
-    if( orderId != "" || orderId != null ){
-        $('#order_id').val(orderId).trigger('change');
+    $('.select2').select2({
+        width: '100%'
+    });
+
+    $('#order_ids').select2({
+        width: '100%',
+        placeholder: @json(__('ingaz.select_contract'))
+    });
+
+    if (contractIdFromUrl && !initialSelectedOrderIds.includes(contractIdFromUrl)) {
+        initialSelectedOrderIds.push(contractIdFromUrl);
     }
 
-    // Auto-fill data when contract is selected
-    $('#order_id').on('change', function() {
-        var selectedContractId = $(this).val();
+    if (initialSelectedOrderIds.length > 0) {
+        $('#order_ids').val(initialSelectedOrderIds).trigger('change');
+    }
 
-        if (selectedContractId) {
-            var contracts = @json($contracts);
-            var selectedContract = contracts.find(function(contract) {
-                return contract.id == selectedContractId;
-            });
+    if (!$('#travel_type').val()) {
+        $('#travel_type').val('international').trigger('change');
+    }
 
-            if (selectedContract) {
-                // Auto-fill user_id
-                if (selectedContract.user_id) {
-                    $('#user_id').val(selectedContract.user_id);
-                }
+    if (!$('#travel_with').val()) {
+        $('#travel_with').val('airport').trigger('change');
+    }
 
-                // Auto-fill maid_id
-                if (selectedContract.maid_id) {
-                    $('#maid_id').val(selectedContract.maid_id);
-                }
+    function buildSelectedContractsPreview(selectedContracts) {
+        if (!selectedContracts.length) {
+            $('#selected_contracts_preview').html('<span class="text-muted">لم يتم اختيار عقود بعد.</span>');
+            return;
+        }
 
-                // Auto-fill client city
-                if (selectedContract.user && selectedContract.user.city) {
-                    $('#client_city').val(selectedContract.user.city);
-                } else {
-                    $('#client_city').val('غير محدد');
-                }
-                console.log(selectedContract);
-                console.log(selectedContract.user.city);
-            }
-        } else {
-            // Clear fields if no contract selected
+        const visibleContracts = selectedContracts.slice(0, 6);
+        let html = visibleContracts.map(function(contract) {
+            const client = contract.user && contract.user.name ? contract.user.name : 'غير محدد';
+            const maid = contract.maid && contract.maid.name ? contract.maid.name : 'غير محدد';
+            const city = contract.user && contract.user.city ? contract.user.city : 'غير محدد';
+            const visa = contract.info && contract.info.visa_number ? contract.info.visa_number : '-';
+            return `
+                <div class="contract-preview-item">
+                    <div><strong>عقد #${contract.id}</strong> | عميلة: ${client}</div>
+                    <div class="text-muted small">العاملة: ${maid} | مدينة التسليم: ${city} | التأشيرة: ${visa}</div>
+                </div>
+            `;
+        }).join('');
+
+        if (selectedContracts.length > visibleContracts.length) {
+            html += `<div class="text-muted small">+ ${selectedContracts.length - visibleContracts.length} عقود إضافية</div>`;
+        }
+
+        $('#selected_contracts_preview').html(html);
+    }
+
+    function updateDerivedFields() {
+        const selectedIds = $('#order_ids').val() || [];
+        const selectedContracts = contracts.filter(function(contract) {
+            return selectedIds.includes(String(contract.id));
+        });
+
+        if (selectedContracts.length === 0) {
             $('#user_id').val('');
             $('#maid_id').val('');
             $('#client_city').val('');
+            buildSelectedContractsPreview([]);
+            return;
         }
-    });
 
-    // Auto-fill data if contract_id is in URL
-    var contractId = "{{ request()->contract_id }}";
-    if (contractId) {
-        $('#order_id').val(contractId).trigger('change');
+        const firstContract = selectedContracts[0];
+        $('#user_id').val(firstContract.user_id || '');
+        $('#maid_id').val(firstContract.maid_id || '');
+
+        const cities = [...new Set(selectedContracts
+            .map(function(contract) {
+                return contract.user && contract.user.city ? contract.user.city : null;
+            })
+            .filter(function(city) {
+                return !!city;
+            })
+        )];
+
+        if (cities.length > 0) {
+            $('#client_city').val(cities.join('\n'));
+        } else {
+            $('#client_city').val('غير محدد');
+        }
+
+        buildSelectedContractsPreview(selectedContracts);
     }
 
-    // Auto-fill hidden fields if they exist in the data
-    @if(@$data)
-        @if(@$data->user_id)
-            $('#user_id').val("{{ @$data->user_id }}");
-        @endif
-        @if(@$data->maid_id)
-            $('#maid_id').val("{{ @$data->maid_id }}");
-        @endif
-    @endif
+    $('#order_ids').on('change', updateDerivedFields);
+    updateDerivedFields();
 
-    // Auto-fill hidden fields if they exist in the request
-    @if(request()->userId)
-        $('#user_id').val("{{ request()->userId }}");
-    @endif
-    @if(request()->maidId)
-        $('#maid_id').val("{{ request()->maidId }}");
-    @endif
-
-    // Auto-fill client city if we have order data
-    @if(@$order && @$order->user && @$order->user->city)
-        $('#client_city').val("{{ @$order->user->city }}");
-    @endif
-
-    // Auto-fill client city if we have contract data
-    @if(@$orderId)
-        var contracts = @json($contracts);
-        var selectedContract = contracts.find(function(contract) {
-            return contract.id == "{{ @$orderId }}";
-        });
-        if (selectedContract && selectedContract.user && selectedContract.user.city) {
-            $('#client_city').val(selectedContract.user.city);
-        }
-    @endif
-
-    // Auto-fill client city if we have contract data from URL
-    @if(request()->contract_id)
-        var contracts = @json($contracts);
-        var selectedContract = contracts.find(function(contract) {
-            return contract.id == "{{ request()->contract_id }}";
-        });
-        if (selectedContract && selectedContract.user && selectedContract.user.city) {
-            $('#client_city').val(selectedContract.user.city);
-        }
-    @endif
-
-
-
-    // Delete file
     $('.delete-file').click(function(event) {
         event.preventDefault();
 
-        // Get the file ID from the data-id attribute
         var fileId = $(this).data('id');
 
-        // Show confirmation dialog
         swal({
             title: '{{ __('admin.confirm_delete') }}',
             icon: 'warning',
@@ -624,10 +559,8 @@ $(document).ready(function () {
             dangerMode: true
         }).then(function(willDelete) {
             if (willDelete) {
-                // Get the CSRF token
                 var csrfToken = $('meta[name="csrf-token"]').attr('content');
 
-                // Send delete request with Ajax
                 $.ajax({
                     url: '{{ url('ar/admin/travel/file/delete') }}' + '/' + fileId,
                     type: 'DELETE',
@@ -638,11 +571,8 @@ $(document).ready(function () {
                     success: function(response) {
                         swal('{{ __('admin.success') }}', response.message, 'success')
                             .then(function() {
-                                // Remove the row from the table
-                                $('.delete-file[data-id="' + fileId + '"]').closest(
-                                    'tr').remove();
+                                $('.delete-file[data-id="' + fileId + '"]').closest('tr').remove();
 
-                                // Check if no files remaining
                                 if (response.no_files) {
                                     $('tbody').html(
                                         '<tr><td colspan="4">{{ __('admin.no_files_found_currently') }}</td></tr>'
@@ -650,15 +580,12 @@ $(document).ready(function () {
                                 }
                             });
                     },
-                    error: function(xhr, status, error) {
-                        var errorMessage = xhr.responseJSON.message;
-
-                        // Check if the error message exists
+                    error: function(xhr) {
+                        var errorMessage = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : null;
                         if (errorMessage) {
                             swal('{{ __('admin.error') }}', errorMessage, 'error');
                         } else {
-                            swal('{{ __('admin.error') }}',
-                                '{{ __('admin.unknown_error') }}', 'error');
+                            swal('{{ __('admin.error') }}', '{{ __('admin.unknown_error') }}', 'error');
                         }
                     }
                 });
@@ -666,21 +593,13 @@ $(document).ready(function () {
         });
     });
 
-    // Form validation before submit
     $('form').on('submit', function(e) {
-        var userId = $('#user_id').val();
-        var maidId = $('#maid_id').val();
+        var orderIds = $('#order_ids').val() || [];
         var travelWith = $('#travel_with').val();
 
-        if (!userId) {
+        if (orderIds.length === 0) {
             e.preventDefault();
-            swal('{{ __('admin.error') }}', 'user id مطلوب.', 'error');
-            return false;
-        }
-
-        if (!maidId) {
-            e.preventDefault();
-            swal('{{ __('admin.error') }}', 'maid id مطلوب.', 'error');
+            swal('{{ __('admin.error') }}', 'يجب اختيار عقد واحد على الأقل.', 'error');
             return false;
         }
 
@@ -690,6 +609,7 @@ $(document).ready(function () {
             return false;
         }
     });
+});
 </script>
 @endpush
 @include('components.sweetalert')

@@ -979,7 +979,7 @@
                                         <p>{{ $formatNumber($nationalty->rental_cost) }} ريال</p>
                                     </div>
                                 </div>
-                                <a href="{{ route('site.all-workers.index') }}?nationality_id={{ $nationalty->id }}"
+                                <a href="{{ route('site.all-workers.index') }}?type=estqdam&nationality_id={{ $nationalty->id }}"
                                     class="modern-btn">
                                     تصفح السير الذاتية <i class="fas fa-arrow-left"></i>
                                 </a>
