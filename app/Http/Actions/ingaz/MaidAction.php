@@ -883,6 +883,12 @@ class MaidAction extends MainAction
 
         $today = now()->toDateString();
 
+        $orderSeed = (string) (
+            $request->input('order_seed')
+            ?? session('all_workers_order_seed')
+            ?? now()->timestamp
+        );
+
         return $this->availableQuery()
             ->when(isset($type), function ($query) use ($type, $today) {
                 if ($type === 3) {
@@ -924,9 +930,10 @@ class MaidAction extends MainAction
                     $q->where('job_title_id', $request->job);
                 });
             })
-            ->inRandomOrder() // مع كل اعادة تحميل للصفحة تظهر عاملات مختلفة
             ->orderBy('is_pinned', 'desc')
-            ->orderBy('created_at', 'desc')
+            // Stable random order (same seed) to avoid duplicates between pagination pages.
+            ->orderByRaw('MD5(CONCAT(maids.id, ?))', [$orderSeed])
+            ->orderBy('id', 'desc')
             ->paginate($limit);
     }
 
@@ -935,7 +942,6 @@ class MaidAction extends MainAction
         return $this->availableQuery()->find($id);
     }
 }
-
 
 
 

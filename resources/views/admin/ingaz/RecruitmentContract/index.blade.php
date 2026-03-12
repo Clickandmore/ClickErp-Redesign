@@ -423,6 +423,13 @@
             <div class="card-body collapse" id="filtersCollapse">
                 <div class="card-body">
                     <div class="row">
+                        <div class="col-md-6">
+                            <label for="globalSearchFilter" class="form-label">بحث شامل:</label>
+                            <input type="text" id="globalSearchFilter" class="form-control"
+                                placeholder="هوية العميل / الاسم / الجوال / رقم التأشيرة / رقم مساند / رقم العقد">
+                        </div>
+                    </div>
+                    <div class="row mt-3">
                         <div class="col-md-3">
                             <label for="statusFilter" class="form-label">حالة العقد:</label>
                             <select id="statusFilter" class="form-select">
@@ -1055,6 +1062,7 @@
                         return json.data;
                     },
                     data: function(d) {
+                        d.global_search = $('#globalSearchFilter').val();
                         d.status = $('#statusFilter').val();
                         d.date_from = $('#dateFromFilter').val();
                         d.date_to = $('#dateToFilter').val();
@@ -1209,10 +1217,16 @@
             });
 
             // تحديث الجدول عند تغيير فلاتر البحث
-            $('#clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #cityFilter, #marketerFilter')
+            $('#globalSearchFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #cityFilter, #marketerFilter')
                 .on('change', function() {
                     // لا تحدث الجدول تلقائياً - انتظر زر البحث
                 });
+
+            $('#globalSearchFilter').on('keypress', function(e) {
+                if (e.which === 13) {
+                    $('#btnSubmit').trigger('click');
+                }
+            });
 
             // زر البحث
             $('#btnSubmit').on('click', function() {
@@ -1224,7 +1238,7 @@
 
             // مسح الفلاتر
             $('#clearFilters').on('click', function() {
-                $('#statusFilter, #warrantyStatusFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #cityFilter, #marketerFilter')
+                $('#globalSearchFilter, #statusFilter, #warrantyStatusFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #cityFilter, #marketerFilter')
                     .val('');
                 $('#dateFromFilter, #dateToFilter').val('');
                 localStorage.removeItem('contractFilters'); // مسح الفلاتر المحفوظة
@@ -1245,7 +1259,7 @@
 
                 // إظهار إشعار إذا لم توجد نتائج فقط عند البحث (وليس عند فلتر الحالة الأساسي)
                 var info = dataTable.page.info();
-                var hasSearchFilters = $('#dateFromFilter').val() || $('#dateToFilter').val() ||
+                var hasSearchFilters = $('#globalSearchFilter').val() || $('#dateFromFilter').val() || $('#dateToFilter').val() ||
                     $('#clientPhoneFilter').val() || $('#clientNameFilter').val() ||
                     $('#maidPassportFilter').val() || $('#maidNameFilter').val() ||
                     $('#contractNumberFilter').val() || $('#nationalityFilter').val() ||
@@ -1300,6 +1314,7 @@
                     url: '{{ route('RecruitmentContract.statistics') }}',
                     method: 'GET',
                     data: {
+                        global_search: $('#globalSearchFilter').val(),
                         status: $('#statusFilter').val(),
                         warranty_status: $('#warrantyStatusFilter').val(),
                         date_from: $('#dateFromFilter').val(),
@@ -1335,6 +1350,7 @@
             // حفظ الفلاتر في localStorage
             function saveFilters() {
                 var filters = {
+                    globalSearch: $('#globalSearchFilter').val(),
                     status: $('#statusFilter').val(),
                     warrantyStatus: $('#warrantyStatusFilter').val(),
                     clientPhone: $('#clientPhoneFilter').val(),
@@ -1363,6 +1379,7 @@
                 var filters = localStorage.getItem('contractFilters');
                 if (filters) {
                     filters = JSON.parse(filters);
+                    $('#globalSearchFilter').val(filters.globalSearch || '');
                     $('#statusFilter').val(filters.status || '');
                     $('#warrantyStatusFilter').val(filters.warrantyStatus || '');
                     $('#clientPhoneFilter').val(filters.clientPhone || '');

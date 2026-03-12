@@ -217,6 +217,11 @@ class RecruitmentContractController extends Controller
                 });
             }
 
+            // فلتر البحث الشامل
+            if ($request->filled('global_search')) {
+                $this->applyGlobalSearchFilter($query, $request->global_search);
+            }
+
             // فلتر المسوق
             if ($request->filled('marketer_id')) {
                 $query->where(function ($q) use ($request) {
@@ -2828,6 +2833,75 @@ class RecruitmentContractController extends Controller
                 $q->where('city', 'like', '%' . $request->city . '%');
             });
         }
+
+        // فلتر البحث الشامل
+        if ($request->filled('global_search')) {
+            $this->applyGlobalSearchFilter($query, $request->global_search);
+        }
+    }
+
+    private function applyGlobalSearchFilter($query, string $search): void
+    {
+        $search = trim($search);
+
+        if ($search === '') {
+            return;
+        }
+
+        $likeSearch = '%' . $search . '%';
+
+        $query->where(function ($q) use ($likeSearch) {
+            // بيانات العقد الأساسية
+            $q->where('id', 'like', $likeSearch)
+                ->orWhere('order_id', 'like', $likeSearch)
+                ->orWhere('status', 'like', $likeSearch);
+
+            // بيانات العميل
+            $q->orWhereHas('user', function ($userQuery) use ($likeSearch) {
+                $userQuery->where('name', 'like', $likeSearch)
+                    ->orWhere('phone_code', 'like', $likeSearch)
+                    ->orWhere('phone', 'like', $likeSearch)
+                    ->orWhereRaw("CONCAT(COALESCE(phone_code,''), COALESCE(phone,'')) LIKE ?", [$likeSearch])
+                    ->orWhere('phone2', 'like', $likeSearch)
+                    ->orWhere('national_num', 'like', $likeSearch)
+                    ->orWhere('email', 'like', $likeSearch)
+                    ->orWhere('city', 'like', $likeSearch)
+                    ->orWhere('address', 'like', $likeSearch)
+                    ->orWhere('birthdate', 'like', $likeSearch)
+                    ->orWhere('job', 'like', $likeSearch);
+            });
+
+            // بيانات العاملة
+            $q->orWhereHas('maid', function ($maidQuery) use ($likeSearch) {
+                $maidQuery->where('name', 'like', $likeSearch)
+                    ->orWhere('passport_num', 'like', $likeSearch);
+            });
+
+            // بيانات العقد التفصيلية (رقم التأشيرة، رقم مساند، رقم التفويض...)
+            $q->orWhereHas('info', function ($infoQuery) use ($likeSearch) {
+                $infoQuery->where('visa_number', 'like', $likeSearch)
+                    ->orWhere('msaned_number', 'like', $likeSearch)
+                    ->orWhere('tafwed_number', 'like', $likeSearch)
+                    ->orWhere('visa_hijry_date', 'like', $likeSearch)
+                    ->orWhere('visa_milad_date', 'like', $likeSearch)
+                    ->orWhere('contract_date', 'like', $likeSearch)
+                    ->orWhere('arrival_date', 'like', $likeSearch)
+                    ->orWhere('ingaz_from', 'like', $likeSearch)
+                    ->orWhere('ingaz_to', 'like', $likeSearch)
+                    ->orWhere('contract_value', 'like', $likeSearch)
+                    ->orWhere('contract_duration', 'like', $likeSearch)
+                    ->orWhere('monthly_cost', 'like', $likeSearch)
+                    ->orWhere('salary_after_sponsorship', 'like', $likeSearch)
+                    ->orWhere('sponsorship_price', 'like', $likeSearch)
+                    ->orWhere('working_hours_num', 'like', $likeSearch);
+            });
+
+            // بيانات الطلب المرتبط بالعقد
+            $q->orWhereHas('order', function ($orderQuery) use ($likeSearch) {
+                $orderQuery->where('id', 'like', $likeSearch)
+                    ->orWhere('order_code', 'like', $likeSearch);
+            });
+        });
     }
 
     /**

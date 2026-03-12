@@ -18,6 +18,11 @@ class AllWorkerController extends Controller
             $request->merge(['type' => 'estqdam']);
         }
 
+        // Generate one random seed when entering workers page, then reuse it for pagination requests.
+        if (!$request->ajax() && !$request->filled('page')) {
+            session()->put('all_workers_order_seed', (string) random_int(100000, 999999));
+        }
+
         if ($request->ajax()) {
 
             $maids = $maidAction->paginate($request);
