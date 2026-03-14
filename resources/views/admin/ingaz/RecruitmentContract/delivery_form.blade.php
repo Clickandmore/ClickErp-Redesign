@@ -1,173 +1,232 @@
 <!DOCTYPE html>
+<html lang="ar" dir="rtl">
 
 <head>
-    <!-- <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/> -->
-    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-    <title>Report Design</title>
-    <style type="text/css">
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>نموذج تسليم عاملة عند الوصول</title>
+    <style>
         * {
+            box-sizing: border-box;
+        }
+
+        body {
             margin: 0;
-            padding: 0;
-            text-indent: 0;
+            color: #0f172a;
+            direction: rtl;
+            font-family: "DejaVu Sans", sans-serif;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .page {
+            padding: 28px 32px;
+        }
+
+        .header {
+            margin-bottom: 22px;
+            padding-bottom: 18px;
+            text-align: center;
+            border-bottom: 2px solid #cbd5e1;
+        }
+
+        .logo {
+            display: block;
+            width: 150px;
+            margin: 0 auto 10px;
+        }
+
+        .company-name {
+            margin: 0 0 6px;
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e3a8a;
+        }
+
+        .title {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .subtitle {
+            margin: 8px 0 0;
+            font-size: 12px;
+            color: #475569;
+        }
+
+        .section-title {
+            margin: 0 0 10px;
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e3a8a;
+        }
+
+        table {
             width: 100%;
+            border-collapse: collapse;
         }
 
-        .container {
-            padding-left: 5px;
-            padding-right: 5px;
-            margin-right: auto;
-            margin-left: auto;
-            width: 100%;
+        .info-table {
+            margin-bottom: 20px;
         }
 
-        h1 {
-            color: black;
-            font-family: 'DejaVu Sans', 'Roboto', 'Montserrat', 'Open Sans', 'sans-seri';
-            font-style: normal;
-            font-weight: bold;
-            text-decoration: none;
-            font-size: 12pt;
-
+        .info-table td {
+            padding: 10px 12px;
+            border: 1px solid #dbe4f0;
+            vertical-align: top;
         }
 
-        p {
-            color: black;
-            font-family: "DejaVu Sans", serif;
-            font-style: normal;
-            font-weight: normal;
-            text-decoration: none;
-            font-size: 12pt;
-            font-family: 'DejaVu Sans', 'Roboto', 'Montserrat', 'Open Sans', 'sans-seri';
+        .label {
+            width: 18%;
+            font-weight: 700;
+            color: #1e3a8a;
+            background: #f8fafc;
         }
 
-        .s1 {
-            color: black;
-            font-family: "DejaVu Sans", serif;
-            font-style: normal;
-            font-weight: normal;
-            text-decoration: none;
-            font-size: 12pt;
-            font-family: 'DejaVu Sans', 'Roboto', 'Montserrat', 'Open Sans', 'sans-seri';
+        .value {
+            width: 32%;
         }
 
-        .s2 {
-            color: black;
-            font-family: "DejaVu Sans", serif;
-            font-style: normal;
-            font-weight: bold;
-            font-size: 12pt;
-            vertical-align: 1pt;
-            font-family: 'DejaVu Sans', 'Roboto', 'Montserrat', 'Open Sans', 'sans-seri';
+        .statement {
+            margin-top: 14px;
+            padding: 16px 18px;
+            border: 1px solid #dbe4f0;
+            background: #f8fafc;
+            text-align: justify;
         }
 
-        span {
-            font-family: 'DejaVu Sans', 'Roboto', 'Montserrat', 'Open Sans', 'sans-seri';
+        .statement p {
+            margin: 0 0 12px;
+        }
+
+        .statement p:last-child {
+            margin-bottom: 0;
+        }
+
+        .signature-table {
+            margin-top: 36px;
+        }
+
+        .signature-table td {
+            width: 50%;
+            padding-top: 42px;
+            text-align: center;
+            vertical-align: top;
+        }
+
+        .signature-line {
+            display: block;
+            margin-bottom: 10px;
+            border-top: 1px solid #0f172a;
+        }
+
+        .signature-label {
+            font-weight: 700;
+        }
+
+        .footer-note {
+            margin-top: 20px;
+            font-size: 12px;
+            text-align: center;
+            color: #475569;
         }
     </style>
 </head>
 
 <body>
-    {{-- <img height="128" src="{{static_asset('assets_v2')}}/images/logos/Htafrrod.svg" --}}
-    {{--     width="810" alt="..." /> --}}
+    @php
+        $logoPath = public_path('admin/assets/img/company_logo.png');
+        $defaultReceiptText = 'أقر بأنني استلمت العاملة الموضحة بياناتها أعلاه من مكتب / شركة بلاتنيوم الشرقية للاستقدام، وبذلك تصبح مسؤولية الاستلام والمتابعة على المستلم من تاريخ الاستلام المثبت في هذا النموذج.';
+        $defaultTransferText = 'كما أتعهد في حالة نقل خدمات العاملة إلى صاحب عمل آخر بإخطار مكتب / شركة بلاتنيوم الشرقية للاستقدام وتزويده كتابياً بكافة بيانات صاحب العمل الجديد من اسم وهوية وعنوان ورقم جوال.';
+        $defaultSettlementText = 'كما أتعهد بتسليم العاملة كافة مستحقاتها وإثبات ذلك بمخالصة رسمية تفيد باستلامها جميع رواتبها ومستحقاتها وعدم مطالبتها بأي حق، وذلك وفق النموذج المعتمد لدى الجهات الرسمية.';
+        $receiptText = trim((string) $text_receipt);
+    @endphp
 
-    <div class="container">
-        <p style="text-indent: 0pt;text-align: left;"><br /></p>
-
-        <h1 style="padding-top: 5pt;text-indent: 0pt;text-align: center;">نموذج تسليم عاملة منزلية</h1>
-        <p style="text-indent: 0pt;text-align: left;"><br /></p>
-
-        <div class="row">
-            <p style="text-indent: 0pt;text-align: right;font-weight: bold;" dir="rtl" lang="ar"> اسم العميل :
-                {{ $client_name }}</p> <br>
-            <p class="col-md-6 text-end" dir="rtl" lang="ar">
-                <span> الهاتف / الجوال: المنزل :{{ $client_phone }}</span>
-            </p>
-            <p class="col-md-6 text-end" dir="rtl" lang="ar">
-                <span> السجل المدني / الإقامة : {{ $national_identification_number }}</span>
-            </p>
-
+    <div class="page">
+        <div class="header">
+            @if (file_exists($logoPath))
+                <img class="logo" src="{{ $logoPath }}" alt="شركة بلاتنيوم">
+            @endif
+            <p class="company-name">مكتب / شركة بلاتنيوم الشرقية للاستقدام</p>
+            <h1 class="title">نموذج تسليم عاملة عند الوصول</h1>
+            <p class="subtitle">نموذج إلكتروني خاص بعقود الاستقدام بعد وصول العاملة إلى المملكة</p>
         </div>
 
-        <br>
-        <hr>
+        <h2 class="section-title">بيانات العميل والعاملة</h2>
+        <table class="info-table">
+            <tr>
+                <td class="label">رقم العقد</td>
+                <td class="value">{{ $contract_number ?: '--' }}</td>
+                <td class="label">اسم العميل</td>
+                <td class="value">{{ $client_name ?: '--' }}</td>
+            </tr>
+            <tr>
+                <td class="label">رقم الهوية</td>
+                <td class="value">{{ $national_identification_number ?: '--' }}</td>
+                <td class="label">رقم الجوال</td>
+                <td class="value">{{ $client_phone ?: '--' }}</td>
+            </tr>
+            <tr>
+                <td class="label">العنوان</td>
+                <td class="value">{{ $client_address ?: '--' }}</td>
+                <td class="label">اسم العاملة</td>
+                <td class="value">{{ $cvs_name ?: '--' }}</td>
+            </tr>
+            <tr>
+                <td class="label">الجنسية</td>
+                <td class="value">{{ $nationality_id ?: '--' }}</td>
+                <td class="label">رقم الجواز</td>
+                <td class="value">{{ $passport_id ?: '--' }}</td>
+            </tr>
+            <tr>
+                <td class="label">تاريخ الوصول</td>
+                <td class="value">{{ $arrive_date_time ?: '--' }}</td>
+                <td class="label">تاريخ الاستلام</td>
+                <td class="value">{{ $date_receipt_time ?: '--' }}</td>
+            </tr>
+        </table>
 
-        <div class="row">
-            <p class="col-md-6 text-end" dir="rtl" lang="ar">
-                <span> الجنسية :{{ $nationality_id }}</span>
+        <div class="statement">
+            <p>
+                أقر أنا <strong>{{ $client_name ?: '....................' }}</strong>، هوية رقم
+                <strong>{{ $national_identification_number ?: '....................' }}</strong>، بأنني قد استلمت
+                العاملة <strong>{{ $cvs_name ?: '....................' }}</strong> ذات الجواز رقم
+                <strong>{{ $passport_id ?: '....................' }}</strong> من مكتب / شركة بلاتنيوم الشرقية
+                للاستقدام بتاريخ <strong>{{ $date_receipt_time ?: '--' }}</strong>.
             </p>
-            <p class="col-md-6 text-end" dir="rtl" lang="ar">
-                رقم جواز السفر / الإقامة : {{ $passport_id }}
-            </p>
-            <p class="col-md-4 text-end" dir="rtl" lang="ar">
-                تاريخ الوصول : {{ !empty($arrive_date) ? date('m/d/Y', strtotime($arrive_date)) : '--' }}
-            </p>
+
+            @if ($receiptText !== '')
+                <p>{!! nl2br(e($receiptText)) !!}</p>
+            @else
+                <p>{{ $defaultReceiptText }}</p>
+                <p>{{ $defaultTransferText }}</p>
+                <p>{{ $defaultSettlementText }}</p>
+            @endif
+
+            <p>والله ولي التوفيق.</p>
         </div>
 
-        <hr>
+        <table class="signature-table">
+            <tr>
+                <td>
+                    <span class="signature-line"></span>
+                    <div class="signature-label">اسم المستلم</div>
+                    <div>{{ $client_name ?: '--' }}</div>
+                </td>
+                <td>
+                    <span class="signature-line"></span>
+                    <div class="signature-label">ممثل الشركة</div>
+                    <div>{{ $company_representative ?: 'ممثل الشركة' }}</div>
+                </td>
+            </tr>
+        </table>
 
-        <span style="padding-top: 4pt;padding-right: 6pt;text-indent: 0pt;text-align: right;" dir="rtl"
-            lang="ar">
-            <span class="row">
-                <span dir="rtl" lang="ar" class="col-md-6"> اقر انا المستلم : <span style="font-weight: bold;"
-                        dir="rtl" lang="ar"> {{ $client_name }}</span></span>
-                <span dir="rtl" lang="ar" class="col-md-6"> بطاقة رقم الهوية : <span
-                        style="font-weight: bold;" dir="rtl" lang="ar"> {{ $national_identification_number }}
-                    </span></span>
-
-                <span dir="rtl" lang="ar">
-                    قد استلمت العاملة المنزلية الموضح بياناتها أعلاه وذلك يوم:
-                    {{ date('m/d/Y', strtotime(\Carbon\Carbon::now())) }}
-                </span>
-                <span dir="rtl" lang="ar">
-                    وبهذا قد اصبح مكتب / <span style="font-weight: bold;"> مكتب بلاتنيوم الشرقية للاستقدام</span> خالي
-                    من المسؤولية منذ استلامي للخادمة .
-                </span>
-
-            </span>
-
-            </p>
-
-
-            <hr>
-
-            <div class="row">
-                <p style="padding-top: 2pt;text-indent: 0pt;text-align: justify;font-weight: bold; " dir="rtl"
-                    lang="ar">
-                    شركة بلاتينيوم للاستقدام
-                </p> <br>
-                <p dir="rtl" lang="ar" class="col-md-6 text-end">
-                    اسم الموظفة : {{ $adminStaff }}
-                </p>
-                <p dir="rtl" lang="ar" class="col-md-6 text-end">
-                    <span> اسم المستلم : {{ $client_name }}</span>
-                </p>
-        </span></p>
-        <p class="col-md-6 text-end" dir="rtl" lang="ar">
-            التاريخ : {{ date('m/d/Y', strtotime($arrive_date)) }}
-        </p>
-        <p class="col-md-6 text-end" dir="rtl" lang="ar">
-            <span> العنوان : {{ $client_address }}</span>
-        </p>
-        <p class="col-md-6 text-end" dir="rtl" lang="ar">التوقيع /</p>
-        <p class="col-md-6 text-end" dir="rtl" lang="ar">التوقيع /</p>
+        <div class="footer-note">
+            تم إنشاء هذا النموذج إلكترونياً بواسطة نظام بلاتنيوم.
+        </div>
     </div>
-
-
-
-    </div>
-
-
-    {{-- <div class="fixed-bottom"> --}}
-    {{--    <img    height="80" src="" --}}
-    {{--            width="815" alt="..."/> --}}
-    {{-- </div> --}}
-
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous">
-    </script>
 </body>
 
 </html>

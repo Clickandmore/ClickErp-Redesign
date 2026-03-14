@@ -338,7 +338,9 @@ Route::group(
             Route::get('ShelterContract/get-contract-details', [ShelterContractController::class, 'getContractDetails'])->name('get.contract.details');
             Route::get('ShelterContract/get-nationalities', [ShelterContractController::class, 'getNationalities'])->name('ShelterContract.getNationalities');
             Route::get('ShelterContract/get-shelter-places', [ShelterContractController::class, 'getShelterPlaces'])->name('ShelterContract.getShelterPlaces');
+            Route::get('ShelterContract/export/{format}', [ShelterContractController::class, 'export'])->name('ShelterContract.export');
             Route::post('ShelterContract/{id}/back', [ShelterContractController::class, 'back'])->name('ShelterContract.back');
+            Route::post('ShelterContract/{id}/quick-tags', [ShelterContractController::class, 'updateQuickTags'])->name('ShelterContract.quickTags');
             Route::get('shelter_contract_form/download/{id}', [ShelterContractController::class, 'deliveryShelterContractDownload'])->name('shelter_contract_form.download');
 
             // Deportation routes

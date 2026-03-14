@@ -17,6 +17,7 @@ use App\NewPermKeys;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 use Yajra\DataTables\Facades\DataTables;
 use App\Models\ingaz\Maid;
 use PDF;
@@ -29,83 +30,76 @@ class ShelterContractController extends Controller
 
     public function index(Request $request)
     {
-        $shelterBaseQuery = Contract::insideShelter();
+        $statsContracts = Contract::insideShelter()
+            ->with([
+                'maid.jobTypes',
+                'maid.job_types.job_type.translations',
+                'info',
+                'latestShelterLog',
+            ])
+            ->get();
 
-        // Get statistics
-        $totalContracts = $shelterBaseQuery->clone()->count();
+        $totalContracts = $statsContracts->count();
+        $wantsToWork = 0;
+        $inDeportation = 0;
+        $undecided = 0;
+        $withinGuarantee = 0;
+        $expiredGuarantee = 0;
+        $guaranteeUnknown = 0;
+        $availableForInstantReceipt = 0;
+        $serviceCategoryStats = [
+            'recruitment' => 0,
+            'rental' => 0,
+            'transfer' => 0,
+        ];
+        $quickTagCounts = [];
 
-        // العاملات اللواتي يرغبن بالعمل (متاحات للنقل)
-        $wantsToWork = $shelterBaseQuery->clone()
-            ->whereHas('info', function ($query) {
-                $query->where('wants_to_work', 'yes');
-            })->count();
+        foreach ($statsContracts as $contract) {
+            $info = $contract->info;
+            $workWillingness = $info?->wants_to_work;
 
-        // العاملات في مرحلة الترحيل
-        $inDeportation = $shelterBaseQuery->clone()
-            ->whereHas('info', function ($query) {
-                $query->where('wants_to_work', 'no');
-            })->count();
+            if ($workWillingness === 'yes') {
+                $wantsToWork++;
+                if ($info?->is_available_for_instant) {
+                    $availableForInstantReceipt++;
+                }
+            } elseif ($workWillingness === 'no') {
+                $inDeportation++;
+            } else {
+                $undecided++;
+            }
 
-        // العاملات غير محدد وضعهن
-        $undecided = $shelterBaseQuery->clone()
-            ->whereHas('info', function ($query) {
-                $query->where(function ($q) {
-                    $q->where('wants_to_work', 'unknown')
-                        ->orWhereNull('wants_to_work');
-                });
-            })->count();
+            $serviceCategory = $this->determineShelterServiceCategory($contract->maid);
+            $serviceCategoryStats[$serviceCategory] = ($serviceCategoryStats[$serviceCategory] ?? 0) + 1;
 
-        // حساب حالة الضمان بناءً على تاريخ الوصول
-        $today = now();
-        $withinGuarantee = $shelterBaseQuery->clone()
-            ->whereHas('info', function ($query) use ($today) {
-                $query->where(function ($q) use ($today) {
-                    // التحقق من تاريخ الوصول في آخر 90 يوم
-                    $q->where(function ($subQ) use ($today) {
-                        $subQ->whereNotNull('arrival_date')
-                            ->whereDate('arrival_date', '>=', $today->copy()->subDays(90));
-                    })->orWhere(function ($subQ) use ($today) {
-                        $subQ->whereNotNull('visa_milad_date')
-                            ->whereDate('visa_milad_date', '>=', $today->copy()->subDays(90));
-                    })->orWhere(function ($subQ) use ($today) {
-                        $subQ->whereNotNull('contract_date')
-                            ->whereDate('contract_date', '>=', $today->copy()->subDays(90));
-                    })->orWhere(function ($subQ) use ($today) {
-                        $subQ->whereNotNull('ingaz_from')
-                            ->whereDate('ingaz_from', '>=', $today->copy()->subDays(90));
-                    });
-                });
-            })->count();
+            $guaranteeData = $this->resolveGuaranteeData($contract);
+            if ($guaranteeData['status'] === 'within') {
+                $withinGuarantee++;
+            } elseif ($guaranteeData['status'] === 'expired') {
+                $expiredGuarantee++;
+            } else {
+                $guaranteeUnknown++;
+            }
 
-        $expiredGuarantee = $shelterBaseQuery->clone()
-            ->whereHas('info', function ($query) use ($today) {
-                $query->where(function ($q) use ($today) {
-                    // التحقق من تاريخ الوصول أقدم من 90 يوم
-                    $q->where(function ($subQ) use ($today) {
-                        $subQ->whereNotNull('arrival_date')
-                            ->whereDate('arrival_date', '<', $today->copy()->subDays(90));
-                    })->orWhere(function ($subQ) use ($today) {
-                        $subQ->whereNotNull('visa_milad_date')
-                            ->whereDate('visa_milad_date', '<', $today->copy()->subDays(90));
-                    })->orWhere(function ($subQ) use ($today) {
-                        $subQ->whereNotNull('contract_date')
-                            ->whereDate('contract_date', '<', $today->copy()->subDays(90));
-                    })->orWhere(function ($subQ) use ($today) {
-                        $subQ->whereNotNull('ingaz_from')
-                            ->whereDate('ingaz_from', '<', $today->copy()->subDays(90));
-                    });
-                });
-            })->count();
+            foreach ($this->extractQuickTags($info?->shelter_quick_tags) as $tag) {
+                $quickTagCounts[$tag] = ($quickTagCounts[$tag] ?? 0) + 1;
+            }
+        }
 
-        // العاملات المتاحة للاستلام الفوري (يرغبن بالعمل)
-        $availableForInstantReceipt = $shelterBaseQuery->clone()
-            ->whereHas('info', function ($query) {
-                $query->where('wants_to_work', 'yes');
-            })->count();
+        $quickTagStats = collect($quickTagCounts)
+            ->sortDesc()
+            ->map(function ($count, $name) {
+                return [
+                    'name' => $name,
+                    'count' => $count,
+                ];
+            })
+            ->values();
 
         // Get filter options
         $nationalities = Nationality::with('translations')->get();
         $shelters = ShelterPlaces::with('translations')->get();
+        $quickTagSuggestions = $this->getQuickTagSuggestions();
 
         return view('admin.ingaz.ShelterContract.index', compact(
             'totalContracts',
@@ -114,178 +108,437 @@ class ShelterContractController extends Controller
             'undecided',
             'withinGuarantee',
             'expiredGuarantee',
+            'guaranteeUnknown',
             'availableForInstantReceipt',
+            'serviceCategoryStats',
+            'quickTagStats',
+            'quickTagSuggestions',
             'nationalities',
             'shelters'
         ));
     }
 
     /**
-     * Export filtered data to CSV
+     * Export filtered data
      */
-    private function exportData($contracts)
+    private function exportData($contracts, string $format = 'csv')
     {
-        $filename = 'shelter_contracts_' . date('Y-m-d_H-i-s') . '.csv';
+        $format = strtolower($format);
+        $rows = $this->buildExportRows(collect($contracts));
 
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ];
+        return match ($format) {
+            'xlsx', 'excel' => $this->exportExcelFile($rows),
+            'pdf' => $this->exportPdfFile($rows),
+            default => $this->exportCsvFile($rows),
+        };
+    }
 
-        $callback = function () use ($contracts) {
+    private function exportCsvFile(array $rows)
+    {
+        $headers = $this->exportHeadings();
+        $filename = $this->buildExportFilename('csv');
+
+        return response()->streamDownload(function () use ($rows, $headers) {
             $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fputcsv($file, $headers);
 
-            // Add CSV headers
-            fputcsv($file, [
-                'ID',
-                'رقم العاملة',
-                'رقم الجواز',
-                'نوع العاملة',
-                'الجنسية',
-                'مكان الإيواء',
-                'مصدر الاستلام',
-                'حالة الضمان',
-                'تاريخ الوصول',
-                'تاريخ الاسترجاع',
-                'حالة العقد داخل الإيواء'
-            ]);
-
-            // Add data rows
-            foreach ($contracts as $contract) {
-                // If maid has a name, show it, otherwise show passport number
-                $maidName = 'غير محدد';
-                if ($contract->maid) {
-                    $displayName = $contract->maid->name;
-                    if (empty($displayName) && $contract->maid->passport_num) {
-                        $maidName = 'جواز رقم: ' . $contract->maid->passport_num;
-                    } elseif (empty($displayName)) {
-                        $maidName = 'عاملة رقم: ' . $contract->maid->id;
-                    } else {
-                        $maidName = $displayName;
-                    }
-                }
-
-                $passport = $contract->maid && $contract->maid->passport_num ? $contract->maid->passport_num : 'غير محدد';
-
-                $maidType = 'غير محدد';
-                if ($contract->maid && $contract->maid->job_types && !$contract->maid->job_types->isEmpty()) {
-                    $jobType = $contract->maid->job_types->first();
-                    if ($jobType && $jobType->job_type) {
-                        $locale = app()->getLocale();
-                        $translation = $jobType->job_type->translations->where('locale', $locale)->first();
-                        $title = $translation ? $translation->title : $jobType->job_type->translations->first()->title;
-                        $maidType = $title;
-                    }
-                }
-
-                $nationality = 'غير محدد';
-                if ($contract->maid && $contract->maid->nationality) {
-                    $locale = app()->getLocale();
-                    $translation = $contract->maid->nationality->translations->where('locale', $locale)->first();
-                    if ($translation) {
-                        $nationality = $translation->sub_title;
-                    } else {
-                        $firstTranslation = $contract->maid->nationality->translations->first();
-                        if ($firstTranslation) {
-                            $nationality = $firstTranslation->sub_title;
-                        }
-                    }
-                }
-
-                $shelter = 'غير محدد';
-                if ($contract->info && $contract->info->shelter) {
-                    $locale = app()->getLocale();
-                    $translation = $contract->info->shelter->translations->where('locale', $locale)->first();
-                    if ($translation) {
-                        $shelter = $translation->title;
-                    } else {
-                        $firstTranslation = $contract->info->shelter->translations->first();
-                        if ($firstTranslation) {
-                            $shelter = $firstTranslation->title;
-                        }
-                    }
-                }
-
-                $receiptSource = 'غير محدد';
-                if ($contract->info && $contract->info->receipt_source) {
-                    $translationKey = 'shelter_worker_statuses.received_by.' . $contract->info->receipt_source;
-                    $receiptSource = __($translationKey);
-
-                    // If translation not found, use the original value
-                    if ($receiptSource === $translationKey) {
-                        $receiptSource = $contract->info->receipt_source;
-                    }
-                }
-
-                $guaranteeStatus = 'غير محدد';
-                if ($contract->info) {
-                    $arrivalDate = $contract->info->visa_milad_date ??
-                        $contract->info->contract_date ??
-                        $contract->info->ingaz_from;
-
-                    if ($arrivalDate) {
-                        try {
-                            $arrivalDate = \Carbon\Carbon::parse($arrivalDate);
-                            $today = \Carbon\Carbon::now();
-                            $guaranteeEndDate = $arrivalDate->copy()->addDays(90);
-
-                            if ($today->gt($guaranteeEndDate)) {
-                                $guaranteeStatus = 'منتهي الضمان';
-                            } else {
-                                $remainingDays = $today->diffInDays($guaranteeEndDate);
-                                $guaranteeStatus = 'ضمن الضمان (' . $remainingDays . ' يوم متبقي)';
-                            }
-                        } catch (\Exception $e) {
-                            $guaranteeStatus = 'خطأ في التاريخ';
-                        }
-                    }
-                }
-
-                $arrivalDate = null;
-                if ($contract->info) {
-                    $arrivalDate = $contract->info->visa_milad_date ??
-                        $contract->info->contract_date ??
-                        $contract->info->ingaz_from;
-                }
-                $arrivalDate = $arrivalDate ? \Carbon\Carbon::parse($arrivalDate)->format('Y-m-d') : 'غير محدد';
-
-                $returnDate = $contract->info && $contract->info->maid_date_back ?
-                    \Carbon\Carbon::parse($contract->info->maid_date_back)->format('Y-m-d') : 'غير محدد';
-
-                $contractStatus = getEnumValue('contract_statuses', $contract->status) ?: 'غير محدد';
-
-                // Get work willingness status for export
-                $workWillingness = $contract->info ? $contract->info->wants_to_work : null;
-
-                if ($workWillingness === 'yes') {
-                    $contractStatus = 'داخل الإيواء (متاح للنقل)';
-                } elseif ($workWillingness === 'no') {
-                    $contractStatus = 'داخل الإيواء (مرحلة الترحيل)';
-                } elseif ($workWillingness === 'unknown') {
-                    $contractStatus = 'داخل الإيواء';
-                } else {
-                    $contractStatus = 'داخل الإيواء';
-                }
-
-                fputcsv($file, [
-                    $contract->id,
-                    $maidName,
-                    $passport,
-                    $maidType,
-                    $nationality,
-                    $shelter,
-                    $receiptSource,
-                    $guaranteeStatus,
-                    $arrivalDate,
-                    $returnDate,
-                    $contractStatus
-                ]);
+            foreach ($rows as $row) {
+                fputcsv($file, array_values($row));
             }
 
             fclose($file);
-        };
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
 
-        return response()->stream($callback, 200, $headers);
+    private function exportExcelFile(array $rows)
+    {
+        $headers = $this->exportHeadings();
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setRightToLeft(true);
+        $sheet->fromArray($headers, null, 'A1');
+
+        $sheet->getStyle('A1:' . \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers)) . '1')
+            ->applyFromArray([
+                'font' => [
+                    'bold' => true,
+                    'size' => 12,
+                ],
+                'alignment' => [
+                    'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                ],
+                'fill' => [
+                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'startColor' => [
+                        'rgb' => 'F2F2F2',
+                    ],
+                ],
+            ]);
+
+        $rowNumber = 2;
+        foreach ($rows as $row) {
+            $sheet->fromArray(array_values($row), null, 'A' . $rowNumber);
+            $rowNumber++;
+        }
+
+        foreach (range(1, count($headers)) as $columnIndex) {
+            $columnLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($columnIndex);
+            $sheet->getColumnDimension($columnLetter)->setAutoSize(true);
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $tempFile = tempnam(sys_get_temp_dir(), 'shelter_contracts_xlsx_');
+        $writer->save($tempFile);
+
+        return response()
+            ->download(
+                $tempFile,
+                $this->buildExportFilename('xlsx'),
+                ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+            )
+            ->deleteFileAfterSend(true);
+    }
+
+    private function exportPdfFile(array $rows)
+    {
+        $pdf = PDF::loadView('admin.ingaz.ShelterContract.export_pdf', [
+            'rows' => $rows,
+            'headings' => $this->exportHeadings(),
+            'exportedAt' => now()->format('Y-m-d H:i'),
+        ])->setPaper('a4', 'landscape');
+
+        $pdf->setWarnings(false);
+        $pdf->setOptions([
+            'defaultFont' => 'dejavu sans',
+            'isHtml5ParserEnabled' => true,
+        ]);
+
+        return $pdf->download($this->buildExportFilename('pdf'));
+    }
+
+    private function buildExportFilename(string $extension): string
+    {
+        return 'shelter_contracts_' . now()->format('Y_m_d_H_i_s') . '.' . $extension;
+    }
+
+    private function exportHeadings(): array
+    {
+        return [
+            'رقم العقد',
+            'العميل',
+            'العاملة',
+            'رقم الجواز',
+            'تصنيف الخدمة',
+            'الجنسية',
+            'مكان الإيواء',
+            'تاريخ الوصول للمملكة',
+            'تاريخ إدخال الإيواء',
+            'مدة داخل المملكة',
+            'مدة داخل الإيواء',
+            'مصدر الاستلام',
+            'حالة الضمان',
+            'رغبة العمل',
+            'التصنيفات السريعة',
+            'حالة الاستلام الفوري',
+        ];
+    }
+
+    private function buildExportRows($contracts): array
+    {
+        return $contracts->map(function (Contract $contract) {
+            $maid = $contract->maid;
+            $arrivalDate = $this->resolveArrivalDate($contract);
+            $shelterEntryDate = $this->resolveShelterEntryDate($contract);
+            $guaranteeData = $this->resolveGuaranteeData($contract);
+            $quickTags = $this->extractQuickTags(optional($contract->info)->shelter_quick_tags);
+            $workWillingness = optional($contract->info)->wants_to_work;
+
+            return [
+                'رقم العقد' => $contract->id,
+                'العميل' => $contract->user?->name ?? 'غير محدد',
+                'العاملة' => $maid?->name ?: ('عاملة رقم: ' . ($maid?->id ?? '-')),
+                'رقم الجواز' => $maid?->passport_num ?? 'غير محدد',
+                'تصنيف الخدمة' => $this->serviceCategoryLabel($this->determineShelterServiceCategory($maid)),
+                'الجنسية' => $this->resolveNationalityLabel($contract),
+                'مكان الإيواء' => $this->resolveShelterLabel($contract),
+                'تاريخ الوصول للمملكة' => $arrivalDate?->format('Y-m-d') ?? 'غير محدد',
+                'تاريخ إدخال الإيواء' => $shelterEntryDate?->format('Y-m-d') ?? 'غير محدد',
+                'مدة داخل المملكة' => $this->formatHumanDuration($arrivalDate),
+                'مدة داخل الإيواء' => $this->formatHumanDuration($shelterEntryDate),
+                'مصدر الاستلام' => $this->resolveReceiptSourceLabel(optional($contract->info)->receipt_source),
+                'حالة الضمان' => $guaranteeData['label'],
+                'رغبة العمل' => $this->formatWorkWillingnessLabel($workWillingness),
+                'التصنيفات السريعة' => $quickTags ? implode('، ', $quickTags) : 'بدون تصنيف',
+                'حالة الاستلام الفوري' => $workWillingness === 'yes'
+                    ? (optional($contract->info)->is_available_for_instant ? 'متاحة' : 'غير متاحة')
+                    : 'غير مطبق',
+            ];
+        })->all();
+    }
+
+    private function supportsQuickTags(): bool
+    {
+        return Schema::hasColumn('contract_infos', 'shelter_quick_tags');
+    }
+
+    private function getQuickTagSuggestions(): array
+    {
+        if (!$this->supportsQuickTags()) {
+            return [];
+        }
+
+        return ContractInfo::query()
+            ->whereNotNull('shelter_quick_tags')
+            ->pluck('shelter_quick_tags')
+            ->flatMap(function ($value) {
+                return $this->extractQuickTags($value);
+            })
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function normalizeQuickTags($input): array
+    {
+        if (is_array($input)) {
+            $tags = $input;
+        } else {
+            $tags = preg_split('/[\r\n,،|]+/u', (string) $input) ?: [];
+        }
+
+        $normalized = [];
+        foreach ($tags as $tag) {
+            $tag = trim((string) $tag);
+            if ($tag === '' || in_array($tag, $normalized, true)) {
+                continue;
+            }
+
+            $normalized[] = $tag;
+        }
+
+        return $normalized;
+    }
+
+    private function extractQuickTags($value): array
+    {
+        if (!$this->supportsQuickTags()) {
+            return [];
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $value = $decoded;
+            }
+        }
+
+        return $this->normalizeQuickTags(is_array($value) ? $value : (string) $value);
+    }
+
+    private function determineShelterServiceCategory(?Maid $maid): string
+    {
+        if (!$maid) {
+            return 'recruitment';
+        }
+
+        $jobType = $maid->relationLoaded('jobTypes')
+            ? $maid->jobTypes->first()
+            : $maid->jobTypes()->first();
+
+        $title = $this->normalizeServiceCategoryTitle($jobType?->title);
+
+        if ($title === '') {
+            return 'recruitment';
+        }
+
+        if (str_contains($title, 'ايجار') || str_contains($title, 'تاجير') || str_contains($title, 'rent')) {
+            return 'rental';
+        }
+
+        if (str_contains($title, 'استلام') || str_contains($title, 'instant') || str_contains($title, 'transfer') || str_contains($title, 'نقل')) {
+            return 'transfer';
+        }
+
+        return 'recruitment';
+    }
+
+    private function normalizeServiceCategoryTitle(?string $title): string
+    {
+        if (!$title) {
+            return '';
+        }
+
+        $normalized = mb_strtolower(trim($title));
+        $normalized = str_replace(['أ', 'إ', 'آ'], 'ا', $normalized);
+
+        return preg_replace('/\s+/', ' ', $normalized);
+    }
+
+    private function serviceCategoryLabel(string $category): string
+    {
+        return match ($category) {
+            'rental' => 'تأجير',
+            'transfer' => 'نقل خدمات',
+            default => 'استقدام',
+        };
+    }
+
+    private function resolveArrivalDate(Contract $contract): ?Carbon
+    {
+        $travelHistoryArrivalDate = $contract->relationLoaded('travelHistory')
+            ? optional($contract->travelHistory)->arrival_date
+            : null;
+
+        $candidate = optional($contract->info)->arrival_date
+            ?? $travelHistoryArrivalDate
+            ?? optional($contract->info)->visa_milad_date
+            ?? optional($contract->info)->contract_date
+            ?? optional($contract->info)->ingaz_from;
+
+        if (!$candidate) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($candidate);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function resolveShelterEntryDate(Contract $contract): ?Carbon
+    {
+        $candidate = optional($contract->latestShelterLog)->created_at
+            ?? optional($contract->info)->maid_date_back
+            ?? optional($contract->info)->created_at
+            ?? $contract->created_at;
+
+        if (!$candidate) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($candidate);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function resolveGuaranteeData(Contract $contract): array
+    {
+        $arrivalDate = $this->resolveArrivalDate($contract);
+        if (!$arrivalDate) {
+            return [
+                'status' => 'unknown',
+                'label' => 'غير محدد',
+                'badge_class' => 'bg-secondary',
+            ];
+        }
+
+        $guaranteeEndDate = $arrivalDate->copy()->addDays(90);
+        $today = now();
+
+        if ($today->lte($guaranteeEndDate)) {
+            return [
+                'status' => 'within',
+                'label' => 'ضمن الضمان (' . $today->diffInDays($guaranteeEndDate) . ' يوم)',
+                'badge_class' => 'bg-success',
+            ];
+        }
+
+        return [
+            'status' => 'expired',
+            'label' => 'منتهي الضمان (' . $guaranteeEndDate->diffInDays($today) . ' يوم)',
+            'badge_class' => 'bg-danger',
+        ];
+    }
+
+    private function formatHumanDuration(?Carbon $startDate, ?Carbon $endDate = null): string
+    {
+        if (!$startDate) {
+            return 'غير محدد';
+        }
+
+        $endDate = $endDate ?: now();
+        if ($startDate->isFuture()) {
+            return '0 يوم';
+        }
+
+        $cursor = $startDate->copy()->startOfDay();
+        $end = $endDate->copy()->startOfDay();
+
+        if ($cursor->equalTo($end)) {
+            return 'اليوم';
+        }
+
+        $years = $cursor->diffInYears($end);
+        $cursor->addYears($years);
+        $months = $cursor->diffInMonths($end);
+        $cursor->addMonths($months);
+        $days = $cursor->diffInDays($end);
+
+        $parts = [];
+        if ($years > 0) {
+            $parts[] = $years . ' سنة';
+        }
+        if ($months > 0) {
+            $parts[] = $months . ' شهر';
+        }
+        if ($days > 0) {
+            $parts[] = $days . ' يوم';
+        }
+
+        return $parts ? implode(' و ', array_slice($parts, 0, 3)) : '0 يوم';
+    }
+
+    private function formatWorkWillingnessLabel(?string $value): string
+    {
+        return match ($value) {
+            'yes' => 'ترغب بالعمل',
+            'no' => 'لا ترغب بالعمل',
+            default => 'غير محدد',
+        };
+    }
+
+    private function resolveReceiptSourceLabel(?string $value): string
+    {
+        if (!$value) {
+            return 'غير محدد';
+        }
+
+        $translationKey = 'shelter_worker_statuses.received_by.' . $value;
+        $translated = __($translationKey);
+
+        return $translated === $translationKey ? $value : $translated;
+    }
+
+    private function resolveNationalityLabel(Contract $contract): string
+    {
+        $nationality = $contract->maid?->nationality;
+        if (!$nationality) {
+            return 'غير محدد';
+        }
+
+        $translation = $nationality->translations->where('locale', app()->getLocale())->first()
+            ?? $nationality->translations->first();
+
+        return $translation?->sub_title ?: ($translation?->title ?: 'غير محدد');
+    }
+
+    private function resolveShelterLabel(Contract $contract): string
+    {
+        $shelter = $contract->info?->shelter;
+        if (!$shelter) {
+            return 'غير محدد';
+        }
+
+        $translation = $shelter->translations->where('locale', app()->getLocale())->first()
+            ?? $shelter->translations->first();
+
+        return $translation?->title ?: 'غير محدد';
     }
 
     public function create()
@@ -311,8 +564,9 @@ class ShelterContractController extends Controller
         $selectedContractId = request('contract_id');
 
         $nationalities = Nationality::with('translations')->where('status', 1)->get();
+        $quickTagSuggestions = $this->getQuickTagSuggestions();
 
-        return view($this->folderPath . '.create', compact('shelters', 'contracts', 'selectedContractId', 'nationalities'));
+        return view($this->folderPath . '.create', compact('shelters', 'contracts', 'selectedContractId', 'nationalities', 'quickTagSuggestions'));
     }
 
     /**
@@ -404,6 +658,10 @@ class ShelterContractController extends Controller
             'receipt_form_text' => $request->receipt_form_text,
         ];
 
+        if ($this->supportsQuickTags()) {
+            $infoPayload['shelter_quick_tags'] = $this->normalizeQuickTags($request->input('shelter_quick_tags'));
+        }
+
         if ($contract->info) {
             $contract->info()->update($infoPayload);
         } else {
@@ -440,28 +698,15 @@ class ShelterContractController extends Controller
         // حساب حالة الضمان
         $warrantyStatus = 'غير محدد';
         $warrantyDays = 0;
-        if ($contract->info) {
-            $arrivalDate = $contract->info->visa_milad_date ??
-                $contract->info->contract_date ??
-                $contract->info->ingaz_from;
-
-            if ($arrivalDate) {
-                try {
-                    $arrivalDate = \Carbon\Carbon::parse($arrivalDate);
-                    $today = \Carbon\Carbon::now();
-                    $guaranteeEndDate = $arrivalDate->copy()->addDays(90);
-
-                    if ($today->lte($guaranteeEndDate)) {
-                        $warrantyDays = $today->diffInDays($guaranteeEndDate);
-                        $warrantyStatus = 'ضمن الضمان';
-                    } else {
-                        $warrantyDays = $guaranteeEndDate->diffInDays($today);
-                        $warrantyStatus = 'منتهي الضمان';
-                    }
-                } catch (\Exception $e) {
-                    $warrantyStatus = 'غير محدد';
-                }
-            }
+        $guaranteeData = $this->resolveGuaranteeData($contract);
+        if ($guaranteeData['status'] === 'within') {
+            $warrantyStatus = 'ضمن الضمان';
+            preg_match('/\((\d+) يوم\)/u', $guaranteeData['label'], $matches);
+            $warrantyDays = isset($matches[1]) ? (int) $matches[1] : 0;
+        } elseif ($guaranteeData['status'] === 'expired') {
+            $warrantyStatus = 'منتهي الضمان';
+            preg_match('/\((\d+) يوم\)/u', $guaranteeData['label'], $matches);
+            $warrantyDays = isset($matches[1]) ? (int) $matches[1] : 0;
         }
 
         return view('admin.ingaz.ShelterContract.show', compact('contract', 'warrantyStatus', 'warrantyDays'));
@@ -475,6 +720,7 @@ class ShelterContractController extends Controller
         $contracts = collect([$contract]);
         $selectedContractId = $contract->id;
         $nationalities = Nationality::with('translations')->where('status', 1)->get();
+        $quickTagSuggestions = $this->getQuickTagSuggestions();
         $isEditMode = true;
         $editingContract = $contract;
 
@@ -485,6 +731,7 @@ class ShelterContractController extends Controller
                 'contracts',
                 'selectedContractId',
                 'nationalities',
+                'quickTagSuggestions',
                 'isEditMode',
                 'editingContract'
             )
@@ -508,6 +755,7 @@ class ShelterContractController extends Controller
             'performing_medical_examination' => 'required|in:yes,no',
             'worker_service_type' => 'required|in:deportation,transfer',
             'receipt_form_text' => 'nullable|string',
+            'shelter_quick_tags' => 'nullable|string|max:1000',
             'attachments' => 'nullable|array',
             'attachments.*' => 'nullable|file|max:10240|mimes:jpg,jpeg,png,pdf,doc,docx',
         ]);
@@ -524,7 +772,7 @@ class ShelterContractController extends Controller
 
         $attachments = $this->prepareShelterAttachments($request, $existingAttachments);
 
-        $contract->info()->update([
+        $infoPayload = [
             'shelter_id' => $request->shelter_id,
             'receipt_source' => $request->receipt_source,
             'maid_date_back' => $request->maid_date_back,
@@ -539,7 +787,13 @@ class ShelterContractController extends Controller
             'worker_service_type' => $request->worker_service_type,
             'receipt_form_text' => $request->receipt_form_text,
             'shelter_attachments' => $attachments,
-        ]);
+        ];
+
+        if ($this->supportsQuickTags()) {
+            $infoPayload['shelter_quick_tags'] = $this->normalizeQuickTags($request->input('shelter_quick_tags'));
+        }
+
+        $contract->info()->update($infoPayload);
 
         $this->syncMaidInstantDisplay($contract, $displayOnSite);
 
@@ -691,6 +945,7 @@ class ShelterContractController extends Controller
                 $rows = Contract::insideShelter()
                     ->with([
                         'maid',
+                        'maid.jobTypes',
                         'user',
                         'info',
                         'maid.nationality.translations',
@@ -712,7 +967,7 @@ class ShelterContractController extends Controller
 
                 // Handle export request
                 if ($request->has('export') && $request->input('export') == '1') {
-                    return $this->exportData($rows->get());
+                    return $this->exportData($rows->get(), $request->input('export_format', 'csv'));
                 }
 
                 // Debug: Get actual data before DataTables
@@ -804,6 +1059,8 @@ class ShelterContractController extends Controller
                 $rows = Contract::insideShelter()
                     ->with([
                         'maid',
+                        'maid.jobTypes',
+                        'user',
                         'info',
                         'deportationProcedure',
                         'maid.nationality.translations',
@@ -822,7 +1079,7 @@ class ShelterContractController extends Controller
 
                 // Handle export request
                 if ($request->has('export') && $request->input('export') == '1') {
-                    return $this->exportData($rows->get());
+                    return $this->exportData($rows->get(), $request->input('export_format', 'csv'));
                 }
 
                 // Debug: Get actual data before DataTables
@@ -882,13 +1139,18 @@ class ShelterContractController extends Controller
                 $rows = Contract::insideShelter()
                     ->with([
                         'maid',
+                        'maid.jobTypes',
+                        'user',
                         'info',
                         'maid.nationality.translations',
                         'maid.job_types.job_type.translations',
                         'info.shelter.translations'
                     ])
                     ->whereHas('info', function ($query) {
-                        $query->whereIn('wants_to_work', ['unknown', null]);
+                        $query->where(function ($inner) {
+                            $inner->where('wants_to_work', 'unknown')
+                                ->orWhereNull('wants_to_work');
+                        });
                     });
 
                 // Apply same filters as index method
@@ -898,7 +1160,7 @@ class ShelterContractController extends Controller
 
                 // Handle export request
                 if ($request->has('export') && $request->input('export') == '1') {
-                    return $this->exportData($rows->get());
+                    return $this->exportData($rows->get(), $request->input('export_format', 'csv'));
                 }
 
                 // Debug: Get actual data before DataTables
@@ -937,6 +1199,7 @@ class ShelterContractController extends Controller
                 $rows = Contract::outsideShelter()
                     ->with([
                         'maid',
+                        'maid.jobTypes',
                         'user',
                         'info.shelter.translations',
                         'info.outsideShelterBy',
@@ -1134,6 +1397,9 @@ class ShelterContractController extends Controller
                 $rows->whereHas('info', function ($query) use ($today) {
                     $query->where(function ($q) use ($today) {
                         $q->where(function ($subQ) use ($today) {
+                            $subQ->whereNotNull('arrival_date')
+                                ->whereDate('arrival_date', '>=', $today->copy()->subDays(90));
+                        })->orWhere(function ($subQ) use ($today) {
                             $subQ->whereNotNull('visa_milad_date')
                                 ->whereDate('visa_milad_date', '>=', $today->copy()->subDays(90));
                         })->orWhere(function ($subQ) use ($today) {
@@ -1150,6 +1416,9 @@ class ShelterContractController extends Controller
                 $rows->whereHas('info', function ($query) use ($today) {
                     $query->where(function ($q) use ($today) {
                         $q->where(function ($subQ) use ($today) {
+                            $subQ->whereNotNull('arrival_date')
+                                ->whereDate('arrival_date', '<', $today->copy()->subDays(90));
+                        })->orWhere(function ($subQ) use ($today) {
                             $subQ->whereNotNull('visa_milad_date')
                                 ->whereDate('visa_milad_date', '<', $today->copy()->subDays(90));
                         })->orWhere(function ($subQ) use ($today) {
@@ -1201,13 +1470,26 @@ class ShelterContractController extends Controller
             $instantReceipt = $request->input('instant_receipt');
             if ($instantReceipt === 'yes') {
                 $rows->whereHas('info', function ($query) {
-                    $query->where('wants_to_work', 'yes');
+                    $query->where('wants_to_work', 'yes')
+                        ->where('is_available_for_instant', true);
                 });
             } elseif ($instantReceipt === 'no') {
                 $rows->whereHas('info', function ($query) {
-                    $query->where('wants_to_work', '!=', 'yes');
+                    $query->where(function ($inner) {
+                        $inner->where('wants_to_work', '!=', 'yes')
+                            ->orWhereNull('wants_to_work')
+                            ->orWhere('is_available_for_instant', false)
+                            ->orWhereNull('is_available_for_instant');
+                    });
                 });
             }
+        }
+
+        if ($request->filled('quick_tag') && $this->supportsQuickTags()) {
+            $quickTag = trim((string) $request->input('quick_tag'));
+            $rows->whereHas('info', function ($query) use ($quickTag) {
+                $query->whereJsonContains('shelter_quick_tags', $quickTag);
+            });
         }
 
         // فلتر حالة الإجراءات لمرحلة الترحيل
@@ -1293,6 +1575,7 @@ class ShelterContractController extends Controller
                 ->with([
                     'maid' => function ($query) {
                         $query->with([
+                            'jobTypes',
                             'nationality' => function ($q) {
                                 $q->with('translations');
                             },
@@ -1319,7 +1602,7 @@ class ShelterContractController extends Controller
 
             // Handle export request
             if ($request->has('export') && $request->input('export') == '1') {
-                return $this->exportData($rows->get());
+                return $this->exportData($rows->get(), $request->input('export_format', 'csv'));
             }
 
             $dataTable = $this->buildDataTable($rows);
@@ -1332,6 +1615,24 @@ class ShelterContractController extends Controller
             \Log::error('Stack trace: ' . $e->getTraceAsString());
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    public function export(Request $request, string $format)
+    {
+        $rows = Contract::insideShelter()
+            ->with([
+                'maid.jobTypes',
+                'maid.job_types.job_type.translations',
+                'maid.nationality.translations',
+                'user',
+                'info.shelter.translations',
+                'latestShelterLog',
+            ]);
+
+        $this->applyFilters($rows, $request);
+        $rows = $rows->orderByDesc($this->getShelterOrderExpression())->get();
+
+        return $this->exportData($rows, $format);
     }
 
     /**
@@ -1355,7 +1656,7 @@ class ShelterContractController extends Controller
 
             // إزالة معلومات الإيواء
             if ($contract->info) {
-                $contract->info->update([
+                $infoResetPayload = [
                     'shelter_id' => null,
                     'wants_to_work' => null,
                     'maid_date_back' => null,
@@ -1366,7 +1667,13 @@ class ShelterContractController extends Controller
                     'outside_shelter_reference_type' => null,
                     'outside_shelter_reference_id' => null,
                     'outside_shelter_by' => null,
-                ]);
+                ];
+
+                if ($this->supportsQuickTags()) {
+                    $infoResetPayload['shelter_quick_tags'] = null;
+                }
+
+                $contract->info->update($infoResetPayload);
             }
 
             $contract->save();
@@ -1499,26 +1806,43 @@ class ShelterContractController extends Controller
                     return $shelter;
                 })
                 ->addColumn('added_to_shelter_at', function ($row) {
-                    $addedAt = optional($row->latestShelterLog)->created_at
-                        ?? optional($row->info)->created_at
-                        ?? $row->created_at;
+                    $addedAt = $this->resolveShelterEntryDate($row);
 
                     if (!$addedAt) {
                         return '<span class="text-muted">غير محدد</span>';
                     }
 
-                    $date = \Carbon\Carbon::parse($addedAt);
+                    return '<span data-order="' . $addedAt->timestamp . '">' . $addedAt->format('Y-m-d H:i') . '</span>';
+                })
+                ->addColumn('shelter_entry_date', function ($row) {
+                    $shelterEntryDate = $this->resolveShelterEntryDate($row);
 
-                    return '<span data-order="' . $date->timestamp . '">' . $date->format('Y-m-d H:i') . '</span>';
+                    if (!$shelterEntryDate) {
+                        return '<span class="text-muted">غير محدد</span>';
+                    }
+
+                    return '<span data-order="' . $shelterEntryDate->timestamp . '">' . $shelterEntryDate->format('Y-m-d') . '</span>';
+                })
+                ->addColumn('shelter_duration', function ($row) {
+                    $shelterEntryDate = $this->resolveShelterEntryDate($row);
+
+                    if (!$shelterEntryDate) {
+                        return '<span class="text-muted">غير محدد</span>';
+                    }
+
+                    return '<span data-order="' . $shelterEntryDate->timestamp . '">' . e($this->formatHumanDuration($shelterEntryDate)) . '</span>';
+                })
+                ->addColumn('kingdom_duration', function ($row) {
+                    $arrivalDate = $this->resolveArrivalDate($row);
+
+                    if (!$arrivalDate) {
+                        return '<span class="text-muted">غير محدد</span>';
+                    }
+
+                    return '<span data-order="' . $arrivalDate->timestamp . '">' . e($this->formatHumanDuration($arrivalDate)) . '</span>';
                 })
                 ->editColumn('arrival_date', function ($row) {
-                    $arrivalDate = optional($row->info)->arrival_date;
-                    $addedAt = optional($row->latestShelterLog)->created_at
-                        ?? optional($row->info)->created_at
-                        ?? $row->created_at;
-
-                    $dateToDisplay = $arrivalDate ? \Carbon\Carbon::parse($arrivalDate)
-                        : ($addedAt ? \Carbon\Carbon::parse($addedAt) : null);
+                    $dateToDisplay = $this->resolveArrivalDate($row);
 
                     if (!$dateToDisplay) {
                         return '<span class="text-muted">غير محدد</span>';
@@ -1527,8 +1851,7 @@ class ShelterContractController extends Controller
                     return '<span data-order="' . $dateToDisplay->timestamp . '">' . $dateToDisplay->format('Y-m-d') . '</span>';
                 })
                 ->editColumn('return_date', function ($row) {
-                    $returnDate = $row->info && $row->info->maid_date_back ?
-                        \Carbon\Carbon::parse($row->info->maid_date_back)->format('Y-m-d') : null;
+                    $returnDate = $this->resolveShelterEntryDate($row)?->format('Y-m-d');
 
                     return $returnDate ?: '<span class="text-muted">غير محدد</span>';
                 })
@@ -1537,45 +1860,12 @@ class ShelterContractController extends Controller
                         return '<span class="text-muted">غير محدد</span>';
                     }
 
-                    // Try to translate using shelter_worker_statuses.received_by
-                    $translationKey = 'shelter_worker_statuses.received_by.' . $row->info->receipt_source;
-                    $receiptSource = __($translationKey);
-
-                    // If translation not found, use the original value
-                    if ($receiptSource === $translationKey) {
-                        $receiptSource = $row->info->receipt_source;
-                    }
-
-                    return '<span class="badge bg-secondary">' . htmlspecialchars($receiptSource) . '</span>';
+                    return '<span class="badge bg-secondary">' . htmlspecialchars($this->resolveReceiptSourceLabel($row->info->receipt_source)) . '</span>';
                 })
                 ->addColumn('guarantee_status', function ($row) {
-                    if (!$row->info) {
-                        return '<span class="badge bg-secondary">غير محدد</span>';
-                    }
+                    $guaranteeData = $this->resolveGuaranteeData($row);
 
-                    $arrivalDate = $row->info->visa_milad_date ??
-                        $row->info->contract_date ??
-                        $row->info->ingaz_from;
-
-                    if (!$arrivalDate) {
-                        return '<span class="badge bg-secondary">غير محدد</span>';
-                    }
-
-                    try {
-                        $arrivalDate = \Carbon\Carbon::parse($arrivalDate);
-                        $today = \Carbon\Carbon::now();
-                        $guaranteeEndDate = $arrivalDate->copy()->addDays(90);
-
-                        if ($today->lte($guaranteeEndDate)) {
-                            $daysRemaining = $today->diffInDays($guaranteeEndDate);
-                            return '<span class="badge bg-success">ضمن الضمان (' . $daysRemaining . ' يوم)</span>';
-                        } else {
-                            $daysExpired = $guaranteeEndDate->diffInDays($today);
-                            return '<span class="badge bg-danger">منتهي الضمان (' . $daysExpired . ' يوم)</span>';
-                        }
-                    } catch (\Exception $e) {
-                        return '<span class="badge bg-secondary">غير محدد</span>';
-                    }
+                    return '<span class="badge ' . e($guaranteeData['badge_class']) . '">' . e($guaranteeData['label']) . '</span>';
                 })
                 ->addColumn('work_willingness', function ($row) {
                     $workWillingness = $row->info ? $row->info->wants_to_work : null;
@@ -1601,6 +1891,17 @@ class ShelterContractController extends Controller
                     } else {
                         return '<span class="badge bg-secondary"><i class="fas fa-question me-1"></i>غير محدد</span>';
                     }
+                })
+                ->addColumn('quick_tags', function ($row) {
+                    $tags = $this->extractQuickTags(optional($row->info)->shelter_quick_tags);
+
+                    if (empty($tags)) {
+                        return '<span class="text-muted">بدون تصنيف</span>';
+                    }
+
+                    return collect($tags)->map(function ($tag) {
+                        return '<span class="badge bg-light text-dark border me-1 mb-1">' . e($tag) . '</span>';
+                    })->implode('');
                 })
                 ->addColumn('deportation_status', function ($row) {
                     $procedure = \App\Models\DeportationProcedure::where('contract_id', $row->id)->first();
@@ -1653,6 +1954,13 @@ class ShelterContractController extends Controller
                     $actions .= '<li><a class="dropdown-item change-work-desire" href="#" data-id="' . $row->id . '" data-current="' . ($row->info ? $row->info->wants_to_work : 'unknown') . '">
                                     <i class="fas fa-exchange-alt"></i> تغيير رغبة العمل
                                 </a></li>';
+
+                    if ($this->supportsQuickTags()) {
+                        $quickTags = htmlspecialchars(implode(', ', $this->extractQuickTags(optional($row->info)->shelter_quick_tags)), ENT_QUOTES, 'UTF-8');
+                        $actions .= '<li><a class="dropdown-item edit-quick-tags" href="#" data-id="' . $row->id . '" data-tags="' . $quickTags . '">
+                                        <i class="fas fa-tags"></i> تعديل التصنيفات السريعة
+                                    </a></li>';
+                    }
 
                     // تغيير حالة الاستلام الفوري (فقط إذا كانت ترغب بالعمل)
                     if ($row->info && $row->info->wants_to_work === 'yes') {
@@ -1734,7 +2042,7 @@ class ShelterContractController extends Controller
                 ->orderColumn('added_to_shelter_at', function ($query, $order) {
                     $query->orderBy($this->getShelterOrderExpression(), $order);
                 })
-                ->rawColumns(['maid_data', 'client', 'nationality', 'shelter', 'added_to_shelter_at', 'receipt_source', 'arrival_date', 'return_date', 'guarantee_status', 'work_willingness', 'instant_receipt_availability', 'deportation_status', 'show_site_status', 'actions'])
+                ->rawColumns(['maid_data', 'client', 'nationality', 'shelter', 'added_to_shelter_at', 'shelter_entry_date', 'shelter_duration', 'kingdom_duration', 'receipt_source', 'arrival_date', 'return_date', 'guarantee_status', 'work_willingness', 'quick_tags', 'instant_receipt_availability', 'deportation_status', 'show_site_status', 'actions'])
                 ->toJson();
 
             \Log::info('DataTables processing completed');
@@ -2065,12 +2373,18 @@ class ShelterContractController extends Controller
 
                 // إزالة معلومات الإيواء
                 if ($procedure->contract->info) {
-                    $procedure->contract->info->update([
+                    $infoResetPayload = [
                         'shelter_id' => null,
                         'wants_to_work' => null,
                         'maid_date_back' => now(),
-                        'receipt_source' => null
-                    ]);
+                        'receipt_source' => null,
+                    ];
+
+                    if ($this->supportsQuickTags()) {
+                        $infoResetPayload['shelter_quick_tags'] = null;
+                    }
+
+                    $procedure->contract->info->update($infoResetPayload);
                 }
 
                 return response()->json([
@@ -2529,6 +2843,58 @@ class ShelterContractController extends Controller
         }
     }
 
+    public function updateQuickTags(Request $request, $id)
+    {
+        if (!$this->supportsQuickTags()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حقل التصنيفات السريعة غير متاح قبل تنفيذ التحديثات المطلوبة.'
+            ], 422);
+        }
+
+        try {
+            $request->validate([
+                'shelter_quick_tags' => 'nullable|string|max:1000',
+            ]);
+
+            $contract = Contract::with('info')->findOrFail($id);
+            if ($contract->status !== ContractStatusEnum::Shelter->value) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العقد ليس داخل الإيواء'
+                ], 400);
+            }
+
+            $tags = $this->normalizeQuickTags($request->input('shelter_quick_tags'));
+
+            if ($contract->info) {
+                $contract->info->update([
+                    'shelter_quick_tags' => $tags,
+                ]);
+            } else {
+                $contract->info()->create([
+                    'contract_id' => $contract->id,
+                    'shelter_quick_tags' => $tags,
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تحديث التصنيفات السريعة بنجاح',
+                'data' => [
+                    'tags' => $tags,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error updating shelter quick tags: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تحديث التصنيفات السريعة'
+            ], 500);
+        }
+    }
+
     private function getFieldDisplayName($field)
     {
         $fields = [
@@ -2651,6 +3017,11 @@ class ShelterContractController extends Controller
         $printedBy = auth('admin')->user()?->name ?? 'النظام';
         $printedAt = Carbon::now()->format('Y/m/d H:i:s');
         $contractSignedAt = optional($contract->created_at)->format('Y/m/d H:i');
+        $printUrl = route('shelter_contract_form.download', [
+            'id' => $contract->id,
+            'print' => 1,
+            'autoprint' => 1,
+        ]);
         $viewData = [
             'contract' => $contract,
             'client_name' => $clientName,
@@ -2664,10 +3035,17 @@ class ShelterContractController extends Controller
             'printed_by' => $printedBy,
             'printed_at' => $printedAt,
             'contract_signed_at' => $contractSignedAt ?: '--',
+            'print_url' => $printUrl,
         ];
 
         // dompdf does not reliably shape Arabic text, so browser print is the default.
         if (request()->query('driver') !== 'dompdf') {
+            if (request()->boolean('print')) {
+                return response()->view('admin.ingaz.ShelterContract.receipt_form_printable', $viewData, 200, [
+                    'Content-Type' => 'text/html; charset=UTF-8',
+                ]);
+            }
+
             return response()->view('admin.ingaz.ShelterContract.receipt_form_print', $viewData, 200, [
                 'Content-Type' => 'text/html; charset=UTF-8',
             ]);

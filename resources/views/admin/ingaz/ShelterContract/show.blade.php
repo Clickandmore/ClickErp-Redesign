@@ -474,15 +474,31 @@
                         </span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">تاريخ التأشيرة</span>
+                        <span class="info-label">تاريخ الوصول للمملكة</span>
                         <span class="info-value">
-                            {{ $contract->info->visa_milad_date ?? $contract->info->contract_date ?? 'غير متوفر' }}
+                            {{ $contract->info->arrival_date ?? $contract->info->visa_milad_date ?? $contract->info->contract_date ?? 'غير متوفر' }}
                         </span>
                     </div>
                     <div class="info-row">
-                        <span class="info-label">موعد العودة</span>
+                        <span class="info-label">تاريخ إدخالها للإيواء</span>
                         <span class="info-value">
                             {{ $contract->info->maid_date_back ?? 'غير متوفر' }}
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">التصنيفات السريعة</span>
+                        <span class="info-value">
+                            @php
+                                $quickTags = $contract->info->shelter_quick_tags ?? [];
+                                if (is_string($quickTags)) {
+                                    $quickTags = json_decode($quickTags, true) ?: [];
+                                }
+                            @endphp
+                            @if(!empty($quickTags))
+                                {{ implode('، ', $quickTags) }}
+                            @else
+                                بدون تصنيف
+                            @endif
                         </span>
                     </div>
                     <div class="info-row">

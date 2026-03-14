@@ -299,10 +299,8 @@
 
     <div class="page-shell">
         <div class="toolbar">
-            <a class="btn" href="{{ route('shelter_contract_form.download', ['id' => $contract->id, 'autoprint' => 1]) }}"
-                data-action="print">طباعة النموذج</a>
-            <a class="btn secondary" href="{{ route('shelter_contract_form.download', ['id' => $contract->id, 'autoprint' => 1]) }}"
-                data-action="save-pdf">حفظ PDF</a>
+            <a class="btn" href="{{ $print_url }}" target="_blank" rel="noopener">طباعة النموذج</a>
+            <a class="btn secondary" href="{{ $print_url }}" target="_blank" rel="noopener">حفظ PDF</a>
         </div>
 
         <div class="paper">
@@ -399,7 +397,7 @@
                 </table>
 
                 <div class="footer-note">
-                    لحفظ الملف PDF بشكل صحيح مع العربية، استخدم زر "طباعة / حفظ PDF" من المتصفح.
+                    عند الضغط على الطباعة أو الحفظ سيتم فتح نسخة طباعة مستقلة ومنسقة للطابعة.
                 </div>
 
                 <div class="meta-footer">
@@ -433,7 +431,6 @@
             </div>
         </div>
     </div>
-    <script src="{{ asset('admin/assets/js/invoice-print.js') }}?v={{ @filemtime(public_path('admin/assets/js/invoice-print.js')) }}"></script>
 </body>
 
 </html>

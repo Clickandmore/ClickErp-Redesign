@@ -745,15 +745,15 @@ class RecruitmentContractController extends Controller
                     $actions .= '<li><a class="dropdown-item" href="' . route('contracts.details', $row->id) . '">
                                     <i class="fas fa-eye"></i> عرض تفاصيل العقد
                                 </a></li>';
-                    // زر عرض العقد
-                    // $actions .= '<li><a class="dropdown-item" href="' . route('contract_delivery_form.download', $row->id) . '" target="_blank">
-                    //                 <i class="fas fa-eye"></i> عرض العقد (PDF)
-                    //             </a></li>';
 
-                    // زر الطباعة
-                    $actions .= '<li><a class="dropdown-item" href="' . route('contract_download_form.download', $row->id) . '?type=download" target="_blank">
-                                    <i class="fas fa-print"></i> طباعة العقد (PDF)
+                    if (in_array($row->status, [ContractStatusEnum::Arrival->value, ContractStatusEnum::Completed->value], true)) {
+                        $actions .= '<li><a class="dropdown-item" href="' . e(route('contract_download_form.download', ['contract_id' => $row->id])) . '" target="_blank" rel="noopener">
+                                    <i class="fas fa-file-signature"></i> عرض نموذج تسليم العاملة
                                 </a></li>';
+                        $actions .= '<li><a class="dropdown-item" href="' . e(route('contract_download_form.download', ['contract_id' => $row->id, 'driver' => 'dompdf', 'download' => 1])) . '" target="_blank" rel="noopener">
+                                    <i class="fas fa-file-pdf"></i> تنزيل نموذج التسليم PDF
+                                </a></li>';
+                    }
 
                     // الفاتورة
                     $invoice = Invoice::where('contract_id', $row->id)->first();
@@ -3029,7 +3029,8 @@ class RecruitmentContractController extends Controller
                 ->whereIn('status', [
                     OrderEnum::New->value,
                     OrderEnum::UnderProcess->value,
-                    OrderEnum::Contracted->value
+                    OrderEnum::Contracted->value,
+                    OrderEnum::ContractedWithoutContract->value
                 ])
                 ->exists();
 
@@ -3156,7 +3157,7 @@ class RecruitmentContractController extends Controller
                 $contract->contract_status_logs()->create([
                     'status' => $contract->status,
                     'date' => now()->toDateString(),
-                    'notes' => implode(' | ', $changeNotes),
+                    'notes' => implode(PHP_EOL, $changeNotes),
                 ]);
 
                 logger()->info('Maid changed in contract', [

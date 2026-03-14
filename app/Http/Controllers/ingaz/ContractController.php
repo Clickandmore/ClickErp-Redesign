@@ -8,6 +8,7 @@ use App\Models\ingaz\Maid;
 use App\Models\Contract;
 use App\Models\ContractInfo;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 // use Barryvdh\DomPDF\Facade as PDF;
@@ -351,43 +352,152 @@ class ContractController extends Controller
 
     public function deliveryFormDownload($id)
     {
-        $contract = Contract::with(['user', 'maid.nationality', 'marketer'])->findOrFail($id);
+        $contract = Contract::with(['user', 'maid.nationality', 'info', 'marketer', 'travelHistory'])->findOrFail($id);
 
-        // dd($contract->user->name);
         $clientName = $contract->user->name ?? '';
         $clientNationalNumber = $contract->user->national_num ?? '';
-        $clientPhone = $contract->user->phone ?? '';
+        $clientPhone = trim(preg_replace('/\s+/', ' ', trim(($contract->user->phone_code ?? '') . ' ' . ($contract->user->phone ?? ''))));
         $clientAddress = $contract->user->address ?? '';
 
         $maid = $contract->maid;
+        $maidName = $maid->name ?? '';
         $passportId = $maid->passport_num ?? '';
         $nationalityTitle = $maid?->nationality?->title ?? $maid?->nationality?->sub_title ?? '';
-        $arriveDate = $maid->available_at ?? null;
-        $dateReceipt = $contract->contract_date ?? null;
-        $maidName = $maid->name ?? '';
-        $adminStaff = $contract->marketer->name ?? '';
 
-        $textReceipt = $contract->text_receipt ?? '';
+        $travelHistory = $contract->travelHistory()->latest('id')->first();
+        $arrivalDateTime = $this->resolveArrivalDateTime($contract, $travelHistory);
+        $receiptDateTime = $this->resolveReceiptDateTime($contract, $arrivalDateTime);
 
-        $pdf = PDF::loadView('admin.ingaz.RecruitmentContract.delivery_form', [
-            'text_receipt' => $textReceipt,
-            'date_receipt' => $dateReceipt,
+        $textReceipt = trim((string) ($contract->info?->receipt_form_text ?? $contract->text_receipt ?? ''));
+        $companyRepresentative = $contract->marketer->name ?? auth('admin')->user()?->name ?? 'ممثل الشركة';
+        $printedBy = auth('admin')->user()?->name ?? 'النظام';
+
+        $viewData = [
             'contract' => $contract,
+            'contract_number' => $contract->id,
             'client_name' => $clientName,
             'national_identification_number' => $clientNationalNumber,
-            'cvs_name' => $maidName,
-            'nationality_id' => $nationalityTitle,
-            'passport_id' => $passportId,
             'client_phone' => $clientPhone,
             'client_address' => $clientAddress,
-            'adminStaff' => $adminStaff,
-            'arrive_date' => $arriveDate,
-        ])->setPaper('a4', 'portrait');
+            'cvs_name' => $maidName,
+            'passport_id' => $passportId,
+            'nationality_id' => $nationalityTitle,
+            'arrive_date' => $arrivalDateTime?->format('Y/m/d') ?? '--',
+            'arrive_date_time' => $arrivalDateTime?->format('Y/m/d H:i') ?? '--',
+            'date_receipt' => $receiptDateTime?->format('Y/m/d') ?? '--',
+            'date_receipt_time' => $receiptDateTime?->format('Y/m/d H:i') ?? '--',
+            'text_receipt' => $textReceipt,
+            'company_representative' => $companyRepresentative,
+            'printed_by' => $printedBy,
+            'printed_at' => Carbon::now()->format('Y/m/d H:i:s'),
+            'contract_signed_at' => optional($contract->created_at)->format('Y/m/d H:i') ?: '--',
+            'preview_url' => route('contract_download_form.download', ['contract_id' => $contract->id]),
+            'print_url' => route('contract_download_form.download', [
+                'contract_id' => $contract->id,
+                'print' => 1,
+                'autoprint' => 1,
+            ]),
+            'pdf_url' => route('contract_download_form.download', [
+                'contract_id' => $contract->id,
+                'driver' => 'dompdf',
+                'download' => 1,
+            ]),
+        ];
 
-        if (request()->query('type') === 'download') {
-            return $pdf->download('contract-' . $contract->id . '.pdf');
+        if (request()->query('driver') !== 'dompdf') {
+            if (request()->boolean('print')) {
+                return response()->view('admin.ingaz.RecruitmentContract.delivery_form_printable', $viewData, 200, [
+                    'Content-Type' => 'text/html; charset=UTF-8',
+                ]);
+            }
+
+            return response()->view('admin.ingaz.RecruitmentContract.delivery_form_print', $viewData, 200, [
+                'Content-Type' => 'text/html; charset=UTF-8',
+            ]);
         }
-        
-        return $pdf->stream('contract-' . $contract->id . '.pdf');
+
+        $pdfFilename = 'delivery-form-contract-' . $contract->id . '.pdf';
+        $previousErrorReporting = error_reporting();
+
+        error_reporting($previousErrorReporting & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+
+        try {
+            $pdf = PDF::loadView('admin.ingaz.RecruitmentContract.delivery_form', $viewData)->setPaper('a4', 'portrait');
+
+            $pdf->setWarnings(false);
+            $pdf->setOptions([
+                'defaultFont' => 'dejavu sans',
+                'isHtml5ParserEnabled' => true,
+            ]);
+
+            if (request()->boolean('download') || request()->query('type') === 'download') {
+                return $pdf->download($pdfFilename);
+            }
+
+            return $pdf->stream($pdfFilename);
+        } finally {
+            error_reporting($previousErrorReporting);
+        }
+    }
+
+    private function resolveArrivalDateTime(Contract $contract, $travelHistory): ?Carbon
+    {
+        if ($travelHistory) {
+            if (filled($travelHistory->arrival_date) && filled($travelHistory->arrival_time)) {
+                return $this->parseNullableDate($travelHistory->arrival_date . ' ' . $travelHistory->arrival_time);
+            }
+
+            if (filled($travelHistory->arrival_date)) {
+                return $this->parseNullableDate($travelHistory->arrival_date);
+            }
+
+            if (filled($travelHistory->arrived_at ?? null)) {
+                return $this->parseNullableDate($travelHistory->arrived_at);
+            }
+        }
+
+        foreach ([
+            $contract->warranty_start_date,
+            $contract->info?->arrival_date ?? null,
+            $contract->maid?->available_at ?? null,
+        ] as $candidate) {
+            $parsed = $this->parseNullableDate($candidate);
+            if ($parsed) {
+                return $parsed;
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveReceiptDateTime(Contract $contract, ?Carbon $arrivalDateTime): ?Carbon
+    {
+        foreach ([
+            $contract->info?->receipt_form_date ?? null,
+            $arrivalDateTime,
+            $contract->warranty_start_date,
+            $contract->contract_date,
+            $contract->updated_at,
+        ] as $candidate) {
+            $parsed = $this->parseNullableDate($candidate);
+            if ($parsed) {
+                return $parsed;
+            }
+        }
+
+        return null;
+    }
+
+    private function parseNullableDate($value): ?Carbon
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        try {
+            return $value instanceof Carbon ? $value->copy() : Carbon::parse($value);
+        } catch (\Throwable $exception) {
+            return null;
+        }
     }
 }

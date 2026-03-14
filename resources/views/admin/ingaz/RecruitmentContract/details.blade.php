@@ -6,6 +6,12 @@
     {{ helperTrans('ingaz.contract details') }} - العقد رقم #{{ $contract->id }}
 @endsection
 
+@php
+    $canShowDeliveryForm = in_array($contract->status, [\App\Enums\ingaz\ContractStatusEnum::Arrival->value, \App\Enums\ingaz\ContractStatusEnum::Completed->value], true);
+    $deliveryFormUrl = route('contract_download_form.download', ['contract_id' => $contract->id]);
+    $deliveryFormPdfUrl = route('contract_download_form.download', ['contract_id' => $contract->id, 'driver' => 'dompdf', 'download' => 1]);
+@endphp
+
 <style>
     /* تحسين المظهر العام */
     .contract-details-container {
@@ -741,6 +747,35 @@
                 </div>
             @endif
 
+            @if ($canShowDeliveryForm)
+                <div class="row">
+                    <div class="col-12 mb-4">
+                        <div class="info-card">
+                            <div class="card-title">
+                                <i class="fas fa-file-signature text-primary"></i>
+                                نموذج تسليم العاملة
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">حالة النموذج:</span>
+                                <span class="info-value">يتم توليد النموذج تلقائياً من بيانات هذا العقد وبيانات الوصول.</span>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2 mt-3">
+                                <a href="{{ $deliveryFormUrl }}" class="btn btn-outline-primary"
+                                    target="_blank" rel="noopener">
+                                    <i class="fas fa-eye me-1"></i>
+                                    معاينة النموذج
+                                </a>
+                                <a href="{{ $deliveryFormPdfUrl }}" class="btn btn-primary" target="_blank"
+                                    rel="noopener">
+                                    <i class="fas fa-download me-1"></i>
+                                    تنزيل PDF
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <!-- سجل الحالات -->
             <div class="row">
                 <div class="col-12 mb-4">
@@ -829,13 +864,12 @@
 
             <!-- أزرار الإجراءات -->
             <div class="action-buttons">
-                {{-- <button type="button" class="btn-icon btn-print" onclick="printDiv()" title="طباعة العقد">
-                    <i class="fas fa-print"></i>
-                </button> --}}
-                <a href="{{ route('contract_download_form.download', $contract->id) . '?type=download' }}"
-                    class="btn-icon btn-print" title="طباعة العقد" target="_blank">
-                    <i class="fas fa-print"></i>
-                </a>
+                @if ($canShowDeliveryForm)
+                    <a href="{{ $deliveryFormUrl }}" class="btn-icon btn-print" title="عرض نموذج تسليم العاملة"
+                        target="_blank" rel="noopener">
+                        <i class="fas fa-file-signature"></i>
+                    </a>
+                @endif
 
                 @if ($contract->invoice)
                     <a href="{{ route('invoices.show', $contract->invoice->id) }}" class="btn-icon btn-invoice"

@@ -44,6 +44,7 @@ class ShelterContactStore extends MainRequest
             'sponsorship_price' => 'nullable|numeric',
             'receipt_form_date' => 'nullable|date',
             'receipt_form_text' => 'nullable|string',
+            'shelter_quick_tags' => 'nullable|string|max:1000',
         ];
     }
 

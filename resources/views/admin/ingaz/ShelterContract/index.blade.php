@@ -19,6 +19,17 @@
         .instant-receipt-card .h5 {
             color: #856404;
         }
+
+        .quick-filter-chip.active {
+            color: #fff !important;
+            background: #0d6efd;
+            border-color: #0d6efd;
+        }
+
+        .column-explanation {
+            border-right: 4px solid #0d6efd;
+            background: #f8fbff;
+        }
     </style>
 @endsection
 
@@ -45,10 +56,18 @@
                         <i class="fas fa-home text-primary me-2"></i>
                         {{ helperTrans('ingaz.All Shelter contracts') }}
                     </h3>
-                    <a href="{{ route('ShelterContract.create') }}" class="btn btn-primary">
-                        <i class="fas fa-plus me-2"></i>
-                        {{ helperTrans('ingaz.add_shelter_contract') }}
-                    </a>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" id="exportExcel" class="btn btn-success">
+                            <i class="fas fa-file-excel me-2"></i>تصدير Excel
+                        </button>
+                        <button type="button" id="exportPdf" class="btn btn-danger">
+                            <i class="fas fa-file-pdf me-2"></i>تصدير PDF
+                        </button>
+                        <a href="{{ route('ShelterContract.create') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>
+                            {{ helperTrans('ingaz.add_shelter_contract') }}
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Statistics Cards -->
@@ -74,19 +93,59 @@
                     </div>
 
                     <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card statistics-card wants-work-card shadow h-100">
+                        <div class="card statistics-card shadow h-100 border-start border-primary border-4">
                             <div class="card-body">
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
                                         <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                            متاح للنقل
+                                            عاملات الاستقدام
                                         </div>
                                         <div class="h5 mb-0 font-weight-bold">
-                                            {{ $wantsToWork ?? 0 }}
+                                            {{ $serviceCategoryStats['recruitment'] ?? 0 }}
                                         </div>
                                     </div>
                                     <div class="col-auto">
-                                        <i class="fas fa-user-check fa-2x"></i>
+                                        <i class="fas fa-briefcase fa-2x text-primary"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card statistics-card shadow h-100 border-start border-info border-4">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                            عاملات التأجير
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold">
+                                            {{ $serviceCategoryStats['rental'] ?? 0 }}
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-house-user fa-2x text-info"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card statistics-card shadow h-100 border-start border-success border-4">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                            نقل الخدمات
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold">
+                                            {{ $serviceCategoryStats['transfer'] ?? 0 }}
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-people-arrows fa-2x text-success"></i>
                                     </div>
                                 </div>
                             </div>
@@ -99,14 +158,14 @@
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
                                         <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                            في مرحلة الترحيل
+                                            ضمن الضمان
                                         </div>
                                         <div class="h5 mb-0 font-weight-bold">
-                                            {{ $inDeportation ?? 0 }}
+                                            {{ $withinGuarantee ?? 0 }}
                                         </div>
                                     </div>
                                     <div class="col-auto">
-                                        <i class="fas fa-shield-alt fa-2x"></i>
+                                        <i class="fas fa-shield-alt fa-2x text-success"></i>
                                     </div>
                                 </div>
                             </div>
@@ -126,7 +185,47 @@
                                         </div>
                                     </div>
                                     <div class="col-auto">
-                                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                                        <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card statistics-card wants-work-card shadow h-100">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                            جاهزات للنقل
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold">
+                                            {{ $wantsToWork ?? 0 }}
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-user-check fa-2x"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card statistics-card shadow h-100 border-start border-warning border-4">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-uppercase mb-1">
+                                            مرحلة الترحيل
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold">
+                                            {{ $inDeportation ?? 0 }}
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-plane-departure fa-2x text-warning"></i>
                                     </div>
                                 </div>
                             </div>
@@ -150,6 +249,38 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+                            <div>
+                                <h6 class="mb-1">التصنيفات السريعة</h6>
+                                <small class="text-muted">مثل: جاهزة للنقل، جاهزة للإيجار، تحت المتابعة. يمكن استعمالها
+                                    كإحصائية وفلتر مباشر.</small>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <span class="badge bg-warning text-dark">بدون تاريخ وصول واضح:
+                                    {{ $guaranteeUnknown ?? 0 }}</span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-dark quick-filter-chip active"
+                                data-tag="">
+                                كل العقود
+                            </button>
+                            @forelse ($quickTagStats as $tagStat)
+                                <button type="button" class="btn btn-sm btn-outline-primary quick-filter-chip"
+                                    data-tag="{{ $tagStat['name'] }}">
+                                    {{ $tagStat['name'] }}
+                                    <span class="badge bg-light text-dark ms-1">{{ $tagStat['count'] }}</span>
+                                </button>
+                            @empty
+                                <span class="text-muted">لا توجد تصنيفات سريعة مضافة حتى الآن.</span>
+                            @endforelse
                         </div>
                     </div>
                 </div>
@@ -239,7 +370,7 @@
                                     <input type="date" id="filterArrivalDate" class="form-control">
                                 </div>
                                 <div class="col-md-3">
-                                    <label for="filterReturnDate" class="form-label">تاريخ العودة</label>
+                                    <label for="filterReturnDate" class="form-label">تاريخ إدخال الإيواء</label>
                                     <input type="date" id="filterReturnDate" class="form-control">
                                 </div>
                                 <div class="col-md-3">
@@ -248,6 +379,15 @@
                                         <option value="">جميع العاملات</option>
                                         <option value="yes">متاحة للاستلام الفوري</option>
                                         <option value="no">غير متاحة للاستلام الفوري</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="filterQuickTag" class="form-label">التصنيف السريع</label>
+                                    <select id="filterQuickTag" class="form-select">
+                                        <option value="">الكل</option>
+                                        @foreach ($quickTagSuggestions as $tag)
+                                            <option value="{{ $tag }}">{{ $tag }}</option>
+                                        @endforeach
                                     </select>
                                 </div>
                             </div>
@@ -266,39 +406,7 @@
                 </div>
 
                 <!-- جدول العقود -->
-                <div class="card shadow">
-                    {{-- <div class="card-header bg-primary text-white">
-                        <h6 class="m-0 font-weight-bold">
-                            <i class="fas fa-list me-2"></i>
-                            {{ helperTrans('ingaz.All Shelter contracts') }}
-                        </h6>
-                    </div> --}}
-                    <div class="card-body">
 
-                        <table id="shelterContractsTable" class="table table-hover align-middle mb-0 table-style"
-                            style="width: 100%;">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>رقم العقد</th>
-                                    <th>بيانات العاملة</th>
-                                    <th>العميل</th>
-                                    <th>الجنسية</th>
-                                    <th>مكان الإيواء</th>
-                                    <th>تاريخ الوصول</th>
-                                    <th>تاريخ الرجوع</th>
-                                    <th>مصدر الاستلام</th>
-                                    <th>حالة الضمان</th>
-                                    <th>رغبة العمل</th>
-                                    <th>متاحة للاستلام الفوري</th>
-                                    <th>الإجراءات</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
             </div>
 
             <!-- Modal -->
@@ -400,6 +508,42 @@
                     </div>
                 </div>
             </div>
+
+            <div class="modal fade" id="quickTagsModal" tabindex="-1" role="dialog"
+                aria-labelledby="quickTagsModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="quickTagsModalLabel">التصنيفات السريعة</h5>
+                            <button type="button" class="close btn" data-bs-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="quickTagsForm">
+                                <input type="hidden" id="quickTagsContractId" name="contract_id">
+                                <div class="mb-3">
+                                    <label for="quickTagsInput" class="form-label">أدخل التصنيفات مفصولة بفاصلة</label>
+                                    <input type="text" class="form-control" id="quickTagsInput"
+                                        name="shelter_quick_tags" list="quickTagsSuggestions"
+                                        placeholder="مثال: جاهزة للنقل, جاهزة للإيجار">
+                                    <datalist id="quickTagsSuggestions">
+                                        @foreach ($quickTagSuggestions as $tag)
+                                            <option value="{{ $tag }}"></option>
+                                        @endforeach
+                                    </datalist>
+                                    <small class="text-muted d-block mt-2">يمكن إدخال أكثر من تصنيف باستخدام الفاصلة
+                                        العربية أو الإنجليزية.</small>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                            <button type="button" class="btn btn-primary" id="saveQuickTagsBtn">حفظ التصنيفات</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         @else
             @include('components.no_permissions')
         @endif
@@ -438,6 +582,7 @@
                 processing: true,
                 serverSide: true,
                 responsive: true,
+                scrollX: true,
                 searching: false,
                 ajax: {
                     url: '{{ route('ShelterContract.data') }}',
@@ -459,6 +604,7 @@
                         d.arrival_date = $('#filterArrivalDate').val();
                         d.return_date = $('#filterReturnDate').val();
                         d.instant_receipt = $('#filterInstantReceipt').val();
+                        d.quick_tag = $('#filterQuickTag').val();
                         d._timestamp = new Date().getTime(); // منع cache
                     },
                     dataSrc: function(json) {
@@ -521,8 +667,19 @@
                         name: 'arrival_date'
                     },
                     {
-                        data: 'return_date',
-                        name: 'return_date'
+                        data: 'shelter_entry_date',
+                        name: 'shelter_entry_date',
+                        orderable: false
+                    },
+                    {
+                        data: 'kingdom_duration',
+                        name: 'kingdom_duration',
+                        orderable: false
+                    },
+                    {
+                        data: 'shelter_duration',
+                        name: 'shelter_duration',
+                        orderable: false
                     },
                     {
                         data: 'receipt_source',
@@ -537,6 +694,11 @@
                     {
                         data: 'work_willingness',
                         name: 'work_willingness',
+                        orderable: false
+                    },
+                    {
+                        data: 'quick_tags',
+                        name: 'quick_tags',
                         orderable: false
                     },
                     {
@@ -587,7 +749,52 @@
                 $('#filterArrivalDate').val('');
                 $('#filterReturnDate').val('');
                 $('#filterInstantReceipt').val('');
+                $('#filterQuickTag').val('');
+                $('.quick-filter-chip').removeClass('active');
+                $('.quick-filter-chip[data-tag=""]').addClass('active');
                 dataTable.ajax.reload();
+            });
+
+            $('.quick-filter-chip').on('click', function() {
+                const tag = $(this).data('tag') || '';
+                $('.quick-filter-chip').removeClass('active');
+                $(this).addClass('active');
+                $('#filterQuickTag').val(tag);
+                dataTable.ajax.reload();
+            });
+
+            $('#filterQuickTag').on('change', function() {
+                const tag = $(this).val() || '';
+                $('.quick-filter-chip').removeClass('active');
+                $('.quick-filter-chip').filter(function() {
+                    return ($(this).data('tag') || '') === tag;
+                }).addClass('active');
+            });
+
+            function buildExportUrl(format) {
+                const filters = {
+                    contract_number: $('#filterContractNumber').val(),
+                    nationality: $('#filterNationality').val(),
+                    shelter: $('#filterShelter').val(),
+                    receipt_source: $('#filterReceiptSource').val(),
+                    status: $('#filterStatus').val(),
+                    work_willingness: $('#filterWorkWillingness').val(),
+                    arrival_date: $('#filterArrivalDate').val(),
+                    return_date: $('#filterReturnDate').val(),
+                    instant_receipt: $('#filterInstantReceipt').val(),
+                    quick_tag: $('#filterQuickTag').val()
+                };
+
+                return '{{ route('ShelterContract.export', ['format' => '__FORMAT__']) }}'
+                    .replace('__FORMAT__', format) + '?' + $.param(filters);
+            }
+
+            $('#exportExcel').on('click', function() {
+                window.open(buildExportUrl('excel'), '_blank');
+            });
+
+            $('#exportPdf').on('click', function() {
+                window.open(buildExportUrl('pdf'), '_blank');
             });
 
             // Handle action buttons
@@ -768,6 +975,36 @@
                 $('#changeWorkDesireModal').modal('show');
             });
 
+            $(document).on('click', '.edit-quick-tags', function(e) {
+                e.preventDefault();
+                $('#quickTagsContractId').val($(this).data('id'));
+                $('#quickTagsInput').val($(this).data('tags') || '');
+                $('#quickTagsModal').modal('show');
+            });
+
+            $('#saveQuickTagsBtn').on('click', function() {
+                const contractId = $('#quickTagsContractId').val();
+                $.ajax({
+                    url: '{{ route('ShelterContract.quickTags', ':id') }}'.replace(':id',
+                        contractId),
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        shelter_quick_tags: $('#quickTagsInput').val()
+                    },
+                    success: function(response) {
+                        $('#quickTagsModal').modal('hide');
+                        Swal.fire('نجح!', response.message || 'تم حفظ التصنيفات السريعة',
+                            'success');
+                        dataTable.ajax.reload();
+                    },
+                    error: function(xhr) {
+                        Swal.fire('خطأ!', xhr.responseJSON?.message ||
+                            'حدث خطأ أثناء حفظ التصنيفات السريعة', 'error');
+                    }
+                });
+            });
+
             // Handle save work desire
             $('#saveWorkDesireBtn').on('click', function() {
                 const contractId = $('#workDesireContractId').val();
@@ -821,7 +1058,7 @@
             });
 
             // Handle toggle instant receipt action
-            $(document).on('click', '.toggle-instant-receipt', function(e) {                
+            $(document).on('click', '.toggle-instant-receipt', function(e) {
                 e.preventDefault();
                 const contractId = $(this).data('id');
                 const currentStatus = $(this).data('current');

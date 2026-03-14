@@ -12,6 +12,10 @@ class ContractInfo extends Model
     use HasFactory, LogsActivity;
 
     protected $guarded = [];
+    protected $casts = [
+        'shelter_attachments' => 'array',
+        'shelter_quick_tags' => 'array',
+    ];
 
     public function contract()
     {

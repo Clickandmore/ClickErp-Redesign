@@ -6,6 +6,12 @@
     $selectedContractId = old('contract_id', $selectedContractId ?? optional($editingContract)->id);
     $defaultReceiptText =
         ' الى مكتب بلاتنيوم الشرقية للاستقدام وأمل من المكتب حل مشكلتها وذلك بنقل خدماتها  لتعمل عند صاحب عمل آخر او ترحيلها  حسب ما يراه المكتب مناسبا، كما اتعهد بعدم عمل خروج نهائي او بلاغ هروب أو اي اجراء يخص العاملة إلا بموافقة من المكتب، علماً أنه في حالة نقل خدمات العاملة يحق لي استرجاع مستحقاتي وفقاً للعقد الموحد والنظام الصادر من وزارة الموارد البشرية والتنمية الاجتماعية ، حيث انه حسب التعميم الصادر من مساند والذي ينص على الزام ارجاع المبالغ المستحقة للعملاء من خلال منصة مساند وليس عن طريق حساب المكتب المستقدم وعلى ان يكون ارجاع المبلغ خلال عشرين يوم عمل من تاريخ تسليم العاملة .';
+    $editingQuickTags = [];
+    if ($editingInfo && $editingInfo->shelter_quick_tags) {
+        $editingQuickTags = is_array($editingInfo->shelter_quick_tags)
+            ? $editingInfo->shelter_quick_tags
+            : (json_decode($editingInfo->shelter_quick_tags, true) ?: []);
+    }
 @endphp
 @section('page-title')
     {{ $isEditMode ? helperTrans('ingaz.edit Shelter contract') : helperTrans('ingaz.add Shelter contract') }}
@@ -128,10 +134,10 @@
                 </div>
 
                 <div class="col-4 mt-4">
-                    <label for="TextInput" class="form-label">{{ helperTrans('ingaz.maid date back') }}</label>
+                    <label for="TextInput" class="form-label">تاريخ إدخالها للإيواء</label>
                     <input type="date" name="maid_date_back" class="form-control" data-validation="required" readonly
                         value="{{ old('maid_date_back', optional($editingInfo)->maid_date_back) }}">
-                    <small class="form-text text-muted">سيتم تعيين تاريخ الإرجاع تلقائياً إلى اليوم الحالي</small>
+                    <small class="form-text text-muted">هذا التاريخ يمثل تاريخ مراجعتها وإيداعها داخل الإيواء وسيُعيّن تلقائياً إلى اليوم الحالي.</small>
                 </div>
 
                 <div class="col-4 mt-4">
@@ -140,11 +146,11 @@
                         data-validation="required" value="{{ old('arrival_date', optional($editingInfo)->arrival_date) }}">
                 </div>
                 <div class="col-4 mt-4">
-                    <label for="TextInput" class="form-label">{{ helperTrans('ingaz.duration_from_enter') }}</label>
+                    <label for="TextInput" class="form-label">مدة بقائها داخل المملكة</label>
                     <input type="text" name="duration_from_enter" class="form-control" readonly
                         placeholder="سيتم الحساب تلقائياً"
                         value="{{ old('duration_from_enter', optional($editingInfo)->duration_from_enter) }}">
-                    <small class="form-text text-muted">المدة من دخول المملكة بناءً على تاريخ الوصول</small>
+                    <small class="form-text text-muted">تحسب تلقائياً من تاريخ وصولها إلى المملكة وحتى اليوم.</small>
                 </div>
                 <div class="col-4 mt-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.salary_final_status') }}</label>
@@ -254,6 +260,20 @@
                         </option>
                     </select>
                     <small class="form-text text-muted">{{ helperTrans('ingaz.display_on_site_hint') }}</small>
+                </div>
+
+                <div class="col-12 mt-4">
+                    <label for="shelter_quick_tags" class="form-label">التصنيفات السريعة</label>
+                    <input type="text" name="shelter_quick_tags" id="shelter_quick_tags" class="form-control"
+                        list="shelterQuickTagsSuggestions"
+                        value="{{ old('shelter_quick_tags', implode(', ', $editingQuickTags)) }}"
+                        placeholder="مثال: جاهزة للنقل, جاهزة للإيجار, تحت المتابعة">
+                    <datalist id="shelterQuickTagsSuggestions">
+                        @foreach ($quickTagSuggestions as $tag)
+                            <option value="{{ $tag }}"></option>
+                        @endforeach
+                    </datalist>
+                    <small class="form-text text-muted">افصل بين التصنيفات بفاصلة عربية أو إنجليزية. هذه التصنيفات ستظهر في الإحصائيات والفلاتر السريعة بصفحة الإيواء.</small>
                 </div>
 
                 <div class="col-12 mt-4">
