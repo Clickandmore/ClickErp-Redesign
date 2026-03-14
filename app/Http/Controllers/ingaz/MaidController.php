@@ -817,10 +817,21 @@ class MaidController extends Controller
             'experience_years' => $maid->experience_status === 'has_experience' ? ($maid->experience_years ?? 0) : 0,
         ];
 
+        $effectiveStatus = $maid->status;
+        $effectiveAvailable = (bool) $maid->available;
+
+        if ($maid->maid_accommodation_type == 2 && $maid->status !== 'deported') {
+            $effectiveStatus = 'in_accommodation';
+            $effectiveAvailable = false;
+        } elseif ($maid->status !== 'backout' && ($stats['orders_active'] > 0 || $stats['contracts_active'] > 0 || !$maid->available)) {
+            $effectiveStatus = 'reserved';
+            $effectiveAvailable = false;
+        }
+
         $availability = [
-            'status' => $maid->status,
+            'status' => $effectiveStatus,
             'is_show' => $maid->is_show,
-            'available' => $maid->available,
+            'available' => $effectiveAvailable,
             'available_at' => $maid->available_at,
             'created_at' => $maid->created_at,
         ];

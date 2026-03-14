@@ -181,7 +181,7 @@
                 'taffez',
                 'tazker',
             ]);
-            $showCompletedStatsInitially = !$requestedStatus || in_array($requestedStatus, ['completed', 'arrival']);
+            $showCompletedStatsInitially = !$requestedStatus || in_array($requestedStatus, ['completed_stage', 'completed', 'arrival']);
         @endphp
 
         <!-- Header Section -->
@@ -308,7 +308,7 @@
                             <div class="row g-2">
                                 <div class="col-12 col-md-6 col-lg-3">
                                     <button type="button" class="stat-card stat-filter stat-card-completed"
-                                        data-status="completed">
+                                        data-status="completed_stage">
                                         <div class="stat-icon">
                                             <i class="fas fa-clipboard-check"></i>
                                         </div>
@@ -441,6 +441,7 @@
                                 <option value="tafwed">تفويض</option>
                                 <option value="taffez">التفييز</option>
                                 <option value="tazker">التذاكر</option>
+                                <option value="completed_stage">المكتملة (إجمالي)</option>
                                 <option value="arrival">وصول</option>
                                 <option value="sari">ساري</option>
                                 <option value="completed">مكتمل</option>
@@ -880,7 +881,7 @@
 
             function toggleWarrantyFilter() {
                 const statusValue = $('#statusFilter').val();
-                const shouldShow = statusValue === 'arrival' || statusValue === 'completed';
+                const shouldShow = statusValue === 'arrival' || statusValue === 'completed' || statusValue === 'completed_stage';
                 const wrapper = $('#warrantyStatusFilter').closest('.col-md-3');
 
                 if (shouldShow) {
@@ -898,7 +899,7 @@
                 const currentStatuses = ['current', 'pending_maid_selection', 'new', 'msaned', 'tafwed', 'taffez',
                     'tazker', 'accreditation_contracts'
                 ];
-                const completedStatuses = ['completed', 'arrival'];
+                const completedStatuses = ['completed_stage', 'completed', 'arrival'];
 
                 if (!statusValue) {
                     $('#currentStatsSection').show();
@@ -1079,7 +1080,7 @@
 
                         // إضافة فلتر حالة الضمان فقط إذا كانت الحالة "عقود مكتملة"
                         const statusValue = $('#statusFilter').val();
-                        if ((statusValue === 'arrival' || statusValue === 'completed') && $(
+                        if ((statusValue === 'arrival' || statusValue === 'completed' || statusValue === 'completed_stage') && $(
                                 '#warrantyStatusFilter').val()) {
                             d.warranty_status = $('#warrantyStatusFilter').val();
                         }
@@ -1422,7 +1423,8 @@
             // معالج زر الإرجاع من عمود المرحلة التالية
             $(document).on('click', '.backContract', function() {
                 var rowId = $(this).data('row-id');
-                backContract(rowId);
+                var targetLabel = $(this).data('target-label');
+                backContract(rowId, targetLabel);
             });
 
             // معالج زر إضافة رحلة
@@ -1497,15 +1499,17 @@
             });
 
             // دالة إرجاع العقد
-            function backContract(rowId) {
+            function backContract(rowId, targetLabel) {
+                const destinationText = targetLabel || 'المرحلة السابقة';
+
                 Swal.fire({
-                    title: 'تأكيد إرجاع العقد',
-                    text: 'هل أنت متأكد من إرجاع هذا العقد؟',
+                    title: 'تأكيد الإرجاع إلى ' + destinationText,
+                    text: 'سيتم إرجاع العقد إلى ' + destinationText + '. هل تريد المتابعة؟',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
                     cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'نعم، إرجاع العقد',
+                    confirmButtonText: 'نعم، إرجاع إلى ' + destinationText,
                     cancelButtonText: 'إلغاء'
                 }).then((result) => {
                     if (result.isConfirmed) {
@@ -1520,7 +1524,7 @@
                                 if (response.success) {
                                     Swal.fire({
                                         icon: 'success',
-                                        title: 'تم إرجاع العقد بنجاح',
+                                        title: 'تم إرجاع العقد إلى ' + destinationText,
                                         text: response.message
                                     }).then(() => {
                                         dataTable.ajax.reload();

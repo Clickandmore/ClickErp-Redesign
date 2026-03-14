@@ -106,6 +106,8 @@ class RecruitmentContractController extends Controller
             if ($statusFilter !== null && $statusFilter !== '') {
                 if ($statusFilter == 'current') {
                     $query->whereIn('status', [ContractStatusEnum::PendingMaidSelection, ContractStatusEnum::New, ContractStatusEnum::Msaned, ContractStatusEnum::Tafwed, ContractStatusEnum::Taffez, ContractStatusEnum::Tazker]);
+                } elseif ($statusFilter == 'completed_stage') {
+                    $query->whereIn('status', [ContractStatusEnum::Arrival->value, ContractStatusEnum::Completed->value]);
                 } elseif ($statusFilter == 'completed') {
                     $query->where('status', ContractStatusEnum::Completed->value);
                 } else {
@@ -836,9 +838,15 @@ class RecruitmentContractController extends Controller
                         } else {
                             // التحقق من صلاحية إرجاع العقد
                             if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
-                                $actions .= '<li><button class="dropdown-item backContract" data-row-id="' . $row->id . '">
-                                                <i class="fas fa-undo"></i> إرجاع العقد
-                                            </button></li>';
+                                $backStatus = contractBackStatus($row->status);
+
+                                if ($backStatus->value !== $row->status) {
+                                    $backStatusLabel = e(getContractStatus($backStatus->value));
+
+                                    $actions .= '<li><button class="dropdown-item backContract" data-row-id="' . $row->id . '" data-target-status="' . e($backStatus->value) . '" data-target-label="' . $backStatusLabel . '">
+                                                    <i class="fas fa-undo"></i> إرجاع إلى ' . $backStatusLabel . '
+                                                </button></li>';
+                                }
                             }
                         }
                     }
@@ -897,7 +905,9 @@ class RecruitmentContractController extends Controller
             'maid.religion',
             'maid.jobTitles',
             'info',
-            'contract_status_logs',
+            'contract_status_logs' => function ($query) {
+                $query->orderByDesc('date')->orderByDesc('id');
+            },
             'notes' => function ($query) {
                 $query->latest();
             },
@@ -1501,6 +1511,13 @@ class RecruitmentContractController extends Controller
             }
 
             $newStatus = contractBackStatus($contract->status);
+            if ($newStatus->value === $contract->status) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن إرجاع العقد من مرحلة ' . getContractStatus($contract->status)
+                ], 400);
+            }
+
             $contract->update(['status' => $newStatus->value]);
             $contract->contract_status_logs()->create(['status' => $newStatus->value]);
 
@@ -2355,7 +2372,8 @@ class RecruitmentContractController extends Controller
                 });
             }
 
-            $availableMaids = $query->latest()->paginate(20)->withQueryString();
+            // هذا الـ endpoint يُستخدم داخل مودال تغيير العاملة ويجب أن يعرض كل النتائج المتاحة
+            $availableMaids = $query->latest()->get();
 
             // Log debug info
             logger()->info('نتائج البحث عن العاملات:', [
@@ -2393,7 +2411,7 @@ class RecruitmentContractController extends Controller
 
             logger()->info('Available maids loaded', [
                 'count' => $maidsData->count(),
-                'maids' => $maidsData->toArray()
+                'maids_preview' => $maidsData->take(10)->toArray()
             ]);
 
             return response()->json([
@@ -2683,7 +2701,7 @@ class RecruitmentContractController extends Controller
                 ContractStatusEnum::Taffez->value,
                 ContractStatusEnum::Tazker->value,
             ];
-            $postTravelStatuses = [
+            $completedStageStatuses = [
                 ContractStatusEnum::Arrival->value,
                 ContractStatusEnum::Completed->value,
             ];
@@ -2691,7 +2709,7 @@ class RecruitmentContractController extends Controller
             $counts = [
                 'total' => (clone $baseQuery)->count(),
                 'current_total' => (clone $baseQuery)->whereIn('status', $currentStatuses)->count(),
-                'completed_total' => (clone $baseQuery)->where('status', ContractStatusEnum::Completed->value)->count(),
+                'completed_total' => (clone $baseQuery)->whereIn('status', $completedStageStatuses)->count(),
                 'stage_back' => (clone $baseQuery)->where('status', ContractStatusEnum::Back->value)->count(),
                 'stage_pending_maid_selection' => (clone $baseQuery)->where('status', ContractStatusEnum::PendingMaidSelection->value)->count(),
                 'stage_new' => (clone $baseQuery)->where('status', ContractStatusEnum::New->value)->count(),
@@ -2701,7 +2719,7 @@ class RecruitmentContractController extends Controller
                 'stage_tazker' => (clone $baseQuery)->where('status', ContractStatusEnum::Tazker->value)->count(),
                 'stage_arrival' => (clone $baseQuery)->where('status', ContractStatusEnum::Arrival->value)->count(),
                 'stage_completed' => (clone $baseQuery)->where('status', ContractStatusEnum::Completed->value)->count(),
-                'warranty_active' => (clone $baseQuery)->whereIn('status', $postTravelStatuses)
+                'warranty_active' => (clone $baseQuery)->whereIn('status', $completedStageStatuses)
                     ->whereNotNull('warranty_end_date')
                     ->whereDate('warranty_end_date', '>=', $today)
                     ->count(),
@@ -2745,6 +2763,11 @@ class RecruitmentContractController extends Controller
                         ContractStatusEnum::Tafwed,
                         ContractStatusEnum::Taffez,
                         ContractStatusEnum::Tazker
+                    ]);
+                } elseif ($statusFilter == 'completed_stage') {
+                    $query->whereIn('status', [
+                        ContractStatusEnum::Arrival->value,
+                        ContractStatusEnum::Completed->value,
                     ]);
                 } elseif ($statusFilter == 'completed') {
                     $query->where('status', ContractStatusEnum::Completed->value);
@@ -2942,7 +2965,7 @@ class RecruitmentContractController extends Controller
             }
 
             // التحقق من وجود العقد
-            $contract = Contract::with(['maid', 'user'])->findOrFail($contractId);
+            $contract = Contract::with(['maid', 'user', 'order'])->findOrFail($contractId);
 
             // منع استبدال العاملة للعقود المكتملة
             if ($contract->status === ContractStatusEnum::Completed->value) {
@@ -3033,35 +3056,17 @@ class RecruitmentContractController extends Controller
                     'old_maid_current_available' => $oldMaid->available
                 ]);
 
-                // تحديث حالة العاملة القديمة
-                $oldMaid->update([
-                    'status' => $oldMaidStatus,
-                    'available' => ($oldMaidStatus === 'available') ? true : false
-                ]);
-
-                // إعادة تحميل البيانات للتأكد من التحديث
-                $oldMaid->refresh();
-
-                // إذا كانت العاملة أصبحت غير متاحة، أضفها لقائمة العاملات غير المتاحات
-                if ($oldMaidStatus === 'backout') {
-                    \Artisan::call('maids:add-to-unavailable', [
-                        'maid-id' => $oldMaidId,
-                        '--contract-id' => $contractId,
-                        '--reason' => $reason ?? 'تم تغيير العاملة من عقد',
-                        '--admin-id' => Auth::guard('admin')->id()
-                    ]);
-                }
-
-                logger()->info('Old maid status updated', [
-                    'old_maid_id' => $oldMaidId,
-                    'new_status' => $oldMaid->status,
-                    'new_available' => $oldMaid->available
-                ]);
-
                 // تحديث العقد بالعاملة الجديدة
                 $contract->update([
                     'maid_id' => $newMaidId
                 ]);
+
+                // مزامنة العاملة الجديدة أيضاً مع الطلب المرتبط بالعقد إن وجد
+                if ($contract->order) {
+                    $contract->order->update([
+                        'maid_id' => $newMaidId
+                    ]);
+                }
 
                 // تحديث حالة العاملة الجديدة إلى محجوزة
                 $newMaid->update([
@@ -3078,7 +3083,82 @@ class RecruitmentContractController extends Controller
                     'new_available' => $newMaid->available
                 ]);
 
+                // تحديد الحالة النهائية للعاملة القديمة بعد نقل العقد/الطلب عنها
+                if ($oldMaidStatus === 'backout') {
+                    $oldMaid->update([
+                        'status' => 'backout',
+                        'available' => false
+                    ]);
+
+                    \Artisan::call('maids:add-to-unavailable', [
+                        'maid-id' => $oldMaidId,
+                        '--contract-id' => $contractId,
+                        '--reason' => $reason ?? 'تم تغيير العاملة من عقد',
+                        '--admin-id' => Auth::guard('admin')->id()
+                    ]);
+                } else {
+                    $oldMaidActiveContracts = Contract::where('maid_id', $oldMaidId)
+                        ->whereIn('status', [
+                            ContractStatusEnum::New->value,
+                            ContractStatusEnum::Msaned->value,
+                            ContractStatusEnum::Tafwed->value,
+                            ContractStatusEnum::Taffez->value,
+                            ContractStatusEnum::Tazker->value,
+                            ContractStatusEnum::Arrival->value
+                        ])
+                        ->exists();
+
+                    $oldMaidActiveOrders = Order::where('maid_id', $oldMaidId)
+                        ->whereIn('status', [
+                            OrderEnum::New->value,
+                            OrderEnum::UnderProcess->value,
+                            OrderEnum::Contracted->value,
+                            OrderEnum::ContractedWithoutContract->value
+                        ])
+                        ->exists();
+
+                    $oldMaid->update([
+                        'status' => ($oldMaidActiveContracts || $oldMaidActiveOrders) ? 'reserved' : 'available',
+                        'available' => !($oldMaidActiveContracts || $oldMaidActiveOrders)
+                    ]);
+                }
+
+                $oldMaid->refresh();
+
+                logger()->info('Old maid status updated', [
+                    'old_maid_id' => $oldMaidId,
+                    'new_status' => $oldMaid->status,
+                    'new_available' => $oldMaid->available
+                ]);
+
                 // تسجيل العملية في سجل التغييرات
+                $adminName = Auth::guard('admin')->user()?->name ?? 'غير محدد';
+                $statusRequestText = $oldMaidStatus === 'available' ? 'متاحة' : 'باك اوت';
+                $statusAppliedText = match ($oldMaid->status) {
+                    'available' => 'متاحة',
+                    'reserved' => 'محجوزة',
+                    'backout' => 'باك اوت',
+                    default => $oldMaid->status ?? 'غير محدد',
+                };
+
+                $changeNotes = [
+                    'تم تغيير العاملة بواسطة: ' . $adminName,
+                    'العاملة السابقة: ' . ($oldMaid->name ?? 'غير محدد') . ' (#' . $oldMaid->id . ')',
+                    'العاملة الجديدة: ' . ($newMaid->name ?? 'غير محدد') . ' (#' . $newMaid->id . ')',
+                    'الحالة المطلوبة للعاملة السابقة: ' . $statusRequestText,
+                    'الحالة النهائية للعاملة السابقة: ' . $statusAppliedText,
+                ];
+
+                if ($reason) {
+                    $changeNotes[] = 'السبب: ' . $reason;
+                }
+
+                $contract->contract_status_logs()->create([
+                    'status' => $contract->status,
+                    'date' => now()->toDateString(),
+                    'notes' => implode(' | ', $changeNotes),
+                ]);
+
                 logger()->info('Maid changed in contract', [
                     'contract_id' => $contractId,
                     'old_maid_id' => $oldMaidId,

@@ -367,18 +367,15 @@ function AdminGuardCanReject($section)
 
 function contractBackStatus($status)
 {
-    switch ($status) {
-        case ContractStatusEnum::Tazker->value:
-            return ContractStatusEnum::Taffez;
-        case ContractStatusEnum::Taffez->value:
-            return ContractStatusEnum::Tafwed;
-        case ContractStatusEnum::Tafwed->value:
-            return ContractStatusEnum::Msaned;
-        case ContractStatusEnum::Msaned->value:
-            return ContractStatusEnum::New;
-        default:
-            return ContractStatusEnum::New;
-    }
+    return match ($status) {
+        ContractStatusEnum::Arrival->value => ContractStatusEnum::Tazker,
+        ContractStatusEnum::Tazker->value => ContractStatusEnum::Taffez,
+        ContractStatusEnum::Taffez->value => ContractStatusEnum::Tafwed,
+        ContractStatusEnum::Tafwed->value => ContractStatusEnum::Msaned,
+        ContractStatusEnum::Msaned->value => ContractStatusEnum::New,
+        ContractStatusEnum::AccreditationContracts->value => ContractStatusEnum::New,
+        default => ContractStatusEnum::tryFrom($status) ?? ContractStatusEnum::New,
+    };
 }
 
 function contractStatusConfirmBtnText($status)
@@ -398,4 +395,3 @@ function contractStatusConfirmBtnText($status)
             return __('admin.update_status');
     }
 }
-

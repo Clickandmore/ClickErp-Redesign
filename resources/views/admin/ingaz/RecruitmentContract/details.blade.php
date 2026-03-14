@@ -754,19 +754,25 @@
                                 <tr>
                                     <th>الحالة</th>
                                     <th>التاريخ</th>
+                                    <th>التفاصيل</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($contract->contract_status_logs as $logs)
+                                @forelse ($contract->contract_status_logs as $logs)
                                     <tr>
                                         <td>
                                             <span class="status-badge bg-info">
-                                                {{ getEnumValue('contract_statuses', $logs->status) }}
+                                                {{ getEnumValue('contract_statuses', $logs->status) ?? getContractStatus($logs->status) }}
                                             </span>
                                         </td>
                                         <td>{{ $logs->date }}</td>
+                                        <td>{!! $logs->notes ? nl2br(e($logs->notes)) : '<span class="text-muted">لا توجد تفاصيل</span>' !!}</td>
                                     </tr>
-                                @endforeach
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">لا يوجد سجل حركات لهذا العقد</td>
+                                    </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
@@ -1086,6 +1092,8 @@
             const url = '{{ route('RecruitmentContract.availableMaids') }}';
             const fullUrl = searchTerm ? `${url}?search=${encodeURIComponent(searchTerm)}` : url;
             console.log('Fetching from URL:', fullUrl);
+            const select = document.getElementById('new_maid_id');
+            select.innerHTML = '<option value="">جاري تحميل العاملات...</option>';
 
             // الحصول على CSRF token
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -1109,7 +1117,6 @@
                     console.log('Response data:', data);
 
                     if (data.success) {
-                        const select = document.getElementById('new_maid_id');
                         select.innerHTML = '<option value="">اختر العاملة الجديدة...</option>';
 
                         if (data.maids && data.maids.length > 0) {
@@ -1131,13 +1138,11 @@
                         }
                     } else {
                         console.error('Error loading maids:', data.message);
-                        const select = document.getElementById('new_maid_id');
                         select.innerHTML = '<option value="">خطأ في تحميل العاملات</option>';
                     }
                 })
                 .catch(error => {
                     console.error('Fetch error:', error);
-                    const select = document.getElementById('new_maid_id');
                     select.innerHTML = '<option value="">خطأ في الاتصال: ' + error.message + '</option>';
                 });
         }
@@ -1146,7 +1151,7 @@
         function searchMaidsWithDelay(searchTerm) {
             clearTimeout(window.searchTimeout);
             window.searchTimeout = setTimeout(() => {
-                filterMaidOptions(searchTerm);
+                loadAvailableMaids(searchTerm);
             }, 200); // تأخير 200 مللي ثانية
         }
 
@@ -1294,7 +1299,7 @@
         // مسح البحث
         function clearSearch() {
             document.getElementById('maid_search').value = '';
-            filterMaidOptions(''); // إظهار جميع الخيارات
+            loadAvailableMaids(''); // إعادة تحميل جميع العاملات المتاحات
         }
     </script>
 @endsection
