@@ -16,6 +16,7 @@ use App\Models\ShelterPlaces;
 use App\NewPermKeys;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Carbon;
 use Yajra\DataTables\Facades\DataTables;
 use App\Models\ingaz\Maid;
 use PDF;
@@ -2635,21 +2636,23 @@ class ShelterContractController extends Controller
 
     public function deliveryShelterContractDownload($id)
     {
-        $contract = Contract::with(['user', 'maid.nationality'])->findOrFail($id);
-        // dd($contract->info->receipt_form_text);
+        $contract = Contract::with(['user', 'maid.nationality', 'info'])->findOrFail($id);
         $clientName = $contract->user->name ?? '';
         $clientNationalNumber = $contract->user->national_num ?? '';
 
         $maid = $contract->maid;
         $passportId = $maid->passport_num ?? '';
         $nationalityTitle = $maid?->nationality?->title ?? $maid?->nationality?->sub_title ?? '';
-        $arriveDate = $maid->available_at ?? null;
-        $dateReceipt = $contract->contract_date ?? null;
+        $arriveDate = filled($maid?->available_at) ? Carbon::parse($maid->available_at)->format('Y/m/d') : '--';
+        $dateReceipt = filled($contract->contract_date) ? Carbon::parse($contract->contract_date)->format('Y/m/d') : '--';
         $maidName = $maid->name ?? '';
 
-        $textReceipt = $contract->info->receipt_form_text ?? '';
-
-        $pdf = PDF::loadView('admin.ingaz.ShelterContract.receipt_form', [
+        $textReceipt = $contract->info?->receipt_form_text ?? '';
+        $printedBy = auth('admin')->user()?->name ?? 'النظام';
+        $printedAt = Carbon::now()->format('Y/m/d H:i:s');
+        $contractSignedAt = optional($contract->created_at)->format('Y/m/d H:i');
+        $viewData = [
+            'contract' => $contract,
             'client_name' => $clientName,
             'national_identification_number' => $clientNationalNumber,
             'passport_id' => $passportId,
@@ -2658,8 +2661,39 @@ class ShelterContractController extends Controller
             'date_receipt' => $dateReceipt,
             'cvs_name' => $maidName,
             'text_receipt' => $textReceipt,
-        ])->setPaper('a4', 'portrait');
+            'printed_by' => $printedBy,
+            'printed_at' => $printedAt,
+            'contract_signed_at' => $contractSignedAt ?: '--',
+        ];
 
-        return $pdf->stream('contract-' . $contract->id . '.pdf');
+        // dompdf does not reliably shape Arabic text, so browser print is the default.
+        if (request()->query('driver') !== 'dompdf') {
+            return response()->view('admin.ingaz.ShelterContract.receipt_form_print', $viewData, 200, [
+                'Content-Type' => 'text/html; charset=UTF-8',
+            ]);
+        }
+
+        $pdfFilename = 'contract-' . $contract->id . '.pdf';
+        $previousErrorReporting = error_reporting();
+
+        error_reporting($previousErrorReporting & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+
+        try {
+            $pdf = PDF::loadView('admin.ingaz.ShelterContract.receipt_form', $viewData)->setPaper('a4', 'portrait');
+
+            $pdf->setWarnings(false);
+            $pdf->setOptions([
+                'defaultFont' => 'dejavu sans',
+                'isHtml5ParserEnabled' => true,
+            ]);
+
+            if (request()->boolean('download') || request()->query('type') === 'download') {
+                return $pdf->download($pdfFilename);
+            }
+
+            return $pdf->stream($pdfFilename);
+        } finally {
+            error_reporting($previousErrorReporting);
+        }
     }
 }

@@ -43,14 +43,20 @@
     document.addEventListener("DOMContentLoaded", function () {
         var printButton = document.querySelector('[data-action="print"]');
         if (printButton) {
-            printButton.addEventListener("click", function () {
+            printButton.addEventListener("click", function (event) {
+                if (event && typeof event.preventDefault === "function") {
+                    event.preventDefault();
+                }
                 triggerPrint();
             });
         }
 
         var savePdfButton = document.querySelector('[data-action="save-pdf"]');
         if (savePdfButton) {
-            savePdfButton.addEventListener("click", function () {
+            savePdfButton.addEventListener("click", function (event) {
+                if (event && typeof event.preventDefault === "function") {
+                    event.preventDefault();
+                }
                 triggerPrint();
             });
         }
