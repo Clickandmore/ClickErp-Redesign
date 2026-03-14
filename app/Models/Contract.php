@@ -125,7 +125,7 @@ class Contract extends Model
     public function scopeUnderWarranty($query)
     {
         return $query->where('status', ContractStatusEnum::Arrival->value)
-            ->where('updated_at', '>=', now()->subDays(90));
+            ->where('warranty_status', 'active');
     }
 
     public function scopeRentContract($query)
@@ -167,15 +167,14 @@ class Contract extends Model
      */
     public function calculateWarrantyStatus()
     {
-        if ($this->status !== 'completed') {
+        if (!in_array($this->status, [ContractStatusEnum::Arrival->value, ContractStatusEnum::Completed->value], true)) {
             $this->update(['warranty_status' => 'not_applicable']);
             return;
         }
 
         // البحث عن رحلة الوصول
         $travelHistory = \App\Models\TravelHistory::where('order_id', $this->id)
-            ->whereNotNull('arrival_date')
-            ->whereNotNull('arrival_time')
+            ->latest('id')
             ->first();
 
         if (!$travelHistory) {
@@ -183,21 +182,36 @@ class Contract extends Model
             return;
         }
 
-        // حساب تواريخ الضمان
-        $arrivalDateTime = \Carbon\Carbon::parse($travelHistory->arrival_date . ' ' . $travelHistory->arrival_time);
-        $warrantyEndDate = $arrivalDateTime->copy()->addDays(90);
+        $arrivalDateTime = null;
 
-        $this->update([
-            'warranty_start_date' => $arrivalDateTime,
-            'warranty_end_date' => $warrantyEndDate
-        ]);
-
-        // تحديث حالة الضمان
-        if ($warrantyEndDate->isPast()) {
-            $this->update(['warranty_status' => 'expired']);
-        } else {
-            $this->update(['warranty_status' => 'active']);
+        if ($travelHistory->arrival_date && $travelHistory->arrival_time) {
+            $arrivalDateTime = \Carbon\Carbon::parse($travelHistory->arrival_date . ' ' . $travelHistory->arrival_time);
+        } elseif ($travelHistory->arrival_date) {
+            $arrivalDateTime = \Carbon\Carbon::parse($travelHistory->arrival_date);
+        } elseif (!empty($travelHistory->arrived_at)) {
+            $arrivalDateTime = \Carbon\Carbon::parse($travelHistory->arrived_at);
         }
+
+        if (!$arrivalDateTime) {
+            $this->update(['warranty_status' => 'not_applicable']);
+            return;
+        }
+
+        $warrantyEndDate = $arrivalDateTime->copy()->addDays(90);
+        $updates = [
+            'warranty_start_date' => $arrivalDateTime,
+            'warranty_end_date' => $warrantyEndDate,
+        ];
+
+        if ($warrantyEndDate->isPast()) {
+            $updates['status'] = ContractStatusEnum::Completed->value;
+            $updates['warranty_status'] = 'expired';
+        } else {
+            $updates['status'] = ContractStatusEnum::Arrival->value;
+            $updates['warranty_status'] = 'active';
+        }
+
+        $this->update($updates);
     }
 
     /**

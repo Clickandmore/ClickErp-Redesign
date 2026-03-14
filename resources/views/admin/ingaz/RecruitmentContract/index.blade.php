@@ -344,7 +344,7 @@
                                 </div>
                                 <div class="col-12 col-md-6 col-lg-3">
                                     <button type="button" class="stat-card stat-filter stat-card-warranty-active"
-                                        data-status="completed" data-warranty="active">
+                                        data-status="arrival" data-warranty="active">
                                         <div class="stat-icon">
                                             <i class="fas fa-shield"></i>
                                         </div>
@@ -1419,15 +1419,6 @@
             $('#filtersCollapse').on('hide.bs.collapse', function() {
                 $('#filtersIcon').removeClass('fa-chevron-up').addClass('fa-chevron-down');
             });
-
-
-
-            // معالج زر إكمال الرحلة من عمود المرحلة التالية
-            $(document).on('click', '.complete-trip-btn', function() {
-                var tripId = $(this).data('trip-id');
-                completeTrip(tripId);
-            });
-
             // معالج زر الإرجاع من عمود المرحلة التالية
             $(document).on('click', '.backContract', function() {
                 var rowId = $(this).data('row-id');
@@ -1504,55 +1495,6 @@
                     }
                 });
             });
-
-            // دالة إكمال الرحلة
-            function completeTrip(tripId) {
-                Swal.fire({
-                    title: 'تأكيد إكمال الرحلة',
-                    text: 'هل أنت متأكد من إكمال هذه الرحلة؟',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#28a745',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'نعم، أكمل الرحلة',
-                    cancelButtonText: 'إلغاء'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            url: '{{ route('RecruitmentContract.completeTrip') }}',
-                            method: 'POST',
-                            data: {
-                                trip_id: tripId,
-                                _token: '{{ csrf_token() }}'
-                            },
-                            success: function(response) {
-                                if (response.success) {
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'تم إكمال الرحلة بنجاح',
-                                        text: response.message
-                                    }).then(() => {
-                                        dataTable.ajax.reload();
-                                    });
-                                } else {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'خطأ',
-                                        text: response.message
-                                    });
-                                }
-                            },
-                            error: function() {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'خطأ',
-                                    text: 'حدث خطأ أثناء إكمال الرحلة'
-                                });
-                            }
-                        });
-                    }
-                });
-            }
 
             // دالة إرجاع العقد
             function backContract(rowId) {
@@ -1697,130 +1639,6 @@
                 return statusMap[status] || status;
             }
 
-            // معالج تحديث الحالة
-            $('#saveStatusBtn').click(function() {
-                var rowId = $('#rowId').val();
-                var status = $('#status').val();
-                var nextStatus = $('#nextStatus').val();
-                var statusDate = $('#statusDate').val();
-
-                if (!statusDate) {
-                    alert('يرجى إدخال تاريخ الحالة');
-                    return;
-                }
-
-                $.ajax({
-                    url: '{{ route('RecruitmentContract.show', ':rowId') }}'.replace(':rowId',
-                        rowId),
-                    method: 'GET',
-                    data: {
-                        status: status,
-                        next_status: nextStatus,
-                        date: statusDate,
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'تم بنجاح',
-                                text: response.message || 'تم تحديث الحالة بنجاح',
-                                confirmButtonText: 'حسناً'
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'خطأ',
-                                text: response.message || 'حدث خطأ أثناء تحديث الحالة',
-                                confirmButtonText: 'حسناً'
-                            });
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('AJAX Error:', error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'خطأ',
-                            text: 'حدث خطأ أثناء تحديث الحالة',
-                            confirmButtonText: 'حسناً'
-                        });
-                    },
-                    complete: function() {
-                        $('#dataTableObject').addClass('loading');
-                        dataTable.ajax.reload(function() {
-                            $('#dataTableObject').removeClass('loading');
-                        });
-                        $('#updateStatusModal').modal('hide');
-                    }
-                });
-            });
-
-            // معالج إرجاع العقد
-            $(document).on('click', '.backContract', function() {
-                var contractId = $(this).data('row-id');
-                console.log('Back contract clicked, contractId:', contractId);
-
-                if (!contractId) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'خطأ',
-                        text: 'لم يتم العثور على معرف العقد',
-                        confirmButtonText: 'حسناً'
-                    });
-                    return;
-                }
-
-                Swal.fire({
-                    title: 'تأكيد الإرجاع',
-                    text: 'هل أنت متأكد من إرجاع هذا العقد؟',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'نعم، إرجاع',
-                    cancelButtonText: 'إلغاء'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            url: '{{ route('RecruitmentContract.back', ':id') }}'.replace(
-                                ':id', contractId),
-                            method: 'GET',
-                            success: function(response) {
-                                console.log('Back contract response:', response);
-                                if (response.success) {
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'تم بنجاح',
-                                        text: response.message ||
-                                            'تم إرجاع العقد بنجاح',
-                                        confirmButtonText: 'حسناً'
-                                    });
-                                } else {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'خطأ',
-                                        text: response.message ||
-                                            'حدث خطأ أثناء إرجاع العقد',
-                                        confirmButtonText: 'حسناً'
-                                    });
-                                }
-                            },
-                            error: function(xhr, status, error) {
-                                console.error('AJAX Error:', error);
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'خطأ',
-                                    text: 'حدث خطأ أثناء إرجاع العقد',
-                                    confirmButtonText: 'حسناً'
-                                });
-                            },
-                            complete: function() {
-                                dataTable.ajax.reload();
-                            }
-                        });
-                    }
-                });
-            });
-
             // معالج إضافة رحلة
             $(document).on('click', '.add-travel-btn', function(e) {
                 e.preventDefault();
@@ -1868,8 +1686,7 @@
                             '<i class="fa fa-spinner fa-spin me-1"></i>جاري الإكمال...');
 
                         $.ajax({
-                            url: '{{ route('travel.complete', ':tripId') }}'.replace(
-                                ':tripId', tripId),
+                            url: '{{ url('/admin/travel/complete') }}/' + tripId,
                             method: 'POST',
                             data: {
                                 _token: '{{ csrf_token() }}'
@@ -1927,14 +1744,6 @@
                 });
             });
 
-            // معالج زر إضافة عاملة
-            $(document).on('click', '.btn-action[href*="selectMaid"]', function(e) {
-                // السماح بالانتقال الطبيعي للرابط
-                return true;
-            });
-
-
-
             // معالج زر إضافة عاملة من عمود المرحلة التالية
             $(document).on('click', '.btn-action[href*="selectMaid"]', function(e) {
                 // السماح بالانتقال الطبيعي للرابط
@@ -1952,79 +1761,6 @@
                 var maidName = button.data('maid-name');
 
                 openCancelContractModal(contractId, contractNumber, clientName, maidName);
-            });
-        });
-    </script>
-
-    <script>
-        $(document).ready(function() {
-            // Handle complete trip button click
-            $(document).on('click', '.complete-trip-btn', function() {
-                var tripId = $(this).data('trip-id');
-                var button = $(this);
-
-                console.log('Complete trip button clicked for trip ID:', tripId);
-
-                Swal.fire({
-                    title: '{{ __('admin.confirm') }}',
-                    text: '{{ __('admin.mark_trip_completed_confirmation') }}',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: '{{ __('admin.confirm') }}',
-                    cancelButtonText: '{{ __('admin.cancel') }}'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        console.log('Sending complete trip request for trip ID:', tripId);
-
-                        $.ajax({
-                            url: '/admin/travel/complete/' + tripId,
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                            },
-                            success: function(response) {
-                                console.log('Complete trip response:', response);
-
-                                if (response.success) {
-                                    // Update the status badge
-                                    button.closest('td').find('.badge').removeClass(
-                                        'bg-warning').addClass('bg-success').text(
-                                        '{{ __('admin.trip_completed') }}');
-                                    // Remove the complete button
-                                    button.remove();
-                                    // Show success message
-                                    Swal.fire('{{ __('admin.success') }}', response
-                                        .message, 'success');
-                                    // Reload the table to reflect the new contract status
-                                    $('#dataTableObject').DataTable().ajax.reload(null,
-                                        false);
-
-                                    // If we're on the tazker status page, redirect to under warranty page
-                                    if (window.location.href.includes(
-                                            'status=tazker')) {
-                                        setTimeout(function() {
-                                            window.location.href =
-                                                '{{ route('RecruitmentContract.index', ['status' => 'under_warranty']) }}';
-                                        }, 1500);
-                                    }
-                                } else {
-                                    Swal.fire('{{ __('admin.error') }}', response
-                                        .message, 'error');
-                                }
-                            },
-                            error: function(xhr, status, error) {
-                                console.error('Complete trip error:', {
-                                    status: status,
-                                    error: error,
-                                    response: xhr.responseText
-                                });
-                                Swal.fire('{{ __('admin.error') }}',
-                                    '{{ __('admin.something_went_wrong') }}',
-                                    'error');
-                            }
-                        });
-                    }
-                });
             });
         });
     </script>

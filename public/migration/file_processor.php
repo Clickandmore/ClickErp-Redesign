@@ -1911,7 +1911,7 @@ function migrateUsersSimple() {
             $suffix = 0;
             do {
                 $suffix++;
-                $candidate = $base . '-dup-' . ($suffix > 1 ? $suffix : '');
+                $candidate = $base . ($suffix > 1 ? $suffix : '');
             } while (isset($usedPhones[$candidate]));
             $usedPhones[$candidate] = true;
             return $candidate;

@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use App\Enums\ingaz\ContractStatusEnum;
 use App\Models\Contract;
 use App\Models\TravelHistory;
 use Carbon\Carbon;
@@ -21,17 +22,20 @@ class InitializeWarrantyStatus extends Command
      *
      * @var string
      */
-    protected $description = 'Initialize warranty status for all completed contracts';
+    protected $description = 'Initialize warranty status for arrival and completed contracts';
 
     /**
      * Execute the console command.
      */
     public function handle()
     {
-        $this->info('Initializing warranty status for all completed contracts...');
+        $this->info('Initializing warranty status for arrival and completed contracts...');
 
-        // جلب جميع العقود المكتملة
-        $contracts = Contract::where('status', 'completed')->get();
+        // جلب جميع العقود في الوصول أو المكتملة
+        $contracts = Contract::whereIn('status', [
+            ContractStatusEnum::Arrival->value,
+            ContractStatusEnum::Completed->value,
+        ])->get();
 
         $activeCount = 0;
         $expiredCount = 0;
@@ -40,13 +44,27 @@ class InitializeWarrantyStatus extends Command
         foreach ($contracts as $contract) {
             // البحث عن رحلة الوصول للعقد
             $travelHistory = TravelHistory::where('order_id', $contract->id)
-                ->whereNotNull('arrival_date')
-                ->whereNotNull('arrival_time')
+                ->latest('id')
                 ->first();
 
             if ($travelHistory) {
-                // حساب تاريخ انتهاء الضمان (90 يوم من تاريخ الوصول)
-                $arrivalDateTime = Carbon::parse($travelHistory->arrival_date . ' ' . $travelHistory->arrival_time);
+                $arrivalDateTime = null;
+                if ($travelHistory->arrival_date && $travelHistory->arrival_time) {
+                    $arrivalDateTime = Carbon::parse($travelHistory->arrival_date . ' ' . $travelHistory->arrival_time);
+                } elseif ($travelHistory->arrival_date) {
+                    $arrivalDateTime = Carbon::parse($travelHistory->arrival_date);
+                } elseif (!empty($travelHistory->arrived_at)) {
+                    $arrivalDateTime = Carbon::parse($travelHistory->arrived_at);
+                }
+
+                if (!$arrivalDateTime) {
+                    $contract->warranty_status = 'not_applicable';
+                    $notApplicableCount++;
+                    $this->warn("Contract {$contract->id}: No arrival datetime found, warranty set to not applicable");
+                    $contract->save();
+                    continue;
+                }
+
                 $warrantyEndDate = $arrivalDateTime->copy()->addDays(90);
 
                 // تحديث تواريخ الضمان في العقد
@@ -55,10 +73,12 @@ class InitializeWarrantyStatus extends Command
 
                 // التحقق من انتهاء الضمان
                 if ($warrantyEndDate->isPast()) {
+                    $contract->status = ContractStatusEnum::Completed->value;
                     $contract->warranty_status = 'expired';
                     $expiredCount++;
                     $this->warn("Contract {$contract->id}: Warranty expired on {$warrantyEndDate->format('Y-m-d')}");
                 } else {
+                    $contract->status = ContractStatusEnum::Arrival->value;
                     $contract->warranty_status = 'active';
                     $activeCount++;
                     $this->info("Contract {$contract->id}: Warranty active until {$warrantyEndDate->format('Y-m-d')}");
@@ -75,10 +95,12 @@ class InitializeWarrantyStatus extends Command
                     $contract->warranty_end_date = $warrantyEndDate;
 
                     if ($warrantyEndDate->isPast()) {
+                        $contract->status = ContractStatusEnum::Completed->value;
                         $contract->warranty_status = 'expired';
                         $expiredCount++;
                         $this->warn("Contract {$contract->id}: Warranty expired (from contract info) on {$warrantyEndDate->format('Y-m-d')}");
                     } else {
+                        $contract->status = ContractStatusEnum::Arrival->value;
                         $contract->warranty_status = 'active';
                         $activeCount++;
                         $this->info("Contract {$contract->id}: Warranty active (from contract info) until {$warrantyEndDate->format('Y-m-d')}");
@@ -89,11 +111,13 @@ class InitializeWarrantyStatus extends Command
                     $daysSinceCompleted = $completedDate->diffInDays(now());
 
                     if ($daysSinceCompleted > 90) {
+                        $contract->status = ContractStatusEnum::Completed->value;
                         $contract->warranty_status = 'expired';
                         $expiredCount++;
                         $this->warn("Contract {$contract->id}: Warranty expired (no arrival date, completed {$daysSinceCompleted} days ago)");
                     } else {
                         // نفترض أن الضمان نشط مؤقتاً
+                        $contract->status = ContractStatusEnum::Arrival->value;
                         $contract->warranty_status = 'active';
                         $contract->warranty_start_date = $completedDate;
                         $contract->warranty_end_date = $completedDate->copy()->addDays(90);

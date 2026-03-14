@@ -595,6 +595,12 @@ class AdminTravelHistoryController extends Controller
             foreach ($tripRecords as $tripRecord) {
                 // تحديث حالة الرحلة إلى مكتملة
                 $tripRecord->status = 'completed';
+                if (!$tripRecord->arrival_date) {
+                    $tripRecord->arrival_date = now()->toDateString();
+                }
+                if (!$tripRecord->arrival_time) {
+                    $tripRecord->arrival_time = now()->format('H:i:s');
+                }
                 $tripRecord->arrived_at = now();
                 $tripRecord->arrival_confirmed_by = auth('admin')->id();
                 $tripRecord->save();
@@ -613,19 +619,24 @@ class AdminTravelHistoryController extends Controller
 
                 // إذا وجد العقد، تحديث حالته وتفعيل الضمان
                 if ($contract) {
-                    // تحديث حالة العقد إلى مكتمل
-                    $contract->update(['status' => 'completed']);
+                    // بعد إكمال الرحلة ينتقل العقد أولاً إلى الوصول، ثم يحدد الضمان الحالة النهائية
+                    $contract->update(['status' => ContractStatusEnum::Arrival->value]);
                     $updatedContracts++;
 
                     // حساب وتفعيل الضمان إذا كان العقد من نوع Contract
                     if ($contract instanceof \App\Models\Contract) {
                         $contract->calculateWarrantyStatus();
+                        $contract->refresh();
+
+                        $statusLogNote = $contract->status === ContractStatusEnum::Completed->value
+                            ? 'تم إكمال الرحلة وانتهاء فترة الضمان، لذلك تم تحديث العقد إلى مكتمل'
+                            : 'تم إكمال الرحلة ونقل العقد إلى مرحلة الوصول وتفعيل الضمان';
 
                         // إنشاء سجل حالة العقد
                         $contract->contract_status_logs()->create([
-                            'status' => 'completed',
+                            'status' => $contract->status,
                             'date' => now(),
-                            'notes' => 'تم إكمال الرحلة وتحديث حالة العقد إلى مكتمل وتفعيل الضمان'
+                            'notes' => $statusLogNote
                         ]);
                     }
                     // إذا كان عقد إيجار، تفعيل الضمان بشكل مختلف
@@ -657,7 +668,7 @@ class AdminTravelHistoryController extends Controller
                 'message' => $updatedContracts > 0
                     ? ($isGrouped
                         ? 'تم إكتمال الرحلة المجمعة وتحديث ' . $updatedContracts . ' عقد بنجاح'
-                        : 'تم إكتمال الرحلة وتحديث حالة العقد إلى مكتمل وتفعيل الضمان بنجاح')
+                        : 'تم إكتمال الرحلة وتحديث حالة العقد إلى مرحلة الوصول وتفعيل الضمان بنجاح')
                     : 'تم إكتمال الرحلة بنجاح'
             ]);
 

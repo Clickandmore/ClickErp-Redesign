@@ -107,7 +107,7 @@ class RecruitmentContractController extends Controller
                 if ($statusFilter == 'current') {
                     $query->whereIn('status', [ContractStatusEnum::PendingMaidSelection, ContractStatusEnum::New, ContractStatusEnum::Msaned, ContractStatusEnum::Tafwed, ContractStatusEnum::Taffez, ContractStatusEnum::Tazker]);
                 } elseif ($statusFilter == 'completed') {
-                    $query->whereIn('status', [ContractStatusEnum::Completed, ContractStatusEnum::Arrival]);
+                    $query->where('status', ContractStatusEnum::Completed->value);
                 } else {
                     $query->where('status', $statusFilter);
                 }
@@ -255,8 +255,8 @@ class RecruitmentContractController extends Controller
                         $statusDisplay .= '<br><small class="text-muted text-nowrap"><span class="text-secondary">آخر تحديث: </span>' . $lastUpdate . '</small>';
                     }
 
-                    // إضافة حالة الضمان للعقود المكتملة
-                    if ($row->status === 'arrival') {
+                    // إضافة حالة الضمان للعقود المكتملة، مع دعم حالة الوصول القديمة
+                    if (in_array($row->status, [ContractStatusEnum::Arrival->value, ContractStatusEnum::Completed->value], true)) {
                         $warrantyStatus = $row->warranty_status ?? 'not_applicable';
 
                         // حساب الأيام المتبقية من تاريخ انتهاء الضمان
@@ -499,8 +499,8 @@ class RecruitmentContractController extends Controller
                             $contractInfo .= '<div class="d-flex align-items-center gap-2 text-nowrap"><i class="fas fa-calendar-day text-secondary"></i><span class="text-secondary text-nowrap">تاريخ العقد:</span> ' . \Carbon\Carbon::parse($row->info->contract_date)->format('Y-m-d') . '</div>';
                         }
 
-                        // إضافة معلومات الضمان للعقود المكتملة
-                        if ($row->status === 'completed' && $row->warranty_end_date) {
+                        // إضافة معلومات الضمان للعقود المكتملة، مع دعم حالة الوصول القديمة
+                        if (in_array($row->status, [ContractStatusEnum::Arrival->value, ContractStatusEnum::Completed->value], true) && $row->warranty_end_date) {
                             $endDate = \Carbon\Carbon::parse($row->warranty_end_date);
                             $now = \Carbon\Carbon::now();
 
@@ -2035,7 +2035,7 @@ class RecruitmentContractController extends Controller
         return response()->download($tempFile, 'contracts.xlsx', $headers)->deleteFileAfterSend(true);
     }
 
-    public function completeTrip($tripId)
+    public function completeTrip(Request $request, $tripId = null)
     {
         try {
             // التحقق من صلاحية إكمال الرحلة
@@ -2044,6 +2044,14 @@ class RecruitmentContractController extends Controller
                     'success' => false,
                     'message' => 'ليس لديك صلاحية لإكمال الرحلة'
                 ], 403);
+            }
+
+            $tripId = $tripId ?: $request->input('trip_id');
+            if (!$tripId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لم يتم تحديد الرحلة المطلوبة'
+                ], 422);
             }
 
             $travelHistory = TravelHistory::find($tripId);
@@ -2066,20 +2074,33 @@ class RecruitmentContractController extends Controller
             DB::beginTransaction();
 
             try {
-                // تحديث حالة الرحلة إلى مكتملة
-                $travelHistory->update(['status' => 'completed']);
+                if (!$travelHistory->arrival_date) {
+                    $travelHistory->arrival_date = now()->toDateString();
+                }
+                if (!$travelHistory->arrival_time) {
+                    $travelHistory->arrival_time = now()->format('H:i:s');
+                }
 
-                // تحديث حالة العقد إلى مكتمل
-                $contract->update(['status' => 'completed']);
+                // تحديث حالة الرحلة إلى مكتملة
+                $travelHistory->status = 'completed';
+                $travelHistory->save();
+
+                // بعد إكمال الرحلة ينتقل العقد إلى الوصول، ثم يحدد الضمان الحالة النهائية
+                $contract->update(['status' => ContractStatusEnum::Arrival->value]);
 
                 // حساب حالة الضمان تلقائياً
                 $contract->calculateWarrantyStatus();
+                $contract->refresh();
+
+                $statusLogNote = $contract->status === ContractStatusEnum::Completed->value
+                    ? 'تم إكمال الرحلة وانتهاء فترة الضمان، لذلك تم تحديث العقد إلى مكتمل'
+                    : 'تم إكمال الرحلة ونقل العقد إلى مرحلة الوصول وتفعيل الضمان';
 
                 // إنشاء سجل حالة العقد
                 $contract->contract_status_logs()->create([
-                    'status' => 'completed',
+                    'status' => $contract->status,
                     'date' => now(),
-                    'notes' => 'تم إكمال الرحلة وتحديث حالة العقد إلى مكتمل'
+                    'notes' => $statusLogNote
                 ]);
 
                 DB::commit();
@@ -2092,7 +2113,9 @@ class RecruitmentContractController extends Controller
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'تم إكمال الرحلة وتحديث حالة العقد إلى مكتمل بنجاح'
+                    'message' => $contract->status === ContractStatusEnum::Completed->value
+                        ? 'تم إكمال الرحلة وتحديث حالة العقد إلى مكتمل بنجاح'
+                        : 'تم إكمال الرحلة وتحديث حالة العقد إلى مرحلة الوصول وتفعيل الضمان بنجاح'
                 ]);
             } catch (\Exception $e) {
                 DB::rollBack();
@@ -2660,7 +2683,7 @@ class RecruitmentContractController extends Controller
                 ContractStatusEnum::Taffez->value,
                 ContractStatusEnum::Tazker->value,
             ];
-            $completedStatuses = [
+            $postTravelStatuses = [
                 ContractStatusEnum::Arrival->value,
                 ContractStatusEnum::Completed->value,
             ];
@@ -2668,7 +2691,7 @@ class RecruitmentContractController extends Controller
             $counts = [
                 'total' => (clone $baseQuery)->count(),
                 'current_total' => (clone $baseQuery)->whereIn('status', $currentStatuses)->count(),
-                'completed_total' => (clone $baseQuery)->whereIn('status', $completedStatuses)->count(),
+                'completed_total' => (clone $baseQuery)->where('status', ContractStatusEnum::Completed->value)->count(),
                 'stage_back' => (clone $baseQuery)->where('status', ContractStatusEnum::Back->value)->count(),
                 'stage_pending_maid_selection' => (clone $baseQuery)->where('status', ContractStatusEnum::PendingMaidSelection->value)->count(),
                 'stage_new' => (clone $baseQuery)->where('status', ContractStatusEnum::New->value)->count(),
@@ -2678,15 +2701,15 @@ class RecruitmentContractController extends Controller
                 'stage_tazker' => (clone $baseQuery)->where('status', ContractStatusEnum::Tazker->value)->count(),
                 'stage_arrival' => (clone $baseQuery)->where('status', ContractStatusEnum::Arrival->value)->count(),
                 'stage_completed' => (clone $baseQuery)->where('status', ContractStatusEnum::Completed->value)->count(),
-                'warranty_active' => (clone $baseQuery)->whereIn('status', $completedStatuses)
+                'warranty_active' => (clone $baseQuery)->whereIn('status', $postTravelStatuses)
                     ->whereNotNull('warranty_end_date')
                     ->whereDate('warranty_end_date', '>=', $today)
                     ->count(),
-                'warranty_expired' => (clone $baseQuery)->whereIn('status', $completedStatuses)
+                'warranty_expired' => (clone $baseQuery)->where('status', ContractStatusEnum::Completed->value)
                     ->whereNotNull('warranty_end_date')
                     ->whereDate('warranty_end_date', '<', $today)
                     ->count(),
-                'warranty_not_applicable' => (clone $baseQuery)->whereIn('status', $completedStatuses)
+                'warranty_not_applicable' => (clone $baseQuery)->where('status', ContractStatusEnum::Completed->value)
                     ->whereNull('warranty_end_date')
                     ->count(),
             ];
@@ -2724,7 +2747,7 @@ class RecruitmentContractController extends Controller
                         ContractStatusEnum::Tazker
                     ]);
                 } elseif ($statusFilter == 'completed') {
-                    $query->whereIn('status', [ContractStatusEnum::Completed, ContractStatusEnum::Arrival]);
+                    $query->where('status', ContractStatusEnum::Completed->value);
                 } else {
                     $query->where('status', $statusFilter);
                 }
