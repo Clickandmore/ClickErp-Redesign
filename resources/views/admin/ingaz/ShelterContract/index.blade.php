@@ -30,6 +30,15 @@
             border-right: 4px solid #0d6efd;
             background: #f8fbff;
         }
+
+        .stats-filter-card {
+            cursor: pointer;
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+
+        .stats-filter-card:hover {
+            transform: translateY(-2px);
+        }
     </style>
 @endsection
 
@@ -73,7 +82,8 @@
                 <!-- Statistics Cards -->
                 <div class="row mb-4">
                     <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card statistics-card total-card shadow h-100">
+                        <div class="card statistics-card total-card shadow h-100 stats-filter-card"
+                            data-clear-filters="1">
                             <div class="card-body">
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
@@ -93,7 +103,8 @@
                     </div>
 
                     <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card statistics-card shadow h-100 border-start border-primary border-4">
+                        <div class="card statistics-card shadow h-100 border-start border-primary border-4 stats-filter-card"
+                            data-service-category="recruitment">
                             <div class="card-body">
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
@@ -113,7 +124,8 @@
                     </div>
 
                     <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card statistics-card shadow h-100 border-start border-info border-4">
+                        <div class="card statistics-card shadow h-100 border-start border-info border-4 stats-filter-card"
+                            data-service-category="rental">
                             <div class="card-body">
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
@@ -133,7 +145,8 @@
                     </div>
 
                     <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card statistics-card shadow h-100 border-start border-success border-4">
+                        <div class="card statistics-card shadow h-100 border-start border-success border-4 stats-filter-card"
+                            data-service-category="transfer">
                             <div class="card-body">
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
@@ -153,7 +166,8 @@
                     </div>
 
                     <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card statistics-card within-guarantee-card shadow h-100">
+                        <div class="card statistics-card within-guarantee-card shadow h-100 stats-filter-card"
+                            data-status="within_guarantee">
                             <div class="card-body">
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
@@ -173,7 +187,8 @@
                     </div>
 
                     <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card statistics-card expired-guarantee-card shadow h-100">
+                        <div class="card statistics-card expired-guarantee-card shadow h-100 stats-filter-card"
+                            data-status="expired_guarantee">
                             <div class="card-body">
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
@@ -193,7 +208,8 @@
                     </div>
 
                     <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card statistics-card wants-work-card shadow h-100">
+                        <div class="card statistics-card wants-work-card shadow h-100 stats-filter-card"
+                            data-work-willingness="yes">
                             <div class="card-body">
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
@@ -213,7 +229,8 @@
                     </div>
 
                     <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card statistics-card shadow h-100 border-start border-warning border-4">
+                        <div class="card statistics-card shadow h-100 border-start border-warning border-4 stats-filter-card"
+                            data-work-willingness="no">
                             <div class="card-body">
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
@@ -233,7 +250,8 @@
                     </div>
 
                     <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card statistics-card instant-receipt-card shadow h-100">
+                        <div class="card statistics-card instant-receipt-card shadow h-100 stats-filter-card"
+                            data-instant-receipt="yes">
                             <div class="card-body">
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
@@ -390,6 +408,15 @@
                                         @endforeach
                                     </select>
                                 </div>
+                                <div class="col-md-3">
+                                    <label for="filterServiceCategory" class="form-label">تصنيف الخدمة</label>
+                                    <select id="filterServiceCategory" class="form-select">
+                                        <option value="">الكل</option>
+                                        <option value="recruitment">استقدام</option>
+                                        <option value="rental">تأجير</option>
+                                        <option value="transfer">نقل خدمات</option>
+                                    </select>
+                                </div>
                             </div>
                             <div class="row mt-3">
                                 <div class="col-12 text-end">
@@ -406,6 +433,44 @@
                 </div>
 
                 <!-- جدول العقود -->
+                <div class="card shadow">
+                    <div class="card-body border-bottom">
+                        <div class="alert column-explanation mb-0">
+                            <strong class="d-block mb-2">توضيح الأعمدة</strong>
+                            <div>مدة التسكين داخل الإيواء: من تاريخ إدخال العاملة إلى الإيواء وحتى اليوم.</div>
+                            <div>مدة بقائها داخل المملكة: من تاريخ وصولها للمملكة وحتى اليوم.</div>
+                            <div>تاريخ إدخال الإيواء: هو تاريخ مراجعتها وإيداعها داخل الإيواء.</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table id="shelterContractsTable" class="table table-hover align-middle mb-0 table-style"
+                                style="width: 100%;">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>رقم العقد</th>
+                                        <th>بيانات العاملة</th>
+                                        <th>العميل</th>
+                                        <th>الجنسية</th>
+                                        <th>مكان الإيواء</th>
+                                        <th>تاريخ الوصول للمملكة</th>
+                                        <th>تاريخ إدخال الإيواء</th>
+                                        <th>مدة داخل المملكة</th>
+                                        <th>مدة داخل الإيواء</th>
+                                        <th>مصدر الاستلام</th>
+                                        <th>حالة الضمان</th>
+                                        <th>رغبة العمل</th>
+                                        <th>التصنيفات السريعة</th>
+                                        <th>متاحة للاستلام الفوري</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
 
             </div>
 
@@ -581,7 +646,7 @@
             const dataTable = $('#shelterContractsTable').DataTable({
                 processing: true,
                 serverSide: true,
-                responsive: true,
+                responsive: false,
                 scrollX: true,
                 searching: false,
                 ajax: {
@@ -605,6 +670,7 @@
                         d.return_date = $('#filterReturnDate').val();
                         d.instant_receipt = $('#filterInstantReceipt').val();
                         d.quick_tag = $('#filterQuickTag').val();
+                        d.service_category = $('#filterServiceCategory').val();
                         d._timestamp = new Date().getTime(); // منع cache
                     },
                     dataSrc: function(json) {
@@ -750,6 +816,7 @@
                 $('#filterReturnDate').val('');
                 $('#filterInstantReceipt').val('');
                 $('#filterQuickTag').val('');
+                $('#filterServiceCategory').val('');
                 $('.quick-filter-chip').removeClass('active');
                 $('.quick-filter-chip[data-tag=""]').addClass('active');
                 dataTable.ajax.reload();
@@ -782,7 +849,8 @@
                     arrival_date: $('#filterArrivalDate').val(),
                     return_date: $('#filterReturnDate').val(),
                     instant_receipt: $('#filterInstantReceipt').val(),
-                    quick_tag: $('#filterQuickTag').val()
+                    quick_tag: $('#filterQuickTag').val(),
+                    service_category: $('#filterServiceCategory').val()
                 };
 
                 return '{{ route('ShelterContract.export', ['format' => '__FORMAT__']) }}'
@@ -795,6 +863,33 @@
 
             $('#exportPdf').on('click', function() {
                 window.open(buildExportUrl('pdf'), '_blank');
+            });
+
+            $('.stats-filter-card').on('click', function() {
+                if ($(this).data('clear-filters') == 1) {
+                    $('#clearFilters').trigger('click');
+                    return;
+                }
+
+                $('#filterContractNumber').val('');
+                $('#filterNationality').val('');
+                $('#filterShelter').val('');
+                $('#filterReceiptSource').val('');
+                $('#filterStatus').val('');
+                $('#filterWorkWillingness').val('');
+                $('#filterArrivalDate').val('');
+                $('#filterReturnDate').val('');
+                $('#filterInstantReceipt').val('');
+                $('#filterQuickTag').val('');
+                $('#filterServiceCategory').val('');
+                $('.quick-filter-chip').removeClass('active');
+                $('.quick-filter-chip[data-tag=""]').addClass('active');
+
+                $('#filterServiceCategory').val($(this).data('service-category') || '');
+                $('#filterStatus').val($(this).data('status') || '');
+                $('#filterWorkWillingness').val($(this).data('work-willingness') || '');
+                $('#filterInstantReceipt').val($(this).data('instant-receipt') || '');
+                dataTable.ajax.reload();
             });
 
             // Handle action buttons

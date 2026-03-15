@@ -375,6 +375,8 @@ class ContractController extends Controller
         $viewData = [
             'contract' => $contract,
             'contract_number' => $contract->id,
+            'delivery_company_name' => 'بلاتنيوم الشرقية للاستقدام',
+            'delivery_office_name' => 'مكتب بلاتنيوم الشرقية للاستقدام',
             'client_name' => $clientName,
             'national_identification_number' => $clientNationalNumber,
             'client_phone' => $clientPhone,
@@ -386,6 +388,7 @@ class ContractController extends Controller
             'arrive_date_time' => $arrivalDateTime?->format('Y/m/d H:i') ?? '--',
             'date_receipt' => $receiptDateTime?->format('Y/m/d') ?? '--',
             'date_receipt_time' => $receiptDateTime?->format('Y/m/d H:i') ?? '--',
+            'receipt_day_name' => $receiptDateTime ? $receiptDateTime->locale('ar')->translatedFormat('l') : '--',
             'text_receipt' => $textReceipt,
             'company_representative' => $companyRepresentative,
             'printed_by' => $printedBy,

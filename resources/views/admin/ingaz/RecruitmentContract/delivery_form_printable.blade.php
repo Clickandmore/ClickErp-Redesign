@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>نسخة طباعة نموذج تسليم عاملة عند الوصول</title>
+    <title>نسخة طباعة نموذج تسليم عاملة منزلية</title>
     <style>
         @page {
             size: A4;
@@ -21,9 +21,9 @@
             color: #000;
             background: #fff;
             direction: rtl;
-            font-family: Tahoma, "Segoe UI", Arial, sans-serif;
+            font-family: Tahoma, Arial, sans-serif;
             font-size: 14px;
-            line-height: 1.7;
+            line-height: 1.9;
         }
 
         .print-tools {
@@ -61,43 +61,11 @@
             background: #fff;
         }
 
-        .header {
-            text-align: center;
-            padding-bottom: 12px;
-            margin-bottom: 16px;
-            border-bottom: 2px solid #000;
-        }
-
-        .header img {
-            max-width: 130px;
-            max-height: 65px;
-            margin-bottom: 8px;
-        }
-
-        .company-name {
-            margin: 0 0 4px;
-            font-size: 17px;
-            font-weight: 700;
-        }
-
         .title {
-            margin: 0;
+            margin: 0 0 18px;
+            text-align: center;
             font-size: 24px;
             font-weight: 700;
-        }
-
-        .subtitle {
-            margin: 6px 0 0;
-            font-size: 12px;
-        }
-
-        .section-title {
-            margin: 14px 0 10px;
-            padding: 6px 10px;
-            border: 1px solid #000;
-            font-size: 15px;
-            font-weight: 700;
-            text-align: center;
         }
 
         table {
@@ -105,57 +73,75 @@
             border-collapse: collapse;
         }
 
-        .info-table td,
-        .meta-table td {
-            border: 1px solid #000;
+        .field-table td,
+        .signature-table td {
             padding: 8px 10px;
             vertical-align: top;
         }
 
-        .info-label,
-        .meta-label {
+        .field-table td,
+        .single-row td {
+            border: 1px solid #000;
+        }
+
+        .label {
             width: 20%;
             font-weight: 700;
             white-space: nowrap;
         }
 
-        .field-value {
-            unicode-bidi: plaintext;
-            word-break: break-word;
+        .value {
+            width: 30%;
+        }
+
+        .single-label {
+            width: 18%;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .line {
+            margin: 14px 0;
+            border-top: 1px solid #000;
+        }
+
+        .statement {
+            min-height: 170px;
+            padding: 10px 8px;
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+        }
+
+        .statement p {
+            margin: 0 0 8px;
+        }
+
+        .fill {
+            display: inline-block;
+            min-width: 120px;
+            font-weight: 700;
+        }
+
+        .company-name {
+            margin: 14px 0 8px;
+            font-weight: 700;
+        }
+
+        .signature-table td {
+            width: 50%;
+        }
+
+        .signature-line {
+            display: inline-block;
+            min-width: 160px;
+            border-bottom: 1px solid #000;
+            height: 18px;
+            vertical-align: middle;
         }
 
         .ltr {
             direction: ltr;
             text-align: left;
-        }
-
-        .body-text {
-            margin-top: 12px;
-            text-align: justify;
-        }
-
-        .body-text p {
-            margin: 0 0 10px;
-        }
-
-        .signatures {
-            margin-top: 28px;
-        }
-
-        .signatures td {
-            width: 50%;
-            padding-top: 38px;
-            text-align: center;
-            vertical-align: top;
-        }
-
-        .signature-line {
-            border-top: 1px solid #000;
-            margin-bottom: 10px;
-        }
-
-        .footer-meta {
-            margin-top: 18px;
         }
 
         .note {
@@ -182,10 +168,6 @@
 
 <body>
     @php
-        $logoPath = public_path('admin/assets/img/company_logo.png');
-        $defaultReceiptText = 'أقر بأنني استلمت العاملة الموضحة بياناتها أعلاه من مكتب / شركة بلاتنيوم الشرقية للاستقدام، وبذلك تصبح مسؤولية الاستلام والمتابعة على المستلم من تاريخ الاستلام المثبت في هذا النموذج.';
-        $defaultTransferText = 'كما أتعهد في حالة نقل خدمات العاملة إلى صاحب عمل آخر بإخطار مكتب / شركة بلاتنيوم الشرقية للاستقدام وتزويده كتابياً بكافة بيانات صاحب العمل الجديد من اسم وهوية وعنوان ورقم جوال.';
-        $defaultSettlementText = 'كما أتعهد بتسليم العاملة كافة مستحقاتها وإثبات ذلك بمخالصة رسمية تفيد باستلامها جميع رواتبها ومستحقاتها وعدم مطالبتها بأي حق، وذلك وفق النموذج المعتمد لدى الجهات الرسمية.';
         $receiptText = trim((string) $text_receipt);
     @endphp
 
@@ -196,104 +178,91 @@
     </div>
 
     <div class="sheet">
-        <div class="header">
-            @if (file_exists($logoPath))
-                <img src="{{ $logoPath }}" alt="شركة بلاتنيوم">
-            @endif
-            <p class="company-name">مكتب / شركة بلاتنيوم الشرقية للاستقدام</p>
-            <h1 class="title">نموذج تسليم عاملة عند الوصول</h1>
-            <p class="subtitle">نسخة مخصصة للطباعة والحفظ</p>
-        </div>
+        <h1 class="title">نموذج تسليم عاملة منزلية</h1>
 
-        <div class="section-title">بيانات العميل والعاملة</div>
-        <table class="info-table">
+        <table class="single-row">
             <tr>
-                <td class="info-label">رقم العقد</td>
-                <td><span class="field-value ltr">{{ $contract_number ?: '--' }}</span></td>
-                <td class="info-label">اسم العميل</td>
-                <td><span class="field-value" dir="auto">{{ $client_name ?: '--' }}</span></td>
-            </tr>
-            <tr>
-                <td class="info-label">رقم الهوية</td>
-                <td><span class="field-value ltr">{{ $national_identification_number ?: '--' }}</span></td>
-                <td class="info-label">رقم الجوال</td>
-                <td><span class="field-value ltr">{{ $client_phone ?: '--' }}</span></td>
-            </tr>
-            <tr>
-                <td class="info-label">العنوان</td>
-                <td><span class="field-value" dir="auto">{{ $client_address ?: '--' }}</span></td>
-                <td class="info-label">اسم العاملة</td>
-                <td><span class="field-value" dir="auto">{{ $cvs_name ?: '--' }}</span></td>
-            </tr>
-            <tr>
-                <td class="info-label">الجنسية</td>
-                <td><span class="field-value" dir="auto">{{ $nationality_id ?: '--' }}</span></td>
-                <td class="info-label">رقم الجواز</td>
-                <td><span class="field-value ltr">{{ $passport_id ?: '--' }}</span></td>
-            </tr>
-            <tr>
-                <td class="info-label">تاريخ الوصول</td>
-                <td><span class="field-value ltr">{{ $arrive_date_time ?: '--' }}</span></td>
-                <td class="info-label">تاريخ الاستلام</td>
-                <td><span class="field-value ltr">{{ $date_receipt_time ?: '--' }}</span></td>
+                <td class="single-label">اسم العميل :</td>
+                <td>{{ $client_name ?: '--' }}</td>
             </tr>
         </table>
 
-        <div class="section-title">نص الإقرار والتسليم</div>
-        <div class="body-text">
+        <table class="field-table" style="margin-top: 10px;">
+            <tr>
+                <td class="label">رقم السجل المدني / الإقامة :</td>
+                <td class="value ltr">{{ $national_identification_number ?: '--' }}</td>
+                <td class="label">الهاتف / الجوال: المنزل :</td>
+                <td class="value ltr">{{ $client_phone ?: '--' }}</td>
+            </tr>
+        </table>
+
+        <div class="line"></div>
+
+        <table class="field-table">
+            <tr>
+                <td class="label">رقم جواز السفر / الإقامة :</td>
+                <td class="value ltr">{{ $passport_id ?: '--' }}</td>
+                <td class="label">الجنسية :</td>
+                <td class="value">{{ $nationality_id ?: '--' }}</td>
+            </tr>
+        </table>
+
+        <div class="statement">
             <p>
-                أقر أنا <strong><span class="field-value" dir="auto">{{ $client_name ?: '....................' }}</span></strong>،
-                هوية رقم <strong><span class="field-value ltr">{{ $national_identification_number ?: '....................' }}</span></strong>،
-                بأنني قد استلمت العاملة
-                <strong><span class="field-value" dir="auto">{{ $cvs_name ?: '....................' }}</span></strong>
-                ذات الجواز رقم
-                <strong><span class="field-value ltr">{{ $passport_id ?: '....................' }}</span></strong>
-                من مكتب / شركة بلاتنيوم الشرقية للاستقدام بتاريخ
-                <strong><span class="field-value ltr">{{ $date_receipt_time ?: '--' }}</span></strong>.
+                أقر أنا المستلم :
+                <span class="fill">{{ $client_name ?: '--' }}</span>
+                بطاقة رقم الهوية :
+                <span class="fill ltr">{{ $national_identification_number ?: '--' }}</span>
             </p>
-
+            <p>
+                قد استلمت العاملة المنزلية الموضح بياناتها أعلاه وذلك يوم :
+                <span class="fill">{{ $receipt_day_name ?: '--' }}</span>
+                بتاريخ :
+                <span class="fill ltr">{{ $date_receipt ?: '--' }}</span>
+                م
+            </p>
+            <p>
+                وبهذا قد أصبح شركة /
+                <span class="fill">{{ $delivery_company_name ?: 'بلاتنيوم الشرقية للاستقدام' }}</span>
+                خالي من المسؤولية منذ استلامي للخادمة .
+            </p>
             @if ($receiptText !== '')
-                <p><span class="field-value" dir="auto">{!! nl2br(e($receiptText)) !!}</span></p>
-            @else
-                <p>{{ $defaultReceiptText }}</p>
-                <p>{{ $defaultTransferText }}</p>
-                <p>{{ $defaultSettlementText }}</p>
+                <p>{!! nl2br(e($receiptText)) !!}</p>
             @endif
-            <p>والله ولي التوفيق.</p>
         </div>
 
-        <table class="signatures">
-            <tr>
-                <td>
-                    <div class="signature-line"></div>
-                    <div><strong>المستلم</strong></div>
-                    <div class="field-value" dir="auto">{{ $client_name ?: '--' }}</div>
-                </td>
-                <td>
-                    <div class="signature-line"></div>
-                    <div><strong>ممثل الشركة</strong></div>
-                    <div class="field-value" dir="auto">{{ $company_representative ?: 'ممثل الشركة' }}</div>
-                </td>
-            </tr>
-        </table>
+        <p class="company-name">{{ $delivery_office_name ?: 'مكتب بلاتنيوم الشرقية للاستقدام' }}</p>
 
-        <div class="section-title">بيانات التوثيق والطباعة</div>
-        <table class="meta-table footer-meta">
+        <table class="signature-table">
             <tr>
-                <td class="meta-label">الجهة المتعاقدة</td>
-                <td><span class="field-value" dir="auto">مكتب / شركة بلاتنيوم الشرقية للاستقدام</span></td>
-                <td class="meta-label">تاريخ الاستلام</td>
-                <td><span class="field-value ltr">{{ $date_receipt_time ?: '--' }}</span></td>
+                <td>
+                    اسم الموظفة :
+                    <span class="signature-line">{{ $company_representative ?: '' }}</span>
+                </td>
+                <td>
+                    أسم المستلم :
+                    <span class="signature-line">{{ $client_name ?: '' }}</span>
+                </td>
             </tr>
             <tr>
-                <td class="meta-label">وقت تسجيل العقد</td>
-                <td><span class="field-value ltr">{{ $contract_signed_at ?? '--' }}</span></td>
-                <td class="meta-label">تمت الطباعة بواسطة</td>
-                <td><span class="field-value" dir="auto">{{ $printed_by ?? 'النظام' }}</span></td>
+                <td>
+                    التاريخ :
+                    <span class="signature-line ltr">{{ $date_receipt ?: '' }}</span>
+                </td>
+                <td>
+                    العنوان :
+                    <span class="signature-line">{{ $client_address ?: '' }}</span>
+                </td>
             </tr>
             <tr>
-                <td class="meta-label">وقت طباعة النموذج</td>
-                <td colspan="3"><span id="printed-at" class="field-value ltr">{{ $printed_at ?? '--' }}</span></td>
+                <td>
+                    التوقيع :
+                    <span class="signature-line"></span>
+                </td>
+                <td>
+                    التوقيع :
+                    <span class="signature-line"></span>
+                </td>
             </tr>
         </table>
 
@@ -310,29 +279,7 @@
                 }
             }
 
-            function updatePrintedAt() {
-                var printedAt = document.getElementById('printed-at');
-                if (!printedAt) {
-                    return;
-                }
-
-                var now = new Date();
-                var pad = function(number) {
-                    return number < 10 ? '0' + number : String(number);
-                };
-
-                printedAt.textContent =
-                    now.getFullYear() + '/' +
-                    pad(now.getMonth() + 1) + '/' +
-                    pad(now.getDate()) + ' ' +
-                    pad(now.getHours()) + ':' +
-                    pad(now.getMinutes()) + ':' +
-                    pad(now.getSeconds());
-            }
-
             window.addEventListener('load', function() {
-                updatePrintedAt();
-
                 if (shouldAutoPrint()) {
                     setTimeout(function() {
                         if (typeof window.print === 'function') {

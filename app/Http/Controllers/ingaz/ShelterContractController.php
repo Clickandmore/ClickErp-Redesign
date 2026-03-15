@@ -386,6 +386,26 @@ class ShelterContractController extends Controller
         };
     }
 
+    private function getRentalServiceKeywords(): array
+    {
+        return ['ايجار', 'إيجار', 'تاجير', 'تأجير', 'rent', 'rental'];
+    }
+
+    private function getTransferServiceKeywords(): array
+    {
+        return ['استلام', 'إستلام', 'instant', 'transfer', 'نقل'];
+    }
+
+    private function applyJobTypeKeywordQuery($query, array $keywords): void
+    {
+        $query->where(function ($inner) use ($keywords) {
+            foreach (array_values(array_unique($keywords)) as $index => $keyword) {
+                $method = $index === 0 ? 'where' : 'orWhere';
+                $inner->{$method}('title', 'like', '%' . $keyword . '%');
+            }
+        });
+    }
+
     private function resolveArrivalDate(Contract $contract): ?Carbon
     {
         $travelHistoryArrivalDate = $contract->relationLoaded('travelHistory')
@@ -1490,6 +1510,32 @@ class ShelterContractController extends Controller
             $rows->whereHas('info', function ($query) use ($quickTag) {
                 $query->whereJsonContains('shelter_quick_tags', $quickTag);
             });
+        }
+
+        if ($request->filled('service_category')) {
+            $serviceCategory = $request->input('service_category');
+
+            if ($serviceCategory === 'rental') {
+                $rows->whereHas('maid.jobTypes.translations', function ($query) {
+                    $this->applyJobTypeKeywordQuery($query, $this->getRentalServiceKeywords());
+                });
+            } elseif ($serviceCategory === 'transfer') {
+                $rows->whereHas('maid.jobTypes.translations', function ($query) {
+                    $this->applyJobTypeKeywordQuery($query, $this->getTransferServiceKeywords());
+                });
+            } elseif ($serviceCategory === 'recruitment') {
+                $rows->where(function ($query) {
+                    $query->whereDoesntHave('maid.jobTypes')
+                        ->orWhereDoesntHave('maid.jobTypes.translations', function ($translationQuery) {
+                            $translationQuery->where(function ($inner) {
+                                $this->applyJobTypeKeywordQuery($inner, [
+                                    ...$this->getRentalServiceKeywords(),
+                                    ...$this->getTransferServiceKeywords(),
+                                ]);
+                            });
+                        });
+                });
+            }
         }
 
         // فلتر حالة الإجراءات لمرحلة الترحيل
