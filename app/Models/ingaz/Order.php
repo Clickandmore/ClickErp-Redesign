@@ -2,9 +2,11 @@
 
 namespace App\Models\ingaz;
 
+use App\Models\auth\Admin;
 use App\Enums\ingaz\OrderEnum;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
@@ -62,6 +64,10 @@ class Order extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function customer()
+    {
+        return $this->belongsTo(Admin::class, 'customer_id');
+    }
 
     public function jobType()
     {
@@ -100,6 +106,58 @@ class Order extends Model
     public function contracts()
     {
         return $this->hasMany(\App\Models\Contract::class, 'order_id');
+    }
+
+    public function resolveResponsibleAdmin(): ?Admin
+    {
+        if ($this->details?->admin) {
+            return $this->details->admin;
+        }
+
+        if ($this->relationLoaded('customer')) {
+            return $this->customer;
+        }
+
+        return $this->customer()->first();
+    }
+
+    public function resolveResponsibleAdminId(): ?int
+    {
+        return $this->details?->admin_id ?: $this->customer_id;
+    }
+
+    public function syncResponsibleAdmin(?int $adminId): void
+    {
+        $this->forceFill([
+            'customer_id' => $adminId,
+        ])->save();
+
+        if ($adminId !== null) {
+            $this->details()->updateOrCreate(
+                ['order_id' => $this->id],
+                ['admin_id' => $adminId]
+            );
+        } elseif ($this->details()->exists()) {
+            $this->details()->update(['admin_id' => null]);
+        }
+
+        $this->unsetRelation('details');
+        $this->unsetRelation('customer');
+    }
+
+    public function scopeWhereResponsibleAdmin(Builder $query, int $adminId): Builder
+    {
+        return $query->where(function (Builder $responsibleQuery) use ($adminId) {
+            $responsibleQuery->where('customer_id', $adminId)
+                ->orWhereHas('details', function (Builder $detailsQuery) use ($adminId) {
+                    $detailsQuery->where('admin_id', $adminId);
+                });
+        });
+    }
+
+    public function getAdminAttribute(): ?Admin
+    {
+        return $this->resolveResponsibleAdmin();
     }
 
     protected static function generateUniqueCode()

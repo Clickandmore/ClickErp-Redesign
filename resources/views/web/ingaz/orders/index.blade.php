@@ -60,16 +60,17 @@
                                                         </div>
                                                     </div>
                                                     @if($current_order->status == \App\Enums\ingaz\OrderEnum::New ->value && $current_order->jobType->id == 1)
+                                                        @php($responsibleAdmin = $current_order->resolveResponsibleAdmin())
                                                         <div class="cta">
                                                             <p>
-                                                                {{helperTrans('web.please_contact_with') . ' ' . @$current_order->details->admin->name . ' ' . helperTrans('web.in_24_for_cv') }}
+                                                                {{ helperTrans('web.please_contact_with') . ' ' . ($responsibleAdmin?->name ?? '') . ' ' . helperTrans('web.in_24_for_cv') }}
                                                             </p>
                                                             <div class="btns">
-                                                                <a href="https://wa.me/{{@$current_order->details->admin->phone_code . @$current_order->details->admin->phone}}"
+                                                                <a href="https://wa.me/{{ $responsibleAdmin?->phone_code . $responsibleAdmin?->phone }}"
                                                                     class="whatsapp" target="_blank">
                                                                     <i class="fa-brands fa-whatsapp"></i>
                                                                 </a>
-                                                                <a href="tel:{{@$current_order->details->admin->phone_code . @$current_order->details->admin->phone}}"
+                                                                <a href="tel:{{ $responsibleAdmin?->phone_code . $responsibleAdmin?->phone }}"
                                                                     target="_blank">
                                                                     <i class="fa-light fa-phone"></i>
                                                                 </a>

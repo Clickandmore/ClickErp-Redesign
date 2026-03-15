@@ -170,17 +170,18 @@
                             </div>
                         @endif
                         @if($order->status == \App\Enums\ingaz\OrderEnum::New ->value && $order->jobType->id == 1)
+                            @php($responsibleAdmin = $order->resolveResponsibleAdmin())
                             <div class="cta">
                                 <p>
-                                    يرجى التواصل مع أ.{{@$order->details->admin->name}} فى خلال24 ساعة حتى لا يتم إلغاء حجز
+                                    يرجى التواصل مع أ.{{ $responsibleAdmin?->name }} فى خلال24 ساعة حتى لا يتم إلغاء حجز
                                     السيرة الذاتية
                                 </p>
                                 <div class="btns">
-                                    <a href="https://wa.me/{{@$order->details->admin->phone_code . @$order->details->admin->phone}}"
+                                    <a href="https://wa.me/{{ $responsibleAdmin?->phone_code . $responsibleAdmin?->phone }}"
                                         class="whatsapp" target="_blank">
                                         <i class="fa-brands fa-whatsapp"></i>
                                     </a>
-                                    <a href="tel:{{@$order->details->admin->phone_code . @$order->details->admin->phone}}"
+                                    <a href="tel:{{ $responsibleAdmin?->phone_code . $responsibleAdmin?->phone }}"
                                         target="_blank">
                                         <i class="fa-light fa-phone"></i>
                                     </a>

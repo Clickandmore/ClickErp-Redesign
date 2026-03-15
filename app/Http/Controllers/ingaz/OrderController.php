@@ -14,7 +14,6 @@ use App\Enums\ingaz\NotificationActionEnum;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\UserAddress;
 use App\Models\ingaz\MaidJobTitles;
-use App\Models\ingaz\OrderDetail;
 use App\Http\Controllers\Controller;
 use App\Models\ingaz\OrderTransfers;
 use Illuminate\Support\Facades\Auth;
@@ -59,6 +58,7 @@ class OrderController extends Controller
                 'maid.office',
                 'jobType',
                 'details.admin',
+                'customer',
                 'contracts'
             ]);
 
@@ -89,9 +89,7 @@ class OrderController extends Controller
 
             // Apply admin filter
             if ($request->filled('admin_id')) {
-                $query->whereHas('details', function ($q) use ($request) {
-                    $q->where('admin_id', $request->admin_id);
-                });
+                $query->whereResponsibleAdmin((int) $request->admin_id);
             }
 
             // Apply client name search
@@ -153,7 +151,7 @@ class OrderController extends Controller
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('admin_name', function ($row) {
-                    return $row->details->admin->name ?? '-';
+                    return $row->resolveResponsibleAdmin()?->name ?? '-';
                 })
                 ->addColumn('created_at', function ($row) {
                     return $row->created_at->format('Y-m-d H:i:s');
@@ -221,7 +219,7 @@ class OrderController extends Controller
                     return '<span class="text-muted">' . $row->created_at->format('Y-m-d H:i') . '</span>';
                 })
                 ->editColumn('admin_name', function ($row) {
-                    return '<span class="text-info">' . ($row->details->admin->name ?? '-') . '</span>';
+                    return '<span class="text-info">' . ($row->resolveResponsibleAdmin()?->name ?? '-') . '</span>';
                 })
                 ->addColumn('actions', function ($row) {
                     $actions = ' <div class="dropdown actions-dropdown">
@@ -597,6 +595,7 @@ class OrderController extends Controller
             'maid.jobTitles',
             'jobType',
             'details.admin',
+            'customer',
             'address'
         ])->findOrFail($request->orderId);
 
@@ -618,7 +617,7 @@ class OrderController extends Controller
                 'job_type' => $order->jobType->title ?? __('ingaz.not_specified'),
                 'created_at' => optional($order->created_at)->format('Y-m-d H:i'),
                 'deadline_at' => $order->deadline_at ? $order->deadline_at->format('Y-m-d H:i') : null,
-                'admin' => optional($order->details->admin)->name,
+                'admin' => optional($order->resolveResponsibleAdmin())->name,
                 'timer' => $this->buildTimerMeta($order),
                 'timer_html' => $this->renderTimerChip($order),
             ],
@@ -679,6 +678,7 @@ class OrderController extends Controller
             'maid.jobTitles',
             'jobType',
             'details.admin',
+            'customer',
             'details.package',
             'details.address',
             'transfers',
@@ -701,6 +701,7 @@ class OrderController extends Controller
             'maid.jobTitles',
             'jobType',
             'details.admin',
+            'customer',
             'details.package',
             'details.address',
             'transfers',
@@ -883,15 +884,7 @@ class OrderController extends Controller
                 return jsonError(['message' => 'You can only select a customer service employee']);
             }
 
-            // Update order details with new admin
-            $orderDetail = OrderDetail::where('order_id', $order->id)->first();
-            if (!$orderDetail) {
-                $orderDetail = new OrderDetail();
-                $orderDetail->order_id = $order->id;
-            }
-
-            $orderDetail->admin_id = $request->admin_id;
-            $orderDetail->save();
+            $order->syncResponsibleAdmin((int) $request->admin_id);
 
             // Change Responsible Employee Notification
             Notification::create([

@@ -45,6 +45,12 @@ class ImmediateReciptsController extends Controller
             'job_type_id' => $jobType->id,
             'customer_id' => $data['details_list']['admin_id'],
         ]);
+
+        OrderDetail::updateOrCreate(
+            ['order_id' => $order->id],
+            ['admin_id' => $data['details_list']['admin_id']]
+        );
+
         return jsonSuccess(['redirect' => route('site.last-orders.index')], __("ingaz.The immediate delivery request was successful"), 200);
     }
 }

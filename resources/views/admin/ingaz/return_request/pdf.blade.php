@@ -101,7 +101,7 @@
                     @endif
                 </td>
                 <td>{{ $order->created_at->format('Y-m-d H:i') }}</td>
-                <td>{{ $order->details && $order->details->admin ? $order->details->admin->name : '-' }}</td>
+                <td>{{ $order->resolveResponsibleAdmin()?->name ?? '-' }}</td>
             </tr>
             @endforeach
         </tbody>

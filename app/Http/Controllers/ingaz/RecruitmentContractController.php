@@ -565,8 +565,8 @@ class RecruitmentContractController extends Controller
                     }
 
                     // إذا لم يوجد marketer_id، البحث في order.details.admin
-                    if (empty($marketerInfo) && $row->order && $row->order->details && $row->order->details->admin) {
-                        $marketer = $row->order->details->admin;
+                    if (empty($marketerInfo) && $row->order && $row->order->resolveResponsibleAdmin()) {
+                        $marketer = $row->order->resolveResponsibleAdmin();
                         $marketerInfo = '<div class="marketer-info">';
                         $marketerInfo .= '<i class="fas fa-user-tie me-1 text-secondary"></i>';
                         $marketerInfo .= '<strong>' . htmlspecialchars($marketer->name) . '</strong>';
@@ -930,8 +930,8 @@ class RecruitmentContractController extends Controller
                 $marketer = \App\Models\auth\Admin::find($contract->marketer_id);
             }
             // ثانياً: التحقق من بيانات الطلب إذا لم يوجد marketer_id
-            elseif ($contract->order && $contract->order->details) {
-                $marketer = $contract->order->details->admin;
+            elseif ($contract->order) {
+                $marketer = $contract->order->resolveResponsibleAdmin();
             }
         } catch (\Exception $e) {
             logger()->warning('Could not load marketer for contract: ' . $contract->id, [

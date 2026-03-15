@@ -68,7 +68,7 @@ class OrderController extends Controller
         if ($request->payment_method == "online") {
             $data = [
                 "order" => objResource::make($data),
-                "customer_name" => @$data->details->admin->name,
+                "customer_name" => $data->resolveResponsibleAdmin()?->name,
                 "redirectUrl" => "#",
                 'paymentSuccess' => "#",
                 'paymentaFiled' => "#",
@@ -77,7 +77,7 @@ class OrderController extends Controller
         } else {
             $data = [
                 "order" => objResource::make($data),
-                "customer_name" => @$data->details->admin->name,
+                "customer_name" => $data->resolveResponsibleAdmin()?->name,
                 "redirectUrl" => "#",
                 'paymentSuccess' => "#",
                 'paymentaFiled' => "#",

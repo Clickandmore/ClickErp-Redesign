@@ -372,7 +372,7 @@
                                 @endif
                                 <div class="mt-2 d-flex gap-2">
                                     <span class="badge bg-light text-muted px-3">
-                                        <i class="fas fa-user-tie me-1"></i>{{ $order->details?->admin?->name ?? helperTrans('ingaz.not_specified') }}
+                                        <i class="fas fa-user-tie me-1"></i>{{ $order->resolveResponsibleAdmin()?->name ?? helperTrans('ingaz.not_specified') }}
                                     </span>
                                     @if(@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW))
                                         <a href="{{ route('orders.show', $order->id) }}" class="btn btn-sm btn-outline-primary">

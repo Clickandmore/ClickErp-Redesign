@@ -53,6 +53,7 @@ class RentalOrderController extends Controller
                 'maid.nationality',
                 'jobType',
                 'details.admin',
+                'customer',
                 'contracts'
             ]);
 
@@ -83,9 +84,7 @@ class RentalOrderController extends Controller
 
             // Apply admin filter
             if ($request->filled('admin_id')) {
-                $query->whereHas('details', function($q) use ($request) {
-                    $q->where('admin_id', $request->admin_id);
-                });
+                $query->whereResponsibleAdmin((int) $request->admin_id);
             }
 
             // Apply client name search
@@ -131,7 +130,7 @@ class RentalOrderController extends Controller
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('admin_name', function ($row) {
-                    return $row->details->admin->name ?? '-';
+                    return $row->resolveResponsibleAdmin()?->name ?? '-';
                 })
                 ->addColumn('created_at', function ($row) {
                     return $row->created_at->format('Y-m-d H:i:s');
@@ -199,7 +198,7 @@ class RentalOrderController extends Controller
                     return '<span class="text-muted">' . $row->created_at->format('Y-m-d H:i') . '</span>';
                 })
                 ->editColumn('admin_name', function ($row) {
-                    return '<span class="text-info">' . ($row->details->admin->name ?? '-') . '</span>';
+                    return '<span class="text-info">' . ($row->resolveResponsibleAdmin()?->name ?? '-') . '</span>';
                 })
                 ->addColumn('actions', function ($row) {
                     $actions = '<div class="dropdown actions-dropdown">

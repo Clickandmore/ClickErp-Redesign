@@ -11,6 +11,7 @@ use App\Http\Actions\ingaz\SettingAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\site\CustomerServiceRequest;
 use App\Models\auth\Admin;
+use App\Models\ingaz\OrderDetail;
 use App\Models\ingaz\RecruitmentRequest;
 use Illuminate\Http\Request;
 use App\Http\Traits\SendSMSTrait;
@@ -33,6 +34,11 @@ class CustomerServiceController extends Controller
             $order->update([
                 'customer_id' => $dataInserted['customer']
             ]);
+
+            OrderDetail::updateOrCreate(
+                ['order_id' => $order->id],
+                ['admin_id' => $dataInserted['customer']]
+            );
         }
 
         // Send SMS after assigning customer service
@@ -105,6 +111,11 @@ class CustomerServiceController extends Controller
                 $order->update([
                     'customer_id' => $customer->id,
                 ]);
+
+                OrderDetail::updateOrCreate(
+                    ['order_id' => $order->id],
+                    ['admin_id' => $customer->id]
+                );
 
                 $customerPhone = formatSaudiPhone($customer->phone);
                 $userName = auth()->user()->name;

@@ -340,11 +340,13 @@ class SponsorshipTransferController extends Controller
                             </div>';
                 })
                 ->addColumn('admin_info', function ($row) {
-                    if (!$row->details || !$row->details->admin) {
+                    $responsibleAdmin = $row->resolveResponsibleAdmin();
+
+                    if (!$responsibleAdmin) {
                         return '<span class="text-muted">غير محدد</span>';
                     }
                     return '<div class="admin-info">
-                                <strong>' . $row->details->admin->name . '</strong><br>
+                                <strong>' . $responsibleAdmin->name . '</strong><br>
                                 <small class="text-muted">ممثل خدمة العملاء</small>
                             </div>';
                 })

@@ -216,21 +216,22 @@
                         </h5>
                     </div>
                     <div class="card-body">
-                        @if($order->details && $order->details->admin)
+                        @php($responsibleAdmin = $order->resolveResponsibleAdmin())
+                        @if($responsibleAdmin)
                             <div class="text-center mb-3">
                                 <div class="avatar-circle mx-auto mb-3">
                                     <i class="fas fa-user fa-2x text-muted"></i>
                                 </div>
-                                <h6 class="mb-1">{{ $order->details->admin->name }}</h6>
+                                <h6 class="mb-1">{{ $responsibleAdmin->name }}</h6>
                                 <p class="text-muted mb-0">ممثل خدمة العملاء</p>
                             </div>
                             <div class="info-item mb-2">
                                 <label class="fw-bold text-muted">رقم الجوال:</label>
-                                <p class="mb-0">{{ $order->details->admin->phone ?? 'غير محدد' }}</p>
+                                <p class="mb-0">{{ $responsibleAdmin->phone ?? 'غير محدد' }}</p>
                             </div>
                             <div class="info-item mb-2">
                                 <label class="fw-bold text-muted">البريد الإلكتروني:</label>
-                                <p class="mb-0">{{ $order->details->admin->email ?? 'غير محدد' }}</p>
+                                <p class="mb-0">{{ $responsibleAdmin->email ?? 'غير محدد' }}</p>
                             </div>
                         @else
                             <div class="alert alert-warning">

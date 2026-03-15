@@ -322,7 +322,7 @@
                         @if ($data->details)
                             <div class="info-row">
                                 <span class="info-label">{{ helperTrans('ingaz.responsible_employee') }}:</span>
-                                <span class="info-value">{{ $data->details->admin?->name ?? 'N/A' }}</span>
+                                <span class="info-value">{{ $data->resolveResponsibleAdmin()?->name ?? 'N/A' }}</span>
                             </div>
                             @if ($data->details->package)
                                 <div class="info-row">

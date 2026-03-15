@@ -49,7 +49,7 @@ class OrderAction extends MainAction
 
         $data = $this->model->where('user_id', $userId)
             ->whereIn('status', $acceptedStatuses)
-            ->with(['user', 'maid', 'jobType', 'details.admin'])
+            ->with(['user', 'maid', 'jobType', 'details.admin', 'customer'])
             ->orderBy('created_at', 'desc')
             ->get();
         return $data;
@@ -73,7 +73,9 @@ class OrderAction extends MainAction
         $order = $this->model->find($order->id);
 
         try{
-            if($order && $order->admin->phone){
+            $adminPhone = $order?->admin?->phone;
+
+            if($order && $adminPhone){
                 $orderId = $order->order_code;
 
                 if($order->job_type_id == 1){
@@ -84,7 +86,7 @@ class OrderAction extends MainAction
                     $msg = "يوجد طلب نقل كفالة جديد رقم $orderId";
                 }
 
-                $result = $this->sendSMS(formatSaudiPhone($order->admin->phone), $msg);
+                $result = $this->sendSMS(formatSaudiPhone($adminPhone), $msg);
 
                 if (isset($result['code']) && $result['code'] == "1") {
                     $this->storeMessage('ارسال رسالة نصية الى العميل', $msg, NotificationActionEnum::SMS->value, $data['user_id']);
@@ -114,7 +116,16 @@ class OrderAction extends MainAction
             'deliver_maid' => $request->details_list['deliver_maid'] ?? '0',
             'order_id' => $order->id,
         ];
-        $results = OrderDetail::create($dataProduct);
+        OrderDetail::updateOrCreate(
+            ['order_id' => $order->id],
+            $dataProduct
+        );
+
+        if (!empty($dataProduct['admin_id']) && (int) $order->customer_id !== (int) $dataProduct['admin_id']) {
+            $order->forceFill([
+                'customer_id' => $dataProduct['admin_id'],
+            ])->save();
+        }
 //        }
     }
 

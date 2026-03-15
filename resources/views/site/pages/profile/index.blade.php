@@ -55,7 +55,7 @@
                                                 <li>
                                                     <h6> {{__('ingaz.order_status')}} : </h6>
                                                     <p>
-                                                        @if ($order->customer_id != null)
+                                                        @if ($order->resolveResponsibleAdmin())
                                                             {{__('ingaz.One of the customer service representatives has been selected.')}}
                                                         @else
                                                             {{__('ingaz.The order is not yet assigned to a customer service representative.')}}
@@ -66,11 +66,12 @@
                                         </div>
                                     </div>
                                     <div class="profileCustomerInfo">
-                                        @if ($order->customer_id != null)
+                                        @php($responsibleAdmin = $order->resolveResponsibleAdmin())
+                                        @if ($responsibleAdmin)
                                             <div class="info">
                                                 <img src="{{asset('site/assets/images/avater2.webp')}}" alt="">
                                                 <div class="text">
-                                                    <h6> {{$order->customer->name}}</h6>
+                                                    <h6> {{$responsibleAdmin->name}}</h6>
                                                     <p>{{__('ingaz.customers_service')}}</p>
                                                 </div>
                                             </div>

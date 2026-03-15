@@ -84,7 +84,7 @@
                                     <li>
                                         <h6> {{__('ingaz.order_status')}} : </h6>
                                         <p>
-                                            @if ($order->customer_id != null)
+                                            @if ($order->resolveResponsibleAdmin())
                                                 {{__('ingaz.One of the customer service representatives has been selected.')}}
                                             @else
                                                 {{__('ingaz.The order is not yet assigned to a customer service representative.')}}
@@ -95,7 +95,8 @@
                             </div>
                         </div>
                     </div>
-                    @if ($order->customer_id != null)
+                    @php($responsibleAdmin = $order->resolveResponsibleAdmin())
+                    @if ($responsibleAdmin)
                         <!-- customerInfo -->
                         <div class="selectedCustomerInfo">
                             <div class="row">
@@ -103,19 +104,19 @@
                                     <div class="info">
                                         <img src="{{asset('site/assets/images/avater2.webp')}}" alt="">
                                         <div class="text">
-                                            <h6> {{$order->customer->name}}</h6>
+                                            <h6> {{$responsibleAdmin->name}}</h6>
                                             <p>{{__('ingaz.customers_service')}}</p>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-6 col-md-3 p-1">
-                                    <a class="contact" href="https://wa.me/{{$order->customer->phone}}" target="_blank">
+                                    <a class="contact" href="https://wa.me/{{$responsibleAdmin->phone}}" target="_blank">
                                         <i class="me-2 fa-brands fa-whatsapp-square"></i>
                                         <p>{{__('ingaz.through_whatsapp')}}</p>
                                     </a>
                                 </div>
                                 <div class="col-6 col-md-3 p-1">
-                                    <a class="contact" href="tel:{{$order->customer->phone}}" target="_blank">
+                                    <a class="contact" href="tel:{{$responsibleAdmin->phone}}" target="_blank">
                                         <i class="me-2 fa-solid fa-square-phone"></i>
                                         <p>{{__('ingaz.through_phone')}}</p>
                                     </a>

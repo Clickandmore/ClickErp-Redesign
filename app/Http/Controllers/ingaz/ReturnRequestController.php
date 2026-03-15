@@ -66,7 +66,7 @@ class ReturnRequestController extends Controller
                     return '<span class="text-muted">' . optional($row->created_at)->format('Y-m-d H:i') . '</span>';
                 })
                 ->addColumn('admin_name', function (Order $row) {
-                    return '<span class="text-info">' . e($row->details?->admin?->name ?? '-') . '</span>';
+                    return '<span class="text-info">' . e($row->resolveResponsibleAdmin()?->name ?? '-') . '</span>';
                 })
                 ->addColumn('actions', function (Order $row) {
                     return $this->actionsHtml($row);
