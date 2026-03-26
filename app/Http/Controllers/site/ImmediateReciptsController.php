@@ -35,7 +35,7 @@ class ImmediateReciptsController extends Controller
     {
         $data = $request->validated();
         $maid = $maidAction->find($data['maid_id']);
-        $jobType = $maid->jobTypes->first();
+        $jobType = $maid->effective_job_type;
         if (!isset($jobType)) {
             return jsonError(null, __("ingaz.job_type_not_found"));
         }

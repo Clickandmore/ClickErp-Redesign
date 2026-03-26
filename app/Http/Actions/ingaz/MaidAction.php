@@ -842,25 +842,10 @@ class MaidAction extends MainAction
 
     private function applyShelterInstantFilters($query, string $today): void
     {
-        // $query->whereIn('status', ['in_accommodation', 'available', 'completed'])
-        //     ->whereHas('contracts', function ($contractQuery) {
-        //         $contractQuery->where('status', ContractStatusEnum::Shelter->value)
-        //             ->whereHas('info', function ($infoQuery) {
-        //                 $infoQuery->whereIn('is_available_for_instant', [true, 1, '1'])
-        //                     ->where(function ($wantsToWorkQuery) {
-        //                         $wantsToWorkQuery
-        //                             ->whereRaw('LOWER(TRIM(COALESCE(wants_to_work, ""))) = ?', ['yes'])
-        //                             ->orWhereIn('wants_to_work', [1, '1', true]);
-        //                     });
-        //             });
-        //     })
-        //     ->whereDoesntHave('orders', function ($orderQuery) {
-        //         $orderQuery->whereIn('status', ['new', 'under_process', 'contracted']);
-        //     });
         $query
             ->whereIn('status', ['in_accommodation', 'available', 'completed', 'reserved'])
             ->whereHas('contracts', function ($contractQuery) {
-                $contractQuery->where('status', ContractStatusEnum::Shelter->value)
+                $contractQuery->insideShelter()
                     ->whereHas('info', function ($infoQuery) {
                         $infoQuery->whereIn('is_available_for_instant', [true, 1, '1'])
                             ->where(function ($wantsToWorkQuery) {
@@ -870,6 +855,21 @@ class MaidAction extends MainAction
                             });
                     });
             });
+    }
+
+    private function excludeShelterInstantFilters($query): void
+    {
+        $query->whereDoesntHave('contracts', function ($contractQuery) {
+            $contractQuery->insideShelter()
+                ->whereHas('info', function ($infoQuery) {
+                    $infoQuery->whereIn('is_available_for_instant', [true, 1, '1'])
+                        ->where(function ($wantsToWorkQuery) {
+                            $wantsToWorkQuery
+                                ->whereRaw('LOWER(TRIM(COALESCE(wants_to_work, ""))) = ?', ['yes'])
+                                ->orWhereIn('wants_to_work', [1, '1', true]);
+                        });
+                });
+        });
     }
 
     public function paginate($request, $limit = 10)
@@ -890,6 +890,13 @@ class MaidAction extends MainAction
         );
 
         return $this->availableQuery()
+            ->with([
+                'jobTypes',
+                'jobTitles',
+                'nationality',
+                'religion',
+                'contracts.info',
+            ])
             ->when(isset($type), function ($query) use ($type, $today) {
                 if ($type === 3) {
                     $query->where(function ($transferQuery) use ($today) {
@@ -903,6 +910,8 @@ class MaidAction extends MainAction
                     $query->whereHas('jobTypes', function ($q) use ($type) {
                         $q->where('job_type_id', $type);
                     });
+
+                    $this->excludeShelterInstantFilters($query);
                 }
             })
             ->when(isset($request->nationality_id), function ($query) use ($request) {
@@ -942,7 +951,6 @@ class MaidAction extends MainAction
         return $this->availableQuery()->find($id);
     }
 }
-
 
 
 

@@ -2,10 +2,12 @@
 
 namespace App\Models\ingaz;
 
+use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Controllers\ingaz\RecruitmentOffice;
 use App\Models\Contract;
 use App\Models\RecruitmentOffices;
 use Astrotomic\Translatable\Translatable;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
@@ -236,14 +238,138 @@ class Maid extends Model
     //     return $prefix . str_pad($count, 3, '0', STR_PAD_LEFT);
     // }
 
+    protected function getLoadedJobTypes()
+    {
+        if (!$this->relationLoaded('jobTypes')) {
+            $this->load('jobTypes');
+        }
+
+        return $this->jobTypes;
+    }
+
+    protected function normalizeBooleanLikeValue($value): bool
+    {
+        return in_array($value, [true, 1, '1', 'true', 'yes'], true);
+    }
+
+    protected function normalizeWantsToWorkValue($value): bool
+    {
+        if (is_string($value)) {
+            $value = mb_strtolower(trim($value));
+        }
+
+        return in_array($value, ['yes', true, 1, '1'], true);
+    }
+
+    protected function isInstantJobType(?JobType $jobType): bool
+    {
+        if (!$jobType) {
+            return false;
+        }
+
+        if ((int) $jobType->id === 3) {
+            return true;
+        }
+
+        $title = $this->normalizeJobTypeTitle($jobType->title);
+
+        return str_contains($title, 'استلام')
+            || str_contains($title, 'فوري')
+            || str_contains($title, 'instant')
+            || str_contains($title, 'immediate')
+            || str_contains($title, 'transfer')
+            || str_contains($title, 'نقل');
+    }
+
+    protected function makeFallbackInstantJobType(): JobType
+    {
+        return new JobType([
+            'id' => 3,
+            'title' => 'استلام فوري',
+        ]);
+    }
+
+    public function isInstantShelterListing(): bool
+    {
+        if ($this->relationLoaded('contracts')) {
+            return $this->contracts->contains(function (Contract $contract) {
+                $info = $contract->relationLoaded('info') ? $contract->info : $contract->info()->first();
+
+                if (!$info || $contract->status !== ContractStatusEnum::Shelter->value) {
+                    return false;
+                }
+
+                if ($this->normalizeBooleanLikeValue($info->is_outside_shelter ?? false)) {
+                    return false;
+                }
+
+                return $this->normalizeBooleanLikeValue($info->is_available_for_instant ?? false)
+                    && $this->normalizeWantsToWorkValue($info->wants_to_work ?? null);
+            });
+        }
+
+        return $this->contracts()
+            ->where('status', ContractStatusEnum::Shelter->value)
+            ->whereHas('info', function ($infoQuery) {
+                $infoQuery
+                    ->where(function ($outsideShelterQuery) {
+                        $outsideShelterQuery->whereNull('is_outside_shelter')
+                            ->orWhere('is_outside_shelter', false);
+                    })
+                    ->whereIn('is_available_for_instant', [true, 1, '1'])
+                    ->where(function ($wantsToWorkQuery) {
+                        $wantsToWorkQuery->whereRaw('LOWER(TRIM(COALESCE(wants_to_work, ""))) = ?', ['yes'])
+                            ->orWhereIn('wants_to_work', [1, '1', true]);
+                    });
+            })
+            ->exists();
+    }
+
+    public function getIsInstantShelterListingAttribute(): bool
+    {
+        return $this->isInstantShelterListing();
+    }
+
+    public function getSiteListingJobTypesAttribute()
+    {
+        $jobTypes = $this->getLoadedJobTypes();
+
+        if (!$this->isInstantShelterListing()) {
+            return $jobTypes;
+        }
+
+        $instantJobTypes = $jobTypes
+            ->filter(fn ($jobType) => $this->isInstantJobType($jobType))
+            ->values();
+
+        if ($instantJobTypes->isNotEmpty()) {
+            return $instantJobTypes;
+        }
+
+        return new EloquentCollection([$this->makeFallbackInstantJobType()]);
+    }
+
+    public function getEffectiveJobTypeAttribute(): ?JobType
+    {
+        return $this->site_listing_job_types->first() ?? $this->getLoadedJobTypes()->first();
+    }
+
     protected function getPrimaryJobType()
     {
-        if ($this->relationLoaded('jobTypes')) {
-            return $this->jobTypes->first();
+        $jobTypes = $this->getLoadedJobTypes();
+
+        if ($this->isInstantShelterListing()) {
+            $instantJobType = $jobTypes->first(fn ($jobType) => $this->isInstantJobType($jobType));
+
+            if ($instantJobType) {
+                return $instantJobType;
+            }
+
+            return $this->makeFallbackInstantJobType();
         }
 
         if ($this->primaryJobTypeInstance === null) {
-            $this->primaryJobTypeInstance = $this->jobTypes()->first();
+            $this->primaryJobTypeInstance = $jobTypes->first();
         }
 
         return $this->primaryJobTypeInstance;
@@ -263,6 +389,10 @@ class Maid extends Model
 
     protected function detectJobCategory(): string
     {
+        if ($this->isInstantShelterListing()) {
+            return 'transfer';
+        }
+
         $jobType = $this->getPrimaryJobType();
         $title = $this->normalizeJobTypeTitle($jobType?->title);
 

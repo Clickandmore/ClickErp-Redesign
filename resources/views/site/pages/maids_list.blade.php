@@ -37,9 +37,10 @@
                 $salaryAfterOffer = $salaryAfterOfferRaw !== null ? formatMoney($salaryAfterOfferRaw) : null;
                 $cvFile = $maid->cv_file ?? $maid->cv_preview;
                 $cv_code = $maid->cv_code ? $maid->cv_code : null;
+                $listingJobTypes = $maid->site_listing_job_types ?? $maid->jobTypes;
             @endphp
             <!-- كارد مشترك (ايجار + نقل خدمات) -->
-            @foreach ($maid->jobTypes as $jobType)
+            @foreach ($listingJobTypes as $jobType)
                 @if ($currentType !== 'all' && $targetJobTypeId && $jobType->id !== $targetJobTypeId)
                     @continue
                 @endif
