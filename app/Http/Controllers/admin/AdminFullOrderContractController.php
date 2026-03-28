@@ -23,7 +23,13 @@ class AdminFullOrderContractController extends Controller
         //nationalities
         //maids
         $clientsList = $this->usersList();
-        $adminsList = Admin::where('admin_type', 'customer_service')->pluck('name', 'id')->all();
+        $adminsList = Admin::query()
+            ->where('admin_type', 'customer_service')
+            ->where(function ($query) {
+                $query->whereNull('status')->orWhere('status', 'active');
+            })
+            ->pluck('name', 'id')
+            ->all();
         $nationalitiesList = Nationality::all();
         $maidsList = Maid::where('available', 1)
             ->whereHas('job_types', function ($query) {

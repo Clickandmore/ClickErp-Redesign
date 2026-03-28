@@ -8,6 +8,7 @@ use App\Http\Actions\ingaz\JobTypeAction;
 use App\Http\Actions\ingaz\MaidAction;
 use App\Http\Actions\ingaz\UserAction;
 use App\Http\Controllers\Controller;
+use App\Models\auth\Admin;
 use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Nationality;
@@ -78,7 +79,13 @@ class MaidController extends Controller
         //settings
 
         if ($type == 1) {
-            $data['customer_services'] = $userAction->getWhere(['admin_type' => 'customer_service'])->sortBy('sort', SORT_ASC);
+            $data['customer_services'] = Admin::query()
+                ->where('admin_type', AdminTypes::CustomerService->value)
+                ->where(function ($query) {
+                    $query->whereNull('status')->orWhere('status', 'active');
+                })
+                ->orderBy('sort')
+                ->get();
             // dd($data);
 
             return view('web.ingaz.maids.show', $data);
@@ -92,7 +99,13 @@ class MaidController extends Controller
         }
         if ($type == 3) {
             // طلب نقل الكفالة - يحتاج إلى ممثلي خدمة العملاء
-            $data['customer_services'] = $userAction->getWhere(['admin_type' => 'customer_service'])->sortBy('sort', SORT_ASC);
+            $data['customer_services'] = Admin::query()
+                ->where('admin_type', AdminTypes::CustomerService->value)
+                ->where(function ($query) {
+                    $query->whereNull('status')->orWhere('status', 'active');
+                })
+                ->orderBy('sort')
+                ->get();
 
             return view('web.ingaz.maids.show', $data);
         }

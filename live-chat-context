@@ -1,0 +1,320 @@
+response = Map();
+info answers;
+data_info = invokeurl
+[
+	url :"https://www.platinumeastern.com/api/nationalites"
+	type :GET
+	headers:{"Content-Type":"application/json"}
+];
+nationalities = data_info.get('data');
+nationalities_keys = nationalities.keys();
+nationalities_values = nationalities.values();
+response.put("action","context");
+response.put("context_id",context_id);
+if(context_id.equals("deals"))
+{
+	new_request = answers.get("new_request").get("text");
+	info new_request;
+	if(new_request.equalsIgnoreCase("الصفحة الرئيسية"))
+	{
+		response.put("action","reply");
+		response.put("replies"," مرحبا بك فى بلاتينيوم الشرقية  للاستقدام افضل العمالة المنزلية");
+		response.put("input",{"type":"select","options":{"تسجيل شكوى","خدمة العملاء","طلب استقدام جديد","متابعة طلب سابق"}});
+		return response;
+	}
+	if(new_request.equals("جميع الجنسيات"))
+	{
+		url = "https://www.platinumeastern.com/all-workers?type=estqdam";
+	}
+	else
+	{
+		nationality_index = nationalities_keys.indexOf(new_request);
+		id_nationality = nationalities_values.get(nationality_index);
+		info id_nationality;
+		url = "https://www.platinumeastern.com/all-workers?type=estqdam&nationality_id=" + id_nationality;
+	}
+	response.put("action","end");
+	question = {"type":"links","text":"عزيزي العميل يمكنك الحصول على عاملتك من خلال الرابط الاتي","links":{{"url":url,"text":url}}};
+	response.put("replies",{question});
+}
+else if(context_id.equals("help"))
+{
+	query = answers.get("query").get("text");
+	if(query.equalsIgnoreCase("الصفحة الرئيسية"))
+	{
+		response.put("action","reply");
+		response.put("replies"," مرحبا بك فى بلاتينيوم الشرقية  للاستقدام افضل العمالة المنزلية");
+		response.put("input",{"type":"select","options":{"تسجيل شكوى","خدمة العملاء","طلب استقدام جديد","متابعة طلب سابق"}});
+		return response;
+	}
+	if(query.equalsIgnoreCase("رقم جواز السفر"))
+	{
+		if(!answers.containsKey("inpuut_passport_id"))
+		{
+			question = {"name":"inpuut_passport_id","replies":{"ادخل رقم جواز السفر الخاص بالعامل\ة"},"input":{"type":"name","placeholder":"ادخل رقم جواز السفر"}};
+			response.put("questions",{question});
+		}
+		else
+		{
+			inpuut_passport_id = answers.get("inpuut_passport_id").get("text");
+			parameter_info = Map();
+			parameter_info.put("inpuut_passport_id",inpuut_passport_id);
+			info inpuut_passport_id;
+			data_info = invokeurl
+			[
+				url :"https://www.platinumeastern.com/api/contract_status"
+				type :POST
+				parameters:{'inpuut_passport_id':inpuut_passport_id}
+				headers:{"Content-Type":"application/json"}
+			];
+			if(data_info.get('status') == 1)
+			{
+				response.put("action","end");
+				response.put("replies",{" . " + data_info.get('data') + ". شكرا على ثقتك فى بلاتينيوم الشرقية ."});
+				// 			response.put("replies",{"شكرا على ثقتك فى بلاتينيوم الشرقية "});
+				return response;
+			}
+			else
+			{
+				// 				  response.put("action","end");
+				// 			response.put("replies",{ "الرقم المدخل غير صحيح برجاء التأكد من رقم"});
+				// // 			response.put("replies",{"شكرا على ثقتك فى بلاتينيوم الشرقية "});
+				// 			return response;
+				response.put("action","reply");
+				response.put("replies",{"الرقم المدخل غير صحيح برجاء التأكد من رقم ." + " مرحبا بك فى بلاتينيوم الشرقية  للاستقدام افضل العمالة المنزلية"});
+				// 				response.put("input",{"type":"select","options":{"طلب استقدام جديد","متابعة طلب سابق"}});
+				response.put("input",{"type":"select","options":{"خدمة العملاء","طلب استقدام جديد","متابعة طلب سابق"}});
+				return response;
+			}
+		}
+	}
+	else if(query.equalsIgnoreCase("رقم عقد مساند"))
+	{
+		if(!answers.containsKey("inpuut_musand_id"))
+		{
+			question = {"name":"inpuut_musand_id","replies":{"ادخل رقم عقد مساند الخاص بالعامل\ة"},"input":{"type":"name","placeholder":"ادخل رقم عقد مساند"}};
+			response.put("questions",{question});
+		}
+		else
+		{
+			inpuut_musand_id = answers.get("inpuut_musand_id").get("text");
+			info inpuut_musand_id;
+			parameter_info = Map();
+			parameter_info.put("inpuut_musand_id",inpuut_musand_id);
+			info inpuut_passport_id;
+			data_info = invokeurl
+			[
+				url :"https://www.platinumeastern.com/api/contract_status"
+				type :POST
+				parameters:{'inpuut_musand_id':inpuut_musand_id}
+				headers:{"Content-Type":"application/json"}
+			];
+			if(data_info.get('status') == 1)
+			{
+				response.put("action","end");
+				response.put("replies",{" . " + data_info.get('data') + ". شكرا على ثقتك فى بلاتينيوم الشرقية ."});
+				return response;
+			}
+			else
+			{
+				response.put("action","reply");
+				response.put("replies",{"الرقم المدخل غير صحيح برجاء التأكد من رقم ." + " مرحبا بك فى بلاتينيوم الشرقية  للاستقدام افضل العمالة المنزلية"});
+				response.put("input",{"type":"select","options":{"طلب استقدام جديد","متابعة طلب سابق"}});
+				return response;
+			}
+		}
+	}
+	else if(query.equalsIgnoreCase("رقم الهوية"))
+	{
+		if(!answers.containsKey("inpuut_id"))
+		{
+			question = {"name":"inpuut_id","replies":{"ادخل رقم الهوية الخاص بالعامل\ة"},"input":{"type":"name","placeholder":"ادخل رقم الهوية"}};
+			response.put("questions",{question});
+		}
+		else
+		{
+			inpuut_id = answers.get("inpuut_id").get("text");
+			info inpuut_id;
+			parameter_info = Map();
+			parameter_info.put("inpuut_id",inpuut_id);
+			info inpuut_id;
+			data_info = invokeurl
+			[
+				url :"https://www.platinumeastern.com/api/contract_status"
+				type :POST
+				parameters:{'inpuut_id':inpuut_id}
+				headers:{"Content-Type":"application/json"}
+			];
+			if(data_info.get('status') == 1)
+			{
+				response.put("action","end");
+				response.put("replies",{" . " + data_info.get('data') + ". شكرا على ثقتك فى بلاتينيوم الشرقية ."});
+				return response;
+			}
+			else
+			{
+				response.put("action","reply");
+				response.put("replies",{"الرقم المدخل غير صحيح برجاء التأكد من رقم ." + "  مرحبا بك فى بلاتينيوم الشرقية  للاستقدام افضل العمالة المنزلية"});
+				response.put("input",{"type":"select","options":{"طلب استقدام جديد","متابعة طلب سابق"}});
+				return response;
+			}
+		}
+	}
+	else if(query.equalsIgnoreCase("رقم التأشيرة"))
+	{
+		if(!answers.containsKey("inpuut_visa_id"))
+		{
+			question = {"name":"inpuut_visa_id","replies":{"ادخل رقم التأشيرة الخاص بالعامل\ة"},"input":{"type":"name","placeholder":"ادخل رقم التأشيرة"}};
+			response.put("questions",{question});
+		}
+		else
+		{
+			inpuut_visa_id = answers.get("inpuut_visa_id").get("text");
+			info inpuut_visa_id;
+			parameter_info = Map();
+			parameter_info.put("inpuut_visa_id",inpuut_visa_id);
+			info inpuut_visa_id;
+			data_info = invokeurl
+			[
+				url :"https://www.platinumeastern.com/api/contract_status"
+				type :POST
+				parameters:{'inpuut_visa_id':inpuut_visa_id}
+				headers:{"Content-Type":"application/json"}
+			];
+			if(data_info.get('status') == 1)
+			{
+				response.put("action","end");
+				response.put("replies",{" . " + data_info.get('data') + ". شكرا على ثقتك فى بلاتينيوم الشرقية ."});
+				return response;
+			}
+			else
+			{
+				response.put("action","reply");
+				response.put("replies",{"الرقم المدخل غير صحيح برجاء التأكد من رقم ." + "  مرحبا بك فى بلاتينيوم الشرقية  للاستقدام افضل العمالة المنزلية"});
+				response.put("input",{"type":"select","options":{"خدمة العملاء","طلب استقدام جديد","متابعة طلب سابق"}});
+				return response;
+			}
+		}
+	}
+}
+else if(context_id.equals("complaints"))
+{
+	complaints = answers.get("complaints").get("text");
+	if(complaints.equalsIgnoreCase("الصفحة الرئيسية"))
+	{
+		response.put("action","reply");
+		response.put("replies"," مرحبا بك فى بلاتينيوم الشرقية  للاستقدام افضل العمالة المنزلية");
+		response.put("input",{"type":"select","options":{"تسجيل شكوى","خدمة العملاء","طلب استقدام جديد","متابعة طلب سابق"}});
+		return response;
+	}
+	if(complaints.equalsIgnoreCase("تسجيل شكوي"))
+	{
+		if(!answers.containsKey("complaintUserText"))
+		{
+			question1 = {"name":"complaintUserName","replies":{"عزيزي العميل رجاءا زودنا بالبيانات الاتي لاكمال تسجيل الشكوي","رجاء ادخل اسمك ثلاثى؟"},"input":{"type":"name","placeholder":"ادخل الاسم ثلاثى"}};
+			question2 = {"name":"complaintUserPhone","replies":{"ادخل رقم الجوال"},"input":{"type":"tel","placeholder":"Enter your phone number","country_code":"+966","placeholder":"5****","max_length":10,"error":{"صيغة رقم الجوال غير صحيحة"}}};
+			question3 = {"name":"complaintType","replies":{"موضوع الشكوي"},"input":{"type":"select","options":{"غير ذلك","طلب استقدام","عقد"},"values":{"غير ذلك","طلب استقدام","عقد"}}};
+			question4 = {"name":"complaintUserText","replies":{"نص الشكوى"},"input":{"type":"name","placeholder":"ادخل نص الشكوى"}};
+			questions = Collection();
+			questions.insert(question1);
+			questions.insert(question2);
+			questions.insert(question3);
+			questions.insert(question4);
+			response.put("questions",questions);
+			// 			question = {"name":"inpuut_passport_id","replies":{"ادخل رقم جواز السفر الخاص بالعامل\ة"},"input":{"type":"name","placeholder":"ادخل رقم جواز السفر"}};
+			// 			response.put("questions",{question});
+		}
+		else
+		{
+			complaintType = answers.get("complaintType").get("text");
+			complaintUserText = answers.get("complaintUserText").get("text");
+			complaintUserPhone = answers.get("complaintUserPhone").get("text");
+			complaintUserName = answers.get("complaintUserName").get("text");
+			payload = Map();
+			payload.put("subject",complaintType);
+			payload.put("message",complaintUserText);
+			payload.put("phone",complaintUserPhone);
+			payload.put("name",complaintUserName);
+			header_data = Map();
+			header_data.put("Content-Type","application/json");
+			header_data.put("Accept","application/json");
+			header_data.put("Content-Type","application/x-www-form-urlencoded");
+			questionscollection = Collection();
+			data_info = invokeurl
+			[
+				url :"https://www.platinumeastern.com/api/store_ticket"
+				type :Post
+				parameters:payload
+				headers:header_data
+				detailed:true
+			];
+			if(data_info.get('status') == 1)
+			{
+				response.put("action","reply");
+				response.put("replies"," مرحبا بك فى بلاتينيوم الشرقية  للاستقدام افضل العمالة المنزلية");
+				response.put("input",{"type":"select","options":{"تسجيل شكوى","خدمة العملاء","طلب استقدام جديد","متابعة طلب سابق"}});
+				return response;
+			}
+			else
+			{
+				response.put("action","end");
+				response.put("replies",{"تم ارسال شكوتك بنجاح"});
+			}
+		}
+	}
+	else if(complaints.equalsIgnoreCase("تواصل معنا"))
+	{
+		// 		response.put("action","context");
+		// 		response.put("context_id","complaints");
+		questionscollection = Collection();
+		questionscollection.insert({"text":"يمكنك التواصل مع طاقمنا المميز بكل سهولة ويسر"});
+		admins = null;
+		try
+		{
+			data_info = invokeurl
+			[
+				url :"https://platinumeastern.com/api/all_staff"
+				type :GET
+				headers:{"Content-Type":"application/json"}
+			];
+			admins = data_info.get('data');
+		}
+		catch (e)
+		{
+			admins = null;
+		}
+		if(admins == null || admins.size() == 0)
+		{
+			response.put("action","reply");
+			response.put("replies",{"تعذر تحميل بيانات خدمة العملاء حاليا. حاول مرة أخرى أو اختر الصفحة الرئيسية"});
+			response.put("input",{"type":"select","options":{"تسجيل شكوى","خدمة العملاء","طلب استقدام جديد","متابعة طلب سابق","الصفحة الرئيسية"}});
+			return response;
+		}
+		admins_keys = admins.keys();
+		admins_values = admins.values();
+		adminsList = Collection();
+		for each  val in admins_keys
+		{
+			adminsList.insert(val);
+		}
+		for each  admin in adminsList
+		{
+			admin_index = admins_keys.indexOf(admin);
+			selected_admin_phone = admins_values.get(admin_index);
+			info selected_admin_phone;
+			newLine = hexToText("0A");
+			question = {"type":"links","text":admin,"links":{{"url":"https://api.whatsapp.com/send?phone=" + selected_admin_phone,"text":"تواصل مع المسؤل","icon":"https://cdn3.iconfinder.com/data/icons/social-media-chat-1/512/WhatsApp-512.png"}}};
+			questionscollection.insert(question);
+		}
+		response.put("action","end");
+		response.put("replies",questionscollection);
+	}
+}
+else
+{
+	response.put("action","reply");
+	response.put("replies"," مرحبا بك فى بلاتينيوم الشرقية  للاستقدام افضل العمالة المنزلية");
+	response.put("input",{"type":"select","options":{"تسجيل شكوى","خدمة العملاء","طلب استقدام جديد","متابعة طلب سابق"}});
+	return response;
+}
+return response;

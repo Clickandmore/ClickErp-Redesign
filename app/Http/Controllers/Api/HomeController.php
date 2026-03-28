@@ -80,7 +80,13 @@ class HomeController extends Controller
     }
     public function allStaff(Request $request)
     {
-        $staffs = Admin::where('admin_type', AdminTypes::CustomerService->value)->get();
+        $staffs = Admin::query()
+            ->where('admin_type', AdminTypes::CustomerService->value)
+            ->where(function ($query) {
+                $query->whereNull('status')->orWhere('status', 'active');
+            })
+            ->orderBy('name')
+            ->get();
         $users = $staffs->mapWithKeys(function ($staff) {
             $phone = !empty($staff->whatsapp) ? $staff->whatsapp : $staff->phone;
             return [$staff->name => $phone];

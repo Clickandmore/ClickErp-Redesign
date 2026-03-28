@@ -878,6 +878,9 @@ class OrderController extends Controller
             // Get customer service admins only
             $admin = \App\Models\auth\Admin::where('id', $request->admin_id)
                 ->where('admin_type', 'customer_service')
+                ->where(function ($query) {
+                    $query->whereNull('status')->orWhere('status', 'active');
+                })
                 ->first();
 
             if (!$admin) {

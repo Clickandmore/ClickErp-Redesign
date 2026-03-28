@@ -19,6 +19,7 @@ use App\Models\RecruitmentOffices;
 use App\Http\Traits\SendSMSTrait;
 use App\Http\Traits\StoreMessageTrait;
 use App\Models\ingaz\Notification;
+use Illuminate\Validation\Rule;
 
 class RecruitmentController extends Controller
 {
@@ -86,7 +87,12 @@ class RecruitmentController extends Controller
         $offices = RecruitmentOffices::all();
 
         // Get employees
-        $employees = Admin::where('admin_type', 'customer_service')->get();
+        $employees = Admin::query()
+            ->where('admin_type', 'customer_service')
+            ->where(function ($query) {
+                $query->whereNull('status')->orWhere('status', 'active');
+            })
+            ->get();
 
         return view('admin.ingaz.recruitment.select_maid', compact(
             'client',
@@ -107,7 +113,12 @@ class RecruitmentController extends Controller
         // Get employees if user is admin
         $employees = [];
         if (Auth::guard('admin')->user()->hasRole('admin')) {
-            $employees = Admin::where('admin_type', 'customer_service')->get();
+            $employees = Admin::query()
+                ->where('admin_type', 'customer_service')
+                ->where(function ($query) {
+                    $query->whereNull('status')->orWhere('status', 'active');
+                })
+                ->get();
         }
 
         // Get selected employee ID from request
@@ -126,7 +137,17 @@ class RecruitmentController extends Controller
             $request->validate([
                 'client_id' => 'required|exists:users,id',
                 'maid_id' => 'required|exists:maids,id',
-                'employee_id' => 'required|exists:admins,id',
+                'employee_id' => [
+                    'required',
+                    Rule::exists('admins', 'id')->where(function ($query) {
+                        $query
+                            ->whereNull('deleted_at')
+                            ->where('admin_type', 'customer_service')
+                            ->where(function ($statusQuery) {
+                                $statusQuery->whereNull('status')->orWhere('status', 'active');
+                            });
+                    }),
+                ],
                 'job_title' => 'required|string|max:255',
                 'nationality' => 'required|string|max:255',
                 'experience_years' => 'nullable|string',

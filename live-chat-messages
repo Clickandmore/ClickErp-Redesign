@@ -1,6 +1,5 @@
 response = Map();
 msg = message.get("text");
-
 selected_request = message.get("new_request");
 if(selected_request != null)
 {
@@ -29,21 +28,26 @@ if(selected_request != null)
 		return response;
 	}
 	selected_value_text = selected_value.toString();
-	if(selected_value_text.equalsIgnoreCase("all") || selected_value_text.equals("جميع الجنسيات"))
+	if(selected_value_text.equalsIgnoreCase("الصفحة الرئيسية"))
 	{
-		response.put("replies",{"يمكنك الاطلاع على جميع السير الذاتية عبر الرابط التالي: https://platinum.istqdim.com/all-workers"});
+		response.put("action","reply");
+		response.put("replies",{" مرحبا بك فى  بلاتينيوم الشرقية للاستقدام استقدم افضل العمالة المنزلية"});
+		response.put("input",{"type":"select","options":{"خدمة العملاء","طلب استقدام جديد","متابعة طلب سابق"}});
 		return response;
 	}
-
+	if(selected_value_text.equalsIgnoreCase("all") || selected_value_text.equals("جميع الجنسيات"))
+	{
+		response.put("replies",{"يمكنك الاطلاع على جميع السير الذاتية عبر الرابط التالي: https://www.platinumeastern.com/all-workers?type=estqdam"});
+		return response;
+	}
 	nationality_id = null;
 	data_info = invokeurl
 	[
-		url :"https://platinum.istqdim.com/api/nationalites"
+		url :"https://platinumeastern.com/api/nationalites"
 		type :GET
 		headers:{"Content-Type":"application/json"}
 	];
 	nationalities = data_info.get('data');
-
 	if(nationalities != null)
 	{
 		try
@@ -66,7 +70,6 @@ if(selected_request != null)
 		catch (e)
 		{
 		}
-
 		if(nationality_id == null)
 		{
 			try
@@ -75,7 +78,6 @@ if(selected_request != null)
 				{
 					nat_name = null;
 					nat_id = null;
-
 					if(nat.get("title") != null)
 					{
 						nat_name = nat.get("title");
@@ -88,7 +90,6 @@ if(selected_request != null)
 					{
 						nat_name = nat.get("name");
 					}
-
 					if(nat.get("id") != null)
 					{
 						nat_id = nat.get("id");
@@ -101,7 +102,6 @@ if(selected_request != null)
 					{
 						nat_id = nat.get("value");
 					}
-
 					if(nat_name != null && nat_id != null)
 					{
 						if(nat_name == selected_value_text || nat_name.equalsIgnoreCase(selected_value_text) || nat_id.toString() == selected_value_text)
@@ -117,16 +117,14 @@ if(selected_request != null)
 			}
 		}
 	}
-
 	if(nationality_id == null)
 	{
 		response.put("replies",{"لم أتمكن من تحديد الجنسية المختارة. حاول مرة أخرى"});
 		return response;
 	}
-	response.put("replies",{"يمكنك الاطلاع على السير الذاتية عبر الرابط التالي: https://platinum.istqdim.com/all-workers?nationality_id=" + nationality_id});
+	response.put("replies",{"يمكنك الاطلاع على السير الذاتية عبر الرابط التالي: https://www.platinumeastern.com/all-workers?type=estqdam&nationality_id=" + nationality_id});
 	return response;
 }
-
 if(!msg.isNull())
 {
 	response.put("action","context");
@@ -134,100 +132,102 @@ if(!msg.isNull())
 	{
 		data_info = invokeurl
 		[
-			url :"https://platinum.istqdim.com/api/nationalites"
+			url :"https://platinumeastern.com/api/nationalites"
 			type :GET
 			headers:{"Content-Type":"application/json"}
 		];
-			nationalities = data_info.get('data');
-			optionList = Collection();
-			optionValues = Collection();
-			handled = false;
-			if(nationalities == null)
+		nationalities = data_info.get('data');
+		optionList = Collection();
+		optionValues = Collection();
+		handled = false;
+		if(nationalities == null)
+		{
+			response.put("action","reply");
+			response.put("replies",{"عذرا لا توجد جنسيات متاحة حاليا"});
+			return response;
+		}
+		try
+		{
+			for each  nat_key in nationalities.keys()
 			{
-				response.put("action","reply");
-				response.put("replies",{"عذرا لا توجد جنسيات متاحة حاليا"});
-				return response;
+				optionList.insert(nat_key);
+				optionValues.insert(nationalities.get(nat_key));
 			}
-
+			handled = true;
+		}
+		catch (e)
+		{
+			handled = false;
+		}
+		if(handled == false)
+		{
 			try
 			{
-				for each  nat_key in nationalities.keys()
+				for each  nat in nationalities
 				{
-					optionList.insert(nat_key);
-					optionValues.insert(nationalities.get(nat_key));
-				}
-				handled = true;
-			}
-			catch (e)
-			{
-				handled = false;
-			}
-
-			if(handled == false)
-			{
-				try
-				{
-					for each  nat in nationalities
+					nat_name = null;
+					nat_value = null;
+					if(nat.get("title") != null)
 					{
-						nat_name = null;
-						nat_value = null;
-
-						if(nat.get("title") != null)
-						{
-							nat_name = nat.get("title");
-						}
-						else if(nat.get("sub_title") != null)
-						{
-							nat_name = nat.get("sub_title");
-						}
-						else if(nat.get("name") != null)
-						{
-							nat_name = nat.get("name");
-						}
-
-						if(nat.get("id") != null)
-						{
-							nat_value = nat.get("id");
-						}
-						else if(nat.get("nationality_id") != null)
-						{
-							nat_value = nat.get("nationality_id");
-						}
-						else if(nat.get("value") != null)
-						{
-							nat_value = nat.get("value");
-						}
-
-						if(nat_name != null && nat_value != null)
-						{
-							optionList.insert(nat_name);
-							optionValues.insert(nat_value);
-						}
+						nat_name = nat.get("title");
+					}
+					else if(nat.get("sub_title") != null)
+					{
+						nat_name = nat.get("sub_title");
+					}
+					else if(nat.get("name") != null)
+					{
+						nat_name = nat.get("name");
+					}
+					if(nat.get("id") != null)
+					{
+						nat_value = nat.get("id");
+					}
+					else if(nat.get("nationality_id") != null)
+					{
+						nat_value = nat.get("nationality_id");
+					}
+					else if(nat.get("value") != null)
+					{
+						nat_value = nat.get("value");
+					}
+					if(nat_name != null && nat_value != null)
+					{
+						optionList.insert(nat_name);
+						optionValues.insert(nat_value);
 					}
 				}
-				catch (ex)
-				{
-				}
 			}
-
-			if(optionList.size() == 0 || optionValues.size() == 0)
+			catch (ex)
 			{
-				response.put("action","reply");
-				response.put("replies",{"عذرا لا توجد جنسيات متاحة حاليا"});
-				return response;
 			}
-
-			optionList.insert('جميع الجنسيات');
-			optionValues.insert('all');
-			info optionValues;
-			response.put("context_id","live-chat");
-			question = {"name":"new_request","replies":{"يمكنك الاطلاع على السير الذاتية من خلال اختيار احد الجنسيات الاتية"},"input":{"type":"select","options":optionList,"values":optionValues}};
-			response.put("questions",{question});
+		}
+		if(optionList.size() == 0 || optionValues.size() == 0)
+		{
+			response.put("action","reply");
+			response.put("replies",{"عذرا لا توجد جنسيات متاحة حاليا"});
+			return response;
+		}
+		optionList.insert('جميع الجنسيات');
+		optionValues.insert('all');
+		optionList.insert('الصفحة الرئيسية');
+		optionValues.insert('الصفحة الرئيسية');
+		info optionValues;
+		response.put("context_id","deals");
+		question = {"name":"new_request","replies":{"يمكنك الاطلاع على السير الذاتية من خلال اختيار احد الجنسيات الاتية"},"input":{"type":"select","options":optionList,"values":optionValues}};
+		response.put("questions",{question});
+	}
+	else if(msg.equalsIgnoreCase("الصفحة الرئيسية"))
+	{
+		response.put("action","reply");
+		response.put("replies",{" مرحبا بك فى  بلاتينيوم الشرقية للاستقدام استقدم افضل العمالة المنزلية"});
+		response.put("input",{"type":"select","options":{"خدمة العملاء","طلب استقدام جديد","متابعة طلب سابق"}});
+		return response;
 	}
 	else if(msg.equalsIgnoreCase("متابعة طلب سابق"))
 	{
 		response.put("context_id","help");
-		question = {"name":"query","replies":{"يمكنك الاستعلام عن حالة العقد من خلال احد الاختيارات الاتية"},"input":{"type":"select","options":{"رقم عقد مساند","رقم الهوية","رقم التأشيرة"}}};
+		question = {"name":"query","replies":{"يمكنك الاستعلام عن حالة العقد من خلال احد الاختيارات الاتية"},"input":{"type":"select","options":{"رقم عقد مساند","رقم الهوية","رقم التأشيرة","الصفحة الرئيسية"}}};
 		response.put("questions",{question});
 	}
 	else if(msg.equalsIgnoreCase("خدمة العملاء"))
@@ -236,20 +236,28 @@ if(!msg.isNull())
 		// 		response.put("context_id","complaints");
 		questionscollection = Collection();
 		questionscollection.insert({"text":"يمكنك التواصل مع طاقمنا المميز بكل سهولة ويسر"});
-		data_info = invokeurl
-		[
-			url :"https://www.platinum.istqdim.com/api/all_staff"
-			type :GET
-			headers:{"Content-Type":"application/json"}
-		];
-		admins = data_info.get('data');
+		admins = null;
+		try
+		{
+			data_info = invokeurl
+			[
+				url :"https://platinumeastern.com/api/all_staff"
+				type :GET
+				headers:{"Content-Type":"application/json"}
+			];
+			admins = data_info.get('data');
+		}
+		catch (e)
+		{
+			admins = null;
+		}
 		if(admins == null || admins.size() == 0)
 		{
 			response.put("action","reply");
-			response.put("replies",{"عذرا لا توجد بيانات لخدمة العملاء حاليا"});
+			response.put("replies",{"تعذر تحميل بيانات خدمة العملاء حاليا. حاول مرة أخرى أو اختر الصفحة الرئيسية"});
+			response.put("input",{"type":"select","options":{"خدمة العملاء","طلب استقدام جديد","متابعة طلب سابق","الصفحة الرئيسية"}});
 			return response;
 		}
-
 		admins_keys = admins.keys();
 		admins_values = admins.values();
 		adminsList = Collection();
@@ -272,7 +280,7 @@ if(!msg.isNull())
 	else if(msg.equalsIgnoreCase("تسجيل شكوى"))
 	{
 		response.put("context_id","complaints");
-		question = {"name":"complaints","replies":{"عزيزي العميل يمكننا مساعدتك في في مشكلتكم بشكل اسرع من خلال الاتي :"},"input":{"type":"select","options":{"تسجيل شكوي","تواصل معنا"}}};
+		question = {"name":"complaints","replies":{"عزيزي العميل يمكننا مساعدتك في في مشكلتكم بشكل اسرع من خلال الاتي :"},"input":{"type":"select","options":{"تسجيل شكوي","تواصل معنا","الصفحة الرئيسية"}}};
 		response.put("questions",{question});
 	}
 	else

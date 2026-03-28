@@ -1305,7 +1305,7 @@
                                     <label class="form-label">{{ helperTrans('ingaz.select_employee') }}</label>
                                     <select class="form-select" name="admin_id" required>
                                         <option value="">{{ helperTrans('ingaz.select_employee') }}</option>
-                                        @foreach (\App\Models\auth\Admin::where('admin_type', 'customer_service')->get() as $admin)
+                                        @foreach (\App\Models\auth\Admin::query()->where('admin_type', 'customer_service')->where(function ($query) { $query->whereNull('status')->orWhere('status', 'active'); })->get() as $admin)
                                             <option value="{{ $admin->id }}">{{ $admin->name }}</option>
                                         @endforeach
                                     </select>

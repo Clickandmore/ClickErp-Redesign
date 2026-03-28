@@ -21,7 +21,13 @@ class AdminShelterWorkersContractCTLR extends Controller
         //nationalities
         //maids
         $clientsList = $this->usersList();
-        $adminsList = Admin::where('admin_type', 'customer_service')->pluck('name', 'id')->all();
+        $adminsList = Admin::query()
+            ->where('admin_type', 'customer_service')
+            ->where(function ($query) {
+                $query->whereNull('status')->orWhere('status', 'active');
+            })
+            ->pluck('name', 'id')
+            ->all();
         $nationalitiesList = Nationality::all();
         $maidsArr = [];
         $maidsList = ShelterWorkers::whereNULL(Keys::contract_id)->get()->all();

@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\site;
 
+use App\Enums\auth\AdminTypes;
 use App\Http\Requests\MainRequest;
+use Illuminate\Validation\Rule;
 
 class ImmediateReciptsRequest extends MainRequest
 {
@@ -24,7 +26,17 @@ class ImmediateReciptsRequest extends MainRequest
             'order_type' => ['required', 'string'],
             'payment_method' => ['required', 'string'],
             'details_list' => ['required', 'array'],
-            'details_list.admin_id' => ['required', 'exists:admins,id'],
+            'details_list.admin_id' => [
+                'required',
+                Rule::exists('admins', 'id')->where(function ($query) {
+                    $query
+                        ->whereNull('deleted_at')
+                        ->where('admin_type', AdminTypes::CustomerService->value)
+                        ->where(function ($statusQuery) {
+                            $statusQuery->whereNull('status')->orWhere('status', 'active');
+                        });
+                }),
+            ],
         ];
     }
 

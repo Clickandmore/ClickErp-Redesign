@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\site;
 
+use App\Enums\auth\AdminTypes;
 use App\Http\Actions\auth\AdminAction;
 use App\Http\Actions\ingaz\JobTypeAction;
 use App\Http\Actions\ingaz\MaidAction;
@@ -11,6 +12,7 @@ use App\Http\Actions\ingaz\UserAction;
 use App\Http\Actions\ingaz\UserAddressAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\site\ImmediateReciptsRequest;
+use App\Models\auth\Admin;
 use App\Models\ingaz\OrderDetail;
 use App\Models\ingaz\RecruitmentRequest;
 use App\Models\ingaz\User;
@@ -27,7 +29,13 @@ class ImmediateReciptsController extends Controller
         $data['packages'] = $packageAction->getWhere(['nationality_id' => $data['maid']->nationality_id]);
         $data['addresses'] = $userAddressAction->getwhere(['user_id' => getGuardedUser('id')]);
         $data['type'] = $jobTypeAction->find(3);
-        $data['customer_services'] = $admin_action->getWhere(['admin_type' => 'customer_service'])->sortBy('sort', SORT_ASC);
+        $data['customer_services'] = Admin::query()
+            ->where('admin_type', AdminTypes::CustomerService->value)
+            ->where(function ($query) {
+                $query->whereNull('status')->orWhere('status', 'active');
+            })
+            ->orderBy('sort')
+            ->get();
         return view('site.pages.immediat_recipts', $data);
     }
 
