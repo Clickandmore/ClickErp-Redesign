@@ -149,18 +149,17 @@
                                     <span class="badge bg-info">{{ $transfer->getStatusTextAttribute() }}</span>
                                 </p>
                                 <p class="mb-0"><strong>ملاحظة:</strong>
-                                    @if($transfer->status !== 'maid_delivered')
+                                    @if($transfer->status === 'trial_started')
+                                        تم تفعيل فترة التجربة بالفعل لهذا الطلب.
+                                    @elseif($transfer->status !== 'maid_delivered')
                                         يجب إكمال الخطوات التالية قبل بدء التجربة:
                                         <ul class="mt-2 mb-0">
                                             @if($transfer->status === 'waiting_contract_send')
-                                                <li>إرسال العقد للعميل</li>
-                                                <li>توقيع العقد من العميل</li>
-                                                <li>تسليم العاملة للعميل</li>
+                                                <li>تسجيل استلام العاملة</li>
                                             @elseif($transfer->status === 'contract_sent')
-                                                <li>توقيع العقد من العميل</li>
-                                                <li>تسليم العاملة للعميل</li>
+                                                <li>تسجيل استلام العاملة</li>
                                             @elseif($transfer->status === 'contract_signed')
-                                                <li>تسليم العاملة للعميل</li>
+                                                <li>تسجيل استلام العاملة</li>
                                             @endif
                                         </ul>
                                     @else
@@ -179,6 +178,10 @@
                                     <button type="button" class="btn btn-success btn-lg me-2" onclick="confirmStartTrial()">
                                         <i class="fas fa-play"></i> تأكيد بدء فترة التجربة
                                     </button>
+                                @elseif($transfer->status === 'trial_started')
+                                    <a href="{{ route('SponsorshipTransfer.trial') }}" class="btn btn-success btn-lg me-2">
+                                        <i class="fas fa-check-circle"></i> التجربة مفعلة بالفعل
+                                    </a>
                                 @else
                                     <button type="button" class="btn btn-warning btn-lg me-2" disabled title="يجب إكمال الخطوات السابقة أولاً">
                                         <i class="fas fa-exclamation-triangle"></i> لا يمكن بدء التجربة حالياً

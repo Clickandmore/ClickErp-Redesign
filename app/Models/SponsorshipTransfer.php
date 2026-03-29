@@ -119,7 +119,7 @@ class SponsorshipTransfer extends Model
 
     public function scopeTrial($query)
     {
-        return $query->where('status', 'trial');
+        return $query->whereIn('status', ['trial', 'trial_started']);
     }
 
     public function scopeWaitingContractSend($query)
@@ -152,7 +152,7 @@ class SponsorshipTransfer extends Model
     {
         $statusTexts = [
             'pending' => 'في الانتظار',
-            'waiting_contract_send' => 'انتظار إرسال العقد',
+            'waiting_contract_send' => 'بانتظار تسجيل استلام العاملة',
             'contract_sent' => 'تم إرسال العقد',
             'contract_signed' => 'تم توقيع العقد',
             'maid_delivered' => 'تم تسليم العاملة',
@@ -168,10 +168,45 @@ class SponsorshipTransfer extends Model
         return $statusTexts[$this->status] ?? 'غير محدد';
     }
 
+    public function getEffectiveTrialStartDateAttribute()
+    {
+        return $this->trial_started_at ?? $this->trial_start_date;
+    }
+
+    public function getTrialEndDateAttribute()
+    {
+        if (!$this->effective_trial_start_date || !$this->trial_days) {
+            return null;
+        }
+
+        return $this->effective_trial_start_date->copy()->addDays((int) $this->trial_days);
+    }
+
+    public function getTrialDaysRemainingAttribute()
+    {
+        if (!$this->trial_end_date) {
+            return null;
+        }
+
+        return now()->startOfDay()->diffInDays($this->trial_end_date->copy()->startOfDay(), false);
+    }
+
     // Methods
     public function canPrintContract()
     {
         return $this->status === 'waiting_contract_send';
+    }
+
+    public function canCreateContract()
+    {
+        return in_array($this->status, [
+            'waiting_contract_send',
+            'contract_sent',
+            'contract_signed',
+            'maid_delivered',
+            'trial',
+            'trial_started',
+        ], true);
     }
 
     public function canSendContract()
@@ -186,7 +221,11 @@ class SponsorshipTransfer extends Model
 
     public function canDeliverMaid()
     {
-        return $this->status === 'contract_signed';
+        return in_array($this->status, [
+            'waiting_contract_send',
+            'contract_sent',
+            'contract_signed',
+        ], true);
     }
 
     public function canStartTrial()
@@ -219,8 +258,13 @@ class SponsorshipTransfer extends Model
     {
         $badges = [
             'pending' => 'badge-warning',
+            'waiting_contract_send' => 'badge-info',
+            'contract_sent' => 'badge-primary',
+            'contract_signed' => 'badge-success',
+            'maid_delivered' => 'badge-success',
             'approved' => 'badge-info',
             'trial' => 'badge-primary',
+            'trial_started' => 'badge-primary',
             'transferred' => 'badge-success',
             'failed' => 'badge-danger',
             'rejected' => 'badge-danger',

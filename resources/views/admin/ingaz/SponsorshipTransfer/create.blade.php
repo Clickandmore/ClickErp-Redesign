@@ -45,7 +45,7 @@
                                         data-maid-passport="{{ $contract->maid ? $contract->maid->passport_num : 'غير محدد' }}"
                                         data-maid-nationality="{{ $contract->maid && $contract->maid->nationality ? ($contract->maid->nationality->translations->where('locale', app()->getLocale())->first()->sub_title ?? $contract->maid->nationality->translations->first()->sub_title) : 'غير محدد' }}"
                                         data-sponsor-name="{{ $contract->user ? $contract->user->name : 'غير محدد' }}"
-                                        data-sponsor-id="{{ $contract->user ? $contract->user->id_number : 'غير محدد' }}"
+                                        data-sponsor-id="{{ $contract->user ? ($contract->user->national_num ?: 'غير محدد') : 'غير محدد' }}"
                                         data-sponsor-phone="{{ $contract->user ? $contract->user->phone : 'غير محدد' }}"
                                         data-sponsor-city="{{ $contract->user ? $contract->user->city : 'غير محدد' }}"
                                         {{ $selectedContractId == $contract->id ? 'selected' : '' }}>
@@ -82,8 +82,45 @@
                     </div>
                     <!-- الكفيل الجديد -->
                     <div class="col-12">
-                        <label class="form-label fw-bold">اختيار الكفيل الجديد <span class="text-danger">*</span></label>
-                        <select name="new_sponsor_id" id="new_sponsor_id" class="form-select select2" required></select>
+                        <label class="form-label fw-bold d-block">العميل / الكفيل الجديد <span class="text-danger">*</span></label>
+                        <div class="border rounded-3 p-3 bg-light">
+                            <div class="d-flex flex-wrap gap-3 mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="new_sponsor_mode" id="new_sponsor_mode_existing" value="existing" checked>
+                                    <label class="form-check-label fw-semibold" for="new_sponsor_mode_existing">
+                                        اختيار عميل موجود
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="new_sponsor_mode" id="new_sponsor_mode_new" value="new">
+                                    <label class="form-check-label fw-semibold" for="new_sponsor_mode_new">
+                                        إضافة عميل جديد
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="existing_sponsor_wrapper">
+                                <label class="form-label fw-bold">اختيار الكفيل الجديد <span class="text-danger">*</span></label>
+                                <select name="new_sponsor_id" id="new_sponsor_id" class="form-select select2" required></select>
+                                <div class="form-text">ابحث بالاسم أو رقم الجوال أو رقم الهوية.</div>
+                            </div>
+
+                            <div id="new_sponsor_fields" class="row g-3 d-none">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">اسم العميل <span class="text-danger">*</span></label>
+                                    <input type="text" name="new_sponsor_name" id="new_sponsor_name" class="form-control" maxlength="255" disabled>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">رقم الجوال <span class="text-danger">*</span></label>
+                                    <input type="text" name="new_sponsor_phone" id="new_sponsor_phone" class="form-control" maxlength="20" inputmode="tel" placeholder="05XXXXXXXX" disabled>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">رقم الهوية</label>
+                                    <input type="text" name="new_sponsor_national_num" id="new_sponsor_national_num" class="form-control" maxlength="50" inputmode="numeric" placeholder="اختياري" disabled>
+                                    <div class="form-text">رقم الهوية اختياري عند الإضافة من هذه الشاشة.</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <!-- معلومات العمل التجريبي والتكاليف -->
                     <div class="col-md-6">
@@ -127,7 +164,8 @@
 @section('js')
 <script>
 $(document).ready(function() {
-    $('.select2').select2({ placeholder: 'اختر...', allowClear: true });
+    $('.select2').not('#new_sponsor_id').select2({ placeholder: 'اختر...', allowClear: true });
+
     $('#new_sponsor_id').select2({
         placeholder: 'ابحث عن الكفيل الجديد...',
         allowClear: true,
@@ -144,6 +182,19 @@ $(document).ready(function() {
             cache: true
         }
     });
+
+    function toggleSponsorMode() {
+        const mode = $('input[name="new_sponsor_mode"]:checked').val();
+        const isExistingMode = mode === 'existing';
+
+        $('#existing_sponsor_wrapper').toggleClass('d-none', !isExistingMode);
+        $('#new_sponsor_fields').toggleClass('d-none', isExistingMode);
+
+        $('#new_sponsor_id').prop('disabled', !isExistingMode).prop('required', isExistingMode).trigger('change.select2');
+        $('#new_sponsor_name, #new_sponsor_phone, #new_sponsor_national_num').prop('disabled', isExistingMode);
+        $('#new_sponsor_name, #new_sponsor_phone').prop('required', !isExistingMode);
+    }
+
     @if(isset($selectedNewSponsorId) && $selectedNewSponsorId && isset($selectedNewSponsor))
         var presetSponsor = new Option(
             '{{ $selectedNewSponsor->name }} - {{ $selectedNewSponsor->phone_code . $selectedNewSponsor->phone }}',
@@ -153,6 +204,10 @@ $(document).ready(function() {
         );
         $('#new_sponsor_id').append(presetSponsor).trigger('change');
     @endif
+
+    $('input[name="new_sponsor_mode"]').on('change', toggleSponsorMode);
+    toggleSponsorMode();
+
     // تعبئة معلومات العقد والكفيل الحالي عند اختيار العقد
     $('#contract_id').on('change', function() {
         let selectedOption = $(this).find('option:selected');
@@ -207,7 +262,12 @@ $(document).ready(function() {
             },
             error: function(xhr) {
                 let msg = 'حدث خطأ غير متوقع';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    const firstField = Object.keys(xhr.responseJSON.errors)[0];
+                    if (firstField && xhr.responseJSON.errors[firstField][0]) {
+                        msg = xhr.responseJSON.errors[firstField][0];
+                    }
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
                     msg = xhr.responseJSON.message;
                 }
                 Swal.fire('خطأ!', msg, 'error');

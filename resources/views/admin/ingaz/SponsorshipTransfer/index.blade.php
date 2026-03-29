@@ -126,7 +126,15 @@
                             <select class="form-select" id="statusFilter">
                                 <option value="">{{helperTrans("ingaz.all_statuses")}}</option>
                                 <option value="pending">{{helperTrans("ingaz.pending")}}</option>
+                                <option value="waiting_contract_send">بانتظار تسجيل الاستلام</option>
+                                <option value="contract_sent">تم إرسال العقد</option>
+                                <option value="contract_signed">تم توقيع العقد</option>
+                                <option value="maid_delivered">تم تسليم العاملة</option>
+                                <option value="trial_period">فترة التجربة</option>
+                                <option value="trial_started">بدأت التجربة</option>
                                 <option value="approved">{{helperTrans("ingaz.approved")}}</option>
+                                <option value="transferred">تم النقل</option>
+                                <option value="failed">فشل النقل</option>
                                 <option value="rejected">{{helperTrans("ingaz.rejected")}}</option>
                                 <option value="completed">{{helperTrans("ingaz.completed")}}</option>
                             </select>

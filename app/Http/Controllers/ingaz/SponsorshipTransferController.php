@@ -10,6 +10,9 @@ use App\Models\ingaz\User;
 use App\Models\ingaz\Order;
 use App\Models\SponsorshipTransfer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Yajra\DataTables\Facades\DataTables;
 
 class SponsorshipTransferController extends Controller
@@ -26,7 +29,11 @@ class SponsorshipTransferController extends Controller
 
             // تطبيق الفلاتر
             if ($request->filled('status')) {
-                $query->where('status', $request->status);
+                if ($request->status === 'trial_period') {
+                    $query->whereIn('status', ['trial', 'trial_started']);
+                } else {
+                    $query->where('status', $request->status);
+                }
             }
 
             if ($request->filled('date_from')) {
@@ -112,13 +119,14 @@ class SponsorshipTransferController extends Controller
                     return $transfer->trial_days . ' يوم';
                 })
                 ->addColumn('trial_start_date', function($transfer) {
-                    return $transfer->trial_start_date ? $transfer->trial_start_date->format('Y-m-d') : 'غير محدد';
+                    return $transfer->effective_trial_start_date
+                        ? $transfer->effective_trial_start_date->format('Y-m-d')
+                        : 'غير محدد';
                 })
                 ->addColumn('trial_end_info', function($transfer) {
-                    if ($transfer->trial_start_date && $transfer->trial_days) {
-                        $endDate = $transfer->trial_start_date->addDays($transfer->trial_days);
-                        $now = now();
-                        $daysRemaining = $now->diffInDays($endDate, false);
+                    if ($transfer->trial_end_date) {
+                        $endDate = $transfer->trial_end_date;
+                        $daysRemaining = $transfer->trial_days_remaining;
 
                         $html = '<div class="trial-info">';
                         $html .= '<strong>تنتهي: ' . $endDate->format('Y-m-d') . '</strong><br>';
@@ -211,24 +219,10 @@ class SponsorshipTransferController extends Controller
                                     </a></li>';
                     }
 
-                    // تأكيد إرسال العقد للعميل (انتظار إرسال العقد)
-                    if ($transfer->status == 'waiting_contract_send') {
-                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="send-contract" data-id="' . $transfer->id . '" data-text="تأكيد إرسال العقد للعميل">
-                                        <i class="fas fa-paper-plane"></i> تأكيد إرسال العقد
-                                    </a></li>';
-                    }
-
-                    // تسجيل توقيع العقد (تم إرسال العقد)
-                    if ($transfer->status == 'contract_sent') {
-                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="sign-contract" data-id="' . $transfer->id . '" data-text="تسجيل توقيع العقد">
-                                        <i class="fas fa-signature"></i> تسجيل توقيع العقد
-                                    </a></li>';
-                    }
-
-                    // تسليم العاملة (تم توقيع العقد)
-                    if ($transfer->status == 'contract_signed') {
-                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="deliver-maid" data-id="' . $transfer->id . '" data-text="تسجيل تسليم العاملة">
-                                        <i class="fas fa-handshake"></i> تسجيل تسليم العاملة
+                    // تسجيل استلام العاملة مع تفعيل التجربة مباشرة
+                    if (in_array($transfer->status, ['waiting_contract_send', 'contract_sent', 'contract_signed'])) {
+                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="deliver-maid" data-id="' . $transfer->id . '" data-text="تسجيل استلام العاملة وتفعيل التجربة مباشرة">
+                                        <i class="fas fa-handshake"></i> تسجيل استلام العاملة
                                     </a></li>';
                     }
 
@@ -286,8 +280,9 @@ class SponsorshipTransferController extends Controller
         }
 
         // حساب الإحصائيات
+        $totalCount = SponsorshipTransfer::count();
         $pendingCount = SponsorshipTransfer::where('status', 'pending')->count();
-        $trialCount = SponsorshipTransfer::where('status', 'trial')->count();
+        $trialCount = SponsorshipTransfer::whereIn('status', ['trial', 'trial_started'])->count();
         $transferredCount = SponsorshipTransfer::where('status', 'transferred')->count();
         $failedCount = SponsorshipTransfer::where('status', 'failed')->count();
         $rejectedCount = SponsorshipTransfer::where('status', 'rejected')->count();
@@ -295,6 +290,7 @@ class SponsorshipTransferController extends Controller
         $completedCount = SponsorshipTransfer::where('status', 'completed')->count();
 
         return view($this->folderPath . '.index', compact(
+            'totalCount',
             'pendingCount',
             'trialCount',
             'transferredCount',
@@ -451,7 +447,10 @@ class SponsorshipTransferController extends Controller
             }
         }
 
-        $selectedNewSponsorId = request('new_sponsor_id');
+        $selectedNewSponsorId = request('new_sponsor_id') ?? request('user_id');
+        if (!$selectedNewSponsorId && $selectedOrder?->user_id) {
+            $selectedNewSponsorId = $selectedOrder->user_id;
+        }
         $selectedNewSponsor = null;
         if ($selectedNewSponsorId) {
             $selectedNewSponsor = User::find($selectedNewSponsorId);
@@ -473,20 +472,29 @@ class SponsorshipTransferController extends Controller
     public function store(Request $request)
     {
         try {
-            // Validation يدوي
-            $request->validate([
+            $validated = $request->validate([
                 'contract_id' => 'required|exists:contracts,id',
-                'new_sponsor_id' => 'required|exists:users,id',
+                'new_sponsor_mode' => 'required|in:existing,new',
+                'new_sponsor_id' => 'required_if:new_sponsor_mode,existing|nullable|exists:users,id',
+                'new_sponsor_name' => 'required_if:new_sponsor_mode,new|nullable|string|max:255',
+                'new_sponsor_phone' => 'required_if:new_sponsor_mode,new|nullable|string|max:20',
+                'new_sponsor_national_num' => 'nullable|string|max:50',
                 'trial_days' => 'required|integer|min:1|max:90',
                 'trial_start_date' => 'required|date',
                 'contract_value' => 'required|numeric|min:0',
-                'paid_amount' => 'required|numeric|min:0',
+                'paid_amount' => 'required|numeric|min:0|lte:contract_value',
                 'notes' => 'nullable|string|max:1000',
             ], [
                 'contract_id.required' => 'يجب اختيار العقد',
                 'contract_id.exists' => 'العقد المختار غير موجود',
-                'new_sponsor_id.required' => 'يجب اختيار الكفيل الجديد',
+                'new_sponsor_mode.required' => 'يجب تحديد طريقة إضافة العميل الجديد',
+                'new_sponsor_mode.in' => 'طريقة إضافة العميل الجديد غير صحيحة',
+                'new_sponsor_id.required_if' => 'يجب اختيار الكفيل الجديد',
                 'new_sponsor_id.exists' => 'الكفيل الجديد غير موجود',
+                'new_sponsor_name.required_if' => 'يجب إدخال اسم العميل الجديد',
+                'new_sponsor_phone.required_if' => 'يجب إدخال رقم جوال العميل الجديد',
+                'new_sponsor_phone.max' => 'رقم الجوال يجب أن يكون أقل من 20 خانة',
+                'new_sponsor_national_num.max' => 'رقم الهوية يجب أن يكون أقل من 50 خانة',
                 'trial_days.required' => 'يجب إدخال عدد أيام العمل التجريبي',
                 'trial_days.integer' => 'عدد أيام العمل التجريبي يجب أن يكون رقماً صحيحاً',
                 'trial_days.min' => 'عدد أيام العمل التجريبي يجب أن يكون 1 يوم على الأقل',
@@ -499,10 +507,11 @@ class SponsorshipTransferController extends Controller
                 'paid_amount.required' => 'يجب إدخال المبلغ المدفوع',
                 'paid_amount.numeric' => 'المبلغ المدفوع يجب أن يكون رقماً',
                 'paid_amount.min' => 'المبلغ المدفوع يجب أن يكون أكبر من أو يساوي صفر',
+                'paid_amount.lte' => 'المبلغ المدفوع لا يمكن أن يكون أكبر من قيمة العقد',
                 'notes.max' => 'الملاحظات يجب أن تكون أقل من 1000 حرف',
             ]);
 
-            $contract = Contract::find($request->contract_id);
+            $contract = Contract::with('info')->find($validated['contract_id']);
 
             if (!$contract) {
                 return response()->json([
@@ -519,38 +528,62 @@ class SponsorshipTransferController extends Controller
                 ], 400);
             }
 
-            // التحقق من وجود الكفيل الجديد
-            $newSponsor = User::find($request->new_sponsor_id);
+            DB::beginTransaction();
+
+            $newSponsor = $validated['new_sponsor_mode'] === 'existing'
+                ? User::find($validated['new_sponsor_id'])
+                : $this->findOrCreateNewSponsor($validated);
+
             if (!$newSponsor) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'الكفيل الجديد غير موجود'
-                ], 404);
+                throw ValidationException::withMessages([
+                    'new_sponsor_id' => 'الكفيل الجديد غير موجود',
+                ]);
+            }
+
+            if ((int) $newSponsor->id === (int) $contract->user_id) {
+                throw ValidationException::withMessages([
+                    'new_sponsor_id' => 'لا يمكن اختيار نفس العميل الحالي ككفيل جديد',
+                ]);
             }
 
             // حفظ بيانات طلب نقل الكفالة
             $transferData = [
                 'contract_id' => $contract->id,
                 'old_sponsor_id' => $contract->user_id,
-                'new_sponsor_id' => $request->new_sponsor_id,
-                'trial_days' => $request->trial_days,
-                'trial_start_date' => $request->trial_start_date,
-                'contract_value' => $request->contract_value,
-                'paid_amount' => $request->paid_amount,
-                'remaining_amount' => $request->contract_value - $request->paid_amount,
-                'notes' => $request->notes,
+                'new_sponsor_id' => $newSponsor->id,
+                'trial_days' => $validated['trial_days'],
+                'trial_start_date' => $validated['trial_start_date'],
+                'contract_value' => $validated['contract_value'],
+                'paid_amount' => $validated['paid_amount'],
+                'remaining_amount' => $validated['contract_value'] - $validated['paid_amount'],
+                'notes' => $validated['notes'] ?? null,
                 'status' => 'waiting_contract_send', // الحالة الجديدة: انتظار إرسال العقد
             ];
 
             // إنشاء طلب نقل كفالة جديد
             SponsorshipTransfer::create($transferData);
 
+            DB::commit();
+
             return response()->json([
                 'success' => true,
                 'message' => 'تم حفظ طلب نقل الكفالة بنجاح'
             ]);
 
-        } catch (\Exception $e) {
+        } catch (ValidationException $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?? 'البيانات المدخلة غير صحيحة',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
             \Log::error('Error in SponsorshipTransfer store: ' . $e->getMessage());
 
             return response()->json([
@@ -784,23 +817,116 @@ class SponsorshipTransferController extends Controller
      */
     public function searchClients(Request $request)
     {
-        $search = $request->input('search');
+        $search = trim((string) $request->input('search'));
 
-        $clients = User::where('name', 'LIKE', "%{$search}%")
-            ->orWhere('id_number', 'LIKE', "%{$search}%")
-            ->orWhere('phone', 'LIKE', "%{$search}%")
-            ->select('id', 'name', 'id_number', 'phone', 'city')
+        $clients = User::query()
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($subQuery) use ($search) {
+                    $subQuery->where('name', 'LIKE', "%{$search}%")
+                        ->orWhere('national_num', 'LIKE', "%{$search}%")
+                        ->orWhere('phone', 'LIKE', "%{$search}%");
+                });
+            })
+            ->select('id', 'name', 'national_num', 'phone', 'phone_code', 'city')
+            ->latest('id')
             ->limit(10)
             ->get();
 
         $results = $clients->map(function ($client) {
+            $phone = trim((string) (($client->phone_code ?? '') . $client->phone));
+
             return [
                 'id' => $client->id,
-                'text' => $client->name . ' - ' . ($client->id_number ?: 'بدون هوية') . ' - ' . ($client->phone ?: 'بدون جوال')
+                'text' => $client->name . ' - ' . ($client->national_num ?: 'بدون هوية') . ' - ' . ($phone ?: 'بدون جوال')
             ];
         });
 
         return response()->json(['results' => $results]);
+    }
+
+    private function findOrCreateNewSponsor(array $validated): User
+    {
+        $normalizedPhone = $this->normalizeSaudiPhone((string) $validated['new_sponsor_phone']);
+        if (!$normalizedPhone) {
+            throw ValidationException::withMessages([
+                'new_sponsor_phone' => 'رقم الجوال غير صحيح. الصيغة المتاحة: 05XXXXXXXX أو 5XXXXXXXX أو +9665XXXXXXXX.',
+            ]);
+        }
+
+        $nationalNum = trim((string) ($validated['new_sponsor_national_num'] ?? ''));
+        $existingByPhone = User::where('phone', $normalizedPhone)->first();
+        $existingByNationalNum = $nationalNum !== ''
+            ? User::where('national_num', $nationalNum)->first()
+            : null;
+
+        if ($existingByPhone && $existingByNationalNum && (int) $existingByPhone->id !== (int) $existingByNationalNum->id) {
+            throw ValidationException::withMessages([
+                'new_sponsor_national_num' => 'رقم الهوية مرتبط بعميل آخر برقم جوال مختلف. اختر العميل الموجود من القائمة.',
+            ]);
+        }
+
+        if ($existingByPhone) {
+            $updates = [];
+
+            if (empty($existingByPhone->name)) {
+                $updates['name'] = trim((string) $validated['new_sponsor_name']);
+            }
+
+            if (empty($existingByPhone->phone_code)) {
+                $updates['phone_code'] = '+966';
+            }
+
+            if (empty($existingByPhone->register_from)) {
+                $updates['register_from'] = 'dashboard';
+            }
+
+            if ($nationalNum !== '' && empty($existingByPhone->national_num)) {
+                $updates['national_num'] = $nationalNum;
+            }
+
+            if (!empty($updates)) {
+                $existingByPhone->update($updates);
+                $existingByPhone->refresh();
+            }
+
+            return $existingByPhone;
+        }
+
+        if ($existingByNationalNum) {
+            throw ValidationException::withMessages([
+                'new_sponsor_national_num' => 'رقم الهوية مسجل مسبقًا لعميل آخر. اختر العميل الموجود من القائمة أو استخدم رقم جواله المسجل.',
+            ]);
+        }
+
+        return User::create([
+            'name' => trim((string) $validated['new_sponsor_name']),
+            'phone_code' => '+966',
+            'phone' => $normalizedPhone,
+            'national_num' => $nationalNum !== '' ? $nationalNum : null,
+            'password' => bcrypt(Str::random(12)),
+            'register_from' => 'dashboard',
+            'is_blocked' => 0,
+        ]);
+    }
+
+    private function normalizeSaudiPhone(string $phone): ?string
+    {
+        $digits = preg_replace('/\D+/', '', $phone);
+        if (!$digits) {
+            return null;
+        }
+
+        if (str_starts_with($digits, '00966')) {
+            $digits = substr($digits, 5);
+        } elseif (str_starts_with($digits, '966')) {
+            $digits = substr($digits, 3);
+        }
+
+        if (str_starts_with($digits, '05')) {
+            $digits = substr($digits, 1);
+        }
+
+        return preg_match('/^5\d{8}$/', $digits) ? $digits : null;
     }
 
     /**
@@ -809,23 +935,8 @@ class SponsorshipTransferController extends Controller
     public function confirmTransfer($id)
     {
         try {
-            $transfer = SponsorshipTransfer::findOrFail($id);
+            $transfer = SponsorshipTransfer::with(['contract.info', 'transferServiceContract'])->findOrFail($id);
 
-            // if ($transfer->status !== 'trial') {
-            //     return response()->json([
-            //         'success' => false,
-            //         'message' => 'لا يمكن تأكيد النقل لهذا الطلب'
-            //     ], 400);
-            // }
-
-            // if ($transfer->status !== 'trial_started') {
-            //     return response()->json([
-            //         'success' => false,
-            //         'message' => 'لا يمكن تأكيد النقل لهذا الطلب'
-            //     ], 400);
-            // }
-
-            // لانه يستخدم كل حالة في مكان مختلف لذلك هتعامل مع القيمتين
             if ($transfer->status !== 'trial_started' && $transfer->status !== 'trial') {
                 return response()->json([
                     'success' => false,
@@ -833,19 +944,34 @@ class SponsorshipTransferController extends Controller
                 ], 400);
             }
 
-            // تحديث العقد بنقل الكفالة للكفيل الجديد
-            $contract = Contract::find($transfer->contract_id);
+            DB::beginTransaction();
+
+            $confirmedAt = now();
+            $contract = $transfer->contract;
             if ($contract) {
                 $contract->update([
-                    'user_id' => $transfer->new_sponsor_id
+                    'user_id' => $transfer->new_sponsor_id,
+                    'status' => ContractStatusEnum::Sari->value,
+                ]);
+
+                $this->createContractStatusLog($contract, ContractStatusEnum::Sari->value);
+            }
+
+            if ($transfer->transferServiceContract && !in_array($transfer->transferServiceContract->status, ['completed', 'cancelled'], true)) {
+                $transfer->transferServiceContract->update([
+                    'status' => 'completed',
+                    'completed_at' => $confirmedAt,
+                    'completed_by' => auth()->guard('admin')->id(),
                 ]);
             }
 
             $transfer->update([
                 'status' => 'transferred',
                 'transferred_by' => auth()->guard('admin')->id(),
-                'transferred_at' => now(),
+                'transferred_at' => $confirmedAt,
             ]);
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
@@ -853,6 +979,10 @@ class SponsorshipTransferController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ في تأكيد النقل'
@@ -866,24 +996,8 @@ class SponsorshipTransferController extends Controller
     public function cancelTransfer(Request $request, $id)
     {
         try {
-            $transfer = SponsorshipTransfer::findOrFail($id);
+            $transfer = SponsorshipTransfer::with(['contract.info', 'transferServiceContract'])->findOrFail($id);
 
-            // if ($transfer->status !== 'trial') {
-            //     return response()->json([
-            //         'success' => false,
-            //         'message' => 'لا يمكن إلغاء النقل لهذا الطلب'
-            //     ], 400);
-            // }
-
-            // if ($transfer->status !== 'trial_started') {
-            //     return response()->json([
-            //         'success' => false,
-            //         'message' => 'لا يمكن إلغاء النقل لهذا الطلب'
-            //     ], 400);
-            // }
-            
-
-            // لانه يستخدم كل حالة في مكان مختلف لذلك هتعامل مع القيمتين
             if ($transfer->status !== 'trial_started' && $transfer->status !== 'trial') {
                 return response()->json([
                     'success' => false,
@@ -891,20 +1005,46 @@ class SponsorshipTransferController extends Controller
                 ], 400);
             }
 
-            // إعادة العقد إلى الإيواء وجعله متاح للنقل
-            $contract = Contract::find($transfer->contract_id);
-            if ($contract && $contract->info) {
-                $contract->info->update([
-                    'wants_to_work' => 'yes' // متاح للنقل مرة أخرى
+            DB::beginTransaction();
+
+            $failedAt = now();
+            $failureReason = trim((string) $request->input('failure_reason', ''));
+            if ($failureReason === '') {
+                $failureReason = 'لم يتم تحديد سبب الإلغاء';
+            }
+
+            $contract = $transfer->contract;
+            if ($contract) {
+                $contract->update([
+                    'status' => ContractStatusEnum::Shelter->value,
+                ]);
+
+                $this->createContractStatusLog($contract, ContractStatusEnum::Shelter->value);
+
+                if ($contract->info) {
+                    $contract->info->update([
+                        'wants_to_work' => 'yes',
+                    ]);
+                }
+            }
+
+            if ($transfer->transferServiceContract && $transfer->transferServiceContract->status !== 'completed') {
+                $transfer->transferServiceContract->update([
+                    'status' => 'cancelled',
+                    'cancelled_at' => $failedAt,
+                    'cancelled_by' => auth()->guard('admin')->id(),
+                    'cancellation_reason' => $failureReason,
                 ]);
             }
 
             $transfer->update([
                 'status' => 'failed',
                 'failed_by' => auth()->guard('admin')->id(),
-                'failed_at' => now(),
-                'failure_reason' => $request->failure_reason ?? 'لم يتم تحديد سبب الإلغاء',
+                'failed_at' => $failedAt,
+                'failure_reason' => $failureReason,
             ]);
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
@@ -912,6 +1052,10 @@ class SponsorshipTransferController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ في إلغاء النقل'
@@ -965,45 +1109,348 @@ class SponsorshipTransferController extends Controller
     /**
      * Show trial period transfers
      */
-    public function trial()
+    public function trial(Request $request)
     {
-        // $transfers = SponsorshipTransfer::with(['contract.maid.nationality', 'oldSponsor', 'newSponsor', 'approvedBy'])
-        //     ->where('status', 'trial')
-        //     ->latest()
-        //     ->paginate(25);
-
-        $transfers = SponsorshipTransfer::with(['contract.maid.nationality', 'oldSponsor', 'newSponsor', 'approvedBy'])
-            ->whereIn('status', ['trial', 'trial_started'])
-            ->latest()
-            ->paginate(25);
-
-        return view($this->folderPath . '.trial', compact('transfers'));
+        return $this->renderStatusListingPage($request, 'trial');
     }
 
     /**
      * Show completed transfers
      */
-    public function transferred()
+    public function transferred(Request $request)
     {
-        $transfers = SponsorshipTransfer::with(['contract.maid.nationality', 'oldSponsor', 'newSponsor', 'transferredBy'])
-            ->where('status', 'transferred')
-            ->latest()
-            ->paginate(25);
-
-        return view($this->folderPath . '.transferred', compact('transfers'));
+        return $this->renderStatusListingPage($request, 'transferred');
     }
 
     /**
      * Show failed transfers
      */
-    public function failed()
+    public function failed(Request $request)
     {
-        $transfers = SponsorshipTransfer::with(['contract.maid.nationality', 'oldSponsor', 'newSponsor', 'failedBy'])
-            ->where('status', 'failed')
-            ->latest()
-            ->paginate(25);
+        return $this->renderStatusListingPage($request, 'failed');
+    }
 
-        return view($this->folderPath . '.failed', compact('transfers'));
+    private function renderStatusListingPage(Request $request, string $page)
+    {
+        $pageConfig = $this->getStatusListingConfig($page);
+
+        $baseQuery = SponsorshipTransfer::query()
+            ->whereIn('status', $pageConfig['statuses']);
+
+        $this->applyStatusListingFilters($baseQuery, $request, $page);
+
+        $stats = $this->buildStatusListingStats(clone $baseQuery, $page);
+        $topFailureReasons = $page === 'failed'
+            ? $this->getTopFailureReasons(clone $baseQuery)
+            : collect();
+
+        $transfersQuery = (clone $baseQuery)
+            ->with($pageConfig['relations']);
+
+        $this->applyStatusListingSort($transfersQuery, $request, $page);
+
+        $transfers = $transfersQuery
+            ->paginate(25)
+            ->withQueryString();
+
+        $filtersActive = collect($request->except('page'))
+            ->filter(fn ($value) => filled($value))
+            ->isNotEmpty();
+
+        return view($this->folderPath . '.status-overview', compact(
+            'transfers',
+            'pageConfig',
+            'stats',
+            'topFailureReasons',
+            'filtersActive'
+        ));
+    }
+
+    private function getStatusListingConfig(string $page): array
+    {
+        return match ($page) {
+            'trial' => [
+                'page' => 'trial',
+                'title' => helperTrans('ingaz.trial_period'),
+                'route' => route('SponsorshipTransfer.trial'),
+                'statuses' => ['trial', 'trial_started'],
+                'relations' => ['contract.maid.nationality', 'oldSponsor', 'newSponsor'],
+                'theme' => 'primary',
+                'date_label' => 'بداية التجربة',
+                'empty_icon' => 'fas fa-hourglass-half',
+                'empty_title' => 'لا توجد طلبات في فترة التجربة',
+                'empty_message' => 'عند بدء فترة التجربة لطلبات نقل الكفالة ستظهر هنا.',
+                'sort_options' => [
+                    'trial_end_date' => 'نهاية التجربة',
+                    'trial_start_date' => 'بداية التجربة',
+                    'trial_days' => 'مدة التجربة',
+                    'remaining_amount' => 'المبلغ المتبقي',
+                    'contract_value' => 'قيمة العقد',
+                    'created_at' => 'تاريخ الطلب',
+                ],
+                'default_sort' => 'trial_end_date',
+                'default_direction' => 'asc',
+            ],
+            'transferred' => [
+                'page' => 'transferred',
+                'title' => helperTrans('ingaz.transferred'),
+                'route' => route('SponsorshipTransfer.transferred'),
+                'statuses' => ['transferred'],
+                'relations' => ['contract.maid.nationality', 'oldSponsor', 'newSponsor', 'transferredBy'],
+                'theme' => 'success',
+                'date_label' => 'تاريخ النقل',
+                'empty_icon' => 'fas fa-check-circle',
+                'empty_title' => 'لا توجد طلبات تم نقلها',
+                'empty_message' => 'عند تأكيد نقل الكفالة ستظهر الطلبات هنا.',
+                'sort_options' => [
+                    'status_date' => 'تاريخ النقل',
+                    'contract_value' => 'قيمة العقد',
+                    'paid_amount' => 'المبلغ المدفوع',
+                    'created_at' => 'تاريخ الطلب',
+                ],
+                'default_sort' => 'status_date',
+                'default_direction' => 'desc',
+            ],
+            'failed' => [
+                'page' => 'failed',
+                'title' => helperTrans('ingaz.trial_failed'),
+                'route' => route('SponsorshipTransfer.failed'),
+                'statuses' => ['failed'],
+                'relations' => ['contract.maid.nationality', 'oldSponsor', 'newSponsor', 'failedBy'],
+                'theme' => 'danger',
+                'date_label' => 'تاريخ الفشل',
+                'empty_icon' => 'fas fa-times-circle',
+                'empty_title' => 'لا توجد حالات فشل نقل',
+                'empty_message' => 'عند إلغاء نقل الكفالة وإرجاع العقد إلى الإيواء ستظهر الحالات هنا.',
+                'sort_options' => [
+                    'status_date' => 'تاريخ الفشل',
+                    'contract_value' => 'قيمة العقد',
+                    'created_at' => 'تاريخ الطلب',
+                ],
+                'default_sort' => 'status_date',
+                'default_direction' => 'desc',
+            ],
+        };
+    }
+
+    private function applyStatusListingFilters($query, Request $request, string $page): void
+    {
+        if ($request->filled('contract_number')) {
+            $query->where('contract_id', 'like', '%' . trim((string) $request->contract_number) . '%');
+        }
+
+        if ($request->filled('old_sponsor')) {
+            $keyword = trim((string) $request->old_sponsor);
+            $query->whereHas('oldSponsor', function ($sponsorQuery) use ($keyword) {
+                $sponsorQuery->where(function ($innerQuery) use ($keyword) {
+                    $innerQuery->where('name', 'like', '%' . $keyword . '%')
+                        ->orWhere('phone', 'like', '%' . $keyword . '%')
+                        ->orWhere('national_num', 'like', '%' . $keyword . '%');
+                });
+            });
+        }
+
+        if ($request->filled('new_sponsor')) {
+            $keyword = trim((string) $request->new_sponsor);
+            $query->whereHas('newSponsor', function ($sponsorQuery) use ($keyword) {
+                $sponsorQuery->where(function ($innerQuery) use ($keyword) {
+                    $innerQuery->where('name', 'like', '%' . $keyword . '%')
+                        ->orWhere('phone', 'like', '%' . $keyword . '%')
+                        ->orWhere('national_num', 'like', '%' . $keyword . '%');
+                });
+            });
+        }
+
+        if ($request->filled('maid_keyword')) {
+            $keyword = trim((string) $request->maid_keyword);
+            $query->whereHas('contract.maid', function ($maidQuery) use ($keyword) {
+                $maidQuery->where(function ($innerQuery) use ($keyword) {
+                    $innerQuery->where('name', 'like', '%' . $keyword . '%')
+                        ->orWhere('passport_num', 'like', '%' . $keyword . '%');
+                });
+            });
+        }
+
+        if ($request->filled('trial_days')) {
+            $query->where('trial_days', (int) $request->trial_days);
+        }
+
+        if ($request->filled('amount_from') && is_numeric($request->amount_from)) {
+            $query->where('contract_value', '>=', (float) $request->amount_from);
+        }
+
+        if ($request->filled('amount_to') && is_numeric($request->amount_to)) {
+            $query->where('contract_value', '<=', (float) $request->amount_to);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereRaw($this->getStatusFilterDateExpression($page) . ' >= ?', [$request->date_from]);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereRaw($this->getStatusFilterDateExpression($page) . ' <= ?', [$request->date_to]);
+        }
+
+        if ($page === 'trial' && $request->filled('trial_state')) {
+            $today = now()->toDateString();
+            $nextWeek = now()->addDays(7)->toDateString();
+            $trialEndDateExpression = $this->getTrialEndDateExpression();
+
+            match ($request->trial_state) {
+                'active' => $query->whereRaw('DATE(' . $trialEndDateExpression . ') >= ?', [$today]),
+                'today' => $query->whereRaw('DATE(' . $trialEndDateExpression . ') = ?', [$today]),
+                'soon' => $query->whereRaw('DATE(' . $trialEndDateExpression . ') BETWEEN ? AND ?', [$today, $nextWeek]),
+                'expired' => $query->whereRaw('DATE(' . $trialEndDateExpression . ') < ?', [$today]),
+                default => null,
+            };
+        }
+
+        if ($page === 'failed' && $request->filled('failure_reason')) {
+            $reason = trim((string) $request->failure_reason);
+            $query->where('failure_reason', 'like', '%' . $reason . '%');
+        }
+    }
+
+    private function applyStatusListingSort($query, Request $request, string $page): void
+    {
+        $pageConfig = $this->getStatusListingConfig($page);
+        $sort = (string) $request->input('sort', $pageConfig['default_sort']);
+        $direction = strtolower((string) $request->input('direction', $pageConfig['default_direction']));
+        $direction = in_array($direction, ['asc', 'desc'], true) ? $direction : $pageConfig['default_direction'];
+
+        switch ($sort) {
+            case 'trial_end_date':
+                $query->orderByRaw($this->getTrialEndDateExpression() . ' ' . $direction);
+                break;
+            case 'trial_start_date':
+                $query->orderByRaw($this->getStatusDateOrderExpression('trial') . ' ' . $direction);
+                break;
+            case 'status_date':
+                $query->orderByRaw($this->getStatusDateOrderExpression($page) . ' ' . $direction);
+                break;
+            case 'trial_days':
+            case 'remaining_amount':
+            case 'contract_value':
+            case 'paid_amount':
+            case 'created_at':
+                $query->orderBy($sort, $direction);
+                break;
+            default:
+                $query->orderByRaw($this->getStatusDateOrderExpression($page) . ' ' . $pageConfig['default_direction']);
+                break;
+        }
+
+        $query->orderBy('id', 'desc');
+    }
+
+    private function buildStatusListingStats($query, string $page): array
+    {
+        return match ($page) {
+            'trial' => $this->buildTrialStats($query),
+            'transferred' => $this->buildTransferredStats($query),
+            'failed' => $this->buildFailedStats($query),
+            default => [],
+        };
+    }
+
+    private function buildTrialStats($query): array
+    {
+        $transfers = (clone $query)->get([
+            'id',
+            'trial_started_at',
+            'trial_start_date',
+            'trial_days',
+            'remaining_amount',
+        ]);
+
+        $activeCount = $transfers->filter(fn ($transfer) => $transfer->trial_days_remaining !== null && $transfer->trial_days_remaining >= 0)->count();
+        $endingSoonCount = $transfers->filter(fn ($transfer) => $transfer->trial_days_remaining !== null && $transfer->trial_days_remaining >= 0 && $transfer->trial_days_remaining <= 7)->count();
+        $expiredCount = $transfers->filter(fn ($transfer) => $transfer->trial_days_remaining !== null && $transfer->trial_days_remaining < 0)->count();
+
+        return [
+            ['label' => 'إجمالي الطلبات', 'value' => number_format($transfers->count()), 'icon' => 'fas fa-list', 'theme' => 'primary'],
+            ['label' => 'ضمن مدة التجربة', 'value' => number_format($activeCount), 'icon' => 'fas fa-play-circle', 'theme' => 'success'],
+            ['label' => 'تنتهي خلال 7 أيام', 'value' => number_format($endingSoonCount), 'icon' => 'fas fa-hourglass-half', 'theme' => 'warning'],
+            ['label' => 'منتهية', 'value' => number_format($expiredCount), 'icon' => 'fas fa-exclamation-circle', 'theme' => 'danger'],
+        ];
+    }
+
+    private function buildTransferredStats($query): array
+    {
+        $monthStart = now()->startOfMonth();
+
+        return [
+            ['label' => 'إجمالي المنقول', 'value' => number_format((clone $query)->count()), 'icon' => 'fas fa-check-circle', 'theme' => 'success'],
+            ['label' => 'منقول هذا الشهر', 'value' => number_format((clone $query)->where('transferred_at', '>=', $monthStart)->count()), 'icon' => 'fas fa-calendar-alt', 'theme' => 'primary'],
+            ['label' => 'إجمالي قيمة العقود', 'value' => number_format((float) (clone $query)->sum('contract_value'), 2) . ' ريال', 'icon' => 'fas fa-money-bill-wave', 'theme' => 'warning'],
+            ['label' => 'إجمالي المدفوع', 'value' => number_format((float) (clone $query)->sum('paid_amount'), 2) . ' ريال', 'icon' => 'fas fa-wallet', 'theme' => 'info'],
+        ];
+    }
+
+    private function buildFailedStats($query): array
+    {
+        $monthStart = now()->startOfMonth();
+        $returnedToShelterCount = (clone $query)
+            ->whereHas('contract', function ($contractQuery) {
+                $contractQuery->where('status', ContractStatusEnum::Shelter->value);
+            })
+            ->count();
+
+        $documentedReasonCount = (clone $query)
+            ->whereNotNull('failure_reason')
+            ->where('failure_reason', '!=', '')
+            ->count();
+
+        return [
+            ['label' => 'إجمالي الفشل', 'value' => number_format((clone $query)->count()), 'icon' => 'fas fa-times-circle', 'theme' => 'danger'],
+            ['label' => 'فشل هذا الشهر', 'value' => number_format((clone $query)->where('failed_at', '>=', $monthStart)->count()), 'icon' => 'fas fa-calendar-alt', 'theme' => 'primary'],
+            ['label' => 'عادت للإيواء', 'value' => number_format($returnedToShelterCount), 'icon' => 'fas fa-home', 'theme' => 'warning'],
+            ['label' => 'بسبب موثق', 'value' => number_format($documentedReasonCount), 'icon' => 'fas fa-file-alt', 'theme' => 'info'],
+        ];
+    }
+
+    private function getTopFailureReasons($query)
+    {
+        return (clone $query)
+            ->select('failure_reason', DB::raw('COUNT(*) as total'))
+            ->whereNotNull('failure_reason')
+            ->where('failure_reason', '!=', '')
+            ->groupBy('failure_reason')
+            ->orderByDesc('total')
+            ->limit(5)
+            ->get();
+    }
+
+    private function getStatusFilterDateExpression(string $page): string
+    {
+        return match ($page) {
+            'trial' => 'DATE(COALESCE(trial_started_at, trial_start_date))',
+            'transferred' => 'DATE(transferred_at)',
+            'failed' => 'DATE(failed_at)',
+            default => 'DATE(created_at)',
+        };
+    }
+
+    private function getStatusDateOrderExpression(string $page): string
+    {
+        return match ($page) {
+            'trial' => 'COALESCE(trial_started_at, trial_start_date)',
+            'transferred' => 'transferred_at',
+            'failed' => 'failed_at',
+            default => 'created_at',
+        };
+    }
+
+    private function getTrialEndDateExpression(): string
+    {
+        return 'DATE_ADD(COALESCE(trial_started_at, trial_start_date), INTERVAL trial_days DAY)';
+    }
+
+    private function createContractStatusLog(Contract $contract, string $status): void
+    {
+        $contract->contract_status_logs()->create([
+            'status' => $status,
+        ]);
     }
 
     /**
@@ -1099,7 +1546,7 @@ class SponsorshipTransferController extends Controller
     public function deliverMaid(Request $request, $id)
     {
         try {
-            $transfer = SponsorshipTransfer::findOrFail($id);
+            $transfer = SponsorshipTransfer::with(['transferServiceContract', 'contract'])->findOrFail($id);
 
             // التحقق من الحالة
             if (!$transfer->canDeliverMaid()) {
@@ -1111,19 +1558,37 @@ class SponsorshipTransferController extends Controller
 
             \DB::beginTransaction();
 
-            // تحديث حالة طلب النقل
+            $activatedAt = now();
+
+            // تسجيل استلام العاملة وتفعيل التجربة مباشرة
             $transfer->update([
-                'status' => 'maid_delivered',
-                'maid_delivered_at' => now(),
-                'maid_delivered_by' => auth('admin')->id()
+                'status' => 'trial_started',
+                'maid_delivered_at' => $activatedAt,
+                'maid_delivered_by' => auth('admin')->id(),
+                'trial_started_at' => $activatedAt,
+                'trial_start_date' => $activatedAt->toDateString(),
             ]);
 
+            if ($transfer->contract) {
+                $transfer->contract->update([
+                    'status' => ContractStatusEnum::Trial->value
+                ]);
+            }
+
+            if ($transfer->transferServiceContract && !in_array($transfer->transferServiceContract->status, ['completed', 'cancelled'], true)) {
+                $transfer->transferServiceContract->update([
+                    'status' => 'active',
+                    'activated_at' => $activatedAt,
+                    'activated_by' => auth('admin')->id(),
+                    'trial_start_date' => $activatedAt->toDateString(),
+                ]);
+            }
 
             \DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم تسجيل تسليم العاملة بنجاح'
+                'message' => 'تم تسجيل استلام العاملة وتفعيل فترة التجربة مباشرة'
             ]);
 
         } catch (\Exception $e) {
@@ -1159,16 +1624,30 @@ class SponsorshipTransferController extends Controller
 
             \DB::beginTransaction();
 
+            $startedAt = now();
+
             // تحديث حالة طلب النقل
             $transfer->update([
                 'status' => 'trial_started',
-                'trial_started_at' => now()
+                'trial_started_at' => $startedAt,
+                'trial_start_date' => $startedAt->toDateString(),
             ]);
 
             // تحديث حالة العقد الأصلي إلى "في التجربة"
             if ($transfer->contract) {
                 $transfer->contract->update([
-                    'status' => \App\Enums\ingaz\ContractStatusEnum::Trial->value
+                    'status' => ContractStatusEnum::Trial->value
+                ]);
+
+                $this->createContractStatusLog($transfer->contract, ContractStatusEnum::Trial->value);
+            }
+
+            if ($transfer->transferServiceContract && !in_array($transfer->transferServiceContract->status, ['completed', 'cancelled'], true)) {
+                $transfer->transferServiceContract->update([
+                    'status' => 'active',
+                    'activated_at' => $startedAt,
+                    'activated_by' => auth('admin')->id(),
+                    'trial_start_date' => $startedAt->toDateString(),
                 ]);
             }
 
@@ -1231,7 +1710,7 @@ class SponsorshipTransferController extends Controller
         ])->findOrFail($id);
 
         // التحقق من الحالة
-        if ($transfer->status !== 'maid_delivered') {
+        if (!in_array($transfer->status, ['maid_delivered', 'trial_started'], true)) {
             return redirect()->route('SponsorshipTransfer.index')
                 ->with('error', 'لا يمكن عرض تفاصيل التجربة في الحالة الحالية');
         }
