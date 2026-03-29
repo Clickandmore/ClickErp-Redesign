@@ -1,6 +1,152 @@
 @extends('admin.layout.indexs.index')
 @section("style")
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .stats-grid-caption {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .stats-grid-caption p {
+            margin: 0;
+            color: #64748b;
+            font-size: 0.92rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .statistics-card-link {
+            display: block;
+            height: 100%;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .statistics-card-link:hover,
+        .statistics-card-link:focus {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .statistics-card {
+            --stat-accent: #0d6efd;
+            --stat-soft: rgba(13, 110, 253, 0.12);
+            border: 1px solid #e7edf5;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+            border-inline-start: 4px solid var(--stat-accent);
+            background: #fff;
+        }
+
+        .statistics-card .card-body {
+            padding: 1.25rem;
+            background: linear-gradient(180deg, #ffffff 0%, var(--stat-soft) 170%);
+        }
+
+        .statistics-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 18px 36px rgba(15, 23, 42, 0.1);
+        }
+
+        .statistics-card.is-active {
+            border-color: var(--stat-accent);
+            box-shadow: 0 0 0 2px var(--stat-soft), 0 18px 36px rgba(15, 23, 42, 0.12);
+        }
+
+        .statistics-card.stats-theme-primary {
+            --stat-accent: #0d6efd;
+            --stat-soft: rgba(13, 110, 253, 0.12);
+        }
+
+        .statistics-card.stats-theme-warning {
+            --stat-accent: #f59e0b;
+            --stat-soft: rgba(245, 158, 11, 0.14);
+        }
+
+        .statistics-card.stats-theme-info {
+            --stat-accent: #0dcaf0;
+            --stat-soft: rgba(13, 202, 240, 0.14);
+        }
+
+        .statistics-card.stats-theme-success {
+            --stat-accent: #198754;
+            --stat-soft: rgba(25, 135, 84, 0.12);
+        }
+
+        .statistics-card.stats-theme-danger {
+            --stat-accent: #dc3545;
+            --stat-soft: rgba(220, 53, 69, 0.12);
+        }
+
+        .stat-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #64748b;
+            letter-spacing: 0.04em;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.2;
+        }
+
+        .stat-hint {
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+
+        .stat-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: var(--stat-accent);
+            background: var(--stat-soft);
+            flex-shrink: 0;
+        }
+
+        .stat-arrow {
+            color: var(--stat-accent);
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .filter-card {
+            border: 1px solid #e7edf5;
+            border-radius: 18px;
+            overflow: hidden;
+        }
+
+        .filter-card .card-header {
+            background: #fff;
+            border-bottom: 1px solid #eef2f7;
+        }
+
+        @media (max-width: 576px) {
+            .statistics-card .card-body {
+                padding: 1rem;
+            }
+
+            .stat-value {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
 @endsection
 
 @section('content')
@@ -24,87 +170,83 @@
             </div>
         </div>
 
-        <!-- Statistics Cards -->
-        <div class="row mb-4">
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card statistics-card pending-card shadow h-100">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                    {{helperTrans("ingaz.pending_requests")}}
-                                </div>
-                                <div class="h5 mb-0 font-weight-bold">
-                                    {{ $pendingCount ?? 0 }}
-                                </div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-clock fa-2x"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        @php
+            $currentStatus = request('status', '');
+            $statsCards = [
+                [
+                    'label' => helperTrans('ingaz.total_requests'),
+                    'value' => $totalCount ?? 0,
+                    'icon' => 'fas fa-layer-group',
+                    'theme' => 'primary',
+                    'status' => '',
+                    'hint' => 'عرض كل الطلبات',
+                    'url' => route('SponsorshipTransfer.index'),
+                ],
+                [
+                    'label' => helperTrans('ingaz.pending_requests'),
+                    'value' => $pendingCount ?? 0,
+                    'icon' => 'fas fa-clock',
+                    'theme' => 'warning',
+                    'status' => 'pending',
+                    'hint' => 'فلترة الطلبات المنتظرة',
+                    'url' => route('SponsorshipTransfer.index', ['status' => 'pending']),
+                ],
+                [
+                    'label' => helperTrans('ingaz.trial_period'),
+                    'value' => $trialCount ?? 0,
+                    'icon' => 'fas fa-user-clock',
+                    'theme' => 'info',
+                    'status' => 'trial_period',
+                    'hint' => 'عرض طلبات التجربة',
+                    'url' => route('SponsorshipTransfer.index', ['status' => 'trial_period']),
+                ],
+                [
+                    'label' => helperTrans('ingaz.transferred_successfully'),
+                    'value' => $transferredCount ?? 0,
+                    'icon' => 'fas fa-check-circle',
+                    'theme' => 'success',
+                    'status' => 'transferred',
+                    'hint' => 'عرض الطلبات المنقولة',
+                    'url' => route('SponsorshipTransfer.index', ['status' => 'transferred']),
+                ],
+                [
+                    'label' => helperTrans('ingaz.failed_trial'),
+                    'value' => $failedCount ?? 0,
+                    'icon' => 'fas fa-times-circle',
+                    'theme' => 'danger',
+                    'status' => 'failed',
+                    'hint' => 'عرض الطلبات المتعثرة',
+                    'url' => route('SponsorshipTransfer.index', ['status' => 'failed']),
+                ],
+            ];
+        @endphp
 
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card statistics-card trial-card shadow h-100">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                    {{helperTrans("ingaz.trial_period")}}
-                                </div>
-                                <div class="h5 mb-0 font-weight-bold">
-                                    {{ $trialCount ?? 0 }}
-                                </div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-user-clock fa-2x"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="stats-grid-caption mb-3">
+            <h5 class="mb-0 fw-bold">الإحصائيات السريعة</h5>
+            <p>اضغط على أي بطاقة لتصفية الجدول مباشرة حسب الحالة.</p>
+        </div>
 
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card statistics-card transferred-card shadow h-100">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                    {{helperTrans("ingaz.transferred_successfully")}}
-                                </div>
-                                <div class="h5 mb-0 font-weight-bold">
-                                    {{ $transferredCount ?? 0 }}
-                                </div>
+        <div class="stats-grid">
+            @foreach($statsCards as $card)
+                <a href="{{ $card['url'] }}" class="statistics-card-link">
+                    <div class="card statistics-card h-100 stats-theme-{{ $card['theme'] }} {{ $currentStatus === $card['status'] ? 'is-active' : '' }}"
+                         data-status-target="{{ $card['status'] }}">
+                        <div class="card-body d-flex align-items-start justify-content-between gap-3">
+                            <div>
+                                <div class="stat-label mb-2">{{ $card['label'] }}</div>
+                                <div class="stat-value mb-2">{{ number_format((int) $card['value']) }}</div>
+                                <div class="stat-hint">{{ $card['hint'] }}</div>
                             </div>
-                            <div class="col-auto">
-                                <i class="fas fa-check-circle fa-2x"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card statistics-card failed-card shadow h-100">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                    {{helperTrans("ingaz.failed_trial")}}
-                                </div>
-                                <div class="h5 mb-0 font-weight-bold">
-                                    {{ $failedCount ?? 0 }}
-                                </div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-times-circle fa-2x"></i>
+                            <div class="d-flex flex-column align-items-end gap-3">
+                                <span class="stat-icon">
+                                    <i class="{{ $card['icon'] }}"></i>
+                                </span>
+                                <span class="stat-arrow">اضغط للعرض</span>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
+                </a>
+            @endforeach
         </div>
 
         <!-- Filters Section -->
@@ -125,18 +267,18 @@
                             <label for="statusFilter" class="form-label">{{helperTrans("ingaz.status")}}</label>
                             <select class="form-select" id="statusFilter">
                                 <option value="">{{helperTrans("ingaz.all_statuses")}}</option>
-                                <option value="pending">{{helperTrans("ingaz.pending")}}</option>
-                                <option value="waiting_contract_send">بانتظار تسجيل الاستلام</option>
-                                <option value="contract_sent">تم إرسال العقد</option>
-                                <option value="contract_signed">تم توقيع العقد</option>
-                                <option value="maid_delivered">تم تسليم العاملة</option>
-                                <option value="trial_period">فترة التجربة</option>
-                                <option value="trial_started">بدأت التجربة</option>
-                                <option value="approved">{{helperTrans("ingaz.approved")}}</option>
-                                <option value="transferred">تم النقل</option>
-                                <option value="failed">فشل النقل</option>
-                                <option value="rejected">{{helperTrans("ingaz.rejected")}}</option>
-                                <option value="completed">{{helperTrans("ingaz.completed")}}</option>
+                                <option value="pending" {{ $currentStatus === 'pending' ? 'selected' : '' }}>{{helperTrans("ingaz.pending")}}</option>
+                                <option value="waiting_contract_send" {{ $currentStatus === 'waiting_contract_send' ? 'selected' : '' }}>بانتظار تسجيل الاستلام</option>
+                                <option value="contract_sent" {{ $currentStatus === 'contract_sent' ? 'selected' : '' }}>تم إرسال العقد</option>
+                                <option value="contract_signed" {{ $currentStatus === 'contract_signed' ? 'selected' : '' }}>تم توقيع العقد</option>
+                                <option value="maid_delivered" {{ $currentStatus === 'maid_delivered' ? 'selected' : '' }}>تم تسليم العاملة</option>
+                                <option value="trial_period" {{ $currentStatus === 'trial_period' ? 'selected' : '' }}>فترة التجربة</option>
+                                <option value="trial_started" {{ $currentStatus === 'trial_started' ? 'selected' : '' }}>بدأت التجربة</option>
+                                <option value="approved" {{ $currentStatus === 'approved' ? 'selected' : '' }}>{{helperTrans("ingaz.approved")}}</option>
+                                <option value="transferred" {{ $currentStatus === 'transferred' ? 'selected' : '' }}>تم النقل</option>
+                                <option value="failed" {{ $currentStatus === 'failed' ? 'selected' : '' }}>فشل النقل</option>
+                                <option value="rejected" {{ $currentStatus === 'rejected' ? 'selected' : '' }}>{{helperTrans("ingaz.rejected")}}</option>
+                                <option value="completed" {{ $currentStatus === 'completed' ? 'selected' : '' }}>{{helperTrans("ingaz.completed")}}</option>
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -266,6 +408,14 @@
     <script src="{{asset("admin")}}/custom/admin-tables.js"></script>
     <script>
         $(document).ready(function() {
+            function syncStatisticsCards() {
+                const activeStatus = $('#statusFilter').val() || '';
+                $('.statistics-card').removeClass('is-active');
+                $('.statistics-card').filter(function() {
+                    return ($(this).data('status-target') || '') === activeStatus;
+                }).addClass('is-active');
+            }
+
             // إعداد DataTable
             var dataTable = $('#sponsorshipTransferTable').DataTable({
                 processing: true,
@@ -307,8 +457,15 @@
                 order: [[12, 'desc']] // ترتيب حسب تاريخ الإنشاء
             });
 
+            syncStatisticsCards();
+
+            $('#statusFilter').on('change', function() {
+                syncStatisticsCards();
+            });
+
             // البحث عند الضغط على زر البحث
             $('#searchBtn').click(function() {
+                syncStatisticsCards();
                 dataTable.draw();
             });
 
@@ -322,6 +479,7 @@
                 $('#newSponsorFilter').val('');
                 $('#trialDaysFilter').val('');
                 $('#amountFilter').val('');
+                syncStatisticsCards();
                 dataTable.draw();
             });
 

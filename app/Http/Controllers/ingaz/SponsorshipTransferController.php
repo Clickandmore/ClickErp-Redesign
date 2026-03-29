@@ -1309,6 +1309,17 @@ class SponsorshipTransferController extends Controller
             $reason = trim((string) $request->failure_reason);
             $query->where('failure_reason', 'like', '%' . $reason . '%');
         }
+
+        if ($page === 'failed' && $request->boolean('returned_to_shelter')) {
+            $query->whereHas('contract', function ($contractQuery) {
+                $contractQuery->where('status', ContractStatusEnum::Shelter->value);
+            });
+        }
+
+        if ($page === 'failed' && $request->boolean('documented_reason')) {
+            $query->whereNotNull('failure_reason')
+                ->where('failure_reason', '!=', '');
+        }
     }
 
     private function applyStatusListingSort($query, Request $request, string $page): void
@@ -1368,10 +1379,10 @@ class SponsorshipTransferController extends Controller
         $expiredCount = $transfers->filter(fn ($transfer) => $transfer->trial_days_remaining !== null && $transfer->trial_days_remaining < 0)->count();
 
         return [
-            ['label' => 'إجمالي الطلبات', 'value' => number_format($transfers->count()), 'icon' => 'fas fa-list', 'theme' => 'primary'],
-            ['label' => 'ضمن مدة التجربة', 'value' => number_format($activeCount), 'icon' => 'fas fa-play-circle', 'theme' => 'success'],
-            ['label' => 'تنتهي خلال 7 أيام', 'value' => number_format($endingSoonCount), 'icon' => 'fas fa-hourglass-half', 'theme' => 'warning'],
-            ['label' => 'منتهية', 'value' => number_format($expiredCount), 'icon' => 'fas fa-exclamation-circle', 'theme' => 'danger'],
+            ['label' => 'إجمالي الطلبات', 'value' => number_format($transfers->count()), 'icon' => 'fas fa-list', 'theme' => 'primary', 'href' => $this->buildStatusPageLink('trial', [], ['trial_state'])],
+            ['label' => 'ضمن مدة التجربة', 'value' => number_format($activeCount), 'icon' => 'fas fa-play-circle', 'theme' => 'success', 'href' => $this->buildStatusPageLink('trial', ['trial_state' => 'active'])],
+            ['label' => 'تنتهي خلال 7 أيام', 'value' => number_format($endingSoonCount), 'icon' => 'fas fa-hourglass-half', 'theme' => 'warning', 'href' => $this->buildStatusPageLink('trial', ['trial_state' => 'soon'])],
+            ['label' => 'منتهية', 'value' => number_format($expiredCount), 'icon' => 'fas fa-exclamation-circle', 'theme' => 'danger', 'href' => $this->buildStatusPageLink('trial', ['trial_state' => 'expired'])],
         ];
     }
 
@@ -1380,10 +1391,10 @@ class SponsorshipTransferController extends Controller
         $monthStart = now()->startOfMonth();
 
         return [
-            ['label' => 'إجمالي المنقول', 'value' => number_format((clone $query)->count()), 'icon' => 'fas fa-check-circle', 'theme' => 'success'],
-            ['label' => 'منقول هذا الشهر', 'value' => number_format((clone $query)->where('transferred_at', '>=', $monthStart)->count()), 'icon' => 'fas fa-calendar-alt', 'theme' => 'primary'],
-            ['label' => 'إجمالي قيمة العقود', 'value' => number_format((float) (clone $query)->sum('contract_value'), 2) . ' ريال', 'icon' => 'fas fa-money-bill-wave', 'theme' => 'warning'],
-            ['label' => 'إجمالي المدفوع', 'value' => number_format((float) (clone $query)->sum('paid_amount'), 2) . ' ريال', 'icon' => 'fas fa-wallet', 'theme' => 'info'],
+            ['label' => 'إجمالي المنقول', 'value' => number_format((clone $query)->count()), 'icon' => 'fas fa-check-circle', 'theme' => 'success', 'href' => $this->buildStatusPageLink('transferred', [], ['date_from', 'date_to'])],
+            ['label' => 'منقول هذا الشهر', 'value' => number_format((clone $query)->where('transferred_at', '>=', $monthStart)->count()), 'icon' => 'fas fa-calendar-alt', 'theme' => 'primary', 'href' => $this->buildStatusPageLink('transferred', ['date_from' => $monthStart->toDateString(), 'date_to' => now()->endOfMonth()->toDateString()])],
+            ['label' => 'إجمالي قيمة العقود', 'value' => number_format((float) (clone $query)->sum('contract_value'), 2) . ' ريال', 'icon' => 'fas fa-money-bill-wave', 'theme' => 'warning', 'href' => $this->buildStatusPageLink('transferred', ['sort' => 'contract_value', 'direction' => 'desc'])],
+            ['label' => 'إجمالي المدفوع', 'value' => number_format((float) (clone $query)->sum('paid_amount'), 2) . ' ريال', 'icon' => 'fas fa-wallet', 'theme' => 'info', 'href' => $this->buildStatusPageLink('transferred', ['sort' => 'paid_amount', 'direction' => 'desc'])],
         ];
     }
 
@@ -1402,10 +1413,10 @@ class SponsorshipTransferController extends Controller
             ->count();
 
         return [
-            ['label' => 'إجمالي الفشل', 'value' => number_format((clone $query)->count()), 'icon' => 'fas fa-times-circle', 'theme' => 'danger'],
-            ['label' => 'فشل هذا الشهر', 'value' => number_format((clone $query)->where('failed_at', '>=', $monthStart)->count()), 'icon' => 'fas fa-calendar-alt', 'theme' => 'primary'],
-            ['label' => 'عادت للإيواء', 'value' => number_format($returnedToShelterCount), 'icon' => 'fas fa-home', 'theme' => 'warning'],
-            ['label' => 'بسبب موثق', 'value' => number_format($documentedReasonCount), 'icon' => 'fas fa-file-alt', 'theme' => 'info'],
+            ['label' => 'إجمالي الفشل', 'value' => number_format((clone $query)->count()), 'icon' => 'fas fa-times-circle', 'theme' => 'danger', 'href' => $this->buildStatusPageLink('failed', [], ['date_from', 'date_to', 'returned_to_shelter', 'documented_reason'])],
+            ['label' => 'فشل هذا الشهر', 'value' => number_format((clone $query)->where('failed_at', '>=', $monthStart)->count()), 'icon' => 'fas fa-calendar-alt', 'theme' => 'primary', 'href' => $this->buildStatusPageLink('failed', ['date_from' => $monthStart->toDateString(), 'date_to' => now()->endOfMonth()->toDateString()])],
+            ['label' => 'عادت للإيواء', 'value' => number_format($returnedToShelterCount), 'icon' => 'fas fa-home', 'theme' => 'warning', 'href' => $this->buildStatusPageLink('failed', ['returned_to_shelter' => '1'])],
+            ['label' => 'بسبب موثق', 'value' => number_format($documentedReasonCount), 'icon' => 'fas fa-file-alt', 'theme' => 'info', 'href' => $this->buildStatusPageLink('failed', ['documented_reason' => '1'])],
         ];
     }
 
@@ -1451,6 +1462,23 @@ class SponsorshipTransferController extends Controller
         $contract->contract_status_logs()->create([
             'status' => $status,
         ]);
+    }
+
+    private function buildStatusPageLink(string $page, array $overrides = [], array $remove = []): string
+    {
+        $pageConfig = $this->getStatusListingConfig($page);
+        $query = request()->except('page');
+
+        foreach ($remove as $key) {
+            unset($query[$key]);
+        }
+
+        $query = array_merge($query, $overrides);
+        $query = array_filter($query, fn ($value) => !is_null($value) && $value !== '');
+
+        return empty($query)
+            ? $pageConfig['route']
+            : $pageConfig['route'] . '?' . http_build_query($query);
     }
 
     /**
