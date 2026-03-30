@@ -175,7 +175,7 @@ class HomeController extends Controller
             ->orderBy('name')
             ->get();
         $users = $staffs->mapWithKeys(function ($staff) {
-            $phone = !empty($staff->whatsapp) ? $staff->whatsapp : $staff->phone;
+            $phone = $staff->formatted_whatsapp_phone ?: $staff->formatted_contact_phone;
             return [$staff->name => $phone];
         });
         return [

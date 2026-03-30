@@ -18,10 +18,11 @@ class StoreAdminRequest extends MainRequest
     {
         return [
             'name' => ['required'],
-            'phone' => ['required'],
+            'phone' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:admins'],
             'admin_type' => ['required', new Enum(AdminTypes::class)],
-            'whatsapp' => ['nullable'],
+            'whatsapp' => ['nullable', 'string', 'max:255'],
+            'verification_phone' => ['nullable', 'string', 'max:255'],
             'sex_type' => ['required', "in:0,1"],
             'sort' => ['nullable'],
 

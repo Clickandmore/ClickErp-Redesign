@@ -18,9 +18,10 @@ class UpdateAdminRequest extends MainRequest
     {
         return [
             'name' => ['required'],
-            'phone' => ['required'],
+            'phone' => ['required', 'string', 'max:255'],
             'email' => ['required', Rule::unique('admins')->ignore($this->admin)],
-            'whatsapp' => ['nullable'],
+            'whatsapp' => ['nullable', 'string', 'max:255'],
+            'verification_phone' => ['nullable', 'string', 'max:255'],
             'sex_type' => ['required', "in:0,1"],
             'sort' => ['nullable'],
             //            'permissions' => 'required|min:1'

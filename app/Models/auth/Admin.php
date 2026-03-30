@@ -32,4 +32,41 @@ class Admin extends Authenticatable
         return $this->hasMany(ComplaintComment::class);
     }
 
+    public function getContactPhoneAttribute(): ?string
+    {
+        return $this->normalizePhoneValue($this->attributes['phone'] ?? null);
+    }
+
+    public function getWhatsappPhoneAttribute(): ?string
+    {
+        return $this->normalizePhoneValue($this->attributes['whatsapp'] ?? null) ?: $this->contact_phone;
+    }
+
+    public function getVerificationPhoneAttribute($value): ?string
+    {
+        return $this->normalizePhoneValue($value) ?: $this->contact_phone;
+    }
+
+    public function getFormattedContactPhoneAttribute(): ?string
+    {
+        return $this->contact_phone ? formatSaudiPhone($this->contact_phone) : null;
+    }
+
+    public function getFormattedWhatsappPhoneAttribute(): ?string
+    {
+        return $this->whatsapp_phone ? formatSaudiPhone($this->whatsapp_phone) : null;
+    }
+
+    public function getFormattedVerificationPhoneAttribute(): ?string
+    {
+        return $this->verification_phone ? formatSaudiPhone($this->verification_phone) : null;
+    }
+
+    private function normalizePhoneValue($value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
+    }
+
 }

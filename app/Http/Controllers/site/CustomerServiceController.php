@@ -44,7 +44,7 @@ class CustomerServiceController extends Controller
         // Send SMS after assigning customer service
         $userPhone = formatSaudiPhone(auth()->user()->phone);
         $userName = auth()->user()->name;
-        $customerPhone = formatSaudiPhone($adminAction->find($dataInserted['customer'])->phone);
+        $customerPhone = $adminAction->find($dataInserted['customer'])?->formatted_verification_phone;
         if (!empty($customerPhone)) {
             $body =  "يوجد لديكم حجز باسم " . $userName . "برقم جوال " . $userPhone;
             $this->sendSMS($customerPhone, $body);
@@ -117,7 +117,7 @@ class CustomerServiceController extends Controller
                     ['admin_id' => $customer->id]
                 );
 
-                $customerPhone = formatSaudiPhone($customer->phone);
+                $customerPhone = $customer->formatted_verification_phone;
                 $userName = auth()->user()->name;
 
                 if (!empty($customerPhone)) {

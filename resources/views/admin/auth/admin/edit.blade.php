@@ -15,14 +15,19 @@
             <input type="text" name="name" value="{{ $obj->name }}" class="form-control" data-validation="required">
         </div>
         <div class="col-4">
-            <label for="TextInput" class="form-label">الجوال </label>
+            <label for="TextInput" class="form-label">رقم الاتصال </label>
             <input type="text" name="phone" value="{{ $obj->phone }}" class="form-control" data-validation="required">
         </div>
 
 
         <div class="col-4">
             <label for="TextInput" class="form-label">واتساب </label>
-            <input type="text" name="whatsapp" class="form-control" value="{{$obj->whatsapp}}">
+            <input type="text" name="whatsapp" class="form-control" value="{{ $obj->whatsapp_phone }}">
+        </div>
+
+        <div class="col-4">
+            <label for="TextInput" class="form-label">رقم التحقق ورسائل الطلب </label>
+            <input type="text" name="verification_phone" class="form-control" value="{{ $obj->verification_phone }}">
         </div>
 
         <div class="col-4">

@@ -28,7 +28,7 @@ use App\Http\Requests\auth\profile\UpdateAdminRequest as UpdateRequest;
 class AdminController extends Controller
 {
     public $folderPath = "admin.auth.admin";
-    public $postData = ["name", "phone", "email", 'whatsapp', "password", "admin_type", 'sex_type', 'role_id', 'sort', 'status', 'note'];
+    public $postData = ["name", "phone", "email", 'whatsapp', 'verification_phone', "password", "admin_type", 'sex_type', 'role_id', 'sort', 'status', 'note'];
     public $mainRoute = "admins";
     public $suspensionReasons = ['violation', 'manual_review', 'fraud_suspect', 'other'];
 
@@ -79,7 +79,13 @@ class AdminController extends Controller
                     return $row->role?->name ?? '-';
                 })
                 ->editColumn('phone', function ($row) {
-                    return $row->phone;
+                    return $row->contact_phone ?? '-';
+                })
+                ->editColumn('whatsapp', function ($row) {
+                    return $row->whatsapp_phone ?? '-';
+                })
+                ->editColumn('verification_phone', function ($row) {
+                    return $row->verification_phone ?? '-';
                 })
                 ->editColumn('sex_type', function ($row) {
                     return getSexType($row->sex_type);

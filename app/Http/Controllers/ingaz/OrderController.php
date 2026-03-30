@@ -925,10 +925,9 @@ class OrderController extends Controller
                 $body = "عزيزي العميل، نود إشعاركم بأنه تم إرجاع طلب الاستقدام رقم {$order->order_code}. يرجى مراجعة الطلب عبر حسابكم.";
             }
             $userPhone = formatSaudiPhone($order->user->phone);
-            $customerPhone = formatSaudiPhone($order->customer?->phone);
-            $recipients = [$userPhone, $customerPhone];
-
-            $result = $this->sendSMS($recipients, $body);
+            $customerPhone = $order->customer?->formatted_verification_phone;
+            $recipients = array_values(array_filter([$userPhone, $customerPhone]));
+            $result = !empty($recipients) ? $this->sendSMS($recipients, $body) : null;
 
             if (isset($result['code']) && $result['code'] == "1") {
                 $this->storeMessage('ارسال رسالة نصية الى العميل', $body, NotificationActionEnum::SMS->value, $order->user->id);

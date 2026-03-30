@@ -28,8 +28,9 @@ class AdminAction extends MainAction
         $admin = Admin::create([
             'name' => $data['name'],
             'email' => $data['email'],
-            'whatsapp' => $data['whatsapp'],
+            'whatsapp' => !empty($data['whatsapp']) ? $data['whatsapp'] : $data['phone'],
             'phone' => $data['phone'],
+            'verification_phone' => !empty($data['verification_phone']) ? $data['verification_phone'] : $data['phone'],
             'admin_type' => $data['admin_type'],
             'sex_type' => $data['sex_type'],
             'role_id' => $data['role_id'],
@@ -54,6 +55,8 @@ class AdminAction extends MainAction
     public function updateAdmin($id, $data, $request)
     {
         $admin = $this->find($id);
+        $data['whatsapp'] = !empty($data['whatsapp']) ? $data['whatsapp'] : $data['phone'];
+        $data['verification_phone'] = !empty($data['verification_phone']) ? $data['verification_phone'] : $data['phone'];
         $admin->update($data);
         //set role for permissions
         if ($admin) {

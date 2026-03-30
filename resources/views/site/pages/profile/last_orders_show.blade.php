@@ -1504,11 +1504,11 @@
                                         {{ __('ingaz.Within 24 hours so that the CV reservation is not cancelled') }}
                                     </p>
                                     <div class="btns">
-                                        <a href="https://wa.me/{{ $responsibleAdmin?->phone_code . $responsibleAdmin?->phone }}"
+                                        <a href="https://wa.me/{{ $responsibleAdmin?->formatted_whatsapp_phone }}"
                                             class="whatsapp" target="_blank">
                                             <i class="fa-brands fa-whatsapp"></i>
                                         </a>
-                                        <a href="tel:{{ $responsibleAdmin?->phone_code . $responsibleAdmin?->phone }}"
+                                        <a href="tel:{{ $responsibleAdmin?->formatted_contact_phone }}"
                                             target="_blank">
                                             <i class="fa-light fa-phone"></i>
                                         </a>

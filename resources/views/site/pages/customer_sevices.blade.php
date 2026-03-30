@@ -22,7 +22,11 @@
                                     <input type="radio" class="btn-check" value="{{$customer_service->id}}" name="customer" id="option_{{$customer_service->id}}">
                                     <label class="btn btn-outline" for="option_{{$customer_service->id}}">
                                         <img src="{{asset('site')}}/assets/images/avater2.webp" alt="">
-                                        <span> {{ $customer_service->name }}</span>
+                                        <span>
+                                            {{ $customer_service->name }}
+                                            <small class="d-block text-muted mt-1">اتصال: {{ $customer_service->contact_phone ?? 'غير محدد' }}</small>
+                                            <small class="d-block text-muted">واتساب: {{ $customer_service->whatsapp_phone ?? 'غير محدد' }}</small>
+                                        </span>
                                     </label>
                                 </div>
                             @endforeach

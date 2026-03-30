@@ -400,7 +400,7 @@ class AdminTravelHistoryController extends Controller
                 return [
                     'id' => $admin->id,
                     'name' => $admin->name,
-                    'phone' => $admin->phone,
+                    'phone' => $admin->contact_phone,
                     'admin_type' => $admin->admin_type,
                     'label' => $admin->name . ' (' . $typeLabel . ')',
                 ];
@@ -564,12 +564,12 @@ class AdminTravelHistoryController extends Controller
 
     private function sendAssignmentSms(Admin $assignee, string $message): bool
     {
-        if (empty($assignee->phone)) {
+        if (empty($assignee->formatted_verification_phone)) {
             return false;
         }
 
         try {
-            $this->sendSMS(formatSaudiPhone($assignee->phone), $message);
+            $this->sendSMS($assignee->formatted_verification_phone, $message);
             return true;
         } catch (\Throwable $e) {
             \Log::warning('Failed to send assignment SMS', [

@@ -110,13 +110,13 @@
                                     </div>
                                 </div>
                                 <div class="col-6 col-md-3 p-1">
-                                    <a class="contact" href="https://wa.me/{{$responsibleAdmin->phone}}" target="_blank">
+                                    <a class="contact" href="https://wa.me/{{ $responsibleAdmin->formatted_whatsapp_phone }}" target="_blank">
                                         <i class="me-2 fa-brands fa-whatsapp-square"></i>
                                         <p>{{__('ingaz.through_whatsapp')}}</p>
                                     </a>
                                 </div>
                                 <div class="col-6 col-md-3 p-1">
-                                    <a class="contact" href="tel:{{$responsibleAdmin->phone}}" target="_blank">
+                                    <a class="contact" href="tel:{{ $responsibleAdmin->formatted_contact_phone }}" target="_blank">
                                         <i class="me-2 fa-solid fa-square-phone"></i>
                                         <p>{{__('ingaz.through_phone')}}</p>
                                     </a>

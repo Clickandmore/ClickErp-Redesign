@@ -79,6 +79,8 @@
                                                                 @endphp
                                                                 <img src="{{ $imagePath }}" style="mix-blend-mode: multiply" alt="man">
                                                                 <h6>أ. {{ $customer_service->name }}</h6>
+                                                                <small class="d-block text-muted">اتصال: {{ $customer_service->contact_phone ?? 'غير محدد' }}</small>
+                                                                <small class="d-block text-muted">واتساب: {{ $customer_service->whatsapp_phone ?? 'غير محدد' }}</small>
                                                             </div>
                                                             <input type="radio" value="{{ $customer_service->id }}" 
                                                                 name="details_list[admin_id]" id="{{ $customer_service->name }}">

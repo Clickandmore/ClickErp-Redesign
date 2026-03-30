@@ -194,7 +194,7 @@ class RecruitmentController extends Controller
 
             // Send SMS
             $userPhone = formatSaudiPhone($recruitment->client->phone);
-            $customerPhone = formatSaudiPhone($recruitment?->customer?->phone);
+            $customerPhone = $recruitment?->customer?->formatted_verification_phone;
 
             if (!empty($customerPhone)) {
                 $body =  "يوجد لديكم حجز باسم " . auth()->user()->name . "برقم جوال " . auth()->user()->phone;

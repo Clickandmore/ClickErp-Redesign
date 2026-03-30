@@ -834,7 +834,11 @@
                                             <label class="btn btn-outline" for="customer_{{ $customerService->id }}">
                                                 <img src="{{ asset('site') }}/assets/images/avater2.webp"
                                                     alt="{{ $customerService->name }}">
-                                                <span>{{ $customerService->name }}</span>
+                                                <span>
+                                                    {{ $customerService->name }}
+                                                    <small class="d-block text-muted mt-1">اتصال: {{ $customerService->contact_phone ?? 'غير محدد' }}</small>
+                                                    <small class="d-block text-muted">واتساب: {{ $customerService->whatsapp_phone ?? 'غير محدد' }}</small>
+                                                </span>
                                             </label>
                                         </div>
                                     @empty

@@ -226,8 +226,16 @@
                                 <p class="text-muted mb-0">ممثل خدمة العملاء</p>
                             </div>
                             <div class="info-item mb-2">
-                                <label class="fw-bold text-muted">رقم الجوال:</label>
-                                <p class="mb-0">{{ $responsibleAdmin->phone ?? 'غير محدد' }}</p>
+                                <label class="fw-bold text-muted">رقم الاتصال:</label>
+                                <p class="mb-0">{{ $responsibleAdmin->contact_phone ?? 'غير محدد' }}</p>
+                            </div>
+                            <div class="info-item mb-2">
+                                <label class="fw-bold text-muted">رقم الواتساب:</label>
+                                <p class="mb-0">{{ $responsibleAdmin->whatsapp_phone ?? 'غير محدد' }}</p>
+                            </div>
+                            <div class="info-item mb-2">
+                                <label class="fw-bold text-muted">رقم التحقق:</label>
+                                <p class="mb-0">{{ $responsibleAdmin->verification_phone ?? 'غير محدد' }}</p>
                             </div>
                             <div class="info-item mb-2">
                                 <label class="fw-bold text-muted">البريد الإلكتروني:</label>

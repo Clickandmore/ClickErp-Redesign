@@ -73,7 +73,7 @@ class OrderAction extends MainAction
         $order = $this->model->find($order->id);
 
         try{
-            $adminPhone = $order?->admin?->phone;
+            $adminPhone = $order?->admin?->formatted_verification_phone;
 
             if($order && $adminPhone){
                 $orderId = $order->order_code;
@@ -86,7 +86,7 @@ class OrderAction extends MainAction
                     $msg = "يوجد طلب نقل كفالة جديد رقم $orderId";
                 }
 
-                $result = $this->sendSMS(formatSaudiPhone($adminPhone), $msg);
+                $result = $this->sendSMS($adminPhone, $msg);
 
                 if (isset($result['code']) && $result['code'] == "1") {
                     $this->storeMessage('ارسال رسالة نصية الى العميل', $msg, NotificationActionEnum::SMS->value, $data['user_id']);
