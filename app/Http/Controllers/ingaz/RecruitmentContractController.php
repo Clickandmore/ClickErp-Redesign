@@ -904,7 +904,8 @@ class RecruitmentContractController extends Controller
             'maid.nationality',
             'maid.religion',
             'maid.jobTitles',
-            'info',
+            'info.prevSponsorship',
+            'info.shelter',
             'contract_status_logs' => function ($query) {
                 $query->orderByDesc('date')->orderByDesc('id');
             },
@@ -919,9 +920,8 @@ class RecruitmentContractController extends Controller
             $contract->load(['order.details.admin']);
         }
 
-        $info = ContractInfo::where('contract_id', $contract->id)->first();
-        // dump($info);
-        // exit;
+        $info = $contract->info ?? new ContractInfo();
+
         // الحصول على بيانات المسوق
         $marketer = null;
         try {
