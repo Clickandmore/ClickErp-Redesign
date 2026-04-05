@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\admin;
 
+use Carbon\Carbon;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Enums\ingaz\OrderEnum;
 use App\Http\Actions\dashboard\DashboardAction as objAction;
@@ -16,13 +17,14 @@ use App\Models\ingaz\Order;
 use App\Models\ingaz\User;
 use App\Models\ingaz\JobType;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index(objAction $action)
+    public function index(Request $request, objAction $action)
     {
-        return $this->professional($action);
+        return $this->professional($request, $action);
     }
 
     public function indexOld(objAction $action)
@@ -39,7 +41,7 @@ class DashboardController extends Controller
         return view('admin.dashboard', compact('data'));
     }
 
-    public function professional(objAction $action)
+    public function professional(Request $request, objAction $action)
     {
         $now = now();
 
@@ -158,13 +160,355 @@ class DashboardController extends Controller
         });
         $jobTypesList = JobType::all()->keyBy('id');
 
-        // المكاتب الخارجية (Top 5)
-        $officeStats = RecruitmentOffices::withCount([
-            'maids as maids_total',
-            'maids as maids_available' => function ($q) {
-                $q->where('available', true);
+        // المكاتب الخارجية
+        $latestContractPerMaid = DB::table('contracts as latest_contracts')
+            ->selectRaw('latest_contracts.maid_id, MAX(latest_contracts.id) as latest_id')
+            ->whereNotNull('latest_contracts.maid_id')
+            ->groupBy('latest_contracts.maid_id');
+
+        $latestTravelHistoryPerContract = DB::table('travel_histories as latest_travel_histories')
+            ->selectRaw('latest_travel_histories.order_id, MAX(latest_travel_histories.id) as latest_id')
+            ->whereNull('latest_travel_histories.deleted_at')
+            ->groupBy('latest_travel_histories.order_id');
+
+        $officeStats = Cache::remember('admin_dashboard.office_stats.v2', now()->addMinutes(10), function () use ($latestContractPerMaid, $latestTravelHistoryPerContract) {
+            return RecruitmentOffices::query()
+                ->with('nationality')
+                ->withCount([
+                    'maids as maids_total',
+                    'maids as maids_backout' => function ($query) {
+                        $query->where('status', 'backout');
+                    },
+                    'maids as maids_available' => function ($query) use ($latestContractPerMaid) {
+                        $query->leftJoinSub($latestContractPerMaid, 'latest_contract_map', function ($join) {
+                            $join->on('latest_contract_map.maid_id', '=', 'maids.id');
+                        })
+                            ->leftJoin('contracts as latest_contract', 'latest_contract.id', '=', 'latest_contract_map.latest_id')
+                            ->where('maids.available', true)
+                            ->where(function ($statusQuery) {
+                                $statusQuery->whereNull('maids.status')
+                                    ->orWhere('maids.status', '!=', 'backout');
+                            })
+                            ->where(function ($contractQuery) {
+                                $contractQuery->whereNull('latest_contract.id')
+                                    ->orWhere('latest_contract.status', '!=', ContractStatusEnum::Back->value);
+                            });
+                    },
+                ])
+                ->selectSub(function ($query) use ($latestContractPerMaid) {
+                    $query->from('maids')
+                        ->leftJoinSub($latestContractPerMaid, 'latest_contract_map', function ($join) {
+                            $join->on('latest_contract_map.maid_id', '=', 'maids.id');
+                        })
+                        ->leftJoin('contracts as latest_contract', 'latest_contract.id', '=', 'latest_contract_map.latest_id')
+                        ->selectRaw('COUNT(*)')
+                        ->whereColumn('maids.office_id', 'recruitment_offices.id')
+                        ->whereNull('maids.deleted_at')
+                        ->where(function ($statusQuery) {
+                            $statusQuery->whereNull('maids.status')
+                                ->orWhere('maids.status', '!=', 'backout');
+                        })
+                        ->where('latest_contract.status', ContractStatusEnum::Back->value);
+                }, 'maids_returned')
+                ->selectSub(function ($query) use ($latestTravelHistoryPerContract) {
+                    $query->from('contracts as c')
+                        ->join('maids as m', 'm.id', '=', 'c.maid_id')
+                        ->joinSub($latestTravelHistoryPerContract, 'latest_travel_map', function ($join) {
+                            $join->on('latest_travel_map.order_id', '=', 'c.id');
+                        })
+                        ->join('travel_histories as latest_travel', 'latest_travel.id', '=', 'latest_travel_map.latest_id')
+                        ->selectRaw('ROUND(AVG(GREATEST(DATEDIFF(DATE(latest_travel.arrival_date), DATE(c.created_at)), 0)))')
+                        ->whereColumn('m.office_id', 'recruitment_offices.id')
+                        ->whereNull('m.deleted_at')
+                        ->whereNotNull('latest_travel.arrival_date');
+                }, 'avg_recruitment_days')
+                ->selectSub(function ($query) use ($latestTravelHistoryPerContract) {
+                    $query->from('contracts as c')
+                        ->join('maids as m', 'm.id', '=', 'c.maid_id')
+                        ->joinSub($latestTravelHistoryPerContract, 'latest_travel_map', function ($join) {
+                            $join->on('latest_travel_map.order_id', '=', 'c.id');
+                        })
+                        ->join('travel_histories as latest_travel', 'latest_travel.id', '=', 'latest_travel_map.latest_id')
+                        ->selectRaw('COUNT(*)')
+                        ->whereColumn('m.office_id', 'recruitment_offices.id')
+                        ->whereNull('m.deleted_at')
+                        ->whereNotNull('latest_travel.arrival_date');
+                }, 'arrivals_total')
+                ->orderByDesc('maids_total')
+                ->get()
+                ->map(function ($office) {
+                    $office->maids_total = (int) ($office->maids_total ?? 0);
+                    $office->maids_available = (int) ($office->maids_available ?? 0);
+                    $office->maids_backout = (int) ($office->maids_backout ?? 0);
+                    $office->maids_returned = (int) ($office->maids_returned ?? 0);
+                    $office->arrivals_total = (int) ($office->arrivals_total ?? 0);
+                    $office->avg_recruitment_days = $office->avg_recruitment_days !== null
+                        ? (int) round((float) $office->avg_recruitment_days)
+                        : null;
+                    $office->maids_other = max(
+                        $office->maids_total - $office->maids_available - $office->maids_returned - $office->maids_backout,
+                        0
+                    );
+
+                    $flagPath = trim((string) (optional($office->nationality)->image ?: optional($office->nationality)->logo ?: ''));
+                    $office->nationality_flag_url = $flagPath !== '' ? showFile($flagPath) : null;
+
+                    return $office;
+                });
+        });
+
+        $dashboardLocale = app()->getLocale();
+        $selectedContractNationalityId = $request->filled('contract_nationality_id')
+            ? (int) $request->query('contract_nationality_id')
+            : null;
+        $selectedContractProfessionId = $request->filled('contract_profession_id')
+            ? (int) $request->query('contract_profession_id')
+            : null;
+        $contractFiltersApplied = $selectedContractNationalityId !== null || $selectedContractProfessionId !== null;
+        $contractWeekStart = $now->copy()->startOfWeek();
+        $contractWeekEnd = $now->copy()->endOfWeek();
+        $contractToday = $now->copy()->toDateString();
+        $currentYear = (int) $now->year;
+
+        $maidPrimaryJobTitle = DB::table('maid_job_titles')
+            ->selectRaw('maid_id, MIN(job_title_id) as job_title_id')
+            ->groupBy('maid_id');
+
+        $contractAnalyticsBaseSource = DB::table('contracts as c')
+            ->leftJoin('maids as m', 'm.id', '=', 'c.maid_id')
+            ->leftJoinSub($maidPrimaryJobTitle, 'mjt', function ($join) {
+                $join->on('mjt.maid_id', '=', 'c.maid_id');
+            })
+            ->selectRaw('
+                c.id,
+                c.status,
+                c.warranty_status,
+                c.created_at,
+                COALESCE(c.required_maid_nationality_id, m.nationality_id) as contract_nationality_id,
+                COALESCE(c.required_maid_job_title_id, mjt.job_title_id) as contract_profession_id
+            ');
+
+        $contractAnalyticsBaseQuery = function () use ($contractAnalyticsBaseSource) {
+            return DB::query()->fromSub($contractAnalyticsBaseSource, 'contract_analytics');
+        };
+
+        $applyContractAnalyticsBaseFilters = function ($query, string $alias = 'contract_analytics', bool $applyNationality = true, bool $applyProfession = true) use ($selectedContractNationalityId, $selectedContractProfessionId) {
+            if ($applyNationality && $selectedContractNationalityId !== null) {
+                $query->where($alias . '.contract_nationality_id', $selectedContractNationalityId);
             }
-        ])->orderByDesc('maids_total')->get();
+
+            if ($applyProfession && $selectedContractProfessionId !== null) {
+                $query->where($alias . '.contract_profession_id', $selectedContractProfessionId);
+            }
+
+            return $query;
+        };
+
+        $contractPendingStatuses = ['pending', 'in_progress'];
+        $contractPreArrivalStatuses = [
+            ContractStatusEnum::New->value,
+            ContractStatusEnum::Msaned->value,
+            ContractStatusEnum::Tafwed->value,
+            ContractStatusEnum::Taffez->value,
+            ContractStatusEnum::PendingMaidSelection->value,
+        ];
+        $contractArrivalStatuses = [
+            ContractStatusEnum::Tazker->value,
+            ContractStatusEnum::Arrival->value,
+        ];
+        $pendingStatusPlaceholders = implode(', ', array_fill(0, count($contractPendingStatuses), '?'));
+        $preArrivalStatusPlaceholders = implode(', ', array_fill(0, count($contractPreArrivalStatuses), '?'));
+        $delayedCutoffForAnalytics = $now->copy()->subDays(60);
+        $expiredCutoffForAnalytics = $now->copy()->subYears(2);
+
+        $contractAnalyticsAggregateRow = $applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery())
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed_total', [ContractStatusEnum::Completed->value])
+            ->selectRaw("SUM(CASE WHEN status IN ($pendingStatusPlaceholders) THEN 1 ELSE 0 END) as pending_total", $contractPendingStatuses)
+            ->selectRaw('SUM(CASE WHEN warranty_status = ? THEN 1 ELSE 0 END) as under_warranty_total', ['active'])
+            ->selectRaw('SUM(CASE WHEN YEAR(created_at) = ? AND MONTH(created_at) = ? THEN 1 ELSE 0 END) as this_month_total', [$currentYear, $now->month])
+            ->selectRaw('SUM(CASE WHEN created_at BETWEEN ? AND ? THEN 1 ELSE 0 END) as this_week_total', [$contractWeekStart, $contractWeekEnd])
+            ->selectRaw('SUM(CASE WHEN DATE(created_at) = ? THEN 1 ELSE 0 END) as today_total', [$contractToday])
+            ->selectRaw("SUM(CASE WHEN status IN ($preArrivalStatusPlaceholders) THEN 1 ELSE 0 END) as pre_arrival_total", $contractPreArrivalStatuses)
+            ->selectRaw("SUM(CASE WHEN status IN ($preArrivalStatusPlaceholders) AND created_at < ? THEN 1 ELSE 0 END) as delayed_arrival_total", array_merge($contractPreArrivalStatuses, [$delayedCutoffForAnalytics]))
+            ->selectRaw('SUM(CASE WHEN created_at < ? THEN 1 ELSE 0 END) as expired_over_2y_total', [$expiredCutoffForAnalytics])
+            ->first();
+
+        $contractAnalyticsArrivalSource = DB::query()
+            ->fromSub($contractAnalyticsBaseSource, 'contract_analytics')
+            ->leftJoinSub($latestTravelHistoryPerContract, 'latest_travel_map', function ($join) {
+                $join->on('latest_travel_map.order_id', '=', 'contract_analytics.id');
+            })
+            ->leftJoin('travel_histories as latest_travel', 'latest_travel.id', '=', 'latest_travel_map.latest_id')
+            ->selectRaw('contract_analytics.*, DATE(latest_travel.arrival_date) as arrival_date');
+
+        $arrivalStageCount = $applyContractAnalyticsBaseFilters(
+            DB::query()->fromSub($contractAnalyticsArrivalSource, 'contract_analytics_arrival'),
+            'contract_analytics_arrival'
+        )
+            ->whereIn('contract_analytics_arrival.status', $contractArrivalStatuses)
+            ->whereDate('contract_analytics_arrival.arrival_date', $contractToday)
+            ->count();
+
+        $contractAnalyticsStats = [
+            'total' => (int) ($contractAnalyticsAggregateRow->total ?? 0),
+            'completed' => (int) ($contractAnalyticsAggregateRow->completed_total ?? 0),
+            'pending' => (int) ($contractAnalyticsAggregateRow->pending_total ?? 0),
+            'underWarranty' => (int) ($contractAnalyticsAggregateRow->under_warranty_total ?? 0),
+            'thisMonth' => (int) ($contractAnalyticsAggregateRow->this_month_total ?? 0),
+            'thisWeek' => (int) ($contractAnalyticsAggregateRow->this_week_total ?? 0),
+            'today' => (int) ($contractAnalyticsAggregateRow->today_total ?? 0),
+        ];
+
+        $contractAnalyticsPipeline = [
+            'pre_arrival' => (int) ($contractAnalyticsAggregateRow->pre_arrival_total ?? 0),
+            'arrival_stage' => (int) $arrivalStageCount,
+            'under_warranty' => (int) ($contractAnalyticsAggregateRow->under_warranty_total ?? 0),
+            'completed' => (int) ($contractAnalyticsAggregateRow->completed_total ?? 0),
+            'delayed_arrival' => (int) ($contractAnalyticsAggregateRow->delayed_arrival_total ?? 0),
+            'expired_over_2y' => (int) ($contractAnalyticsAggregateRow->expired_over_2y_total ?? 0),
+        ];
+
+        $contractAnalyticsStatusBreakdown = $applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery())
+            ->select('status')
+            ->selectRaw('COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+
+        $contractsChartLabels = [];
+        for ($month = 1; $month <= 12; $month++) {
+            $contractsChartLabels[] = \Carbon\Carbon::create($currentYear, $month, 1)
+                ->locale($dashboardLocale)
+                ->translatedFormat('F');
+        }
+
+        $contractsYearBuckets = $applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery())
+            ->selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, COUNT(*) as total')
+            ->where('created_at', '>=', \Carbon\Carbon::create($currentYear - 2, 1, 1)->startOfDay())
+            ->groupBy('year', 'month')
+            ->orderBy('year')
+            ->orderBy('month')
+            ->get();
+
+        $contractsYearSeries = collect(range(2, 0))->map(function ($yearsBack) use ($currentYear, $contractsYearBuckets) {
+            $year = $currentYear - $yearsBack;
+            $yearRows = $contractsYearBuckets->where('year', $year)->keyBy('month');
+            $monthlySeries = [];
+
+            for ($month = 1; $month <= 12; $month++) {
+                $monthlySeries[] = (int) optional($yearRows->get($month))->total;
+            }
+
+            return [
+                'year' => $year,
+                'label' => 'عقود ' . $year,
+                'total' => array_sum($monthlySeries),
+                'data' => $monthlySeries,
+            ];
+        })->values();
+
+        $contractsThreeYearsTotal = (int) $contractsYearSeries->sum('total');
+
+        $contractNationalityOptions = $applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery(), 'contract_analytics', false, true)
+            ->leftJoin('nationalities_translations as nationality_locale', function ($join) use ($dashboardLocale) {
+                $join->on('nationality_locale.nationality_id', '=', 'contract_analytics.contract_nationality_id')
+                    ->where('nationality_locale.locale', $dashboardLocale);
+            })
+            ->leftJoin('nationalities_translations as nationality_ar', function ($join) {
+                $join->on('nationality_ar.nationality_id', '=', 'contract_analytics.contract_nationality_id')
+                    ->where('nationality_ar.locale', 'ar');
+            })
+            ->selectRaw('contract_analytics.contract_nationality_id as id')
+            ->selectRaw('COALESCE(nationality_locale.title, nationality_ar.title, ?) as title', ['غير محدد'])
+            ->selectRaw('COUNT(*) as total')
+            ->whereNotNull('contract_analytics.contract_nationality_id')
+            ->groupBy('id', 'title')
+            ->orderBy('title')
+            ->get()
+            ->map(function ($row) {
+                return [
+                    'id' => (int) $row->id,
+                    'title' => trim((string) ($row->title ?? '')) ?: 'غير محدد',
+                    'total' => (int) ($row->total ?? 0),
+                ];
+            })
+            ->values();
+
+        $contractProfessionOptions = $applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery(), 'contract_analytics', true, false)
+            ->leftJoin('job_titles_translations as profession_locale', function ($join) use ($dashboardLocale) {
+                $join->on('profession_locale.job_title_id', '=', 'contract_analytics.contract_profession_id')
+                    ->where('profession_locale.locale', $dashboardLocale);
+            })
+            ->leftJoin('job_titles_translations as profession_ar', function ($join) {
+                $join->on('profession_ar.job_title_id', '=', 'contract_analytics.contract_profession_id')
+                    ->where('profession_ar.locale', 'ar');
+            })
+            ->selectRaw('contract_analytics.contract_profession_id as id')
+            ->selectRaw('COALESCE(profession_locale.title, profession_ar.title, ?) as title', ['غير محدد'])
+            ->selectRaw('COUNT(*) as total')
+            ->whereNotNull('contract_analytics.contract_profession_id')
+            ->groupBy('id', 'title')
+            ->orderBy('title')
+            ->get()
+            ->map(function ($row) {
+                return [
+                    'id' => (int) $row->id,
+                    'title' => trim((string) ($row->title ?? '')) ?: 'غير محدد',
+                    'total' => (int) ($row->total ?? 0),
+                ];
+            })
+            ->values();
+
+        $contractProfessionStats = $applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery())
+            ->leftJoin('job_titles_translations as profession_locale', function ($join) use ($dashboardLocale) {
+                $join->on('profession_locale.job_title_id', '=', 'contract_analytics.contract_profession_id')
+                    ->where('profession_locale.locale', $dashboardLocale);
+            })
+            ->leftJoin('job_titles_translations as profession_ar', function ($join) {
+                $join->on('profession_ar.job_title_id', '=', 'contract_analytics.contract_profession_id')
+                    ->where('profession_ar.locale', 'ar');
+            })
+            ->selectRaw('contract_analytics.contract_profession_id as profession_id')
+            ->selectRaw('COALESCE(profession_locale.title, profession_ar.title, ?) as profession', ['غير محدد'])
+            ->selectRaw('COUNT(*) as total')
+            ->groupBy('profession_id', 'profession')
+            ->orderByDesc('total')
+            ->limit(8)
+            ->get()
+            ->map(function ($row) use ($contractAnalyticsStats) {
+                $contractsTotal = max((int) ($contractAnalyticsStats['total'] ?? 0), 1);
+                $profession = trim((string) ($row->profession ?? '')) ?: 'غير محدد';
+                $total = (int) ($row->total ?? 0);
+                $professionId = isset($row->profession_id) ? (int) $row->profession_id : null;
+
+                return [
+                    'id' => $professionId ?: null,
+                    'profession' => $profession,
+                    'total' => $total,
+                    'share' => round(($total / $contractsTotal) * 100),
+                    'is_unknown' => $professionId === null || $profession === 'غير محدد',
+                ];
+            })
+            ->values();
+
+        $contractProfessionSummary = [
+            'tracked_professions' => $contractProfessionStats->filter(function ($row) {
+                return !($row['is_unknown'] ?? false);
+            })->count(),
+            'known_contracts' => (int) $contractProfessionStats->filter(function ($row) {
+                return !($row['is_unknown'] ?? false);
+            })->sum('total'),
+            'unknown_contracts' => (int) $contractProfessionStats->filter(function ($row) {
+                return $row['is_unknown'] ?? false;
+            })->sum('total'),
+            'top_profession' => $contractProfessionStats->first()['profession'] ?? null,
+        ];
+
+        $selectedContractNationalityOption = $contractNationalityOptions->firstWhere('id', $selectedContractNationalityId);
+        $selectedContractProfessionOption = $contractProfessionOptions->firstWhere('id', $selectedContractProfessionId);
+        $selectedContractNationalityTitle = $selectedContractNationalityOption['title'] ?? null;
+        $selectedContractProfessionTitle = $selectedContractProfessionOption['title'] ?? null;
 
         // حجوزات/عقود الموظفين (تفصيلي)
         $orderStatsByEmployee = DB::table('order_details as od')
@@ -241,49 +585,59 @@ class DashboardController extends Controller
                 )
             );
 
-        $employeeBookings = Admin::query()
-            ->select('admins.id', 'admins.name')
-            ->leftJoinSub($orderStatsByEmployee, 'order_stats', function ($join) {
-                $join->on('admins.id', '=', 'order_stats.admin_id');
-            })
-            ->leftJoinSub($contractStatsByEmployee, 'contract_stats', function ($join) {
-                $join->on('admins.id', '=', 'contract_stats.admin_id');
-            })
-            ->selectRaw('COALESCE(order_stats.orders_count, 0) as orders_count')
-            ->selectRaw('COALESCE(order_stats.orders_new, 0) as orders_new')
-            ->selectRaw('COALESCE(order_stats.orders_under_process, 0) as orders_under_process')
-            ->selectRaw('COALESCE(order_stats.orders_contracted, 0) as orders_contracted')
-            ->selectRaw('COALESCE(order_stats.orders_completed, 0) as orders_completed')
-            ->selectRaw('COALESCE(contract_stats.contracts_count, 0) as contracts_count')
-            ->selectRaw('COALESCE(contract_stats.contracts_current, 0) as contracts_current')
-            ->selectRaw('COALESCE(contract_stats.contracts_completed, 0) as contracts_completed')
-            ->selectRaw('COALESCE(contract_stats.contracts_returned, 0) as contracts_returned')
-            ->selectRaw('(COALESCE(order_stats.orders_count, 0) + COALESCE(contract_stats.contracts_count, 0)) as handled_total')
-            ->orderByDesc('handled_total')
-            ->orderBy('admins.name')
-            ->limit(8)
-            ->get()
-            ->map(function ($employee) {
-                $ordersCount = (int) $employee->orders_count;
-                $contractsCount = (int) $employee->contracts_count;
-                $employee->conversion_rate = $ordersCount > 0
-                    ? round(($contractsCount / $ordersCount) * 100)
-                    : 0;
-                return $employee;
-            })
-            ->values();
+        $employeeBookingCache = Cache::remember('admin_dashboard.employee_bookings.v2', now()->addMinutes(5), function () use ($orderStatsByEmployee, $contractStatsByEmployee) {
+            $employeeBookings = Admin::query()
+                ->select('admins.id', 'admins.name')
+                ->leftJoinSub($orderStatsByEmployee, 'order_stats', function ($join) {
+                    $join->on('admins.id', '=', 'order_stats.admin_id');
+                })
+                ->leftJoinSub($contractStatsByEmployee, 'contract_stats', function ($join) {
+                    $join->on('admins.id', '=', 'contract_stats.admin_id');
+                })
+                ->selectRaw('COALESCE(order_stats.orders_count, 0) as orders_count')
+                ->selectRaw('COALESCE(order_stats.orders_new, 0) as orders_new')
+                ->selectRaw('COALESCE(order_stats.orders_under_process, 0) as orders_under_process')
+                ->selectRaw('COALESCE(order_stats.orders_contracted, 0) as orders_contracted')
+                ->selectRaw('COALESCE(order_stats.orders_completed, 0) as orders_completed')
+                ->selectRaw('COALESCE(contract_stats.contracts_count, 0) as contracts_count')
+                ->selectRaw('COALESCE(contract_stats.contracts_current, 0) as contracts_current')
+                ->selectRaw('COALESCE(contract_stats.contracts_completed, 0) as contracts_completed')
+                ->selectRaw('COALESCE(contract_stats.contracts_returned, 0) as contracts_returned')
+                ->selectRaw('(COALESCE(order_stats.orders_count, 0) + COALESCE(contract_stats.contracts_count, 0)) as handled_total')
+                ->orderByDesc('handled_total')
+                ->orderBy('admins.name')
+                ->limit(8)
+                ->get()
+                ->map(function ($employee) {
+                    $ordersCount = (int) $employee->orders_count;
+                    $contractsCount = (int) $employee->contracts_count;
+                    $employee->conversion_rate = $ordersCount > 0
+                        ? round(($contractsCount / $ordersCount) * 100)
+                        : 0;
+                    return $employee;
+                })
+                ->values();
 
-        $employeeBookingSummary = [
-            'employees_with_activity' => $employeeBookings->filter(function ($employee) {
-                return ((int) $employee->orders_count + (int) $employee->contracts_count) > 0;
-            })->count(),
-            'orders_total' => (int) $employeeBookings->sum(function ($employee) {
-                return (int) $employee->orders_count;
-            }),
-            'contracts_total' => (int) $employeeBookings->sum(function ($employee) {
-                return (int) $employee->contracts_count;
-            }),
-        ];
+            $employeeBookingSummary = [
+                'employees_with_activity' => $employeeBookings->filter(function ($employee) {
+                    return ((int) $employee->orders_count + (int) $employee->contracts_count) > 0;
+                })->count(),
+                'orders_total' => (int) $employeeBookings->sum(function ($employee) {
+                    return (int) $employee->orders_count;
+                }),
+                'contracts_total' => (int) $employeeBookings->sum(function ($employee) {
+                    return (int) $employee->contracts_count;
+                }),
+            ];
+
+            return [
+                'employeeBookings' => $employeeBookings,
+                'employeeBookingSummary' => $employeeBookingSummary,
+            ];
+        });
+
+        $employeeBookings = $employeeBookingCache['employeeBookings'];
+        $employeeBookingSummary = $employeeBookingCache['employeeBookingSummary'];
 
         // الموظفون
         try {
@@ -326,22 +680,6 @@ class DashboardController extends Controller
             'occupied' => 35,
             'available' => 15,
         ];
-
-        // آخر 12 شهر للعقود (مخطط)
-        $chartLabels = [];
-        $newContracts = [];
-        $completedContracts = [];
-        for ($i = 11; $i >= 0; $i--) {
-            $date = now()->subMonths($i);
-            $chartLabels[] = $date->locale('ar')->translatedFormat('F Y');
-            $newContracts[] = Contract::whereMonth('created_at', $date->month)
-                ->whereYear('created_at', $date->year)
-                ->count();
-            $completedContracts[] = Contract::where('status', ContractStatusEnum::Completed->value)
-                ->whereMonth('updated_at', $date->month)
-                ->whereYear('updated_at', $date->year)
-                ->count();
-        }
 
         // الجنسيات
         $nationalityStats = Maid::select('nationality_id')
@@ -437,13 +775,25 @@ class DashboardController extends Controller
             'jobTypeCounts',
             'jobTypesList',
             'officeStats',
+            'contractAnalyticsStats',
+            'contractAnalyticsPipeline',
+            'contractAnalyticsStatusBreakdown',
+            'contractsChartLabels',
+            'contractsYearSeries',
+            'contractsThreeYearsTotal',
+            'contractNationalityOptions',
+            'contractProfessionOptions',
+            'selectedContractNationalityId',
+            'selectedContractProfessionId',
+            'selectedContractNationalityTitle',
+            'selectedContractProfessionTitle',
+            'contractFiltersApplied',
+            'contractProfessionStats',
+            'contractProfessionSummary',
             'employeeBookings',
             'employeeBookingSummary',
             'employeesStats',
             'shelterStats',
-            'chartLabels',
-            'newContracts',
-            'completedContracts',
             'nationalityLabels',
             'nationalityData',
             'recentActivities',
@@ -454,6 +804,428 @@ class DashboardController extends Controller
             'maidAvailability',
             'operationsInsights'
         ));
+    }
+
+    public function employeeShow(Request $request, Admin $employee)
+    {
+        $request->validate([
+            'from_date' => ['nullable', 'date'],
+            'to_date' => ['nullable', 'date'],
+            'range' => ['nullable', 'string', 'in:7d,30d,90d,month,year,all,custom'],
+        ]);
+
+        $employee->loadMissing(['roles', 'role']);
+
+        $ordersBaseQuery = Order::query()
+            ->where('job_type_id', 1)
+            ->whereResponsibleAdmin((int) $employee->id);
+
+        $contractsBaseQuery = Contract::query()
+            ->whereIn('type', ['recruitment', 'maid'])
+            ->where(function ($query) use ($employee) {
+                $query->where('marketer_id', $employee->id)
+                    ->orWhereHas('order.details', function ($detailsQuery) use ($employee) {
+                        $detailsQuery->where('admin_id', $employee->id);
+                    });
+            });
+
+        $firstOrderAt = ($firstOrderValue = (clone $ordersBaseQuery)->min('created_at'))
+            ? Carbon::parse($firstOrderValue)
+            : null;
+        $firstContractAt = ($firstContractValue = (clone $contractsBaseQuery)->min('created_at'))
+            ? Carbon::parse($firstContractValue)
+            : null;
+        $firstActivityAt = collect([$firstOrderAt, $firstContractAt])
+            ->filter()
+            ->sortBy(fn (Carbon $date) => $date->timestamp)
+            ->first();
+
+        $lastOrderAt = ($lastOrderValue = (clone $ordersBaseQuery)->max('created_at'))
+            ? Carbon::parse($lastOrderValue)
+            : null;
+        $lastContractAt = ($lastContractValue = (clone $contractsBaseQuery)->max('created_at'))
+            ? Carbon::parse($lastContractValue)
+            : null;
+        $lastActivityAt = collect([$lastOrderAt, $lastContractAt])
+            ->filter()
+            ->sortByDesc(fn (Carbon $date) => $date->timestamp)
+            ->first();
+
+        [$startDate, $endDate, $selectedRangeKey] = $this->resolveEmployeeDashboardDateRange($request, $firstActivityAt);
+
+        $filteredOrdersQuery = $this->applyCreatedAtRange(clone $ordersBaseQuery, $startDate, $endDate);
+        $filteredContractsQuery = $this->applyCreatedAtRange(clone $contractsBaseQuery, $startDate, $endDate);
+
+        $currentContractStatuses = [
+            ContractStatusEnum::PendingMaidSelection->value,
+            ContractStatusEnum::New->value,
+            ContractStatusEnum::Msaned->value,
+            ContractStatusEnum::Tafwed->value,
+            ContractStatusEnum::Taffez->value,
+            ContractStatusEnum::Tazker->value,
+            ContractStatusEnum::InProgress->value,
+        ];
+        $completedContractStatuses = [
+            ContractStatusEnum::Arrival->value,
+            ContractStatusEnum::Completed->value,
+        ];
+        $currentContractPlaceholders = implode(', ', array_fill(0, count($currentContractStatuses), '?'));
+        $completedContractPlaceholders = implode(', ', array_fill(0, count($completedContractStatuses), '?'));
+
+        $ordersAggregate = (clone $filteredOrdersQuery)
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as new_total', [OrderEnum::New->value])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as under_process_total', [OrderEnum::UnderProcess->value])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as contracted_total', [OrderEnum::Contracted->value])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as contracted_without_total', [OrderEnum::ContractedWithoutContract->value])
+            ->selectRaw('SUM(CASE WHEN status IN (?, ?) THEN 1 ELSE 0 END) as completed_total', [OrderEnum::Completed->value, OrderEnum::Done->value])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as refused_total', [OrderEnum::Refused->value])
+            ->first();
+
+        $contractsAggregate = (clone $filteredContractsQuery)
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw("SUM(CASE WHEN status IN ($currentContractPlaceholders) THEN 1 ELSE 0 END) as current_total", $currentContractStatuses)
+            ->selectRaw("SUM(CASE WHEN status IN ($completedContractPlaceholders) THEN 1 ELSE 0 END) as completed_total", $completedContractStatuses)
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as returned_total', [ContractStatusEnum::Back->value])
+            ->selectRaw('SUM(CASE WHEN warranty_status = ? THEN 1 ELSE 0 END) as warranty_active_total', ['active'])
+            ->first();
+
+        $ordersTotal = (int) ($ordersAggregate->total ?? 0);
+        $contractsTotal = (int) ($contractsAggregate->total ?? 0);
+        $handledTotal = $ordersTotal + $contractsTotal;
+        $rangeDays = max($startDate->diffInDays($endDate) + 1, 1);
+
+        $employeeStats = [
+            'handled_total' => $handledTotal,
+            'orders_total' => $ordersTotal,
+            'orders_new' => (int) ($ordersAggregate->new_total ?? 0),
+            'orders_under_process' => (int) ($ordersAggregate->under_process_total ?? 0),
+            'orders_contracted' => (int) ($ordersAggregate->contracted_total ?? 0),
+            'orders_contracted_without' => (int) ($ordersAggregate->contracted_without_total ?? 0),
+            'orders_completed' => (int) ($ordersAggregate->completed_total ?? 0),
+            'orders_refused' => (int) ($ordersAggregate->refused_total ?? 0),
+            'contracts_total' => $contractsTotal,
+            'contracts_current' => (int) ($contractsAggregate->current_total ?? 0),
+            'contracts_completed' => (int) ($contractsAggregate->completed_total ?? 0),
+            'contracts_returned' => (int) ($contractsAggregate->returned_total ?? 0),
+            'contracts_warranty_active' => (int) ($contractsAggregate->warranty_active_total ?? 0),
+            'conversion_rate' => $ordersTotal > 0 ? (int) round(($contractsTotal / $ordersTotal) * 100) : 0,
+            'avg_daily_handled' => round($handledTotal / $rangeDays, 1),
+        ];
+
+        $allTimeOrdersTotal = (int) (clone $ordersBaseQuery)->count();
+        $allTimeContractsTotal = (int) (clone $contractsBaseQuery)->count();
+        $allTimeSummary = [
+            'orders_total' => $allTimeOrdersTotal,
+            'contracts_total' => $allTimeContractsTotal,
+            'handled_total' => $allTimeOrdersTotal + $allTimeContractsTotal,
+            'conversion_rate' => $allTimeOrdersTotal > 0 ? (int) round(($allTimeContractsTotal / $allTimeOrdersTotal) * 100) : 0,
+        ];
+
+        $ordersStatusBreakdown = (clone $filteredOrdersQuery)
+            ->select('status')
+            ->selectRaw('COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+
+        $contractsStatusBreakdown = (clone $filteredContractsQuery)
+            ->select('status')
+            ->selectRaw('COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+
+        $ordersStatusChart = $this->buildEmployeeStatusChart($ordersStatusBreakdown, 'orders');
+        $contractsStatusChart = $this->buildEmployeeStatusChart($contractsStatusBreakdown, 'contracts');
+        $activityChart = $this->buildEmployeeActivityChart(
+            clone $filteredOrdersQuery,
+            clone $filteredContractsQuery,
+            $startDate,
+            $endDate
+        );
+
+        $orders = $this->applyCreatedAtRange(
+            Order::query()
+                ->with(['user', 'maid', 'jobType', 'details.admin', 'contracts'])
+                ->where('job_type_id', 1)
+                ->whereResponsibleAdmin((int) $employee->id)
+                ->orderByDesc('created_at'),
+            $startDate,
+            $endDate
+        )
+            ->paginate(10, ['*'], 'orders_page')
+            ->withQueryString();
+
+        $contracts = $this->applyCreatedAtRange(
+            Contract::query()
+                ->with(['user', 'maid', 'order.details.admin'])
+                ->whereIn('type', ['recruitment', 'maid'])
+                ->where(function ($query) use ($employee) {
+                    $query->where('marketer_id', $employee->id)
+                        ->orWhereHas('order.details', function ($detailsQuery) use ($employee) {
+                            $detailsQuery->where('admin_id', $employee->id);
+                        });
+                })
+                ->orderByDesc('created_at'),
+            $startDate,
+            $endDate
+        )
+            ->paginate(10, ['*'], 'contracts_page')
+            ->withQueryString();
+
+        $employeeRoleNames = $employee->roles
+            ->map(function ($role) {
+                return trim((string) ($role->display_name ?? $role->name));
+            })
+            ->filter()
+            ->values();
+
+        $employeePrimaryRole = $employeeRoleNames->first()
+            ?: trim((string) (optional($employee->role)->display_name ?? optional($employee->role)->name ?? 'بدون دور'));
+
+        $rangePresets = [
+            '7d' => 'آخر 7 أيام',
+            '30d' => 'آخر 30 يوماً',
+            '90d' => 'آخر 90 يوماً',
+            'month' => 'هذا الشهر',
+            'year' => 'هذه السنة',
+            'all' => 'كل الفترة',
+        ];
+
+        $dateRangeLabel = $selectedRangeKey === 'all'
+            ? 'من أول نشاط حتى ' . $endDate->translatedFormat('d F Y')
+            : $startDate->translatedFormat('d F Y') . ' - ' . $endDate->translatedFormat('d F Y');
+
+        return view('admin.dashboard-employee', compact(
+            'employee',
+            'employeeStats',
+            'allTimeSummary',
+            'activityChart',
+            'ordersStatusChart',
+            'contractsStatusChart',
+            'ordersStatusBreakdown',
+            'contractsStatusBreakdown',
+            'orders',
+            'contracts',
+            'startDate',
+            'endDate',
+            'selectedRangeKey',
+            'rangePresets',
+            'dateRangeLabel',
+            'firstActivityAt',
+            'lastActivityAt',
+            'employeeRoleNames',
+            'employeePrimaryRole'
+        ));
+    }
+
+    protected function resolveEmployeeDashboardDateRange(Request $request, ?Carbon $firstActivityAt = null): array
+    {
+        $now = now();
+        $startDate = $request->filled('from_date')
+            ? Carbon::parse($request->query('from_date'))->startOfDay()
+            : null;
+        $endDate = $request->filled('to_date')
+            ? Carbon::parse($request->query('to_date'))->endOfDay()
+            : null;
+        $selectedRangeKey = (string) $request->query('range', '90d');
+
+        if ($startDate || $endDate) {
+            $selectedRangeKey = 'custom';
+        } else {
+            switch ($selectedRangeKey) {
+                case '7d':
+                    $startDate = $now->copy()->subDays(6)->startOfDay();
+                    $endDate = $now->copy()->endOfDay();
+                    break;
+                case '30d':
+                    $startDate = $now->copy()->subDays(29)->startOfDay();
+                    $endDate = $now->copy()->endOfDay();
+                    break;
+                case 'month':
+                    $startDate = $now->copy()->startOfMonth();
+                    $endDate = $now->copy()->endOfDay();
+                    break;
+                case 'year':
+                    $startDate = $now->copy()->startOfYear();
+                    $endDate = $now->copy()->endOfDay();
+                    break;
+                case 'all':
+                    $startDate = $firstActivityAt?->copy()->startOfMonth() ?: $now->copy()->subMonths(5)->startOfMonth();
+                    $endDate = $now->copy()->endOfDay();
+                    break;
+                case '90d':
+                default:
+                    $selectedRangeKey = '90d';
+                    $startDate = $now->copy()->subDays(89)->startOfDay();
+                    $endDate = $now->copy()->endOfDay();
+                    break;
+            }
+        }
+
+        if (!$startDate) {
+            $startDate = $firstActivityAt?->copy()->startOfDay() ?: $now->copy()->subDays(89)->startOfDay();
+        }
+
+        if (!$endDate) {
+            $endDate = $now->copy()->endOfDay();
+        }
+
+        if ($startDate->gt($endDate)) {
+            [$startDate, $endDate] = [$endDate->copy()->startOfDay(), $startDate->copy()->endOfDay()];
+        }
+
+        return [$startDate, $endDate, $selectedRangeKey];
+    }
+
+    protected function applyCreatedAtRange($query, ?Carbon $startDate, ?Carbon $endDate)
+    {
+        if ($startDate) {
+            $query->where('created_at', '>=', $startDate->copy()->startOfDay());
+        }
+
+        if ($endDate) {
+            $query->where('created_at', '<=', $endDate->copy()->endOfDay());
+        }
+
+        return $query;
+    }
+
+    protected function buildEmployeeActivityChart($ordersQuery, $contractsQuery, Carbon $startDate, Carbon $endDate): array
+    {
+        $diffDays = $startDate->diffInDays($endDate);
+        $diffMonths = $startDate->diffInMonths($endDate);
+
+        if ($diffDays <= 31) {
+            $mode = 'daily';
+            $orderBuckets = (clone $ordersQuery)
+                ->selectRaw('DATE(created_at) as bucket, COUNT(*) as total')
+                ->groupBy('bucket')
+                ->pluck('total', 'bucket');
+            $contractBuckets = (clone $contractsQuery)
+                ->selectRaw('DATE(created_at) as bucket, COUNT(*) as total')
+                ->groupBy('bucket')
+                ->pluck('total', 'bucket');
+
+            $cursor = $startDate->copy()->startOfDay();
+            $limit = 0;
+            $labels = [];
+            $ordersSeries = [];
+            $contractsSeries = [];
+
+            while ($cursor->lte($endDate) && $limit < 400) {
+                $bucketKey = $cursor->toDateString();
+                $labels[] = $cursor->translatedFormat('d M');
+                $ordersSeries[] = (int) ($orderBuckets[$bucketKey] ?? 0);
+                $contractsSeries[] = (int) ($contractBuckets[$bucketKey] ?? 0);
+                $cursor->addDay();
+                $limit++;
+            }
+        } elseif ($diffMonths <= 36) {
+            $mode = 'monthly';
+            $orderBuckets = (clone $ordersQuery)
+                ->selectRaw("DATE_FORMAT(created_at, '%Y-%m-01') as bucket, COUNT(*) as total")
+                ->groupBy('bucket')
+                ->pluck('total', 'bucket');
+            $contractBuckets = (clone $contractsQuery)
+                ->selectRaw("DATE_FORMAT(created_at, '%Y-%m-01') as bucket, COUNT(*) as total")
+                ->groupBy('bucket')
+                ->pluck('total', 'bucket');
+
+            $cursor = $startDate->copy()->startOfMonth();
+            $labels = [];
+            $ordersSeries = [];
+            $contractsSeries = [];
+
+            while ($cursor->lte($endDate)) {
+                $bucketKey = $cursor->format('Y-m-01');
+                $labels[] = $cursor->translatedFormat('M Y');
+                $ordersSeries[] = (int) ($orderBuckets[$bucketKey] ?? 0);
+                $contractsSeries[] = (int) ($contractBuckets[$bucketKey] ?? 0);
+                $cursor->addMonth();
+            }
+        } else {
+            $mode = 'yearly';
+            $orderBuckets = (clone $ordersQuery)
+                ->selectRaw("DATE_FORMAT(created_at, '%Y-01-01') as bucket, COUNT(*) as total")
+                ->groupBy('bucket')
+                ->pluck('total', 'bucket');
+            $contractBuckets = (clone $contractsQuery)
+                ->selectRaw("DATE_FORMAT(created_at, '%Y-01-01') as bucket, COUNT(*) as total")
+                ->groupBy('bucket')
+                ->pluck('total', 'bucket');
+
+            $cursor = $startDate->copy()->startOfYear();
+            $labels = [];
+            $ordersSeries = [];
+            $contractsSeries = [];
+
+            while ($cursor->lte($endDate)) {
+                $bucketKey = $cursor->format('Y-01-01');
+                $labels[] = $cursor->translatedFormat('Y');
+                $ordersSeries[] = (int) ($orderBuckets[$bucketKey] ?? 0);
+                $contractsSeries[] = (int) ($contractBuckets[$bucketKey] ?? 0);
+                $cursor->addYear();
+            }
+        }
+
+        return [
+            'mode' => $mode,
+            'labels' => $labels,
+            'orders' => $ordersSeries,
+            'contracts' => $contractsSeries,
+        ];
+    }
+
+    protected function buildEmployeeStatusChart(array $breakdown, string $type): array
+    {
+        $resolvedBreakdown = collect($breakdown)
+            ->mapToGroups(function ($total, $status) use ($type) {
+                $label = $type === 'contracts'
+                    ? getContractStatus($status)
+                    : $this->resolveOrderStatusLabel((string) $status);
+
+                return [$label => (int) $total];
+            })
+            ->map(function ($totals, $label) {
+                return [
+                    'label' => $label,
+                    'total' => (int) collect($totals)->sum(),
+                ];
+            })
+            ->sortByDesc('total')
+            ->values();
+
+        $visibleItems = $resolvedBreakdown->take(6)->values();
+        $remainingTotal = (int) $resolvedBreakdown->slice(6)->sum('total');
+
+        if ($remainingTotal > 0) {
+            $visibleItems->push([
+                'label' => 'أخرى',
+                'total' => $remainingTotal,
+            ]);
+        }
+
+        return [
+            'labels' => $visibleItems->pluck('label')->all(),
+            'data' => $visibleItems->pluck('total')->map(fn ($total) => (int) $total)->all(),
+        ];
+    }
+
+    protected function resolveOrderStatusLabel(string $status): string
+    {
+        return match ($status) {
+            OrderEnum::New->value => 'جديد',
+            OrderEnum::UnderProcess->value => 'تحت الإجراء',
+            OrderEnum::Contracted->value => 'تم التعاقد',
+            OrderEnum::ContractedWithoutContract->value => 'تم التعاقد بدون عقد',
+            OrderEnum::Completed->value, OrderEnum::Done->value => 'مكتملة',
+            OrderEnum::Refused->value => 'مرفوضة',
+            OrderEnum::Return->value => 'استرجاع',
+            OrderEnum::CanceledBySystem->value => 'ملغاة آلياً',
+            default => $status,
+        };
     }
 
     public function create()

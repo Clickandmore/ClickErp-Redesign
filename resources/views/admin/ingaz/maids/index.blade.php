@@ -293,7 +293,8 @@
                                 <select id="filter-office" class="form-select filter-trigger">
                                     <option value="">{{ helperTrans('ingaz.all') }}</option>
                                     @foreach ($filters['offices'] as $office)
-                                        <option value="{{ $office->id }}">
+                                        <option value="{{ $office->id }}"
+                                            {{ (string) request('office_id') === (string) $office->id ? 'selected' : '' }}>
                                             {{ $office->title ?? '-' }}</option>
                                     @endforeach
                                 </select>

@@ -29,7 +29,8 @@ Route::group(
         //--------------------------------------------------------
         Route::get('dashboard', 'admin\\DashboardController@index')->name('dashboard.index')->middleware('admin');
         Route::get('dashboard-pro', 'admin\\DashboardController@professional')->name('dashboard.professional')->middleware('admin');
-Route::get('dashboard-old', 'admin\\DashboardController@indexOld')->name('dashboard.old')->middleware('admin');
+        Route::get('dashboard-old', 'admin\\DashboardController@indexOld')->name('dashboard.old')->middleware('admin');
+        Route::get('dashboard/employees/{employee}', 'admin\\DashboardController@employeeShow')->name('dashboard.employees.show')->middleware('admin');
 //        Route::get('/', 'admin\\auth\AdminController@formLogin')->name("admin.form.login");
         Route::group(["namespace" => "admin\\auth",'prefix' =>"dashboard"], function () {
             Route::get('login', 'AdminController@formLogin')->name("admin.form.login");

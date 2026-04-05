@@ -1,7 +1,7 @@
 @extends('admin.layout.indexs.index')
 
 @section('style')
-    <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=10">
+    <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=12">
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css' rel='stylesheet' />
 @endsection
 
@@ -150,7 +150,7 @@
         $warrantyActive = $insights['warranty_active'] ?? ($contractsStats['underWarranty'] ?? 0);
         $ticketsReady = $insights['tickets_ready'] ?? ($statusCounts[\App\Enums\ingaz\ContractStatusEnum::Tazker->value] ?? 0);
         $returnedContracts = $insights['returned'] ?? ($statusCounts[\App\Enums\ingaz\ContractStatusEnum::Back->value] ?? 0);
-        $completedContracts = $insights['completed'] ?? ($contractsStats['completed'] ?? 0);
+        $completedContractsCount = $insights['completed'] ?? ($contractsStats['completed'] ?? 0);
 
         $operationsHighlights = [
             [
@@ -184,7 +184,7 @@
                 'title' => 'عقود منتهية',
                 'subtitle' => 'أقدم من عامين',
                 'value' => $expiredLongTerm,
-                'meta' => 'ضمان ' . number_format($warrantyActive) . ' | مكتملة ' . number_format($completedContracts) . ' | مرتجع ' . number_format($returnedContracts),
+                'meta' => 'ضمان ' . number_format($warrantyActive) . ' | مكتملة ' . number_format($completedContractsCount) . ' | مرتجع ' . number_format($returnedContracts),
                 'video' => asset('admin/assets/img/new-dashboard/ended-contracted.webm'),
                 'icon' => 'fas fa-hourglass-end',
                 'link' => route('RecruitmentContract.index', ['status' => \App\Enums\ingaz\ContractStatusEnum::Completed->value]),
@@ -246,7 +246,7 @@
             [
                 'title' => 'عقود مكتملة',
                 'subtitle' => 'محصلة نهائية',
-                'value' => $completedContracts,
+                'value' => $completedContractsCount,
                 'icon' => 'fas fa-check-circle',
                 'color' => 'var(--success)',
                 'link' => route('RecruitmentContract.index', ['status' => \App\Enums\ingaz\ContractStatusEnum::Completed->value]),
@@ -404,106 +404,277 @@
         </div>
     </div>
 
-    @php $contractsLast12Total = array_sum($newContracts ?? []); @endphp
+    @php
+        $analyticsStats = $contractAnalyticsStats ?? [];
+        $analyticsPipeline = $contractAnalyticsPipeline ?? [];
+        $analyticsStatusCounts = $contractAnalyticsStatusBreakdown ?? [];
+        $threeYearSeries = collect($contractsYearSeries ?? []);
+        $currentYearSeries = $threeYearSeries->last();
+        $contractsThreeYearsDisplayedTotal = $contractsThreeYearsTotal ?? (int) $threeYearSeries->sum('total');
+        $professionStats = collect($contractProfessionStats ?? []);
+        $professionSummary = $contractProfessionSummary ?? [];
+        $contractOverviewCards = [
+            [
+                'label' => 'إجمالي العقود',
+                'value' => $analyticsStats['total'] ?? 0,
+                'meta' => ($contractFiltersApplied ?? false) ? 'العقود المطابقة للفلاتر الحالية' : 'جميع العقود المسجلة',
+                'color' => 'var(--dash-chart-1)',
+            ],
+            [
+                'label' => 'عقود سنة ' . ($currentYearSeries['year'] ?? now()->year),
+                'value' => $currentYearSeries['total'] ?? 0,
+                'meta' => 'إجمالي العقود خلال السنة الحالية في الرسم',
+                'color' => 'var(--dash-chart-2)',
+            ],
+            [
+                'label' => 'عقود هذا الشهر',
+                'value' => $analyticsStats['thisMonth'] ?? 0,
+                'meta' => 'العقود الجديدة خلال الشهر الحالي',
+                'color' => 'var(--success)',
+            ],
+            [
+                'label' => 'عقود مكتملة',
+                'value' => $analyticsStats['completed'] ?? 0,
+                'meta' => 'العقود التي أغلقت بنجاح',
+                'color' => 'var(--warning)',
+            ],
+        ];
+        $contractStageRows = [
+            [
+                'label' => 'بانتظار الاعتماد',
+                'value' => $analyticsStatusCounts[\App\Enums\ingaz\ContractStatusEnum::New->value] ?? ($analyticsPipeline['pre_arrival'] ?? 0),
+                'meta' => 'قبل الوصول',
+                'color' => 'var(--dash-chart-1)',
+            ],
+            [
+                'label' => 'مرحلة الوصول اليوم',
+                'value' => $analyticsPipeline['arrival_stage'] ?? 0,
+                'meta' => 'تذاكر مؤكدة في الطريق',
+                'color' => 'var(--dash-chart-2)',
+            ],
+            [
+                'label' => 'تحت الضمان',
+                'value' => $analyticsPipeline['under_warranty'] ?? 0,
+                'meta' => 'آخر 90 يوماً',
+                'color' => 'var(--warning)',
+            ],
+            [
+                'label' => 'مكتمل',
+                'value' => $analyticsPipeline['completed'] ?? 0,
+                'meta' => 'تم إغلاقه',
+                'color' => 'var(--success)',
+            ],
+            [
+                'label' => 'متأخر بالوصول',
+                'value' => $analyticsPipeline['delayed_arrival'] ?? 0,
+                'meta' => 'تجاوز 60 يوماً بلا تذكرة',
+                'color' => 'var(--dash-chart-5)',
+            ],
+            [
+                'label' => 'عقود منتهية (> سنتين)',
+                'value' => $analyticsPipeline['expired_over_2y'] ?? 0,
+                'meta' => 'مراجعة أرشيفية',
+                'color' => 'var(--danger)',
+            ],
+        ];
+        $contractStagesRawTotal = array_reduce($contractStageRows, function ($carry, $row) {
+            return $carry + ($row['value'] ?? 0);
+        }, 0);
+        $contractStagesTotal = max(1, $contractStagesRawTotal);
+        $professionPalette = [
+            'var(--dash-chart-1)',
+            'var(--dash-chart-2)',
+            'var(--dash-chart-3)',
+            'var(--dash-chart-4)',
+            'var(--dash-chart-5)',
+            'var(--success)',
+            'var(--warning)',
+        ];
+    @endphp
 
-    <div class="surface-card mt-3">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">اجمالي العقود</h5>
-            <small class="text-muted">إجمالي آخر 12 شهر: {{ number_format($contractsLast12Total) }} عقد</small>
+    <div id="contracts-overview" class="surface-card mt-3 contracts-overview-section">
+        <div class="contract-section-header">
+            <div class="contract-section-heading">
+                <p class="section-eyebrow">العقود</p>
+                <h4 class="mb-0">إجمالي العقود</h4>
+                <small>عرض تحليلي لآخر 3 سنوات مع فلترة مباشرة حسب الجنسية والمهنة.</small>
+            </div>
+            <div class="contract-section-summary">
+                <span class="contract-summary-pill">آخر 3 سنوات: {{ number_format($contractsThreeYearsDisplayedTotal) }} عقد</span>
+                <span class="contract-summary-pill">عقود اليوم: {{ number_format($analyticsStats['today'] ?? 0) }}</span>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="row g-3 align-items-stretch">
-                <div class="col-lg-8">
-                    <div style="height: 260px;">
+        <div class="contract-section-body">
+            <form class="contract-filter-form" method="GET" action="{{ route('dashboard.index') }}#contracts-overview">
+                <div class="contract-filter-grid">
+                    <label class="contract-filter-field">
+                        <span>الجنسية</span>
+                        <select name="contract_nationality_id">
+                            <option value="">كل الجنسيات</option>
+                            @foreach ($contractNationalityOptions ?? [] as $nationalityOption)
+                                <option value="{{ $nationalityOption['id'] }}"
+                                    {{ (int) ($selectedContractNationalityId ?? 0) === (int) $nationalityOption['id'] ? 'selected' : '' }}>
+                                    {{ $nationalityOption['title'] }} ({{ number_format($nationalityOption['total']) }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </label>
+
+                    <label class="contract-filter-field">
+                        <span>المهنة</span>
+                        <select name="contract_profession_id">
+                            <option value="">كل المهن</option>
+                            @foreach ($contractProfessionOptions ?? [] as $professionOption)
+                                <option value="{{ $professionOption['id'] }}"
+                                    {{ (int) ($selectedContractProfessionId ?? 0) === (int) $professionOption['id'] ? 'selected' : '' }}>
+                                    {{ $professionOption['title'] }} ({{ number_format($professionOption['total']) }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </label>
+
+                    <div class="contract-filter-actions">
+                        <button type="submit" class="btn btn-primary">تطبيق الفلترة</button>
+                        <a href="{{ route('dashboard.index') }}#contracts-overview" class="btn btn-outline-secondary">إعادة الضبط</a>
+                    </div>
+                </div>
+
+                @if ($contractFiltersApplied ?? false)
+                    <div class="contract-active-filters">
+                        <span class="contract-summary-pill">الفلاتر النشطة</span>
+                        @if (!empty($selectedContractNationalityTitle))
+                            <span class="contract-summary-pill">الجنسية: {{ $selectedContractNationalityTitle }}</span>
+                        @endif
+                        @if (!empty($selectedContractProfessionTitle))
+                            <span class="contract-summary-pill">المهنة: {{ $selectedContractProfessionTitle }}</span>
+                        @endif
+                        <span class="contract-summary-pill">النتائج: {{ number_format($analyticsStats['total'] ?? 0) }} عقد</span>
+                    </div>
+                @endif
+            </form>
+
+            <div class="contracts-kpi-grid">
+                @foreach ($contractOverviewCards as $overviewCard)
+                    <div class="contract-kpi-card" style="--contract-kpi-accent: {{ $overviewCard['color'] }};">
+                        <small>{{ $overviewCard['label'] }}</small>
+                        <strong>{{ number_format($overviewCard['value']) }}</strong>
+                        <span>{{ $overviewCard['meta'] }}</span>
+                    </div>
+                @endforeach
+            </div>
+
+            <div class="contracts-layout-grid">
+                <div class="contracts-chart-panel">
+                    <div class="contracts-chart-head">
+                        <div>
+                            <strong>حركة العقود خلال 3 سنوات</strong>
+                            <small>كل سنة تظهر بلون مختلف لتسهيل المقارنة الشهرية.</small>
+                        </div>
+                        <span class="contract-summary-pill">هذا الأسبوع: {{ number_format($analyticsStats['thisWeek'] ?? 0) }}</span>
+                    </div>
+                    <div class="contracts-chart-wrap">
                         <canvas id="contractsChart"></canvas>
                     </div>
                 </div>
-                <div class="col-lg-4">
-                    @php
-                        $contractStageRows = [
-                            [
-                                'label' => 'بانتظار الاعتماد',
-                                'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::New->value] ?? ($contractsPipeline['pre_arrival'] ?? 0),
-                                'meta' => 'قبل الوصول',
-                                'color' => 'var(--dash-chart-1)'
-                            ],
-                            [
-                                'label' => 'مرحلة الوصول اليوم',
-                                'value' => $contractsPipeline['arrival_stage'] ?? 0,
-                                'meta' => 'تذاكر مؤكدة في الطريق',
-                                'color' => 'var(--dash-chart-2)'
-                            ],
-                            [
-                                'label' => 'تحت الضمان',
-                                'value' => $contractsPipeline['under_warranty'] ?? 0,
-                                'meta' => 'آخر 90 يوماً',
-                                'color' => 'var(--warning)'
-                            ],
-                            [
-                                'label' => 'مكتمل',
-                                'value' => $contractsPipeline['completed'] ?? 0,
-                                'meta' => 'تم إغلاقه',
-                                'color' => 'var(--success)'
-                            ],
-                            [
-                                'label' => 'متأخر بالوصول',
-                                'value' => $contractsPipeline['delayed_arrival'] ?? 0,
-                                'meta' => 'تجاوز 60 يوماً بلا تذكرة',
-                                'color' => 'var(--dash-chart-5)'
-                            ],
-                            [
-                                'label' => 'عقود منتهية (> سنتين)',
-                                'value' => $contractsPipeline['expired_over_2y'] ?? 0,
-                                'meta' => 'مراجعة أرشيفية',
-                                'color' => 'var(--danger)'
-                            ],
-                        ];
-                        $contractStagesRawTotal = array_reduce($contractStageRows, function ($carry, $row) {
-                            return $carry + ($row['value'] ?? 0);
-                        }, 0);
-                        $contractStagesTotal = max(1, $contractStagesRawTotal);
-                    @endphp
-                    <div class="contract-stage-panel h-100 d-flex flex-column">
-                        <div class="contract-stage-head">
-                            <div class="contract-stage-heading">
-                                <strong>مراحل العقود</strong>
-                                <small>متابعة مباشرة لتدفق العقود حسب المرحلة</small>
-                            </div>
-                            <div class="contract-stage-total">
-                                <small>الإجمالي</small>
-                                <strong>{{ number_format($contractStagesRawTotal) }}</strong>
-                            </div>
+
+                <div class="contract-stage-panel">
+                    <div class="contract-stage-head">
+                        <div class="contract-stage-heading">
+                            <strong>مراحل العقود</strong>
+                            <small>متابعة مباشرة لتدفق العقود حسب المرحلة</small>
                         </div>
-                        <a href="{{ url('dashboard/contracts') }}" class="contract-stage-link">عرض جميع العقود</a>
-                        <div class="contract-stages mt-3 flex-grow-1">
-                            @foreach ($contractStageRows as $stage)
-                                @php
-                                    $stageWidth = $contractStagesTotal ? round(($stage['value'] / $contractStagesTotal) * 100) : 0;
-                                @endphp
-                                <div class="contract-stage-row">
-                                    <header>
-                                        <div class="contract-stage-title">
-                                            <span class="stage-dot" style="background: {{ $stage['color'] }};"></span>
-                                            <strong>{{ $stage['label'] }}</strong>
-                                        </div>
-                                        <span class="contract-stage-value">{{ number_format($stage['value']) }}</span>
-                                    </header>
-                                    <div class="contract-stage-meta">
-                                        @if (!empty($stage['meta']))
-                                            <small>{{ $stage['meta'] }}</small>
-                                        @else
-                                            <small>بدون وصف إضافي</small>
-                                        @endif
-                                        <small>{{ $stageWidth }}%</small>
-                                    </div>
-                                    <div class="stage-progress">
-                                        <span style="width: {{ $stageWidth }}%; background: {{ $stage['color'] }};"></span>
-                                    </div>
-                                </div>
-                            @endforeach
+                        <div class="contract-stage-total">
+                            <small>الإجمالي</small>
+                            <strong>{{ number_format($contractStagesRawTotal) }}</strong>
                         </div>
                     </div>
+                    <a href="{{ url('dashboard/contracts') }}" class="contract-stage-link">عرض جميع العقود</a>
+                    <div class="contract-stages mt-3 flex-grow-1">
+                        @foreach ($contractStageRows as $stage)
+                            @php
+                                $stageWidth = $contractStagesTotal ? round(($stage['value'] / $contractStagesTotal) * 100) : 0;
+                            @endphp
+                            <div class="contract-stage-row">
+                                <header>
+                                    <div class="contract-stage-title">
+                                        <span class="stage-dot" style="background: {{ $stage['color'] }};"></span>
+                                        <strong>{{ $stage['label'] }}</strong>
+                                    </div>
+                                    <span class="contract-stage-value">{{ number_format($stage['value']) }}</span>
+                                </header>
+                                <div class="contract-stage-meta">
+                                    @if (!empty($stage['meta']))
+                                        <small>{{ $stage['meta'] }}</small>
+                                    @else
+                                        <small>بدون وصف إضافي</small>
+                                    @endif
+                                    <small>{{ $stageWidth }}%</small>
+                                </div>
+                                <div class="stage-progress">
+                                    <span style="width: {{ $stageWidth }}%; background: {{ $stage['color'] }};"></span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
+            </div>
+
+            <div class="contract-profession-panel">
+                <div class="contract-profession-head">
+                    <div>
+                        <strong>العقود حسب المهنة</strong>
+                        <small>تفصيل العقود المرتبطة بكل مهنة أسفل إجمالي العقود مباشرة.</small>
+                    </div>
+                    <div class="contract-profession-pills">
+                        <span class="contract-profession-pill">المهن المرصودة:
+                            {{ number_format($professionSummary['tracked_professions'] ?? 0) }}</span>
+                        @if (!empty($professionSummary['top_profession']))
+                            <span class="contract-profession-pill">الأعلى:
+                                {{ $professionSummary['top_profession'] }}</span>
+                        @endif
+                        <span class="contract-profession-pill">المعروف:
+                            {{ number_format($professionSummary['known_contracts'] ?? 0) }}</span>
+                        <span class="contract-profession-pill">غير محدد:
+                            {{ number_format($professionSummary['unknown_contracts'] ?? 0) }}</span>
+                    </div>
+                </div>
+
+                @if ($professionStats->count())
+                    <div class="contract-profession-grid">
+                        @foreach ($professionStats as $profession)
+                            @php
+                                $isUnknownProfession = $profession['is_unknown'] ?? false;
+                                $accent = $isUnknownProfession
+                                    ? 'var(--danger)'
+                                    : $professionPalette[$loop->index % count($professionPalette)];
+                                $shareWidth = max(
+                                    min((int) ($profession['share'] ?? 0), 100),
+                                    ((int) ($profession['total'] ?? 0) > 0 ? 6 : 0)
+                                );
+                            @endphp
+                            <div class="contract-profession-card {{ $isUnknownProfession ? 'is-unknown' : '' }}"
+                                style="--profession-accent: {{ $accent }};">
+                                <div class="contract-profession-card-head">
+                                    <span class="contract-profession-icon">
+                                        <i class="fas fa-briefcase"></i>
+                                    </span>
+                                    <span class="contract-profession-share">{{ number_format((int) ($profession['share'] ?? 0)) }}%</span>
+                                </div>
+                                <strong class="contract-profession-name">{{ $profession['profession'] ?? 'غير محدد' }}</strong>
+                                <div class="contract-profession-total">{{ number_format((int) ($profession['total'] ?? 0)) }}</div>
+                                <div class="contract-profession-meta">
+                                    <span>{{ number_format((int) ($profession['total'] ?? 0)) }} عقد</span>
+                                    <span>{{ $isUnknownProfession ? 'تحتاج ربط مهنة' : 'من إجمالي العقود' }}</span>
+                                </div>
+                                <div class="stage-progress contract-profession-progress">
+                                    <span style="width: {{ $shareWidth }}%; background: var(--profession-accent);"></span>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="empty-state py-3">لا توجد بيانات متاحة لعرض العقود حسب المهنة.</div>
+                @endif
             </div>
         </div>
     </div>
@@ -544,23 +715,64 @@
                     </div>
                     <small>{{ count($officeStats ?? []) }} مكتب</small>
                 </div>
-                <div class="d-flex flex-column gap-2" style="max-height: 320px; overflow: auto;">
+                <div class="office-stock-list">
                     @forelse($officeStats ?? [] as $office)
                         @php
-                            $available = $office->maids_available ?? 0;
-                            $total = $office->maids_total ?? 0;
-                            $booked = max($total - $available, 0);
+                            $available = (int) ($office->maids_available ?? 0);
+                            $returned = (int) ($office->maids_returned ?? 0);
+                            $backout = (int) ($office->maids_backout ?? 0);
+                            $total = (int) ($office->maids_total ?? 0);
+                            $other = (int) ($office->maids_other ?? max($total - $available - $returned - $backout, 0));
+                            $avgRecruitmentDays = isset($office->avg_recruitment_days) ? (int) $office->avg_recruitment_days : null;
+                            $arrivalsTotal = (int) ($office->arrivals_total ?? 0);
+                            $nationalityFlagUrl = $office->nationality_flag_url ?? null;
                         @endphp
-                        <div class="p-3 rounded-3"
-                            style="background: var(--surface-muted); border: 1px solid var(--stroke);">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <strong>{{ $office->title ?? 'مكتب' }}</strong>
-                                <span class="badge bg-light text-dark">متاح {{ $available }} /
-                                    {{ $total }}</span>
+                        <a href="{{ route('maids.index', ['office_id' => $office->id]) }}" class="office-stock-card office-stock-link">
+                            <div class="office-stock-head">
+                                <div class="office-stock-heading">
+                                    <strong>{{ $office->title ?? 'مكتب' }}</strong>
+                                    <div class="office-stock-meta">
+                                        <span class="office-stock-pill">إجمالي {{ number_format($total) }}</span>
+                                        @if ($avgRecruitmentDays !== null)
+                                            <span class="office-stock-pill">متوسط الوصول {{ number_format($avgRecruitmentDays) }}
+                                                يوم</span>
+                                        @else
+                                            <span class="office-stock-pill is-muted">متوسط الوصول غير متاح</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <span class="office-stock-total">سير {{ number_format($total) }}</span>
                             </div>
-                            <small class="text-muted d-block mt-1">جنسية: {{ $office->nationality->title ?? 'غير محدد' }}
-                                | حجز: {{ $booked }}</small>
-                        </div>
+
+                            <div class="office-stock-nationality">
+                                @if ($nationalityFlagUrl)
+                                    <img src="{{ $nationalityFlagUrl }}"
+                                        alt="{{ $office->nationality->title ?? 'الجنسية' }}">
+                                @else
+                                    <span class="office-stock-flag-fallback">
+                                        <i class="fas fa-flag"></i>
+                                    </span>
+                                @endif
+                                <span>{{ $office->nationality->title ?? 'غير محدد' }}</span>
+                            </div>
+
+                            <div class="office-stock-stats">
+                                <span class="office-status-pill is-available">متاح {{ number_format($available) }}</span>
+                                <span class="office-status-pill is-returned">مرتجع {{ number_format($returned) }}</span>
+                                <span class="office-status-pill is-backout">باك أوت {{ number_format($backout) }}</span>
+                                @if ($other > 0)
+                                    <span class="office-status-pill is-other">أخرى {{ number_format($other) }}</span>
+                                @endif
+                            </div>
+
+                            <small class="office-stock-foot">
+                                @if ($arrivalsTotal > 0)
+                                    متوسط المدة محسوب من {{ number_format($arrivalsTotal) }} حالة وصول
+                                @else
+                                    لا توجد حالات وصول مكتملة لاحتساب المتوسط
+                                @endif
+                            </small>
+                        </a>
                     @empty
                         <div class="empty-state py-3">لا توجد بيانات مكاتب</div>
                     @endforelse
@@ -633,7 +845,8 @@
                         @endphp
                         <div class="employee-performance-card">
                             <div class="employee-performance-head">
-                                <strong>{{ $emp->name }}</strong>
+                                <a href="{{ route('dashboard.employees.show', $emp->id) }}"
+                                    class="employee-profile-link">{{ $emp->name }}</a>
                                 <span class="employee-total-badge">{{ number_format($handledTotal) }} متابعة</span>
                             </div>
                             <div class="employee-performance-metrics">
@@ -651,6 +864,8 @@
                                 <small>نسبة التعاقد من الحجوزات:
                                     {{ number_format((int) ($emp->conversion_rate ?? 0)) }}%</small>
                                 <div class="employee-performance-actions">
+                                    <a href="{{ route('dashboard.employees.show', $emp->id) }}"
+                                        class="btn btn-primary btn-sm">الملف التحليلي</a>
                                     <a href="{{ route('orders.index', ['admin_id' => $emp->id]) }}"
                                         class="btn btn-outline-primary btn-sm">الحجوزات</a>
                                     <a href="{{ route('RecruitmentContract.index', ['marketer_id' => $emp->id]) }}"
@@ -771,27 +986,29 @@
             const contractsCanvas = document.getElementById('contractsChart');
             if (contractsCanvas) {
                 const contractsCtx = contractsCanvas.getContext('2d');
+                const contractsYearSeries = {!! json_encode($contractsYearSeries ?? []) !!};
+                const contractsYearColors = [chartColor1, chartColor2, successColor];
+
                 new Chart(contractsCtx, {
                     type: 'bar',
                     data: {
-                        labels: {!! json_encode($chartLabels ?? []) !!},
-                        datasets: [{
-                            label: 'عقود جديدة',
-                            data: {!! json_encode($newContracts ?? []) !!},
-                            backgroundColor: toRgba(chartColor1, 0.85),
-                            borderColor: chartColor1,
-                            borderWidth: 2,
-                            borderRadius: 10,
-                            barPercentage: 0.65
-                        }, {
-                            label: 'عقود مكتملة',
-                            data: {!! json_encode($completedContracts ?? []) !!},
-                            backgroundColor: toRgba(successColor, 0.85),
-                            borderColor: successColor,
-                            borderWidth: 2,
-                            borderRadius: 10,
-                            barPercentage: 0.65
-                        }]
+                        labels: {!! json_encode($contractsChartLabels ?? []) !!},
+                        datasets: contractsYearSeries.map((series, index) => {
+                            const color = contractsYearColors[index % contractsYearColors.length];
+
+                            return {
+                                label: series.label,
+                                data: series.data || [],
+                                borderColor: color,
+                                backgroundColor: toRgba(color, 0.82),
+                                borderWidth: 2,
+                                borderRadius: 10,
+                                borderSkipped: false,
+                                maxBarThickness: 26,
+                                categoryPercentage: 0.72,
+                                barPercentage: 0.9
+                            };
+                        })
                     },
                     options: {
                         responsive: true,
@@ -819,6 +1036,9 @@
                             },
                             y: {
                                 beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                },
                                 grid: {
                                     borderDash: [4, 4],
                                     color: 'rgba(15, 23, 42, 0.08)'
