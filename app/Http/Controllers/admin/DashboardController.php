@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\admin;
 
 use Carbon\Carbon;
+use App\Enums\auth\AdminTypes;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Enums\ingaz\OrderEnum;
 use App\Http\Actions\dashboard\DashboardAction as objAction;
@@ -45,51 +46,11 @@ class DashboardController extends Controller
     {
         $now = now();
 
-        // العقود
-        $contractsStats = [
-            'total' => Contract::count(),
-            'completed' => Contract::where('status', ContractStatusEnum::Completed->value)->count(),
-            'pending' => Contract::whereIn('status', ['pending', 'in_progress'])->count(),
-            'underWarranty' => Contract::where('warranty_status', 'active')->count(),
-            'thisMonth' => Contract::whereMonth('created_at', $now->month)->whereYear('created_at', $now->year)->count(),
-            'thisWeek' => Contract::whereBetween('created_at', [$now->startOfWeek(), $now->endOfWeek()])->count(),
-            'today' => Contract::whereDate('created_at', today())->count(),
-        ];
-
-        $todayDate = today();
-
-        $contractsPipeline = [
-            'pre_arrival' => Contract::whereIn('status', [
-                ContractStatusEnum::New->value,
-                ContractStatusEnum::Msaned->value,
-                ContractStatusEnum::Tafwed->value,
-                ContractStatusEnum::Taffez->value,
-                ContractStatusEnum::PendingMaidSelection->value,
-            ])->count(),
-            'arrival_stage' => Contract::whereIn('status', [
-                ContractStatusEnum::Tazker->value,
-                ContractStatusEnum::Arrival->value,
-            ])->whereHas('travelHistory', function ($query) use ($todayDate) {
-                $query->whereDate('arrival_date', $todayDate);
-            })->count(),
-            'under_warranty' => Contract::where('warranty_status', 'active')->count(),
-            'completed' => Contract::where('status', ContractStatusEnum::Completed->value)->count(),
-            'delayed_arrival' => Contract::whereIn('status', [
-                ContractStatusEnum::New->value,
-                ContractStatusEnum::Msaned->value,
-                ContractStatusEnum::Tafwed->value,
-                ContractStatusEnum::Taffez->value,
-                ContractStatusEnum::PendingMaidSelection->value,
-            ])->where('created_at', '<', now()->copy()->subDays(60))->count(),
-            'expired_over_2y' => Contract::where('created_at', '<', now()->copy()->subYears(2))->count(),
-        ];
-
+        // العقود تُحسب لاحقاً اعتماداً على تاريخ العقد الفعلي بدل created_at
+        $contractsStats = [];
+        $contractsPipeline = [];
         $contractsByMonthCurrent = [];
         $contractsByMonthPrevious = [];
-        for ($m = 1; $m <= 12; $m++) {
-            $contractsByMonthCurrent[] = Contract::whereYear('created_at', $now->year)->whereMonth('created_at', $m)->count();
-            $contractsByMonthPrevious[] = Contract::whereYear('created_at', $now->year - 1)->whereMonth('created_at', $m)->count();
-        }
 
         // الطلبات (استقدام)
         $ordersStats = [
@@ -171,7 +132,7 @@ class DashboardController extends Controller
             ->whereNull('latest_travel_histories.deleted_at')
             ->groupBy('latest_travel_histories.order_id');
 
-        $officeStats = Cache::remember('admin_dashboard.office_stats.v2', now()->addMinutes(10), function () use ($latestContractPerMaid, $latestTravelHistoryPerContract) {
+        $officeStats = Cache::remember('admin_dashboard.office_stats.v3', now()->addMinutes(10), function () use ($latestContractPerMaid, $latestTravelHistoryPerContract) {
             return RecruitmentOffices::query()
                 ->with('nationality')
                 ->withCount([
@@ -212,14 +173,16 @@ class DashboardController extends Controller
                 }, 'maids_returned')
                 ->selectSub(function ($query) use ($latestTravelHistoryPerContract) {
                     $query->from('contracts as c')
+                        ->leftJoin('contract_infos as ci', 'ci.contract_id', '=', 'c.id')
                         ->join('maids as m', 'm.id', '=', 'c.maid_id')
                         ->joinSub($latestTravelHistoryPerContract, 'latest_travel_map', function ($join) {
                             $join->on('latest_travel_map.order_id', '=', 'c.id');
                         })
                         ->join('travel_histories as latest_travel', 'latest_travel.id', '=', 'latest_travel_map.latest_id')
-                        ->selectRaw('ROUND(AVG(GREATEST(DATEDIFF(DATE(latest_travel.arrival_date), DATE(c.created_at)), 0)))')
+                        ->selectRaw("ROUND(AVG(GREATEST(DATEDIFF(DATE(latest_travel.arrival_date), DATE(COALESCE(NULLIF(ci.contract_date, '0000-00-00'), NULLIF(c.contract_date, '0000-00-00')))), 0)))")
                         ->whereColumn('m.office_id', 'recruitment_offices.id')
                         ->whereNull('m.deleted_at')
+                        ->whereRaw("COALESCE(NULLIF(ci.contract_date, '0000-00-00'), NULLIF(c.contract_date, '0000-00-00')) IS NOT NULL")
                         ->whereNotNull('latest_travel.arrival_date');
                 }, 'avg_recruitment_days')
                 ->selectSub(function ($query) use ($latestTravelHistoryPerContract) {
@@ -269,12 +232,17 @@ class DashboardController extends Controller
         $contractWeekEnd = $now->copy()->endOfWeek();
         $contractToday = $now->copy()->toDateString();
         $currentYear = (int) $now->year;
+        $contractWeekStartDate = $contractWeekStart->toDateString();
+        $contractWeekEndDate = $contractWeekEnd->toDateString();
 
         $maidPrimaryJobTitle = DB::table('maid_job_titles')
             ->selectRaw('maid_id, MIN(job_title_id) as job_title_id')
             ->groupBy('maid_id');
 
+        $effectiveContractDateExpression = "DATE(COALESCE(NULLIF(ci.contract_date, '0000-00-00'), NULLIF(c.contract_date, '0000-00-00')))";
+
         $contractAnalyticsBaseSource = DB::table('contracts as c')
+            ->leftJoin('contract_infos as ci', 'ci.contract_id', '=', 'c.id')
             ->leftJoin('maids as m', 'm.id', '=', 'c.maid_id')
             ->leftJoinSub($maidPrimaryJobTitle, 'mjt', function ($join) {
                 $join->on('mjt.maid_id', '=', 'c.maid_id');
@@ -283,7 +251,7 @@ class DashboardController extends Controller
                 c.id,
                 c.status,
                 c.warranty_status,
-                c.created_at,
+                ' . $effectiveContractDateExpression . ' as contract_reference_date,
                 COALESCE(c.required_maid_nationality_id, m.nationality_id) as contract_nationality_id,
                 COALESCE(c.required_maid_job_title_id, mjt.job_title_id) as contract_profession_id
             ');
@@ -318,43 +286,114 @@ class DashboardController extends Controller
         ];
         $pendingStatusPlaceholders = implode(', ', array_fill(0, count($contractPendingStatuses), '?'));
         $preArrivalStatusPlaceholders = implode(', ', array_fill(0, count($contractPreArrivalStatuses), '?'));
-        $delayedCutoffForAnalytics = $now->copy()->subDays(60);
-        $expiredCutoffForAnalytics = $now->copy()->subYears(2);
+        $delayedCutoffForAnalytics = $now->copy()->subDays(60)->toDateString();
+        $expiredCutoffForAnalytics = $now->copy()->subYears(2)->toDateString();
 
-        $contractAnalyticsAggregateRow = $applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery())
-            ->selectRaw('COUNT(*) as total')
-            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed_total', [ContractStatusEnum::Completed->value])
-            ->selectRaw("SUM(CASE WHEN status IN ($pendingStatusPlaceholders) THEN 1 ELSE 0 END) as pending_total", $contractPendingStatuses)
-            ->selectRaw('SUM(CASE WHEN warranty_status = ? THEN 1 ELSE 0 END) as under_warranty_total', ['active'])
-            ->selectRaw('SUM(CASE WHEN YEAR(created_at) = ? AND MONTH(created_at) = ? THEN 1 ELSE 0 END) as this_month_total', [$currentYear, $now->month])
-            ->selectRaw('SUM(CASE WHEN created_at BETWEEN ? AND ? THEN 1 ELSE 0 END) as this_week_total', [$contractWeekStart, $contractWeekEnd])
-            ->selectRaw('SUM(CASE WHEN DATE(created_at) = ? THEN 1 ELSE 0 END) as today_total', [$contractToday])
-            ->selectRaw("SUM(CASE WHEN status IN ($preArrivalStatusPlaceholders) THEN 1 ELSE 0 END) as pre_arrival_total", $contractPreArrivalStatuses)
-            ->selectRaw("SUM(CASE WHEN status IN ($preArrivalStatusPlaceholders) AND created_at < ? THEN 1 ELSE 0 END) as delayed_arrival_total", array_merge($contractPreArrivalStatuses, [$delayedCutoffForAnalytics]))
-            ->selectRaw('SUM(CASE WHEN created_at < ? THEN 1 ELSE 0 END) as expired_over_2y_total', [$expiredCutoffForAnalytics])
-            ->first();
+        $buildContractAnalyticsAggregate = function ($query) use (
+            $pendingStatusPlaceholders,
+            $contractPendingStatuses,
+            $currentYear,
+            $now,
+            $contractWeekStartDate,
+            $contractWeekEndDate,
+            $contractToday,
+            $preArrivalStatusPlaceholders,
+            $contractPreArrivalStatuses,
+            $delayedCutoffForAnalytics,
+            $expiredCutoffForAnalytics
+        ) {
+            return $query
+                ->selectRaw('COUNT(*) as total')
+                ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed_total', [ContractStatusEnum::Completed->value])
+                ->selectRaw("SUM(CASE WHEN status IN ($pendingStatusPlaceholders) THEN 1 ELSE 0 END) as pending_total", $contractPendingStatuses)
+                ->selectRaw('SUM(CASE WHEN warranty_status = ? THEN 1 ELSE 0 END) as under_warranty_total', ['active'])
+                ->selectRaw('SUM(CASE WHEN contract_reference_date IS NULL THEN 1 ELSE 0 END) as missing_contract_date_total')
+                ->selectRaw('SUM(CASE WHEN YEAR(contract_reference_date) = ? AND MONTH(contract_reference_date) = ? THEN 1 ELSE 0 END) as this_month_total', [$currentYear, $now->month])
+                ->selectRaw('SUM(CASE WHEN contract_reference_date BETWEEN ? AND ? THEN 1 ELSE 0 END) as this_week_total', [$contractWeekStartDate, $contractWeekEndDate])
+                ->selectRaw('SUM(CASE WHEN contract_reference_date = ? THEN 1 ELSE 0 END) as today_total', [$contractToday])
+                ->selectRaw("SUM(CASE WHEN status IN ($preArrivalStatusPlaceholders) THEN 1 ELSE 0 END) as pre_arrival_total", $contractPreArrivalStatuses)
+                ->selectRaw("SUM(CASE WHEN status IN ($preArrivalStatusPlaceholders) AND contract_reference_date < ? THEN 1 ELSE 0 END) as delayed_arrival_total", array_merge($contractPreArrivalStatuses, [$delayedCutoffForAnalytics]))
+                ->selectRaw('SUM(CASE WHEN contract_reference_date < ? THEN 1 ELSE 0 END) as expired_over_2y_total', [$expiredCutoffForAnalytics])
+                ->first();
+        };
 
-        $contractAnalyticsArrivalSource = DB::query()
-            ->fromSub($contractAnalyticsBaseSource, 'contract_analytics')
-            ->leftJoinSub($latestTravelHistoryPerContract, 'latest_travel_map', function ($join) {
-                $join->on('latest_travel_map.order_id', '=', 'contract_analytics.id');
-            })
-            ->leftJoin('travel_histories as latest_travel', 'latest_travel.id', '=', 'latest_travel_map.latest_id')
-            ->selectRaw('contract_analytics.*, DATE(latest_travel.arrival_date) as arrival_date');
+        $buildContractArrivalStageCount = function (bool $applyFilters = true) use (
+            $contractAnalyticsBaseSource,
+            $latestTravelHistoryPerContract,
+            $applyContractAnalyticsBaseFilters,
+            $contractArrivalStatuses,
+            $contractToday
+        ) {
+            $contractAnalyticsArrivalSource = DB::query()
+                ->fromSub($contractAnalyticsBaseSource, 'contract_analytics')
+                ->leftJoinSub($latestTravelHistoryPerContract, 'latest_travel_map', function ($join) {
+                    $join->on('latest_travel_map.order_id', '=', 'contract_analytics.id');
+                })
+                ->leftJoin('travel_histories as latest_travel', 'latest_travel.id', '=', 'latest_travel_map.latest_id')
+                ->selectRaw('contract_analytics.*, DATE(latest_travel.arrival_date) as arrival_date');
 
-        $arrivalStageCount = $applyContractAnalyticsBaseFilters(
-            DB::query()->fromSub($contractAnalyticsArrivalSource, 'contract_analytics_arrival'),
-            'contract_analytics_arrival'
-        )
-            ->whereIn('contract_analytics_arrival.status', $contractArrivalStatuses)
-            ->whereDate('contract_analytics_arrival.arrival_date', $contractToday)
-            ->count();
+            $arrivalQuery = DB::query()->fromSub($contractAnalyticsArrivalSource, 'contract_analytics_arrival');
+
+            if ($applyFilters) {
+                $arrivalQuery = $applyContractAnalyticsBaseFilters(
+                    $arrivalQuery,
+                    'contract_analytics_arrival'
+                );
+            }
+
+            return $arrivalQuery
+                ->whereIn('contract_analytics_arrival.status', $contractArrivalStatuses)
+                ->whereDate('contract_analytics_arrival.arrival_date', $contractToday)
+                ->count();
+        };
+
+        $globalContractAnalyticsAggregateRow = $buildContractAnalyticsAggregate($contractAnalyticsBaseQuery());
+        $contractAnalyticsAggregateRow = $buildContractAnalyticsAggregate($applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery()));
+
+        $globalArrivalStageCount = $buildContractArrivalStageCount(false);
+        $arrivalStageCount = $buildContractArrivalStageCount();
+
+        $contractsStats = [
+            'total' => (int) ($globalContractAnalyticsAggregateRow->total ?? 0),
+            'completed' => (int) ($globalContractAnalyticsAggregateRow->completed_total ?? 0),
+            'pending' => (int) ($globalContractAnalyticsAggregateRow->pending_total ?? 0),
+            'underWarranty' => (int) ($globalContractAnalyticsAggregateRow->under_warranty_total ?? 0),
+            'missingContractDate' => (int) ($globalContractAnalyticsAggregateRow->missing_contract_date_total ?? 0),
+            'thisMonth' => (int) ($globalContractAnalyticsAggregateRow->this_month_total ?? 0),
+            'thisWeek' => (int) ($globalContractAnalyticsAggregateRow->this_week_total ?? 0),
+            'today' => (int) ($globalContractAnalyticsAggregateRow->today_total ?? 0),
+        ];
+
+        $contractsPipeline = [
+            'pre_arrival' => (int) ($globalContractAnalyticsAggregateRow->pre_arrival_total ?? 0),
+            'arrival_stage' => (int) $globalArrivalStageCount,
+            'under_warranty' => (int) ($globalContractAnalyticsAggregateRow->under_warranty_total ?? 0),
+            'completed' => (int) ($globalContractAnalyticsAggregateRow->completed_total ?? 0),
+            'delayed_arrival' => (int) ($globalContractAnalyticsAggregateRow->delayed_arrival_total ?? 0),
+            'expired_over_2y' => (int) ($globalContractAnalyticsAggregateRow->expired_over_2y_total ?? 0),
+        ];
+
+        $globalContractsYearBuckets = $contractAnalyticsBaseQuery()
+            ->selectRaw('YEAR(contract_reference_date) as year, MONTH(contract_reference_date) as month, COUNT(*) as monthly_total')
+            ->where('contract_reference_date', '>=', \Carbon\Carbon::create($currentYear - 1, 1, 1)->toDateString())
+            ->groupBy('year', 'month')
+            ->get()
+            ->groupBy('year')
+            ->map(function ($rows) {
+                return $rows->keyBy('month');
+            });
+
+        for ($m = 1; $m <= 12; $m++) {
+            $contractsByMonthCurrent[] = (int) optional(optional($globalContractsYearBuckets->get($currentYear))->get($m))->monthly_total;
+            $contractsByMonthPrevious[] = (int) optional(optional($globalContractsYearBuckets->get($currentYear - 1))->get($m))->monthly_total;
+        }
 
         $contractAnalyticsStats = [
             'total' => (int) ($contractAnalyticsAggregateRow->total ?? 0),
             'completed' => (int) ($contractAnalyticsAggregateRow->completed_total ?? 0),
             'pending' => (int) ($contractAnalyticsAggregateRow->pending_total ?? 0),
             'underWarranty' => (int) ($contractAnalyticsAggregateRow->under_warranty_total ?? 0),
+            'missingContractDate' => (int) ($contractAnalyticsAggregateRow->missing_contract_date_total ?? 0),
             'thisMonth' => (int) ($contractAnalyticsAggregateRow->this_month_total ?? 0),
             'thisWeek' => (int) ($contractAnalyticsAggregateRow->this_week_total ?? 0),
             'today' => (int) ($contractAnalyticsAggregateRow->today_total ?? 0),
@@ -384,8 +423,8 @@ class DashboardController extends Controller
         }
 
         $contractsYearBuckets = $applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery())
-            ->selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, COUNT(*) as total')
-            ->where('created_at', '>=', \Carbon\Carbon::create($currentYear - 2, 1, 1)->startOfDay())
+            ->selectRaw('YEAR(contract_reference_date) as year, MONTH(contract_reference_date) as month, COUNT(*) as total')
+            ->where('contract_reference_date', '>=', \Carbon\Carbon::create($currentYear - 2, 1, 1)->toDateString())
             ->groupBy('year', 'month')
             ->orderBy('year')
             ->orderBy('month')
@@ -585,8 +624,14 @@ class DashboardController extends Controller
                 )
             );
 
-        $employeeBookingCache = Cache::remember('admin_dashboard.employee_bookings.v2', now()->addMinutes(5), function () use ($orderStatsByEmployee, $contractStatsByEmployee) {
+        $employeeAnalyticsAdminTypes = [
+            AdminTypes::CustomerService->value,
+            'call_center',
+        ];
+
+        $employeeBookingCache = Cache::remember('admin_dashboard.employee_bookings.v3', now()->addMinutes(5), function () use ($orderStatsByEmployee, $contractStatsByEmployee, $employeeAnalyticsAdminTypes) {
             $employeeBookings = Admin::query()
+                ->whereIn('admins.admin_type', $employeeAnalyticsAdminTypes)
                 ->select('admins.id', 'admins.name')
                 ->leftJoinSub($orderStatsByEmployee, 'order_stats', function ($join) {
                     $join->on('admins.id', '=', 'order_stats.admin_id');
@@ -641,18 +686,26 @@ class DashboardController extends Controller
 
         // الموظفون
         try {
-            $totalEmployees = Admin::count();
-            $activeEmployees = Admin::whereNull('deleted_at')->count();
+            $employeeStatsBaseQuery = Admin::query()
+                ->whereIn('admin_type', $employeeAnalyticsAdminTypes);
 
-            $salesCount = Admin::whereHas('roles', function ($q) {
+            $totalEmployees = (clone $employeeStatsBaseQuery)->count();
+            $activeEmployees = (clone $employeeStatsBaseQuery)
+                ->where(function ($query) {
+                    $query->whereNull('status')
+                        ->orWhere('status', 'active');
+                })
+                ->count();
+
+            $salesCount = (clone $employeeStatsBaseQuery)->whereHas('roles', function ($q) {
                 $q->where('name', 'sales');
             })->count();
 
-            $supportCount = Admin::whereHas('roles', function ($q) {
+            $supportCount = (clone $employeeStatsBaseQuery)->whereHas('roles', function ($q) {
                 $q->where('name', 'support');
             })->count();
 
-            $adminCount = Admin::whereHas('roles', function ($q) {
+            $adminCount = (clone $employeeStatsBaseQuery)->whereHas('roles', function ($q) {
                 $q->where('name', 'admin');
             })->count();
         } catch (\Exception $e) {
@@ -724,16 +777,7 @@ class DashboardController extends Controller
             ->toArray();
 
         $arrivalTodayCount = $contractsPipeline['arrival_stage'] ?? 0;
-
-        $delayedCutoff = now()->copy()->subDays(60);
-
-        $delayedWithoutTickets = Contract::whereIn('status', [
-            ContractStatusEnum::New->value,
-            ContractStatusEnum::Msaned->value,
-            ContractStatusEnum::Tafwed->value,
-            ContractStatusEnum::Taffez->value,
-            ContractStatusEnum::PendingMaidSelection->value,
-        ])->where('created_at', '<', $delayedCutoff)->count();
+        $delayedWithoutTickets = $contractsPipeline['delayed_arrival'] ?? 0;
 
         $operationsInsights = [
             'arrival_today' => $arrivalTodayCount,
@@ -1029,7 +1073,7 @@ class DashboardController extends Controller
         $endDate = $request->filled('to_date')
             ? Carbon::parse($request->query('to_date'))->endOfDay()
             : null;
-        $selectedRangeKey = (string) $request->query('range', '90d');
+        $selectedRangeKey = (string) $request->query('range', 'all');
 
         if ($startDate || $endDate) {
             $selectedRangeKey = 'custom';
@@ -1056,9 +1100,12 @@ class DashboardController extends Controller
                     $endDate = $now->copy()->endOfDay();
                     break;
                 case '90d':
-                default:
-                    $selectedRangeKey = '90d';
                     $startDate = $now->copy()->subDays(89)->startOfDay();
+                    $endDate = $now->copy()->endOfDay();
+                    break;
+                default:
+                    $selectedRangeKey = 'all';
+                    $startDate = $firstActivityAt?->copy()->startOfMonth() ?: $now->copy()->subMonths(5)->startOfMonth();
                     $endDate = $now->copy()->endOfDay();
                     break;
             }

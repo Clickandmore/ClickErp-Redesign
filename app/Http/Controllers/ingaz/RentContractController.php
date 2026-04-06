@@ -74,6 +74,12 @@ class RentContractController extends Controller
                 $query->where('marketer_id', $request->marketer_id);
             }
 
+            if ($request->filled('request_type')) {
+                $query->whereHas('maid', function ($q) use ($request) {
+                    $q->ofRequestType($request->request_type);
+                });
+            }
+
             $contracts = $query->latest();
 
             return DataTables::eloquent($contracts)
@@ -99,7 +105,8 @@ class RentContractController extends Controller
                                     <img src="' . $row->maid->photo_url . '" class="rounded-circle me-2" width="40" height="40">
                                     <div>
                                         <div class="fw-bold">' . $row->maid->name . '</div>
-                                        <small class="text-muted">' . $row->maid->passport_num . '</small>
+                                        <small class="text-muted d-block">' . $row->maid->passport_num . '</small>
+                                        <small class="text-muted d-block">' . helperTrans('ingaz.request_type') . ': ' . e($row->maid->request_type_label) . '</small>
                                     </div>
                                 </div>';
                     }

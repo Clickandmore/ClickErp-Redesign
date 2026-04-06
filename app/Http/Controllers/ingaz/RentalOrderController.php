@@ -109,6 +109,12 @@ class RentalOrderController extends Controller
                 });
             }
 
+            if ($request->filled('request_type')) {
+                $query->whereHas('maid', function ($q) use ($request) {
+                    $q->ofRequestType($request->request_type);
+                });
+            }
+
             // Apply timer status filter
             if ($request->filled('timer_status')) {
                 $query->where(function($q) use ($request) {
@@ -157,7 +163,14 @@ class RentalOrderController extends Controller
                     return ($row->maid) ? @$row->maid->nationality->sub_title : '';
                 })
                 ->editColumn('maid_passport_num', function ($row) {
-                    return ($row->maid) ? @$row->maid->passport_num : '';
+                    if (!$row->maid) {
+                        return '';
+                    }
+
+                    return '<div class="d-flex flex-column gap-1">'
+                        . '<span>' . e($row->maid->passport_num) . '</span>'
+                        . '<small class="text-muted">' . helperTrans('ingaz.request_type') . ': ' . e($row->maid->request_type_label) . '</small>'
+                        . '</div>';
                 })
                 ->editColumn('deliver_status', function ($row) {
                     if (@$row->details->deliver_maid == '1') {

@@ -140,6 +140,9 @@
                                 <span><i
                                         class="fas fa-building me-1"></i>{{ $maid->office?->title ?? helperTrans('ingaz.not_specified') }}</span>
                                 <span><i
+                                        class="fas fa-diagram-project me-1"></i>{{ helperTrans('ingaz.request_type') }}:
+                                    {{ $maid->request_type_label }}</span>
+                                <span><i
                                         class="fas fa-user-tie me-1"></i>{{ helperTrans('ingaz.added_by') }}:
                                     {{ $maid->addedBy?->name ?? helperTrans('ingaz.not_specified') }}</span>
                                 <span><i
@@ -303,6 +306,10 @@
                                     <div class="text-muted small">{{ helperTrans('ingaz.office') }}</div>
                                     <div class="fw-semibold">
                                         {{ $maid->office?->title ?? helperTrans('ingaz.not_specified') }}</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="text-muted small">{{ helperTrans('ingaz.request_type') }}</div>
+                                    <div class="fw-semibold">{{ $maid->request_type_label }}</div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="text-muted small">{{ helperTrans('web.salary') }}</div>

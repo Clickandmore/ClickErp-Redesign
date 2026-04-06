@@ -532,6 +532,15 @@
                                 @endif
                             </select>
                         </div>
+                        <div class="col-md-3">
+                            <label for="requestTypeFilter" class="form-label">{{ helperTrans('ingaz.request_type') }}:</label>
+                            <select id="requestTypeFilter" class="form-select">
+                                <option value="">{{ helperTrans('ingaz.all') }}</option>
+                                @foreach (\App\Models\ingaz\Maid::getRequestTypeOptions() as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                         <div class="col-md-3" style="display: none;">
                             <label for="warrantyStatusFilter" class="form-label">حالة الضمان:</label>
                             <select id="warrantyStatusFilter" class="form-select">
@@ -1075,6 +1084,7 @@
                         d.nationality = $('#nationalityFilter').val();
                         d.religion = $('#religionFilter').val();
                         d.office_id = $('#officeFilter').val();
+                        d.request_type = $('#requestTypeFilter').val();
                         d.city = $('#cityFilter').val();
                         d.marketer_id = $('#marketerFilter').val(); // Add marketer filter
 
@@ -1218,7 +1228,7 @@
             });
 
             // تحديث الجدول عند تغيير فلاتر البحث
-            $('#globalSearchFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #cityFilter, #marketerFilter')
+            $('#globalSearchFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #requestTypeFilter, #cityFilter, #marketerFilter')
                 .on('change', function() {
                     // لا تحدث الجدول تلقائياً - انتظر زر البحث
                 });
@@ -1239,7 +1249,7 @@
 
             // مسح الفلاتر
             $('#clearFilters').on('click', function() {
-                $('#globalSearchFilter, #statusFilter, #warrantyStatusFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #cityFilter, #marketerFilter')
+                $('#globalSearchFilter, #statusFilter, #warrantyStatusFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #requestTypeFilter, #cityFilter, #marketerFilter')
                     .val('');
                 $('#dateFromFilter, #dateToFilter').val('');
                 localStorage.removeItem('contractFilters'); // مسح الفلاتر المحفوظة
@@ -1264,7 +1274,7 @@
                     $('#clientPhoneFilter').val() || $('#clientNameFilter').val() ||
                     $('#maidPassportFilter').val() || $('#maidNameFilter').val() ||
                     $('#contractNumberFilter').val() || $('#nationalityFilter').val() ||
-                    $('#religionFilter').val() || $('#officeFilter').val() || $('#cityFilter').val() ||
+                    $('#religionFilter').val() || $('#officeFilter').val() || $('#requestTypeFilter').val() || $('#cityFilter').val() ||
                     $('#marketerFilter').val();
 
                 console.log('DataTable XHR completed:', {
@@ -1328,6 +1338,7 @@
                         nationality: $('#nationalityFilter').val(),
                         religion: $('#religionFilter').val(),
                         office_id: $('#officeFilter').val(),
+                        request_type: $('#requestTypeFilter').val(),
                         city: $('#cityFilter').val(),
                         marketer_id: $('#marketerFilter').val()
                     },
@@ -1361,6 +1372,7 @@
                     contractNumber: $('#contractNumberFilter').val(),
                     nationality: $('#nationalityFilter').val(),
                     religion: $('#religionFilter').val(),
+                    requestType: $('#requestTypeFilter').val(),
                     city: $('#cityFilter').val(),
                     dateFrom: $('#dateFromFilter').val(),
                     dateTo: $('#dateToFilter').val(),
@@ -1390,6 +1402,7 @@
                     $('#contractNumberFilter').val(filters.contractNumber || '');
                     $('#nationalityFilter').val(filters.nationality || '');
                     $('#religionFilter').val(filters.religion || '');
+                    $('#requestTypeFilter').val(filters.requestType || '');
                     $('#cityFilter').val(filters.city || '');
                     $('#dateFromFilter').val(filters.dateFrom || '');
                     $('#dateToFilter').val(filters.dateTo || '');

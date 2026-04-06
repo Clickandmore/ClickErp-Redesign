@@ -411,6 +411,7 @@
         $threeYearSeries = collect($contractsYearSeries ?? []);
         $currentYearSeries = $threeYearSeries->last();
         $contractsThreeYearsDisplayedTotal = $contractsThreeYearsTotal ?? (int) $threeYearSeries->sum('total');
+        $missingContractDateCount = (int) ($analyticsStats['missingContractDate'] ?? 0);
         $professionStats = collect($contractProfessionStats ?? []);
         $professionSummary = $contractProfessionSummary ?? [];
         $contractOverviewCards = [
@@ -423,13 +424,13 @@
             [
                 'label' => 'عقود سنة ' . ($currentYearSeries['year'] ?? now()->year),
                 'value' => $currentYearSeries['total'] ?? 0,
-                'meta' => 'إجمالي العقود خلال السنة الحالية في الرسم',
+                'meta' => 'بحسب تاريخ العقد فقط',
                 'color' => 'var(--dash-chart-2)',
             ],
             [
                 'label' => 'عقود هذا الشهر',
                 'value' => $analyticsStats['thisMonth'] ?? 0,
-                'meta' => 'العقود الجديدة خلال الشهر الحالي',
+                'meta' => 'بحسب تاريخ العقد فقط',
                 'color' => 'var(--success)',
             ],
             [
@@ -502,6 +503,9 @@
             <div class="contract-section-summary">
                 <span class="contract-summary-pill">آخر 3 سنوات: {{ number_format($contractsThreeYearsDisplayedTotal) }} عقد</span>
                 <span class="contract-summary-pill">عقود اليوم: {{ number_format($analyticsStats['today'] ?? 0) }}</span>
+                @if ($missingContractDateCount > 0)
+                    <span class="contract-summary-pill">بدون تاريخ عقد: {{ number_format($missingContractDateCount) }}</span>
+                @endif
             </div>
         </div>
         <div class="contract-section-body">
@@ -845,7 +849,7 @@
                         @endphp
                         <div class="employee-performance-card">
                             <div class="employee-performance-head">
-                                <a href="{{ route('dashboard.employees.show', $emp->id) }}"
+                                <a href="{{ route('dashboard.employees.show', ['employee' => $emp->id, 'range' => 'all']) }}"
                                     class="employee-profile-link">{{ $emp->name }}</a>
                                 <span class="employee-total-badge">{{ number_format($handledTotal) }} متابعة</span>
                             </div>
@@ -864,7 +868,7 @@
                                 <small>نسبة التعاقد من الحجوزات:
                                     {{ number_format((int) ($emp->conversion_rate ?? 0)) }}%</small>
                                 <div class="employee-performance-actions">
-                                    <a href="{{ route('dashboard.employees.show', $emp->id) }}"
+                                    <a href="{{ route('dashboard.employees.show', ['employee' => $emp->id, 'range' => 'all']) }}"
                                         class="btn btn-primary btn-sm">الملف التحليلي</a>
                                     <a href="{{ route('orders.index', ['admin_id' => $emp->id]) }}"
                                         class="btn btn-outline-primary btn-sm">الحجوزات</a>

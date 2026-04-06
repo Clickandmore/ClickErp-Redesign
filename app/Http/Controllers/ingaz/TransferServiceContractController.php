@@ -23,10 +23,33 @@ class TransferServiceContractController extends Controller
             $query = TransferServiceContract::with([
                 'sponsorshipTransfer',
                 'contract.maid.nationality',
+                'maid',
                 'oldSponsor',
                 'newSponsor',
                 'createdBy'
             ]);
+
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->filled('contract_number')) {
+                $query->where('contract_number', 'like', '%' . $request->contract_number . '%');
+            }
+
+            if ($request->filled('date_from')) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            }
+
+            if ($request->filled('date_to')) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            }
+
+            if ($request->filled('request_type')) {
+                $query->whereHas('maid', function ($q) use ($request) {
+                    $q->ofRequestType($request->request_type);
+                });
+            }
 
             return DataTables::of($query)
                 ->addIndexColumn()
@@ -43,7 +66,14 @@ class TransferServiceContractController extends Controller
                     return $contract->newSponsor ? $contract->newSponsor->name : 'غير محدد';
                 })
                 ->addColumn('maid_name', function($contract) {
-                    return $contract->maid ? $contract->maid->name : 'غير محدد';
+                    if (!$contract->maid) {
+                        return 'غير محدد';
+                    }
+
+                    return '<div class="d-flex flex-column gap-1">'
+                        . '<span>' . e($contract->maid->name) . '</span>'
+                        . '<small class="text-muted">' . helperTrans('ingaz.request_type') . ': ' . e($contract->maid->request_type_label) . '</small>'
+                        . '</div>';
                 })
                 ->addColumn('contract_value', function($contract) {
                     return number_format($contract->contract_value, 2) . ' ريال';
@@ -101,7 +131,7 @@ class TransferServiceContractController extends Controller
 
                     return $actions;
                 })
-                ->rawColumns(['status', 'actions'])
+                ->rawColumns(['maid_name', 'status', 'actions'])
                 ->make(true);
         }
 

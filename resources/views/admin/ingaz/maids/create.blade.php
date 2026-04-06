@@ -123,15 +123,15 @@
                     </div>
                     <div class="col-4">
                         <label for="request_type" class="form-label">{{ helperTrans('ingaz.request_type') }}</label>
+                        @php
+                            $requestType = old('request_type', \App\Models\ingaz\Maid::REQUEST_TYPE_KNOWN);
+                        @endphp
                         <select name="request_type" id="request_type" class="form-control">
-                            <option value="known" {{ old('request_type', 'custom_spec') === 'known' ? 'selected' : '' }}>
-                                {{ helperTrans('ingaz.request_type_known') }}</option>
-                            <option value="specific"
-                                {{ old('request_type', 'custom_spec') === 'specific' ? 'selected' : '' }}>
-                                {{ helperTrans('ingaz.request_type_specific') }}</option>
-                            <option value="custom_spec"
-                                {{ old('request_type', 'custom_spec') === 'custom_spec' ? 'selected' : '' }}>
-                                {{ helperTrans('ingaz.request_type_custom') }}</option>
+                            @foreach (\App\Models\ingaz\Maid::getRequestTypeOptions() as $value => $label)
+                                <option value="{{ $value }}" {{ $requestType === $value ? 'selected' : '' }}>
+                                    {{ $label }}
+                                </option>
+                            @endforeach
                         </select>
                     </div>
 

@@ -186,6 +186,12 @@ class RecruitmentContractController extends Controller
                 });
             }
 
+            if ($request->filled('request_type')) {
+                $query->whereHas('maid', function ($q) use ($request) {
+                    $q->ofRequestType($request->request_type);
+                });
+            }
+
             // فلتر رقم العقد
             if ($request->filled('contract_number')) {
                 $query->where('id', 'like', '%' . $request->contract_number . '%');
@@ -390,6 +396,11 @@ class RecruitmentContractController extends Controller
                                 . '<span><span class="text-secondary">المكتب الخارجي: </span>' . $row->maid->office->title . '</span>'
                                 . '</div>';
                         }
+
+                        $maidInfo .= '<div class="text-muted small d-flex align-items-center gap-2">'
+                            . '<i class="fas fa-diagram-project text-secondary"></i>'
+                            . '<span><span class="text-secondary">نوع الطلب: </span>' . e($row->maid->request_type_label) . '</span>'
+                            . '</div>';
 
                         // Religion
                         if ($row->maid->religion) {
@@ -1260,6 +1271,7 @@ class RecruitmentContractController extends Controller
                 'user_city' => $user->city
             ]);
 
+            $contractData['contract_date'] = $request->contract_date;
             $contract = Contract::create($contractData);
             logger()->info('Contract created:', ['contract' => $contract->toArray()]);
             logger()->info('Contract user data after creation:', [
@@ -1691,6 +1703,7 @@ class RecruitmentContractController extends Controller
             // تحديث حالة العقد
             $contract->update([
                 'status' => $request->status,
+                'contract_date' => $request->contract_date,
                 'marketer_id' => $marketerId,
             ]);
 

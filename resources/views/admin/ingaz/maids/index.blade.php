@@ -279,6 +279,15 @@
                                 </select>
                             </div>
                             <div class="col-xl-2 col-lg-3 col-md-4">
+                                <label class="form-label">{{ helperTrans('ingaz.request_type') }}</label>
+                                <select id="filter-request-type" class="form-select filter-trigger">
+                                    <option value="">{{ helperTrans('ingaz.all') }}</option>
+                                    @foreach ($filters['request_types'] as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-xl-2 col-lg-3 col-md-4">
                                 <label class="form-label">{{ helperTrans('ingaz.nationality_filter') }}</label>
                                 <select id="filter-nationality" class="form-select filter-trigger">
                                     <option value="">{{ helperTrans('ingaz.all') }}</option>
@@ -536,6 +545,7 @@
                         d.keyword = $('#filter-keyword').val();
                         d.status = $('#filter-status').val();
                         d.job_type_id = $('#filter-job-type').val();
+                        d.request_type = $('#filter-request-type').val();
                         d.nationality_id = $('#filter-nationality').val();
                         d.office_id = $('#filter-office').val();
                         d.visibility = $('#filter-visibility').val();

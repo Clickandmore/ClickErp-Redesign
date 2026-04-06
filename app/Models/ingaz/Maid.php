@@ -8,6 +8,7 @@ use App\Models\Contract;
 use App\Models\RecruitmentOffices;
 use Astrotomic\Translatable\Translatable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
@@ -20,6 +21,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Maid extends Model
 {
     use HasFactory, Translatable, LogsActivity, SoftDeletes;
+
+    public const REQUEST_TYPE_KNOWN = 'known';
+    public const REQUEST_TYPE_SPECIFIC = 'specific';
+    public const REQUEST_TYPE_CUSTOM = 'custom_spec';
 
     // Status constants with translations
     const STATUS_AVAILABLE = [
@@ -218,6 +223,36 @@ class Maid extends Model
             return showFile($this->image);
         }
         return asset('images/no-image.png');
+    }
+
+    public static function getRequestTypeOptions(): array
+    {
+        return [
+            self::REQUEST_TYPE_KNOWN => helperTrans('ingaz.request_type_known'),
+            self::REQUEST_TYPE_SPECIFIC => helperTrans('ingaz.request_type_specific'),
+            self::REQUEST_TYPE_CUSTOM => helperTrans('ingaz.request_type_custom'),
+        ];
+    }
+
+    public static function normalizeRequestType(?string $requestType): string
+    {
+        return array_key_exists($requestType, self::getRequestTypeOptions())
+            ? $requestType
+            : self::REQUEST_TYPE_KNOWN;
+    }
+
+    public function scopeOfRequestType(Builder $query, ?string $requestType): Builder
+    {
+        if (!$requestType) {
+            return $query;
+        }
+
+        return $query->where('request_type', self::normalizeRequestType($requestType));
+    }
+
+    public function getRequestTypeLabelAttribute(): string
+    {
+        return self::getRequestTypeOptions()[self::normalizeRequestType($this->request_type)] ?? helperTrans('ingaz.request_type_known');
     }
 
     // public function getCvCodeAttribute(): ?string

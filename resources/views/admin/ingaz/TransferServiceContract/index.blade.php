@@ -143,6 +143,17 @@
                         <input type="date" class="form-control" id="date_to_filter">
                     </div>
                 </div>
+                <div class="col-md-3">
+                    <div class="mb-3">
+                        <label for="request_type_filter" class="form-label">{{ helperTrans('ingaz.request_type') }}</label>
+                        <select class="form-select" id="request_type_filter">
+                            <option value="">{{ helperTrans('ingaz.all') }}</option>
+                            @foreach (\App\Models\ingaz\Maid::getRequestTypeOptions() as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
             </div>
             <div class="row">
                 <div class="col-12">
@@ -218,6 +229,7 @@
                             d.contract_number = $('#contract_number_filter').val();
                             d.date_from = $('#date_from_filter').val();
                             d.date_to = $('#date_to_filter').val();
+                            d.request_type = $('#request_type_filter').val();
                         }
                     },
                     columns: [{
@@ -327,6 +339,7 @@
                 $('#contract_number_filter').val('');
                 $('#date_from_filter').val('');
                 $('#date_to_filter').val('');
+                $('#request_type_filter').val('');
                 contractsTable.ajax.reload();
             });
 

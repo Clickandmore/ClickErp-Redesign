@@ -228,6 +228,15 @@
                         </select>
                     </div>
                     <div class="col-md-3">
+                        <label for="requestTypeFilter" class="form-label">{{ helperTrans('ingaz.request_type') }}:</label>
+                        <select id="requestTypeFilter" class="form-select">
+                            <option value="">{{ helperTrans('ingaz.all') }}</option>
+                            @foreach (\App\Models\ingaz\Maid::getRequestTypeOptions() as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-3">
                         <label for="warrantyStatusFilter" class="form-label">حالة الضمان:</label>
                         <select id="warrantyStatusFilter" class="form-select">
                             <option value="">جميع حالات الضمان</option>
@@ -542,6 +551,7 @@
                         d.date_from = $('#dateFromFilter').val();
                         d.date_to = $('#dateToFilter').val();
                         d.marketer_id = $('#marketerFilter').val();
+                        d.request_type = $('#requestTypeFilter').val();
                     }
                 },
                 columns: [{
@@ -615,7 +625,7 @@
 
             // Clear Filters
             $('#clearFilters').click(function() {
-                $('#statusFilter, #marketerFilter, #warrantyStatusFilter').val('');
+                $('#statusFilter, #marketerFilter, #requestTypeFilter, #warrantyStatusFilter').val('');
                 $('#dateFromFilter, #dateToFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter')
                     .val('');
                 dataTable.ajax.reload();
@@ -633,6 +643,7 @@
                     maid_name: $('#maidNameFilter').val(),
                     contract_number: $('#contractNumberFilter').val(),
                     marketer_id: $('#marketerFilter').val(),
+                    request_type: $('#requestTypeFilter').val(),
                     warranty_status: $('#warrantyStatusFilter').val()
                 });
             });
@@ -1003,4 +1014,3 @@
         });
     </script>
 @endsection
-

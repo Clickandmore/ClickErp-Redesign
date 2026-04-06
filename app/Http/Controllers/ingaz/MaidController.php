@@ -29,7 +29,7 @@ class MaidController extends Controller
 {
 
     public $folderPath = "admin.ingaz.maids";
-    public $postData = ["nationality_id", "expertises", 'experience_status', 'image', 'video', 'childrens_count', 'duration', 'additional_notes', 'video_link', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'percentage', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'create_shelter_contract'];
+    public $postData = ["nationality_id", "expertises", 'experience_status', 'image', 'video', 'childrens_count', 'duration', 'additional_notes', 'video_link', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'percentage', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'create_shelter_contract', 'request_type'];
     public $mainRoute = "maids";
 
     public function __construct()
@@ -73,6 +73,7 @@ class MaidController extends Controller
                 'experience_status',
                 'maid_accommodation_type',
                 'added_by',
+                'request_type',
             ])
             ->orderByDesc('created_at')
             ->orderByDesc('is_pinned');
@@ -107,6 +108,7 @@ class MaidController extends Controller
                     $name = e($row->name ?? helperTrans('ingaz.not_specified'));
                     $passport = e($row->passport_num ?? helperTrans('ingaz.not_specified'));
                     $cvCode = $row->cv_code ? e($row->cv_code) : null;
+                    $requestType = e($row->request_type_label);
 
                     $pinnedBadge = $row->is_pinned
                         ? '<span class="badge bg-warning-subtle text-warning ms-1"><i class="fas fa-thumbtack text-secondary"></i> ' . helperTrans('ingaz.pinned') . '</span>'
@@ -131,6 +133,9 @@ class MaidController extends Controller
                         . '</div>'
                         . '<div class="text-muted text-medium">'
                         . '<i class="fas fa-praying-hands me-1 text-secondary"></i>' . $religion
+                        . '</div>'
+                        . '<div class="text-muted text-medium">'
+                        . '<i class="fas fa-diagram-project me-1 text-secondary"></i>' . helperTrans('ingaz.request_type') . ': ' . $requestType
                         . '</div>'
                         . '</div>'
                         . '</div>';
@@ -292,6 +297,10 @@ class MaidController extends Controller
                     $jobTypesLabel = helperTrans('ingaz.job_types');
                     $offerInfo = '';
                     $today = Carbon::today();
+                    $requestTypeBadge = '<span class="badge bg-light text-dark border d-inline-flex align-items-center gap-2 p-0">'
+                        . '<i class="fas fa-diagram-project text-secondary"></i>'
+                        . '<span>' . helperTrans('ingaz.request_type') . ': </span>' . e($row->request_type_label)
+                        . '</span>';
 
                     if ($row->offer_price !== null) {
                         $startsAt = $row->offer_starts_at;
@@ -348,6 +357,10 @@ class MaidController extends Controller
                         // Job type (Primary)
                         . '<div class="fw-semibold text-dark">'
                         . $jobTypeHtml
+                        . '</div>'
+
+                        . '<div class="d-flex flex-wrap gap-3">'
+                        . $requestTypeBadge
                         . '</div>'
 
                         // Office
@@ -482,6 +495,7 @@ class MaidController extends Controller
             'nationalities' => Nationality::orderByTranslation('sub_title', 'asc')->get(['id']),
             'offices' => $officeAct->getAllOffices(),
             'job_types' => JobType::with('translations')->orderByTranslation('title', 'asc')->get(['id']),
+            'request_types' => objModel::getRequestTypeOptions(),
             'statuses' => [
                 'available' => helperTrans('ingaz.maid_status_available'),
                 'reserved' => helperTrans('ingaz.maid_status_reserved'),
@@ -1668,6 +1682,10 @@ class MaidController extends Controller
             }
         }
 
+        if ($request->filled('request_type')) {
+            $rows->ofRequestType($request->request_type);
+        }
+
         if ($request->filled('pinned')) {
             if ($request->pinned === 'only') {
                 $rows->where('is_pinned', true);
@@ -1845,6 +1863,8 @@ class MaidController extends Controller
             'occupation' => $jobTypeTitle,
             'salary' => $maid->resolved_salary,
             'price' => $maid->resolved_price,
+            'request_type' => $maid->request_type,
+            'request_type_label' => $maid->request_type_label,
             'experience_years' => $maid->experience_years,
             'age' => $maid->age,
             'birth_date' => $maid->birth_date,

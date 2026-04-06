@@ -353,6 +353,15 @@
                                         </select>
                                     </div>
                                     <div class="col-md-2">
+                                        <label class="form-label">{{ helperTrans('ingaz.request_type') }}</label>
+                                        <select class="form-select" name="request_type" id="request_type">
+                                            <option value="">{{ helperTrans('ingaz.all') }}</option>
+                                            @foreach (\App\Models\ingaz\Maid::getRequestTypeOptions() as $value => $label)
+                                                <option value="{{ $value }}">{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
                                         <label class="form-label">{{ helperTrans('ingaz.responsible_employee') }}</label>
                                         <select class="form-select" name="admin_id" id="admin_id">
                                             <option value="">{{ helperTrans('ingaz.all') }}</option>
@@ -683,6 +692,7 @@
                         d.status = $('#status').val() || getUrlParameter('status');
                         d.job_type = $('#job_type').val();
                         d.nationality_id = $('#nationality_id').val();
+                        d.request_type = $('#request_type').val();
                         d.admin_id = $('#admin_id').val() || getUrlParameter('admin_id');
                         d.timer_status = $('#timer_status').val();
                         d.client_name = $('#client_name').val();
