@@ -298,7 +298,7 @@ class OrderController extends Controller
                     return $actions;
                 })
                 ->escapeColumns([])
-                ->rawColumns(['actions', 'status', 'timer', 'user_id', 'phone', 'maid_id', 'deliver_status', 'contract_status', 'order_code', 'created_at', 'admin_name'])
+                ->rawColumns(['actions', 'status', 'timer', 'user_id', 'phone', 'maid_id', 'maid_passport_num', 'deliver_status', 'contract_status', 'order_code', 'created_at', 'admin_name'])
                 ->make(true);
         }
 

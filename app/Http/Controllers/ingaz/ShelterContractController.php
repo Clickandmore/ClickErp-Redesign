@@ -1538,6 +1538,12 @@ class ShelterContractController extends Controller
             }
         }
 
+        if ($request->filled('request_type')) {
+            $rows->whereHas('maid', function ($query) use ($request) {
+                $query->ofRequestType($request->request_type);
+            });
+        }
+
         // فلتر حالة الإجراءات لمرحلة الترحيل
         if ($request->filled('procedure_status')) {
             $procedureStatus = $request->input('procedure_status');
@@ -1785,6 +1791,7 @@ class ShelterContractController extends Controller
                     $html = '<div class="maid-info">';
                     $html .= '<strong>' . htmlspecialchars($maidName) . '</strong><br>';
                     $html .= '<small class="text-muted">جواز: ' . htmlspecialchars($passport) . '</small><br>';
+                    $html .= '<small class="text-muted">نوع الطلب: ' . htmlspecialchars($row->maid->request_type_label) . '</small><br>';
                     $html .= '<small class="text-muted">نوع العمل: ' . htmlspecialchars($jobType) . '</small>';
                     $html .= '</div>';
 

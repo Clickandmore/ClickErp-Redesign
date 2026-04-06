@@ -349,7 +349,8 @@
                     "status=" + $('#status_filter').val() + "&" +
                     "contract_number=" + $('#contract_number_filter').val() + "&" +
                     "date_from=" + $('#date_from_filter').val() + "&" +
-                    "date_to=" + $('#date_to_filter').val();
+                    "date_to=" + $('#date_to_filter').val() + "&" +
+                    "request_type=" + $('#request_type_filter').val();
             });
 
             // تصدير PDF
@@ -358,7 +359,8 @@
                     "status=" + $('#status_filter').val() + "&" +
                     "contract_number=" + $('#contract_number_filter').val() + "&" +
                     "date_from=" + $('#date_from_filter').val() + "&" +
-                    "date_to=" + $('#date_to_filter').val();
+                    "date_to=" + $('#date_to_filter').val() + "&" +
+                    "request_type=" + $('#request_type_filter').val();
             });
 
             // البحث عند الضغط على Enter

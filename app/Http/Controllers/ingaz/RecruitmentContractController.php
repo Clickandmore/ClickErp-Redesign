@@ -2860,6 +2860,12 @@ class RecruitmentContractController extends Controller
             });
         }
 
+        if ($request->filled('request_type')) {
+            $query->whereHas('maid', function ($q) use ($request) {
+                $q->ofRequestType($request->request_type);
+            });
+        }
+
         // فلتر رقم العقد
         if ($request->filled('contract_number')) {
             $query->where('id', 'like', '%' . $request->contract_number . '%');

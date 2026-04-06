@@ -417,6 +417,15 @@
                                         <option value="transfer">نقل خدمات</option>
                                     </select>
                                 </div>
+                                <div class="col-md-3">
+                                    <label for="filterRequestType" class="form-label">{{ helperTrans('ingaz.request_type') }}</label>
+                                    <select id="filterRequestType" class="form-select">
+                                        <option value="">{{ helperTrans('ingaz.all') }}</option>
+                                        @foreach (\App\Models\ingaz\Maid::getRequestTypeOptions() as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
                             <div class="row mt-3">
                                 <div class="col-12 text-end">
@@ -671,6 +680,7 @@
                         d.instant_receipt = $('#filterInstantReceipt').val();
                         d.quick_tag = $('#filterQuickTag').val();
                         d.service_category = $('#filterServiceCategory').val();
+                        d.request_type = $('#filterRequestType').val();
                         d._timestamp = new Date().getTime(); // منع cache
                     },
                     dataSrc: function(json) {
@@ -817,6 +827,7 @@
                 $('#filterInstantReceipt').val('');
                 $('#filterQuickTag').val('');
                 $('#filterServiceCategory').val('');
+                $('#filterRequestType').val('');
                 $('.quick-filter-chip').removeClass('active');
                 $('.quick-filter-chip[data-tag=""]').addClass('active');
                 dataTable.ajax.reload();
@@ -850,7 +861,8 @@
                     return_date: $('#filterReturnDate').val(),
                     instant_receipt: $('#filterInstantReceipt').val(),
                     quick_tag: $('#filterQuickTag').val(),
-                    service_category: $('#filterServiceCategory').val()
+                    service_category: $('#filterServiceCategory').val(),
+                    request_type: $('#filterRequestType').val()
                 };
 
                 return '{{ route('ShelterContract.export', ['format' => '__FORMAT__']) }}'

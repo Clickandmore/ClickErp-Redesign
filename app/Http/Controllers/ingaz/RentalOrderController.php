@@ -272,8 +272,8 @@ class RentalOrderController extends Controller
                     return $actions;
                 })
                 ->escapeColumns([])
-                       ->rawColumns(['actions', 'status', 'timer', 'user_id', 'phone', 'maid_id', 'deliver_status', 'package_name', 'address_status', 'payment_status', 'contract_status', 'order_code', 'created_at', 'admin_name'])
-                ->make(true);
+                       ->rawColumns(['actions', 'status', 'timer', 'user_id', 'phone', 'maid_id', 'maid_passport_num', 'deliver_status', 'package_name', 'address_status', 'payment_status', 'contract_status', 'order_code', 'created_at', 'admin_name'])
+                       ->make(true);
         }
 
         // Preload data for the main page to avoid multiple queries

@@ -101,12 +101,14 @@
                     <div class="col-4">
                         <label for="request_type" class="form-label">{{ helperTrans('ingaz.request_type') }}</label>
                         @php
-                            $requestType = old('request_type', $obj->request_type ?? 'known');
+                            $requestType = old('request_type', $obj->request_type ?? \App\Models\ingaz\Maid::REQUEST_TYPE_KNOWN);
                         @endphp
                         <select name="request_type" id="request_type" class="form-control">
-                            <option value="known" {{ $requestType === 'known' ? 'selected' : '' }}>{{ helperTrans('ingaz.request_type_known') }}</option>
-                            <option value="specific" {{ $requestType === 'specific' ? 'selected' : '' }}>{{ helperTrans('ingaz.request_type_specific') }}</option>
-                            <option value="custom_spec" {{ $requestType === 'custom_spec' ? 'selected' : '' }}>{{ helperTrans('ingaz.request_type_custom') }}</option>
+                            @foreach (\App\Models\ingaz\Maid::getRequestTypeOptions() as $value => $label)
+                                <option value="{{ $value }}" {{ $requestType === $value ? 'selected' : '' }}>
+                                    {{ $label }}
+                                </option>
+                            @endforeach
                         </select>
                     </div>
 
