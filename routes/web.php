@@ -16,6 +16,7 @@ use App\Http\Controllers\Web\ContactUsController as ContactUs;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Admin\AdminContractController;
+use App\Http\Controllers\Admin\IngazDelegationController;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use App\Http\Controllers\ingaz\MaidController as IngazMaidController;
 use App\Http\Controllers\ingaz\UserController;
@@ -356,6 +357,11 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () 
         Route::post('countries/update-order', [App\Http\Controllers\admin\CountryController::class, 'updateOrder'])->name('countries.update-order');
 
         // مسارات المدن
+        Route::get('ingaz-delegations/find-maid-by-passport', [IngazDelegationController::class, 'findMaidByPassport'])
+            ->name('ingaz-delegations.find-maid-by-passport');
+        Route::get('ingaz-delegations/{ingazDelegation}/print', [IngazDelegationController::class, 'print'])
+            ->name('ingaz-delegations.print');
+        Route::resource('ingaz-delegations', IngazDelegationController::class);
         Route::get('cities', [App\Http\Controllers\admin\CountryController::class, 'citiesIndex'])->name('cities.index');
         Route::get('cities/create', [App\Http\Controllers\admin\CountryController::class, 'createCity'])->name('cities.create');
         Route::post('cities', [App\Http\Controllers\admin\CountryController::class, 'storeCity'])->name('cities.store');
