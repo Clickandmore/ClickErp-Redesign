@@ -124,47 +124,9 @@ else if(context_id.equals("complaints"))
 		}
 		else if(complaints.equalsIgnoreCase("تواصل معنا"))
 		{
-			questionscollection = Collection();
-			questionscollection.insert({"text":"يمكنك التواصل مع طاقمنا المميز بكل سهولة ويسر"});
-			admins = null;
-			try
-			{
-				data_info = invokeurl
-				[
-					url :"https://platinumeastern.com/api/all_staff"
-					type :GET
-					headers:{"Content-Type":"application/json"}
-				];
-				admins = data_info.get('data');
-			}
-			catch (e)
-			{
-				admins = null;
-			}
-			if(admins == null || admins.size() == 0)
-			{
-				response.put("action","reply");
-				response.put("replies",{"تعذر تحميل بيانات خدمة العملاء حاليا. حاول مرة أخرى أو اختر الصفحة الرئيسية"});
-				response.put("input",{"type":"select","options":{"خدمة العملاء","طلب استقدام جديد","متابعة طلب سابق","إضافة شكوى","الصفحة الرئيسية"}});
-				return response;
-			}
-			admins_keys = admins.keys();
-			admins_values = admins.values();
-			adminsList = Collection();
-			for each  val in admins_keys
-			{
-				adminsList.insert(val);
-			}
-			for each  admin in adminsList
-			{
-				admin_index = admins_keys.indexOf(admin);
-				selected_admin_phone = admins_values.get(admin_index);
-				info selected_admin_phone;
-				question = {"type":"links","text":admin,"links":{{"url":"https://api.whatsapp.com/send?phone=" + selected_admin_phone,"text":"تواصل مع المسؤل","icon":"https://cdn3.iconfinder.com/data/icons/social-media-chat-1/512/WhatsApp-512.png"}}};
-				questionscollection.insert(question);
-			}
-			response.put("action","end");
-			response.put("replies",questionscollection);
+			// حول المحادثة مباشرة إلى موظف متاح داخل الأداة بدل الاعتماد على روابط واتساب من الموقع.
+			response.put("action","forward");
+			response.put("replies",{"سيتم تحويلك الآن إلى أحد موظفي خدمة العملاء المتاحين. يرجى الانتظار قليلا."});
 			return response;
 		}
 		else if(complaints.equalsIgnoreCase("تسجيل شكوي") || complaints.equalsIgnoreCase("تسجيل شكوى") || complaints.equalsIgnoreCase("إضافة شكوى"))
