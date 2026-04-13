@@ -560,6 +560,35 @@
                                 </li>
                             @endif
 
+                            @if ($canViewRecruitmentContracts)
+                                <li class="collapsed">
+                                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#ingazDelegations"
+                                        href="#">
+                                        <i class="fa fa-passport"></i>
+                                        <span class="ms-2"> تفاويض الإنجاز </span>
+                                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                                    </a>
+                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['ingaz-delegations.index', 'ingaz-delegations.create', 'ingaz-delegations.show', 'ingaz-delegations.edit']) ? 'show' : '' }}"
+                                        id="ingazDelegations">
+                                        <li>
+                                            <a class="m-link {{ request()->routeIs('ingaz-delegations.create') ? 'active' : '' }}"
+                                                href="{{ route('ingaz-delegations.create') }}">
+                                                <i class="fa fa-plus"></i>
+                                                <span class="ms-2">اضافة تفويض جديد</span>
+                                            </a>
+                                        </li>
+
+                                        <li>
+                                            <a class="m-link {{ request()->routeIs('ingaz-delegations.index') ? 'active' : '' }}"
+                                                href="{{ route('ingaz-delegations.index') }}">
+                                                <i class="fa fa-passport"></i>
+                                                <span class="ms-2">تفاويض الإنجاز</span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                            @endif
+
                             <!-- Shelter Contracts -->
                             @if ($canViewShelterContracts)
                                 <li class="collapsed">

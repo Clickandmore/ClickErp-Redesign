@@ -16,6 +16,7 @@ use App\Http\Controllers\Web\ContactUsController as ContactUs;
 use App\Http\Controllers\Web\AuthController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Admin\AdminContractController;
+use App\Http\Controllers\Admin\IngazDelegationController;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use App\Http\Controllers\ingaz\MaidController as IngazMaidController;
 use App\Http\Controllers\ingaz\UserController;
@@ -356,6 +357,17 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () 
         Route::post('countries/update-order', [CountryController::class, 'updateOrder'])->name('countries.update-order');
 
         // مسارات المدن
+        Route::get('ingaz-delegations/find-maid-by-passport', [IngazDelegationController::class, 'findMaidByPassport'])
+            ->name('ingaz-delegations.find-maid-by-passport');
+        Route::get('ingaz-delegations/{ingazDelegation}/print', [IngazDelegationController::class, 'print'])
+            ->name('ingaz-delegations.print');
+        Route::resource('ingaz-delegations', IngazDelegationController::class);
+        Route::get('cities', [App\Http\Controllers\admin\CountryController::class, 'citiesIndex'])->name('cities.index');
+        Route::get('cities/create', [App\Http\Controllers\admin\CountryController::class, 'createCity'])->name('cities.create');
+        Route::post('cities', [App\Http\Controllers\admin\CountryController::class, 'storeCity'])->name('cities.store');
+        Route::get('cities/{city}/edit', [App\Http\Controllers\admin\CountryController::class, 'editCity'])->name('cities.edit');
+        Route::put('cities/{city}', [App\Http\Controllers\admin\CountryController::class, 'updateCity'])->name('cities.update');
+        Route::delete('cities/{city}', [App\Http\Controllers\admin\CountryController::class, 'destroyCity'])->name('cities.destroy');
         Route::get('cities', [CountryController::class, 'citiesIndex'])->name('cities.index');
         Route::get('cities/create', [CountryController::class, 'createCity'])->name('cities.create');
         Route::post('cities', [CountryController::class, 'storeCity'])->name('cities.store');
