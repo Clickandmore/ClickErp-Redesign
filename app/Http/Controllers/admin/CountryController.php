@@ -7,6 +7,7 @@ use App\Models\City;
 use App\Models\Country;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class CountryController extends Controller
 {
@@ -172,6 +173,105 @@ class CountryController extends Controller
         return view('cities.index', compact('cities', 'countries'));
     }
 
+    public function createCity(Request $request)
+    {
+        $countries = Country::active()->ordered()->get();
+        $selectedCountryId = old('country_id', $request->get('country_id'));
+
+        return view('cities.create', compact('countries', 'selectedCountryId'));
+    }
+
+    public function storeCity(Request $request)
+    {
+        $data = $this->validateCity($request);
+
+        City::create($data);
+
+        return redirect()
+            ->route('cities.index', ['country_id' => $data['country_id']])
+            ->with('success', 'تم إضافة المدينة بنجاح');
+    }
+
+    public function editCity(City $city)
+    {
+        $countries = Country::active()->ordered()->get();
+
+        return view('cities.edit', compact('city', 'countries'));
+    }
+
+    public function updateCity(Request $request, City $city)
+    {
+        $data = $this->validateCity($request, $city);
+
+        $city->update($data);
+
+        return redirect()
+            ->route('cities.index', ['country_id' => $data['country_id']])
+            ->with('success', 'تم تحديث المدينة بنجاح');
+    }
+
+    public function destroyCity(Request $request, City $city)
+    {
+        $city->delete();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'تم حذف المدينة بنجاح',
+            ]);
+        }
+
+        return redirect()
+            ->route('cities.index')
+            ->with('success', 'تم حذف المدينة بنجاح');
+    }
+
+    /**
+     * API: الحصول على جميع الدول
+     */
+    public function getCountries()
+    {
+        $countries = Country::active()
+            ->ordered()
+            ->get(['id', 'name_ar', 'name_en', 'code', 'phone_code']);
+
+        return response()->json($countries);
+    }
+
+    /**
+     * API: الحصول على مدن دولة معينة
+     */
+    public function getCities($countryId)
+    {
+        $cities = City::where('country_id', $countryId)
+            ->active()
+            ->ordered()
+            ->get(['id', 'name_ar', 'name_en', 'is_capital']);
+
+        return response()->json($cities);
+    }
+
+    /**
+     * API: البحث في الدول
+     */
+    public function search(Request $request)
+    {
+        $query = $request->get('q');
+
+        $countries = Country::query()
+            ->where(function ($countryQuery) use ($query) {
+                $countryQuery->where('name_ar', 'LIKE', "%{$query}%")
+                    ->orWhere('name_en', 'LIKE', "%{$query}%")
+                    ->orWhere('code', 'LIKE', "%{$query}%");
+            })
+            ->active()
+            ->ordered()
+            ->limit(10)
+            ->get();
+
+        return response()->json($countries);
+    }
+
     /**
      * API: الحصول على جميع المدن
      */
@@ -244,5 +344,31 @@ class CountryController extends Controller
         $cities = $cities->active()->limit(10)->get();
 
         return response()->json($cities);
+    }
+
+    private function validateCity(Request $request, ?City $city = null): array
+    {
+        $validated = $request->validate([
+            'country_id' => ['required', 'exists:countries,id'],
+            'name_ar' => ['required', 'string', 'max:255'],
+            'name_en' => ['required', 'string', 'max:255'],
+            'code' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('cities', 'code')->ignore($city?->id),
+            ],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'sort_order' => ['nullable', 'integer'],
+            'is_capital' => ['nullable', 'boolean'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        $validated['is_capital'] = $request->boolean('is_capital');
+        $validated['is_active'] = $request->boolean('is_active');
+        $validated['sort_order'] = $validated['sort_order'] ?? 0;
+
+        return $validated;
     }
 }

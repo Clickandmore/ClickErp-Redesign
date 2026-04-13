@@ -540,19 +540,19 @@
 @section('content')
     @php
         $socials = [
-            ['url' => $settings->twitter ?? null, 'icon' => 'fab fa-twitter', 'title' => 'twitter page'],
-            ['url' => $settings->facebook ?? null, 'icon' => 'fab fa-facebook-f', 'title' => 'facebook page'],
-            ['url' => $settings->instagram ?? null, 'icon' => 'fab fa-instagram', 'title' => 'instagram page'],
-            ['url' => $settings->linkedin ?? null, 'icon' => 'fab fa-linkedin-in', 'title' => 'linkedin page'],
-            ['url' => $settings->youtube ?? null, 'icon' => 'fab fa-youtube', 'title' => 'youtube page'],
-            ['url' => $settings->snapchat ?? null, 'icon' => 'fab fa-snapchat-ghost', 'title' => 'snapchat page'],
+            ['url' => $settings->twitter ?? null, 'icon' => 'fab fa-twitter', 'title' => 'twitter page', 'class' => 'twitter'],
+            ['url' => $settings->facebook ?? null, 'icon' => 'fab fa-facebook-f', 'title' => 'facebook page', 'class' => 'facebook'],
+            ['url' => $settings->instagram ?? null, 'icon' => 'fab fa-instagram', 'title' => 'instagram page', 'class' => 'instagram'],
+            ['url' => $settings->linkedin ?? null, 'icon' => 'fab fa-linkedin-in', 'title' => 'linkedin page', 'class' => 'linkedin'],
+            ['url' => $settings->youtube ?? null, 'icon' => 'fab fa-youtube', 'title' => 'youtube page', 'class' => 'youtube'],
+            ['url' => $settings->snapchat ?? null, 'icon' => 'fab fa-snapchat-ghost', 'title' => 'snapchat page', 'class' => 'snapchat'],
         ];
 
         $whatsAppNumber = $settings->whatsapp ?? null;
         if ($whatsAppNumber) {
             $cleanNumber = preg_replace('/\D+/', '', $whatsAppNumber);
             $waLink = $cleanNumber ? 'https://wa.me/' . $cleanNumber : $whatsAppNumber;
-            $socials[] = ['url' => $waLink, 'icon' => 'fab fa-whatsapp', 'title' => 'whatsapp'];
+            $socials[] = ['url' => $waLink, 'icon' => 'fab fa-whatsapp', 'title' => 'whatsapp', 'class' => 'whatsapp'];
         }
 
         $socials = array_filter($socials, fn($item) => !empty($item['url']));
@@ -560,7 +560,7 @@
     @if (!empty($socials))
         <div class="sideSocial d-md-flex snipcss-W5Bnr">
             @foreach ($socials as $social)
-                <a href="{{ $social['url'] }}" target="_blank" rel="noopener" title="{{ $social['title'] }}">
+                <a href="{{ $social['url'] }}" class="{{ $social['class'] ?? '' }}" target="_blank" rel="noopener" title="{{ $social['title'] }}">
                     <i class="{{ $social['icon'] }}"></i>
                 </a>
             @endforeach

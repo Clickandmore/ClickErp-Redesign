@@ -18,6 +18,9 @@
                 إدارة المدن
             </h3>
             <div class="export-buttons text-end">
+                <a href="{{ route('cities.create', request('country_id') ? ['country_id' => request('country_id')] : []) }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i> إضافة مدينة
+                </a>
                 <a href="{{ route('countries.index') }}" class="btn btn-secondary btn-sm">
                     <i class="fas fa-arrow-left"></i> العودة للدول
                 </a>
@@ -143,10 +146,22 @@
                                            class="btn btn-outline-primary" title="عرض الدولة">
                                             <i class="fas fa-eye"></i>
                                         </a>
+                                        <a href="{{ route('cities.edit', $city) }}"
+                                           class="btn btn-outline-warning" title="تعديل المدينة">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
                                         <button type="button" class="btn btn-outline-info"
                                                 onclick="showCityDetails({{ $city->id }})" title="تفاصيل المدينة">
                                             <i class="fas fa-info-circle"></i>
                                         </button>
+                                        <form action="{{ route('cities.destroy', $city) }}" method="POST" class="d-inline"
+                                              onsubmit="return confirm('هل أنت متأكد من حذف المدينة {{ $city->name_ar }}؟');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-outline-danger" title="حذف المدينة">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
@@ -156,6 +171,9 @@
                                     <div class="text-muted">
                                         <i class="fas fa-city fa-2x mb-2"></i>
                                         <p>لا توجد مدن تطابق معايير البحث</p>
+                                        <a href="{{ route('cities.create', request('country_id') ? ['country_id' => request('country_id')] : []) }}" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-plus"></i> إضافة مدينة
+                                        </a>
                                     </div>
                                 </td>
                             </tr>

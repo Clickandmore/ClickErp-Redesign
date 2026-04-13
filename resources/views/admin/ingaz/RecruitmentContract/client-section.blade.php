@@ -88,7 +88,19 @@
 
         <div class="col-md-6">
             <label for="city" class="form-label">{{helperTrans("ingaz.city of receive")}} <span class="text-danger">*</span></label>
-            <input type="text" id="city" name="city" class="form-control" data-validation="required" >
+            <select id="city" name="city" class="form-select form-control select2 select2-city"
+                data-validation="required" data-placeholder="اختر مدينة تسليم العميل">
+                <option value="">{{ helperTrans('ingaz.choose') }}</option>
+                @foreach ($saudiCities ?? collect() as $city)
+                    <option value="{{ $city->name_ar }}">{{ $city->name_ar }}</option>
+                @endforeach
+            </select>
+            <div class="contract-city-actions">
+                <a href="{{ route('cities.create') }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-plus-circle ms-1"></i>إضافة مدينة سعودية
+                </a>
+                <small class="text-muted align-self-center">يمكنك البحث واختيار مدينة من مدن السعودية.</small>
+            </div>
         </div>
 
         <div class="col-md-6">
@@ -112,4 +124,3 @@
         </div>
     </div>
 </div>
-

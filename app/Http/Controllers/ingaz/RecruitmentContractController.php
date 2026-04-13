@@ -21,6 +21,7 @@ use App\Models\TravelHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
+use App\Models\City;
 use App\Models\Country;
 use App\Actions\OrderAction;
 use App\Actions\MaidAction;
@@ -1015,27 +1016,25 @@ class RecruitmentContractController extends Controller
         $orderId = request('orderId');
         logger()->info('Loading create page with orderId: ' . $orderId);
 
-        // Load the selected order with all necessary relationships
-        $selectedOrder = null;
-        if ($orderId) {
-            $selectedOrder = Order::with([
-                'user.nationality',
-                'maid.nationality',
-                'maid.religion',
-                'jobType.translations'
-            ])->find($orderId);
-            logger()->info('Selected order loaded:', ['order' => $selectedOrder ? $selectedOrder->toArray() : null]);
-        }
-
-        // Get new orders with relationships
-        $orders = Order::with([
+        $eligibleOrdersQuery = Order::with([
             'user.nationality',
             'maid.nationality',
             'maid.religion',
             'jobType.translations'
         ])
-            ->where('status', 'new')
-            ->get();
+            ->where('job_type_id', 1)
+            ->where('status', OrderEnum::UnderProcess->value)
+            ->orderByDesc('created_at');
+
+        // Load the selected order with all necessary relationships
+        $selectedOrder = null;
+        if ($orderId) {
+            $selectedOrder = (clone $eligibleOrdersQuery)->find($orderId);
+            logger()->info('Selected order loaded:', ['order' => $selectedOrder ? $selectedOrder->toArray() : null]);
+        }
+
+        // Only recruitment orders that are under process are eligible for contract creation.
+        $orders = (clone $eligibleOrdersQuery)->get();
 
         // Get ended orders with relationships
         $endedOrders = Order::with([
@@ -1078,6 +1077,13 @@ class RecruitmentContractController extends Controller
         }
 
         $countries = Country::active()->ordered()->get();
+        $saudiCities = City::query()
+            ->whereHas('country', function ($query) {
+                $query->where('code', 'SA');
+            })
+            ->active()
+            ->ordered()
+            ->get(['id', 'name_ar', 'name_en']);
 
         // Get current user info
         $currentUser = Auth::guard('admin')->user();
@@ -1086,7 +1092,7 @@ class RecruitmentContractController extends Controller
             ? \App\Models\auth\Admin::whereNull('deleted_at')->orderBy('name')->get()
             : collect([$currentUser])->filter();
 
-        return view('admin.ingaz.RecruitmentContract.create', compact('orders', 'endedOrders', 'countries', 'all_available_maids', 'selectedOrder', 'orderId', 'existing_clients', 'currentUser', 'canSelectAnyMarketer', 'marketers'));
+        return view('admin.ingaz.RecruitmentContract.create', compact('orders', 'endedOrders', 'countries', 'saudiCities', 'all_available_maids', 'selectedOrder', 'orderId', 'existing_clients', 'currentUser', 'canSelectAnyMarketer', 'marketers'));
     }
 
 

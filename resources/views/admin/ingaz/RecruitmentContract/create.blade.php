@@ -5,14 +5,204 @@
 
 @section('style')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .contract-page-intro {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1.5rem 1.75rem;
+            margin-bottom: 1.25rem;
+            border: 1px solid #dce6f2;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #f8fbff 0%, #eef5ff 55%, #f9fcff 100%);
+            box-shadow: 0 18px 40px rgba(28, 76, 135, 0.08);
+        }
+
+        .contract-page-intro__title {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #183b63;
+        }
+
+        .contract-page-intro__text {
+            margin: .35rem 0 0;
+            color: #5f6f82;
+        }
+
+        .contract-page-intro__badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .7rem 1rem;
+            border-radius: 999px;
+            background: rgba(31, 122, 140, 0.12);
+            color: #0f5e6d;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .contract-page-tabs {
+            gap: .75rem;
+            border-bottom: 0;
+        }
+
+        .contract-page-tabs .nav-link {
+            min-width: 180px;
+            padding: 1rem 1.2rem;
+            border: 1px solid #d8e3ef;
+            border-radius: 18px;
+            background: #fff;
+            color: #49627f;
+            font-weight: 700;
+            transition: all .2s ease;
+            box-shadow: 0 8px 24px rgba(31, 52, 74, 0.05);
+        }
+
+        .contract-page-tabs .nav-link:hover {
+            transform: translateY(-1px);
+            color: #1f5fa4;
+            border-color: #b9d1eb;
+        }
+
+        .contract-page-tabs .nav-link.active {
+            border-color: #1f6fb2;
+            background: linear-gradient(135deg, #1f6fb2 0%, #2d8cbc 100%);
+            color: #fff;
+            box-shadow: 0 14px 30px rgba(31, 111, 178, 0.22);
+        }
+
+        .contract-page-content {
+            padding: 1.25rem;
+            border-radius: 28px;
+            background: linear-gradient(180deg, #f7fbff 0%, #ffffff 100%);
+            border: 1px solid #edf2f8;
+        }
+
+        .contract-page-content .card {
+            border: 1px solid #e2eaf3;
+            border-radius: 22px;
+            box-shadow: 0 14px 34px rgba(17, 38, 63, 0.06);
+            overflow: hidden;
+        }
+
+        .contract-page-content .card-header {
+            border-bottom: 0;
+            padding: 1rem 1.25rem;
+        }
+
+        .contract-page-content .card-body {
+            padding: 1.35rem;
+        }
+
+        .contract-header {
+            padding: 1.4rem 1.5rem;
+            background: linear-gradient(135deg, #1f6fb2 0%, #246d8f 100%);
+            color: #fff;
+        }
+
+        .contract-field-hint {
+            margin-top: .5rem;
+            color: #6b7d90;
+            font-size: .9rem;
+        }
+
+        .contract-city-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .6rem;
+            align-items: center;
+            margin-top: .75rem;
+        }
+
+        .contract-page-content .form-label {
+            font-weight: 700;
+            color: #36506b;
+            margin-bottom: .45rem;
+        }
+
+        .contract-page-content .form-control,
+        .contract-page-content .form-select {
+            min-height: 46px;
+            border-radius: 14px;
+            border-color: #d5e0eb;
+            box-shadow: none;
+        }
+
+        .contract-page-content textarea.form-control {
+            min-height: 120px;
+        }
+
+        .contract-page-content .form-control:focus,
+        .contract-page-content .form-select:focus {
+            border-color: #77a8d8;
+            box-shadow: 0 0 0 0.22rem rgba(52, 118, 181, 0.12);
+        }
+
+        .contract-page-content .select2-container--default .select2-selection--single {
+            min-height: 46px;
+            border-radius: 14px;
+            border-color: #d5e0eb;
+            display: flex;
+            align-items: center;
+        }
+
+        .contract-page-content .select2-container .select2-selection__rendered {
+            line-height: 42px;
+            padding-right: 14px;
+            padding-left: 28px;
+        }
+
+        .contract-page-content .select2-container .select2-selection__arrow {
+            height: 44px;
+        }
+
+        .contract-page-content select.is-invalid + .select2 .select2-selection {
+            border-color: #dc3545 !important;
+        }
+
+        .contract-submit-card .card-body {
+            padding: 1rem;
+        }
+
+        @media (max-width: 991.98px) {
+            .contract-page-intro {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .contract-page-tabs .nav-link {
+                min-width: auto;
+                width: 100%;
+            }
+        }
+    </style>
 @endsection
 
 @section('content')
 
     @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE))
+        @php
+            $plainTextValue = function ($value) {
+                $decoded = html_entity_decode(strip_tags((string) $value), ENT_QUOTES, 'UTF-8');
+                return trim(preg_replace('/\s+/u', ' ', $decoded));
+            };
+        @endphp
+
+        <div class="contract-page-intro">
+            <div>
+                <h3 class="contract-page-intro__title">إضافة عقد استقدام</h3>
+                <p class="contract-page-intro__text">نفس منطق الإضافة الحالي مع تنظيم أوضح للتبويبات، وتحسين اختيار الطلب، والعميل، ومدينة التسليم.</p>
+            </div>
+            <div class="contract-page-intro__badge">
+                <i class="fas fa-layer-group"></i>
+                <span>تبويبان: عقد جديد أو طلب مسبق</span>
+            </div>
+        </div>
 
         <!-- التبويبات أعلى الصفحة -->
-        <ul class="nav nav-tabs mb-4" id="contractTabs" role="tablist">
+        <ul class="nav nav-tabs contract-page-tabs mb-4" id="contractTabs" role="tablist">
 
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="tab-new" data-bs-toggle="tab" data-bs-target="#tab-new-pane"
@@ -30,15 +220,15 @@
         </ul>
 
 
-        <div class="tab-content" id="contractTabsContent">
+        <div class="tab-content contract-page-content" id="contractTabsContent">
             <!-- تبويب العقد الجديد بدون طلب مسبق -->
-            <div class="tab-pane fade" id="tab-new-pane" role="tabpanel" aria-labelledby="tab-new">
+            <div class="tab-pane fade contract-tab-pane" id="tab-new-pane" role="tabpanel" aria-labelledby="tab-new">
                 <form id="newContractForm" method="post" action="{{ route('RecruitmentContract.store') }}">
                     @csrf
                     <input type="hidden" name="contract_type" value="new_contract">
                     <input type="hidden" name="client_type" value="new_client">
 
-                    <div class="card mb-4">
+                    <div class="card mb-4 contract-workspace-card">
                         <div class="contract-header">
                             <div class="text-center">
                                 <h4 class="mb-2">
@@ -58,19 +248,23 @@
                                         <option value="" selected disabled>اختر عميل...</option>
                                         @if (isset($existing_clients))
                                             @foreach ($existing_clients as $client)
-                                                <option value="{{ $client->id }}" data-name="{{ $client->name }}"
-                                                    data-phone="{{ $client->phone }}" data-email="{{ $client->email }}"
+                                                <option value="{{ $client->id }}"
+                                                    data-name="{{ $plainTextValue($client->name) }}"
+                                                    data-phone="{{ $plainTextValue($client->phone) }}"
+                                                    data-email="{{ $plainTextValue($client->email) }}"
                                                     data-nationality="{{ $client->nationality_id }}"
-                                                    data-national-num="{{ $client->national_num }}"
+                                                    data-national-num="{{ $plainTextValue($client->national_num) }}"
                                                     data-birthdate="{{ $client->birthdate }}"
-                                                    data-phone2="{{ $client->phone2 }}"
-                                                    data-address="{{ $client->address }}" data-city="{{ $client->city }}"
+                                                    data-phone2="{{ $plainTextValue($client->phone2) }}"
+                                                    data-address="{{ $plainTextValue($client->address) }}"
+                                                    data-city="{{ $plainTextValue($client->city) }}"
                                                     data-beds-num="{{ $client->rooms_num }}"
                                                     data-family-num="{{ $client->family_num }}"
                                                     data-children="{{ $client->children }}"
-                                                    data-job="{{ $client->job }}">
-                                                    {{ $client->name }} - {{ $client->phone }} -
-                                                    {{ $client->national_num }}
+                                                    data-job="{{ $plainTextValue($client->job) }}">
+                                                    {{ $plainTextValue($client->name) }} -
+                                                    {{ $plainTextValue($client->phone) }} -
+                                                    {{ $plainTextValue($client->national_num) }}
                                                 </option>
                                             @endforeach
                                         @endif
@@ -372,8 +566,23 @@
                                             <div class="col-md-6 mb-2">
                                                 <label class="form-label">{{ helperTrans('ingaz.city of receive') }} <span
                                                         class="text-danger">*</span></label>
-                                                <input type="text" id="new_client_city" name="new_client_city"
-                                                    class="form-control" data-validation="required">
+                                                <select id="new_client_city" name="new_client_city"
+                                                    class="form-select select2 select2-city" data-validation="required"
+                                                    data-placeholder="اختر مدينة تسليم العميل">
+                                                    <option value="">{{ helperTrans('ingaz.choose') }}</option>
+                                                    @foreach ($saudiCities ?? collect() as $city)
+                                                        <option value="{{ $city->name_ar }}">{{ $city->name_ar }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                                <div class="contract-city-actions">
+                                                    <a href="{{ route('cities.create') }}" target="_blank"
+                                                        class="btn btn-outline-primary btn-sm">
+                                                        <i class="fas fa-plus-circle ms-1"></i>إضافة مدينة سعودية
+                                                    </a>
+                                                    <small class="text-muted">ابحث باسم المدينة أو أضفها إذا لم تكن
+                                                        موجودة.</small>
+                                                </div>
                                             </div>
                                             <div class="col-md-6 mb-2">
                                                 <label class="form-label">{{ helperTrans('ingaz.beds number') }} <small
@@ -492,7 +701,7 @@
                     </div>
                     <!-- زر الحفظ في تبويب عقد جديد بدون طلب مسبق -->
                     <div class="col-12 mt-3">
-                        <div class="card">
+                        <div class="card contract-submit-card">
                             <div class="card-body text-center">
                                 <button class="btn btn-primary btn-lg px-3" type="submit" id="newContractSubmitBtn"
                                     onclick="console.log('Submit button clicked')">
@@ -510,7 +719,8 @@
                 </form>
             </div>
             <!-- تبويب الطلب المسبق (الحالي) -->
-            <div class="tab-pane fade show active" id="tab-order-pane" role="tabpanel" aria-labelledby="tab-order">
+            <div class="tab-pane fade show active contract-tab-pane" id="tab-order-pane" role="tabpanel"
+                aria-labelledby="tab-order">
                 <form id="maidForm" class="row g-3 contractForm" method="post"
                     action="{{ route('RecruitmentContract.store') }}">
                     @csrf
@@ -518,7 +728,7 @@
                     <input type="hidden" name="maid_id" id="maid_id">
 
                     <div class="col-12 mb-4">
-                        <div class="card">
+                        <div class="card contract-workspace-card">
                             <div class="card-header bg-primary text-white">
                                 <h4 class="mb-0">معلومات العميل</h4>
                             </div>
@@ -537,29 +747,45 @@
                                 <div id="order-selection" class="col-12 mb-4">
                                     <label class="form-label">{{ helperTrans('ingaz.select_order') }}</label>
                                     <select name="order_id" id="order_id" class="form-select form-control select2"
+                                        data-placeholder="اختر طلب استقدام تحت الإجراء"
                                         data-validation="required">
                                         <option disabled selected>{{ helperTrans('ingaz.choose') }}</option>
                                         @foreach ($orders as $order)
                                             <option value="{{ $order->id }}"
-                                                data-client-name="{{ $order->user->name ?? '' }}"
-                                                data-client-phone="{{ $order->user->phone ?? '' }}"
-                                                data-maid-name="{{ $order->maid->name ?? '' }}"
-                                                data-maid-passport="{{ $order->maid->passport_num ?? '' }}"
+                                                data-client-name="{{ $plainTextValue($order->user->name ?? '') }}"
+                                                data-client-phone="{{ $plainTextValue($order->user->phone ?? '') }}"
+                                                data-client-email="{{ $plainTextValue($order->user->email ?? '') }}"
+                                                data-client-national-num="{{ $plainTextValue($order->user->national_num ?? '') }}"
+                                                data-client-birthdate="{{ $order->user->birthdate ?? '' }}"
+                                                data-client-phone2="{{ $plainTextValue($order->user->phone2 ?? '') }}"
+                                                data-client-address="{{ $plainTextValue($order->user->address ?? '') }}"
+                                                data-client-city="{{ $plainTextValue($order->user->city ?? '') }}"
+                                                data-client-beds-num="{{ $order->user->beds_num ?? '' }}"
+                                                data-client-family-num="{{ $order->user->family_num ?? '' }}"
+                                                data-client-children="{{ $order->user->children ?? '' }}"
+                                                data-client-job="{{ $plainTextValue($order->user->job ?? '') }}"
+                                                data-maid-name="{{ $plainTextValue($order->maid->name ?? '') }}"
+                                                data-maid-passport="{{ $plainTextValue($order->maid->passport_num ?? '') }}"
                                                 data-client-nationality="{{ $order->user->nationality_id ?? '' }}"
                                                 data-maid-id="{{ $order->maid->id ?? '' }}"
                                                 data-maid-nationality="{{ $order->maid->nationality_id ?? '' }}"
                                                 data-maid-religion="{{ $order->maid->religion_id ?? '' }}"
-                                                data-maid-job="{{ $order->maid?->job_types?->first()?->translations?->first()?->title ?? '' }}"
+                                                data-maid-job="{{ $plainTextValue($order->maid?->job_types?->first()?->translations?->first()?->title ?? '') }}"
                                                 data-maid-salary="{{ $order->maid->salary ?? '' }}"
                                                 data-maid-experience="{{ $order->maid->experience_years ?? '' }}"
                                                 data-maid-age="{{ $order->maid->age ?? '' }}"
                                                 @if (isset($orderId) && $orderId == $order->id) selected @endif>
-                                                {{ $order->user->name ?? '' }} - {{ $order->user->phone ?? '' }} -
-                                                {{ $order->maid->name ?? '' }} ({{ $order->maid->passport_num ?? '' }}) -
-                                                {{ $order->jobType->title ?? '' }}
+                                                {{ $plainTextValue($order->user->name ?? '') }} -
+                                                {{ $plainTextValue($order->user->phone ?? '') }} -
+                                                {{ $plainTextValue($order->maid->name ?? '') }}
+                                                ({{ $plainTextValue($order->maid->passport_num ?? '') }}) -
+                                                {{ $plainTextValue($order->jobType->title ?? '') }}
                                             </option>
                                         @endforeach
                                     </select>
+                                    <div class="contract-field-hint">تظهر هنا فقط طلبات الاستقدام في حالة
+                                        <strong>تحت الإجراء</strong>.
+                                    </div>
                                 </div>
 
                                 @include('admin.ingaz.RecruitmentContract.client-section')
@@ -568,7 +794,7 @@
                     </div>
 
                     <div class="col-12 mb-4">
-                        <div class="card">
+                        <div class="card contract-workspace-card">
                             <div class="card-header bg-success text-white">
                                 <h4 class="mb-0">معلومات الخادمة</h4>
                             </div>
@@ -579,7 +805,7 @@
                     </div>
 
                     <div class="col-12 mb-4">
-                        <div class="card">
+                        <div class="card contract-workspace-card">
                             <div class="card-header bg-info text-white">
                                 <h4 class="mb-0">معلومات العقد</h4>
                             </div>
@@ -590,7 +816,7 @@
                     </div>
 
                     <div class="col-12 mb-4">
-                        <div class="card">
+                        <div class="card contract-workspace-card">
                             <div class="card-header bg-info text-white">
                                 <h4 class="mb-0">ملاحظات على العقد</h4>
                             </div>
@@ -607,11 +833,18 @@
 
 
                     <div class="col-12">
-                        <div class="card">
+                        <div class="card contract-submit-card">
                             <div class="card-body text-center">
-                                <button class="btn btn-primary btn-lg px-5" type="submit">
+                                <button class="btn btn-primary btn-lg px-5" type="submit"
+                                    id="orderContractSubmitBtn">
                                     <i class="fa-solid fa-floppy-disk me-2"></i>
                                     {{ __('buttons.save') }}
+                                </button>
+
+                                <button class="btn btn-success btn-lg px-5" id="order-save-and-invoice"
+                                    type="button">
+                                    <i class="fa-solid fa-file-invoice-dollar me-2"></i>
+                                    {{ __('ingaz.save_and_issue_an_invoice') }}
                                 </button>
                             </div>
                         </div>
@@ -631,6 +864,58 @@
         var indexRoute = "{{ route('RecruitmentContract.index') }}";
         var selectedOrder = @json($selectedOrder);
         var hasOrderId = {{ isset($orderId) ? 'true' : 'false' }};
+    </script>
+
+    <script>
+        function sanitizeTextValue(value) {
+            if (value === undefined || value === null) {
+                return '';
+            }
+
+            var temp = document.createElement('div');
+            temp.innerHTML = String(value);
+            return (temp.textContent || temp.innerText || '').replace(/\s+/g, ' ').trim();
+        }
+
+        function sanitizePhoneValue(value) {
+            if (value === undefined || value === null) {
+                return '';
+            }
+
+            var rawValue = String(value);
+            var telMatch = rawValue.match(/href\s*=\s*["']?tel:([^"'>\s]+)/i);
+            if (telMatch && telMatch[1]) {
+                return telMatch[1].trim();
+            }
+
+            var sanitizedValue = sanitizeTextValue(rawValue);
+            var compactPhone = sanitizedValue.replace(/[^\d+]/g, '');
+            return compactPhone || sanitizedValue;
+        }
+
+        function setSearchableSelectValue(selector, value) {
+            var $select = $(selector);
+            var cleanedValue = sanitizeTextValue(value);
+
+            if (!$select.length) {
+                return;
+            }
+
+            if (!cleanedValue) {
+                $select.val('').trigger('change');
+                return;
+            }
+
+            var optionExists = $select.find('option').filter(function() {
+                return $(this).val() === cleanedValue;
+            }).length > 0;
+
+            if (!optionExists) {
+                $select.append(new Option(cleanedValue, cleanedValue, false, false));
+            }
+
+            $select.val(cleanedValue).trigger('change');
+        }
     </script>
 
     <script>
@@ -776,9 +1061,17 @@
             }
 
             // Initialize Select2
-            $('.select2').select2({
-                placeholder: 'Search for an order...',
-                allowClear: true
+            $('.select2').each(function() {
+                if ($(this).hasClass('select2-hidden-accessible')) {
+                    return;
+                }
+
+                $(this).select2({
+                    placeholder: $(this).data('placeholder') || 'اختر من القائمة...',
+                    allowClear: true,
+                    dir: 'rtl',
+                    width: '100%'
+                });
             });
 
             // If we have a selected order, populate the form fields
@@ -790,8 +1083,18 @@
 
                 // Fill in client data
                 if (selectedOrder.user) {
-                    $('#client_name').val(selectedOrder.user.name);
-                    $('#client_phone').val(selectedOrder.user.phone);
+                    $('#client_name').val(sanitizeTextValue(selectedOrder.user.name));
+                    $('#client_phone').val(sanitizePhoneValue(selectedOrder.user.phone));
+                    $('#client_email').val(sanitizeTextValue(selectedOrder.user.email));
+                    $('#client_national_num').val(sanitizeTextValue(selectedOrder.user.national_num));
+                    $('#client_birthdate').val(selectedOrder.user.birthdate || '');
+                    $('#phone2').val(sanitizePhoneValue(selectedOrder.user.phone2));
+                    $('#address').val(sanitizeTextValue(selectedOrder.user.address));
+                    $('#beds_num').val(selectedOrder.user.beds_num || '');
+                    $('#family_num').val(selectedOrder.user.family_num || '');
+                    $('#children').val(selectedOrder.user.children || '');
+                    $('#job').val(sanitizeTextValue(selectedOrder.user.job));
+                    setSearchableSelectValue('#city', selectedOrder.user.city);
                     if (selectedOrder.user.nationality_id) {
                         $('#client_nationality_id').val(selectedOrder.user.nationality_id).trigger('change');
                     }
@@ -925,13 +1228,24 @@
                 $('#maid_id').val(maidId);
 
                 // Clear all fields first
-                $('#client_name, #client_phone, #client_nationality_id, #maid_name, #maid_passport, #maid_religion, #maid_job, #maid_nationality, #maid_salary, #experience_years, #age')
+                $('#client_name, #client_phone, #client_email, #client_national_num, #client_birthdate, #phone2, #address, #beds_num, #family_num, #children, #job, #maid_name, #maid_passport, #maid_religion, #maid_job, #maid_nationality, #maid_salary, #experience_years, #age')
                     .val('');
+                $('#client_nationality_id, #city').val('').trigger('change');
 
                 if (maidId) {
                     // Fill in the client form fields
-                    $('#client_name').val(selectedOption.data('client-name'));
-                    $('#client_phone').val(selectedOption.data('client-phone'));
+                    $('#client_name').val(sanitizeTextValue(selectedOption.data('client-name')));
+                    $('#client_phone').val(sanitizePhoneValue(selectedOption.data('client-phone')));
+                    $('#client_email').val(sanitizeTextValue(selectedOption.data('client-email')));
+                    $('#client_national_num').val(sanitizeTextValue(selectedOption.data('client-national-num')));
+                    $('#client_birthdate').val(selectedOption.data('client-birthdate') || '');
+                    $('#phone2').val(sanitizePhoneValue(selectedOption.data('client-phone2')));
+                    $('#address').val(sanitizeTextValue(selectedOption.data('client-address')));
+                    $('#beds_num').val(selectedOption.data('client-beds-num') || '');
+                    $('#family_num').val(selectedOption.data('client-family-num') || '');
+                    $('#children').val(selectedOption.data('client-children') || '');
+                    $('#job').val(sanitizeTextValue(selectedOption.data('client-job')));
+                    setSearchableSelectValue('#city', selectedOption.data('client-city'));
                     if (selectedOption.data('client-nationality')) {
                         $('#client_nationality_id').val(selectedOption.data('client-nationality')).trigger(
                             'change');
@@ -1028,20 +1342,20 @@
                     });
 
                     // تعبئة الحقول المطلوبة
-                    $('#new_client_name').val(selectedOption.data('name'));
-                    $('#new_client_phone').val(selectedOption.data('phone'));
-                    $('#new_client_email').val(selectedOption.data('email'));
-                    $('#new_client_national_num').val(selectedOption.data('national-num'));
+                    $('#new_client_name').val(sanitizeTextValue(selectedOption.data('name')));
+                    $('#new_client_phone').val(sanitizePhoneValue(selectedOption.data('phone')));
+                    $('#new_client_email').val(sanitizeTextValue(selectedOption.data('email')));
+                    $('#new_client_national_num').val(sanitizeTextValue(selectedOption.data('national-num')));
                     $('#new_client_birthdate').val(selectedOption.data('birthdate'));
-                    $('#new_client_phone2').val(selectedOption.data('phone2'));
-                    $('#new_client_address').val(selectedOption.data('address'));
-                    $('#new_client_city').val(selectedOption.data('city'));
+                    $('#new_client_phone2').val(sanitizePhoneValue(selectedOption.data('phone2')));
+                    $('#new_client_address').val(sanitizeTextValue(selectedOption.data('address')));
+                    setSearchableSelectValue('#new_client_city', selectedOption.data('city'));
 
                     // تعبئة الحقول الاختيارية
                     $('#new_client_beds_num').val(selectedOption.data('beds-num'));
                     $('#new_client_family_num').val(selectedOption.data('family-num'));
                     $('#new_client_children').val(selectedOption.data('children'));
-                    $('#new_client_job').val(selectedOption.data('job'));
+                    $('#new_client_job').val(sanitizeTextValue(selectedOption.data('job')));
 
                     // تعبئة حقل الجنسية في dropdown
                     if (selectedOption.data('nationality')) {
@@ -1070,8 +1384,9 @@
                     });
                 } else {
                     // مسح جميع الحقول عند عدم اختيار عميل
-                    $('#new_client_name, #new_client_phone, #new_client_email, #new_client_national_num, #new_client_birthdate, #new_client_phone2, #new_client_address, #new_client_city, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job')
+                    $('#new_client_name, #new_client_phone, #new_client_email, #new_client_national_num, #new_client_birthdate, #new_client_phone2, #new_client_address, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job')
                         .val('');
+                    $('#new_client_city').val('').trigger('change');
                     $('#client_nationality_id').val('').trigger('change');
                 }
             });
@@ -1196,10 +1511,25 @@
 
 
 
+            var orderShouldRedirectToInvoice = false;
+            var orderInvoiceCreateUrl = "{{ route('invoices.create') }}";
+            var orderSubmitButton = $('#orderContractSubmitBtn');
+            var orderInvoiceButton = $('#order-save-and-invoice');
+            var orderSubmitButtonHtml = orderSubmitButton.html();
+            var orderInvoiceButtonHtml = orderInvoiceButton.html();
+
+            orderInvoiceButton.on('click', function() {
+                orderShouldRedirectToInvoice = true;
+                $('#maidForm').trigger('submit');
+            });
+
             // معالج للنموذج القديم (عقد من طلب مسبق)
             $('#maidForm').on('submit', function(e) {
                 e.preventDefault();
                 console.log('Old form submission started');
+
+                var redirectToInvoice = orderShouldRedirectToInvoice === true;
+                orderShouldRedirectToInvoice = false;
 
                 // تحقق من التبويب النشط
                 var isOrderTab = $('#tab-order-pane').hasClass('show active');
@@ -1298,11 +1628,12 @@
                 }
 
                 let url = $(this).attr('action');
-                let submitButton = $(e.originalEvent.submitter);
+                let submitButton = redirectToInvoice ? orderInvoiceButton : orderSubmitButton;
 
-                // Disable submit button and show loading state
-                submitButton.prop('disabled', true).html(
-                    '<i class="fa fa-spinner fa-spin me-2"></i>جاري الحفظ...');
+                // Disable action buttons and show loading state
+                orderSubmitButton.prop('disabled', true);
+                orderInvoiceButton.prop('disabled', true);
+                submitButton.html('<i class="fa fa-spinner fa-spin me-2"></i>جاري الحفظ...');
 
                 $.ajax({
                     url: url,
@@ -1320,7 +1651,12 @@
                                 text: response.message || 'تم إنشاء العقد بنجاح',
                                 confirmButtonText: 'حسناً'
                             }).then((result) => {
-                                window.location.href = indexRoute;
+                                if (redirectToInvoice && response.contract && response.contract.id) {
+                                    window.location.href = orderInvoiceCreateUrl +
+                                        '?contract_id=' + response.contract.id;
+                                } else {
+                                    window.location.href = indexRoute;
+                                }
                             });
                         } else {
                             // Show error message
@@ -1358,9 +1694,8 @@
                         });
                     },
                     complete: function() {
-                        // Re-enable submit button
-                        submitButton.prop('disabled', false).html(
-                            '<i class="fa-solid fa-floppy-disk me-2"></i>حفظ');
+                        orderSubmitButton.prop('disabled', false).html(orderSubmitButtonHtml);
+                        orderInvoiceButton.prop('disabled', false).html(orderInvoiceButtonHtml);
                     }
                 });
             });

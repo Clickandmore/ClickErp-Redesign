@@ -9293,6 +9293,10 @@ main .guidelines-section .country-card .links .btn:hover i {
     color: #000;
 }
 
+.sideSocial a:hover.whatsapp {
+    background: #25d366;
+}
+
 
 .no-results {
     display: flex;

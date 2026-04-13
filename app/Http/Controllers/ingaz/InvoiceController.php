@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Models\ingaz\Invoice;
 use App\Models\ingaz\Setting;
+use App\Models\ingaz\User as ClientUser;
 use Illuminate\Http\Request;
+use Nami\Finance\Enums\AccountTypesEnum;
+use Nami\Finance\Enums\CostCenterTypeEnum;
 use Nami\Finance\Models\CostCenter;
 use PDF;
 use Yajra\DataTables\Facades\DataTables;
@@ -88,12 +91,29 @@ class InvoiceController extends Controller
     public function create(Request $request)
     {
         $contractId = $request->query('contract_id');
-        if ($request->$contractId) {
-            return view('admin.ingaz.invoices.create', compact('contractId'));
-        } else {
-            $contracts = Contract::get();
-            return view('admin.ingaz.invoices.create', compact('contracts'));
+        $contractId = is_numeric($contractId) ? (int) $contractId : null;
+
+        $contracts = Contract::query()
+            ->with(['user', 'maid.nationality', 'requiredMaidNationality'])
+            ->whereDoesntHave('invoice')
+            ->latest('id')
+            ->get();
+
+        $selectedContract = null;
+
+        if ($contractId) {
+            $selectedContract = Contract::query()
+                ->with(['user', 'maid.nationality', 'requiredMaidNationality', 'invoice'])
+                ->findOrFail($contractId);
+
+            if ($selectedContract->invoice) {
+                return redirect()
+                    ->route('invoices.show', $selectedContract->invoice->id)
+                    ->with('success', 'تم إصدار فاتورة لهذا العقد مسبقاً.');
+            }
         }
+
+        return view('admin.ingaz.invoices.create', compact('contractId', 'contracts', 'selectedContract'));
     }
 
     /**
@@ -106,6 +126,21 @@ class InvoiceController extends Controller
     {
         $request->validate([
             'contract_id' => 'required|exists:contracts,id',
+            'insurance_company' => 'nullable|string|max:255',
+            'direct_recruitment_cost' => 'nullable|numeric|min:0',
+            'external_recruitment_cost' => 'nullable|numeric|min:0',
+            'government_cost' => 'nullable|numeric|min:0',
+            'internal_ticket_cost' => 'nullable|numeric|min:0',
+            'visa_recruited_count' => 'nullable|integer|min:0',
+            'direct_recruitment_count' => 'nullable|integer|min:0',
+            'external_recruitment_count' => 'nullable|integer|min:0',
+            'insured_count' => 'nullable|integer|min:0',
+            'government_cost_count' => 'nullable|integer|min:0',
+            'internal_ticket_count' => 'nullable|integer|min:0',
+            'subtotal' => 'nullable|numeric|min:0',
+            'discount' => 'nullable|numeric|min:0',
+            'vat_amount' => 'nullable|numeric|min:0',
+            'total_due' => 'nullable|numeric|min:0',
         ]);
 
         // منع تكرار الفاتورة لنفس العقد
@@ -120,18 +155,24 @@ class InvoiceController extends Controller
 
         try {
             $invoice = DB::transaction(function () use ($request, $service, $yearService) {
-                $contract = Contract::with(['user', 'maid.nationality', 'requiredMaidNationality'])->findOrFail($request->contract_id);
+                $contract = Contract::with(['user', 'maid.nationality', 'requiredMaidNationality'])
+                    ->findOrFail($request->contract_id);
 
-                // جلب حساب العميل المسجل في الشجرة المحاسبية
-                $clientAccountId = $contract->user?->account_id;
+                if ($contract->invoice()->exists()) {
+                    throw new \RuntimeException('هذا العقد لديه فاتورة سابقة');
+                }
+
+                // التأكد من وجود حساب للعميل أو إنشاؤه تلقائياً عند أول إصدار للفاتورة
+                $clientAccountId = $this->ensureClientAccountId($contract);
 
                 // جلب حساب الجنسية المسجلة في الشجرة المحاسبية، أو محاولة إيجاد حساب بناءً على اسم الجنسية
                 // التزامات عقود الاستقدام + اسم الجنسية
                 $nationality = $contract->maid?->nationality ?? $contract->requiredMaidNationality;
                 $nationalityAccountId = $nationality?->account_id;
 
+                $nationalityName = $nationality?->sub_title ?? $nationality?->title ?? null;
+
                 if (!$nationalityAccountId && $nationality) {
-                    $nationalityName = $nationality->sub_title ?? $nationality->title ?? null;
                     if ($nationalityName) {
                         $nationalityAccountId = $this->resolveNationalityAccountId($nationalityName);
                     }
@@ -139,20 +180,12 @@ class InvoiceController extends Controller
 
                 // dd( $contract, $clientAccountId, $nationality, $nationalityAccountId);
 
-                if (!$clientAccountId) {
-                    // throw new \RuntimeException('Cannot create entry: client account is missing');
-                    return response()->json([
-                        'success' => false,
-                        'message' => "لا يوجد حساب لهذا العميل , الرجاء اضافة حساب له اولا.",
-                    ], 422);
-                }
-
                 if (!$nationalityAccountId) {
-                    // throw new \RuntimeException('Cannot create entry: nationality account is missing');
-                    return response()->json([
-                        'success' => false,
-                        'message' => "لا يوجد حساب لهذه الجنسية : $nationalityName , الرجاء اضافة حساب اولا.",
-                    ], 422);
+                    throw new \RuntimeException(
+                        'لا يوجد حساب لهذه الجنسية'
+                        . ($nationalityName ? " : {$nationalityName}" : '')
+                        . '، الرجاء إضافة حساب أولاً.'
+                    );
                 }
 
                 //1- انشاء الفاتورة وربطها بالعقد
@@ -179,11 +212,7 @@ class InvoiceController extends Controller
                 $statement = 'Invoice entry #' . $invoice->id . ' for contract #' . $invoice->contract->id;
 
                 // بعد قيد الفاتورة يتم عمل مركز تكلفة لهذه الجنسية - مركز تكلفة طلبات الاستقدام لدولة+اسم الدولة
-                $costCenterName = 'مركز تكلفة طلبات استقدام دولة ' . ($nationality->sub_title ?? $nationality->title ?? null);
-                $nationality_cost_center = CostCenter::where('title', 'like', '%' . $costCenterName . '%')->first();
-                if (!$nationality_cost_center) {
-                    throw new \RuntimeException("لا يوجد مركز تكلفة باسم '$costCenterName'");
-                }
+                $nationality_cost_center = $this->ensureNationalityCostCenter($nationalityName);
 
                 $cost_center_ids = [$nationality_cost_center->id, null];
 
@@ -212,9 +241,13 @@ class InvoiceController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'تم إنشاء الفاتورة بنجاح',
+            'message' => 'تم إصدار الفاتورة بنجاح',
             'data' => $invoice,
             'redirect' => route('invoices.show', $invoice->id),
+            'view_url' => route('invoices.show', $invoice->id),
+            'print_url' => route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1]),
+            'index_url' => route('invoices.index'),
+            'create_url' => route('invoices.create'),
         ]);
     }
 
@@ -226,7 +259,7 @@ class InvoiceController extends Controller
             throw new \RuntimeException('لا يوجد سنة مالية نشطة للتاريخ المحدد');
         }
 
-        $statement = 'Invoice entry #' . $invoice->id . ' for contract #' . $invoice->contract->id;
+        $statement = $statement ?: 'Invoice entry #' . $invoice->id . ' for contract #' . $invoice->contract->id;
         $totalDue = (float) ($invoice->total_due ?? 0);
 
         $data = [
@@ -524,6 +557,99 @@ class InvoiceController extends Controller
         }
 
         return $code . $phone;
+    }
+
+    private function ensureClientAccountId(Contract $contract): int
+    {
+        if (!$contract->user_id) {
+            throw new \RuntimeException('العقد غير مرتبط بعميل، لا يمكن إنشاء الحساب المحاسبي.');
+        }
+
+        $user = ClientUser::query()
+            ->lockForUpdate()
+            ->find($contract->user_id);
+
+        if (!$user) {
+            throw new \RuntimeException('العميل المرتبط بالعقد غير موجود.');
+        }
+
+        if ($user->account_id) {
+            return (int) $user->account_id;
+        }
+
+        $parentAccount = Account::query()
+            ->where('type', AccountTypesEnum::Clients->value)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$parentAccount) {
+            throw new \RuntimeException(
+                'لا يوجد حساب رئيسي للعملاء في جدول الحسابات. يرجى إنشاء حساب من نوع Clients أولاً.'
+            );
+        }
+
+        $lastCode = Account::query()
+            ->where('parent_id', $parentAccount->id)
+            ->max('code');
+
+        if (!$lastCode) {
+            $lastCode = (int) ($parentAccount->code . '00000');
+        }
+
+        $account = Account::query()->create([
+            'name' => $user->name ?: ('عميل #' . $user->id),
+            'operation_type' => $parentAccount->operation_type,
+            'status' => $parentAccount->status,
+            'statement_type' => $parentAccount->statement_type,
+            'level' => $parentAccount->level + 1,
+            'type' => AccountTypesEnum::Client->value,
+            'parent_id' => $parentAccount->id,
+            'code' => ((int) $lastCode) + 1,
+            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
+        ]);
+
+        $user->update([
+            'account_id' => $account->id,
+        ]);
+
+        if ($contract->relationLoaded('user') && $contract->user) {
+            $contract->user->account_id = $account->id;
+        }
+
+        return (int) $account->id;
+    }
+
+    private function ensureNationalityCostCenter(?string $nationalityName): CostCenter
+    {
+        $nationalityName = trim((string) $nationalityName);
+
+        if ($nationalityName === '') {
+            throw new \RuntimeException('تعذر تحديد جنسية العقد لإنشاء مركز التكلفة.');
+        }
+
+        $costCenterTitle = 'مركز تكلفة طلبات استقدام دولة ' . $nationalityName;
+
+        $costCenter = CostCenter::query()
+            ->where('title', $costCenterTitle)
+            ->orWhere('title', 'like', '%' . $costCenterTitle . '%')
+            ->first();
+
+        if ($costCenter) {
+            return $costCenter;
+        }
+
+        $lastCode = CostCenter::query()
+            ->lockForUpdate()
+            ->max('code');
+
+        return CostCenter::query()->create([
+            'title' => $costCenterTitle,
+            'parent_id' => null,
+            'table_name' => CostCenterTypeEnum::General->value,
+            'table_related_id' => 0,
+            'code' => (string) (((int) $lastCode) + 1),
+            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
+        ]);
     }
 
     private function resolveNationalityAccountId(string $nationalityName): ?int

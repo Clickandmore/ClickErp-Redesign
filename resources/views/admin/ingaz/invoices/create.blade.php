@@ -4,232 +4,946 @@
     إصدار فاتورة
 @endsection
 
+@section('style')
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --invoice-primary: #0f766e;
+            --invoice-primary-soft: #e7f6f3;
+            --invoice-surface: #ffffff;
+            --invoice-border: #e2e8f0;
+            --invoice-text: #142033;
+            --invoice-muted: #64748b;
+            --invoice-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
+        }
+
+        .invoice-create-page {
+            color: var(--invoice-text);
+        }
+
+        .page-toolbar,
+        .editor-panel,
+        .sidebar-panel {
+            background: var(--invoice-surface);
+            border: 1px solid var(--invoice-border);
+            border-radius: 20px;
+            box-shadow: var(--invoice-shadow);
+        }
+
+        .page-toolbar {
+            padding: 18px 22px;
+            margin-bottom: 16px;
+        }
+
+        .toolbar-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: var(--invoice-primary-soft);
+            color: var(--invoice-primary);
+            font-size: 12px;
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+
+        .toolbar-title {
+            font-size: 24px;
+            font-weight: 900;
+            margin-bottom: 4px;
+        }
+
+        .toolbar-text {
+            color: var(--invoice-muted);
+            font-size: 13px;
+            margin-bottom: 0;
+        }
+
+        .toolbar-btn {
+            border-radius: 14px;
+            font-weight: 800;
+            padding-inline: 16px;
+        }
+
+        .editor-panel {
+            padding: 18px;
+        }
+
+        .sidebar-panel {
+            padding: 18px;
+        }
+
+        .panel-heading {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .panel-icon {
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: var(--invoice-primary-soft);
+            color: var(--invoice-primary);
+            font-size: 16px;
+        }
+
+        .panel-title {
+            font-size: 17px;
+            font-weight: 900;
+            margin-bottom: 2px;
+        }
+
+        .panel-subtitle {
+            color: var(--invoice-muted);
+            font-size: 12px;
+            margin: 0;
+        }
+
+        .mini-section {
+            padding-top: 14px;
+            margin-top: 14px;
+            border-top: 1px solid #edf2f7;
+        }
+
+        .mini-section:first-of-type {
+            border-top: 0;
+            margin-top: 0;
+            padding-top: 0;
+        }
+
+        .mini-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 900;
+            color: #334155;
+            margin-bottom: 12px;
+        }
+
+        .form-label {
+            font-size: 12px;
+            font-weight: 800;
+            color: #334155;
+            margin-bottom: 6px;
+        }
+
+        .form-control,
+        .form-select {
+            min-height: 44px;
+            border-radius: 14px;
+            border: 1px solid #dbe3ea;
+            box-shadow: none;
+            padding-inline: 12px;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: rgba(15, 118, 110, 0.45);
+            box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.12);
+        }
+
+        .field-note {
+            color: var(--invoice-muted);
+            font-size: 11px;
+            margin-top: 5px;
+        }
+
+        .fixed-contract-strip {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 14px;
+        }
+
+        .fixed-contract-strip strong {
+            font-size: 14px;
+        }
+
+        .fixed-contract-strip p {
+            margin: 0;
+            color: var(--invoice-muted);
+            font-size: 12px;
+        }
+
+        .totals-box {
+            padding: 12px;
+            border-radius: 16px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        .total-field {
+            background: #ffffff;
+            font-weight: 900;
+        }
+
+        .sticky-sidebar {
+            position: sticky;
+            top: 20px;
+        }
+
+        .side-section + .side-section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #edf2f7;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .meta-grid.is-empty {
+            opacity: 0.75;
+        }
+
+        .meta-item {
+            border-radius: 14px;
+            border: 1px solid #edf2f7;
+            background: #f8fafc;
+            padding: 12px;
+            min-height: 82px;
+        }
+
+        .meta-label {
+            display: block;
+            color: var(--invoice-muted);
+            font-size: 11px;
+            margin-bottom: 6px;
+        }
+
+        .meta-value {
+            display: block;
+            color: var(--invoice-text);
+            font-size: 13px;
+            font-weight: 900;
+            line-height: 1.7;
+            word-break: break-word;
+        }
+
+        .summary-total-card {
+            border-radius: 18px;
+            padding: 16px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #fff;
+            margin-bottom: 12px;
+        }
+
+        .summary-total-card span {
+            display: block;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.72);
+            margin-bottom: 6px;
+        }
+
+        .summary-total-card strong {
+            display: block;
+            font-size: 28px;
+            line-height: 1.2;
+        }
+
+        .summary-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .summary-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        .summary-row span {
+            color: var(--invoice-muted);
+        }
+
+        .summary-row strong {
+            color: var(--invoice-text);
+            font-weight: 900;
+            text-align: left;
+        }
+
+        .line-breakdown {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #edf2f7;
+        }
+
+        .breakdown-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 12px;
+        }
+
+        .breakdown-row span {
+            color: var(--invoice-muted);
+        }
+
+        .breakdown-row strong {
+            font-weight: 800;
+            color: var(--invoice-text);
+            text-align: left;
+        }
+
+        .action-stack .btn {
+            border-radius: 14px;
+            font-weight: 900;
+            min-height: 44px;
+        }
+
+        .action-note {
+            border-radius: 14px;
+            background: #fff7ed;
+            border: 1px solid #ffedd5;
+            color: #9a3412;
+            font-size: 12px;
+            padding: 12px;
+        }
+
+        .post-save-actions {
+            border-radius: 16px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            padding: 14px;
+        }
+
+        .post-save-actions h6 {
+            color: #166534;
+            font-size: 14px;
+            font-weight: 900;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 1199px) {
+            .sticky-sidebar {
+                position: static;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .page-toolbar,
+            .editor-panel,
+            .sidebar-panel {
+                border-radius: 16px;
+                padding: 14px;
+            }
+
+            .toolbar-title {
+                font-size: 20px;
+            }
+
+            .meta-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .fixed-contract-strip {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .summary-total-card strong {
+                font-size: 24px;
+            }
+        }
+    </style>
+@endsection
+
 @section('content')
     @php
-        $contractId = $contractId ?? request('contract_id');
-        $selectedContractId = old('contract_id', $contractId);
+        $selectedContractId = old('contract_id', $contractId ?? request('contract_id'));
+        $contracts = $contracts ?? collect();
+        $selectedContract = $selectedContract ?? null;
+        $selectedContractFromList =
+            !$selectedContract && $selectedContractId
+                ? $contracts->firstWhere('id', (int) $selectedContractId)
+                : null;
+        $currentContract = $selectedContract ?: $selectedContractFromList;
+        $currentNationality =
+            optional($currentContract?->maid?->nationality ?? $currentContract?->requiredMaidNationality)->sub_title ?:
+            (optional($currentContract?->maid?->nationality ?? $currentContract?->requiredMaidNationality)->title ?:
+                'غير محدد');
+        $currentContractStatus = $currentContract
+            ? getEnumValue('contract_statuses', $currentContract->status) ?? ($currentContract->status ?? 'غير محدد')
+            : 'غير محدد';
+        $currentClientName = $currentContract?->user?->name ?? 'غير محدد';
+        $currentClientPhone =
+            trim(($currentContract?->user?->phone_code ?? '') . ($currentContract?->user?->phone ?? '')) ?:
+            'غير محدد';
+        $currentClientIdentity = $currentContract?->user?->national_num ?? 'غير محدد';
+        $canCreateInvoice = (bool) $currentContract || $contracts->isNotEmpty();
     @endphp
 
-    <form method="post" action="{{ route('invoices.store') }}" class="row g-3" id="invoiceForm">
-        @csrf
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row g-3">
-                        @if (!$contractId)
-                            <div class="col-md-6">
-                                <label class="form-label">العقد</label>
-                                <select name="contract_id" class="form-select" required>
-                                    <option value="" selected disabled>اختر العقد</option>
-                                    @foreach ($contracts ?? [] as $contract)
-                                        <option value="{{ $contract->id }}">
-                                            {{ $contract->desc ?? $contract->id }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        @else
-                            <input type="hidden" name="contract_id" value="{{ $contractId }}">
-                        @endif
+    <div class="container-fluid py-3 invoice-create-page">
+        <div class="page-toolbar">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                    <span class="toolbar-kicker">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        فاتورة جديدة
+                    </span>
+                    <div class="toolbar-title">إصدار فاتورة بشكل مختصر وسريع</div>
+                    <p class="toolbar-text">بيانات العقد والعميل في الجانب، والإدخال والطباعة أمام الموظف بدون نزول طويل.</p>
+                </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">شركة التأمين</label>
-                            {{-- <input type="text" name="insurance_company" class="form-control" value="{{ old('insurance_company') }}"> --}}
-                            <select name="insurance_company" class="form-select">
-                                <option value="" selected disabled>شركة التأمين</option>
-                                {{-- @foreach ($contracts ?? [] as $contract)
-                                    <option value="{{ $contract->id }}">{{ $contract->desc ?? $contract->id }}</option>
-                                @endforeach --}}
-                            </select>
-                        </div>
-
-                        <div class="my-4 col-12 row">
-                            <div class="col-md-6">
-                                <label class="form-label" for="direct_recruitment_cost">تكاليف الاستقدام المباشر</label>
-                                <input type="number" step="0.01" min="0" name="direct_recruitment_cost"
-                                    id="direct_recruitment_cost" class="form-control"
-                                    value="{{ old('direct_recruitment_cost', 0) }}">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">تكاليف الاستقدام الخارجية</label>
-                                <input type="number" step="0.01" min="0" name="external_recruitment_cost"
-                                    id="external_recruitment_cost" class="form-control"
-                                    value="{{ old('external_recruitment_cost', 0) }}">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">تكاليف حكومية</label>
-                                <input type="number" step="0.01" min="0" name="government_cost"
-                                    id="government_cost" class="form-control" value="{{ old('government_cost', 0) }}">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">تكلفة التذكرة الداخلية</label>
-                                <input type="number" step="0.01" min="0" name="internal_ticket_cost"
-                                    id="internal_ticket_cost" class="form-control"
-                                    value="{{ old('internal_ticket_cost', 0) }}">
-                            </div>
-                        </div>
-
-                        <div class="my-4 col-12 row">
-                            <div class="col-md-6">
-                                <label class="form-label">عدد المستقدمين في التأشيرة</label>
-                                <input type="number" min="1" name="visa_recruited_count" class="form-control"
-                                    id="visa_recruited_count" value="{{ old('visa_recruited_count', 1) }}">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">عدد تكاليف الاستقدام المباشر</label>
-                                <input type="number" min="1" name="direct_recruitment_count" class="form-control"
-                                    id="direct_recruitment_count" value="{{ old('direct_recruitment_count', 1) }}">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">عدد تكاليف الاستقدام الخارجية</label>
-                                <input type="number" min="1" name="external_recruitment_count" class="form-control"
-                                    id="external_recruitment_count" value="{{ old('external_recruitment_count', 1) }}">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">عدد المؤمن عليهم</label>
-                                <input type="number" min="1" name="insured_count" class="form-control"
-                                    id="insured_count" value="{{ old('insured_count', 1) }}">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">عدد تكاليف حكومية</label>
-                                <input type="number" min="1" name="government_cost_count" class="form-control"
-                                    id="government_cost_count" value="{{ old('government_cost_count', 1) }}">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">عدد تكلفة التذكرة الداخلية</label>
-                                <input type="number" min="1" name="internal_ticket_count" class="form-control"
-                                    id="internal_ticket_count" value="{{ old('internal_ticket_count', 1) }}">
-                            </div>
-                        </div>
-
-                        <div class="col-md-3 col-sm-6">
-                            <label class="form-label text-success">المجموع</label>
-                            <input type="number" step="0.01" min="0" name="subtotal" id="subtotal"
-                                class="form-control" value="{{ old('subtotal', 0) }}">
-                        </div>
-                        <div class="col-md-3 col-sm-6">
-                            <label class="form-label">خصم</label>
-                            <input type="number" step="0.01" min="0" name="discount" class="form-control"
-                                id="discount" value="{{ old('discount', 0) }}">
-                        </div>
-                        <div class="col-md-3 col-sm-6">
-                            <label class="form-label text-primary" for="vat_amount">ضريبة القيمة المضافة</label>
-                            <input type="number" step="0.01" min="0" name="vat_amount" id="vat_amount"
-                                class="form-control" value="{{ old('vat_amount', 0) }}">
-                        </div>
-                        <div class="col-md-3 col-sm-6">
-                            <label class="form-label text-danger">المطلوب من العميل</label>
-                            <input type="number" step="0.01" min="0" name="total_due" class="form-control"
-                                id="total_due" value="{{ old('total_due', 0) }}">
-                        </div>
-                    </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ route('invoices.index') }}" class="btn btn-outline-secondary toolbar-btn">
+                        <i class="fas fa-table-list me-1"></i>
+                        جميع الفواتير
+                    </a>
                 </div>
             </div>
         </div>
 
-        <div class="col-12 d-flex gap-2">
-            <button type="submit" class="btn btn-primary" id="btnSubmit">حفظ</button>
-            <a href="{{ route('invoices.index') }}" class="btn btn-outline-secondary">رجوع</a>
-        </div>
-    </form>
+        <form method="post" action="{{ route('invoices.store') }}" id="invoiceForm">
+            @csrf
+
+            <div class="row g-3 align-items-start">
+                <div class="col-xl-8 order-2 order-xl-1">
+                    <div class="editor-panel">
+                        <div class="panel-heading">
+                            <span class="panel-icon">
+                                <i class="fas fa-pen-ruler"></i>
+                            </span>
+                            <div>
+                                <div class="panel-title">بيانات الفاتورة</div>
+                                <p class="panel-subtitle">أدخل القيم فقط، وسيتم تحديث الإجمالي والضريبة والمطلوب مباشرة.</p>
+                            </div>
+                        </div>
+
+                        <div class="mini-section">
+                            <div class="mini-title">
+                                <i class="fas fa-link"></i>
+                                ربط العقد
+                            </div>
+
+                            @if (!$selectedContract)
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label class="form-label" for="contract_id">
+                                            العقد
+                                            <span class="text-danger">*</span>
+                                        </label>
+                                        <select name="contract_id" id="contract_id" class="form-select" required
+                                            @disabled(!$canCreateInvoice)>
+                                            <option value="" disabled {{ $selectedContractId ? '' : 'selected' }}>
+                                                اختر العقد
+                                            </option>
+                                            @foreach ($contracts as $contract)
+                                                @php
+                                                    $contractNationality =
+                                                        optional(
+                                                            $contract->maid?->nationality ??
+                                                                $contract->requiredMaidNationality,
+                                                        )->sub_title ?:
+                                                        (optional(
+                                                            $contract->maid?->nationality ??
+                                                                $contract->requiredMaidNationality,
+                                                        )->title ?:
+                                                            'غير محدد');
+                                                    $contractStatus =
+                                                        getEnumValue('contract_statuses', $contract->status) ??
+                                                        ($contract->status ?? 'غير محدد');
+                                                    $contractPhone =
+                                                        trim(
+                                                            ($contract->user?->phone_code ?? '') .
+                                                                ($contract->user?->phone ?? ''),
+                                                        ) ?:
+                                                        'غير محدد';
+                                                @endphp
+                                                <option value="{{ $contract->id }}"
+                                                    data-client-name="{{ e($contract->user?->name ?? 'غير محدد') }}"
+                                                    data-client-phone="{{ e($contractPhone) }}"
+                                                    data-client-identity="{{ e($contract->user?->national_num ?? 'غير محدد') }}"
+                                                    data-nationality="{{ e($contractNationality) }}"
+                                                    data-status="{{ e($contractStatus) }}"
+                                                    {{ (string) $selectedContractId === (string) $contract->id ? 'selected' : '' }}>
+                                                    {{ $contract->desc ?? 'العقد #' . $contract->id }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+
+                                        @if (!$canCreateInvoice)
+                                            <div class="alert alert-warning mt-3 mb-0">
+                                                لا توجد عقود متاحة حالياً لإصدار فاتورة جديدة.
+                                            </div>
+                                        @else
+                                            <div class="field-note">اختر العقد لتحديث بيانات العميل في العمود الجانبي مباشرة.</div>
+                                        @endif
+                                    </div>
+                                </div>
+                            @else
+                                <input type="hidden" name="contract_id" value="{{ $selectedContract->id }}">
+
+                                <div class="fixed-contract-strip">
+                                    <div>
+                                        <strong>العقد مرتبط مسبقاً: #{{ $selectedContract->id }}</strong>
+                                        <p>تم فتح الصفحة من داخل النظام بعقد محدد وجاهز لإصدار الفاتورة.</p>
+                                    </div>
+                                    <span class="badge bg-light text-dark border">العميل: {{ $currentClientName }}</span>
+                                </div>
+                            @endif
+                        </div>
+
+                        <div class="mini-section">
+                            <div class="mini-title">
+                                <i class="fas fa-sack-dollar"></i>
+                                بنود التكلفة
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6 col-lg-4">
+                                    <label class="form-label" for="insurance_company">شركة التأمين</label>
+                                    <input type="text" name="insurance_company" id="insurance_company"
+                                        class="form-control" value="{{ old('insurance_company') }}"
+                                        placeholder="اختياري">
+                                </div>
+                                <div class="col-md-6 col-lg-4">
+                                    <label class="form-label" for="direct_recruitment_cost">الاستقدام المباشر</label>
+                                    <input type="number" step="0.01" min="0" name="direct_recruitment_cost"
+                                        id="direct_recruitment_cost" class="form-control calc-input"
+                                        value="{{ old('direct_recruitment_cost', 0) }}">
+                                </div>
+                                <div class="col-md-6 col-lg-4">
+                                    <label class="form-label" for="external_recruitment_cost">الاستقدام الخارجي</label>
+                                    <input type="number" step="0.01" min="0" name="external_recruitment_cost"
+                                        id="external_recruitment_cost" class="form-control calc-input"
+                                        value="{{ old('external_recruitment_cost', 0) }}">
+                                </div>
+                                <div class="col-md-6 col-lg-4">
+                                    <label class="form-label" for="government_cost">تكاليف حكومية</label>
+                                    <input type="number" step="0.01" min="0" name="government_cost"
+                                        id="government_cost" class="form-control calc-input"
+                                        value="{{ old('government_cost', 0) }}">
+                                </div>
+                                <div class="col-md-6 col-lg-4">
+                                    <label class="form-label" for="internal_ticket_cost">التذكرة الداخلية</label>
+                                    <input type="number" step="0.01" min="0" name="internal_ticket_cost"
+                                        id="internal_ticket_cost" class="form-control calc-input"
+                                        value="{{ old('internal_ticket_cost', 0) }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mini-section">
+                            <div class="mini-title">
+                                <i class="fas fa-hashtag"></i>
+                                الكميات
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6 col-lg-4">
+                                    <label class="form-label" for="visa_recruited_count">عدد المستقدمين في التأشيرة</label>
+                                    <input type="number" min="1" name="visa_recruited_count"
+                                        id="visa_recruited_count" class="form-control calc-input"
+                                        value="{{ old('visa_recruited_count', 1) }}">
+                                </div>
+                                <div class="col-md-6 col-lg-4">
+                                    <label class="form-label" for="direct_recruitment_count">عدد المباشر</label>
+                                    <input type="number" min="1" name="direct_recruitment_count"
+                                        id="direct_recruitment_count" class="form-control calc-input"
+                                        value="{{ old('direct_recruitment_count', 1) }}">
+                                </div>
+                                <div class="col-md-6 col-lg-4">
+                                    <label class="form-label" for="external_recruitment_count">عدد الخارجي</label>
+                                    <input type="number" min="1" name="external_recruitment_count"
+                                        id="external_recruitment_count" class="form-control calc-input"
+                                        value="{{ old('external_recruitment_count', 1) }}">
+                                </div>
+                                <div class="col-md-6 col-lg-4">
+                                    <label class="form-label" for="insured_count">عدد المؤمن عليهم</label>
+                                    <input type="number" min="1" name="insured_count" id="insured_count"
+                                        class="form-control calc-input" value="{{ old('insured_count', 1) }}">
+                                </div>
+                                <div class="col-md-6 col-lg-4">
+                                    <label class="form-label" for="government_cost_count">عدد الحكومي</label>
+                                    <input type="number" min="1" name="government_cost_count"
+                                        id="government_cost_count" class="form-control calc-input"
+                                        value="{{ old('government_cost_count', 1) }}">
+                                </div>
+                                <div class="col-md-6 col-lg-4">
+                                    <label class="form-label" for="internal_ticket_count">عدد التذاكر</label>
+                                    <input type="number" min="1" name="internal_ticket_count"
+                                        id="internal_ticket_count" class="form-control calc-input"
+                                        value="{{ old('internal_ticket_count', 1) }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mini-section">
+                            <div class="mini-title">
+                                <i class="fas fa-calculator"></i>
+                                الإجماليات
+                            </div>
+
+                            <div class="totals-box">
+                                <div class="row g-3">
+                                    <div class="col-md-6 col-lg-3">
+                                        <label class="form-label text-success" for="subtotal">المجموع</label>
+                                        <input type="number" step="0.01" min="0" name="subtotal" id="subtotal"
+                                            class="form-control total-field" value="{{ old('subtotal', 0) }}"
+                                            readonly>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3">
+                                        <label class="form-label" for="discount">الخصم</label>
+                                        <input type="number" step="0.01" min="0" name="discount" id="discount"
+                                            class="form-control calc-input" value="{{ old('discount', 0) }}">
+                                    </div>
+                                    <div class="col-md-6 col-lg-3">
+                                        <label class="form-label text-primary" for="vat_amount">الضريبة</label>
+                                        <input type="number" step="0.01" min="0" name="vat_amount" id="vat_amount"
+                                            class="form-control total-field" value="{{ old('vat_amount', 0) }}"
+                                            readonly>
+                                    </div>
+                                    <div class="col-md-6 col-lg-3">
+                                        <label class="form-label text-danger" for="total_due">المطلوب</label>
+                                        <input type="number" step="0.01" min="0" name="total_due" id="total_due"
+                                            class="form-control total-field" value="{{ old('total_due', 0) }}"
+                                            readonly>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-4 order-1 order-xl-2">
+                    <div class="sticky-sidebar">
+                        <div class="sidebar-panel">
+                            <div class="panel-heading">
+                                <span class="panel-icon">
+                                    <i class="fas fa-address-card"></i>
+                                </span>
+                                <div>
+                                    <div class="panel-title">العقد والعميل</div>
+                                    <p class="panel-subtitle">بيانات ثابتة في الجانب لتسهيل الإدخال والمراجعة والطباعة.</p>
+                                </div>
+                            </div>
+
+                            <div class="side-section">
+                                <div class="meta-grid {{ $currentContract ? '' : 'is-empty' }}" id="contractPreview">
+                                    <div class="meta-item">
+                                        <span class="meta-label">رقم العقد</span>
+                                        <strong class="meta-value" id="previewContractNumber">
+                                            {{ $currentContract ? '#' . $currentContract->id : '---' }}
+                                        </strong>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">اسم العميل</span>
+                                        <strong class="meta-value" id="previewClientName">{{ $currentClientName }}</strong>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">الجنسية</span>
+                                        <strong class="meta-value" id="previewNationality">{{ $currentNationality }}</strong>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">حالة العقد</span>
+                                        <strong class="meta-value" id="previewContractStatus">{{ $currentContractStatus }}</strong>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">هوية العميل</span>
+                                        <strong class="meta-value" id="previewClientIdentity">{{ $currentClientIdentity }}</strong>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">رقم التواصل</span>
+                                        <strong class="meta-value" id="previewClientPhone">{{ $currentClientPhone }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="side-section">
+                                <div class="summary-total-card">
+                                    <span>المطلوب من العميل</span>
+                                    <strong id="summaryGrandTotal">0.00 ريال</strong>
+                                </div>
+
+                                <div class="summary-list">
+                                    <div class="summary-row">
+                                        <span>المجموع الفرعي</span>
+                                        <strong id="summarySubtotal">0.00 ريال</strong>
+                                    </div>
+                                    <div class="summary-row">
+                                        <span>ضريبة القيمة المضافة</span>
+                                        <strong id="summaryVat">0.00 ريال</strong>
+                                    </div>
+                                    <div class="summary-row">
+                                        <span>الخصم</span>
+                                        <strong id="summaryDiscount">0.00 ريال</strong>
+                                    </div>
+                                </div>
+
+                                <div class="line-breakdown">
+                                    <div class="breakdown-row">
+                                        <span>المباشر</span>
+                                        <strong id="summaryDirectLine">0 × 0.00 = 0.00 ريال</strong>
+                                    </div>
+                                    <div class="breakdown-row">
+                                        <span>الخارجي</span>
+                                        <strong id="summaryExternalLine">0 × 0.00 = 0.00 ريال</strong>
+                                    </div>
+                                    <div class="breakdown-row">
+                                        <span>الحكومي</span>
+                                        <strong id="summaryGovernmentLine">0 × 0.00 = 0.00 ريال</strong>
+                                    </div>
+                                    <div class="breakdown-row">
+                                        <span>التذاكر</span>
+                                        <strong id="summaryTicketLine">0 × 0.00 = 0.00 ريال</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="side-section">
+                                <div class="action-stack d-grid gap-2">
+                                    <button type="submit" class="btn btn-primary" id="btnSubmit"
+                                        @disabled(!$canCreateInvoice)>
+                                        <i class="fas fa-save me-1"></i>
+                                        حفظ وإصدار الفاتورة
+                                    </button>
+                                    <a href="{{ route('invoices.index') }}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-list me-1"></i>
+                                        الرجوع إلى جميع الفواتير
+                                    </a>
+                                </div>
+
+                                <div class="action-note mt-3">
+                                    بعد الحفظ ستظهر أزرار العرض والطباعة هنا مباشرة، بدون الحاجة للنزول في الصفحة.
+                                </div>
+
+                                <div class="post-save-actions d-none mt-3" id="postSaveActions">
+                                    <h6>
+                                        <i class="fas fa-circle-check me-1"></i>
+                                        تم إصدار الفاتورة
+                                    </h6>
+                                    <div class="d-grid gap-2">
+                                        <a href="#" class="btn btn-outline-primary" id="viewInvoiceBtn">
+                                            <i class="fas fa-eye me-1"></i>
+                                            عرض الفاتورة
+                                        </a>
+                                        <a href="#" class="btn btn-primary" id="printInvoiceBtn" target="_blank"
+                                            rel="noopener">
+                                            <i class="fas fa-print me-1"></i>
+                                            طباعة الفاتورة
+                                        </a>
+                                        <a href="{{ route('invoices.create') }}" class="btn btn-outline-success"
+                                            id="addAnotherInvoiceBtn">
+                                            <i class="fas fa-plus me-1"></i>
+                                            إصدار فاتورة أخرى
+                                        </a>
+                                        <a href="{{ route('invoices.index') }}" class="btn btn-outline-secondary"
+                                            id="allInvoicesBtn">
+                                            <i class="fas fa-table-list me-1"></i>
+                                            جميع الفواتير
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
 @endsection
 
 @section('js')
     <script>
-        $(document).ready(function() {
+        $(function() {
+            const $form = $('#invoiceForm');
+            const $submitButton = $('#btnSubmit');
+            const submitButtonHtml = $submitButton.html();
 
-            let vat_amount = $('#vat_amount');
+            function parseNumber(selector) {
+                const value = parseFloat($(selector).val());
+                return Number.isFinite(value) ? value : 0;
+            }
 
-            $(document).on(
-                'input',
-                '#direct_recruitment_cost, #external_recruitment_cost, #government_cost, #internal_ticket_cost, #visa_recruited_count, #direct_recruitment_count, #external_recruitment_count, #insured_count, #government_cost_count, #internal_ticket_count, #discount',
-                function() {
+            function formatMoney(value) {
+                return `${Number(value || 0).toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                })} ريال`;
+            }
 
-                    let direct = parseFloat($('#direct_recruitment_cost').val()) || 0;
-                    let external = parseFloat($('#external_recruitment_cost').val()) || 0;
-                    let government = parseFloat($('#government_cost').val()) || 0;
-                    let ticket = parseFloat($('#internal_ticket_cost').val()) || 0;
+            function setPreviewValue(selector, value, fallback = 'غير محدد') {
+                $(selector).text(value && String(value).trim() !== '' ? value : fallback);
+            }
 
-                    // المجموع
-                    let subtotal = (direct * $('#direct_recruitment_count').val()) + (external * $(
-                        '#external_recruitment_count').val()) + (government * $('#government_cost_count')
-                        .val()) + (ticket * $('#internal_ticket_count').val());
-                    $('#subtotal').val(subtotal.toFixed(2));
+            function updateContractPreview() {
+                const $select = $('#contract_id');
 
-                    // الضريبة 15% من الاستقدام المباشر فقط
-                    let vat = direct * 0.15;
-                    vat_amount.val(vat.toFixed(2));
-
-                    // المطلوب من العميل
-                    let totalDue = (subtotal + vat) - (parseFloat($('#discount').val()) || 0);
-
-                    $('#total_due').val(totalDue.toFixed(2));
+                if (!$select.length) {
+                    return;
                 }
-            );
 
+                const $selectedOption = $select.find('option:selected');
+                const contractId = $selectedOption.val();
 
-            $("#invoiceForm").on('submit', function(e) {
+                if (!contractId) {
+                    $('#contractPreview').addClass('is-empty');
+                    setPreviewValue('#previewContractNumber', '---', '---');
+                    setPreviewValue('#previewClientName', '');
+                    setPreviewValue('#previewNationality', '');
+                    setPreviewValue('#previewContractStatus', '');
+                    setPreviewValue('#previewClientIdentity', '');
+                    setPreviewValue('#previewClientPhone', '');
+                    return;
+                }
+
+                $('#contractPreview').removeClass('is-empty');
+                setPreviewValue('#previewContractNumber', `#${contractId}`, '---');
+                setPreviewValue('#previewClientName', $selectedOption.data('client-name'));
+                setPreviewValue('#previewNationality', $selectedOption.data('nationality'));
+                setPreviewValue('#previewContractStatus', $selectedOption.data('status'));
+                setPreviewValue('#previewClientIdentity', $selectedOption.data('client-identity'));
+                setPreviewValue('#previewClientPhone', $selectedOption.data('client-phone'));
+            }
+
+            function updateCalculation() {
+                const directCost = parseNumber('#direct_recruitment_cost');
+                const externalCost = parseNumber('#external_recruitment_cost');
+                const governmentCost = parseNumber('#government_cost');
+                const ticketCost = parseNumber('#internal_ticket_cost');
+
+                const directCount = parseNumber('#direct_recruitment_count');
+                const externalCount = parseNumber('#external_recruitment_count');
+                const governmentCount = parseNumber('#government_cost_count');
+                const ticketCount = parseNumber('#internal_ticket_count');
+                const discount = parseNumber('#discount');
+
+                const directTotal = directCost * directCount;
+                const externalTotal = externalCost * externalCount;
+                const governmentTotal = governmentCost * governmentCount;
+                const ticketTotal = ticketCost * ticketCount;
+
+                const subtotal = directTotal + externalTotal + governmentTotal + ticketTotal;
+                const vat = directTotal * 0.15;
+                const totalDue = Math.max(0, subtotal + vat - discount);
+
+                $('#subtotal').val(subtotal.toFixed(2));
+                $('#vat_amount').val(vat.toFixed(2));
+                $('#total_due').val(totalDue.toFixed(2));
+
+                $('#summarySubtotal').text(formatMoney(subtotal));
+                $('#summaryVat').text(formatMoney(vat));
+                $('#summaryDiscount').text(formatMoney(discount));
+                $('#summaryGrandTotal').text(formatMoney(totalDue));
+
+                $('#summaryDirectLine').text(`${directCount} × ${directCost.toFixed(2)} = ${formatMoney(directTotal)}`);
+                $('#summaryExternalLine').text(
+                    `${externalCount} × ${externalCost.toFixed(2)} = ${formatMoney(externalTotal)}`
+                );
+                $('#summaryGovernmentLine').text(
+                    `${governmentCount} × ${governmentCost.toFixed(2)} = ${formatMoney(governmentTotal)}`
+                );
+                $('#summaryTicketLine').text(`${ticketCount} × ${ticketCost.toFixed(2)} = ${formatMoney(ticketTotal)}`);
+            }
+
+            function extractErrorMessage(xhr) {
+                if (xhr.responseJSON) {
+                    if (xhr.responseJSON.message) {
+                        return xhr.responseJSON.message;
+                    }
+
+                    if (xhr.responseJSON.errors) {
+                        const firstKey = Object.keys(xhr.responseJSON.errors)[0];
+                        if (firstKey && xhr.responseJSON.errors[firstKey][0]) {
+                            return xhr.responseJSON.errors[firstKey][0];
+                        }
+                    }
+                }
+
+                return 'حدث خطأ أثناء إرسال الفاتورة.';
+            }
+
+            function revealPostSaveActions(response) {
+                $('#viewInvoiceBtn').attr('href', response.view_url || response.redirect || '#');
+                $('#printInvoiceBtn').attr('href', response.print_url || '#');
+                $('#addAnotherInvoiceBtn').attr('href', response.create_url || "{{ route('invoices.create') }}");
+                $('#allInvoicesBtn').attr('href', response.index_url || "{{ route('invoices.index') }}");
+                $('#postSaveActions').removeClass('d-none');
+            }
+
+            $('.calc-input').on('input', updateCalculation);
+            $('#contract_id').on('change', updateContractPreview);
+
+            updateContractPreview();
+            updateCalculation();
+
+            $form.on('submit', function(e) {
                 e.preventDefault();
-                let $form = $(this);
-                let url = $form.attr('action');
-                let method = $form.attr('method') || 'POST';
-                let data = $form.serialize();
+
+                if ($submitButton.prop('disabled')) {
+                    return;
+                }
 
                 $.ajax({
-                    url: url,
-                    method: method,
-                    data: data,
+                    url: $form.attr('action'),
+                    method: $form.attr('method') || 'POST',
+                    data: $form.serialize(),
                     beforeSend: function() {
-                        $('#btnSubmit').html(`
-    <div class="spinner-border spinner-border-sm" role="status">
-        <span class="visually-hidden">Loading...</span>
-    </div>
-`);
+                        $submitButton.prop('disabled', true).html(`
+                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            جاري الحفظ...
+                        `);
                     },
                     success: function(response) {
-                        if (response.success) {
-                            $('#btnSubmit').html('حفظ');
+                        if (!response.success) {
+                            $submitButton.prop('disabled', false).html(submitButtonHtml);
 
                             Swal.fire({
-                                icon: 'success',
-                                title: 'نجح',
-                                text: response.message || "تم اضافة الفاتورة بنجاح"
-                            }).then(() => {
-                                if (response.redirect) {
-                                    window.location.href = response.redirect;
-                                } else {
-                                    window.location.href = "{{ route('RecruitmentContract.index') }}";
-                                }
-                            });
-                        } else {
-                            Swal.fire({
                                 icon: 'error',
-                                title: 'خطأ',
-                                text: response.message || 'حدث خطأ أثناء اضافة الفاتورة'
+                                title: 'تعذر إصدار الفاتورة',
+                                text: response.message || 'حدث خطأ أثناء إصدار الفاتورة.',
                             });
+                            return;
                         }
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم إصدار الفاتورة',
+                            text: response.message || 'تم إصدار الفاتورة بنجاح.',
+                        });
+
+                        $form.find(':input').prop('disabled', true);
+                        $submitButton
+                            .prop('disabled', true)
+                            .removeClass('btn-primary')
+                            .addClass('btn-success')
+                            .html('<i class="fas fa-check me-1"></i> تم إصدار الفاتورة');
+
+                        revealPostSaveActions(response);
                     },
                     error: function(xhr) {
-                        console.log(xhr);
-                         $('#btnSubmit').html('حفظ');
-                         
-                        if (xhr.status == 422) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'خطأ',
-                                text: xhr.responseJSON.message ||
-                                    'حدث خطأ أثناء الارسال'
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'خطأ',
-                                text: 'حدث خطأ أثناء الارسال'
-                            });
-                        }
+                        $submitButton.prop('disabled', false).html(submitButtonHtml);
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'تعذر إصدار الفاتورة',
+                            text: extractErrorMessage(xhr),
+                        });
                     },
                 });
-            })
+            });
         });
     </script>
 @endsection
