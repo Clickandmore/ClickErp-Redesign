@@ -841,35 +841,43 @@
                 @php
                     $isHr = request()->is('hr*');
                 @endphp
-                @if ($canViewHrModule)
-                    <li class="{{ $isHr ? '' : 'collapsed' }}">
-                        <a class="m-link" data-bs-toggle="collapse" data-bs-target="#hr" href="#">
-                            <i class="fa fa-user-tie me-2"></i>
-                            <span class="ms-2">{{ __('ingaz.hr') }}</span>
-                            <span class="arrow fa fa-angle-left ms-auto text-end"></span>
-                        </a>
-                        <ul class="sub-menu collapse {{ $isHr ? 'show' : '' }}" id="hr">
+                <li class="{{ $isHr ? '' : 'collapsed' }}">
+                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#hr" href="#">
+                        <i class="fa fa-user-tie me-2"></i>
+                        <span class="ms-2">{{ __('ingaz.hr') }}</span>
+                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                    </a>
+                    <ul class="sub-menu collapse {{ $isHr ? 'show' : '' }}" id="hr">
+                        @if ($canViewHrModule)
                             @include('hr::hr')
-                        </ul>
-                    </li>
-                @endif
+                        @else
+                            <li>
+                                <span class="m-link text-muted">لا توجد صلاحيات متاحة</span>
+                            </li>
+                        @endif
+                    </ul>
+                </li>
                 @php
                     $isFinance =
                         request()->is('finance*') ||
                         \Illuminate\Support\Str::startsWith((string) Route::currentRouteName(), 'invoices.');
                 @endphp
-                @if ($canViewFinanceModule)
-                    <li class="{{ $isFinance ? '' : 'collapsed' }}">
-                        <a class="m-link" data-bs-toggle="collapse" data-bs-target="#finance" href="#">
-                            <i class="fa fa-dollar-sign me-2"></i>
-                            <span class="ms-2">{{ __('ingaz.finance') }}</span>
-                            <span class="arrow fa fa-angle-left ms-auto text-end"></span>
-                        </a>
-                        <ul class="sub-menu collapse {{ $isFinance ? 'show' : '' }}" id="finance">
+                <li class="{{ $isFinance ? '' : 'collapsed' }}">
+                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#finance" href="#">
+                        <i class="fa fa-dollar-sign me-2"></i>
+                        <span class="ms-2">{{ __('ingaz.finance') }}</span>
+                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                    </a>
+                    <ul class="sub-menu collapse {{ $isFinance ? 'show' : '' }}" id="finance">
+                        @if ($canViewFinanceModule)
                             @include('finance::finance')
-                        </ul>
-                    </li>
-                @endif
+                        @else
+                            <li>
+                                <span class="m-link text-muted">لا توجد صلاحيات متاحة</span>
+                            </li>
+                        @endif
+                    </ul>
+                </li>
                 {{--                @include('finance::stock') --}}
                 @if ($canViewFinanceModule)
                     @include('finance::zatca')
