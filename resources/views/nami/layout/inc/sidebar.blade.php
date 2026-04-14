@@ -694,13 +694,7 @@
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
                     <ul class="sub-menu collapse {{ $isHr ? 'show' : '' }}" id="hr">
-                        @if ($canViewHrModule)
-                            @include('hr::hr')
-                        @else
-                            <li>
-                                <span class="m-link text-muted">لا توجد صلاحيات متاحة</span>
-                            </li>
-                        @endif
+                        @include('hr::hr')
                     </ul>
                 </li>
                 @php
@@ -713,19 +707,11 @@
                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
                     <ul class="sub-menu collapse {{ $isFinance ? 'show' : '' }}" id="finance">
-                        @if ($canViewFinanceModule)
-                            @include('finance::finance')
-                        @else
-                            <li>
-                                <span class="m-link text-muted">لا توجد صلاحيات متاحة</span>
-                            </li>
-                        @endif
+                        @include('finance::finance')
                     </ul>
                 </li>
                 {{--                @include('finance::stock') --}}
-                @if ($canViewFinanceModule)
-                    @include('finance::zatca')
-                @endif
+                @include('finance::zatca')
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#settingsOperation" href="#">
                         <i class="fa fa-cog fa-lg"></i>
