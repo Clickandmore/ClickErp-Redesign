@@ -293,6 +293,110 @@ function AdminGuardHasAllPerms($permissions)
     return true;
 }
 
+function AdminGuardPermissionNames(): array
+{
+    $user = Auth::guard('admin')->user();
+
+    if (!$user) {
+        return [];
+    }
+
+    if (method_exists($user, 'getAllPermissions')) {
+        return $user->getAllPermissions()
+            ->pluck('name')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    $permissionNames = [];
+
+    if (isset($user->permissions)) {
+        $permissionNames = array_merge($permissionNames, $user->permissions->pluck('name')->all());
+    }
+
+    if (isset($user->roles)) {
+        foreach ($user->roles as $role) {
+            if (isset($role->permissions)) {
+                $permissionNames = array_merge($permissionNames, $role->permissions->pluck('name')->all());
+            }
+        }
+    }
+
+    return array_values(array_unique(array_filter($permissionNames)));
+}
+
+function AdminGuardHasPermissionStartingWith(array $prefixes): bool
+{
+    foreach (AdminGuardPermissionNames() as $permissionName) {
+        foreach ($prefixes as $prefix) {
+            if (str_starts_with($permissionName, $prefix)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+function AdminGuardCanViewPackageModule(string $module): bool
+{
+    $user = Auth::guard('admin')->user();
+
+    if (!$user) {
+        return false;
+    }
+
+    if ((int) ($user->admin_type ?? 0) === \App\Enums\AdminTypeisEnum::Developer->value) {
+        return true;
+    }
+
+    return match ($module) {
+        'hr' => AdminGuardHasPerm(\App\PermKeys::HR_MODULE)
+            || AdminGuardHasPermissionStartingWith([
+                'hr.',
+                'departments-',
+                'jobs-',
+                'allowances-',
+                'sanctions-',
+                'vacation-year-',
+                'vacations-',
+                'permissions-',
+                'permissionsSettings-',
+                'insurances-',
+                'tax-',
+                'rewards-',
+                'shifts-',
+                'employees-',
+                'employeeVacations-',
+                'employeeVacationBalance-',
+                'ToggleStatusEmployees-',
+                'ToggleStatusEmployeeVacation-',
+                'employeeSanctions-',
+                'employeePermissions-',
+                'officialVacations-',
+                'employeeShifts-',
+                'employeeAttendances-',
+                'salaries-',
+                'employeeProfile-',
+                'employeeExecelFile-',
+                'mluti-employee-',
+                'daily-work-reports-',
+                'employee-rewards-',
+                'employee-advances-',
+            ]),
+        'finance' => AdminGuardHasPerm(\App\PermKeys::FINANCE_MODULE)
+            || AdminGuardHasPermissionStartingWith([
+                'finance.',
+                'zatca.',
+                'invoices.',
+            ]),
+        'crm' => AdminGuardHasPerm(\App\PermKeys::CRM_MODULE),
+        default => false,
+    };
+}
+
 /**
  * التحقق من وجود صلاحية إدارة قسم معين
  */

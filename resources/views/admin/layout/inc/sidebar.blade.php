@@ -60,8 +60,8 @@
                 $completedStatus = \App\Enums\ingaz\ContractStatusEnum::Completed;
 
                 $canViewCrmModule = @AdminGuardHasPerm(\App\PermKeys::CRM_MODULE);
-                $canViewHrModule = @AdminGuardHasPerm(\App\PermKeys::HR_MODULE);
-                $canViewFinanceModule = @AdminGuardHasPerm(\App\PermKeys::FINANCE_MODULE);
+                $canViewHrModule = @AdminGuardCanViewPackageModule('hr');
+                $canViewFinanceModule = @AdminGuardCanViewPackageModule('finance');
 
                 $canViewCrm = $canViewCrmModule || @AdminGuardHasAnyPerm([\App\PermKeys::CLIENTS_VIEW, \App\PermKeys::CLIENTS_CREATE, \App\PermKeys::CLIENTS_EDIT, \App\PermKeys::CLIENTS_DELETE, \App\PermKeys::CLIENTS_EXPORT, \App\PermKeys::CLIENTS_SHOW, \App\PermKeys::CLIENTS_SETTINGS]);
 
