@@ -396,7 +396,13 @@ class InvoiceController extends Controller
             'general_type' => 0,
         ]);
 
-        $bondService->checkIsConfirmSetting($bond, ConfirmSettingTypes::QabdBond->value);
+        $bond = $bond->fresh();
+
+        // سند القبض الناتج من إصدار الفاتورة يجب أن يولد قيده مباشرة،
+        // بغض النظر عن إعدادات تأكيد سندات القبض اليدوية.
+        if ((int) $bond->is_confirm !== 1 || !$bond->constraint_id) {
+            $bondService->confirmBond($bond->id);
+        }
     }
 
     /**
