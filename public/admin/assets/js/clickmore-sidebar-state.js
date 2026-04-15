@@ -10,6 +10,7 @@
   const scrollCandidates = [sidebar.querySelector(".main-menu"), sidebar].filter(Boolean);
   const scrollContainer =
     scrollCandidates.find((el) => el.scrollHeight > el.clientHeight + 4) || scrollCandidates[0];
+  let saveScroll = () => {};
 
   if (scrollContainer) {
     const storedTop = Number(sessionStorage.getItem(SCROLL_KEY));
@@ -19,7 +20,7 @@
       });
     }
 
-    const saveScroll = () => {
+    saveScroll = () => {
       sessionStorage.setItem(SCROLL_KEY, String(scrollContainer.scrollTop || 0));
     };
 
@@ -81,6 +82,9 @@
         parentItem && parentItem.classList.add("collapsed");
       }
     } else {
+      target.classList.add("show");
+      toggle.setAttribute("aria-expanded", "true");
+      parentItem && parentItem.classList.remove("collapsed");
       openedMenusSet.add(menuId);
       saveOpenedMenus();
     }
@@ -99,4 +103,27 @@
       toggle.setAttribute("aria-expanded", "false");
     });
   });
+
+  if (scrollContainer) {
+    requestAnimationFrame(() => {
+      const activeLink =
+        sidebar.querySelector(".sub-menu .m-link.active") ||
+        sidebar.querySelector(".menu-list > li > .m-link.active") ||
+        sidebar.querySelector(".m-link.active");
+
+      if (!activeLink) {
+        return;
+      }
+
+      const containerRect = scrollContainer.getBoundingClientRect();
+      const linkRect = activeLink.getBoundingClientRect();
+      const needsScroll =
+        linkRect.top < containerRect.top + 24 || linkRect.bottom > containerRect.bottom - 24;
+
+      if (needsScroll) {
+        activeLink.scrollIntoView({ block: "center", inline: "nearest" });
+        saveScroll();
+      }
+    });
+  }
 })();

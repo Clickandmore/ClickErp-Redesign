@@ -87,10 +87,14 @@
                     </li>
                 @endif
                 @php
-                    $isHr = request()->is('hr*');
-                    $isFinance = request()->is('finance*');
-                    $isZatcka = request()->is('zatca*');
-                    $isCrm = request()->is('crm*');
+                    $supportedLocales = array_keys(config('laravellocalization.supportedLocales', []));
+                    $firstSegment = request()->segment(1);
+                    $moduleSegment = in_array($firstSegment, $supportedLocales, true) ? request()->segment(2) : $firstSegment;
+
+                    $isHr = $moduleSegment === 'hr';
+                    $isFinance = $moduleSegment === 'finance';
+                    $isZatcka = $moduleSegment === 'zatca';
+                    $isCrm = $moduleSegment === 'crm';
                 @endphp
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#Operations_Management" href="#">
@@ -685,7 +689,10 @@
                 </li>
                 @endif
                 @php
-                    $isHr = request()->is('hr*');
+                    $supportedLocales = array_keys(config('laravellocalization.supportedLocales', []));
+                    $firstSegment = request()->segment(1);
+                    $moduleSegment = in_array($firstSegment, $supportedLocales, true) ? request()->segment(2) : $firstSegment;
+                    $isHr = $moduleSegment === 'hr';
                 @endphp
                 <li class="{{ $isHr ? '' : 'collapsed' }}">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#hr" href="#">
