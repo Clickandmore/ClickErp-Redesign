@@ -43,7 +43,7 @@
                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
                                 طلبات جديدة
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="new-requests-count">0</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="new-requests-count">{{ number_format($statistics['new'] ?? 0) }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-clock fa-2x text-gray-300"></i>
@@ -61,7 +61,7 @@
                             <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
                                 طلبات مدفوعة
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="paid-requests-count">0</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="paid-requests-count">{{ number_format($statistics['paid'] ?? 0) }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-credit-card fa-2x text-gray-300"></i>
@@ -79,7 +79,7 @@
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
                                 طلبات مكتملة
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="completed-requests-count">0</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="completed-requests-count">{{ number_format($statistics['completed'] ?? 0) }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-check-circle fa-2x text-gray-300"></i>
@@ -97,7 +97,7 @@
                             <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
                                 إجمالي الطلبات
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-requests-count">0</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-requests-count">{{ number_format($statistics['total'] ?? 0) }}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-list fa-2x text-gray-300"></i>
@@ -270,6 +270,7 @@ $(document).ready(function() {
                         showConfirmButton: false
                     }).then(() => {
                         table.ajax.reload();
+                        updateStatistics();
                     });
                 } else {
                     Swal.fire('خطأ!', response.message, 'error');

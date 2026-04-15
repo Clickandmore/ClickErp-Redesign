@@ -66,7 +66,7 @@
                     <small class="stat-label">طلبات الاستقدام</small>
                     <h3 class="mb-0">{{ number_format($ordersStats['total'] ?? 0) }}</h3>
                 </div>
-                <a href="{{ url('admin/orders') }}" class="btn btn-sm btn-light text-dark">عرض</a>
+                <a href="{{ route('orders.index') }}" class="btn btn-sm btn-light text-dark">عرض</a>
             </div>
             <div class="mt-3 stat-meta">جديدة: {{ number_format($ordersStats['new'] ?? 0) }} | تحت الإجراء:
                 {{ number_format($ordersStats['under_process'] ?? 0) }} | تم التعاقد:
@@ -371,7 +371,7 @@
                     <small class="stat-label">عقود الإيجار</small>
                     <h3 class="mb-0">{{ number_format($rentalStats['total'] ?? 0) }}</h3>
                 </div>
-                <a href="{{ url('dashboard/rental-orders') }}" class="btn btn-sm btn-light text-dark">عرض</a>
+                <a href="{{ route('RentContract.index') }}" class="btn btn-sm btn-light text-dark">عرض</a>
             </div>
             <div class="mt-3 stat-meta">نشطة: {{ number_format($rentalStats['active'] ?? 0) }} | تحت الإجراء:
                 {{ number_format($rentalStats['in_workflow'] ?? 0) }} | مكتملة:
@@ -381,14 +381,40 @@
         <div class="stat-card is-6">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
-                    <small class="stat-label">نقل الكفالة</small>
+                    <small class="stat-label">طلبات الإيجار من الموقع</small>
+                    <h3 class="mb-0">{{ number_format($rentalOrderStats['total'] ?? 0) }}</h3>
+                </div>
+                <a href="{{ route('rental-orders.index') }}" class="btn btn-sm btn-light text-dark">عرض</a>
+            </div>
+            <div class="mt-3 stat-meta">جديدة: {{ number_format($rentalOrderStats['new'] ?? 0) }} | تحت الإجراء:
+                {{ number_format($rentalOrderStats['under_process'] ?? 0) }} | مكتملة:
+                {{ number_format($rentalOrderStats['completed'] ?? 0) }}</div>
+        </div>
+
+        <div class="stat-card is-2">
+            <div class="stat-head d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="stat-label">معاملات نقل الكفالة</small>
                     <h3 class="mb-0">{{ number_format($transferStats['total'] ?? 0) }}</h3>
                 </div>
-                <a href="{{ url('dashboard/transfer-service-contract') }}" class="btn btn-sm btn-light text-dark">عرض</a>
+                <a href="{{ route('SponsorshipTransfer.index') }}" class="btn btn-sm btn-light text-dark">عرض</a>
             </div>
             <div class="mt-3 stat-meta">قيد المراجعة: {{ number_format($transferStats['pending'] ?? 0) }} | معتمدة:
                 {{ number_format($transferStats['approved'] ?? 0) }} | منقولة:
                 {{ number_format($transferStats['transferred'] ?? 0) }}</div>
+        </div>
+
+        <div class="stat-card is-1">
+            <div class="stat-head d-flex justify-content-between align-items-center">
+                <div>
+                    <small class="stat-label">طلبات نقل الكفالة من الموقع</small>
+                    <h3 class="mb-0">{{ number_format($transferWebRequestStats['total'] ?? 0) }}</h3>
+                </div>
+                <a href="{{ route('SponsorshipTransfer.webRequests') }}" class="btn btn-sm btn-light text-dark">عرض</a>
+            </div>
+            <div class="mt-3 stat-meta">جديدة: {{ number_format($transferWebRequestStats['new'] ?? 0) }} | مدفوعة:
+                {{ number_format($transferWebRequestStats['paid'] ?? 0) }} | مكتملة:
+                {{ number_format($transferWebRequestStats['completed'] ?? 0) }}</div>
         </div>
 
         <div class="stat-card is-7">
@@ -397,7 +423,7 @@
                     <small class="stat-label">الإيواء</small>
                     <h3 class="mb-0">{{ number_format($shelterStats['total'] ?? 0) }}</h3>
                 </div>
-                <a href="{{ url('dashboard') }}" class="btn btn-sm btn-light text-dark">عرض</a>
+                <a href="{{ route('dashboard.index') }}" class="btn btn-sm btn-light text-dark">عرض</a>
             </div>
             <div class="mt-3 stat-meta">مشغول: {{ number_format($shelterStats['occupied'] ?? 0) }} | متاح:
                 {{ number_format($shelterStats['available'] ?? 0) }}</div>

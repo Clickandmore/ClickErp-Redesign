@@ -45,6 +45,11 @@ class DashboardController extends Controller
     public function professional(Request $request, objAction $action)
     {
         $now = now();
+        $todayDate = $now->toDateString();
+        $weekStart = $now->copy()->startOfWeek();
+        $weekEnd = $now->copy()->endOfWeek();
+        $currentMonth = (int) $now->month;
+        $currentYear = (int) $now->year;
 
         // العقود تُحسب لاحقاً اعتماداً على تاريخ العقد الفعلي بدل created_at
         $contractsStats = [];
@@ -52,21 +57,25 @@ class DashboardController extends Controller
         $contractsByMonthCurrent = [];
         $contractsByMonthPrevious = [];
 
+        $buildOrderStats = function (int $jobTypeId) use ($todayDate, $weekStart, $weekEnd, $currentMonth, $currentYear) {
+            $baseQuery = Order::query()->where('job_type_id', $jobTypeId);
+
+            return [
+                'total' => (clone $baseQuery)->count(),
+                'today' => (clone $baseQuery)->whereDate('created_at', $todayDate)->count(),
+                'thisWeek' => (clone $baseQuery)->whereBetween('created_at', [$weekStart, $weekEnd])->count(),
+                'thisMonth' => (clone $baseQuery)->whereMonth('created_at', $currentMonth)->whereYear('created_at', $currentYear)->count(),
+                'completed' => (clone $baseQuery)->whereIn('status', [OrderEnum::Completed->value, OrderEnum::Done->value, OrderEnum::Contracted->value])->count(),
+                'new' => (clone $baseQuery)->where('status', OrderEnum::New->value)->count(),
+                'under_process' => (clone $baseQuery)->where('status', OrderEnum::UnderProcess->value)->count(),
+                'contracted' => (clone $baseQuery)->where('status', OrderEnum::Contracted->value)->count(),
+                'contracted_without' => (clone $baseQuery)->where('status', OrderEnum::ContractedWithoutContract->value)->count(),
+                'refused' => (clone $baseQuery)->where('status', OrderEnum::Refused->value)->count(),
+            ];
+        };
+
         // الطلبات (استقدام)
-        $ordersStats = [
-            'total' => Order::count(),
-            'today' => Order::whereDate('created_at', today())->count(),
-            'thisWeek' => Order::whereBetween('created_at', [$now->startOfWeek(), $now->endOfWeek()])->count(),
-            'thisMonth' => Order::whereMonth('created_at', $now->month)->whereYear('created_at', $now->year)->count(),
-            'completed' => Order::where('status', 'completed')->count(),
-            'pending' => Order::where('status', 'pending')->count(),
-            'processing' => Order::where('status', 'processing')->count(),
-            'new' => Order::where('status', OrderEnum::New->value)->count(),
-            'under_process' => Order::where('status', OrderEnum::UnderProcess->value)->count(),
-            'contracted' => Order::where('status', OrderEnum::Contracted->value)->count(),
-            'contracted_without' => Order::where('status', OrderEnum::ContractedWithoutContract->value)->count(),
-            'refused' => Order::where('status', OrderEnum::Refused->value)->count(),
-        ];
+        $ordersStats = $buildOrderStats(1);
 
         // السير الذاتية
         $cvStats = [
@@ -76,8 +85,8 @@ class DashboardController extends Controller
                 $q->where('available', false)
                     ->orWhere('status', Maid::STATUS_RESERVED['en']);
             })->count(),
-            'newThisWeek' => Maid::whereBetween('created_at', [$now->startOfWeek(), $now->endOfWeek()])->count(),
-            'newThisMonth' => Maid::whereMonth('created_at', $now->month)->count(),
+            'newThisWeek' => Maid::whereBetween('created_at', [$weekStart, $weekEnd])->count(),
+            'newThisMonth' => Maid::whereMonth('created_at', $currentMonth)->whereYear('created_at', $currentYear)->count(),
         ];
 
         // العملاء
@@ -86,9 +95,9 @@ class DashboardController extends Controller
         $clientsWithContracts = User::whereHas('contracts')->count();
         $clientsStats = [
             'total' => $clientTotal,
-            'newThisMonth' => User::whereMonth('created_at', $now->month)->count(),
-            'newThisWeek' => User::whereBetween('created_at', [$now->startOfWeek(), $now->endOfWeek()])->count(),
-            'newToday' => User::whereDate('created_at', today())->count(),
+            'newThisMonth' => User::whereMonth('created_at', $currentMonth)->whereYear('created_at', $currentYear)->count(),
+            'newThisWeek' => User::whereBetween('created_at', [$weekStart, $weekEnd])->count(),
+            'newToday' => User::whereDate('created_at', $todayDate)->count(),
             'active' => Contract::distinct('user_id')->count('user_id'),
             'vip' => Contract::select('user_id')
                 ->selectRaw('count(*) as contract_count')
@@ -113,6 +122,16 @@ class DashboardController extends Controller
             'pending' => SponsorshipTransfer::where('status', 'pending')->count(),
             'approved' => SponsorshipTransfer::where('status', 'approved')->count(),
             'transferred' => SponsorshipTransfer::where('status', 'transferred')->count(),
+        ];
+
+        $rentalOrderStats = $buildOrderStats(2);
+
+        $transferWebRequestQuery = Order::query()->where('job_type_id', 3);
+        $transferWebRequestStats = [
+            'total' => (clone $transferWebRequestQuery)->count(),
+            'new' => (clone $transferWebRequestQuery)->where('status', 'new')->count(),
+            'paid' => (clone $transferWebRequestQuery)->where('status', 'paid')->count(),
+            'completed' => (clone $transferWebRequestQuery)->whereIn('status', ['completed', 'done'])->count(),
         ];
 
         // حسب نوع الخدمة
@@ -815,7 +834,9 @@ class DashboardController extends Controller
             'cvStats',
             'clientsStats',
             'rentalStats',
+            'rentalOrderStats',
             'transferStats',
+            'transferWebRequestStats',
             'jobTypeCounts',
             'jobTypesList',
             'officeStats',

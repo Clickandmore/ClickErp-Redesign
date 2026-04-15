@@ -223,7 +223,8 @@
         <div class="tab-content contract-page-content" id="contractTabsContent">
             <!-- تبويب العقد الجديد بدون طلب مسبق -->
             <div class="tab-pane fade contract-tab-pane" id="tab-new-pane" role="tabpanel" aria-labelledby="tab-new">
-                <form id="newContractForm" method="post" action="{{ route('RecruitmentContract.store') }}">
+                <form id="newContractForm" method="post" action="{{ route('RecruitmentContract.store') }}"
+                    enctype="multipart/form-data">
                     @csrf
                     <input type="hidden" name="contract_type" value="new_contract">
                     <input type="hidden" name="client_type" value="new_client">
@@ -240,7 +241,7 @@
                         </div>
                         <div class="card-body">
                             <div class="row align-items-end">
-                                <div class="col-md-6 mb-3">
+                                <div class="col-md-12 mb-3">
                                     <label for="new_existing_client_id" class="form-label">اختر عميل <span
                                             class="text-danger">*</span></label>
                                     <select name="new_existing_client_id" id="new_existing_client_id"
@@ -273,217 +274,6 @@
                                         class="btn btn-outline-primary mt-2" title="إضافة عميل جديد"><i
                                             class="fas fa-user-plus"></i> إضافة عميل جديد</a>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="new_new_maid_id" class="form-label">اختر عاملة</label>
-                                    <select name="new_new_maid_id" id="new_new_maid_id" class="form-select select2"
-                                        style="width:100%">
-                                        <option value="" selected>اختر عاملة...</option>
-                                        @foreach ($all_available_maids as $maid)
-                                            <option value="{{ $maid->id }}" data-name="{{ $maid->name }}"
-                                                data-passport="{{ $maid->passport_num }}"
-                                                data-religion="{{ $maid->religion ? $maid->religion->title : '' }}"
-                                                data-job="{{ $maid->jobTitles && $maid->jobTitles->first() ? $maid->jobTitles->first()->title : '' }}"
-                                                data-nationality="{{ $maid->nationality ? $maid->nationality->sub_title : '' }}"
-                                                data-salary="{{ $maid->salary }}"
-                                                data-experience="{{ $maid->experience_years }}"
-                                                data-age="{{ $maid->age }}">
-                                                {{ $maid->name }} - {{ $maid->passport_num }} -
-                                                {{ $maid->nationality ? $maid->nationality->sub_title : '' }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    <button type="button" id="new-no-maid-btn"
-                                        class="btn btn-outline-warning mt-2 w-100"><i class="fas fa-user-slash me-1"></i>
-                                        بدون عاملة حالياً (تأجيل الاختيار)</button>
-                                </div>
-                            </div>
-                            <div id="new-no-maid-alert" style="display:none;">
-                                <div class="alert alert-warning mt-2">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                    تم اختيار "بدون عاملة حالياً". يمكنك إضافة عاملة لاحقاً من صفحة العقود.
-                                </div>
-
-                                <!-- متطلبات العاملة المطلوبة -->
-                                <div class="row mt-3">
-                                    <div class="col-md-6 mb-3">
-                                        <label for="required_maid_nationality" class="form-label">الجنسية المطلوبة للعاملة
-                                            <span class="text-danger">*</span></label>
-                                        <select name="required_maid_nationality" id="required_maid_nationality"
-                                            class="form-select" data-validation="required">
-                                            <option value="">اختر الجنسية المطلوبة...</option>
-                                            @php
-                                                $maidNationalities = \App\Models\ingaz\Nationality::with(
-                                                    'translations',
-                                                )->get();
-                                            @endphp
-                                            @foreach ($maidNationalities as $nationality)
-                                                <option value="{{ $nationality->id }}">{{ $nationality->sub_title }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        <div class="invalid-feedback" id="err_required_maid_nationality"></div>
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <label for="required_maid_religion" class="form-label">الدين المطلوب للعاملة <span
-                                                class="text-danger">*</span></label>
-                                        <select name="required_maid_religion" id="required_maid_religion"
-                                            class="form-select" data-validation="required">
-                                            <option value="">اختر الدين المطلوب...</option>
-                                            @php
-                                                $maidReligions = \App\Models\ingaz\Religion::with(
-                                                    'translations',
-                                                )->get();
-                                            @endphp
-                                            @foreach ($maidReligions as $religion)
-                                                <option value="{{ $religion->id }}">{{ $religion->title }}</option>
-                                            @endforeach
-                                        </select>
-                                        <div class="invalid-feedback" id="err_required_maid_religion"></div>
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <label for="required_maid_age_min" class="form-label">الحد الأدنى للعمر <span
-                                                class="text-danger">*</span></label>
-                                        <input type="number" name="required_maid_age_min" id="required_maid_age_min"
-                                            class="form-control" min="18" max="65" placeholder="مثال: 25"
-                                            data-validation="required">
-                                        <div class="invalid-feedback" id="err_required_maid_age_min"></div>
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <label for="required_maid_age_max" class="form-label">الحد الأقصى للعمر <span
-                                                class="text-danger">*</span></label>
-                                        <input type="number" name="required_maid_age_max" id="required_maid_age_max"
-                                            class="form-control" min="18" max="65" placeholder="مثال: 45"
-                                            data-validation="required">
-                                        <div class="invalid-feedback" id="err_required_maid_age_max"></div>
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <label for="required_maid_experience_min" class="form-label">الحد الأدنى للخبرة
-                                            (سنوات) <span class="text-danger">*</span></label>
-                                        <input type="number" name="required_maid_experience_min"
-                                            id="required_maid_experience_min" class="form-control" min="0"
-                                            max="20" placeholder="مثال: 2" data-validation="required">
-                                        <div class="invalid-feedback" id="err_required_maid_experience_min"></div>
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <label for="required_maid_job_title" class="form-label">المهنة المطلوبة <small
-                                                class="text-muted">(اختياري)</small></label>
-                                        <select name="required_maid_job_title" id="required_maid_job_title"
-                                            class="form-select">
-                                            <option value="">اختر المهنة المطلوبة...</option>
-                                            @php
-                                                $maidJobTitles = \App\Models\ingaz\JobTitle::with(
-                                                    'translations',
-                                                )->get();
-                                            @endphp
-                                            @foreach ($maidJobTitles as $jobTitle)
-                                                <option value="{{ $jobTitle->id }}">{{ $jobTitle->title }}</option>
-                                            @endforeach
-                                        </select>
-                                        <div class="invalid-feedback" id="err_required_maid_job_title"></div>
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <label for="required_maid_experience_max" class="form-label">الحد الأقصى للخبرة
-                                            (سنوات)</label>
-                                        <input type="number" name="required_maid_experience_max"
-                                            id="required_maid_experience_max" class="form-control" min="0"
-                                            max="20" placeholder="مثال: 10">
-                                        <div class="invalid-feedback" id="err_required_maid_experience_max"></div>
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <label for="required_maid_salary_min" class="form-label">الحد الأدنى للراتب
-                                            (ريال)</label>
-                                        <input type="number" name="required_maid_salary_min"
-                                            id="required_maid_salary_min" class="form-control" min="0"
-                                            placeholder="مثال: 1500">
-                                        <div class="invalid-feedback" id="err_required_maid_salary_min"></div>
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <label for="required_maid_salary_max" class="form-label">الحد الأقصى للراتب
-                                            (ريال)</label>
-                                        <input type="number" name="required_maid_salary_max"
-                                            id="required_maid_salary_max" class="form-control" min="0"
-                                            placeholder="مثال: 3000">
-                                        <div class="invalid-feedback" id="err_required_maid_salary_max"></div>
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <label for="required_maid_education" class="form-label">المؤهل التعليمي
-                                            المطلوب</label>
-                                        <select name="required_maid_education" id="required_maid_education"
-                                            class="form-select">
-                                            <option value="">اختر المؤهل التعليمي...</option>
-                                            <option value="primary">ابتدائي</option>
-                                            <option value="middle">متوسط</option>
-                                            <option value="secondary">ثانوي</option>
-                                            <option value="university">جامعي</option>
-                                            <option value="any">أي مؤهل</option>
-                                        </select>
-                                        <div class="invalid-feedback" id="err_required_maid_education"></div>
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <label for="required_maid_marital_status" class="form-label">الحالة الاجتماعية
-                                            المطلوبة</label>
-                                        <select name="required_maid_marital_status" id="required_maid_marital_status"
-                                            class="form-select">
-                                            <option value="">اختر الحالة الاجتماعية...</option>
-                                            <option value="single">عزباء</option>
-                                            <option value="married">متزوجة</option>
-                                            <option value="divorced">مطلقة</option>
-                                            <option value="widowed">أرملة</option>
-                                            <option value="any">أي حالة</option>
-                                        </select>
-                                        <div class="invalid-feedback" id="err_required_maid_marital_status"></div>
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <label for="required_maid_languages" class="form-label">اللغات المطلوبة</label>
-                                        <select name="required_maid_languages[]" id="required_maid_languages"
-                                            class="form-select" multiple>
-                                            <option value="arabic">العربية</option>
-                                            <option value="english">الإنجليزية</option>
-                                            <option value="urdu">الأردية</option>
-                                            <option value="filipino">الفلبينية</option>
-                                            <option value="indonesian">الإندونيسية</option>
-                                            <option value="bengali">البنغالية</option>
-                                            <option value="sri_lankan">السريلانكية</option>
-                                            <option value="nepali">النيبالية</option>
-                                        </select>
-                                        <small class="form-text text-muted">اضغط Ctrl (أو Cmd) لاختيار أكثر من لغة</small>
-                                        <div class="invalid-feedback" id="err_required_maid_languages"></div>
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <label for="required_maid_skills" class="form-label">المهارات المطلوبة</label>
-                                        <textarea name="required_maid_skills" id="required_maid_skills" class="form-control" rows="3"
-                                            placeholder="مثال: طبخ، تنظيف، رعاية أطفال، غسيل ملابس..."></textarea>
-                                        <div class="invalid-feedback" id="err_required_maid_skills"></div>
-                                    </div>
-
-                                    <div class="col-md-6 mb-3">
-                                        <label for="required_maid_notes" class="form-label">ملاحظات إضافية</label>
-                                        <textarea name="required_maid_notes" id="required_maid_notes" class="form-control" rows="3"
-                                            placeholder="أي متطلبات خاصة أو ملاحظات إضافية..."></textarea>
-                                        <div class="invalid-feedback" id="err_required_maid_notes"></div>
-                                    </div>
-
-                                    <div class="col-12">
-                                        <div class="alert alert-warning">
-                                            <i class="fas fa-exclamation-triangle me-2"></i>
-                                            <strong>تنبيه:</strong> الحقول المطلوبة (الجنسية، الدين، العمر، الخبرة) إلزامية
-                                            عند اختيار "بدون عاملة". هذه المتطلبات ضرورية للعثور على العاملة المناسبة
-                                            لاحقاً.
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
 
                             <!-- بيانات العميل والعاملة (تظهر بعد الاختيار) في التبويب الجديد -->
@@ -515,10 +305,10 @@
                                                 <div class="invalid-feedback" id="err_new_client_phone"></div>
                                             </div>
                                             <div class="col-md-6 mb-2">
-                                                <label for="client_nationality_id"
+                                                <label for="new_client_nationality_id"
                                                     class="form-label">{{ helperTrans('ingaz.nationality_id') }} <span
                                                         class="text-danger">*</span></label>
-                                                <select id="client_nationality_id" name="client_nationality_id"
+                                                <select id="new_client_nationality_id" name="client_nationality_id"
                                                     class="form-select form-control select2" data-validation="required">
                                                     <option value="">{{ helperTrans('ingaz.choose') }}</option>
                                                     @foreach ($countries as $country)
@@ -527,7 +317,7 @@
                                                             {{ $country->name_ar }}</option>
                                                     @endforeach
                                                 </select>
-                                                <div class="invalid-feedback" id="err_client_nationality_id"></div>
+                                                <div class="invalid-feedback" id="err_new_client_nationality_id"></div>
                                             </div>
                                             <div class="col-md-6 mb-2">
                                                 <label class="form-label">{{ helperTrans('ingaz.email') }} <small
@@ -625,49 +415,359 @@
                                     </div>
                                     <div class="card-body p-2" id="new-maid-section-card">
                                         <div class="row">
+                                            <div class="col-12 mb-3">
+                                                <label class="form-label">طريقة إضافة العاملة <span
+                                                        class="text-danger">*</span></label>
+                                                <div class="btn-group w-100" role="group" aria-label="طريقة إضافة العاملة">
+                                                    <input type="radio" class="btn-check" name="maid_selection_mode"
+                                                        id="maid_mode_existing" value="existing" checked>
+                                                    <label class="btn btn-outline-success" for="maid_mode_existing">عاملة
+                                                        موجودة</label>
+
+                                                    <input type="radio" class="btn-check" name="maid_selection_mode"
+                                                        id="maid_mode_manual" value="manual">
+                                                    <label class="btn btn-outline-primary" for="maid_mode_manual">عاملة
+                                                        مختصرة</label>
+
+                                                    <input type="radio" class="btn-check" name="maid_selection_mode"
+                                                        id="maid_mode_postponed" value="postponed">
+                                                    <label class="btn btn-outline-warning" for="maid_mode_postponed">تأجيل
+                                                        الاختيار</label>
+                                                </div>
+                                                <small class="text-muted d-block mt-2">يمكنك ربط عاملة موجودة، أو حفظ بيانات
+                                                    مختصرة مؤقتة، أو إنشاء العقد بدون عاملة حالياً.</small>
+                                            </div>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-12 mb-3" id="new-existing-maid-picker">
+                                                <label for="new_new_maid_id" class="form-label">اختر عاملة</label>
+                                                <select name="new_new_maid_id" id="new_new_maid_id"
+                                                    class="form-select select2" style="width:100%">
+                                                    <option value="" selected>اختر عاملة...</option>
+                                                    @foreach ($all_available_maids as $maid)
+                                                        <option value="{{ $maid->id }}"
+                                                            data-name="{{ $maid->name }}"
+                                                            data-passport="{{ $maid->passport_num }}"
+                                                            data-religion="{{ $maid->religion ? $maid->religion->title : '' }}"
+                                                            data-job="{{ $maid->jobTitles && $maid->jobTitles->first() ? $maid->jobTitles->first()->title : '' }}"
+                                                            data-nationality="{{ $maid->nationality ? $maid->nationality->sub_title : '' }}"
+                                                            data-office="{{ $maid->office ? $maid->office->title : '' }}"
+                                                            data-salary="{{ $maid->salary }}"
+                                                            data-experience="{{ $maid->experience_years }}"
+                                                            data-age="{{ $maid->age }}">
+                                                            {{ $maid->name }} - {{ $maid->passport_num }} -
+                                                            {{ $maid->nationality ? $maid->nationality->sub_title : '' }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div id="existing-maid-summary" class="row">
                                             <div class="col-6 mb-2">
                                                 <label class="form-label">الاسم</label>
                                                 <input type="text" id="new_maid_name" name="new_maid_name"
-                                                    class="form-control">
+                                                    class="form-control" readonly>
                                                 <div class="invalid-feedback" id="err_new_maid_name"></div>
                                             </div>
                                             <div class="col-6 mb-2">
                                                 <label class="form-label">رقم الجواز</label>
                                                 <input type="text" id="new_maid_passport" name="new_maid_passport"
-                                                    class="form-control">
+                                                    class="form-control" readonly>
                                             </div>
                                             <div class="col-6 mb-2">
                                                 <label class="form-label">الديانة</label>
                                                 <input type="text" id="new_maid_religion" name="new_maid_religion"
-                                                    class="form-control">
+                                                    class="form-control" readonly>
                                             </div>
                                             <div class="col-6 mb-2">
                                                 <label class="form-label">المهنة</label>
                                                 <input type="text" id="new_maid_job" name="new_maid_job"
-                                                    class="form-control">
+                                                    class="form-control" readonly>
                                             </div>
                                             <div class="col-6 mb-2">
                                                 <label class="form-label">الجنسية</label>
                                                 <input type="text" id="new_maid_nationality"
-                                                    name="new_maid_nationality" class="form-control">
+                                                    name="new_maid_nationality" class="form-control" readonly>
                                             </div>
                                             <div class="col-6 mb-2">
                                                 <label class="form-label">الراتب</label>
                                                 <input type="text" id="new_maid_salary" name="new_maid_salary"
-                                                    class="form-control">
+                                                    class="form-control" readonly>
                                             </div>
                                             <div class="col-6 mb-2">
                                                 <label class="form-label">سنوات الخبرة</label>
                                                 <input type="text" id="new_maid_experience_years"
-                                                    name="new_maid_experience_years" class="form-control">
+                                                    name="new_maid_experience_years" class="form-control" readonly>
                                             </div>
                                             <div class="col-6 mb-2">
                                                 <label class="form-label">العمر</label>
                                                 <input type="text" id="new_maid_age" name="new_maid_age"
-                                                    class="form-control">
+                                                    class="form-control" readonly>
                                             </div>
                                         </div>
-                                        <div id="new-no-maid-message" class="alert alert-warning mt-2"
+
+                                        <div id="manual-maid-section-card" class="row g-3" style="display:none;">
+                                            <div class="col-md-6">
+                                                <label for="manual_maid_name" class="form-label">اسم العاملة المختصر
+                                                    <span class="text-danger">*</span></label>
+                                                <input type="text" id="manual_maid_name" name="manual_maid_name"
+                                                    class="form-control" placeholder="الاسم كما هو في المرفق أو الجواز">
+                                                <div class="invalid-feedback" id="err_manual_maid_name"></div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="manual_maid_passport_num" class="form-label">رقم الجواز
+                                                    <span class="text-danger">*</span></label>
+                                                <input type="text" id="manual_maid_passport_num"
+                                                    name="manual_maid_passport_num" class="form-control"
+                                                    placeholder="رقم الجواز">
+                                                <div class="invalid-feedback" id="err_manual_maid_passport_num"></div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="manual_maid_nationality_id" class="form-label">الجنسية
+                                                    <span class="text-danger">*</span></label>
+                                                <select id="manual_maid_nationality_id" name="manual_maid_nationality_id"
+                                                    class="form-select select2" data-placeholder="اختر الجنسية">
+                                                    <option value="">اختر الجنسية...</option>
+                                                    @foreach ($maidNationalities as $nationality)
+                                                        <option value="{{ $nationality->id }}">{{ $nationality->sub_title }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                                <div class="invalid-feedback" id="err_manual_maid_nationality_id"></div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="manual_maid_office_id" class="form-label">المكتب الخارجي
+                                                    <span class="text-danger">*</span></label>
+                                                <select id="manual_maid_office_id" name="manual_maid_office_id"
+                                                    class="form-select select2"
+                                                    data-placeholder="اختر المكتب الخارجي">
+                                                    <option value="">اختر المكتب الخارجي...</option>
+                                                    @foreach ($recruitmentOffices as $office)
+                                                        <option value="{{ $office->id }}">{{ $office->title }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <div class="invalid-feedback" id="err_manual_maid_office_id"></div>
+                                            </div>
+                                            <div class="col-12">
+                                                <label for="manual_maid_attachment" class="form-label">مرفق العاملة
+                                                    <small class="text-muted">(اختياري)</small></label>
+                                                <input type="file" id="manual_maid_attachment"
+                                                    name="manual_maid_attachment" class="form-control"
+                                                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                                                <div class="invalid-feedback" id="err_manual_maid_attachment"></div>
+                                                <small class="text-muted d-block mt-1">يدعم PDF والصور وملفات Word حتى 5
+                                                    ميجابايت.</small>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="alert alert-info mb-0">
+                                                    <i class="fas fa-circle-info me-2"></i>
+                                                    سيتم حفظ هذه البيانات كملخص مؤقت داخل العقد، مع إمكانية ربط عاملة فعلية
+                                                    لاحقاً من صفحة العقود.
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div id="new-no-maid-alert" style="display:none;">
+                                            <div class="alert alert-warning mt-2">
+                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                                تم اختيار "بدون عاملة حالياً". يمكنك إضافة عاملة لاحقاً من صفحة العقود.
+                                            </div>
+
+                                            <div class="row mt-3">
+                                                <div class="col-md-6 mb-3">
+                                                    <label for="required_maid_nationality" class="form-label">الجنسية المطلوبة
+                                                        للعاملة
+                                                        <span class="text-danger">*</span></label>
+                                                    <select name="required_maid_nationality" id="required_maid_nationality"
+                                                        class="form-select" data-validation="required">
+                                                        <option value="">اختر الجنسية المطلوبة...</option>
+                                                        @foreach ($maidNationalities as $nationality)
+                                                            <option value="{{ $nationality->id }}">{{ $nationality->sub_title }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                    <div class="invalid-feedback" id="err_required_maid_nationality"></div>
+                                                </div>
+
+                                                <div class="col-md-6 mb-3">
+                                                    <label for="required_maid_religion" class="form-label">الدين المطلوب
+                                                        للعاملة <span class="text-danger">*</span></label>
+                                                    <select name="required_maid_religion" id="required_maid_religion"
+                                                        class="form-select" data-validation="required">
+                                                        <option value="">اختر الدين المطلوب...</option>
+                                                        @php
+                                                            $maidReligions = \App\Models\ingaz\Religion::with(
+                                                                'translations',
+                                                            )->get();
+                                                        @endphp
+                                                        @foreach ($maidReligions as $religion)
+                                                            <option value="{{ $religion->id }}">{{ $religion->title }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    <div class="invalid-feedback" id="err_required_maid_religion"></div>
+                                                </div>
+
+                                                <div class="col-md-6 mb-3">
+                                                    <label for="required_maid_age_min" class="form-label">الحد الأدنى للعمر
+                                                        <span class="text-danger">*</span></label>
+                                                    <input type="number" name="required_maid_age_min"
+                                                        id="required_maid_age_min" class="form-control" min="18"
+                                                        max="65" placeholder="مثال: 25" data-validation="required">
+                                                    <div class="invalid-feedback" id="err_required_maid_age_min"></div>
+                                                </div>
+
+                                                <div class="col-md-6 mb-3">
+                                                    <label for="required_maid_age_max" class="form-label">الحد الأقصى للعمر
+                                                        <span class="text-danger">*</span></label>
+                                                    <input type="number" name="required_maid_age_max"
+                                                        id="required_maid_age_max" class="form-control" min="18"
+                                                        max="65" placeholder="مثال: 45" data-validation="required">
+                                                    <div class="invalid-feedback" id="err_required_maid_age_max"></div>
+                                                </div>
+
+                                                <div class="col-md-6 mb-3">
+                                                    <label for="required_maid_experience_min" class="form-label">الحد الأدنى
+                                                        للخبرة
+                                                        (سنوات) <span class="text-danger">*</span></label>
+                                                    <input type="number" name="required_maid_experience_min"
+                                                        id="required_maid_experience_min" class="form-control" min="0"
+                                                        max="20" placeholder="مثال: 2" data-validation="required">
+                                                    <div class="invalid-feedback" id="err_required_maid_experience_min">
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-6 mb-3">
+                                                    <label for="required_maid_job_title" class="form-label">المهنة المطلوبة
+                                                        <small class="text-muted">(اختياري)</small></label>
+                                                    <select name="required_maid_job_title" id="required_maid_job_title"
+                                                        class="form-select">
+                                                        <option value="">اختر المهنة المطلوبة...</option>
+                                                        @php
+                                                            $maidJobTitles = \App\Models\ingaz\JobTitle::with(
+                                                                'translations',
+                                                            )->get();
+                                                        @endphp
+                                                        @foreach ($maidJobTitles as $jobTitle)
+                                                            <option value="{{ $jobTitle->id }}">{{ $jobTitle->title }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                    <div class="invalid-feedback" id="err_required_maid_job_title"></div>
+                                                </div>
+
+                                                <div class="col-md-6 mb-3">
+                                                    <label for="required_maid_experience_max" class="form-label">الحد الأقصى
+                                                        للخبرة
+                                                        (سنوات)</label>
+                                                    <input type="number" name="required_maid_experience_max"
+                                                        id="required_maid_experience_max" class="form-control" min="0"
+                                                        max="20" placeholder="مثال: 10">
+                                                    <div class="invalid-feedback" id="err_required_maid_experience_max">
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-6 mb-3">
+                                                    <label for="required_maid_salary_min" class="form-label">الحد الأدنى
+                                                        للراتب
+                                                        (ريال)</label>
+                                                    <input type="number" name="required_maid_salary_min"
+                                                        id="required_maid_salary_min" class="form-control" min="0"
+                                                        placeholder="مثال: 1500">
+                                                    <div class="invalid-feedback" id="err_required_maid_salary_min"></div>
+                                                </div>
+
+                                                <div class="col-md-6 mb-3">
+                                                    <label for="required_maid_salary_max" class="form-label">الحد الأقصى
+                                                        للراتب
+                                                        (ريال)</label>
+                                                    <input type="number" name="required_maid_salary_max"
+                                                        id="required_maid_salary_max" class="form-control" min="0"
+                                                        placeholder="مثال: 3000">
+                                                    <div class="invalid-feedback" id="err_required_maid_salary_max"></div>
+                                                </div>
+
+                                                <div class="col-md-6 mb-3">
+                                                    <label for="required_maid_education" class="form-label">المؤهل التعليمي
+                                                        المطلوب</label>
+                                                    <select name="required_maid_education" id="required_maid_education"
+                                                        class="form-select">
+                                                        <option value="">اختر المؤهل التعليمي...</option>
+                                                        <option value="primary">ابتدائي</option>
+                                                        <option value="middle">متوسط</option>
+                                                        <option value="secondary">ثانوي</option>
+                                                        <option value="university">جامعي</option>
+                                                        <option value="any">أي مؤهل</option>
+                                                    </select>
+                                                    <div class="invalid-feedback" id="err_required_maid_education"></div>
+                                                </div>
+
+                                                <div class="col-md-6 mb-3">
+                                                    <label for="required_maid_marital_status" class="form-label">الحالة
+                                                        الاجتماعية
+                                                        المطلوبة</label>
+                                                    <select name="required_maid_marital_status"
+                                                        id="required_maid_marital_status" class="form-select">
+                                                        <option value="">اختر الحالة الاجتماعية...</option>
+                                                        <option value="single">عزباء</option>
+                                                        <option value="married">متزوجة</option>
+                                                        <option value="divorced">مطلقة</option>
+                                                        <option value="widowed">أرملة</option>
+                                                        <option value="any">أي حالة</option>
+                                                    </select>
+                                                    <div class="invalid-feedback" id="err_required_maid_marital_status">
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-6 mb-3">
+                                                    <label for="required_maid_languages" class="form-label">اللغات
+                                                        المطلوبة</label>
+                                                    <select name="required_maid_languages[]" id="required_maid_languages"
+                                                        class="form-select" multiple>
+                                                        <option value="arabic">العربية</option>
+                                                        <option value="english">الإنجليزية</option>
+                                                        <option value="urdu">الأردية</option>
+                                                        <option value="filipino">الفلبينية</option>
+                                                        <option value="indonesian">الإندونيسية</option>
+                                                        <option value="bengali">البنغالية</option>
+                                                        <option value="sri_lankan">السريلانكية</option>
+                                                        <option value="nepali">النيبالية</option>
+                                                    </select>
+                                                    <small class="form-text text-muted">اضغط Ctrl (أو Cmd) لاختيار أكثر من
+                                                        لغة</small>
+                                                    <div class="invalid-feedback" id="err_required_maid_languages"></div>
+                                                </div>
+
+                                                <div class="col-md-6 mb-3">
+                                                    <label for="required_maid_skills" class="form-label">المهارات
+                                                        المطلوبة</label>
+                                                    <textarea name="required_maid_skills" id="required_maid_skills" class="form-control" rows="3"
+                                                        placeholder="مثال: طبخ، تنظيف، رعاية أطفال، غسيل ملابس..."></textarea>
+                                                    <div class="invalid-feedback" id="err_required_maid_skills"></div>
+                                                </div>
+
+                                                <div class="col-md-6 mb-3">
+                                                    <label for="required_maid_notes" class="form-label">ملاحظات إضافية</label>
+                                                    <textarea name="required_maid_notes" id="required_maid_notes" class="form-control" rows="3"
+                                                        placeholder="أي متطلبات خاصة أو ملاحظات إضافية..."></textarea>
+                                                    <div class="invalid-feedback" id="err_required_maid_notes"></div>
+                                                </div>
+
+                                                <div class="col-12">
+                                                    <div class="alert alert-warning">
+                                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                                        <strong>تنبيه:</strong> الحقول المطلوبة (الجنسية، الدين، العمر،
+                                                        الخبرة) إلزامية
+                                                        عند اختيار "بدون عاملة". هذه المتطلبات ضرورية للعثور على العاملة
+                                                        المناسبة
+                                                        لاحقاً.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div id="new-no-maid-message" class="alert alert-warning mt-3"
                                             style="display:none;">
                                             <i class="fas fa-user-slash me-1"></i> لا يوجد عاملة حالياً.
                                         </div>
@@ -694,7 +794,7 @@
 
                             <div class="col-12 mb-2">
                                 <label class="form-label">اضافة ملاحظة (اختياري) : </label>
-                                <textarea id="contract_note" name="contract_note" class="form-control" id="" cols="30"
+                                <textarea id="new_contract_note" name="contract_note" class="form-control" cols="30"
                                     rows="6"></textarea>
                             </div>
                         </div>
@@ -916,6 +1016,16 @@
 
             $select.val(cleanedValue).trigger('change');
         }
+
+        function getTrimmedInputValue(selector) {
+            var value = $(selector).val();
+
+            if (typeof value !== 'string') {
+                return '';
+            }
+
+            return value.trim();
+        }
     </script>
 
     <script>
@@ -935,44 +1045,6 @@
                 $('#tab-order-pane').addClass('show active');
             }
 
-            // تهيئة Select2
-            $('#new_existing_client_id').select2({
-                placeholder: 'اختر عميل...',
-                allowClear: true,
-                dir: 'rtl',
-                width: '100%',
-                language: {
-                    noResults: function() {
-                        return "لا توجد نتائج";
-                    },
-                    searching: function() {
-                        return "جاري البحث...";
-                    }
-                }
-            });
-            $('#new_new_maid_id').select2({
-                placeholder: 'اختر عاملة...',
-                allowClear: true,
-                dir: 'rtl',
-                width: '100%',
-                language: {
-                    noResults: function() {
-                        return "لا توجد نتائج";
-                    },
-                    searching: function() {
-                        return "جاري البحث...";
-                    }
-                }
-            });
-
-            // إضافة تهيئة إضافية للتأكد من عمل Select2 بشكل صحيح
-            $('#client_nationality_id').select2({
-                placeholder: 'اختر الجنسية...',
-                allowClear: true,
-                dir: 'rtl',
-                width: '100%'
-            });
-
             // تهيئة حقل تاريخ الميلاد
             $('#new_client_birthdate').on('change', function() {
                 var selectedDate = new Date($(this).val());
@@ -986,52 +1058,6 @@
                 // طباعة التاريخ المختار للتأكد
                 console.log('Selected birthdate:', $(this).val());
             });
-
-            // زر بدون عاملة
-            $('#new-no-maid-btn').on('click', function() {
-                $('#new_new_maid_id').val('').trigger('change');
-                $('#new-no-maid-alert').fadeIn(300);
-            });
-            $('#new_new_maid_id').on('change', function() {
-                if ($(this).val()) {
-                    $('#new-no-maid-alert').fadeOut(200);
-                }
-            });
-
-            // إعادة تهيئة Select2 بعد تحميل الصفحة للتأكد من عمل البحث
-            setTimeout(function() {
-                if ($.fn.select2) {
-                    $('#new_existing_client_id').select2('destroy').select2({
-                        placeholder: 'اختر عميل...',
-                        allowClear: true,
-                        dir: 'rtl',
-                        width: '100%',
-                        language: {
-                            noResults: function() {
-                                return "لا توجد نتائج";
-                            },
-                            searching: function() {
-                                return "جاري البحث...";
-                            }
-                        }
-                    });
-
-                    $('#new_new_maid_id').select2('destroy').select2({
-                        placeholder: 'اختر عاملة...',
-                        allowClear: true,
-                        dir: 'rtl',
-                        width: '100%',
-                        language: {
-                            noResults: function() {
-                                return "لا توجد نتائج";
-                            },
-                            searching: function() {
-                                return "جاري البحث...";
-                            }
-                        }
-                    });
-                }
-            }, 500);
         });
     </script>
 
@@ -1320,8 +1346,45 @@
                 }
             });
 
+            function getNewMaidMode() {
+                return $('input[name="maid_selection_mode"]:checked').val() || 'existing';
+            }
+
+            function clearSelectedMaidSummary() {
+                $('#new_maid_name, #new_maid_passport, #new_maid_religion, #new_maid_job, #new_maid_nationality, #new_maid_salary, #new_maid_experience_years, #new_maid_age')
+                    .val('');
+            }
+
+            function applyNewMaidMode(mode) {
+                var hasSelectedExistingMaid = !!$('#new_new_maid_id').val();
+
+                $('#new-existing-maid-picker').toggle(mode === 'existing');
+                $('#existing-maid-summary').toggle(mode === 'existing' && hasSelectedExistingMaid);
+                $('#manual-maid-section-card').toggle(mode === 'manual');
+                $('#new-no-maid-alert').toggle(mode === 'postponed');
+                $('#new-no-maid-message').toggle(mode === 'postponed');
+
+                if (mode !== 'existing' || !hasSelectedExistingMaid) {
+                    clearSelectedMaidSummary();
+                }
+
+                if (mode !== 'existing') {
+                    $('#new_new_maid_id').removeClass('is-invalid');
+                    $('#err_new_new_maid_id').remove();
+                }
+            }
+
+            $('input[name="maid_selection_mode"]').on('change', function() {
+                applyNewMaidMode($(this).val());
+            });
+
+            applyNewMaidMode(getNewMaidMode());
+
             // عند اختيار عميل في التبويب الجديد: عبئ بيانات العميل (حقول منفصلة)
             $('#new_existing_client_id').on('change', function() {
+                $(this).removeClass('is-invalid');
+                $('#err_new_existing_client_id').remove();
+
                 var selectedOption = $(this).find('option:selected');
                 if (selectedOption.val()) {
                     // Debug: طباعة بيانات العميل المختار
@@ -1359,7 +1422,7 @@
 
                     // تعبئة حقل الجنسية في dropdown
                     if (selectedOption.data('nationality')) {
-                        $('#client_nationality_id').val(selectedOption.data('nationality')).trigger(
+                        $('#new_client_nationality_id').val(selectedOption.data('nationality')).trigger(
                             'change');
                         console.log('Setting client nationality to:', selectedOption.data('nationality'));
                     } else {
@@ -1371,7 +1434,7 @@
                         name: $('#new_client_name').val(),
                         phone: $('#new_client_phone').val(),
                         email: $('#new_client_email').val(),
-                        nationality: $('#client_nationality_id').val(),
+                        nationality: $('#new_client_nationality_id').val(),
                         national_num: $('#new_client_national_num').val(),
                         birthdate: $('#new_client_birthdate').val(),
                         phone2: $('#new_client_phone2').val(),
@@ -1387,15 +1450,13 @@
                     $('#new_client_name, #new_client_phone, #new_client_email, #new_client_national_num, #new_client_birthdate, #new_client_phone2, #new_client_address, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job')
                         .val('');
                     $('#new_client_city').val('').trigger('change');
-                    $('#client_nationality_id').val('').trigger('change');
+                    $('#new_client_nationality_id').val('').trigger('change');
                 }
             });
             // عند اختيار عاملة في التبويب الجديد: عبئ بيانات العاملة (حقول منفصلة)
             $('#new_new_maid_id').on('change', function() {
                 var selectedOption = $(this).find('option:selected');
                 if (selectedOption.val()) {
-                    $('#new-no-maid-message').hide();
-
                     // Debug: طباعة البيانات المختارة
                     console.log('Selected maid data:', {
                         name: selectedOption.data('name'),
@@ -1472,16 +1533,10 @@
                         'field-disabled': $('#new_maid_job').is(':disabled')
                     });
                 } else {
-                    $('#new_maid_name, #new_maid_passport, #new_maid_religion, #new_maid_job, #new_maid_nationality, #new_maid_salary, #new_maid_experience_years, #new_maid_age')
-                        .val('');
+                    clearSelectedMaidSummary();
                 }
-            });
-            // زر بدون عاملة في التبويب الجديد
-            $('#new-no-maid-btn').on('click', function() {
-                $('#new_new_maid_id').val('').trigger('change');
-                $('#new-no-maid-message').show();
-                $('#new_maid_name, #new_maid_passport, #new_maid_religion, #new_maid_job, #new_maid_nationality, #new_maid_salary, #new_maid_experience_years, #new_maid_age')
-                    .val('');
+
+                applyNewMaidMode(getNewMaidMode());
             });
 
             // // Initialize Select2 for maid_id with custom template
@@ -1772,125 +1827,94 @@
                 // تحقق من وجود عميل
                 var clientId = $('#new_existing_client_id').val();
                 var maidId = $('#new_new_maid_id').val();
+                var maidSelectionMode = getNewMaidMode();
                 var contractType = 'new_contract';
                 var isValid = true;
+                var clientName = '';
+                var clientPhone = '';
+                var clientNationalityNum = '';
+                var clientBirthdate = '';
+                var clientPhone2 = '';
+                var clientAddress = '';
+                var clientCity = '';
+                var clientEmail = '';
+                var clientNationalityId = '';
 
                 console.log('Initial values:', {
                     clientId: clientId,
                     maidId: maidId,
+                    maidSelectionMode: maidSelectionMode,
                     contractType: contractType
                 });
 
                 // التحقق من الحقول فقط إذا كان التبويب الجديد نشط
                 if (isNewContractTab) {
+                    if (!clientId) {
+                        isValid = false;
+                        $('#new_existing_client_id').addClass('is-invalid');
+                        if ($('#err_new_existing_client_id').length === 0) {
+                            $('#new_existing_client_id').parent().append(
+                                '<div class="invalid-feedback d-block" id="err_new_existing_client_id">يرجى اختيار العميل أولاً.</div>'
+                            );
+                        }
+                    } else {
+                        $('#new_existing_client_id').removeClass('is-invalid');
+                        $('#err_new_existing_client_id').remove();
+                    }
+
                     // تحقق الاسم ثلاثي
-                    var clientName = $('#new_client_name').val().trim();
+                    clientName = getTrimmedInputValue('#new_client_name');
                     console.log('Validating client name:', clientName);
                     if (!clientName) {
                         isValid = false;
                         $('#new_client_name').addClass('is-invalid');
                         $('#err_new_client_name').text('يرجى ادخال اسم العميل');
                         console.log('Client name validation failed: empty');
-                    } else if (clientName.split(' ').length < 3) {
-                        isValid = false;
-                        $('#new_client_name').addClass('is-invalid');
-                        $('#err_new_client_name').text('يجب أن يكون الاسم ثلاثي على الأقل');
-                        console.log('Client name validation failed: not three parts');
                     } else {
                         $('#new_client_name').removeClass('is-invalid');
                         $('#err_new_client_name').text('');
                         console.log('Client name validation passed');
-                        isValid = true;
                     }
 
                     // تحقق رقم الجوال
-                    var clientPhone = $('#new_client_phone').val().trim();
+                    clientPhone = getTrimmedInputValue('#new_client_phone');
                     console.log('Validating client phone:', clientPhone);
                     if (!clientPhone) {
                         isValid = false;
                         $('#new_client_phone').addClass('is-invalid');
                         $('#err_new_client_phone').text('يرجى ادخال رقم الجوال');
                         console.log('Client phone validation failed: empty');
-                    } else if (!/^05|^5\d{8}$/.test(clientPhone)) {
-                        isValid = false;
-                        $('#new_client_phone').addClass('is-invalid');
-                        $('#err_new_client_phone').text('رقم الجوال يجب أن يبدأ بـ 05 ويتكون من 10 أرقام');
-                        console.log('Client phone validation failed: invalid format');
                     } else {
                         $('#new_client_phone').removeClass('is-invalid');
                         $('#err_new_client_phone').text('');
-                        isValid = true;
                         console.log('Client phone validation passed');
                     }
 
-                    // تحقق رقم الهوية
-                    var clientNationalityNum = $('#new_client_national_num').val().trim();
-                    console.log('Validating client nationality number:', clientNationalityNum);
-                    if (!clientNationalityNum) {
-                        isValid = false;
-                        $('#new_client_national_num').addClass('is-invalid');
-                        $('#err_new_client_national_num').text('يرجى ادخال رقم الهوية');
-                        console.log('Client nationality number validation failed: empty');
-                    } else if (!/^\d{10}$/.test(clientNationalityNum)) {
-                        isValid = false;
-                        $('#new_client_national_num').addClass('is-invalid');
-                        $('#err_new_client_national_num').text('رقم الهوية يجب أن يكون 10 أرقام');
-                        console.log('Client nationality number validation failed: invalid format');
-                    } else {
-                        $('#new_client_national_num').removeClass('is-invalid');
-                        $('#err_new_client_national_num').text('');
-                        isValid = true;
-                        console.log('Client nationality number validation passed');
-                    }
+                    clientNationalityNum = getTrimmedInputValue('#new_client_national_num');
+                    $('#new_client_national_num').removeClass('is-invalid');
+                    $('#err_new_client_national_num').text('');
 
-                    // تحقق تاريخ الميلاد
-                    var clientBirthdate = $('#new_client_birthdate').val();
-                    if (!clientBirthdate) {
-                        isValid = false;
-                        $('#new_client_birthdate').addClass('is-invalid');
-                        $('<div class="invalid-feedback">يرجى ادخال تاريخ الميلاد</div>').insertAfter(
-                            '#new_client_birthdate');
-                    } else {
-                        $('#new_client_birthdate').removeClass('is-invalid');
-                        $('#new_client_birthdate').next('.invalid-feedback').remove();
-                        isValid = true;
-                    }
+                    clientBirthdate = $('#new_client_birthdate').val() || '';
+                    $('#new_client_birthdate').removeClass('is-invalid');
+                    $('#new_client_birthdate').next('.invalid-feedback').remove();
 
-                    // تحقق رقم الهاتف الإضافي
-                    var clientPhone2 = $('#new_client_phone2').val().trim();
-                    if (!clientPhone2) {
-                        isValid = false;
-                        $('#new_client_phone2').addClass('is-invalid');
-                        $('<div class="invalid-feedback">يرجى ادخال رقم الهاتف الإضافي</div>').insertAfter(
-                            '#new_client_phone2');
-                    } else {
-                        $('#new_client_phone2').removeClass('is-invalid');
-                        $('#new_client_phone2').next('.invalid-feedback').remove();
-                        isValid = true;
-                    }
+                    clientPhone2 = getTrimmedInputValue('#new_client_phone2');
+                    $('#new_client_phone2').removeClass('is-invalid');
+                    $('#new_client_phone2').next('.invalid-feedback').remove();
 
                     // تحقق العنوان (اختياري)
-                    var clientAddress = $('#new_client_address').val().trim();
+                    clientAddress = getTrimmedInputValue('#new_client_address');
                     if (clientAddress) {
                         $('#new_client_address').removeClass('is-invalid');
                         $('#new_client_address').next('.invalid-feedback').remove();
                     }
 
-                    // تحقق المدينة
-                    var clientCity = $('#new_client_city').val().trim();
-                    if (!clientCity) {
-                        isValid = false;
-                        $('#new_client_city').addClass('is-invalid');
-                        $('<div class="invalid-feedback">يرجى ادخال المدينة</div>').insertAfter(
-                            '#new_client_city');
-                    } else {
-                        $('#new_client_city').removeClass('is-invalid');
-                        $('#new_client_city').next('.invalid-feedback').remove();
-                        isValid = true;
-                    }
+                    clientCity = getTrimmedInputValue('#new_client_city');
+                    $('#new_client_city').removeClass('is-invalid');
+                    $('#new_client_city').next('.invalid-feedback').remove();
 
                     // تحقق البريد الإلكتروني (اختياري)
-                    var clientEmail = $('#new_client_email').val().trim();
+                    clientEmail = getTrimmedInputValue('#new_client_email');
                     if (clientEmail && !/^\S+@\S+\.\S+$/.test(clientEmail)) {
                         isValid = false;
                         $('#new_client_email').addClass('is-invalid');
@@ -1898,27 +1922,77 @@
                     } else {
                         $('#new_client_email').removeClass('is-invalid');
                         $('#err_new_client_email').text('');
-                        isValid = true;
                     }
 
                     // تحقق الجنسية (مطلوب في التبويب الجديد)
-                    var clientNationalityId = $('#client_nationality_id').val();
+                    clientNationalityId = $('#new_client_nationality_id').val();
                     console.log('Validating client nationality:', clientNationalityId);
                     if (!clientNationalityId) {
                         isValid = false;
-                        $('#client_nationality_id').addClass('is-invalid');
-                        $('#err_client_nationality_id').text('يرجى اختيار الجنسية');
+                        $('#new_client_nationality_id').addClass('is-invalid');
+                        $('#err_new_client_nationality_id').text('يرجى اختيار الجنسية');
                         console.log('Client nationality validation failed: empty');
                     } else {
-                        $('#client_nationality_id').removeClass('is-invalid');
-                        $('#err_client_nationality_id').text('');
-                        isValid = true;
+                        $('#new_client_nationality_id').removeClass('is-invalid');
+                        $('#err_new_client_nationality_id').text('');
                         console.log('Client nationality validation passed');
                     }
 
-                    // تحقق الحقول المطلوبة للعاملة (فقط إذا لم يتم اختيار عاملة)
-                    var isNoMaidSelected = $('#new-no-maid-alert').is(':visible');
-                    if (isNoMaidSelected) {
+                    if (maidSelectionMode === 'existing') {
+                        if (!maidId) {
+                            isValid = false;
+                            $('#new_new_maid_id').addClass('is-invalid');
+                            if ($('#err_new_new_maid_id').length === 0) {
+                                $('#new-existing-maid-picker').append(
+                                    '<div class="invalid-feedback d-block" id="err_new_new_maid_id">يرجى اختيار العاملة أو تغيير طريقة الإضافة.</div>'
+                                );
+                            }
+                        } else {
+                            $('#new_new_maid_id').removeClass('is-invalid');
+                            $('#err_new_new_maid_id').remove();
+                        }
+                    } else if (maidSelectionMode === 'manual') {
+                        var manualMaidName = $('#manual_maid_name').val().trim();
+                        var manualMaidPassport = $('#manual_maid_passport_num').val().trim();
+                        var manualMaidNationality = $('#manual_maid_nationality_id').val();
+                        var manualMaidOffice = $('#manual_maid_office_id').val();
+
+                        if (!manualMaidName) {
+                            isValid = false;
+                            $('#manual_maid_name').addClass('is-invalid');
+                            $('#err_manual_maid_name').text('يرجى إدخال اسم العاملة المختصر');
+                        } else {
+                            $('#manual_maid_name').removeClass('is-invalid');
+                            $('#err_manual_maid_name').text('');
+                        }
+
+                        if (!manualMaidPassport) {
+                            isValid = false;
+                            $('#manual_maid_passport_num').addClass('is-invalid');
+                            $('#err_manual_maid_passport_num').text('يرجى إدخال رقم الجواز');
+                        } else {
+                            $('#manual_maid_passport_num').removeClass('is-invalid');
+                            $('#err_manual_maid_passport_num').text('');
+                        }
+
+                        if (!manualMaidNationality) {
+                            isValid = false;
+                            $('#manual_maid_nationality_id').addClass('is-invalid');
+                            $('#err_manual_maid_nationality_id').text('يرجى اختيار الجنسية');
+                        } else {
+                            $('#manual_maid_nationality_id').removeClass('is-invalid');
+                            $('#err_manual_maid_nationality_id').text('');
+                        }
+
+                        if (!manualMaidOffice) {
+                            isValid = false;
+                            $('#manual_maid_office_id').addClass('is-invalid');
+                            $('#err_manual_maid_office_id').text('يرجى اختيار المكتب الخارجي');
+                        } else {
+                            $('#manual_maid_office_id').removeClass('is-invalid');
+                            $('#err_manual_maid_office_id').text('');
+                        }
+                    } else if (maidSelectionMode === 'postponed') {
                         // التحقق من الجنسية
                         var requiredMaidNationality = $('#required_maid_nationality').val();
                         console.log('Validating required maid nationality:', requiredMaidNationality);
@@ -1931,7 +2005,6 @@
                         } else {
                             $('#required_maid_nationality').removeClass('is-invalid');
                             $('#err_required_maid_nationality').text('');
-                            isValid = true;
                             console.log('Required maid nationality validation passed');
                         }
 
@@ -1946,7 +2019,6 @@
                         } else {
                             $('#required_maid_religion').removeClass('is-invalid');
                             $('#err_required_maid_religion').text('');
-                            isValid = true;
                             console.log('Required maid religion validation passed');
                         }
 
@@ -1961,7 +2033,6 @@
                         } else {
                             $('#required_maid_age_min').removeClass('is-invalid');
                             $('#err_required_maid_age_min').text('');
-                            isValid = true;
                             console.log('Required maid age min validation passed');
                         }
 
@@ -1976,7 +2047,6 @@
                         } else {
                             $('#required_maid_age_max').removeClass('is-invalid');
                             $('#err_required_maid_age_max').text('');
-                            isValid = true;
                             console.log('Required maid age max validation passed');
                         }
 
@@ -1991,7 +2061,6 @@
                         } else {
                             $('#required_maid_experience_min').removeClass('is-invalid');
                             $('#err_required_maid_experience_min').text('');
-                            isValid = true;
                             console.log('Required maid experience min validation passed');
                         }
                     }
@@ -2131,7 +2200,8 @@
                     contractDate: $('#tab-new-pane #contract_date').val(),
                     msanedNumber: $('#tab-new-pane #msaned_number').val(),
                     visaNumber: $('#tab-new-pane #visa_number').val(),
-                    clientNationalityId: $('#client_nationality_id').val()
+                    clientNationalityId: $('#new_client_nationality_id').val(),
+                    maidSelectionMode: maidSelectionMode
                 });
 
                 if (!isValid) {
@@ -2149,13 +2219,15 @@
                 formData.append('contract_type', contractType);
                 formData.append('client_type', 'new_client');
                 formData.append('client_id', clientId);
-                formData.append('maid_id', maidId ? maidId : '');
+                formData.append('maid_selection_mode', maidSelectionMode);
+                formData.append('maid_id', maidSelectionMode === 'existing' && maidId ? maidId : '');
 
                 console.log('Basic form data prepared:', {
                     contract_type: contractType,
                     client_type: 'new_client',
                     client_id: clientId,
-                    maid_id: maidId
+                    maid_id: maidSelectionMode === 'existing' ? maidId : '',
+                    maid_selection_mode: maidSelectionMode
                 });
 
                 // أضف بيانات العميل حسب التبويب النشط
@@ -2163,7 +2235,7 @@
                     formData.append('client_name', clientName);
                     formData.append('client_phone', clientPhone);
                     formData.append('client_email', clientEmail);
-                    formData.append('client_nationality_id', $('#client_nationality_id').val() || '');
+                    formData.append('client_nationality_id', $('#new_client_nationality_id').val() || '');
                     formData.append('new_client_national_num', clientNationalityNum);
                     formData.append('new_client_birthdate', $('#new_client_birthdate').val());
                     formData.append('new_client_phone2', $('#new_client_phone2').val());
@@ -2185,7 +2257,7 @@
                     client_name: isNewContractTab ? clientName : 'From existing order',
                     client_phone: isNewContractTab ? clientPhone : 'From existing order',
                     client_email: isNewContractTab ? clientEmail : 'From existing order',
-                    client_nationality_id: isNewContractTab ? $('#client_nationality_id').val() :
+                    client_nationality_id: isNewContractTab ? $('#new_client_nationality_id').val() :
                         'From existing order',
                     client_nationality_num: isNewContractTab ? clientNationalityNum :
                         'From existing order',
@@ -2201,8 +2273,8 @@
 
                 // أضف بيانات العاملة حسب التبويب النشط
                 if (isNewContractTab) {
-                    var maidId = $('#new_new_maid_id').val();
-                    if (maidId) {
+                    var selectedMaidId = $('#new_new_maid_id').val();
+                    if (maidSelectionMode === 'existing' && selectedMaidId) {
                         // إذا تم اختيار عاملة
                         formData.append('maid_name', $('#new_maid_name').val());
                         formData.append('maid_passport', $('#new_maid_passport').val());
@@ -2213,6 +2285,25 @@
                         formData.append('maid_experience_years', $('#new_maid_experience_years').val());
                         formData.append('maid_age', $('#new_maid_age').val());
                         formData.append('maid_selection_postponed', '0'); // تم اختيار عاملة
+                    } else if (maidSelectionMode === 'manual') {
+                        formData.append('maid_selection_postponed', '1');
+                        formData.append('maid_name', '');
+                        formData.append('maid_passport', '');
+                        formData.append('maid_religion', '');
+                        formData.append('maid_job', '');
+                        formData.append('maid_nationality', '');
+                        formData.append('maid_salary', '');
+                        formData.append('maid_experience_years', '');
+                        formData.append('maid_age', '');
+                        formData.append('manual_maid_name', $('#manual_maid_name').val());
+                        formData.append('manual_maid_passport_num', $('#manual_maid_passport_num').val());
+                        formData.append('manual_maid_nationality_id', $('#manual_maid_nationality_id').val() || '');
+                        formData.append('manual_maid_office_id', $('#manual_maid_office_id').val() || '');
+
+                        var manualMaidAttachment = $('#manual_maid_attachment')[0];
+                        if (manualMaidAttachment && manualMaidAttachment.files.length > 0) {
+                            formData.append('manual_maid_attachment', manualMaidAttachment.files[0]);
+                        }
                     } else {
                         // إذا تم تأجيل اختيار العاملة
                         formData.append('maid_selection_postponed', '1'); // تم تأجيل اختيار العاملة
@@ -2234,24 +2325,18 @@
 
                 console.log('Maid data prepared:', {
                     isNewContractTab: isNewContractTab,
-                    maid_selection_postponed: isNewContractTab ? (maidId ? '0' : '1') : '0',
-                    maid_name: isNewContractTab ? (maidId ? $('#new_maid_name').val() :
-                        'Postponed') : 'From existing order',
-                    maid_passport: isNewContractTab ? (maidId ? $('#new_maid_passport').val() :
-                        'Postponed') : 'From existing order',
-                    maid_religion: isNewContractTab ? (maidId ? $('#new_maid_religion').val() :
-                        'Postponed') : 'From existing order',
-                    maid_job: isNewContractTab ? (maidId ? $('#new_maid_job').val() : 'Postponed') :
-                        'From existing order',
-                    maid_nationality: isNewContractTab ? (maidId ? $('#new_maid_nationality')
-                        .val() : 'Postponed') : 'From existing order',
-                    maid_salary: isNewContractTab ? (maidId ? $('#new_maid_salary').val() :
-                        'Postponed') : 'From existing order',
-                    maid_experience_years: isNewContractTab ? (maidId ? $(
-                            '#new_maid_experience_years').val() : 'Postponed') :
-                        'From existing order',
-                    maid_age: isNewContractTab ? (maidId ? $('#new_maid_age').val() : 'Postponed') :
-                        'From existing order'
+                    maid_selection_mode: isNewContractTab ? maidSelectionMode : 'existing',
+                    maid_selection_postponed: isNewContractTab ? (maidSelectionMode === 'existing' ? '0' : '1') : '0',
+                    maid_name: isNewContractTab
+                        ? (maidSelectionMode === 'existing'
+                            ? $('#new_maid_name').val()
+                            : (maidSelectionMode === 'manual' ? $('#manual_maid_name').val() : 'Postponed'))
+                        : 'From existing order',
+                    maid_passport: isNewContractTab
+                        ? (maidSelectionMode === 'existing'
+                            ? $('#new_maid_passport').val()
+                            : (maidSelectionMode === 'manual' ? $('#manual_maid_passport_num').val() : 'Postponed'))
+                        : 'From existing order'
                 });
 
                 // أضف بيانات العقد - تأكد من الحصول على القيم من التبويب الصحيح
@@ -2300,6 +2385,7 @@
                 formData.append('tafwed_number', tafwedNumber || '');
                 formData.append('visa_milad_date', visaMiladDate || '');
                 formData.append('visa_hijry_date', visaHijryDate || '');
+                formData.append('contract_note', $('#new_contract_note').val() || '');
 
                 // إضافة المسوق
                 var marketerId = '';

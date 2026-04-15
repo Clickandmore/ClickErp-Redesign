@@ -306,6 +306,20 @@ class SponsorshipTransferController extends Controller
      */
     public function webRequests(Request $request)
     {
+        $baseQuery = Order::query()->where('job_type_id', 3);
+        $statistics = [
+            'new' => (clone $baseQuery)->where('status', 'new')->count(),
+            'paid' => (clone $baseQuery)->where('status', 'paid')->count(),
+            'completed' => (clone $baseQuery)->whereIn('status', ['completed', 'done'])->count(),
+            'total' => (clone $baseQuery)->count(),
+        ];
+
+        if ($request->boolean('statistics')) {
+            return response()->json([
+                'statistics' => $statistics,
+            ]);
+        }
+
         if ($request->ajax()) {
             $query = Order::with(['user', 'maid.nationality', 'details.admin'])
                 ->where('job_type_id', 3) // طلبات نقل الكفالة
@@ -401,7 +415,7 @@ class SponsorshipTransferController extends Controller
                 ->make(true);
         }
 
-        return view($this->folderPath . '.web-requests');
+        return view($this->folderPath . '.web-requests', compact('statistics'));
     }
 
     /**

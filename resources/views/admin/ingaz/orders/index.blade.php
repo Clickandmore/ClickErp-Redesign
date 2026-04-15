@@ -287,9 +287,14 @@
                         <small>{{ getEnumValue('orders_statuses', \App\Enums\ingaz\OrderEnum::UnderProcess->value) }}</small>
                     </button>
                     <button type="button" class="order-stat-card" data-status="completed">
-                        <span>{{ helperTrans('ingaz.completed') }}</span>
+                        <span>{{ helperTrans('ingaz.ended orders') }}</span>
                         <strong>{{ number_format($completedOrders ?? 0) }}</strong>
-                        <small>{{ getEnumValue('orders_statuses', \App\Enums\ingaz\OrderEnum::Completed->value) }}</small>
+                        <small>{{ helperTrans('ingaz.completed') }}</small>
+                    </button>
+                    <button type="button" class="order-stat-card" data-status="not_completed">
+                        <span>{{ helperTrans('ingaz.cancelled_orders') }}</span>
+                        <strong>{{ number_format($notCompletedOrders ?? 0) }}</strong>
+                        <small>{{ helperTrans('ingaz.not completed orders') }}</small>
                     </button>
                 </div>
 

@@ -319,6 +319,19 @@ class OrderController extends Controller
             return \App\Models\auth\Admin::select('id', 'name')->whereNull('deleted_at')->get();
         });
 
+        $completedStatuses = [
+            OrderEnum::Completed->value,
+            OrderEnum::Done->value,
+            OrderEnum::Contracted->value,
+            OrderEnum::ContractedWithoutContract->value,
+        ];
+
+        $notCompletedStatuses = [
+            OrderEnum::Refused->value,
+            OrderEnum::Return->value,
+            OrderEnum::CanceledBySystem->value,
+        ];
+
         // Get statistics with optimized queries (cache for 1 minute) - Recruitment orders only
         $data['totalOrders'] = \Cache::remember('recruitment_orders_count', 60, function () {
             return objModel::where('job_type_id', 1)->count();
@@ -332,8 +345,12 @@ class OrderController extends Controller
             return objModel::where('job_type_id', 1)->where('status', OrderEnum::UnderProcess->value)->count();
         });
 
-        $data['completedOrders'] = \Cache::remember('recruitment_completed_orders_count', 60, function () {
-            return objModel::where('job_type_id', 1)->whereIn('status', [OrderEnum::Completed->value, OrderEnum::Done->value, OrderEnum::Contracted->value])->count();
+        $data['completedOrders'] = \Cache::remember('recruitment_completed_orders_count', 60, function () use ($completedStatuses) {
+            return objModel::where('job_type_id', 1)->whereIn('status', $completedStatuses)->count();
+        });
+
+        $data['notCompletedOrders'] = \Cache::remember('recruitment_not_completed_orders_count', 60, function () use ($notCompletedStatuses) {
+            return objModel::where('job_type_id', 1)->whereIn('status', $notCompletedStatuses)->count();
         });
 
         return view($this->folderPath . '.index', $data);
@@ -401,7 +418,7 @@ class OrderController extends Controller
                 OrderEnum::Contracted->value,
                 OrderEnum::ContractedWithoutContract->value,
             ],
-            'not_completed' => [OrderEnum::Refused->value, OrderEnum::Return->value],
+            'not_completed' => [OrderEnum::Refused->value, OrderEnum::Return->value, OrderEnum::CanceledBySystem->value],
             default => OrderEnum::tryFrom($status)
                 ? [$status]
                 : array_map(fn($case) => $case->value, OrderEnum::cases()),

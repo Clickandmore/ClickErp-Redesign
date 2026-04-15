@@ -1,6 +1,55 @@
 @extends('admin.layout.indexs.index')
 @section('style')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        .order-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .order-stat-card {
+            border: 1px solid #e8ecf4;
+            border-radius: 18px;
+            padding: 16px 18px;
+            background: #fff;
+            text-align: left;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            width: 100%;
+        }
+
+        .order-stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+        }
+
+        .order-stat-card.active {
+            border-color: var(--bs-primary);
+            box-shadow: 0 24px 40px rgba(13, 110, 253, 0.15);
+        }
+
+        .order-stat-card span {
+            font-size: 0.8rem;
+            color: #6c778a;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .order-stat-card strong {
+            display: block;
+            font-size: 2rem;
+            color: #111c3a;
+            margin: 8px 0 4px;
+        }
+
+        .order-stat-card small {
+            color: #8892a6;
+            font-size: 0.85rem;
+        }
+    </style>
 @endsection
 @section('page-title')
     طلبات الإيجار
@@ -26,6 +75,29 @@
                             </a>
                         @endif
                     </div>
+                </div>
+
+                <div class="order-stats-grid">
+                    <button type="button" class="order-stat-card active" data-status="">
+                        <span>{{ helperTrans('ingaz.orders_overview') }}</span>
+                        <strong>{{ number_format($totalOrders ?? 0) }}</strong>
+                        <small>{{ helperTrans('ingaz.total') }}</small>
+                    </button>
+                    <button type="button" class="order-stat-card" data-status="new">
+                        <span>{{ helperTrans('ingaz.timer_phase_new') }}</span>
+                        <strong>{{ number_format($newOrders ?? 0) }}</strong>
+                        <small>{{ getEnumValue('orders_statuses', \App\Enums\ingaz\OrderEnum::New->value) }}</small>
+                    </button>
+                    <button type="button" class="order-stat-card" data-status="under_process">
+                        <span>{{ helperTrans('ingaz.timer_phase_under_process') }}</span>
+                        <strong>{{ number_format($underProcessOrders ?? 0) }}</strong>
+                        <small>{{ getEnumValue('orders_statuses', \App\Enums\ingaz\OrderEnum::UnderProcess->value) }}</small>
+                    </button>
+                    <button type="button" class="order-stat-card" data-status="completed">
+                        <span>{{ helperTrans('ingaz.completed') }}</span>
+                        <strong>{{ number_format($completedOrders ?? 0) }}</strong>
+                        <small>{{ getEnumValue('orders_statuses', \App\Enums\ingaz\OrderEnum::Completed->value) }}</small>
+                    </button>
                 </div>
 
 
@@ -343,6 +415,13 @@
                 autoWidth: false // عدم حساب العرض تلقائياً
             });
 
+            function setActiveCard(value) {
+                $('.order-stat-card').each(function() {
+                    const status = $(this).data('status') || '';
+                    $(this).toggleClass('active', status === (value || ''));
+                });
+            }
+
             // Handle filter form submission
             $('#filterForm').on('submit', function(e) {
                 e.preventDefault();
@@ -355,9 +434,24 @@
                 $('#status').val(urlStatus);
             }
 
+            setActiveCard($('#status').val());
+
             // Handle reset button
             $('#resetFilter').on('click', function() {
                 $('#filterForm')[0].reset();
+                $('#status').val('');
+                setActiveCard('');
+                dataTable.ajax.reload();
+            });
+
+            $('#status').on('change', function() {
+                setActiveCard($(this).val());
+            });
+
+            $('.order-stat-card').on('click', function() {
+                const status = $(this).data('status') || '';
+                $('#status').val(status);
+                setActiveCard(status);
                 dataTable.ajax.reload();
             });
 

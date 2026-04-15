@@ -377,6 +377,10 @@
 
                 <!-- معلومات العاملة -->
                 <div class="col-md-6 mb-4">
+                    @php
+                        $manualMaidInfo = $contract->info;
+                        $hasManualMaidSummary = $manualMaidInfo && $manualMaidInfo->hasManualMaidSummary();
+                    @endphp
                     <div class="info-card maid-info">
                         <div class="card-title">
                             <i class="fas fa-user-tie text-warning"></i>
@@ -439,6 +443,48 @@
                                 <span class="info-label">الراتب:</span>
                                 <span class="info-value success">{{ $contract->maid->salary ?? 'غير محدد' }} ريال</span>
                             </div>
+                        @elseif ($hasManualMaidSummary)
+                            <div class="alert alert-info mb-3">
+                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                    <div>
+                                        <strong>بيانات عاملة مختصرة محفوظة</strong>
+                                        <div class="text-muted small">تم إنشاء العقد بدون ربط عاملة فعلية حتى الآن.</div>
+                                    </div>
+                                    @if ($contract->status == 'pending_maid_selection')
+                                        <a href="{{ route('RecruitmentContract.selectMaid', $contract->id) }}"
+                                            class="btn btn-warning btn-sm">
+                                            <i class="fas fa-user-plus me-1"></i>إضافة عاملة فعلية
+                                        </a>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">اسم العاملة:</span>
+                                <span class="info-value highlight">{{ $manualMaidInfo->manual_maid_name ?? 'غير محدد' }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">رقم الجواز:</span>
+                                <span class="info-value">{{ $manualMaidInfo->manual_maid_passport_num ?? 'غير محدد' }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">الجنسية:</span>
+                                <span class="info-value">{{ $manualMaidInfo->manualMaidNationality?->sub_title ?? 'غير محدد' }}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">المكتب الخارجي:</span>
+                                <span class="info-value">{{ $manualMaidInfo->manualMaidOffice?->title ?? 'غير محدد' }}</span>
+                            </div>
+                            @if ($manualMaidInfo->manual_maid_attachment && showFile($manualMaidInfo->manual_maid_attachment))
+                                <div class="info-row">
+                                    <span class="info-label">المرفق:</span>
+                                    <span class="info-value">
+                                        <a href="{{ showFile($manualMaidInfo->manual_maid_attachment) }}"
+                                            target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-paperclip me-1"></i>عرض المرفق
+                                        </a>
+                                    </span>
+                                </div>
+                            @endif
                         @else
                             <div class="alert alert-warning mb-0">
                                 <div class="text-center">

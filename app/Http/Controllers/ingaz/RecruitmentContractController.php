@@ -18,6 +18,7 @@ use App\Models\ingaz\Order;
 use App\Models\ingaz\User;
 use App\Models\ingaz\UserAddress;
 use App\Models\TravelHistory;
+use App\Models\RecruitmentOffices;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
@@ -92,6 +93,8 @@ class RecruitmentContractController extends Controller
                 'maid.office.translations', // المكتب الخارجي مع الترجمات
                 'requiredMaidNationality.translations', // الجنسية المفضلة للعاملة
                 'info', // جميع بيانات العقد
+                'info.manualMaidNationality.translations',
+                'info.manualMaidOffice.translations',
                 'info.shelter.translations', // بيانات الإيواء
                 'contract_status_logs', // سجل حالات العقد (مطلوب لبعض العمليات)
                 'order', // بيانات الطلب
@@ -412,6 +415,42 @@ class RecruitmentContractController extends Controller
                         }
 
                         $maidInfo .= '</div>';
+                    } elseif ($row->info && $row->info->hasManualMaidSummary()) {
+                        $manualNationality = $row->info->manualMaidNationality?->sub_title ?? 'غير محدد';
+                        $manualOffice = $row->info->manualMaidOffice?->title ?? 'غير محدد';
+
+                        $maidInfo  = '<div class="d-flex flex-column gap-2">';
+                        $maidInfo .= '<div class="fw-semibold text-dark">'
+                            . e($row->info->manual_maid_name ?: 'بيانات عاملة مختصرة')
+                            . '</div>';
+
+                        if ($row->info->manual_maid_passport_num) {
+                            $maidInfo .= '<div class="text-muted small d-flex align-items-center gap-2">'
+                                . '<i class="fas fa-passport text-secondary"></i>'
+                                . '<span><span class="text-secondary">جواز: </span>' . e($row->info->manual_maid_passport_num) . '</span>'
+                                . '</div>';
+                        }
+
+                        $maidInfo .= '<div class="text-muted small d-flex align-items-center gap-2">'
+                            . '<i class="fas fa-flag text-secondary"></i>'
+                            . '<span><span class="text-secondary">الجنسية: </span>' . e($manualNationality) . '</span>'
+                            . '</div>';
+
+                        $maidInfo .= '<div class="text-muted small d-flex align-items-center gap-2">'
+                            . '<i class="fas fa-building text-secondary"></i>'
+                            . '<span><span class="text-secondary">المكتب الخارجي: </span>' . e($manualOffice) . '</span>'
+                            . '</div>';
+
+                        if ($row->info->manual_maid_attachment && showFile($row->info->manual_maid_attachment)) {
+                            $maidInfo .= '<div>'
+                                . '<a class="btn btn-sm btn-outline-primary" href="' . e(showFile($row->info->manual_maid_attachment)) . '" target="_blank" rel="noopener">'
+                                . '<i class="fas fa-paperclip me-1"></i>عرض المرفق'
+                                . '</a>'
+                                . '</div>';
+                        }
+
+                        $maidInfo .= '<div><span class="badge bg-warning text-dark">بيانات مختصرة مؤقتة</span></div>';
+                        $maidInfo .= '</div>';
                     } else {
                         $maidInfo = '<div class="d-flex flex-column gap-2">';
 
@@ -589,7 +628,7 @@ class RecruitmentContractController extends Controller
                     return $marketerInfo ?: '<span class="text-muted"><i class="fas fa-user-slash me-1"></i>غير محدد</span>';
                 })
                 ->addColumn('recruitment_office', function ($row) {
-                    $office = $row->maid?->office ?? $row->maid?->recruitmentOffice;
+                    $office = $row->maid?->office ?? $row->maid?->recruitmentOffice ?? $row->info?->manualMaidOffice;
                     return $office?->title ?  '<span class="text-muted">' . $office?->title .'</span>' : '<span class="text-muted">غير محدد</span>';
                 })
                 ->addColumn('updateStatus', function ($row) {
@@ -917,6 +956,8 @@ class RecruitmentContractController extends Controller
             'maid.religion',
             'maid.jobTitles',
             'info.prevSponsorship',
+            'info.manualMaidNationality',
+            'info.manualMaidOffice',
             'info.shelter',
             'contract_status_logs' => function ($query) {
                 $query->orderByDesc('date')->orderByDesc('id');
@@ -1050,7 +1091,8 @@ class RecruitmentContractController extends Controller
         $all_available_maids = Maid::with([
             'nationality',
             'religion',
-            'jobTitles'
+            'jobTitles',
+            'office'
         ])
             ->where('available', true)
             ->where('status', 'available')
@@ -1077,6 +1119,8 @@ class RecruitmentContractController extends Controller
         }
 
         $countries = Country::active()->ordered()->get();
+        $maidNationalities = Nationality::with('translations')->get();
+        $recruitmentOffices = RecruitmentOffices::with('translations')->orderBy('id')->get();
         $saudiCities = City::query()
             ->whereHas('country', function ($query) {
                 $query->where('code', 'SA');
@@ -1092,7 +1136,7 @@ class RecruitmentContractController extends Controller
             ? \App\Models\auth\Admin::whereNull('deleted_at')->orderBy('name')->get()
             : collect([$currentUser])->filter();
 
-        return view('admin.ingaz.RecruitmentContract.create', compact('orders', 'endedOrders', 'countries', 'saudiCities', 'all_available_maids', 'selectedOrder', 'orderId', 'existing_clients', 'currentUser', 'canSelectAnyMarketer', 'marketers'));
+        return view('admin.ingaz.RecruitmentContract.create', compact('orders', 'endedOrders', 'countries', 'maidNationalities', 'recruitmentOffices', 'saudiCities', 'all_available_maids', 'selectedOrder', 'orderId', 'existing_clients', 'currentUser', 'canSelectAnyMarketer', 'marketers'));
     }
 
 
@@ -1143,19 +1187,29 @@ class RecruitmentContractController extends Controller
             DB::beginTransaction();
 
             // دعم حالة عقد بدون عاملة أو تأجيل اختيار العاملة
+            $maidSelectionMode = $request->input('maid_selection_mode', 'existing');
             $maidId = $request->maid_id ?? $request->new_maid_id;
             $isNoMaid = ($maidId === 'no_maid');
             $isMaidSelectionPostponed = $request->maid_selection_postponed == '1';
+            $isManualMaidSummary = $maidSelectionMode === 'manual'
+                && (
+                    $request->filled('manual_maid_name')
+                    || $request->filled('manual_maid_passport_num')
+                    || $request->filled('manual_maid_nationality_id')
+                    || $request->filled('manual_maid_office_id')
+                    || $request->hasFile('manual_maid_attachment')
+                );
+            $shouldCreateWithoutAssignedMaid = $isNoMaid || $isMaidSelectionPostponed || $isManualMaidSummary;
 
             // تحديد حالة العقد
             $contractStatus = ContractStatusEnum::New->value;
-            if ($isNoMaid || $isMaidSelectionPostponed) {
+            if ($shouldCreateWithoutAssignedMaid) {
                 $contractStatus = ContractStatusEnum::PendingMaidSelection->value;
             }
 
             $contractData = [
                 'status' => $contractStatus,
-                'maid_id' => ($isNoMaid || $isMaidSelectionPostponed) ? null : $maidId,
+                'maid_id' => $shouldCreateWithoutAssignedMaid ? null : $maidId,
                 'required_maid_nationality_id' => $request->required_maid_nationality, // حفظ الجنسية المفضلة
                 'required_maid_religion_id' => $request->required_maid_religion, // حفظ الدين المطلوب
                 'required_maid_age_min' => $request->required_maid_age_min, // حفظ الحد الأدنى للعمر
@@ -1201,7 +1255,7 @@ class RecruitmentContractController extends Controller
                 }
 
                 $contractData['user_id'] = $order->user_id;
-                $contractData['maid_id'] = $isNoMaid ? null : $order->maid_id;
+                $contractData['maid_id'] = $shouldCreateWithoutAssignedMaid ? null : $order->maid_id;
                 $contractData['order_id'] = $order->id; // إضافة order_id للعقد
                 $contractData['marketer_id'] = $marketerId; // تقييد المسوق حسب صلاحية المستخدم الحالي
 
@@ -1223,7 +1277,16 @@ class RecruitmentContractController extends Controller
                     'client_city' => $request->client_city
                 ]);
 
-                $user = User::where('phone', $request->client_phone)->first();
+                $user = null;
+
+                if ($request->filled('client_id')) {
+                    $user = User::find($request->client_id);
+                }
+
+                if (!$user && $request->filled('client_phone')) {
+                    $user = User::where('phone', $request->client_phone)->first();
+                }
+
                 if (!$user) {
                     $user = User::create([
                         'name' => $request->client_name,
@@ -1299,7 +1362,18 @@ class RecruitmentContractController extends Controller
                 'visa_milad_date' => $request->visa_milad_date,
                 'visa_hijry_date' => $request->visa_hijry_date,
                 'contract_duration' => $request->contract_duration,
+                'manual_maid_name' => $isManualMaidSummary ? $request->manual_maid_name : null,
+                'manual_maid_passport_num' => $isManualMaidSummary ? $request->manual_maid_passport_num : null,
+                'manual_maid_nationality_id' => $isManualMaidSummary ? $request->manual_maid_nationality_id : null,
+                'manual_maid_office_id' => $isManualMaidSummary ? $request->manual_maid_office_id : null,
             ];
+
+            if ($isManualMaidSummary && $request->hasFile('manual_maid_attachment')) {
+                $contractInfo['manual_maid_attachment'] = uploadFile(
+                    $request->file('manual_maid_attachment'),
+                    'contracts/manual_maid_attachments/'
+                );
+            }
 
             logger()->info('Creating contract info:', $contractInfo);
 
@@ -1317,7 +1391,7 @@ class RecruitmentContractController extends Controller
             }
 
             // تحديث حالة العاملات تلقائياً
-            if ($contract->maid_id && !$isNoMaid && !$isMaidSelectionPostponed) {
+            if ($contract->maid_id && !$isNoMaid && !$isMaidSelectionPostponed && !$isManualMaidSummary) {
                 $maid = Maid::find($contract->maid_id);
                 if ($maid) {
                     $maid->update([
@@ -1346,7 +1420,9 @@ class RecruitmentContractController extends Controller
             logger()->info('Contract created successfully', ['contract_id' => $contract->id]);
 
             $successMessage = 'تم إنشاء العقد بنجاح';
-            if ($isNoMaid || $isMaidSelectionPostponed) {
+            if ($isManualMaidSummary) {
+                $successMessage = 'تم إنشاء العقد بنجاح مع حفظ بيانات عاملة مختصرة. يمكنك ربط عاملة فعلية لاحقاً من صفحة العقود.';
+            } elseif ($isNoMaid || $isMaidSelectionPostponed) {
                 $successMessage = 'تم إنشاء العقد بنجاح. يمكنك إضافة عاملة لاحقاً من صفحة العقود.';
             }
 

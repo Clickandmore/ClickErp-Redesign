@@ -32,6 +32,25 @@ class ContractInfo extends Model
         return $this->belongsTo(ShelterPlaces::class, 'shelter_id');
     }
 
+    public function manualMaidNationality()
+    {
+        return $this->belongsTo(\App\Models\ingaz\Nationality::class, 'manual_maid_nationality_id');
+    }
+
+    public function manualMaidOffice()
+    {
+        return $this->belongsTo(\App\Models\RecruitmentOffices::class, 'manual_maid_office_id');
+    }
+
+    public function hasManualMaidSummary(): bool
+    {
+        return filled($this->manual_maid_name)
+            || filled($this->manual_maid_passport_num)
+            || filled($this->manual_maid_nationality_id)
+            || filled($this->manual_maid_office_id)
+            || filled($this->manual_maid_attachment);
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

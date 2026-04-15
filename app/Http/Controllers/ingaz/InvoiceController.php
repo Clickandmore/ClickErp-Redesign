@@ -9,13 +9,19 @@ use App\Models\ingaz\Setting;
 use App\Models\ingaz\User as ClientUser;
 use Illuminate\Http\Request;
 use Nami\Finance\Enums\AccountTypesEnum;
+use Nami\Finance\Enums\BondPaymentTypes;
+use Nami\Finance\Enums\BondTypes;
+use Nami\Finance\Enums\ConfirmSettingTypes;
 use Nami\Finance\Enums\CostCenterTypeEnum;
+use Nami\Finance\Models\Account;
 use Nami\Finance\Models\CostCenter;
+use Nami\Finance\Models\ConfirmSetting;
+use Nami\Finance\Models\TaxSetting;
+use Nami\Finance\Services\BondService;
 use PDF;
 use Yajra\DataTables\Facades\DataTables;
 use Nami\Finance\Services\ConstraintService as ObjService;
 use Nami\Finance\Services\YearService;
-use Nami\Finance\Models\Account;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -122,7 +128,7 @@ class InvoiceController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request, ObjService $service, YearService $yearService)
+    public function store(Request $request, ObjService $service, YearService $yearService, BondService $bondService)
     {
         $request->validate([
             'contract_id' => 'required|exists:contracts,id',
@@ -154,7 +160,7 @@ class InvoiceController extends Controller
         }
 
         try {
-            $invoice = DB::transaction(function () use ($request, $service, $yearService) {
+            $invoice = DB::transaction(function () use ($request, $service, $yearService, $bondService) {
                 $contract = Contract::with(['user', 'maid.nationality', 'requiredMaidNationality'])
                     ->findOrFail($request->contract_id);
 
@@ -171,6 +177,10 @@ class InvoiceController extends Controller
                 $nationalityAccountId = $nationality?->account_id;
 
                 $nationalityName = $nationality?->sub_title ?? $nationality?->title ?? null;
+
+                if ($nationalityAccountId && !$this->isRecruitmentLiabilityAccount((int) $nationalityAccountId)) {
+                    $nationalityAccountId = null;
+                }
 
                 if (!$nationalityAccountId && $nationality) {
                     if ($nationalityName) {
@@ -208,27 +218,48 @@ class InvoiceController extends Controller
                     'total_due' => $request->total_due ?? 0,
                 ]);
 
-                //2- انشاء قيد الفاتورة في النظام المحاسبي بين العميل-مدين والتزامات عقود الجنسية-دائن
-                $statement = 'Invoice entry #' . $invoice->id . ' for contract #' . $invoice->contract->id;
+                $invoice->setRelation('contract', $contract);
 
-                // بعد قيد الفاتورة يتم عمل مركز تكلفة لهذه الجنسية - مركز تكلفة طلبات الاستقدام لدولة+اسم الدولة
-                $nationality_cost_center = $this->ensureNationalityCostCenter($nationalityName);
+                if ((float) $invoice->total_due > 0) {
+                    //2- انشاء قيد الفاتورة التفصيلي وربطه بمركز تكلفة العقد
+                    $contractCostCenter = $this->ensureRecruitmentContractCostCenter($contract, $nationalityName);
 
-                $cost_center_ids = [$nationality_cost_center->id, null];
+                    $this->storeInvoiceConstraintForInvoice(
+                        $invoice,
+                        $service,
+                        $yearService,
+                        $nationalityAccountId,
+                        $clientAccountId,
+                        $contractCostCenter->id
+                    );
 
-                $this->storeConstraintForInvoice($invoice, $service, $yearService, $nationalityAccountId, $clientAccountId, $statement, $cost_center_ids);
+                    //3- انشاء سند قبض فعلي من حساب العميل الى الحساب الوسيط لمساند
+                    $musandAccountId = ConfirmSetting::query()
+                        ->where('title', ConfirmSettingTypes::MusanedIntermediateAccount->value)
+                        ->latest('updated_at')
+                        ->value('value');
 
+                    if (!$musandAccountId) {
+                        throw new \RuntimeException("لا يوجد حساب وسيط مساند محدد. الرجاء تحديده من صفحة إعدادات النظام المحاسبي.");
+                    }
 
-                //3- انشاء قيد سند قبض بين العميل-دائن و حساب مساند-مدين 
-                $musandName = 'عمولات مساند';
-                $musandAccountId = Account::query()->where('name', $musandName)->value('id');
+                    $musandAccount = Account::query()
+                        ->whereKey($musandAccountId)
+                        ->whereIn('parent_id', [122, 156])
+                        ->first();
 
-                if (!$musandAccountId) {
-                    throw new \RuntimeException("لا يوجد حساب باسم '$musandName' في الشجرة المحاسبية");
+                    if (!$musandAccount) {
+                        throw new \RuntimeException("حساب مساند المحدد غير صحيح. يجب اختيار حساب تابع للبنوك أو لأرصدة مدينة أخرى من إعدادات النظام المحاسبي.");
+                    }
+
+                    $this->storeReceiptBondForInvoice(
+                        $invoice,
+                        $bondService,
+                        $yearService,
+                        $clientAccountId,
+                        (int) $musandAccount->id
+                    );
                 }
-                $statement = "Musand receipt for invoice #{$invoice->id}";
-
-                $this->storeConstraintForInvoice($invoice, $service, $yearService, $clientAccountId, $musandAccountId, $statement);
 
                 return $invoice;
             });
@@ -251,35 +282,119 @@ class InvoiceController extends Controller
         ]);
     }
 
-    public function storeConstraintForInvoice(Invoice $invoice, ObjService $service, YearService $yearService, $creditAccountId, $debitAccountId, $statement = null, $costCenterIds = null)
+    private function storeInvoiceConstraintForInvoice(
+        Invoice $invoice,
+        ObjService $service,
+        YearService $yearService,
+        int $nationalityAccountId,
+        int $clientAccountId,
+        int $costCenterId
+    ): void
     {
+        $amounts = $this->buildInvoiceFinanceBreakdown($invoice);
+        if ($amounts['total_due'] <= 0) {
+            return;
+        }
+
         $date = $invoice->created_at ? $invoice->created_at->toDateString() : now()->toDateString();
         $activeYear = $yearService->checkDateRange($date);
         if (!$activeYear) {
             throw new \RuntimeException('لا يوجد سنة مالية نشطة للتاريخ المحدد');
         }
 
-        $statement = $statement ?: 'Invoice entry #' . $invoice->id . ' for contract #' . $invoice->contract->id;
-        $totalDue = (float) ($invoice->total_due ?? 0);
+        $statement = $this->buildInvoiceStatement($invoice);
+        $lines = [];
+
+        if ($amounts['direct_amount'] > 0) {
+            $this->appendConstraintPair(
+                $lines,
+                $nationalityAccountId,
+                $clientAccountId,
+                $amounts['direct_amount'],
+                $statement,
+                $costCenterId
+            );
+        }
+
+        if ($amounts['other_amount'] > 0) {
+            $this->appendConstraintPair(
+                $lines,
+                $nationalityAccountId,
+                $clientAccountId,
+                $amounts['other_amount'],
+                $statement,
+                $costCenterId
+            );
+        }
+
+        if ($amounts['vat_amount'] > 0) {
+            $taxAccountId = $this->resolveRevenueTaxAccountId();
+
+            if (!$taxAccountId) {
+                throw new \RuntimeException(
+                    'لا توجد ضريبة إيرادات معرفة في إعدادات الحسابات. الرجاء تحديدها من صفحة إعدادات الحسابات أولاً.'
+                );
+            }
+
+            $this->appendConstraintPair(
+                $lines,
+                $taxAccountId,
+                $clientAccountId,
+                $amounts['vat_amount'],
+                $statement
+            );
+        }
+
+        if (empty($lines)) {
+            return;
+        }
 
         $data = [
             'code' => $service->lastCode(),
             'date' => $date,
             'statement' => $statement,
-            'account_id' => [$creditAccountId, $debitAccountId],
-            'account_type' => ['creditor', 'debtor'],
-            'debtor_value' => [0, $totalDue],
-            'creditor_value' => [$totalDue, 0],
-            'statement_account' => [$statement, $statement],
+            'account_id' => array_column($lines, 'account_id'),
+            'account_type' => array_column($lines, 'account_type'),
+            'debtor_value' => array_column($lines, 'debtor_value'),
+            'creditor_value' => array_column($lines, 'creditor_value'),
+            'statement_account' => array_column($lines, 'statement'),
             'cost_center_required' => 'off',
-            'cost_center_id' => $costCenterIds ?? [null, null],
-            'value' => $totalDue,
-
+            'cost_center_id' => array_column($lines, 'cost_center_id'),
+            'value' => $amounts['total_due'],
         ];
 
         $storeConstraint = $service->storeConstraint($data, $activeYear);
         $service->storeConstraintDetails($data['account_id'], $storeConstraint->id, $data);
         $service->storeFiles($storeConstraint, $data);
+    }
+
+    private function storeReceiptBondForInvoice(
+        Invoice $invoice,
+        BondService $bondService,
+        YearService $yearService,
+        int $clientAccountId,
+        int $musanedAccountId
+    ): void
+    {
+        $date = $invoice->created_at ? $invoice->created_at->toDateString() : now()->toDateString();
+        if (!$yearService->checkDateRange($date)) {
+            throw new \RuntimeException('لا يوجد سنة مالية نشطة للتاريخ المحدد');
+        }
+
+        $bond = $bondService->storeQabdBond([
+            'payment_type' => BondPaymentTypes::Cash->value,
+            'bond_book_num' => ' ',
+            'debit_account_id' => $musanedAccountId,
+            'credit_account_id' => $clientAccountId,
+            'value' => $this->roundMoney((float) $invoice->total_due),
+            'date' => $date,
+            'statement' => $this->buildInvoiceReceiptStatement($invoice),
+            'code' => $bondService->lastCode(BondTypes::Qabd->value),
+            'is_tax' => 0,
+            'general_type' => 0,
+        ]);
+
+        $bondService->confirmBond($bond->id);
     }
 
     /**
@@ -559,6 +674,140 @@ class InvoiceController extends Controller
         return $code . $phone;
     }
 
+    private function buildInvoiceFinanceBreakdown(Invoice $invoice): array
+    {
+        $directGross = $this->roundMoney((float) $invoice->direct_recruitment_cost * (int) $invoice->direct_recruitment_count);
+        $otherGross = $this->roundMoney(
+            ((float) $invoice->external_recruitment_cost * (int) $invoice->external_recruitment_count)
+            + ((float) $invoice->government_cost * (int) $invoice->government_cost_count)
+            + ((float) $invoice->internal_ticket_cost * (int) $invoice->internal_ticket_count)
+        );
+        $vatAmount = $this->roundMoney((float) $invoice->vat_amount);
+        $totalDue = $this->roundMoney((float) $invoice->total_due);
+        $serviceGross = $this->roundMoney($directGross + $otherGross);
+        $serviceNet = max(0, $this->roundMoney($totalDue - $vatAmount));
+
+        if ($serviceGross <= 0) {
+            return [
+                'direct_amount' => 0.0,
+                'other_amount' => 0.0,
+                'vat_amount' => $vatAmount,
+                'total_due' => $totalDue,
+            ];
+        }
+
+        if ($directGross <= 0) {
+            return [
+                'direct_amount' => 0.0,
+                'other_amount' => $serviceNet,
+                'vat_amount' => $vatAmount,
+                'total_due' => $totalDue,
+            ];
+        }
+
+        if ($otherGross <= 0) {
+            return [
+                'direct_amount' => $serviceNet,
+                'other_amount' => 0.0,
+                'vat_amount' => $vatAmount,
+                'total_due' => $totalDue,
+            ];
+        }
+
+        $directAmount = $this->roundMoney($serviceNet * ($directGross / $serviceGross));
+        $otherAmount = $this->roundMoney($serviceNet - $directAmount);
+
+        return [
+            'direct_amount' => $directAmount,
+            'other_amount' => $otherAmount,
+            'vat_amount' => $vatAmount,
+            'total_due' => $totalDue,
+        ];
+    }
+
+    private function appendConstraintPair(
+        array &$lines,
+        int $creditAccountId,
+        int $debitAccountId,
+        float $amount,
+        string $statement,
+        ?int $costCenterId = null
+    ): void
+    {
+        $amount = $this->roundMoney($amount);
+        if ($amount <= 0) {
+            return;
+        }
+
+        $lines[] = [
+            'account_id' => $creditAccountId,
+            'account_type' => 'creditor',
+            'debtor_value' => 0,
+            'creditor_value' => $amount,
+            'statement' => $statement,
+            'cost_center_id' => $costCenterId,
+        ];
+
+        $lines[] = [
+            'account_id' => $debitAccountId,
+            'account_type' => 'debtor',
+            'debtor_value' => $amount,
+            'creditor_value' => 0,
+            'statement' => $statement,
+            'cost_center_id' => null,
+        ];
+    }
+
+    private function buildInvoiceStatement(Invoice $invoice): string
+    {
+        $contractId = $invoice->contract_id;
+        $msanedNumber = $invoice->contract?->info?->msaned_number
+            ?? $invoice->contract?->msaned_number
+            ?? '-';
+
+        return "قيد فاتورة العقد #{$contractId} / الفاتورة #{$invoice->id} / مساند {$msanedNumber}";
+    }
+
+    private function buildInvoiceReceiptStatement(Invoice $invoice): string
+    {
+        $contractId = $invoice->contract_id;
+        $msanedNumber = $invoice->contract?->info?->msaned_number
+            ?? $invoice->contract?->msaned_number
+            ?? '-';
+
+        return "سند قبض فاتورة العقد #{$contractId} / الفاتورة #{$invoice->id} / مساند {$msanedNumber}";
+    }
+
+    private function resolveRevenueTaxAccountId(): ?int
+    {
+        $taxSettingId = ConfirmSetting::query()
+            ->where('title', ConfirmSettingTypes::TaxRateRevenue->value)
+            ->latest('updated_at')
+            ->value('value');
+
+        if ($taxSettingId) {
+            $taxAccountId = TaxSetting::query()
+                ->whereKey($taxSettingId)
+                ->value('account_id');
+
+            if ($taxAccountId) {
+                return (int) $taxAccountId;
+            }
+        }
+
+        $taxAccountId = Account::query()
+            ->where(function ($query) {
+                $query->where('name', 'like', '%ضريبة%إيراد%')
+                    ->orWhere('name', 'like', '%ضريبة%إيرادات%')
+                    ->orWhere('name', 'like', '%ضريبة%قيمة%مضافة%');
+            })
+            ->where('status', 'creditor')
+            ->orderBy('code')
+            ->value('id');
+
+        return $taxAccountId ? (int) $taxAccountId : null;
+    }
+
     private function ensureClientAccountId(Contract $contract): int
     {
         if (!$contract->user_id) {
@@ -619,37 +868,88 @@ class InvoiceController extends Controller
         return (int) $account->id;
     }
 
-    private function ensureNationalityCostCenter(?string $nationalityName): CostCenter
+    private function ensureRecruitmentContractCostCenter(Contract $contract, ?string $nationalityName): CostCenter
     {
-        $nationalityName = trim((string) $nationalityName);
-
-        if ($nationalityName === '') {
-            throw new \RuntimeException('تعذر تحديد جنسية العقد لإنشاء مركز التكلفة.');
-        }
-
-        $costCenterTitle = 'مركز تكلفة طلبات استقدام دولة ' . $nationalityName;
+        $rootCostCenter = $this->ensureRecruitmentContractsRootCostCenter();
 
         $costCenter = CostCenter::query()
-            ->where('title', $costCenterTitle)
-            ->orWhere('title', 'like', '%' . $costCenterTitle . '%')
+            ->lockForUpdate()
+            ->where('parent_id', $rootCostCenter->id)
+            ->where('table_name', CostCenterTypeEnum::General->value)
+            ->where('table_related_id', $contract->id)
             ->first();
 
         if ($costCenter) {
             return $costCenter;
         }
 
+        $title = 'عقد استقدام #' . $contract->id;
+        $nationalityName = trim((string) $nationalityName);
+        if ($nationalityName !== '') {
+            $title .= ' - ' . $nationalityName;
+        }
+
+        return CostCenter::query()->create([
+            'title' => $title,
+            'parent_id' => $rootCostCenter->id,
+            'table_name' => CostCenterTypeEnum::General->value,
+            'table_related_id' => $contract->id,
+            'code' => $this->nextCostCenterCode(),
+            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
+        ]);
+    }
+
+    private function ensureRecruitmentContractsRootCostCenter(): CostCenter
+    {
+        $costCenter = CostCenter::query()
+            ->lockForUpdate()
+            ->whereNull('parent_id')
+            ->where('title', 'عقود الاستقدام')
+            ->first();
+
+        if ($costCenter) {
+            return $costCenter;
+        }
+
+        return CostCenter::query()->create([
+            'title' => 'عقود الاستقدام',
+            'parent_id' => null,
+            'table_name' => CostCenterTypeEnum::General->value,
+            'table_related_id' => 0,
+            'code' => $this->nextCostCenterCode(),
+            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
+        ]);
+    }
+
+    private function nextCostCenterCode(): string
+    {
         $lastCode = CostCenter::query()
             ->lockForUpdate()
             ->max('code');
 
-        return CostCenter::query()->create([
-            'title' => $costCenterTitle,
-            'parent_id' => null,
-            'table_name' => CostCenterTypeEnum::General->value,
-            'table_related_id' => 0,
-            'code' => (string) (((int) $lastCode) + 1),
-            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
-        ]);
+        return (string) (((int) $lastCode) + 1);
+    }
+
+    private function roundMoney(float $amount): float
+    {
+        return round($amount, 2);
+    }
+
+    private function isRecruitmentLiabilityAccount(int $accountId): bool
+    {
+        $account = Account::query()->find($accountId);
+
+        while ($account) {
+            if (in_array($account->name, ['التزامات عقود الاستقدام', 'التزامات عقود'], true)) {
+                return true;
+            }
+
+            $account = $account->parent_id
+                ? Account::query()->find($account->parent_id)
+                : null;
+        }
+
+        return false;
     }
 
     private function resolveNationalityAccountId(string $nationalityName): ?int
@@ -687,8 +987,16 @@ class InvoiceController extends Controller
         }
 
         if ($parentId) {
+            $rootAccount = Account::query()
+                ->with('childrenRecursive')
+                ->find($parentId);
+
+            $relatedAccountIds = $rootAccount
+                ? array_merge([$rootAccount->id], $rootAccount->getAllChildrenIds())
+                : [$parentId];
+
             $accountId = Account::query()
-                ->where('parent_id', $parentId)
+                ->whereIn('id', $relatedAccountIds)
                 ->where('name', 'like', '%' . $name . '%')
                 ->orderBy('id')
                 ->value('id');
