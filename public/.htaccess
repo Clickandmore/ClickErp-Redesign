@@ -5,6 +5,11 @@
 
     RewriteEngine On
 
+    # Keep HR application routes going through Laravel even if a legacy
+    # public/hr symlink exists on the server.
+    RewriteRule ^hr/attendance-example\.xlsx$ - [L]
+    RewriteRule ^hr(?:/.*)?$ index.php [L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

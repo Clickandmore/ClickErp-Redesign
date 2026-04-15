@@ -12,6 +12,10 @@ class Invoice extends Model
 
     protected $guarded = [];
     protected $table = 'invoices';
+    protected $casts = [
+        'is_paid' => 'boolean',
+        'paid_at' => 'datetime',
+    ];
 
     public function contract(){
         return $this->belongsTo(Contract::class);

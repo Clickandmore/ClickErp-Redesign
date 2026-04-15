@@ -61,7 +61,7 @@ class InvoiceController extends Controller
                     return number_format($row->total_due, 2);
                 })
                 ->addColumn('status', function ($row) {
-                    $paid = $row->total_due <= 0;
+                    $paid = (bool) $row->is_paid || (float) $row->total_due <= 0;
                     $class = $paid ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning';
                     $text = $paid ? 'مدفوعة' : 'غير مدفوعة';
                     return '<span class="badge ' . $class . '">' . $text . '</span>';
@@ -216,6 +216,8 @@ class InvoiceController extends Controller
                     'discount' => $request->discount ?? 0,
                     'vat_amount' => $request->vat_amount ?? 0,
                     'total_due' => $request->total_due ?? 0,
+                    'is_paid' => true,
+                    'paid_at' => now(),
                 ]);
 
                 $invoice->setRelation('contract', $contract);
@@ -394,7 +396,7 @@ class InvoiceController extends Controller
             'general_type' => 0,
         ]);
 
-        $bondService->confirmBond($bond->id);
+        $bondService->checkIsConfirmSetting($bond, ConfirmSettingTypes::QabdBond->value);
     }
 
     /**
@@ -502,7 +504,7 @@ class InvoiceController extends Controller
         $serviceDesc = 'طلب تعاقد';
         $serviceLongDescription = $this->buildServiceDescription($invoice);
         $items = $this->buildInvoiceItems($invoice);
-        $invoiceStatus = $invoice->total_due <= 0 ? 'مدفوعة' : 'غير مدفوعة';
+        $invoiceStatus = ((bool) $invoice->is_paid || (float) $invoice->total_due <= 0) ? 'مدفوعة' : 'غير مدفوعة';
         $printedBy = optional(Auth::guard('admin')->user())->name
             ?? optional(Auth::user())->name
             ?? 'النظام';
