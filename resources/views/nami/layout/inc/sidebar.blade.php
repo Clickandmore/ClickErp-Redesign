@@ -694,13 +694,12 @@
                     $moduleSegment = in_array($firstSegment, $supportedLocales, true) ? request()->segment(2) : $firstSegment;
                     $isHr = $moduleSegment === 'hr';
                 @endphp
-                <li class="{{ $isHr ? '' : 'collapsed' }}">
-                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#hr" href="#">
+                <li>
+                    <a class="m-link {{ $isHr ? 'active' : '' }}" href="{{ route('departments.index') }}">
                         <i class="fa fa-user-tie me-2"></i>
                         <span class="ms-2">{{ __('ingaz.hr') }}</span>
-                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                     </a>
-                    <ul class="sub-menu collapse {{ $isHr ? 'show' : '' }}" id="hr">
+                    <ul class="sub-menu show" id="hr">
                         @include('hr::hr')
                     </ul>
                 </li>
