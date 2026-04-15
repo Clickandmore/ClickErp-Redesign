@@ -841,7 +841,23 @@ class InvoiceController extends Controller
         }
 
         if ($user->account_id) {
-            return (int) $user->account_id;
+            // return (int) $user->account_id;
+
+            $existingAccount = Account::query()
+                ->lockForUpdate()
+                ->find($user->account_id);
+
+            if ($existingAccount) {
+                return (int) $existingAccount->id;
+            }
+
+            $user->update([
+                'account_id' => null,
+            ]);
+
+            if ($contract->relationLoaded('user') && $contract->user) {
+                $contract->user->account_id = null;
+            }
         }
 
         $parentAccount = Account::query()
