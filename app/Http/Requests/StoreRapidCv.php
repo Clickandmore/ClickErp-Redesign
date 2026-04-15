@@ -31,6 +31,7 @@ class StoreRapidCv extends MainRequest
                 'required',
                 Rule::unique('maids')->ignore($this->route('maid')),
             ],
+            'type_id' => 'required|exists:job_types,id',
             'office_id' => 'nullable|exists:recruitment_offices,id',
         ];
     }
@@ -46,6 +47,8 @@ class StoreRapidCv extends MainRequest
             'passport_num.required' => helperTrans('web.passport_num_is_required'),
             'passport_num.min' => helperTrans('web.passport_num_min_length'),
             'passport_num.unique' => 'رقم الجواز مسجل مسبقاً في النظام، يرجى التحقق من الرقم أو اختيار رقم آخر',
+            'type_id.required' => helperTrans('web.type_id_is_required'),
+            'type_id.exists' => helperTrans('web.invalid_type_id'),
             'office_id.exists' => helperTrans('web.office_id not exist'),
         ];
     }

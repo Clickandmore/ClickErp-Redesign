@@ -473,7 +473,7 @@
                                         <span class="ms-2"> {{ helperTrans('ingaz.Rent contracts') }} </span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
-                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RentContract.index', 'RentContract.create', 'RentContract.show', 'RentContract.edit', 'packages.index', 'rent-contract-terms.index']) ? 'show' : '' }}"
+                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RentContract.index', 'RentContract.create', 'RentContract.show', 'RentContract.edit', 'packages.index', 'rent-contract-terms.index', 'maids.rental.index', 'maids.rental.create']) ? 'show' : '' }}"
                                         id="rentcontracts">
                                         @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE))
                                             <li>
@@ -491,6 +491,13 @@
                                                     href="{{ route('rental-orders.index') }}">
                                                     <i class="fas fa-shopping-cart"></i>
                                                     <span class="ms-2">طلبات الإيجار</span>
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="m-link {{ in_array(Route::currentRouteName(), ['maids.rental.index', 'maids.rental.create']) ? 'active' : '' }}"
+                                                    href="{{ route('maids.rental.index') }}">
+                                                    <i class="fas fa-history"></i>
+                                                    <span class="ms-2">سير عاملات الإيجار</span>
                                                 </a>
                                             </li>
                                             <li>
@@ -513,6 +520,13 @@
                                                     href="{{ route('RentContract.index', ['status' => 'active']) }}">
                                                     <i class="fas fa-check-circle text-success"></i>
                                                     <span class="ms-2">العقود النشطة</span>
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="m-link {{ Route::currentRouteName() == 'RentContract.index' && request('status') == 'transferred' ? 'active' : '' }}"
+                                                    href="{{ route('RentContract.index', ['status' => 'transferred']) }}">
+                                                    <i class="fas fa-exchange-alt text-warning"></i>
+                                                    <span class="ms-2">تم النقل</span>
                                                 </a>
                                             </li>
                                             <li>
@@ -608,7 +622,8 @@
                                             <li>
                                                 <a class="m-link" href="{{ route('ShelterContract.create') }}">
                                                     <i class="icon-star"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.add_shelter') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ helperTrans('ingaz.add_shelter') }}</span>
                                                 </a>
                                             </li>
                                         @endif

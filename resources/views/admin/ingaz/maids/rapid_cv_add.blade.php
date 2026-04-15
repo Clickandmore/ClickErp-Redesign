@@ -26,6 +26,7 @@
                 <form class="row g-3 from-submit-global-maid" method="post" action="{{ route('maids.store_rapid_cv') }}"
                     id="maidForm">
                     @csrf
+                    <input type="hidden" name="type_id" value="{{ $defaultTypeId }}">
                     <!-- اسم العاملة -->
                     <div class="col-12">
                         <label for="TextInput" class="form-label">

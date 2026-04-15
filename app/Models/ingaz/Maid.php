@@ -85,6 +85,7 @@ class Maid extends Model
         'offer_starts_at',
         'offer_expires_at',
         'deleted_by',
+        'arrival_date',
     ];
 
     protected $casts = [
@@ -103,6 +104,7 @@ class Maid extends Model
         'offer_price' => 'decimal:2',
         'offer_starts_at' => 'date',
         'offer_expires_at' => 'date',
+        'arrival_date' => 'date',
         'deleted_at' => 'datetime',
     ];
 
@@ -145,6 +147,11 @@ class Maid extends Model
         return $this->belongsToMany(JobTitle::class, 'maid_job_titles', 'maid_id', 'job_title_id');
     }
 
+    public function rentalFinancialAdjustments()
+    {
+        return $this->hasMany(\App\Models\RentalFinancialAdjustment::class, 'maid_id');
+    }
+
     public function expertises()
     {
         return $this->hasMany(\App\Models\MaidExpertise::class, 'maid_id');
@@ -172,6 +179,11 @@ class Maid extends Model
     public function contracts()
     {
         return $this->hasMany(Contract::class, 'maid_id');
+    }
+
+    public function rentalContracts()
+    {
+        return $this->hasMany(\App\Models\RentalContract::class, 'maid_id');
     }
 
     public function office()

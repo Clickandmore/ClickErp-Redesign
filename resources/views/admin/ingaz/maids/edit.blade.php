@@ -1,5 +1,30 @@
 @extends('admin.layout.indexs.index')
 
+@php
+    $defaultShelterContract = $defaultShelterContract ?? (($obj->maid_accommodation_type ?? null) == 2 ? '1' : '0');
+    $isRentalForm = $isRentalForm ?? false;
+    $formRedirectRoute = $formRedirectRoute ?? route('maids.index');
+    $defaultRentalFinanceItems = [
+        ['type' => 'expense', 'label' => 'رسوم تأشيرة', 'amount' => 2000],
+        ['type' => 'expense', 'label' => 'تفويض', 'amount' => 133],
+        ['type' => 'expense', 'label' => 'الإقامة', 'amount' => 0],
+        ['type' => 'expense', 'label' => 'كرت عمل', 'amount' => 0],
+        ['type' => 'expense', 'label' => 'تأمين طبي', 'amount' => 0],
+    ];
+    $rentalFinanceItems = $obj->rentalFinancialAdjustments()
+        ->where('context', 'maid')
+        ->get(['id', 'type', 'label', 'amount'])
+        ->map(fn ($item) => [
+            'id' => $item->id,
+            'type' => $item->type,
+            'label' => $item->label,
+            'amount' => $item->amount,
+        ])
+        ->values()
+        ->all();
+    $rentalFinanceItems = !empty($rentalFinanceItems) ? $rentalFinanceItems : $defaultRentalFinanceItems;
+@endphp
+
 @section("style")
     <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dropify.min.css">
     <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/select2.min.css">
@@ -41,13 +66,16 @@
                     <!-- أنواع الوظائف -->
                     <div class="col-4">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.job_types_2")}} </label>
-                        <select name="type_id" class="form-control" required>
+                        <select name="type_id" id="type_id" class="form-control" required>
                             <option value="">اختر نوع السيرة</option>
                             @foreach($types as $type)
                                 <option
                                         value="{{$type->id}}" {{ in_array($type->id, $obj->jobTypes->pluck('id')->toArray()) ? 'selected' : '' }}>{{$type->title}}</option>
                             @endforeach
                         </select>
+                        <div class="text-muted mt-2 d-none">
+                            سيتم تسكينها تلقائياً للإيواء لهذا النوع.
+                        </div>
                     </div>
 
                     <!-- الجنسية -->
@@ -59,7 +87,7 @@
                                 <option value="{{$nationality->id}}"
                                         data-price="{{$nationality->price}}"
                                         data-salary="{{$nationality->monthly_salary}}"
-                                        data-service_transfer_cost="{{$nationality->service_transfer_cost}}"
+                                        data-service_transportation_cost="{{$nationality->service_transportation_cost}}"
                                         data-rental_cost="{{$nationality->rental_cost}}"
                                         {{$obj->nationality_id == $nationality->id ? 'selected' : ''}}>
                                     {{$nationality->sub_title}}
@@ -78,9 +106,9 @@
                     </div>
 
                     <!-- خيار تسكين للإيواء -->
-                    <div class="col-4" id="shelter_option" style="display: none;">
+                    <div class="col-4" id="shelter_option">
                         <label for="create_shelter_contract" class="form-label">تسكين للإيواء</label>
-                        <select name="create_shelter_contract" id="create_shelter_contract" class="form-control">
+                        <select name="create_shelter_contract" id="create_shelter_contract" class="form-control shelter-question-select">
                             <option value="0">لا - لا تسكين</option>
                             <option value="1">نعم - تسكين للإيواء</option>
                         </select>
@@ -233,6 +261,11 @@
                         </label>
                         <input type="text" name="duration" class="form-control"
                                value="{{ old('duration', $obj->duration ?: '24 شهر') }}">
+                    </div>
+                    <div class="col-4">
+                        <label for="arrival_date" class="form-label">تاريخ وصول العاملة</label>
+                        <input type="date" name="arrival_date" id="arrival_date" class="form-control"
+                               value="{{ old('arrival_date', optional($obj->arrival_date)->format('Y-m-d')) }}">
                     </div>
                     <div class="col-4">
                         <label for="TextInput" class="form-label">
@@ -511,9 +544,48 @@
 {{--                            @endforeach--}}
 {{--                        </div>--}}
 {{--                    </div>--}}
+                    <div class="col-12" id="rental_finance_preview" style="display: none;">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <h6 class="mb-3">بنود مالية التأجير (السيرة)</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 18%;">النوع</th>
+                                                <th>البند</th>
+                                                <th style="width: 22%;">المبلغ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($rentalFinanceItems as $index => $item)
+                                                <tr>
+                                                    <td>{{ ($item['type'] ?? 'expense') === 'income' ? 'إيراد' : 'مصروف' }}</td>
+                                                    <td>
+                                                        {{ $item['label'] ?? '' }}
+                                                        @if (!empty($item['id']))
+                                                            <input type="hidden" name="rental_finance_items[{{ $index }}][id]" value="{{ $item['id'] }}">
+                                                        @endif
+                                                        <input type="hidden" name="rental_finance_items[{{ $index }}][type]" value="{{ $item['type'] ?? 'expense' }}">
+                                                        <input type="hidden" name="rental_finance_items[{{ $index }}][label]" value="{{ $item['label'] ?? '' }}">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" name="rental_finance_items[{{ $index }}][amount]"
+                                                            class="form-control form-control-sm text-end" step="0.01"
+                                                            min="0" value="{{ $item['amount'] ?? 0 }}">
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <small class="text-muted d-block mt-2">سيتم إنشاء هذه البنود تلقائياً ضمن مالية التأجير بعد حفظ السيرة.</small>
+                            </div>
+                        </div>
+                    </div>
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit">{{__("buttons.save")}}</button>
-                        <a href="{{ route('maids.index') }}"
+                        <a href="{{ $formRedirectRoute }}"
                            class="btn btn-outline-secondary">{{__("buttons.cancel")}}</a>
                     </div>
                 </form>
@@ -981,6 +1053,231 @@
             });
 
             // التحقق من النموذج قبل الإرسال
+            const defaultShelterContract = @json($defaultShelterContract);
+            const isRentalForm = {{ $isRentalForm ? 'true' : 'false' }};
+
+            function hydrateShelterCopy() {
+                var shelterOption = $('#shelter_option');
+                var shelterSelect = $('#create_shelter_contract');
+                var shelterLabel = shelterOption.find('label[for="create_shelter_contract"]');
+                var shelterHint = shelterOption.find('small.text-muted').last();
+
+                shelterLabel.addClass('shelter-question-label').text('تسكين للإيواء');
+                shelterSelect.addClass('shelter-question-select');
+                shelterSelect.find('option[value="0"]').text('لا - عاملة عادية');
+                shelterSelect.find('option[value="1"]').text('نعم - تسكين للإيواء');
+
+                if (!$('#shelter_auto_notice').length) {
+                    $('<div>', {
+                        id: 'shelter_auto_notice',
+                        class: 'text-muted mt-2',
+                        text: 'سيتم تسكينها تلقائياً للإيواء لهذا النوع.'
+                    }).hide().insertAfter(shelterSelect);
+                }
+
+                if (shelterHint.length) {
+                    shelterHint.text('سيتم إنشاء عقد إيواء تلقائياً باسم شركة أسس الانجاز');
+                }
+
+                if (defaultShelterContract !== '') {
+                    shelterSelect.val(defaultShelterContract);
+                }
+            }
+
+            function getTypeContext() {
+                var selectedTypeOriginal = $('select[name="type_id"] option:selected').text() || '';
+                var trimmedType = selectedTypeOriginal.trim();
+                var normalizedArabicType = trimmedType
+                    .replace(/[إأآ]/g, 'ا')
+                    .replace(/\u0649/g, 'ي')
+                    .replace(/\s+/g, ' ');
+                var normalizedArabicLower = normalizedArabicType.toLowerCase();
+                var selectedTypeLower = trimmedType.toLowerCase();
+
+                return {
+                    original: trimmedType,
+                    normalizedArabicLower: normalizedArabicLower,
+                    selectedTypeLower: selectedTypeLower,
+                    isRental: normalizedArabicLower.includes('ايجار') ||
+                        normalizedArabicLower.includes('تاجير') ||
+                        selectedTypeLower.includes('rent'),
+                    isInstantTransfer: normalizedArabicLower === 'استلام فوري' ||
+                        selectedTypeLower.includes('instant'),
+                    isRecruitment: normalizedArabicLower.includes('استقدام') ||
+                        selectedTypeLower.includes('recruit')
+                };
+            }
+
+            function applyPriceFromNationality(typeContext) {
+                var selectedNationality = $('#Pnationality_id option:selected');
+                var context = typeContext || getTypeContext();
+
+                if (!selectedNationality.length) {
+                    $('#price').val('0');
+                    return;
+                }
+
+                var serviceTransferCost = parseFloat(selectedNationality.data('service_transportation_cost')) || 0;
+                var rentalCost = parseFloat(selectedNationality.data('rental_cost')) || 0;
+                var finalPrice = 0;
+
+                if (context.isRental) {
+                    finalPrice = rentalCost || 0;
+                } else if (context.isInstantTransfer) {
+                    finalPrice = serviceTransferCost || 0;
+                }
+
+                $('#price').val(finalPrice.toString());
+            }
+
+            function toggleShelterOption() {
+                var shelterOption = $('#shelter_option');
+                var shelterSelect = $('#create_shelter_contract');
+                var shelterNotice = $('#shelter_auto_notice');
+                var shelterLabel = $('.shelter-question-label');
+                var shelterSelectField = $('.shelter-question-select');
+                var isRentalType = isRentalForm || getTypeContext().isRental;
+
+                if (isRentalType) {
+                    shelterOption.show();
+                    shelterSelect.val('1');
+                    shelterSelect.prop('disabled', false);
+                    shelterLabel.hide();
+                    shelterSelectField.hide();
+                    shelterNotice.show();
+                } else {
+                    shelterOption.hide();
+                    shelterSelect.val('0');
+                    shelterSelect.prop('disabled', true);
+                    shelterLabel.show();
+                    shelterSelectField.show();
+                    shelterNotice.hide();
+                }
+            }
+
+            function toggleFields() {
+                var typeContext = getTypeContext();
+                var idFields = $('input[name="id_number"], input[name="id_expiry_date"]').closest('.col-4');
+                var heightWeightFields = $('input[name="height"], input[name="weight"]').closest('.col-4');
+                var maritalStatusField = $('select[name="marital_status:ar"]').closest('.col-4');
+                var officeField = $('.office-field');
+                var salaryField = $('input[name="salary"]').closest('.col-4');
+                var jobField = $('select[name="job_id[]"]').closest('.col-4');
+                var languagesField = $('.lang-check').closest('.col-12');
+                var priceLabel = $('.price-label');
+                var rentalFinanceSection = $('#rental_finance_preview');
+                var idInputs = $('input[name="id_number"], input[name="id_expiry_date"]');
+                var heightWeightInputs = $('input[name="height"], input[name="weight"]');
+                var maritalStatusSelect = $('select[name="marital_status:ar"]');
+                var officeSelect = $('select[name="office_id"]');
+                var salaryInput = $('input[name="salary"]');
+                var jobSelect = $('select[name="job_id[]"]');
+                var shouldUpdateMaritalTranslation = true;
+
+                idFields.show();
+                heightWeightFields.show();
+                maritalStatusField.show();
+                officeField.show();
+                salaryField.show();
+                jobField.show();
+                languagesField.show();
+                priceLabel.text('{{helperTrans("ingaz.price")}}');
+                idInputs.attr('required', 'required');
+                heightWeightInputs.attr('required', 'required');
+                maritalStatusSelect.attr('required', 'required');
+                officeSelect.attr('required', 'required');
+                salaryInput.attr('required', 'required');
+                jobSelect.attr('required', 'required');
+                $('#price').val('0');
+
+                if (typeContext.isRecruitment) {
+                    idFields.hide();
+                    idInputs.removeAttr('required');
+                    rentalFinanceSection.hide();
+                } else if (typeContext.isInstantTransfer) {
+                    idFields.hide();
+                    heightWeightFields.hide();
+                    maritalStatusField.hide();
+                    officeField.hide();
+                    priceLabel.text('تكلفة نقل الخدمات');
+                    maritalStatusEnField.val('');
+                    shouldUpdateMaritalTranslation = false;
+                    idInputs.removeAttr('required');
+                    heightWeightInputs.removeAttr('required');
+                    maritalStatusSelect.removeAttr('required');
+                    officeSelect.removeAttr('required');
+                    rentalFinanceSection.hide();
+                } else if (typeContext.isRental) {
+                    heightWeightFields.hide();
+                    maritalStatusField.hide();
+                    salaryField.hide();
+                    officeField.hide();
+                    languagesField.hide();
+                    priceLabel.text('تكلفه الايجار الشهري');
+                    maritalStatusEnField.val('');
+                    shouldUpdateMaritalTranslation = false;
+                    heightWeightInputs.removeAttr('required');
+                    maritalStatusSelect.removeAttr('required');
+                    salaryInput.removeAttr('required');
+                    officeSelect.removeAttr('required');
+                    rentalFinanceSection.show();
+                } else {
+                    rentalFinanceSection.hide();
+                }
+
+                if (shouldUpdateMaritalTranslation) {
+                    updateMaritalStatusTranslation();
+                }
+
+                applyPriceFromNationality(typeContext);
+            }
+
+            hydrateShelterCopy();
+            toggleFields();
+            toggleShelterOption();
+            updateMaritalStatusTranslation();
+
+            $('select[name="type_id"]').off('change').on('change', function () {
+                toggleFields();
+                toggleShelterOption();
+            });
+
+            $('#Pnationality_id').off('change').on('change', function () {
+                var nationalityId = $(this).val();
+                applyPriceFromNationality();
+
+                if (nationalityId) {
+                    $.ajax({
+                        url: "{{ route('getOfficesByNationality') }}",
+                        type: 'GET',
+                        data: { nationality_id: nationalityId },
+                        success: function (response) {
+                            var officeSelect = $('select[name="office_id"]');
+                            officeSelect.empty();
+                            officeSelect.append('<option value="">Ø§Ø®ØªØ± Ù…ÙƒØªØ¨ Ø§Ù„Ø§Ø³ØªÙ‚Ø¯Ø§Ù…</option>');
+
+                            officeSelect.find('option').first().text('اختر مكتب الاستقدام');
+
+                            response.forEach(function (office) {
+                                var selected = office.id == '{{$obj->office_id}}' ? 'selected' : '';
+                                officeSelect.append('<option value="' + office.id + '" ' + selected + '>' + office.title + '</option>');
+                            });
+                        },
+                        error: function () {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Ø®Ø·Ø£',
+                                text: 'Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø¬Ù„Ø¨ Ù…ÙƒØ§ØªØ¨ Ø§Ù„Ø§Ø³ØªÙ‚Ø¯Ø§Ù…',
+                                confirmButtonText: 'Ø­Ø³Ù†Ø§Ù‹'
+                            });
+                        }
+                    });
+                } else {
+                    $('#price').val('0');
+                    $('input[name="salary"]').val('');
+                }
+            });
+
             $('#maidForm').on('submit', function (e) {
                 e.preventDefault();
 
@@ -1153,7 +1450,7 @@
                                 confirmButtonText: 'حسناً'
                             }).then((result) => {
                                 if (result.isConfirmed) {
-                                    window.location.href = '{{ route("maids.index") }}';
+                                    window.location.href = '{{ $formRedirectRoute }}';
                                 }
                             });
                         } else {
@@ -1192,6 +1489,10 @@
 
             // Function to show/hide shelter option based on type on page load
             function initializeShelterOption() {
+                if (typeof toggleShelterOption === 'function') {
+                    toggleShelterOption();
+                    return;
+                }
                 var selectedType = $('select[name="type_id"] option:selected').text().trim();
                 var shelterOption = $('#shelter_option');
 

@@ -75,7 +75,7 @@
                         @endif
                     </div>
                     <!-- خيار تسكين للإيواء -->
-                    <div class="col-4" id="shelter_option" style="display: none;">
+                    {{-- <div class="col-4" id="shelter_option" style="display: none;">
                         <label for="create_shelter_contract" class="form-label">تسكين للإيواء</label>
                         <select name="create_shelter_contract" id="create_shelter_contract" class="form-control">
                             <option value="0" {{ $defaultShelterContract === '0' ? 'selected' : '' }}>لا - عاملة عادية
@@ -84,6 +84,21 @@
                                 للإيواء</option>
                         </select>
                         <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم شركة بلاتنيوم الشرقية</small>
+                    </div> --}}
+
+                    <!-- خيار تسكين للإيواء -->
+                    <div class="col-4" id="shelter_option">
+                        <label for="create_shelter_contract" class="form-label shelter-question-label">تسكين للإيواء</label>
+                        <select name="create_shelter_contract" id="create_shelter_contract" class="form-control shelter-question-select">
+                            <option value="0" {{ $defaultShelterContract === '0' ? 'selected' : '' }}>لا - عاملة عادية
+                            </option>
+                            <option value="1" {{ $defaultShelterContract === '1' ? 'selected' : '' }}>نعم - تسكين
+                                للإيواء</option>
+                        </select>
+                        <div id="shelter_auto_notice" class="text-muted mt-2" style="display: none;">
+                            سيتم تسكينها تلقائياً للإيواء لهذا النوع.
+                        </div>
+                        <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم شركة أسس الانجاز</small>
                     </div>
 
                     <!-- الجنسية -->
@@ -136,12 +151,13 @@
                     </div>
 
                     <!-- السعر والراتب -->
-                    <div class="col-4">
+                    {{-- <div class="col-4">
                         <label for="TextInput" class="form-label price-label">
                             {{ helperTrans('ingaz.price') }}
                         </label>
                         <input type="number" name="price" id="price" class="form-control">
-                    </div>
+                    </div> --}}
+
                     {{-- <div class="col-4">
                         <label for="offer_price" class="form-label">{{ helperTrans('ingaz.offer_price_new') }}</label>
                         <input type="number" step="0.01" name="offer_price" id="offer_price" class="form-control"
@@ -246,8 +262,12 @@
                         <input type="text" name="duration" class="form-control"
                             value="{{ old('duration', '24 شهر') }}">
                     </div>
+                    <div class="col-4">
+                        <label for="arrival_date" class="form-label">تاريخ وصول العاملة</label>
+                        <input type="date" name="arrival_date" id="arrival_date" class="form-control"
+                            value="{{ old('arrival_date') }}">
+                    </div>
 
-                    
                     <!-- رقم الجواز ورقم الهوية وتاريخ انتهاء الهوية -->
                     <div class="col-4">
                         <label for="TextInput" class="form-label">
@@ -408,6 +428,103 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                    <div class="col-12" id="rental_finance_preview" style="display: none;">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <h6 class="mb-3">بنود مالية التأجير (السيرة)</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered align-middle mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th style="width: 18%;">النوع</th>
+                                                <th>البند</th>
+                                                <th style="width: 22%;">المبلغ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>مصروف</td>
+                                                <td>
+                                                    رسوم تأشيرة
+                                                    <input type="hidden" name="rental_finance_items[0][type]"
+                                                        value="expense">
+                                                    <input type="hidden" name="rental_finance_items[0][label]"
+                                                        value="رسوم تأشيرة">
+                                                </td>
+                                                <td>
+                                                    <input type="number" name="rental_finance_items[0][amount]"
+                                                        class="form-control form-control-sm text-end" step="0.01"
+                                                        min="0" value="2000">
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>مصروف</td>
+                                                <td>
+                                                    تفويض
+                                                    <input type="hidden" name="rental_finance_items[1][type]"
+                                                        value="expense">
+                                                    <input type="hidden" name="rental_finance_items[1][label]"
+                                                        value="تفويض">
+                                                </td>
+                                                <td>
+                                                    <input type="number" name="rental_finance_items[1][amount]"
+                                                        class="form-control form-control-sm text-end" step="0.01"
+                                                        min="0" value="133">
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>مصروف</td>
+                                                <td>
+                                                    الإقامة
+                                                    <input type="hidden" name="rental_finance_items[2][type]"
+                                                        value="expense">
+                                                    <input type="hidden" name="rental_finance_items[2][label]"
+                                                        value="الإقامة">
+                                                </td>
+                                                <td>
+                                                    <input type="number" name="rental_finance_items[2][amount]"
+                                                        class="form-control form-control-sm text-end" step="0.01"
+                                                        min="0" value="0">
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>مصروف</td>
+                                                <td>
+                                                    كرت عمل
+                                                    <input type="hidden" name="rental_finance_items[3][type]"
+                                                        value="expense">
+                                                    <input type="hidden" name="rental_finance_items[3][label]"
+                                                        value="كرت عمل">
+                                                </td>
+                                                <td>
+                                                    <input type="number" name="rental_finance_items[3][amount]"
+                                                        class="form-control form-control-sm text-end" step="0.01"
+                                                        min="0" value="0">
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>مصروف</td>
+                                                <td>
+                                                    تأمين طبي
+                                                    <input type="hidden" name="rental_finance_items[4][type]"
+                                                        value="expense">
+                                                    <input type="hidden" name="rental_finance_items[4][label]"
+                                                        value="تأمين طبي">
+                                                </td>
+                                                <td>
+                                                    <input type="number" name="rental_finance_items[4][amount]"
+                                                        class="form-control form-control-sm text-end" step="0.01"
+                                                        min="0" value="0">
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <small class="text-muted d-block mt-2">سيتم إنشاء هذه البنود تلقائياً ضمن مالية التأجير بعد
+                                    حفظ السيرة.</small>
+                            </div>
+                        </div>
                     </div>
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit">{{ __('buttons.save') }}</button>
@@ -604,6 +721,17 @@
             $('.dropify').dropify();
             $('.js-example-basic-multiple').select2();
 
+            const defaultTypeId = @json($defaultTypeId);
+            const defaultShelterContract = @json($defaultShelterContract);
+            const isRentalForm = {{ $isRentalForm ? 'true' : 'false' }};
+            if (defaultShelterContract !== '') {
+                $('#create_shelter_contract').val(defaultShelterContract);
+            }
+
+            if (defaultTypeId) {
+                $('#type_id').val(defaultTypeId);
+            }
+
             window.initExperienceSelects = function(context) {
                 const $context = context ? $(context) : $('#experience_section');
                 $context.find('select.form-control.select2').each(function() {
@@ -705,6 +833,13 @@
                 var jobField = $('select[name="job_id[]"]').closest('.col-4');
                 var languagesField = $('.col-12:has(label:contains("اللغات"))');
                 var priceLabel = $('.price-label');
+                var rentalFinanceSection = $('#rental_finance_preview');
+                var idInputs = $('input[name="id_number"], input[name="id_expiry_date"]');
+                var heightWeightInputs = $('input[name="height"], input[name="weight"]');
+                var maritalStatusSelect = $('select[name="marital_status:ar"]');
+                var officeSelect = $('select[name="office_id"]');
+                var salaryInput = $('input[name="salary"]');
+                var jobSelect = $('select[name="job_id[]"]');
                 var shouldUpdateMaritalTranslation = true;
 
                 // Reset all fields to default state
@@ -716,12 +851,12 @@
                 jobField.show();
                 languagesField.show();
                 priceLabel.text('{{ helperTrans('ingaz.price') }}');
-                $('input[name="id_number"], input[name="id_expiry_date"]').attr('required', 'required');
-                $('input[name="height"], input[name="weight"]').attr('required', 'required');
-                $('select[name="marital_status:ar"]').attr('required', 'required');
-                $('select[name="office_id"]').attr('required', 'required');
-                $('input[name="salary"]').attr('required', 'required');
-                $('select[name="job_id[]"]').attr('required', 'required');
+                idInputs.attr('required', 'required');
+                heightWeightInputs.attr('required', 'required');
+                maritalStatusSelect.attr('required', 'required');
+                officeSelect.attr('required', 'required');
+                salaryInput.attr('required', 'required');
+                jobSelect.attr('required', 'required');
 
                 // Set price to 0 in all cases
                 $('#price').val('0');
@@ -730,7 +865,8 @@
                 if (typeContext.isRecruitment) {
                     // Hide ID fields for recruitment flows
                     idFields.hide();
-                    $('input[name="id_number"], input[name="id_expiry_date"]').removeAttr('required');
+                    idInputs.removeAttr('required');
+                    rentalFinanceSection.hide();
                 } else if (typeContext.isInstantTransfer) {
                     console.log('Hiding fields for إستلام فورى');
                     // إستلام فورى: خدمة نقل العمالة من موقع إلى آخر بدون استقدام جديد
@@ -744,10 +880,11 @@
                     shouldUpdateMaritalTranslation = false;
 
                     // Remove required attribute from hidden fields
-                    $('input[name="id_number"], input[name="id_expiry_date"]').removeAttr('required');
-                    $('input[name="height"], input[name="weight"]').removeAttr('required');
-                    $('select[name="marital_status:ar"]').removeAttr('required');
-                    $('select[name="office_id"]').removeAttr('required');
+                    idInputs.removeAttr('required');
+                    heightWeightInputs.removeAttr('required');
+                    maritalStatusSelect.removeAttr('required');
+                    officeSelect.removeAttr('required');
+                    rentalFinanceSection.hide();
                 } else if (typeContext.isRental) {
                     console.log('Hiding fields for ايجار/تأجير');
                     // Hide fields for ايجار
@@ -760,11 +897,16 @@
                     maritalStatusEnField.val('');
                     shouldUpdateMaritalTranslation = false;
 
-                    // Remove required attribute from hidden fields
-                    $('input[name="height"], input[name="weight"]').removeAttr('required');
-                    $('select[name="marital_status:ar"]').removeAttr('required');
-                    $('input[name="salary"]').removeAttr('required');
-                    $('select[name="office_id"]').removeAttr('required');
+                    // Keep ID fields required for rental as in the original flow.
+                    heightWeightInputs.removeAttr('required');
+                    maritalStatusSelect.removeAttr('required');
+                    salaryInput.removeAttr('required');
+                    officeSelect.removeAttr('required');
+                    if (isRentalForm || typeContext.isRental) {
+                        rentalFinanceSection.show();
+                    }
+                } else {
+                    rentalFinanceSection.hide();
                 }
 
                 if (shouldUpdateMaritalTranslation) {
@@ -788,9 +930,16 @@
             $('select[name="marital_status:ar"]').on('change', updateMaritalStatusTranslation);
 
             // Function to show/hide shelter option based on type
-            function toggleShelterOption() {
+            function toggleShelterOptionLegacy() {
                 var selectedType = $('select[name="type_id"] option:selected').text().trim();
                 var shelterOption = $('#shelter_option');
+                var shelterSelect = $('#create_shelter_contract');
+                var shelterNotice = $('#shelter_auto_notice');
+                var shelterLabel = $('.shelter-question-label');
+                var shelterSelectField = $('.shelter-question-select');
+                var isRentalType = isRentalForm || (selectedType && (selectedType.includes('إيجار') ||
+                    selectedType.includes('ايجار') || selectedType.includes('تأجير') ||
+                    selectedType.toLowerCase().includes('rent')));
 
                 if (selectedType && (selectedType.includes('إيجار') || selectedType.includes('ايجار') ||
                         selectedType.includes('تأجير') || selectedType.toLowerCase().includes('rent'))) {
@@ -798,6 +947,31 @@
                 } else {
                     shelterOption.hide();
                     $('#create_shelter_contract').val('0'); // Reset to default
+                }
+            }
+
+            function toggleShelterOption() {
+                var shelterOption = $('#shelter_option');
+                var shelterSelect = $('#create_shelter_contract');
+                var shelterNotice = $('#shelter_auto_notice');
+                var shelterLabel = $('.shelter-question-label');
+                var shelterSelectField = $('.shelter-question-select');
+                var isRentalType = isRentalForm || getTypeContext().isRental;
+
+                if (isRentalType) {
+                    shelterOption.show();
+                    shelterSelect.val('1');
+                    shelterSelect.prop('disabled', false);
+                    shelterLabel.hide();
+                    shelterSelectField.hide();
+                    shelterNotice.show();
+                } else {
+                    shelterOption.hide();
+                    shelterSelect.val('0');
+                    shelterSelect.prop('disabled', true);
+                    shelterLabel.show();
+                    shelterSelectField.show();
+                    shelterNotice.hide();
                 }
             }
 
