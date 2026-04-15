@@ -86,7 +86,7 @@
                     <small class="stat-label">عقود الاستقدام</small>
                     <h3 class="mb-0">{{ number_format($contractsStats['total'] ?? 0) }}</h3>
                 </div>
-                <a href="{{ url('admin/contracts') }}" class="btn btn-sm btn-light text-dark">عرض</a>
+                <a href="{{ route('RecruitmentContract.index') }}" class="btn btn-sm btn-light text-dark">عرض</a>
             </div>
             <div class="mt-3 stat-meta">قبل الوصول: {{ number_format($contractsPipeline['pre_arrival'] ?? 0) }} |
                 مرحلة الوصول: {{ number_format($contractsPipeline['arrival_stage'] ?? 0) }} | تحت الضمان:
@@ -618,7 +618,7 @@
                             <strong>{{ number_format($contractStagesRawTotal) }}</strong>
                         </div>
                     </div>
-                    <a href="{{ url('dashboard/contracts') }}" class="contract-stage-link">عرض جميع العقود</a>
+                    <a href="{{ route('RecruitmentContract.index') }}" class="contract-stage-link">عرض جميع العقود</a>
                     <div class="contract-stages mt-3 flex-grow-1">
                         @foreach ($contractStageRows as $stage)
                             @php

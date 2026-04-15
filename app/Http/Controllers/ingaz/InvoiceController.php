@@ -780,6 +780,22 @@ class InvoiceController extends Controller
 
     private function resolveRevenueTaxAccountId(): ?int
     {
+        $directAccountId = ConfirmSetting::query()
+            ->where('title', ConfirmSettingTypes::RevenueTaxAccount->value)
+            ->latest('updated_at')
+            ->value('value');
+
+        if ($directAccountId) {
+            $account = Account::query()
+                ->whereKey($directAccountId)
+                ->where('status', 'creditor')
+                ->first();
+
+            if ($account) {
+                return (int) $account->id;
+            }
+        }
+
         $taxSettingId = ConfirmSetting::query()
             ->where('title', ConfirmSettingTypes::TaxRateRevenue->value)
             ->latest('updated_at')

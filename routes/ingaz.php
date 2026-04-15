@@ -244,6 +244,11 @@ Route::group(
             // Messages
             Route::get('messages', [\App\Http\Controllers\ingaz\MessageController::class, 'index'])->name('messages.index');
 
+            // Backward-compatible redirect for old contracts URL.
+            Route::get('contracts', function (\Illuminate\Http\Request $request) {
+                return redirect()->route('RecruitmentContract.index', $request->query());
+            });
+
             // RecruitmentContract specific routes - MUST come before resource route
             Route::get('RecruitmentContract/available-maids', [RecruitmentContractController::class, 'getAvailableMaids'])->name('RecruitmentContract.availableMaids');
             Route::get('RecruitmentContract/filter-options', [RecruitmentContractController::class, 'getFilterOptions'])->name('RecruitmentContract.filterOptions');
