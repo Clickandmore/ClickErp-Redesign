@@ -76,6 +76,16 @@ class RentalContract extends Model
         return $this->hasOne(RentalContractInfo::class, 'rental_contract_id');
     }
 
+    public function financialAdjustments()
+    {
+        return $this->hasMany(RentalFinancialAdjustment::class, 'rental_contract_id');
+    }
+
+    public function extensions()
+    {
+        return $this->hasMany(RentalContractExtension::class, 'rental_contract_id');
+    }
+
     public function statusLogs()
     {
         return $this->hasMany(RentalContractStatusLog::class, 'rental_contract_id');

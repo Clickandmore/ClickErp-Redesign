@@ -6,11 +6,13 @@ use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Actions\MainAction;
 use App\Models\Contract;
 use App\Models\ContractInfo;
+use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\User as ClientUser;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 
 class MaidAction extends MainAction
 {
@@ -86,6 +88,7 @@ class MaidAction extends MainAction
         $data['cv_file'] = $data['cv_file'] ?? '';
         $data['available'] = $data['available'] ?? 1;
         $data['available_at'] = $data['available_at'] ?? date('Y-m-d');
+        $data['arrival_date'] = $data['arrival_date'] ?? date('Y-m-d');
         $data['is_show'] = $data['is_show'] ?? 1;
 
         // Clean the data but preserve required fields - only remove truly empty strings, not zeros or nulls
@@ -212,7 +215,7 @@ class MaidAction extends MainAction
                 if (in_array($key, ['skills', 'languages'])) {
                     $data[$key] = json_encode($value);
                 } else {
-                    $data[$key] = implode(',', $value);
+                    unset($data[$key]);
                 }
             }
         }
@@ -267,6 +270,7 @@ class MaidAction extends MainAction
             'added_by'=> $data['added_by'] ?? null,
             'available' => $data['available'],
             'available_at' => $data['available_at'],
+            'arrival_date' => $data['arrival_date'],
             'is_show' => $data['is_show'],
             'name' => $data['name'],
         ];
@@ -297,6 +301,8 @@ class MaidAction extends MainAction
         \Log::info('About to create maid with data keys: ' . implode(', ', array_keys($createData)));
         \Log::info('Languages in createData: ' . ($createData['languages'] ?? 'null'));
         \Log::info('Name in createData: ' . ($data['name'] ?? 'null'));
+
+        $jobTypeIds = $this->resolveRequiredJobTypeIds($request);
 
         // Handle marital_status:ar field for translation
         if (isset($data['marital_status:ar'])) {
@@ -361,12 +367,14 @@ class MaidAction extends MainAction
             \Log::info('Skipping job titles attach - no job_id provided.');
         }
 
-        if ($request->type_id) {
-            \Log::info('About to attach job types: ' . print_r($request->type_id, true));
-            $maid->jobTypes()->attach($request->type_id);
-            \Log::info('Job types attached successfully');
-        } else {
-            \Log::info('Skipping job types attach - no type_id provided.');
+        \Log::info('About to sync job types: ' . print_r($jobTypeIds, true));
+        $maid->jobTypes()->sync($jobTypeIds);
+        \Log::info('Job types synced successfully');
+
+        $this->syncRentalMaidFinancialAdjustments($maid, $request);
+        if (($request->create_shelter_contract ?? '0') === '1') {
+            $this->createShelterContractForMaid($maid);
+            $request->merge(['create_shelter_contract' => '0']);
         }
 
         // Create Shelter contract if user selected the option
@@ -425,13 +433,161 @@ class MaidAction extends MainAction
             \Log::error('Failed to create shelter contract for maid: ' . $t->getMessage());
         }
 
+        $maid->jobTypes()->sync($this->resolveRequiredJobTypeIds($request, $maid));
         return $maid;
     }
 
-    public function storeRapidCvMaid($createData, $request){
+    public function storeRapidCvMaid($createData, $request)
+    {
         $maid = $this->model->create($createData);
         $maid->jobTypes()->attach(1); // استقدام
+        $maid->jobTypes()->sync($this->resolveRequiredJobTypeIds($request, $maid));
         return $maid;
+    }
+
+    protected function resolveRequiredJobTypeIds($request, ?Maid $maid = null): array
+    {
+        $jobTypeIds = $this->normalizeRelationIds($request->input('type_id'));
+
+        if (empty($jobTypeIds) && $maid) {
+            $jobTypeIds = $this->normalizeRelationIds($maid->jobTypes()->allRelatedIds()->all());
+        }
+
+        if (empty($jobTypeIds)) {
+            throw ValidationException::withMessages([
+                'type_id' => helperTrans('web.type_id_is_required'),
+            ]);
+        }
+
+        return $jobTypeIds;
+    }
+
+    protected function normalizeRelationIds($value): array
+    {
+        return collect(is_array($value) ? $value : [$value])
+            ->filter(fn ($id) => $id !== null && $id !== '')
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function syncRentalMaidFinancialAdjustments(Maid $maid, $request): void
+    {
+        if (!$this->isRentalTypeRequest($request)) {
+            return;
+        }
+
+        $items = $this->resolveRentalMaidFinanceItems($request);
+        if ($items === []) {
+            return;
+        }
+
+        if ($maid->rentalFinancialAdjustments()->where('context', 'maid')->exists()) {
+            return;
+        }
+
+        $adminId = auth('admin')->id() ?? auth()->id();
+
+        foreach ($items as $item) {
+            $maid->rentalFinancialAdjustments()->create([
+                'type' => $item['type'],
+                'label' => $item['label'],
+                'amount' => $item['amount'],
+                'context' => 'maid',
+                'created_by' => $adminId,
+            ]);
+        }
+    }
+
+    private function syncRentalMaidFinancialAdjustmentsOnUpdate(Maid $maid, $request): void
+    {
+        if (!$this->isRentalTypeRequest($request) || !$request->exists('rental_finance_items')) {
+            return;
+        }
+
+        $items = $this->resolveRentalMaidFinanceItems($request);
+        if ($items === []) {
+            return;
+        }
+
+        $adminId = auth('admin')->id() ?? auth()->id();
+        $existingAdjustments = $maid->rentalFinancialAdjustments()
+            ->where('context', 'maid')
+            ->get()
+            ->keyBy('id');
+
+        foreach ($items as $item) {
+            $payload = [
+                'type' => $item['type'],
+                'label' => $item['label'],
+                'amount' => $item['amount'],
+                'context' => 'maid',
+            ];
+
+            if (!empty($item['id']) && $existingAdjustments->has($item['id'])) {
+                $existingAdjustments[$item['id']]->update($payload);
+            } else {
+                $maid->rentalFinancialAdjustments()->create($payload + ['created_by' => $adminId]);
+            }
+        }
+    }
+
+    private function resolveRentalMaidFinanceItems($request): array
+    {
+        if (!$request->exists('rental_finance_items')) {
+            return [];
+        }
+
+        $items = [];
+
+        foreach ((array) $request->input('rental_finance_items', []) as $item) {
+            $itemId = isset($item['id']) && is_numeric($item['id']) ? (int) $item['id'] : null;
+            $label = trim((string) ($item['label'] ?? ''));
+
+            if ($label === '') {
+                continue;
+            }
+
+            $type = in_array($item['type'] ?? 'expense', ['income', 'expense'], true)
+                ? $item['type']
+                : 'expense';
+            $amount = is_numeric($item['amount'] ?? null) ? (float) $item['amount'] : 0.0;
+
+            $items[] = [
+                'id' => $itemId,
+                'type' => $type,
+                'label' => $label,
+                'amount' => $amount,
+            ];
+        }
+
+        return $items;
+    }
+
+    private function getRentalJobTypeId(): ?int
+    {
+        $jobType = JobType::whereHas('translations', function ($query) {
+            $query->where('title', 'LIKE', '%ايجار%')
+                ->orWhere('title', 'LIKE', '%إيجار%')
+                ->orWhere('title', 'LIKE', '%تأجير%')
+                ->orWhere('title', 'LIKE', '%rent%');
+        })->first();
+
+        return $jobType?->id ?? 2;
+    }
+
+    private function isRentalTypeRequest($request): bool
+    {
+        $rentalJobTypeId = $this->getRentalJobTypeId();
+        if (!$rentalJobTypeId) {
+            return false;
+        }
+
+        $typeIds = $this->normalizeRelationIds($request->input('type_id'));
+
+        return in_array($rentalJobTypeId, $typeIds, true);
     }
 
     public function getMaids($request)
@@ -505,6 +661,7 @@ class MaidAction extends MainAction
         \Log::info('Request data:', $request->all());
 
         $maid = parent::find($id);
+        $jobTypeIds = $this->resolveRequiredJobTypeIds($request, $maid);
 
         $requestTypeColumnExists = Schema::hasColumn('maids', 'request_type');
         $offerPriceColumnExists = Schema::hasColumn('maids', 'offer_price');
@@ -718,9 +875,8 @@ class MaidAction extends MainAction
         if ($request->job_id) {
             $maid->jobTitles()->sync($request->job_id);
         }
-        if ($request->type_id) {
-            $maid->jobTypes()->sync($request->type_id);
-        }
+        $maid->jobTypes()->sync($jobTypeIds);
+        $this->syncRentalMaidFinancialAdjustmentsOnUpdate($maid, $request);
 
         // Handle shelter contract creation for rental maids
         if ($request->has('create_shelter_contract') && $request->create_shelter_contract == '1') {
@@ -735,6 +891,57 @@ class MaidAction extends MainAction
      */
     private function createShelterContractForMaid($maid)
     {
+        try {
+            DB::beginTransaction();
+
+            $existingShelterContract = Contract::where('maid_id', $maid->id)
+                ->where('status', ContractStatusEnum::Shelter->value)
+                ->first();
+
+            if ($existingShelterContract) {
+                DB::rollBack();
+                \Log::info('Maid already has a shelter contract', ['maid_id' => $maid->id]);
+                return;
+            }
+
+            $companyClient = $this->resolveShelterCompanyClient();
+
+            $contract = Contract::create([
+                'user_id' => $companyClient->id,
+                'maid_id' => $maid->id,
+                'status' => ContractStatusEnum::Shelter->value,
+                'contract_date' => now()->toDateString(),
+            ]);
+
+            ContractInfo::create([
+                'contract_id' => $contract->id,
+                'contract_date' => now()->toDateString(),
+                'msaned_number' => '',
+                'shelter_id' => 1,
+                'wants_to_work' => 'unknown',
+                'receipt_source' => 'company',
+            ]);
+
+            $maid->update([
+                'status' => 'available',
+                'maid_accommodation_type' => 2,
+                'available' => 1,
+                'available_at' => now()->toDateString(),
+            ]);
+
+            DB::commit();
+            \Log::info('Shelter contract created successfully', ['contract_id' => $contract->id, 'maid_id' => $maid->id]);
+            return;
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to create shelter contract', [
+                'maid_id' => $maid->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return;
+        }
+
         try {
             DB::beginTransaction();
 
@@ -797,6 +1004,38 @@ class MaidAction extends MainAction
                 'trace' => $e->getTraceAsString()
             ]);
         }
+    }
+
+    private function resolveShelterCompanyClient(): ClientUser
+    {
+        $companyNames = [
+            'شركة أسس الإنجاز للاستقدام',
+            'شركة أسس الانجاز للاستقدام',
+            'شركة أسس الإنجاز',
+            'شركة أسس الانجاز',
+        ];
+
+        $companyClient = ClientUser::query()
+            ->where(function ($query) use ($companyNames) {
+                foreach ($companyNames as $companyName) {
+                    $query->orWhere('name', 'like', '%' . $companyName . '%');
+                }
+            })
+            ->orWhere('phone', '0112345678')
+            ->first();
+
+        if ($companyClient) {
+            return $companyClient;
+        }
+
+        return ClientUser::create([
+            'name' => 'شركة أسس الإنجاز للاستقدام',
+            'phone' => '0112345678',
+            'email' => null,
+            'nationality_id' => 1,
+            'password' => bcrypt('password123'),
+            'status' => 'active',
+        ]);
     }
 
     public function togglePin($id)

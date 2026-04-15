@@ -4,6 +4,7 @@ namespace App\Http\Controllers\ingaz;
 
 use App\Models\RentalContract;
 use App\Models\RentalContractInfo;
+use App\Models\RentalContractExtension;
 use App\Models\Contract;
 use App\Models\ContractPayment;
 use App\Models\ingaz\Maid;
@@ -34,7 +35,8 @@ class RentContractController extends Controller
         if ($request->ajax()) {
             $status = $request->get('status', $status);
 
-            $query = RentalContract::with(['user', 'maid', 'info', 'marketer']);
+            $query = RentalContract::with(['user', 'maid', 'info', 'marketer'])
+                ->withCount('extensions');
 
             // Apply status filter with closure type consideration
             if ($status) {
@@ -74,10 +76,55 @@ class RentContractController extends Controller
                 $query->where('marketer_id', $request->marketer_id);
             }
 
+            if ($request->filled('client_phone')) {
+                $phone = $request->client_phone;
+                $query->whereHas('user', function ($q) use ($phone) {
+                    $q->where('phone', 'like', "%{$phone}%")
+                        ->orWhereRaw("CONCAT(phone_code, phone) LIKE ?", ["%{$phone}%"]);
+                });
+            }
+
+            if ($request->filled('client_name')) {
+                $name = $request->client_name;
+                $query->whereHas('user', function ($q) use ($name) {
+                    $q->where('name', 'like', "%{$name}%");
+                });
+            }
+
+            if ($request->filled('maid_passport')) {
+                $passport = $request->maid_passport;
+                $query->whereHas('maid', function ($q) use ($passport) {
+                    $q->where('passport_num', 'like', "%{$passport}%");
+                });
+            }
+
+            if ($request->filled('maid_name')) {
+                $maidName = $request->maid_name;
+                $query->whereHas('maid', function ($q) use ($maidName) {
+                    $q->where('name', 'like', "%{$maidName}%");
+                });
+            }
+
+            if ($request->filled('contract_number')) {
+                $query->where('contract_number', 'like', '%' . $request->contract_number . '%');
+            }
+
             if ($request->filled('request_type')) {
                 $query->whereHas('maid', function ($q) use ($request) {
                     $q->ofRequestType($request->request_type);
                 });
+            }
+
+            if ($request->filled('warranty_status')) {
+                $query->where('warranty_status', $request->warranty_status);
+            }
+
+            if ($request->filled('extension_filter')) {
+                if ($request->extension_filter === 'extended') {
+                    $query->whereHas('extensions');
+                } elseif ($request->extension_filter === 'not_extended') {
+                    $query->whereDoesntHave('extensions');
+                }
             }
 
             $contracts = $query->latest();
@@ -114,6 +161,9 @@ class RentContractController extends Controller
                 })
                 ->addColumn('contract_info', function ($row) {
                     if ($row->info) {
+                        $extensionBadge = ($row->extensions_count ?? 0) > 0
+                            ? '<span class="badge bg-info">ممدد</span>'
+                            : '<span class="badge bg-secondary">غير ممدد</span>';
                         return '<div class="small">
                                     <div><strong>المدة:</strong> ' . ($row->info->contract_duration_months ?? 'غير محدد') . ' شهر</div>
                                     <div><strong>التكلفة الشهرية:</strong> ' . number_format($row->info->monthly_cost ?? 0, 2) . ' ريال</div>
@@ -199,6 +249,20 @@ class RentContractController extends Controller
                     }
 
                     // إنهاء العقد
+                    if ($row->status !== 'completed' && $row->status !== 'cancelled') {
+                        $contractLabel = $row->contract_number ?: $row->id;
+                        $currentEndDate = optional($row->info?->ingaz_to)->format('Y-m-d') ?: '';
+                        $monthlyCost = (float) ($row->info->monthly_cost ?? 0);
+
+                        $actions .= '<li><button class="dropdown-item text-info open-extend-modal"
+                                        data-extend-url="' . route('RentContract.extend', $row->id) . '"
+                                        data-contract-number="' . e($contractLabel) . '"
+                                        data-ingaz-to="' . e($currentEndDate) . '"
+                                        data-monthly-cost="' . $monthlyCost . '">
+                                        <i class="fas fa-calendar-plus"></i> تمديد العقد
+                                    </button></li>';
+                    }
+
                     if ($row->status !== 'completed' && $row->status !== 'cancelled') {
                         $actions .= '<li><button class="dropdown-item complete-contract" data-id="' . $row->id . '">
                                         <i class="fas fa-check"></i> إنهاء العقد
@@ -878,27 +942,87 @@ class RentContractController extends Controller
         ]);
     }
 
+    protected function buildRentalClosureSummary(RentalContract $contract): array
+    {
+        $contract->loadMissing(['info', 'financialAdjustments']);
+
+        $info = $contract->info;
+        $monthlyCost = (float) ($info->monthly_cost ?? 0);
+        $durationMonths = (int) ($info->contract_duration_months ?? 0);
+        $durationDays = (int) ($info->contract_duration_days ?? ($durationMonths * 30));
+        $contractValue = (float) ($info->contract_value ?? ($monthlyCost * $durationMonths));
+        $paidAmount = is_numeric($info?->paid_amount) ? (float) $info->paid_amount : 0.0;
+
+        if ($paidAmount <= 0 && ($info?->payment_status ?? null) === 'paid') {
+            $paidAmount = $contractValue;
+        }
+
+        $remainingAmount = is_numeric($info?->remaining_amount)
+            ? (float) $info->remaining_amount
+            : max(0.0, $contractValue - $paidAmount);
+
+        $remainingDaysValue = null;
+        if ($info?->ingaz_to) {
+            $remainingDaysValue = max(0, Carbon::now()->startOfDay()->diffInDays(Carbon::parse($info->ingaz_to)->startOfDay(), false));
+        }
+
+        $usedDays = $durationDays > 0
+            ? max(0, $durationDays - (int) ($remainingDaysValue ?? 0))
+            : null;
+
+        $refundValue = (float) $contract->financialAdjustments()
+            ->where('context', 'closure')
+            ->where('type', 'expense')
+            ->whereNull('settled_at')
+            ->sum('amount');
+
+        return [
+            'monthly_cost' => $monthlyCost,
+            'duration_months' => $durationMonths,
+            'duration_days' => $durationDays,
+            'contract_value' => $contractValue,
+            'paid_amount' => $paidAmount,
+            'remaining_amount' => $remainingAmount,
+            'used_days' => $usedDays,
+            'remaining_days_value' => $remainingDaysValue,
+            'refund_value' => $refundValue,
+            'payment_status' => $info?->payment_status,
+            'closure_client_iban' => $info?->closure_client_iban,
+            'closure_client_iban_attachment_url' => $info?->closure_client_iban_attachment_url,
+        ];
+    }
+
     /**
      * Get contract details for closing modal
      */
     public function getContractDetails($id)
     {
         try {
-            $contract = RentalContract::with(['user', 'maid'])->findOrFail($id);
-
-            // Calculate remaining days
-            $endDate = $contract->end_date ? Carbon::parse($contract->end_date) : null;
-            $remainingDays = $endDate ? max(0, Carbon::now()->diffInDays($endDate, false)) : 0;
+            $contract = RentalContract::with(['user', 'maid', 'info', 'financialAdjustments'])->findOrFail($id);
+            $summary = $this->buildRentalClosureSummary($contract);
+            $remainingDays = (int) ($summary['remaining_days_value'] ?? 0);
 
             $contractData = [
                 'id' => $contract->id,
                 'client_name' => $contract->user->name ?? 'غير محدد',
                 'maid_name' => $contract->maid->name ?? 'غير محدد',
                 'status_text' => $this->getStatusText($contract->status),
-                'start_date' => $contract->start_date ? Carbon::parse($contract->start_date)->format('Y-m-d') : null,
-                'end_date' => $contract->end_date ? Carbon::parse($contract->end_date)->format('Y-m-d') : null,
+                'start_date' => $contract->info?->ingaz_from ? Carbon::parse($contract->info->ingaz_from)->format('Y-m-d') : null,
+                'end_date' => $contract->info?->ingaz_to ? Carbon::parse($contract->info->ingaz_to)->format('Y-m-d') : null,
                 'remaining_days' => $remainingDays . ' يوم',
-                'amount' => $contract->amount ?? 0
+                'amount' => $summary['contract_value'],
+                'monthly_cost' => $summary['monthly_cost'],
+                'duration_months' => $summary['duration_months'],
+                'duration_days' => $summary['duration_days'],
+                'contract_value' => $summary['contract_value'],
+                'paid_amount' => $summary['paid_amount'],
+                'remaining_amount' => $summary['remaining_amount'],
+                'used_days' => $summary['used_days'],
+                'remaining_days_value' => $summary['remaining_days_value'],
+                'refund_value' => $summary['refund_value'],
+                'payment_status' => $summary['payment_status'],
+                'closure_client_iban' => $summary['closure_client_iban'],
+                'closure_client_iban_attachment_url' => $summary['closure_client_iban_attachment_url']
             ];
 
             return response()->json([
@@ -917,18 +1041,87 @@ class RentContractController extends Controller
     /**
      * Close contract and make maid available
      */
-    public function closeAndMakeAvailable($id)
+    public function closeAndMakeAvailable($id, Request $request)
     {
+        $validated = $request->validate([
+            'adjustment_type' => 'nullable|in:refund',
+            'adjustment_amount' => 'required|numeric|min:0',
+            'clear_remaining_amount' => 'nullable|numeric|min:0',
+            'close_payment_status' => 'nullable|in:paid,partial,pending,later,bank_pending',
+            'close_payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'close_client_iban' => 'nullable|string|max:34',
+            'close_client_iban_attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+        ]);
+
         try {
             DB::beginTransaction();
 
             $contract = RentalContract::findOrFail($id);
+            $validated = [];
 
-            // Update contract status to completed and set closure type
+            if (false && !$contract->info) {
+                throw new \RuntimeException('بيانات عقد الإيجار غير مكتملة');
+            }
+
+            $summary = $this->buildRentalClosureSummary($contract);
+            $adjustmentAmount = (float) ($validated['adjustment_amount'] ?? 0);
+            $clearRemainingAmount = (float) ($validated['clear_remaining_amount'] ?? 0);
+            $currentRemainingAmount = (float) ($summary['remaining_amount'] ?? 0);
+            $newRemainingAmount = max(0, $currentRemainingAmount - $clearRemainingAmount);
+
+            if ($adjustmentAmount > 0 && empty($validated['close_client_iban']) && !$request->hasFile('close_client_iban_attachment')) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'close_client_iban' => ['عند وجود مبلغ استرجاع يجب إدخال آيبان العميل أو إرفاق المرفق البنكي.'],
+                ]);
+            }
+
+            $infoUpdates = [
+                'remaining_amount' => $newRemainingAmount,
+            ];
+
+            if (!empty($validated['close_payment_status'])) {
+                $infoUpdates['payment_status'] = $validated['close_payment_status'];
+
+                if ($validated['close_payment_status'] === 'paid') {
+                    $infoUpdates['paid_amount'] = (float) ($summary['contract_value'] ?? 0);
+                    $infoUpdates['remaining_amount'] = 0;
+                }
+            }
+
+            if (!empty($validated['close_client_iban'])) {
+                $infoUpdates['closure_client_iban'] = $validated['close_client_iban'];
+            }
+
+            if ($request->hasFile('close_payment_receipt')) {
+                $infoUpdates['payment_receipt_path'] = $request->file('close_payment_receipt')
+                    ->store('rental-contracts/closures/receipts', 'public');
+            }
+
+            if ($request->hasFile('close_client_iban_attachment')) {
+                $infoUpdates['closure_client_iban_attachment_path'] = $request->file('close_client_iban_attachment')
+                    ->store('rental-contracts/closures/iban', 'public');
+            }
+
+            if ($contract->info) {
+                $contract->info->update($infoUpdates);
+            }
+
             $contract->status = 'completed';
             $contract->closure_type = 'available';
             $contract->closed_at = now();
             $contract->save();
+
+            if ($adjustmentAmount > 0) {
+                $contract->financialAdjustments()->create([
+                    'maid_id' => $contract->maid_id,
+                    'type' => 'expense',
+                    'label' => 'استرجاع عند إغلاق العقد',
+                    'amount' => $adjustmentAmount,
+                    'notes' => 'استرجاع مسجل أثناء إنهاء عقد الإيجار',
+                    'context' => 'closure',
+                    'created_by' => auth('admin')->id(),
+                ]);
+            }
 
             // Make maid available
             if ($contract->maid) {
@@ -942,16 +1135,24 @@ class RentContractController extends Controller
             \Log::info('Rent contract closed and maid made available', [
                 'contract_id' => $contract->id,
                 'maid_id' => $contract->maid_id,
-                'closed_by' => auth()->id()
+                'closed_by' => auth()->id(),
+                'adjustment_amount' => $adjustmentAmount
             ]);
 
             DB::commit();
+
+            $newContract = (object) ['id' => null];
+            $message = 'تم إغلاق عقد الإيجار وتوثيق نقل الكفالة بنجاح.';
 
             return response()->json([
                 'success' => true,
                 'message' => 'تم إغلاق العقد وإرجاع العاملة متاحة بنجاح'
             ]);
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollback();
+
+            throw $e;
         } catch (\Exception $e) {
             DB::rollback();
             \Log::error('Error closing rent contract', [
@@ -975,13 +1176,19 @@ class RentContractController extends Controller
             'transfer_amount' => 'required|numeric|min:0',
             'total_amount' => 'required|numeric|min:0',
             'paid_amount' => 'required|numeric|min:0',
-            'notes' => 'nullable|string'
+            'remaining_amount' => 'required|numeric|min:0',
+            'notes' => 'nullable|string',
+            'transfer_finance_items' => 'nullable|array',
+            'transfer_finance_items.*.type' => 'nullable|in:income,expense',
+            'transfer_finance_items.*.label' => 'nullable|string|max:150',
+            'transfer_finance_items.*.amount' => 'nullable|numeric|min:0',
+            'transfer_finance_items_present' => 'nullable|boolean',
         ]);
 
         try {
             DB::beginTransaction();
 
-            $oldContract = RentalContract::findOrFail($id);
+            $oldContract = RentalContract::with('info')->findOrFail($id);
 
             // Close the old contract and set closure type to transferred
             $oldContract->status = 'completed';
@@ -990,13 +1197,19 @@ class RentContractController extends Controller
             $oldContract->save();
 
             // Use the existing client from the rental contract
-            $newClient = $oldContract->user;
+            $transferDetails = "تفاصيل نقل الكفالة بتاريخ " . now()->format('Y-m-d H:i') . ":\n" .
+                "- مبلغ نقل الكفالة: " . number_format($request->transfer_amount, 2) . " ريال\n" .
+                "- المبلغ الإجمالي: " . number_format($request->total_amount, 2) . " ريال\n" .
+                "- المبلغ المدفوع: " . number_format($request->paid_amount, 2) . " ريال\n" .
+                "- المبلغ المتبقي: " . number_format($request->remaining_amount, 2) . " ريال";
 
-            if (!$newClient) {
+            if ($request->filled('notes')) { $transferDetails .= "\n- ملاحظات إضافية: " . $request->notes; if (false) {
                 throw new \Exception('لا يمكن العثور على بيانات العميل في عقد الإيجار');
             }
 
-            // Create new contract for sponsorship transfer
+            }
+
+            if (false) { // Create new contract for sponsorship transfer
             $newContract = Contract::create([
                 'user_id' => $newClient->id,
                 'maid_id' => $oldContract->maid_id,
@@ -1018,30 +1231,70 @@ class RentContractController extends Controller
                 ]);
             }
 
+            }
+
+            $transferTotalAmount = (float) $request->total_amount;
+            $transferPaidAmount = (float) $request->paid_amount;
+            $transferRemainingAmount = max(0.0, (float) $request->remaining_amount);
+            $transferIsPaid = $transferRemainingAmount <= 0.0;
+
+            if ($oldContract->info) {
+                $existingNotes = $oldContract->info->notes ? $oldContract->info->notes . "\n\n" : '';
+                $oldContract->info->update([
+                    'sponsorship_transfer_amount' => $request->transfer_amount,
+                    'sponsorship_transfer_total_amount' => $transferTotalAmount,
+                    'sponsorship_transfer_paid_amount' => $transferPaidAmount,
+                    'sponsorship_transfer_remaining_amount' => $transferRemainingAmount,
+                    'notes' => $existingNotes . $transferDetails,
+                ]);
+            } else {
+                RentalContractInfo::create([
+                    'rental_contract_id' => $oldContract->id,
+                    'sponsorship_transfer_amount' => $request->transfer_amount,
+                    'sponsorship_transfer_total_amount' => $transferTotalAmount,
+                    'sponsorship_transfer_paid_amount' => $transferPaidAmount,
+                    'sponsorship_transfer_remaining_amount' => $transferRemainingAmount,
+                    'notes' => $transferDetails,
+                ]);
+            }
+
+            if ($transferIsPaid) {
+                $transferItems = $this->resolveTransferFinancialAdjustments($request);
+                $this->upsertTransferFinancialAdjustments($oldContract, (float) $request->transfer_amount, $transferItems);
+            } else {
+                $oldContract->financialAdjustments()
+                    ->where('context', 'transfer')
+                    ->delete();
+            }
+
             // Update maid status
             if ($oldContract->maid) {
                 $oldContract->maid->status = 'contracted';
+                $oldContract->maid->available = false;
                 $oldContract->maid->save();
             }
 
             // Log the action
             \Log::info('Sponsorship transferred', [
                 'old_contract_id' => $oldContract->id,
-                'new_contract_id' => $newContract->id,
-                'new_client_id' => $newClient->id,
+                'transfer_amount' => $request->transfer_amount,
+                'total_amount' => $request->total_amount,
+                'paid_amount' => $request->paid_amount,
+                'remaining_amount' => $request->remaining_amount,
                 'transferred_by' => auth()->id()
             ]);
 
-            // Link the old contract to the new one
-            $oldContract->transferred_to_contract_id = $newContract->id;
-            $oldContract->save();
-
             DB::commit();
+
+            $newContract = (object) ['id' => null];
+            $message = 'تم إغلاق عقد الإيجار وتوثيق نقل الكفالة بنجاح.';
 
             return response()->json([
                 'success' => true,
                 'message' => 'تم إغلاق عقد الإيجار ونقل الكفالة للعميل بنجاح. العقد الجديد رقم: ' . $newContract->id,
                 'new_contract_id' => $newContract->id,
+                'message' => $message,
+                'new_contract_id' => null,
                 'status' => 'transferred'
             ]);
 
@@ -1156,7 +1409,72 @@ class RentContractController extends Controller
     public function activateContract(Request $request, $id)
     {
         try {
-            $contract = RentalContract::findOrFail($id);
+            $simpleContract = RentalContract::findOrFail($id);
+
+            if (!$simpleContract->canActivateContract()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن تفعيل العقد في هذه المرحلة'
+                ], 400);
+            }
+
+            $simpleContract->update([
+                'status' => 'active',
+                'trial_started_at' => now(),
+                'trial_started_by' => auth()->id()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تفعيل العقد بنجاح'
+            ]);
+
+            $contract = RentalContract::with(['maid', 'info', 'financialAdjustments'])->findOrFail($id);
+
+            if (!$contract->info) {
+                throw new \RuntimeException('بيانات عقد الإيجار غير مكتملة');
+            }
+
+            $summary = $this->buildRentalClosureSummary($contract);
+            $adjustmentAmount = (float) ($validated['adjustment_amount'] ?? 0);
+            $clearRemainingAmount = (float) ($validated['clear_remaining_amount'] ?? 0);
+            $currentRemainingAmount = (float) ($summary['remaining_amount'] ?? 0);
+            $newRemainingAmount = max(0, $currentRemainingAmount - $clearRemainingAmount);
+
+            if ($adjustmentAmount > 0 && empty($validated['close_client_iban']) && !$request->hasFile('close_client_iban_attachment')) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'close_client_iban' => ['عند وجود مبلغ استرجاع يجب إدخال آيبان العميل أو إرفاق المرفق البنكي.'],
+                ]);
+            }
+
+            $infoUpdates = [
+                'remaining_amount' => $newRemainingAmount,
+            ];
+
+            if (!empty($validated['close_payment_status'])) {
+                $infoUpdates['payment_status'] = $validated['close_payment_status'];
+
+                if ($validated['close_payment_status'] === 'paid') {
+                    $infoUpdates['paid_amount'] = (float) ($summary['contract_value'] ?? 0);
+                    $infoUpdates['remaining_amount'] = 0;
+                }
+            }
+
+            if (!empty($validated['close_client_iban'])) {
+                $infoUpdates['closure_client_iban'] = $validated['close_client_iban'];
+            }
+
+            if ($request->hasFile('close_payment_receipt')) {
+                $infoUpdates['payment_receipt_path'] = $request->file('close_payment_receipt')
+                    ->store('rental-contracts/closures/receipts', 'public');
+            }
+
+            if ($request->hasFile('close_client_iban_attachment')) {
+                $infoUpdates['closure_client_iban_attachment_path'] = $request->file('close_client_iban_attachment')
+                    ->store('rental-contracts/closures/iban', 'public');
+            }
+
+            $contract->info->update($infoUpdates);
 
             if (!$contract->canActivateContract()) {
                 return response()->json([
@@ -1181,6 +1499,112 @@ class RentContractController extends Controller
                 'success' => false,
                 'message' => 'حدث خطأ: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function extend(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'extension_months' => 'required|integer|min:1',
+            'extension_payment_status' => 'required|in:paid,partial,pending,later,bank_pending',
+            'extension_payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'extension_notes' => 'nullable|string|max:1000',
+        ], [
+            'extension_months.required' => 'يرجى تحديد مدة التمديد',
+            'extension_months.integer' => 'مدة التمديد يجب أن تكون رقماً صحيحاً',
+            'extension_months.min' => 'مدة التمديد يجب أن تكون شهراً واحداً على الأقل',
+            'extension_payment_status.required' => 'يرجى تحديد حالة دفع التمديد',
+            'extension_payment_status.in' => 'حالة دفع التمديد غير صحيحة',
+            'extension_payment_receipt.file' => 'صيغة إيصال الدفع غير صحيحة',
+            'extension_payment_receipt.mimes' => 'صيغة إيصال الدفع يجب أن تكون pdf أو jpg أو jpeg أو png',
+            'extension_payment_receipt.max' => 'حجم إيصال الدفع يجب ألا يتجاوز 4 ميجابايت',
+        ]);
+
+        if (in_array($validated['extension_payment_status'], ['paid', 'partial'], true) && !$request->hasFile('extension_payment_receipt')) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'extension_payment_receipt' => ['يجب إرفاق إيصال الدفع عند تحديد حالة الدفع "تم الدفع" أو "مدفوع جزئياً".'],
+            ]);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $contract = RentalContract::with('info')->findOrFail($id);
+
+            if (!$contract->info) {
+                throw new \RuntimeException('بيانات العقد غير مكتملة');
+            }
+
+            $extensionMonths = (int) $validated['extension_months'];
+            $extensionDays = $extensionMonths * 30;
+
+            $baseEndDate = $contract->info->ingaz_to;
+            if (!$baseEndDate) {
+                $baseStartDate = $contract->info->ingaz_from ?: $contract->contract_date ?: now();
+                $baseDays = (int) ($contract->info->contract_duration_days ?? 0);
+                if ($baseDays <= 0) {
+                    $baseDays = (int) ($contract->info->contract_duration_months ?? 0) * 30;
+                }
+                $baseEndDate = Carbon::parse($baseStartDate)->addDays($baseDays);
+            }
+
+            $baseEndDate = Carbon::parse($baseEndDate);
+            $extensionStart = $baseEndDate->copy()->addDay();
+            $extensionEnd = $baseEndDate->copy()->addDays($extensionDays);
+
+            $extensionReceiptPath = null;
+            if ($request->hasFile('extension_payment_receipt')) {
+                $extensionReceiptPath = $request->file('extension_payment_receipt')
+                    ->store('rental-contracts/extensions/receipts', 'public');
+            }
+
+            RentalContractExtension::create([
+                'rental_contract_id' => $contract->id,
+                'extension_months' => $extensionMonths,
+                'extension_days' => $extensionDays,
+                'start_date' => $extensionStart,
+                'end_date' => $extensionEnd,
+                'payment_status' => $validated['extension_payment_status'],
+                'payment_receipt_path' => $extensionReceiptPath,
+                'notes' => $validated['extension_notes'] ?? null,
+                'created_by' => auth('admin')->id(),
+            ]);
+
+            $updatedMonths = (int) ($contract->info->contract_duration_months ?? 0) + $extensionMonths;
+            $updatedDays = (int) ($contract->info->contract_duration_days ?? 0) + $extensionDays;
+            $monthlyCost = (float) ($contract->info->monthly_cost ?? 0);
+
+            $contract->info->update([
+                'contract_duration_months' => $updatedMonths,
+                'contract_duration_days' => $updatedDays,
+                'contract_value' => $monthlyCost * $updatedMonths,
+                'ingaz_to' => $extensionEnd,
+            ]);
+
+            DB::commit();
+
+            $newContract = (object) ['id' => null];
+            $message = 'تم إغلاق عقد الإيجار وتوثيق نقل الكفالة بنجاح.';
+
+            $newContract = (object) ['id' => null];
+            $message = 'تم إغلاق عقد الإيجار وتوثيق نقل الكفالة بنجاح.';
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تمديد عقد التأجير بنجاح',
+                'redirect_url' => route('RentContract.show', $contract->id),
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Error extending rental contract', [
+                'contract_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تمديد عقد التأجير: ' . $e->getMessage(),
+            ], 422);
         }
     }
 

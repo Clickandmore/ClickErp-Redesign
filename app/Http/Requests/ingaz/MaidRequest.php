@@ -44,6 +44,7 @@ class MaidRequest extends MainRequest
             'duration' => 'nullable|string',
             'additional_notes' => 'nullable',
             'birth_date' => 'nullable|date',
+            'available_at' => 'nullable|date',
             'job_id' => 'required|array',
             'job_id.*' => 'required|exists:job_titles,id',
             'type_id' => 'required|exists:job_types,id',
@@ -51,12 +52,17 @@ class MaidRequest extends MainRequest
             'languages' => 'nullable|array',
             'percentage' => 'nullable|array',
             'expertises' => 'nullable|array',
+            'rental_finance_items' => 'nullable|array',
+            'rental_finance_items.*.type' => 'nullable|in:income,expense',
+            'rental_finance_items.*.label' => 'nullable|string|max:150',
+            'rental_finance_items.*.amount' => 'nullable|numeric|min:0',
             'request_type' => 'nullable|in:known,specific,custom_spec',
             'offer_price' => 'nullable|numeric|min:0',
             'offer_duration' => 'nullable|string|max:255',
             'offer_description' => 'nullable|string',
             'offer_starts_at' => 'nullable|date',
             'offer_expires_at' => 'nullable|date|after_or_equal:offer_starts_at',
+            'arrival_date' => 'required|date',
         ];
     }
 
@@ -90,6 +96,8 @@ class MaidRequest extends MainRequest
             'offer_price.min' => helperTrans('web.price_must_be_numeric'),
             'offer_expires_at.after_or_equal' => 'تاريخ انتهاء العرض يجب أن يكون بعد أو مساوي لتاريخ بداية العرض',
             'offer_duration.max' => 'مدة العرض يجب ألا تتجاوز 255 حرفاً',
+            'arrival_date.required' => 'تاريخ وصول العاملة مطلوب',
+            'arrival_date.date' => 'تاريخ وصول العاملة يجب أن يكون تاريخاً صالحاً',
         ];
     }
 }

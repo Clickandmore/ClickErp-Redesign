@@ -12,6 +12,7 @@ use App\Http\Actions\ingaz\SkillAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ingaz\MaidRequest;
 use App\Http\Requests\StoreRapidCv;
+use App\Models\Contract;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Maid as objModel;
@@ -29,7 +30,7 @@ class MaidController extends Controller
 {
 
     public $folderPath = "admin.ingaz.maids";
-    public $postData = ["nationality_id", "expertises", 'experience_status', 'image', 'video', 'childrens_count', 'duration', 'additional_notes', 'video_link', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'percentage', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'create_shelter_contract', 'request_type'];
+    public $postData = ["nationality_id", "expertises", 'experience_status', 'image', 'video', 'childrens_count', 'duration', 'additional_notes', 'video_link', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'percentage', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'arrival_date', 'create_shelter_contract', 'request_type'];
     public $mainRoute = "maids";
 
     public function __construct()
@@ -74,6 +75,7 @@ class MaidController extends Controller
                 'maid_accommodation_type',
                 'added_by',
                 'request_type',
+                // 'arrival_date'
             ])
             ->orderByDesc('created_at')
             ->orderByDesc('is_pinned');
@@ -286,6 +288,7 @@ class MaidController extends Controller
                         1 => 'istqdam',
                         2 => 'egar',
                         3 => 'transfer',
+                        default => '',
                     };
                     $jobTypeHtml = '<span class="job-type ' . $jobTypeClass . '">' . $jobTypes . '</span>';
 
@@ -512,6 +515,156 @@ class MaidController extends Controller
             'filters' => $filters,
             'dataTableRoute' => route($this->mainRoute . '.index'),
             'createRoute' => route($this->mainRoute . '.create'),
+        ]);
+    }
+
+    public function rentalIndex(Request $request, RecruitmentOfficeAction $officeAct)
+    {
+        $rentalJobTypeId = $this->getRentalJobTypeId();
+
+        if (!$rentalJobTypeId) {
+            return redirect()
+                ->route('maids.index')
+                ->with('error', 'تعذر تحديد نوع السير الخاص بالإيجار، يرجى ضبط نوع الوظيفة أولاً.');
+        }
+
+        $request->merge(['job_type' => $rentalJobTypeId]);
+
+        if ($request->ajax()) {
+            $rows = objModel::query()
+                ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders'])
+                ->select([
+                    'id',
+                    'image',
+                    'cv_file',
+                    'cv_preview',
+                    'nationality_id',
+                    'religion_id',
+                    'passport_num',
+                    'price',
+                    'salary',
+                    'age',
+                    'is_show',
+                    'available',
+                    'available_at',
+                    'created_at',
+                    'is_pinned',
+                    'status',
+                    'maid_accommodation_type',
+                    'id_expiry_date',
+                ])
+                ->orderByDesc('is_pinned')
+                ->orderByDesc('created_at');
+
+            $this->applyMaidFilter($request, $rows);
+
+            return DataTables::of($rows)
+                ->addIndexColumn()
+                ->editColumn('cv_file', function (Maid $row) {
+                    $rawPath = $row->image ?: ($row->cv_preview ?: $row->cv_file);
+                    $imageUrl = $rawPath ? showFile($rawPath) : asset('admin/assets/img/avatar.png');
+
+                    return '<a href="' . route('showMaidDetails', $row->id) . '" title="عرض التفاصيل">'
+                        . '<img src="' . $imageUrl . '" alt="maid-preview" class="border rounded-circle" style="width:120px;height:120px;object-fit:cover;">'
+                        . '</a>';
+                })
+                ->editColumn('nationality_id', fn(Maid $row) => e($row->nationality?->sub_title ?? '-'))
+                ->addColumn('job_type', fn(Maid $row) => e($row->jobTypes->pluck('title')->filter()->implode(', ') ?: '-'))
+                ->editColumn('passport_num', fn(Maid $row) => e($row->passport_num ?? '-'))
+                ->editColumn('price', fn(Maid $row) => $row->resolved_price !== null ? number_format((float) $row->resolved_price, 2) : '-')
+                ->editColumn('salary', fn(Maid $row) => $row->resolved_salary !== null ? number_format((float) $row->resolved_salary, 2) : '-')
+                ->editColumn('religion_id', fn(Maid $row) => e($row->religion?->title ?? '-'))
+                ->editColumn('age', fn(Maid $row) => $row->age ?: '-')
+                ->addColumn('maidContractRemaining', function (Maid $row) {
+                    $remaining = ahxMaidContractRemaining($row->id);
+                    return $remaining == 0 ? __('ingaz.none') : $remaining . ' ' . __('ingaz.days');
+                })
+                ->addColumn('is_show', function (Maid $row) {
+                    return $row->is_show
+                        ? '<span class="badge bg-success"><i class="fa fa-eye"></i> ظاهر</span>'
+                        : '<span class="badge bg-dark"><i class="fa fa-eye-slash"></i> مخفي</span>';
+                })
+                ->addColumn('is_pinned', function (Maid $row) {
+                    return $row->is_pinned
+                        ? '<span class="badge bg-warning text-dark"><i class="fa fa-thumb-tack"></i> مثبتة</span>'
+                        : '<span class="badge bg-secondary"><i class="fa fa-thumb-tack"></i> غير مثبتة</span>';
+                })
+                ->addColumn('cv_status', function (Maid $row) {
+                    if ($row->status === 'backout') {
+                        return '<span class="badge bg-danger">باك اوت</span>';
+                    }
+
+                    if ($row->maid_accommodation_type == 2) {
+                        return '<span class="badge bg-info text-dark">داخل الإيواء</span>';
+                    }
+
+                    $hasActiveRecruitmentContracts = $row->contracts->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival'])->isNotEmpty();
+                    $hasActiveOrders = $row->orders->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract'])->isNotEmpty();
+
+                    if (!$row->available || $row->status === 'reserved' || $hasActiveRecruitmentContracts || $hasActiveOrders) {
+                        return '<span class="badge bg-warning text-dark">محجوزة</span>';
+                    }
+
+                    return '<span class="badge bg-success">متاحة</span>';
+                })
+                ->editColumn('created_at', fn(Maid $row) => $row->created_at?->format('Y-m-d h:i A') ?? '-')
+                ->addColumn('actions', function (Maid $row) {
+                    $actions = [];
+
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHOW)) {
+                        $actions[] = viewSingleButton(route('showMaidDetails', $row->id));
+                    }
+
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
+                        $actions[] = '<a href="' . route($this->mainRoute . '.edit', $row->id) . '" class="btn btn-sm btn-primary" title="تعديل">
+                            <i class="fa fa-pencil"></i>
+                        </a>';
+                    }
+
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_DELETE)) {
+                        $actions[] = deleteButton(route($this->mainRoute . '.destroy', $row->id));
+                    }
+
+                    return implode(' ', array_filter($actions)) ?: '<span class="text-muted">-</span>';
+                })
+                ->rawColumns(['cv_file', 'is_show', 'is_pinned', 'cv_status', 'actions'])
+                ->make(true);
+        }
+
+        $filter = [
+            'nationalities' => Nationality::orderByTranslation('sub_title', 'asc')->get(['id']),
+            'offices' => $officeAct->getAllOffices(),
+            'job_types' => JobType::with('translations')->orderByTranslation('title', 'asc')->get(['id']),
+        ];
+
+        $defaultFilters = array_filter([
+            'passport_num' => $request->passport_num,
+            'nationality_id' => $request->nationality_id,
+            'office_id' => $request->office_id,
+            'job_type' => $rentalJobTypeId,
+            'experience_years' => $request->experience_years,
+            'cv_status' => $request->cv_status,
+            'experience_status' => $request->experience_status,
+            'date_from' => $request->date_from,
+            'date_to' => $request->date_to,
+            'rental_stat' => $request->rental_stat,
+        ], static fn($value) => !is_null($value) && $value !== '');
+
+        return view($this->folderPath . '.rental-index', [
+            'filter' => $filter,
+            'request' => $request,
+            'createRoute' => route('maids.rental.create'),
+            'dataTableRoute' => route('maids.rental.index'),
+            'resetRoute' => route('maids.rental.index'),
+            'pageBaseUrl' => route('maids.rental.index'),
+            'bladeTitle' => 'سير عاملات الإيجار',
+            'addButtonText' => 'إضافة سيرة إيجار',
+            'defaultFilters' => $defaultFilters,
+            'enforcedFilters' => ['job_type' => $rentalJobTypeId],
+            'rentalStats' => $this->calculateRentalStats($rentalJobTypeId),
+            'showRentalStats' => true,
+            'isRentalPage' => true,
+            'rentalTypeId' => $rentalJobTypeId,
         ]);
     }
 
@@ -919,17 +1072,76 @@ class MaidController extends Controller
             )
         );
     }
-    public function create_rapid_cv(NationalityAction $act, RecruitmentOfficeAction $officeAct, Request $request)
+
+    public function createRental(NationalityAction $act, RecruitmentOfficeAction $officeAct, ReligionAction $relAct, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction, SkillAction $skillAction, Request $request)
+    {
+        $rentalTypeId = $this->getRentalJobTypeId();
+
+        if ($request->ajax()) {
+            return $this->createAjaxResponse(
+                $act,
+                $officeAct,
+                $relAct,
+                $jobTitleAction,
+                $jobTypesAction,
+                'create',
+                [
+                    'defaultTypeId' => $rentalTypeId,
+                    'defaultShelterContract' => '0',
+                    'defaultIsShow' => true,
+                    'isRentalForm' => true,
+                    'formRedirectRoute' => route('maids.rental.index'),
+                    'requireIdFields' => true,
+                ]
+            );
+        }
+
+        $nationalities = $act->getNationalities();
+        $religions = $relAct->getReligions();
+        $jobs = $jobTitleAction->getJobsTitles();
+        [$types, $defaultTypeId] = $this->prepareJobTypesForForm($jobTypesAction->getJobsTypes());
+        $offices = $officeAct->getAllOffices();
+        $skills = $skillAction->get();
+
+        $defaultTypeId = $rentalTypeId ?? $defaultTypeId;
+        $defaultShelterContract = '0';
+        $defaultIsShow = true;
+        $isRentalForm = true;
+        $formRedirectRoute = route('maids.rental.index');
+        $requireIdFields = true;
+
+        return view(
+            "{$this->folderPath}.create",
+            compact(
+                'nationalities',
+                'offices',
+                'religions',
+                'jobs',
+                'types',
+                'skills',
+                'defaultTypeId',
+                'defaultShelterContract',
+                'defaultIsShow',
+                'isRentalForm',
+                'formRedirectRoute',
+                'requireIdFields'
+            )
+        );
+    }
+
+    public function create_rapid_cv(NationalityAction $act, RecruitmentOfficeAction $officeAct, JobTypeAction $jobTypesAction, Request $request)
     {
         // Handle direct request
         $nationalities = $act->getNationalities();
         $offices = $officeAct->getAllOffices();
+        [, $defaultTypeId] = $this->prepareJobTypesForForm($jobTypesAction->getJobsTypes());
 
         return view(
             "{$this->folderPath}.rapid_cv_add",
             compact(
                 'nationalities',
                 'offices',
+                'defaultTypeId',
             )
         );
     }
@@ -1095,13 +1307,23 @@ class MaidController extends Controller
 
     public function edit(Request $request, $id, NationalityAction $act, RecruitmentOfficeAction $officeAct, ReligionAction $relAct, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction, SkillAction $skillAction)
     {
+        $obj = objModel::with('jobTypes')->findOrFail($id);
+        $rentalTypeId = $this->getRentalJobTypeId();
+        $isRentalMaid = $rentalTypeId ? $obj->jobTypes->contains('id', $rentalTypeId) : false;
+        $defaultShelterContract = $obj->maid_accommodation_type == 2 ? '1' : '0';
+        $isRentalForm = false;
+        $formRedirectRoute = $isRentalMaid ? route('maids.rental.index') : route('maids.index');
+
         if ($request->ajax()) {
-            $obj = objModel::findOrFail($id);
-            return $this->createAjaxResponse($act, $officeAct, $relAct, $jobTitleAction, $jobTypesAction, 'edit', ['obj' => $obj]);
+            return $this->createAjaxResponse($act, $officeAct, $relAct, $jobTitleAction, $jobTypesAction, 'edit', [
+                'obj' => $obj,
+                'defaultShelterContract' => $defaultShelterContract,
+                'isRentalForm' => $isRentalForm,
+                'formRedirectRoute' => $formRedirectRoute,
+            ]);
         }
 
         // Handle direct request for edit page
-        $obj = objModel::findOrFail($id);
         $nationalities = $act->getNationalities();
         $religions = $relAct->getReligions();
         $jobs = $jobTitleAction->getJobsTitles();
@@ -1109,7 +1331,18 @@ class MaidController extends Controller
         $offices = $officeAct->getAllOffices();
         $skills = $skillAction->get();
 
-        return view("{$this->folderPath}.edit", compact('obj', 'nationalities', 'offices', 'religions', 'jobs', 'types', 'skills'));
+        return view("{$this->folderPath}.edit", compact(
+            'obj',
+            'nationalities',
+            'offices',
+            'religions',
+            'jobs',
+            'types',
+            'skills',
+            'defaultShelterContract',
+            'isRentalForm',
+            'formRedirectRoute'
+        ));
     }
 
     public function update(MaidRequest $request, objAction $action, $id)
@@ -1603,6 +1836,64 @@ class MaidController extends Controller
         return [$filtered, $defaultTypeId];
     }
 
+    private function getRentalJobTypeId(): ?int
+    {
+        return $this->findJobTypeIdByKeywords(['ايجار', 'إيجار', 'تأجير', 'rent']) ?? 2;
+    }
+
+    private function findJobTypeIdByKeywords(array $keywords): ?int
+    {
+        $jobType = JobType::with('translations')->get()->first(function ($type) use ($keywords) {
+            $title = $this->normalizeArabicText($type->title ?? '');
+
+            foreach ($keywords as $keyword) {
+                if (Str::contains($title, $this->normalizeArabicText($keyword))) {
+                    return true;
+                }
+            }
+
+            return false;
+        });
+
+        return $jobType?->id;
+    }
+
+    private function calculateRentalStats(int $jobTypeId): array
+    {
+        $baseQuery = objModel::query()->whereHas('jobTypes', function ($query) use ($jobTypeId) {
+            $query->where('job_type_id', $jobTypeId);
+        });
+
+        $today = Carbon::today();
+        $expiryThreshold = Carbon::today()->addDays(30);
+
+        $shelterContracts = Contract::insideShelter()->whereHas('maid', function ($maidQuery) use ($jobTypeId) {
+            $maidQuery->whereHas('jobTypes', function ($jobTypeQuery) use ($jobTypeId) {
+                $jobTypeQuery->where('job_type_id', $jobTypeId);
+            });
+        });
+
+        return [
+            'total' => (clone $baseQuery)->count(),
+            'available' => (clone $baseQuery)->where('status', 'available')->count(),
+            'reserved' => (clone $baseQuery)->where('status', 'reserved')->count(),
+            'in_accommodation' => (clone $shelterContracts)->select('maid_id')->distinct()->count('maid_id'),
+            'expiring' => (clone $baseQuery)->whereNotNull('id_expiry_date')->whereBetween('id_expiry_date', [$today, $expiryThreshold])->count(),
+            'wants_to_work' => (clone $shelterContracts)->whereHas('info', function ($infoQuery) {
+                $infoQuery->where('wants_to_work', 'yes');
+            })->select('maid_id')->distinct()->count('maid_id'),
+            'in_deportation' => (clone $shelterContracts)->whereHas('info', function ($infoQuery) {
+                $infoQuery->where('wants_to_work', 'no');
+            })->select('maid_id')->distinct()->count('maid_id'),
+            'undecided' => (clone $shelterContracts)->whereHas('info', function ($infoQuery) {
+                $infoQuery->where(function ($query) {
+                    $query->whereNull('wants_to_work')
+                        ->orWhere('wants_to_work', 'unknown');
+                });
+            })->select('maid_id')->distinct()->count('maid_id'),
+        ];
+    }
+
     public function applyMaidFilter($request, $rows)
     {
         if ($request->filled('keyword')) {
@@ -1728,6 +2019,60 @@ class MaidController extends Controller
                 // فلتر خاص للعاملات باك اوت
                 $rows->where('status', 'backout')
                     ->where('available', 0);
+            }
+        }
+
+        if (($request->cv_status ?? null) == 'available') {
+            $rentalJobTypeId = $this->getRentalJobTypeId();
+            $selectedJobTypes = $request->job_type_id ?? $request->job_type ?? null;
+            $selectedJobTypes = is_array($selectedJobTypes) ? $selectedJobTypes : [$selectedJobTypes];
+            $selectedJobTypes = array_map('strval', array_filter($selectedJobTypes, static fn($value) => $value !== null && $value !== ''));
+            $isRentalFilter = $rentalJobTypeId && in_array((string) $rentalJobTypeId, $selectedJobTypes, true);
+
+            if ($isRentalFilter) {
+                $activeRentalStatuses = ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'transferred', 'suspended'];
+                $rows->whereDoesntHave('rentalContracts', function ($q) use ($activeRentalStatuses) {
+                    $q->whereIn('status', $activeRentalStatuses);
+                });
+            }
+        }
+
+        if ($request->filled('rental_stat')) {
+            $rentalStat = $request->rental_stat;
+            $today = Carbon::today();
+            $expiryThreshold = Carbon::today()->addDays(30);
+
+            if ($rentalStat === 'expiring') {
+                $rows->whereNotNull('id_expiry_date')
+                    ->whereBetween('id_expiry_date', [$today, $expiryThreshold]);
+            } elseif ($rentalStat === 'in_accommodation') {
+                $rows->whereHas('contracts', function ($query) {
+                    $query->insideShelter();
+                });
+            } elseif ($rentalStat === 'wants_to_work') {
+                $rows->whereHas('contracts', function ($query) {
+                    $query->insideShelter()
+                        ->whereHas('info', function ($infoQuery) {
+                            $infoQuery->where('wants_to_work', 'yes');
+                        });
+                });
+            } elseif ($rentalStat === 'in_deportation') {
+                $rows->whereHas('contracts', function ($query) {
+                    $query->insideShelter()
+                        ->whereHas('info', function ($infoQuery) {
+                            $infoQuery->where('wants_to_work', 'no');
+                        });
+                });
+            } elseif ($rentalStat === 'undecided') {
+                $rows->whereHas('contracts', function ($query) {
+                    $query->insideShelter()
+                        ->whereHas('info', function ($infoQuery) {
+                            $infoQuery->where(function ($condition) {
+                                $condition->whereNull('wants_to_work')
+                                    ->orWhere('wants_to_work', 'unknown');
+                            });
+                        });
+                });
             }
         }
     }

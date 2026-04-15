@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\Storage;
 
 class RentalContractInfo extends Model
 {
@@ -11,10 +12,21 @@ class RentalContractInfo extends Model
 
     protected $fillable = [
         'rental_contract_id',
+        'package_id',
+        'payment_type',
+        'payment_status',
+        'payment_receipt_path',
+        'payment_confirmed_at',
+        'payment_confirmed_by',
+        'closure_client_iban',
+        'closure_client_iban_attachment_path',
         'working_hours_per_day',
         'hourly_rate',
         'monthly_salary',
         'sponsorship_transfer_amount',
+        'sponsorship_transfer_total_amount',
+        'sponsorship_transfer_paid_amount',
+        'sponsorship_transfer_remaining_amount',
         'salary_after_sponsorship',
         'sponsorship_transfer',
         'rental_type',
@@ -22,6 +34,8 @@ class RentalContractInfo extends Model
         'contract_duration_months',
         'contract_duration_days',
         'contract_value',
+        'paid_amount',
+        'remaining_amount',
         'ingaz_from',
         'ingaz_to',
         'notes',
@@ -29,17 +43,24 @@ class RentalContractInfo extends Model
     ];
 
     protected $casts = [
+        'package_id' => 'integer',
         'hourly_rate' => 'decimal:2',
         'monthly_salary' => 'decimal:2',
         'sponsorship_transfer_amount' => 'decimal:2',
+        'sponsorship_transfer_total_amount' => 'decimal:2',
+        'sponsorship_transfer_paid_amount' => 'decimal:2',
+        'sponsorship_transfer_remaining_amount' => 'decimal:2',
         'salary_after_sponsorship' => 'decimal:2',
         'monthly_cost' => 'decimal:2',
         'contract_value' => 'decimal:2',
+        'paid_amount' => 'decimal:2',
+        'remaining_amount' => 'decimal:2',
         'working_hours_per_day' => 'integer',
         'contract_duration_months' => 'integer',
         'contract_duration_days' => 'integer',
         'ingaz_from' => 'date',
         'ingaz_to' => 'date',
+        'payment_confirmed_at' => 'datetime',
         'additional_terms' => 'array',
     ];
 
@@ -47,6 +68,29 @@ class RentalContractInfo extends Model
     public function rentalContract()
     {
         return $this->belongsTo(RentalContract::class, 'rental_contract_id');
+    }
+
+    public function paymentConfirmedBy()
+    {
+        return $this->belongsTo(\App\Models\auth\Admin::class, 'payment_confirmed_by');
+    }
+
+    public function getPaymentReceiptUrlAttribute(): ?string
+    {
+        if (!$this->payment_receipt_path) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->payment_receipt_path);
+    }
+
+    public function getClosureClientIbanAttachmentUrlAttribute(): ?string
+    {
+        if (!$this->closure_client_iban_attachment_path) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->closure_client_iban_attachment_path);
     }
 
     // Helper Methods

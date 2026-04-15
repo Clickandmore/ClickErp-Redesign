@@ -180,6 +180,8 @@ Route::group(
             Route::get('maids-not-available', [\App\Http\Controllers\ingaz\MaidController::class, 'noneAvailableMaids'])->name('noneAvailableMaids');
             Route::get('maids/cvs-deleted', [\App\Http\Controllers\ingaz\MaidController::class, 'deletedCvs'])->name('maids.deleted_cvs');
             Route::get('maids/{id}/details', [\App\Http\Controllers\ingaz\MaidController::class, 'getMaidDetails'])->name('maids.details');
+            Route::get('maids/rental', [\App\Http\Controllers\ingaz\MaidController::class, 'rentalIndex'])->name('maids.rental.index');
+            Route::get('maids/rental/create', [\App\Http\Controllers\ingaz\MaidController::class, 'createRental'])->name('maids.rental.create');
             // Limit maid parameter to numeric IDs to avoid catching custom pages like create_rapid_cv
             Route::resource('maids', MaidController::class)->whereNumber('maid');
             Route::get('maids/create_rapid_cv', [MaidController::class, 'create_rapid_cv'])->name('maids.create_rapid_cv');
@@ -284,6 +286,7 @@ Route::group(
             Route::post('RentContract/{id}/sign-contract', [RentContractController::class, 'signContract'])->name('RentContract.signContract');
             Route::post('RentContract/{id}/deliver-maid', [RentContractController::class, 'deliverMaid'])->name('RentContract.deliverMaid');
             Route::post('RentContract/{id}/activate-contract', [RentContractController::class, 'activateContract'])->name('RentContract.activateContract');
+            Route::post('RentContract/{id}/extend', [RentContractController::class, 'extend'])->name('RentContract.extend');
             Route::post('RentContract/{id}/save-signature', [RentContractController::class, 'saveSignature'])->name('RentContract.saveSignature');
 
             // إدارة بنود عقد التأجير
