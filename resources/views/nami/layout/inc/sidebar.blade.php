@@ -700,7 +700,7 @@
                         <span class="ms-2">{{ __('ingaz.hr') }}</span>
                     </a>
                     <ul class="sub-menu show" id="hr">
-                        @include('hr::hr')
+                        @include('admin.layout.inc.hr_sidebar_links')
                     </ul>
                 </li>
                 @php
