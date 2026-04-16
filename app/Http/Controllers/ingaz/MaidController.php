@@ -1075,7 +1075,36 @@ class MaidController extends Controller
         ];
 
         $activities = method_exists($maid, 'activities')
-            ? $maid->activities()->latest()->limit(10)->get()
+            ? $this->buildActivityTimeline(
+                $maid->activities()->with('causer')->latest()->limit(12)->get(),
+                [
+                    'name' => 'الاسم',
+                    'nationality_id' => 'الجنسية',
+                    'religion_id' => 'الديانة',
+                    'passport_num' => 'رقم الجواز',
+                    'price' => 'السعر',
+                    'salary' => 'الراتب',
+                    'age' => 'العمر',
+                    'office_id' => 'مكتب الاستقدام',
+                    'status' => 'الحالة',
+                    'available' => 'التوفر',
+                    'available_at' => 'متاحة من',
+                    'is_show' => 'الظهور بالموقع',
+                    'is_pinned' => 'التثبيت',
+                    'request_type' => 'نوع الطلب',
+                    'additional_notes' => 'ملاحظات إضافية',
+                    'cv_file' => 'ملف السيرة',
+                    'cv_preview' => 'معاينة السيرة',
+                    'image' => 'الصورة',
+                    'video' => 'الفيديو',
+                    'video_link' => 'رابط الفيديو',
+                    'arrival_date' => 'تاريخ الوصول',
+                    'offer_price' => 'سعر العرض',
+                    'offer_starts_at' => 'بداية العرض',
+                    'offer_expires_at' => 'نهاية العرض',
+                ],
+                'السيرة الذاتية'
+            )
             : collect();
 
         return view($this->folderPath . '.details', compact(

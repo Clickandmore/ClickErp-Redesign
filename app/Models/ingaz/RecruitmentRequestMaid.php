@@ -27,6 +27,8 @@ class RecruitmentRequestMaid extends Model
         'religion_id',
         'language',
         'worker_status',
+        'is_read',
+        'read_by',
     ];
 
     public function client(): BelongsTo
@@ -47,5 +49,10 @@ class RecruitmentRequestMaid extends Model
     public function maid(): BelongsTo
     {
         return $this->belongsTo(Maid::class, 'maid_id');
+    }
+
+    public function reader(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class, 'read_by');
     }
 }

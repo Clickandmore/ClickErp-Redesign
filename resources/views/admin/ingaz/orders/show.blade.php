@@ -431,6 +431,19 @@
             </div>
         </div>
 
+        <div class="row">
+            <div class="col-12">
+                <div class="order-info-card">
+                    <div class="order-info-header">
+                        <h5><i class="fa fa-history"></i> {{ helperTrans('ingaz.activity_timeline') }}</h5>
+                    </div>
+                    <div class="order-info-body">
+                        @include('admin.partials.activity-feed', ['activities' => $activities ?? collect()])
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Actions -->
         <div class="row">
             <div class="col-12">

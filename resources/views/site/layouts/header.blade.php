@@ -34,7 +34,7 @@
                                    href="{{route('site.all-workers.index') }}?type=estqdam"> {{__("ingaz.recruitment_request_title")}}
                                 </a> --}}
                                 <a class="dropdown-item"
-                                   href="{{route('site.all-workers.index') }}"> {{__("ingaz.recruitment_request_title")}}
+                                   href="{{route('site.all-workers.index') }}?type=estqdam"> {{__("ingaz.recruitment_request_title")}}
                                 </a>
                             </li>
                             <li>

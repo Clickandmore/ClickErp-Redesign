@@ -457,6 +457,9 @@
                             <select id="statusFilter" class="form-select">
                                 <option value="">جميع الحالات</option>
                                 <option value="current">{{ helperTrans('ingaz.contracts_are_valid') }}</option>
+                                <option value="arrival_today">وصول اليوم</option>
+                                <option value="delayed_arrival">تجاوزت 60 يوماً بدون تذاكر</option>
+                                <option value="expired_over_2y">أقدم من عامين</option>
 
                                 <option value="new">جديد</option>
                                 <option value="msaned">مساند</option>
@@ -714,6 +717,7 @@
                                 <th>معلومات العميل</th>
                                 <th>العاملة</th>
                                 <th>معلومات العقد</th>
+                                <th>المدة</th>
                                 <th>{{ helperTrans('ingaz.recruitment_office') }}</th>
                                 <th>المسوق</th>
                                 <th>الحالة</th>
@@ -747,11 +751,18 @@
                             <input type="text" id="currentStatus" class="form-control" readonly>
                         </div>
 
-                        <div class="mb-3">
+                        <div class="mb-3" id="nextStatusDisplayWrapper">
                             <label for="nextStatusDisplay" class="form-label">المرحلة التالية:</label>
                             <input type="text" id="nextStatusDisplay" class="form-control" readonly>
                         </div>
 
+                        <div class="mb-3 d-none" id="manualNextStatusWrapper">
+                            <label for="manualNextStatus" class="form-label">المرحلة التالية:</label>
+                            <select id="manualNextStatus" class="form-select">
+                                <option value="">اختر المرحلة التالية</option>
+                            </select>
+                            <small class="text-muted">يرجى اختيار المرحلة التالية للعقد.</small>
+                        </div>
                         <div class="mb-3">
                             <label for="statusDate" class="form-label">تاريخ التحديث:</label>
                             <input type="date" id="statusDate" required name="statusDate" class="form-control"
@@ -1250,6 +1261,11 @@
                 },
                 {
                     "data": "contract_info",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "duration",
                     orderable: false,
                     searchable: false
                 },
@@ -1813,6 +1829,26 @@
             $('#filtersCollapse').on('hide.bs.collapse', function() {
                 $('#filtersIcon').removeClass('fa-chevron-up').addClass('fa-chevron-down');
             });
+
+            function addTravel(contractId) {
+                console.log('Add travel button clicked for contract ID:', contractId);
+
+                if (!contractId) {
+                    console.error('No contract ID found');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: 'لم يتم العثور على معرف العقد',
+                        confirmButtonText: 'حسناً'
+                    });
+                    return;
+                }
+
+                var url = '{{ route('travel.control') }}?contract_id=' + contractId;
+                console.log('Redirecting to:', url);
+                window.location.href = url;
+            }
+
             // معالج زر الإرجاع من عمود المرحلة التالية
             $(document).on('click', '.backContract', function() {
                 var rowId = $(this).data('row-id');
@@ -1825,27 +1861,37 @@
                 var rowId = $(this).data('row-id');
                 var status = $(this).data('status');
                 var nextStatus = $(this).data('next-status');
-                var date = $(this).data('date');
 
-                // تعبئة البيانات في Modal
                 $('#updateStatusModal #rowId').val(rowId);
                 $('#updateStatusModal #status').val(status);
                 $('#updateStatusModal #nextStatus').val(nextStatus);
 
-                // تعيين تاريخ اليوم دائماً
                 var today = new Date().toISOString().split('T')[0];
                 $('#updateStatusModal #statusDate').val(today);
-
-                // عرض Modal
                 $('#updateStatusModal').modal('show');
+            });
+
+            $('#manualNextStatus').on('change', function() {
+                $('#updateStatusModal #nextStatus').val($(this).val());
             });
 
             // معالج زر حفظ الحالة
             $('#saveStatusBtn').click(function() {
                 var rowId = $('#updateStatusModal #rowId').val();
-                var nextStatus = $('#updateStatusModal #nextStatus').val();
+                var nextStatus = $('#updateStatusModal #manualNextStatusWrapper').hasClass('d-none')
+                    ? $('#updateStatusModal #nextStatus').val()
+                    : $('#updateStatusModal #manualNextStatus').val();
                 var date = $('#updateStatusModal #statusDate').val();
                 var sendSms = $('#updateStatusModal #sendSmsNotification').is(':checked');
+
+                if (!nextStatus) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'تحذير',
+                        text: 'يرجى اختيار الحالة التالية'
+                    });
+                    return;
+                }
 
                 $.ajax({
                     url: '{{ route('RecruitmentContract.updateStatus') }}',
@@ -1885,55 +1931,28 @@
                 });
             });
 
-            // دالة إرجاع العقد
-            function backContract(rowId, targetLabel) {
-                const destinationText = targetLabel || 'المرحلة السابقة';
+            function populateManualStatusOptions(modal, options, selectedValue) {
+                var select = modal.find('#manualNextStatus');
+                select.empty();
 
-                Swal.fire({
-                    title: 'تأكيد الإرجاع إلى ' + destinationText,
-                    text: 'سيتم إرجاع العقد إلى ' + destinationText + '. هل تريد المتابعة؟',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'نعم، إرجاع إلى ' + destinationText,
-                    cancelButtonText: 'إلغاء'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            url: '{{ route('RecruitmentContract.back', ':id') }}'.replace(':id',
-                                rowId),
-                            method: 'GET',
-                            data: {
-                                _token: '{{ csrf_token() }}'
-                            },
-                            success: function(response) {
-                                if (response.success) {
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'تم إرجاع العقد إلى ' + destinationText,
-                                        text: response.message
-                                    }).then(() => {
-                                        dataTable.ajax.reload();
-                                    });
-                                } else {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'خطأ',
-                                        text: response.message
-                                    });
-                                }
-                            },
-                            error: function() {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'خطأ',
-                                    text: 'حدث خطأ أثناء إرجاع العقد'
-                                });
-                            }
-                        });
-                    }
+                if (!options.length) {
+                    select.append('<option value="">?? ???? ????? ?????</option>');
+                    modal.find('#saveStatusBtn').prop('disabled', true);
+                    modal.find('#nextStatus').val('');
+                    return;
+                }
+
+                options.forEach(function(option) {
+                    select.append(new Option(option.label, option.value));
                 });
+
+                var targetValue = selectedValue && options.some(function(option) {
+                    return option.value === selectedValue;
+                }) ? selectedValue : options[0].value;
+
+                select.val(targetValue);
+                modal.find('#nextStatus').val(targetValue);
+                modal.find('#saveStatusBtn').prop('disabled', false);
             }
 
             // معالج فتح Modal تحديث الحالة
@@ -1944,19 +1963,32 @@
                 var nextStatus = button.data('next-status');
                 var date = button.data('date');
                 var modal = $(this);
+                var isManual = String(button.data('manual-status-select') || '0') === '1';
+                var rawStatuses = button.attr('data-target-statuses') || '[]';
+                var targetStatuses = [];
+
+                try {
+                    targetStatuses = JSON.parse(rawStatuses);
+                } catch (error) {
+                    targetStatuses = [];
+                }
 
                 modal.find('#rowId').val(rowId);
                 modal.find('#status').val(status);
                 modal.find('#nextStatus').val(nextStatus);
                 modal.find('#statusDate').val(date);
+                modal.find('#currentStatus').val(getContractStatusText(status));
 
-                // عرض الحالة الحالية
-                var currentStatusText = getContractStatusText(status);
-                modal.find('#currentStatus').val(currentStatusText);
-
-                // عرض المرحلة التالية
-                var nextStatusText = getContractStatusText(nextStatus);
-                modal.find('#nextStatusDisplay').val(nextStatusText);
+                if (isManual) {
+                    modal.find('#nextStatusDisplayWrapper').addClass('d-none');
+                    modal.find('#manualNextStatusWrapper').removeClass('d-none');
+                    populateManualStatusOptions(modal, targetStatuses, nextStatus);
+                } else {
+                    modal.find('#manualNextStatusWrapper').addClass('d-none');
+                    modal.find('#nextStatusDisplayWrapper').removeClass('d-none');
+                    modal.find('#nextStatusDisplay').val(getContractStatusText(nextStatus));
+                    modal.find('#saveStatusBtn').prop('disabled', false);
+                }
             });
 
             // دالة للحصول على نص الحالة
@@ -1979,30 +2011,6 @@
                 };
                 return statusMap[status] || status;
             }
-
-            // معالج إضافة رحلة
-            $(document).on('click', '.add-travel-btn', function(e) {
-                e.preventDefault();
-                var contractId = $(this).data('contract-id');
-
-                console.log('Add travel button clicked for contract ID:', contractId);
-
-                if (!contractId) {
-                    console.error('No contract ID found');
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'خطأ',
-                        text: 'لم يتم العثور على معرف العقد',
-                        confirmButtonText: 'حسناً'
-                    });
-                    return;
-                }
-
-                // التوجيه إلى صفحة إضافة رحلة
-                var url = '{{ route('travel.control') }}?contract_id=' + contractId;
-                console.log('Redirecting to:', url);
-                window.location.href = url;
-            });
 
             // معالج إكمال الرحلة
             $(document).on('click', '.complete-trip-btn', function() {
@@ -2411,3 +2419,5 @@
         });
     </script>
 @endsection
+
+

@@ -10,6 +10,7 @@
     $canShowDeliveryForm = in_array($contract->status, [\App\Enums\ingaz\ContractStatusEnum::Arrival->value, \App\Enums\ingaz\ContractStatusEnum::Completed->value], true);
     $deliveryFormUrl = route('contract_download_form.download', ['contract_id' => $contract->id]);
     $deliveryFormPdfUrl = route('contract_download_form.download', ['contract_id' => $contract->id, 'driver' => 'dompdf', 'download' => 1]);
+    $statusTimelineItems = $statusTimeline['items'] ?? collect();
 @endphp
 
 <style>
@@ -288,6 +289,170 @@
         color: #0c5460;
     }
 
+    .timeline-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .timeline-stat {
+        background: linear-gradient(135deg, #163b65, #0d5f8f);
+        color: white;
+        border-radius: 14px;
+        padding: 18px;
+        box-shadow: 0 10px 22px rgba(13, 95, 143, 0.18);
+    }
+
+    .timeline-stat-label {
+        font-size: 13px;
+        opacity: 0.85;
+        margin-bottom: 8px;
+    }
+
+    .timeline-stat-value {
+        font-size: 20px;
+        font-weight: 700;
+        line-height: 1.5;
+    }
+
+    .timeline-stat-meta {
+        font-size: 13px;
+        opacity: 0.88;
+        margin-top: 6px;
+    }
+
+    .contract-stage-timeline {
+        position: relative;
+        padding-right: 34px;
+    }
+
+    .contract-stage-timeline::before {
+        content: '';
+        position: absolute;
+        top: 12px;
+        bottom: 12px;
+        right: 12px;
+        width: 3px;
+        background: linear-gradient(180deg, #0d6efd 0%, #71b7ff 100%);
+        border-radius: 999px;
+    }
+
+    .contract-stage-item {
+        position: relative;
+        background: #f8fbff;
+        border: 1px solid #dfeaf5;
+        border-radius: 14px;
+        padding: 16px 18px;
+        margin-bottom: 14px;
+    }
+
+    .contract-stage-item::before {
+        content: '';
+        position: absolute;
+        top: 22px;
+        right: -28px;
+        width: 18px;
+        height: 18px;
+        background: #0d6efd;
+        border: 4px solid #d8e8ff;
+        border-radius: 50%;
+        box-shadow: 0 0 0 4px #f8fbff;
+    }
+
+    .contract-stage-item.current {
+        background: #fff8ea;
+        border-color: #ffd98a;
+    }
+
+    .contract-stage-item.current::before {
+        background: #f59e0b;
+        border-color: #ffe9bd;
+    }
+
+    .contract-stage-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+    }
+
+    .stage-order {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #e3eeff;
+        color: #0d4ea6;
+        font-weight: 700;
+    }
+
+    .stage-name {
+        font-size: 17px;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .stage-duration {
+        background: #e8f1ff;
+        color: #0d4ea6;
+        border-radius: 999px;
+        padding: 7px 12px;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .contract-stage-item.current .stage-duration {
+        background: #fff0c7;
+        color: #9a6700;
+    }
+
+    .stage-dates {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+    }
+
+    .stage-date-box {
+        background: white;
+        border: 1px solid #edf2f7;
+        border-radius: 10px;
+        padding: 10px 12px;
+    }
+
+    .stage-date-label {
+        display: block;
+        font-size: 12px;
+        color: #6c757d;
+        margin-bottom: 4px;
+    }
+
+    .stage-date-value {
+        font-size: 14px;
+        font-weight: 600;
+        color: #212529;
+    }
+
+    .stage-notes {
+        margin-top: 10px;
+        background: white;
+        border: 1px dashed #d0dbe7;
+        border-radius: 10px;
+        padding: 10px 12px;
+        color: #495057;
+        font-size: 13px;
+    }
+
+    .timeline-caption {
+        color: #6c757d;
+        font-size: 13px;
+        margin-bottom: 18px;
+    }
+
     /* تحسين الطباعة */
     @media print {
 
@@ -299,6 +464,16 @@
         .contract-details-container {
             background: white !important;
             box-shadow: none !important;
+        }
+    }
+
+    @media (max-width: 767.98px) {
+        .contract-stage-timeline {
+            padding-right: 26px;
+        }
+
+        .contract-stage-item::before {
+            right: -22px;
         }
     }
 
@@ -826,6 +1001,76 @@
             <div class="row">
                 <div class="col-12 mb-4">
                     <div class="info-card">
+                        @if ($statusTimelineItems->count())
+                                <div class="info-card mb-4">
+                                    <div class="card-title">
+                                        <i class="fas fa-stream text-primary"></i>
+                                        المخطط الزمني لمراحل العقد
+                                    </div>
+
+                                    <div class="timeline-summary">
+                                        <div class="timeline-stat">
+                                            <div class="timeline-stat-label">بداية المسار</div>
+                                            <div class="timeline-stat-value">{{ $statusTimeline['started_at_formatted'] ?? 'غير محدد' }}</div>
+                                        </div>
+                                        <div class="timeline-stat">
+                                            <div class="timeline-stat-label">إجمالي المدة</div>
+                                            <div class="timeline-stat-value">{{ $statusTimeline['total_duration'] ?? 'غير محدد' }}</div>
+                                        </div>
+                                        <div class="timeline-stat">
+                                            <div class="timeline-stat-label">أطول مرحلة</div>
+                                            <div class="timeline-stat-value">{{ $statusTimeline['longest_stage_label'] ?? 'غير محدد' }}</div>
+                                            <div class="timeline-stat-meta">{{ $statusTimeline['longest_stage_duration'] ?? '' }}</div>
+                                        </div>
+                                        <div class="timeline-stat">
+                                            <div class="timeline-stat-label">الحالة الحالية</div>
+                                            <div class="timeline-stat-value">{{ $statusTimeline['current_stage_label'] ?? 'غير محدد' }}</div>
+                                            <div class="timeline-stat-meta">{{ $statusTimeline['current_stage_duration'] ?? '' }}</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="timeline-caption">
+                                        يتم احتساب مدة كل مرحلة من وقت تسجيل الحالة حتى الانتقال للحالة التالية، والحالة الحالية تُحسب حتى الآن إذا كانت ما زالت نشطة.
+                                    </div>
+
+                                    <div class="contract-stage-timeline">
+                                        @foreach ($statusTimelineItems as $stage)
+                                            <div class="contract-stage-item {{ $stage['is_current'] ? 'current' : '' }}">
+                                                <div class="contract-stage-head">
+                                                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                                                        <span class="stage-order">{{ $loop->iteration }}</span>
+                                                        <div>
+                                                            <div class="stage-name">{{ $stage['status_label'] }}</div>
+                                                            @if ($stage['is_current'])
+                                                                <small class="text-muted">الحالة الحالية</small>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                    <div class="stage-duration">{{ $stage['duration_human'] }}</div>
+                                                </div>
+
+                                                <div class="stage-dates">
+                                                    <div class="stage-date-box">
+                                                        <span class="stage-date-label">بداية المرحلة</span>
+                                                        <span class="stage-date-value">{{ $stage['started_at_formatted'] }}</span>
+                                                    </div>
+                                                    <div class="stage-date-box">
+                                                        <span class="stage-date-label">نهاية المرحلة</span>
+                                                        <span class="stage-date-value">{{ $stage['ended_at_formatted'] }}</span>
+                                                    </div>
+                                                </div>
+
+                                                @if ($stage['notes'])
+                                                    <div class="stage-notes">
+                                                        {!! nl2br(e($stage['notes'])) !!}
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                        @endif
+
                         <div class="card-title">
                             <i class="fas fa-history text-info"></i>
                             سجل حالات العقد
