@@ -13,6 +13,11 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
+use Nami\Hr\Models\Department as HrDepartment;
+use Nami\Hr\Models\Employee as HrEmployee;
+use Nami\Hr\Models\EmployeeShift as HrEmployeeShift;
+use Nami\Hr\Models\Job as HrJob;
+use Nami\Hr\Models\Shift as HrShift;
 
 class MaidAction extends MainAction
 {
@@ -434,6 +439,7 @@ class MaidAction extends MainAction
         }
 
         $maid->jobTypes()->sync($this->resolveRequiredJobTypeIds($request, $maid));
+        $this->syncHrMaidRecord($maid->fresh(['jobTypes', 'nationality', 'office']));
         return $maid;
     }
 
@@ -588,6 +594,307 @@ class MaidAction extends MainAction
         $typeIds = $this->normalizeRelationIds($request->input('type_id'));
 
         return in_array($rentalJobTypeId, $typeIds, true);
+    }
+
+    public function syncRentalMaidToHrRecord(Maid $maid): void
+    {
+        $this->syncHrMaidRecord($maid->fresh(['jobTypes', 'nationality', 'office']));
+    }
+
+    public function syncAllRentalMaidsToHr(): void
+    {
+        $rentalJobTypeId = $this->getRentalJobTypeId();
+
+        if (!$rentalJobTypeId
+            || !Schema::hasTable('maids')
+            || !Schema::hasTable('maid_jobs')) {
+            return;
+        }
+
+        Maid::query()
+            ->whereHas('jobTypes', function ($query) use ($rentalJobTypeId) {
+                $query->where('job_types.id', $rentalJobTypeId);
+            })
+            ->with(['jobTypes', 'nationality', 'office'])
+            ->chunkById(100, function ($maids) {
+                foreach ($maids as $maid) {
+                    $this->syncHrMaidRecord($maid);
+                }
+            });
+    }
+
+    private function syncHrMaidRecord(Maid $maid): void
+    {
+        if (!$this->isRentalMaid($maid)) {
+            return;
+        }
+
+        if (!Schema::hasTable('hr_employee')
+            || !Schema::hasColumn('hr_employee', 'employee_category')
+            || !Schema::hasColumn('hr_employee', 'maid_id')) {
+            return;
+        }
+
+        $maid->loadMissing(['jobTypes', 'nationality', 'office']);
+
+        $department = HrDepartment::firstOrCreate(['title' => 'قسم العاملات']);
+        $job = HrJob::firstOrCreate(['title' => 'عاملة']);
+        $shift = $this->resolveHrShiftForMaid();
+
+        $employeesQuery = HrEmployee::query()->withAllCategories();
+        $existingEmployee = $employeesQuery->where('maid_id', $maid->id)->first();
+
+        $employeeData = [
+            'name' => $maid->name ?: ('عاملة #' . $maid->id),
+            'image' => $maid->image ?: 'default.png',
+            'code' => $this->resolveHrEmployeeCode($maid, $existingEmployee),
+            'address' => $this->resolveHrEmployeeAddress($maid),
+            'phone' => $this->resolveHrEmployeePhone($maid, $existingEmployee),
+            'birthday' => $maid->birth_date?->format('Y-m-d')
+                ?: Carbon::now()->subYears(max((int) ($maid->age ?: 25), 18))->toDateString(),
+            'email' => $this->resolveHrEmployeeEmail($maid, $existingEmployee),
+            'national_num' => $this->resolveHrEmployeeNationalNumber($maid, $existingEmployee),
+            'country_id' => $this->resolveHrCountryIdForMaid($maid),
+            'deparment_id' => $department->id,
+            'job_id' => $job->id,
+            'hired_date' => $maid->arrival_date?->format('Y-m-d') ?: now()->toDateString(),
+            'contract_end_date' => $maid->id_expiry_date?->format('Y-m-d') ?: now()->addYear()->toDateString(),
+            'salary' => (float) ($maid->salary ?? 0),
+            'net_salary' => (float) ($maid->salary ?? 0),
+            'status' => 1,
+            'employee_category' => $existingEmployee?->employee_category === HrEmployee::CATEGORY_EMPLOYEE
+                ? HrEmployee::CATEGORY_EMPLOYEE
+                : HrEmployee::CATEGORY_MAID,
+            'maid_id' => $maid->id,
+        ];
+
+        if (Schema::hasColumn('hr_employee', 'admin_id')) {
+            $employeeData['admin_id'] = $existingEmployee?->admin_id;
+        }
+
+        if ($existingEmployee) {
+            $existingEmployee->update($employeeData);
+            $employee = $existingEmployee->fresh();
+        } else {
+            $employee = HrEmployee::query()->withAllCategories()->create($employeeData);
+        }
+
+        if ($shift) {
+            HrEmployeeShift::updateOrCreate(
+                ['employee_id' => $employee->id],
+                ['shift_id' => $shift->id]
+            );
+        }
+    }
+
+    private function isRentalMaid(Maid $maid): bool
+    {
+        $rentalJobTypeId = $this->getRentalJobTypeId();
+        if (!$rentalJobTypeId) {
+            return false;
+        }
+
+        $maid->loadMissing('jobTypes');
+
+        return $maid->jobTypes
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->contains($rentalJobTypeId);
+    }
+
+    private function resolveHrShiftForMaid(): ?HrShift
+    {
+        if (!Schema::hasTable('hr_shifts')) {
+            return null;
+        }
+
+        $shiftQuery = HrShift::query();
+        $shift = Schema::hasColumn('hr_shifts', 'status')
+            ? (clone $shiftQuery)->where('status', 1)->first()
+            : null;
+
+        $shift ??= $shiftQuery->first();
+
+        if ($shift) {
+            return $shift;
+        }
+
+        $sanctionId = DB::table('hr_sanctions')->orderBy('id')->value('id');
+
+        if (!$sanctionId) {
+            $sanctionId = DB::table('hr_sanctions')->insertGetId([
+                'title' => 'بدون جزاء',
+                'type' => 2,
+                'value' => 0,
+                'is_delays' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $payload = [
+            'name' => 'وردية العاملات',
+            'from_hour' => '08:00:00',
+            'to_hour' => '17:00:00',
+            'month_days' => 30,
+            'absence_sanctions_id' => $sanctionId,
+        ];
+
+        if (Schema::hasColumn('hr_shifts', 'status')) {
+            $payload['status'] = 1;
+        }
+
+        return HrShift::create($payload);
+    }
+
+    private function resolveHrEmployeeAddress(Maid $maid): string
+    {
+        $parts = array_filter([
+            'عاملة تأجير',
+            $maid->office?->title,
+            $maid->nationality?->sub_title,
+        ]);
+
+        return implode(' - ', $parts);
+    }
+
+    private function resolveHrEmployeeCode(Maid $maid, ?HrEmployee $existingEmployee): string
+    {
+        if ($existingEmployee && filled($existingEmployee->code)) {
+            return $existingEmployee->code;
+        }
+
+        $baseCode = 'MAID-' . str_pad((string) $maid->id, 5, '0', STR_PAD_LEFT);
+
+        return $this->resolveUniqueHrEmployeeValue('code', $baseCode, $existingEmployee?->id);
+    }
+
+    private function resolveHrEmployeePhone(Maid $maid, ?HrEmployee $existingEmployee): string
+    {
+        if ($existingEmployee && filled($existingEmployee->phone)) {
+            return $existingEmployee->phone;
+        }
+
+        $basePhone = '7' . str_pad((string) $maid->id, 9, '0', STR_PAD_LEFT);
+
+        return $this->resolveUniqueHrEmployeeValue('phone', $basePhone, $existingEmployee?->id, '');
+    }
+
+    private function resolveHrEmployeeEmail(Maid $maid, ?HrEmployee $existingEmployee): string
+    {
+        if ($existingEmployee && filled($existingEmployee->email)) {
+            return $existingEmployee->email;
+        }
+
+        $baseLocalPart = 'maid-' . $maid->id;
+        $candidate = $baseLocalPart . '@maids.hr.local';
+        $suffix = 1;
+
+        while ($this->hrEmployeeValueExists('email', $candidate, $existingEmployee?->id)) {
+            $candidate = $baseLocalPart . '-' . $suffix . '@maids.hr.local';
+            $suffix++;
+        }
+
+        return $candidate;
+    }
+
+    private function resolveHrEmployeeNationalNumber(Maid $maid, ?HrEmployee $existingEmployee): string
+    {
+        if ($existingEmployee && filled($existingEmployee->national_num)) {
+            return $existingEmployee->national_num;
+        }
+
+        $candidates = array_filter([
+            trim((string) ($maid->id_number ?? '')),
+            trim((string) ($maid->passport_num ?? '')),
+            'MAID-' . $maid->id,
+        ]);
+
+        foreach ($candidates as $candidate) {
+            if (!$this->hrEmployeeValueExists('national_num', $candidate, $existingEmployee?->id)) {
+                return $candidate;
+            }
+        }
+
+        return $this->resolveUniqueHrEmployeeValue('national_num', 'MAID-' . $maid->id, $existingEmployee?->id);
+    }
+
+    private function resolveUniqueHrEmployeeValue(
+        string $column,
+        string $baseValue,
+        ?int $ignoreEmployeeId = null,
+        string $separator = '-'
+    ): string {
+        $candidate = $baseValue;
+        $suffix = 1;
+
+        while ($this->hrEmployeeValueExists($column, $candidate, $ignoreEmployeeId)) {
+            $candidate = $baseValue . $separator . $suffix;
+            $suffix++;
+        }
+
+        return $candidate;
+    }
+
+    private function hrEmployeeValueExists(string $column, string $value, ?int $ignoreEmployeeId = null): bool
+    {
+        $query = HrEmployee::query()->withAllCategories()->where($column, $value);
+
+        if ($ignoreEmployeeId) {
+            $query->where('id', '!=', $ignoreEmployeeId);
+        }
+
+        return $query->exists();
+    }
+
+    private function resolveHrCountryIdForMaid(Maid $maid): int
+    {
+        if (!Schema::hasTable('hr_countries') || !Schema::hasTable('hr_countries_translations')) {
+            return 142;
+        }
+
+        static $countryTranslations = null;
+
+        if ($countryTranslations === null) {
+            $countryTranslations = DB::table('hr_countries_translations')
+                ->select('country_id', 'name', 'nationality')
+                ->whereIn('locale', ['ar', 'en'])
+                ->get();
+        }
+
+        $nationalityCandidates = array_filter([
+            $maid->nationality?->sub_title,
+            $maid->nationality?->title,
+        ]);
+
+        foreach ($nationalityCandidates as $candidate) {
+            $normalizedCandidate = $this->normalizeHrLookupValue($candidate);
+
+            $match = $countryTranslations->first(function ($row) use ($normalizedCandidate) {
+                return in_array($normalizedCandidate, [
+                    $this->normalizeHrLookupValue($row->name ?? ''),
+                    $this->normalizeHrLookupValue($row->nationality ?? ''),
+                ], true);
+            });
+
+            if ($match) {
+                return (int) $match->country_id;
+            }
+        }
+
+        return (int) (DB::table('hr_countries')->where('id', 142)->value('id')
+            ?? DB::table('hr_countries')->orderBy('id')->value('id')
+            ?? 142);
+    }
+
+    private function normalizeHrLookupValue(?string $value): string
+    {
+        $normalized = mb_strtolower(trim((string) $value));
+        $normalized = str_replace(['أ', 'إ', 'آ'], 'ا', $normalized);
+        $normalized = str_replace(['ة', 'ى'], ['ه', 'ي'], $normalized);
+        $normalized = preg_replace('/[^[:alnum:]\p{Arabic}\s]/u', '', $normalized);
+
+        return preg_replace('/\s+/', ' ', $normalized);
     }
 
     public function getMaids($request)
@@ -883,6 +1190,7 @@ class MaidAction extends MainAction
             $this->createShelterContractForMaid($maid);
         }
 
+        $this->syncHrMaidRecord($maid->fresh(['jobTypes', 'nationality', 'office']));
         return parent::find($id);
     }
 
@@ -1190,7 +1498,3 @@ class MaidAction extends MainAction
         return $this->availableQuery()->find($id);
     }
 }
-
-
-
-

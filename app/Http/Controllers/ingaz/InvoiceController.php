@@ -14,8 +14,10 @@ use Nami\Finance\Enums\BondTypes;
 use Nami\Finance\Enums\ConfirmSettingTypes;
 use Nami\Finance\Enums\CostCenterTypeEnum;
 use Nami\Finance\Models\Account;
+use Nami\Finance\Models\Bond;
 use Nami\Finance\Models\CostCenter;
 use Nami\Finance\Models\ConfirmSetting;
+use Nami\Finance\Models\Constraint;
 use Nami\Finance\Models\TaxSetting;
 use Nami\Finance\Services\BondService;
 use PDF;
@@ -40,7 +42,7 @@ class InvoiceController extends Controller
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('invoice_number', function ($row) {
-                    return '#' . $row->id;
+                    return '<a href="' . route('invoice.download', ['id' => $row->id, 'autoprint' => 1]) . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">#' . $row->id . '</a>';
                 })
                 ->addColumn('contract_number', function ($row) {
                     return '#' . $row->contract_id;
@@ -82,7 +84,7 @@ class InvoiceController extends Controller
                                 </a>
                             </div>';
                 })
-                ->rawColumns(['status', 'actions'])
+                ->rawColumns(['invoice_number', 'status', 'actions'])
                 ->make(true);
         }
 
@@ -160,7 +162,7 @@ class InvoiceController extends Controller
         }
 
         try {
-            $invoice = DB::transaction(function () use ($request, $service, $yearService, $bondService) {
+            $result = DB::transaction(function () use ($request, $service, $yearService, $bondService) {
                 $contract = Contract::with(['user', 'maid.nationality', 'requiredMaidNationality'])
                     ->findOrFail($request->contract_id);
 
@@ -222,11 +224,14 @@ class InvoiceController extends Controller
 
                 $invoice->setRelation('contract', $contract);
 
+                $invoiceConstraint = null;
+                $receiptBond = null;
+
                 if ((float) $invoice->total_due > 0) {
                     //2- انشاء قيد الفاتورة التفصيلي وربطه بمركز تكلفة العقد
                     $contractCostCenter = $this->ensureRecruitmentContractCostCenter($contract, $nationalityName);
 
-                    $this->storeInvoiceConstraintForInvoice(
+                    $invoiceConstraint = $this->storeInvoiceConstraintForInvoice(
                         $invoice,
                         $service,
                         $yearService,
@@ -254,7 +259,7 @@ class InvoiceController extends Controller
                         throw new \RuntimeException("حساب مساند المحدد غير صحيح. يجب اختيار حساب تابع للبنوك أو لأرصدة مدينة أخرى من إعدادات النظام المحاسبي.");
                     }
 
-                    $this->storeReceiptBondForInvoice(
+                    $receiptBond = $this->storeReceiptBondForInvoice(
                         $invoice,
                         $bondService,
                         $yearService,
@@ -263,7 +268,11 @@ class InvoiceController extends Controller
                     );
                 }
 
-                return $invoice;
+                return [
+                    'invoice' => $invoice,
+                    'invoice_constraint' => $invoiceConstraint,
+                    'receipt_bond' => $receiptBond,
+                ];
             });
         } catch (\Throwable $e) {
             return response()->json([
@@ -272,6 +281,13 @@ class InvoiceController extends Controller
             ], 422);
         }
 
+        /** @var \App\Models\ingaz\Invoice $invoice */
+        $invoice = $result['invoice'];
+        /** @var \Nami\Finance\Models\Constraint|null $invoiceConstraint */
+        $invoiceConstraint = $result['invoice_constraint'];
+        /** @var \Nami\Finance\Models\Bond|null $receiptBond */
+        $receiptBond = $result['receipt_bond'];
+
         return response()->json([
             'success' => true,
             'message' => 'تم إصدار الفاتورة بنجاح',
@@ -279,6 +295,9 @@ class InvoiceController extends Controller
             'redirect' => route('invoices.show', $invoice->id),
             'view_url' => route('invoices.show', $invoice->id),
             'print_url' => route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1]),
+            'invoice_constraint_print_url' => $invoiceConstraint ? $this->buildConstraintPrintUrl($invoiceConstraint->id) : null,
+            'receipt_bond_print_url' => $receiptBond ? $this->buildReceiptBondPrintUrl($receiptBond->id) : null,
+            'receipt_constraint_print_url' => ($receiptBond && $receiptBond->constraint_id) ? $this->buildConstraintPrintUrl((int) $receiptBond->constraint_id) : null,
             'index_url' => route('invoices.index'),
             'create_url' => route('invoices.create'),
         ]);
@@ -291,11 +310,11 @@ class InvoiceController extends Controller
         int $nationalityAccountId,
         int $clientAccountId,
         int $costCenterId
-    ): void
+    ): ?Constraint
     {
         $amounts = $this->buildInvoiceFinanceBreakdown($invoice);
         if ($amounts['total_due'] <= 0) {
-            return;
+            return null;
         }
 
         $date = $invoice->created_at ? $invoice->created_at->toDateString() : now()->toDateString();
@@ -348,7 +367,7 @@ class InvoiceController extends Controller
         }
 
         if (empty($lines)) {
-            return;
+            return null;
         }
 
         $data = [
@@ -368,6 +387,8 @@ class InvoiceController extends Controller
         $storeConstraint = $service->storeConstraint($data, $activeYear);
         $service->storeConstraintDetails($data['account_id'], $storeConstraint->id, $data);
         $service->storeFiles($storeConstraint, $data);
+
+        return $storeConstraint;
     }
 
     private function storeReceiptBondForInvoice(
@@ -376,7 +397,7 @@ class InvoiceController extends Controller
         YearService $yearService,
         int $clientAccountId,
         int $musanedAccountId
-    ): void
+    ): Bond
     {
         $date = $invoice->created_at ? $invoice->created_at->toDateString() : now()->toDateString();
         if (!$yearService->checkDateRange($date)) {
@@ -403,6 +424,8 @@ class InvoiceController extends Controller
         if ((int) $bond->is_confirm !== 1 || !$bond->constraint_id) {
             $bondService->confirmBond($bond->id);
         }
+
+        return $bond->fresh();
     }
 
     /**
@@ -773,7 +796,7 @@ class InvoiceController extends Controller
             ?? $invoice->contract?->msaned_number
             ?? '-';
 
-        return "قيد فاتورة العقد #{$contractId} / الفاتورة #{$invoice->id} / مساند {$msanedNumber}";
+        return "قيد فاتورة طلب استقدام للعقد #{$contractId} / الفاتورة #{$invoice->id} / مساند {$msanedNumber}";
     }
 
     private function buildInvoiceReceiptStatement(Invoice $invoice): string
@@ -783,7 +806,23 @@ class InvoiceController extends Controller
             ?? $invoice->contract?->msaned_number
             ?? '-';
 
-        return "سند قبض فاتورة العقد #{$contractId} / الفاتورة #{$invoice->id} / مساند {$msanedNumber}";
+        return "سند قبض سداد فاتورة طلب استقدام للعقد #{$contractId} / الفاتورة #{$invoice->id} / إلى حساب مساند الوسيط / مساند {$msanedNumber}";
+    }
+
+    private function buildConstraintPrintUrl(int $constraintId): string
+    {
+        return route('finance.add-constraint.show', [
+            'add_constraint' => $constraintId,
+            'autoprint' => 1,
+        ]);
+    }
+
+    private function buildReceiptBondPrintUrl(int $bondId): string
+    {
+        return route('finance.bonds-print.show', [
+            'bonds_print' => $bondId,
+            'type' => 'qabd',
+        ]);
     }
 
     private function resolveRevenueTaxAccountId(): ?int

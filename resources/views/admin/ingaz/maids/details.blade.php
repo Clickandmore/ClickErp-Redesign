@@ -151,10 +151,23 @@
                         </div>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
-                        <a href="{{ route('maids.index') }}" class="btn btn-outline-secondary">
+                        <a href="{{ $backToListRoute ?? route('maids.index') }}" class="btn btn-outline-secondary">
                             <i
                                 class="fas fa-arrow-right {{ app()->getLocale() === 'ar' ? '' : 'me-1' }}"></i>{{ helperTrans('ingaz.back_to_list') }}
                         </a>
+                        @if ($isRentalMaid && Route::has('hr.maids.employ') && (!$hrEmployeeRecord || $hrEmployeeRecord->employee_category !== \Nami\Hr\Models\Employee::CATEGORY_EMPLOYEE))
+                            <form method="POST" action="{{ route('hr.maids.employ', $maid->id) }}">
+                                @csrf
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-user-plus me-1"></i>توظيف العاملة
+                                </button>
+                            </form>
+                        @endif
+                        @if ($hrEmployeeRecord && $hrEmployeeRecord->employee_category === \Nami\Hr\Models\Employee::CATEGORY_EMPLOYEE && Route::has('employees.edit'))
+                            <a href="{{ route('employees.edit', $hrEmployeeRecord->id) }}" class="btn btn-outline-success">
+                                <i class="fas fa-id-badge me-1"></i>ملف الموظفة
+                            </a>
+                        @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT))
                             <a href="{{ route('maids.edit', $maid->id) }}" class="btn btn-primary">
                                 <i class="fas fa-edit me-1"></i>{{ helperTrans('ingaz.edit_maid') }}
@@ -332,6 +345,74 @@
                         </div>
                     </div>
 
+                    @if ($isRentalMaid)
+                        <div class="card maid-card">
+                            <div class="card-body">
+                                <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                                    <i class="fas fa-wallet text-success"></i>البنود المالية
+                                </h5>
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-4">
+                                        <div class="border rounded-3 p-3 h-100">
+                                            <div class="text-muted small">إجمالي الإيرادات</div>
+                                            <div class="fw-bold text-success">{{ number_format($rentalFinanceSummary['income'] ?? 0, 2) }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="border rounded-3 p-3 h-100">
+                                            <div class="text-muted small">إجمالي المصروفات</div>
+                                            <div class="fw-bold text-danger">{{ number_format($rentalFinanceSummary['expense'] ?? 0, 2) }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="border rounded-3 p-3 h-100">
+                                            <div class="text-muted small">الصافي</div>
+                                            <div class="fw-bold {{ ($rentalFinanceSummary['net'] ?? 0) >= 0 ? 'text-primary' : 'text-danger' }}">
+                                                {{ number_format($rentalFinanceSummary['net'] ?? 0, 2) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 18%;">النوع</th>
+                                                <th>البند</th>
+                                                <th style="width: 20%;">المبلغ</th>
+                                                <th style="width: 22%;">الحالة</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @forelse($rentalFinanceItems as $item)
+                                                <tr>
+                                                    <td>
+                                                        <span class="badge {{ $item->type === 'income' ? 'bg-success' : 'bg-danger' }}">
+                                                            {{ $item->type === 'income' ? 'إيراد' : 'مصروف' }}
+                                                        </span>
+                                                    </td>
+                                                    <td>{{ $item->label ?? '-' }}</td>
+                                                    <td>{{ number_format((float) $item->amount, 2) }}</td>
+                                                    <td>
+                                                        @if ($item->settled_at)
+                                                            <span class="badge bg-info text-dark">مسكن {{ $item->settled_at->format('Y-m-d H:i') }}</span>
+                                                        @else
+                                                            <span class="badge bg-secondary">غير مسكن</span>
+                                                        @endif
+                                                    </td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="4" class="text-center text-muted">لا توجد بنود مالية مسجلة</td>
+                                                </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="card maid-card">
                         <div class="card-body">
                             <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
@@ -427,6 +508,61 @@
                     <div class="card maid-card">
                         <div class="card-body">
                             <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                                <i class="fas fa-id-badge text-primary"></i>سجل الموارد البشرية
+                            </h5>
+                            @if ($hrEmployeeRecord)
+                                <div class="d-flex flex-column gap-2">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">الحالة الحالية</span>
+                                        <span class="fw-semibold">
+                                            {{ $hrEmployeeRecord->employee_category === \Nami\Hr\Models\Employee::CATEGORY_EMPLOYEE ? 'موظفة بالشركة' : 'عاملة إيجار داخل HR' }}
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">الكود</span>
+                                        <span class="fw-semibold">{{ $hrEmployeeRecord->code ?? '-' }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">القسم</span>
+                                        <span class="fw-semibold">{{ $hrEmployeeRecord->departments?->title ?? '-' }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">الوظيفة</span>
+                                        <span class="fw-semibold">{{ $hrEmployeeRecord->jobs?->title ?? '-' }}</span>
+                                    </div>
+                                </div>
+                                <div class="d-flex flex-wrap gap-2 mt-3">
+                                    @if ($hrEmployeeRecord->employee_category !== \Nami\Hr\Models\Employee::CATEGORY_EMPLOYEE && Route::has('hr.maids.employ'))
+                                        <form method="POST" action="{{ route('hr.maids.employ', $maid->id) }}">
+                                            @csrf
+                                            <button type="submit" class="btn btn-success btn-sm">
+                                                <i class="fas fa-user-plus me-1"></i>توظيف العاملة
+                                            </button>
+                                        </form>
+                                    @endif
+                                    @if ($hrEmployeeRecord->employee_category === \Nami\Hr\Models\Employee::CATEGORY_EMPLOYEE && Route::has('employees.edit'))
+                                        <a href="{{ route('employees.edit', $hrEmployeeRecord->id) }}" class="btn btn-outline-success btn-sm">
+                                            <i class="fas fa-pen me-1"></i>تعديل بيانات الموظفة
+                                        </a>
+                                    @endif
+                                </div>
+                            @else
+                                <p class="text-muted mb-3">لا يوجد سجل HR مرتبط بهذه العاملة حتى الآن.</p>
+                                @if ($isRentalMaid && Route::has('hr.maids.employ'))
+                                    <form method="POST" action="{{ route('hr.maids.employ', $maid->id) }}">
+                                        @csrf
+                                        <button type="submit" class="btn btn-success btn-sm">
+                                            <i class="fas fa-user-plus me-1"></i>إنشاء سجل HR وتوظيف العاملة
+                                        </button>
+                                    </form>
+                                @endif
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="card maid-card">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
                                 <i
                                     class="fas fa-user-shield text-success"></i>{{ helperTrans('ingaz.availability_information') }}
                             </h5>
@@ -479,7 +615,7 @@
                             @if (!empty($skills))
                                 <div class="d-flex flex-wrap gap-2">
                                     @foreach ($skills as $skill)
-                                        <span class="badge bg-light text-muted border">{{ $skill->name }}</span>
+                                        <span class="badge bg-light text-muted border">{{ is_string($skill) ? $skill : ($skill->name ?? '-') }}</span>
                                     @endforeach
                                 </div>
                             @else

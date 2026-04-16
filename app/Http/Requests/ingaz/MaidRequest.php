@@ -56,6 +56,7 @@ class MaidRequest extends MainRequest
             'rental_finance_items.*.type' => 'nullable|in:income,expense',
             'rental_finance_items.*.label' => 'nullable|string|max:150',
             'rental_finance_items.*.amount' => 'nullable|numeric|min:0',
+            'rental_finance_items_confirmed' => 'nullable|boolean',
             'request_type' => 'nullable|in:known,specific,custom_spec',
             'offer_price' => 'nullable|numeric|min:0',
             'offer_duration' => 'nullable|string|max:255',
@@ -99,5 +100,31 @@ class MaidRequest extends MainRequest
             'arrival_date.required' => 'تاريخ وصول العاملة مطلوب',
             'arrival_date.date' => 'تاريخ وصول العاملة يجب أن يكون تاريخاً صالحاً',
         ];
+    }
+
+    public function withValidator($validator)
+    {
+        $validator->after(function ($validator) {
+            $typeId = (int) $this->input('type_id');
+            if ($typeId <= 0) {
+                return;
+            }
+
+            $jobType = \App\Models\ingaz\JobType::find($typeId);
+            $title = mb_strtolower(trim((string) ($jobType?->title ?? '')));
+            $normalizedTitle = str_replace(['أ', 'إ', 'آ'], 'ا', $title);
+
+            $isRentalType = $typeId === 2
+                || str_contains($normalizedTitle, 'ايجار')
+                || str_contains($normalizedTitle, 'تاجير')
+                || str_contains($normalizedTitle, 'rent');
+
+            if ($isRentalType && !$this->boolean('rental_finance_items_confirmed')) {
+                $validator->errors()->add(
+                    'rental_finance_items_confirmed',
+                    'يرجى تأكيد بنود التأجير من النافذة المنبثقة قبل حفظ العاملة'
+                );
+            }
+        });
     }
 }

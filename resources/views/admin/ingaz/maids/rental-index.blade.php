@@ -19,6 +19,10 @@
         'undecided' => 0,
     ];
     $rentalTypeId = $rentalTypeId ?? null;
+    $visibleDefaultFilters = collect($defaultFilters)
+        ->except(['job_type'])
+        ->filter(fn($value) => !is_null($value) && $value !== '');
+    $hasActiveFilters = $visibleDefaultFilters->isNotEmpty();
 @endphp
 
 @section('style')
@@ -87,6 +91,14 @@
         .rental-page .table img {
             max-width: 100%;
             height: auto;
+        }
+
+        .rental-page .finance-summary {
+            min-width: 150px;
+        }
+
+        .rental-page .filter-toggle {
+            min-width: 150px;
         }
 
         @media (max-width: 768px) {
@@ -243,13 +255,25 @@
             </div>
 
             <div class="card filter-card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
                         <h6 class="m-0 fw-bold"><i class="fas fa-filter me-2"></i>{{ helperTrans('admin.filters') }}</h6>
                         <small class="text-muted">تخصيص النتائج طبقاً للمعايير المطلوبة</small>
                     </div>
+                    <div class="d-flex align-items-center gap-2">
+                        @if ($hasActiveFilters)
+                            <span class="badge bg-primary-subtle text-primary">الفلاتر النشطة: {{ $visibleDefaultFilters->count() }}</span>
+                        @endif
+                        <button class="btn btn-outline-primary btn-sm filter-toggle" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#rentalFilterCollapse" aria-expanded="{{ $hasActiveFilters ? 'true' : 'false' }}"
+                            aria-controls="rentalFilterCollapse">
+                            <i class="fas {{ $hasActiveFilters ? 'fa-chevron-up' : 'fa-chevron-down' }} me-1 filter-toggle-icon"></i>
+                            <span class="filter-toggle-text">{{ $hasActiveFilters ? 'إخفاء الفلتر' : 'إظهار الفلتر' }}</span>
+                        </button>
+                    </div>
                 </div>
-                <div class="card-body">
+                <div id="rentalFilterCollapse" class="collapse {{ $hasActiveFilters ? 'show' : '' }}">
+                    <div class="card-body">
                     <form id="filterForm">
                         <div class="row align-items-end">
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
@@ -326,6 +350,7 @@
                         </div>
                     </form>
                 </div>
+                </div>
             </div>
 
             <div class="table-responsive">
@@ -334,11 +359,13 @@
                         <tr>
                             <th class="d-none d-md-table-cell">ID</th>
                             <th>{{ helperTrans('ingaz.cv_file') }}</th>
+                            <th>{{ helperTrans('ingaz.name') }}</th>
                             <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.nationality_id') }}</th>
                             <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.job_type') }}</th>
                             <th>{{ helperTrans('ingaz.passport_num') }}</th>
                             <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.price') }}</th>
                             <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.salary') }}</th>
+                            <th>البنود المالية</th>
                             <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.religion_id') }}</th>
                             <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.age') }}</th>
                             <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.maidContractRemaining') }}</th>
@@ -351,6 +378,40 @@
                     </thead>
                     <tbody></tbody>
                 </table>
+            </div>
+
+            <div class="modal fade" id="rentalFinanceItemsModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">البنود المالية لعاملة الإيجار</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <div class="fw-semibold" id="rentalFinanceItemsTitle">-</div>
+                                <div class="text-muted small" id="rentalFinanceItemsStats">-</div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 16%;">النوع</th>
+                                            <th>البند</th>
+                                            <th style="width: 20%;">المبلغ</th>
+                                            <th style="width: 22%;">الحالة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="rentalFinanceItemsTableBody">
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted">لا توجد بنود مالية</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     @else
@@ -368,15 +429,21 @@
             const enforcedFiltersConfig = @json($enforcedFilters);
 
             let currentRentalStat = defaultFiltersConfig.rental_stat || '';
+            const rentalFinanceItemsModalElement = document.getElementById('rentalFinanceItemsModal');
+            const rentalFinanceItemsModal = rentalFinanceItemsModalElement && window.bootstrap
+                ? new bootstrap.Modal(rentalFinanceItemsModalElement)
+                : null;
 
             const columns = [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'd-none d-md-table-cell' },
                 { data: 'cv_file', orderable: false, searchable: false },
+                { data: 'name', orderable: false, searchable: false },
                 { data: 'nationality_id', orderable: false, searchable: false, className: 'd-none d-lg-table-cell' },
                 { data: 'job_type', orderable: false, searchable: false, className: 'd-none d-lg-table-cell' },
                 { data: 'passport_num', orderable: false, searchable: false },
                 { data: 'price', orderable: false, searchable: false, className: 'd-none d-md-table-cell' },
                 { data: 'salary', orderable: false, searchable: false, className: 'd-none d-md-table-cell' },
+                { data: 'financial_items', orderable: false, searchable: false },
                 { data: 'religion_id', orderable: false, searchable: false, className: 'd-none d-lg-table-cell' },
                 { data: 'age', orderable: false, searchable: false, className: 'd-none d-md-table-cell' },
                 { data: 'maidContractRemaining', orderable: false, searchable: false, className: 'd-none d-lg-table-cell' },
@@ -464,6 +531,15 @@
                 }]
             });
 
+            function updateFilterToggleState() {
+                const collapseElement = document.getElementById('rentalFilterCollapse');
+                const isExpanded = collapseElement && collapseElement.classList.contains('show');
+                $('.filter-toggle-icon')
+                    .toggleClass('fa-chevron-up', isExpanded)
+                    .toggleClass('fa-chevron-down', !isExpanded);
+                $('.filter-toggle-text').text(isExpanded ? 'إخفاء الفلتر' : 'إظهار الفلتر');
+            }
+
             $('#filterForm').on('submit', function(e) {
                 e.preventDefault();
 
@@ -500,6 +576,63 @@
                 $('#filterForm').trigger('submit');
             });
 
+            $(document).on('click', '.rental-finance-view', function() {
+                const maidName = $(this).data('maid-name') || 'عاملة إيجار';
+                const rawItems = $(this).attr('data-items') || '[]';
+                let items = [];
+
+                try {
+                    items = JSON.parse(rawItems);
+                } catch (error) {
+                    items = [];
+                }
+
+                const tbody = $('#rentalFinanceItemsTableBody');
+                const expenseTotal = items
+                    .filter(item => item.type === 'expense')
+                    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+                const incomeTotal = items
+                    .filter(item => item.type === 'income')
+                    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+                $('#rentalFinanceItemsTitle').text(maidName);
+                $('#rentalFinanceItemsStats').text(
+                    `عدد البنود: ${items.length} | إجمالي المصروف: ${expenseTotal.toFixed(2)} | إجمالي الإيراد: ${incomeTotal.toFixed(2)}`
+                );
+
+                if (!items.length) {
+                    tbody.html('<tr><td colspan="4" class="text-center text-muted">لا توجد بنود مالية</td></tr>');
+                } else {
+                    const rows = items.map(item => {
+                        const typeLabel = item.type === 'income'
+                            ? '<span class="badge bg-success">إيراد</span>'
+                            : '<span class="badge bg-danger">مصروف</span>';
+                        const settledLabel = item.settled_at
+                            ? `<span class="badge bg-info text-dark">مسكن ${item.settled_at}</span>`
+                            : '<span class="badge bg-secondary">غير مسكن</span>';
+
+                        return `
+                            <tr>
+                                <td>${typeLabel}</td>
+                                <td>${item.label || '-'}</td>
+                                <td>${Number(item.amount || 0).toFixed(2)}</td>
+                                <td>${settledLabel}</td>
+                            </tr>
+                        `;
+                    }).join('');
+
+                    tbody.html(rows);
+                }
+
+                if (rentalFinanceItemsModal) {
+                    rentalFinanceItemsModal.show();
+                }
+            });
+
+            $('#rentalFilterCollapse').on('shown.bs.collapse hidden.bs.collapse', function() {
+                updateFilterToggleState();
+            });
+
             if (initialFilters.rental_stat) {
                 setActiveRentalStat(initialFilters.rental_stat);
             } else if (initialFilters.cv_status === 'available' || initialFilters.cv_status === 'reserved') {
@@ -507,6 +640,8 @@
             } else {
                 setActiveRentalStat('total');
             }
+
+            updateFilterToggleState();
         });
     </script>
 @endsection

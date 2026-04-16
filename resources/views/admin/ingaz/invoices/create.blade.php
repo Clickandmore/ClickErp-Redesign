@@ -744,6 +744,21 @@
                                             <i class="fas fa-print me-1"></i>
                                             طباعة الفاتورة
                                         </a>
+                                        <a href="#" class="btn btn-outline-dark d-none js-post-save-link" id="printInvoiceConstraintBtn"
+                                            target="_blank" rel="noopener">
+                                            <i class="fas fa-book-open me-1"></i>
+                                            طباعة قيد الفاتورة
+                                        </a>
+                                        <a href="#" class="btn btn-outline-primary d-none js-post-save-link" id="printReceiptBondBtn"
+                                            target="_blank" rel="noopener">
+                                            <i class="fas fa-receipt me-1"></i>
+                                            طباعة سند القبض
+                                        </a>
+                                        <a href="#" class="btn btn-outline-dark d-none js-post-save-link" id="printReceiptConstraintBtn"
+                                            target="_blank" rel="noopener">
+                                            <i class="fas fa-file-invoice-dollar me-1"></i>
+                                            طباعة قيد سند القبض
+                                        </a>
                                         <a href="{{ route('invoices.create') }}" class="btn btn-outline-success"
                                             id="addAnotherInvoiceBtn">
                                             <i class="fas fa-plus me-1"></i>
@@ -878,6 +893,15 @@
             function revealPostSaveActions(response) {
                 $('#viewInvoiceBtn').attr('href', response.view_url || response.redirect || '#');
                 $('#printInvoiceBtn').attr('href', response.print_url || '#');
+                $('#printInvoiceConstraintBtn')
+                    .attr('href', response.invoice_constraint_print_url || '#')
+                    .toggleClass('d-none', !response.invoice_constraint_print_url);
+                $('#printReceiptBondBtn')
+                    .attr('href', response.receipt_bond_print_url || '#')
+                    .toggleClass('d-none', !response.receipt_bond_print_url);
+                $('#printReceiptConstraintBtn')
+                    .attr('href', response.receipt_constraint_print_url || '#')
+                    .toggleClass('d-none', !response.receipt_constraint_print_url);
                 $('#addAnotherInvoiceBtn').attr('href', response.create_url || "{{ route('invoices.create') }}");
                 $('#allInvoicesBtn').attr('href', response.index_url || "{{ route('invoices.index') }}");
                 $('#postSaveActions').removeClass('d-none');

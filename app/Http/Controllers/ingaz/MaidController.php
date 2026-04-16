@@ -532,9 +532,20 @@ class MaidController extends Controller
 
         if ($request->ajax()) {
             $rows = objModel::query()
-                ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders'])
+                ->with([
+                    'nationality',
+                    'religion',
+                    'jobTypes',
+                    'contracts',
+                    'orders',
+                    'rentalFinancialAdjustments' => function ($query) {
+                        $query->where('context', 'maid')
+                            ->select(['id', 'maid_id', 'type', 'label', 'amount', 'settled_at']);
+                    },
+                ])
                 ->select([
                     'id',
+                    'name',
                     'image',
                     'cv_file',
                     'cv_preview',
@@ -568,11 +579,45 @@ class MaidController extends Controller
                         . '<img src="' . $imageUrl . '" alt="maid-preview" class="border rounded-circle" style="width:120px;height:120px;object-fit:cover;">'
                         . '</a>';
                 })
+                ->addColumn('name', function (Maid $row) {
+                    $name = e($row->name ?: 'عاملة #' . $row->id);
+                    $passport = e($row->passport_num ?: '-');
+
+                    return '<div class="d-flex flex-column gap-1">'
+                        . '<a href="' . route('showMaidDetails', $row->id) . '" class="fw-semibold text-decoration-none">' . $name . '</a>'
+                        . '<span class="small text-muted">جواز: ' . $passport . '</span>'
+                        . '</div>';
+                })
                 ->editColumn('nationality_id', fn(Maid $row) => e($row->nationality?->sub_title ?? '-'))
                 ->addColumn('job_type', fn(Maid $row) => e($row->jobTypes->pluck('title')->filter()->implode(', ') ?: '-'))
                 ->editColumn('passport_num', fn(Maid $row) => e($row->passport_num ?? '-'))
                 ->editColumn('price', fn(Maid $row) => $row->resolved_price !== null ? number_format((float) $row->resolved_price, 2) : '-')
                 ->editColumn('salary', fn(Maid $row) => $row->resolved_salary !== null ? number_format((float) $row->resolved_salary, 2) : '-')
+                ->addColumn('financial_items', function (Maid $row) {
+                    $items = $row->rentalFinancialAdjustments->map(function ($item) {
+                        return [
+                            'type' => $item->type,
+                            'label' => $item->label,
+                            'amount' => (float) $item->amount,
+                            'settled_at' => optional($item->settled_at)->format('Y-m-d H:i'),
+                        ];
+                    })->values();
+
+                    if ($items->isEmpty()) {
+                        return '<span class="text-muted">لا توجد بنود</span>';
+                    }
+
+                    $expenseTotal = $items->where('type', 'expense')->sum('amount');
+                    $incomeTotal = $items->where('type', 'income')->sum('amount');
+
+                    return '<button type="button" class="btn btn-sm btn-outline-info rental-finance-view"'
+                        . ' data-maid-name="' . e($row->name ?: ('عاملة #' . $row->id)) . '"'
+                        . ' data-items="' . e($items->toJson(JSON_UNESCAPED_UNICODE)) . '">'
+                        . '<i class="fa fa-wallet"></i> ' . $items->count() . ' بنود'
+                        . '</button>'
+                        . '<div class="small text-muted mt-1">مصروف: ' . number_format((float) $expenseTotal, 2) . '</div>'
+                        . '<div class="small text-muted">إيراد: ' . number_format((float) $incomeTotal, 2) . '</div>';
+                })
                 ->editColumn('religion_id', fn(Maid $row) => e($row->religion?->title ?? '-'))
                 ->editColumn('age', fn(Maid $row) => $row->age ?: '-')
                 ->addColumn('maidContractRemaining', function (Maid $row) {
@@ -627,7 +672,7 @@ class MaidController extends Controller
 
                     return implode(' ', array_filter($actions)) ?: '<span class="text-muted">-</span>';
                 })
-                ->rawColumns(['cv_file', 'is_show', 'is_pinned', 'cv_status', 'actions'])
+                ->rawColumns(['cv_file', 'name', 'financial_items', 'is_show', 'is_pinned', 'cv_status', 'actions'])
                 ->make(true);
         }
 
@@ -887,7 +932,7 @@ class MaidController extends Controller
         return view($this->folderPath . '.cvs_deleted', $data, compact('filter', 'request'));
     }
 
-    public function showMaidDetails($id)
+    public function showMaidDetails($id, objAction $action)
     {
         $maid = objModel::withTrashed()->with([
             'nationality',
@@ -903,7 +948,12 @@ class MaidController extends Controller
             'orders.contracts',
             'expertises.country',
             'expertises.jobTitle',
+            'rentalFinancialAdjustments' => function ($query) {
+                $query->where('context', 'maid')->latest();
+            },
         ])->findOrFail($id);
+
+        $action->syncRentalMaidToHrRecord($maid);
 
         $skills = [];
         $skillsRaw = $maid->skills;
@@ -975,6 +1025,26 @@ class MaidController extends Controller
 
         $orders = $maid->orders->sortByDesc('created_at');
         $contracts = $maid->contracts->sortByDesc('created_at');
+        $rentalFinanceItems = $maid->rentalFinancialAdjustments->values();
+        $rentalFinanceSummary = [
+            'income' => (float) $rentalFinanceItems->where('type', 'income')->sum('amount'),
+            'expense' => (float) $rentalFinanceItems->where('type', 'expense')->sum('amount'),
+            'net' => (float) $rentalFinanceItems->where('type', 'income')->sum('amount')
+                - (float) $rentalFinanceItems->where('type', 'expense')->sum('amount'),
+        ];
+        $isRentalMaid = $this->isRentalMaid($maid);
+        $backToListRoute = $isRentalMaid ? route('maids.rental.index') : route('maids.index');
+        $hrEmployeeRecord = null;
+
+        if (class_exists(\Nami\Hr\Models\Employee::class)
+            && \Illuminate\Support\Facades\Schema::hasTable('hr_employee')
+            && \Nami\Hr\Models\Employee::hasEmployeeCategoryColumn()) {
+            $hrEmployeeRecord = \Nami\Hr\Models\Employee::query()
+                ->withAllCategories()
+                ->with(['departments', 'jobs'])
+                ->where('maid_id', $maid->id)
+                ->first();
+        }
 
         $stats = [
             'orders_total' => $orders->count(),
@@ -1016,7 +1086,12 @@ class MaidController extends Controller
             'languagePercentages',
             'stats',
             'availability',
-            'activities'
+            'activities',
+            'rentalFinanceItems',
+            'rentalFinanceSummary',
+            'isRentalMaid',
+            'backToListRoute',
+            'hrEmployeeRecord'
         ));
     }
 
@@ -1090,7 +1165,7 @@ class MaidController extends Controller
                     'defaultShelterContract' => '0',
                     'defaultIsShow' => true,
                     'isRentalForm' => true,
-                    'formRedirectRoute' => route('maids.rental.index'),
+                    'formRedirectRoute' => route('maids.index'),
                     'requireIdFields' => true,
                 ]
             );
@@ -1107,7 +1182,7 @@ class MaidController extends Controller
         $defaultShelterContract = '0';
         $defaultIsShow = true;
         $isRentalForm = true;
-        $formRedirectRoute = route('maids.rental.index');
+        $formRedirectRoute = route('maids.index');
         $requireIdFields = true;
 
         return view(
@@ -1839,6 +1914,22 @@ class MaidController extends Controller
     private function getRentalJobTypeId(): ?int
     {
         return $this->findJobTypeIdByKeywords(['ايجار', 'إيجار', 'تأجير', 'rent']) ?? 2;
+    }
+
+    private function isRentalMaid(Maid $maid): bool
+    {
+        $rentalTypeId = $this->getRentalJobTypeId();
+
+        if (!$rentalTypeId) {
+            return false;
+        }
+
+        $maid->loadMissing('jobTypes');
+
+        return $maid->jobTypes
+            ->pluck('id')
+            ->map(fn($id) => (int) $id)
+            ->contains($rentalTypeId);
     }
 
     private function findJobTypeIdByKeywords(array $keywords): ?int

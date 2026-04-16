@@ -31,6 +31,13 @@
     </a>
 </li>
 <li>
+    <a class="m-link {{ request()->routeIs('hr.maids.*') ? 'active' : '' }}"
+       href="{{ route('hr.maids.index') }}">
+        <i class="fas fa-user-nurse"></i>
+        <span class="ms-2">{{ __('hr::hr.maids') }}</span>
+    </a>
+</li>
+<li>
     <a class="m-link {{ request()->routeIs('employeeVacations.*') ? 'active' : '' }}"
        href="{{ route('employeeVacations.index') }}">
         <i class="fas fa-plane"></i>
