@@ -13,6 +13,7 @@ use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Religion;
 use App\Models\ingaz\ReligionsTranslation;
 use App\Models\ingaz\User;
+use App\Models\office\Office as RecruitmentOffice;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -104,6 +105,19 @@ class IngazDelegationController extends Controller
 
                     return '<span class="badge bg-' . $class . '">' . $label . '</span>';
                 })
+                ->addColumn('status_control', function (IngazDelegation $row) {
+                    $options = collect(IngazDelegation::statusOptions())->map(function ($label, $value) use ($row) {
+                        $selected = $row->status === $value ? 'selected' : '';
+
+                        return '<option value="' . e($value) . '" ' . $selected . '>' . e($label) . '</option>';
+                    })->implode('');
+
+                    return '
+                        <select class="form-select form-select-sm delegation-status-select" data-url="' . e(route('ingaz-delegations.update-status', $row)) . '">
+                            ' . $options . '
+                        </select>
+                    ';
+                })
                 ->addColumn('print_action', function (IngazDelegation $row) {
                     return '<a href="' . route('ingaz-delegations.print', $row) . '" target="_blank" class="btn btn-sm btn-outline-dark"><i class="fa fa-print"></i></a>';
                 })
@@ -125,7 +139,7 @@ class IngazDelegationController extends Controller
                         </div>
                     ';
                 })
-                ->rawColumns(['client', 'invoice', 'status', 'print_action', 'actions'])
+                ->rawColumns(['client', 'invoice', 'status', 'status_control', 'print_action', 'actions'])
                 ->make(true);
         }
 
@@ -238,11 +252,31 @@ class IngazDelegationController extends Controller
         ]);
     }
 
+    public function updateStatus(Request $request, IngazDelegation $ingazDelegation): JsonResponse
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'in:' . implode(',', array_keys(IngazDelegation::statusOptions()))],
+        ]);
+
+        $ingazDelegation->update([
+            'status' => $validated['status'],
+        ]);
+
+        return response()->json([
+            'message' => 'تم تحديث حالة التفويض بنجاح.',
+            'status' => $ingazDelegation->status,
+            'status_label' => $ingazDelegation->status_label,
+        ]);
+    }
+
     private function formData(): array
     {
         return [
             'nationalities' => Nationality::query()->orderByTranslation('sub_title', 'asc')->get(['id']),
             'professions' => JobTitle::with('translations')->orderByTranslation('title', 'asc')->get(['id']),
+            'recruitmentOffices' => RecruitmentOffice::query()
+                ->orderByTranslation('title', 'asc')
+                ->get(['id', 'license_number', 'phone_office', 'street']),
             'existingUsers' => User::query()
                 ->orderBy('name')
                 ->get(['id', 'name', 'phone_code', 'phone', 'national_num', 'address']),
@@ -308,6 +342,7 @@ class IngazDelegationController extends Controller
             'external_office_license_number' => $request->external_office_license_number,
             'external_office_address' => $request->external_office_address,
             'external_office_phone' => $request->external_office_phone,
+            'status' => $delegation?->status ?? IngazDelegation::STATUS_UNDER_PROCESS,
             'ingaz_number' => $request->ingaz_number,
             'msaned_contract_number' => $request->msaned_contract_number,
             'notes' => $request->notes,

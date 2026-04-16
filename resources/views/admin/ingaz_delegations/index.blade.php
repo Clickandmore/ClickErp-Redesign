@@ -115,7 +115,7 @@
                     { data: 'nationality_name', name: 'nationality_name', orderable: false, searchable: false },
                     { data: 'profession_name', name: 'profession_name', orderable: false, searchable: false },
                     { data: 'invoice', name: 'invoice', orderable: false, searchable: false },
-                    { data: 'status', name: 'status', orderable: false, searchable: false },
+                    { data: 'status_control', name: 'status', orderable: false, searchable: false },
                     { data: 'print_action', name: 'print_action', orderable: false, searchable: false },
                     { data: 'actions', name: 'actions', orderable: false, searchable: false }
                 ],
@@ -127,6 +127,40 @@
             $('#delegations-filter-form').on('submit', function (event) {
                 event.preventDefault();
                 table.ajax.reload();
+            });
+
+            $(document).on('focus', '.delegation-status-select', function () {
+                $(this).data('previous', $(this).val());
+            });
+
+            $(document).on('change', '.delegation-status-select', function () {
+                const $select = $(this);
+                const previousValue = $select.data('previous') ?? $select.val();
+
+                $.ajax({
+                    url: $select.data('url'),
+                    type: 'PATCH',
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        status: $select.val()
+                    },
+                    success: function (response) {
+                        $select.data('previous', $select.val());
+
+                        if (typeof successToster === 'function') {
+                            successToster('تم بنجاح', response.message || 'تم تحديث الحالة بنجاح');
+                        }
+
+                        table.ajax.reload(null, false);
+                    },
+                    error: function (xhr) {
+                        $select.val(previousValue);
+
+                        if (typeof errorToster === 'function') {
+                            errorToster('حدث خطأ', xhr.responseJSON?.message || 'تعذر تحديث الحالة');
+                        }
+                    }
+                });
             });
         });
     </script>

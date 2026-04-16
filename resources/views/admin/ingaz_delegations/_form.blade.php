@@ -10,6 +10,21 @@
     $selectedWorkerReligion = old('worker_religion', $delegation->worker_religion ?? 'unspecified');
     $selectedWorkerExperience = old('worker_experience', $delegation->worker_experience ?? 'unspecified');
     $selectedMarketerId = old('marketer_id', $delegation->marketer_id ?? null);
+    $selectedExternalOfficeId = old('existing_external_office_id');
+
+    if ($selectedExternalOfficeId === null && isset($recruitmentOffices)) {
+        $matchedOffice = $recruitmentOffices->first(function ($office) use ($delegation) {
+            if (!$delegation) {
+                return false;
+            }
+
+            return filled($delegation->external_office_license_number)
+                ? (string) $office->license_number === (string) $delegation->external_office_license_number
+                : (string) $office->title === (string) $delegation->external_office_name;
+        });
+
+        $selectedExternalOfficeId = $matchedOffice?->id;
+    }
 @endphp
 
 <div class="row g-4">
@@ -20,6 +35,25 @@
             </div>
             <div class="card-body">
                 <div class="row g-3">
+                    <div class="col-12 d-none">
+                        <label class="form-label">اختيار مكتب من النظام</label>
+                        <select id="existing_external_office_id" name="existing_external_office_id"
+                                class="form-select select2"
+                                data-placeholder="ابحث باسم المكتب أو رقم الترخيص">
+                            <option value="">إدخال يدوي أو اختيار مكتب موجود</option>
+                            @foreach ($recruitmentOffices ?? [] as $office)
+                                <option value="{{ $office->id }}"
+                                        data-name="{{ $office->title }}"
+                                        data-license="{{ $office->license_number }}"
+                                        data-address="{{ $office->street }}"
+                                        data-phone="{{ $office->phone_office }}"
+                                        {{ (string) $selectedExternalOfficeId === (string) $office->id ? 'selected' : '' }}>
+                                    {{ $office->title }}{{ $office->license_number ? ' - ترخيص: ' . $office->license_number : '' }}{{ $office->phone_office ? ' - هاتف: ' . $office->phone_office : '' }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <div class="form-text">إذا كان المكتب موجودًا في النظام سيتم تعبئة البيانات تلقائيًا، وإذا لم يكن موجودًا يمكنك إدخالها يدويًا في الحقول التالية.</div>
+                    </div>
                     <div class="col-md-6">
                         <label class="form-label">تاريخ تفويض الإنجاز (ميلادي) <span class="text-danger">*</span></label>
                         <input type="date" name="delegation_date_gregorian"
@@ -277,7 +311,7 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">اسم المكتب <span class="text-danger">*</span></label>
-                        <input type="text" name="external_office_name"
+                        <input type="text" name="external_office_name" id="external_office_name"
                                value="{{ old('external_office_name', $delegation->external_office_name ?? '') }}"
                                class="form-control @error('external_office_name') is-invalid @enderror">
                         @error('external_office_name')
@@ -286,7 +320,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">رقم ترخيص المكتب <span class="text-danger">*</span></label>
-                        <input type="text" name="external_office_license_number"
+                        <input type="text" name="external_office_license_number" id="external_office_license_number"
                                value="{{ old('external_office_license_number', $delegation->external_office_license_number ?? '') }}"
                                class="form-control @error('external_office_license_number') is-invalid @enderror">
                         @error('external_office_license_number')
@@ -295,7 +329,7 @@
                     </div>
                     <div class="col-md-8">
                         <label class="form-label">عنوان المكتب <span class="text-danger">*</span></label>
-                        <input type="text" name="external_office_address"
+                        <input type="text" name="external_office_address" id="external_office_address"
                                value="{{ old('external_office_address', $delegation->external_office_address ?? '') }}"
                                class="form-control @error('external_office_address') is-invalid @enderror">
                         @error('external_office_address')
@@ -304,7 +338,7 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">هاتف المكتب <span class="text-danger">*</span></label>
-                        <input type="text" name="external_office_phone"
+                        <input type="text" name="external_office_phone" id="external_office_phone"
                                value="{{ old('external_office_phone', $delegation->external_office_phone ?? '') }}"
                                class="form-control @error('external_office_phone') is-invalid @enderror">
                         @error('external_office_phone')
@@ -421,6 +455,13 @@
         const workerExperienceInput = document.getElementById('worker_experience');
         const maidLookupResult = document.getElementById('maid-lookup-result');
         const maidLookupRoute = @json($maidLookupRoute ?? null);
+        const externalOfficeSelect = document.getElementById('existing_external_office_id');
+        const externalOfficeNameInput = document.getElementById('external_office_name');
+        const externalOfficeLicenseInput = document.getElementById('external_office_license_number');
+        const externalOfficeAddressInput = document.getElementById('external_office_address');
+        const externalOfficePhoneInput = document.getElementById('external_office_phone');
+        const externalOfficePickerWrapper = externalOfficeSelect?.closest('.col-12');
+        const externalOfficeNameColumn = externalOfficeNameInput?.closest('.col-md-6');
 
         function updateClientSections() {
             const selected = document.querySelector('.client-source-toggle:checked')?.value || 'existing_in_program';
@@ -440,6 +481,43 @@
             previewBox.querySelector('[data-preview="phone"]').textContent = selectedOption?.dataset?.phone || '-';
             previewBox.querySelector('[data-preview="national"]').textContent = selectedOption?.dataset?.national || '-';
             previewBox.querySelector('[data-preview="address"]').textContent = selectedOption?.dataset?.address || '-';
+        }
+
+        function fillExternalOfficeFields() {
+            if (!externalOfficeSelect) {
+                return;
+            }
+
+            const selectedOption = externalOfficeSelect.options[externalOfficeSelect.selectedIndex];
+
+            if (!selectedOption || !selectedOption.value) {
+                return;
+            }
+
+            if (externalOfficeNameInput) {
+                externalOfficeNameInput.value = selectedOption.dataset.name || '';
+            }
+
+            if (externalOfficeLicenseInput) {
+                externalOfficeLicenseInput.value = selectedOption.dataset.license || '';
+            }
+
+            if (externalOfficeAddressInput) {
+                externalOfficeAddressInput.value = selectedOption.dataset.address || '';
+            }
+
+            if (externalOfficePhoneInput) {
+                externalOfficePhoneInput.value = selectedOption.dataset.phone || '';
+            }
+        }
+
+        function placeExternalOfficePicker() {
+            if (!externalOfficePickerWrapper || !externalOfficeNameColumn) {
+                return;
+            }
+
+            externalOfficePickerWrapper.classList.remove('d-none');
+            externalOfficeNameColumn.parentNode.insertBefore(externalOfficePickerWrapper, externalOfficeNameColumn);
         }
 
         function mapMaidReligion(religionText) {
@@ -502,11 +580,34 @@
             existingUserSelect.addEventListener('change', updateExistingPreview);
         }
 
+        placeExternalOfficePicker();
+
+        if (externalOfficeSelect) {
+            externalOfficeSelect.addEventListener('change', fillExternalOfficeFields);
+
+            if (window.jQuery && typeof window.jQuery.fn.select2 === 'function') {
+                const $externalOfficeSelect = window.jQuery(externalOfficeSelect);
+
+                if ($externalOfficeSelect.hasClass('select2-hidden-accessible')) {
+                    $externalOfficeSelect.select2('destroy');
+                }
+
+                $externalOfficeSelect
+                    .select2({
+                        width: '100%',
+                        allowClear: true,
+                        placeholder: externalOfficeSelect.dataset.placeholder || 'ابحث عن المكتب',
+                    })
+                    .on('select2:select select2:clear', fillExternalOfficeFields);
+            }
+        }
+
         if (passportInput) {
             passportInput.addEventListener('blur', lookupMaidByPassport);
         }
 
         updateClientSections();
         updateExistingPreview();
+        fillExternalOfficeFields();
     });
 </script>

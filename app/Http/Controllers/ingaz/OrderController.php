@@ -719,7 +719,9 @@ class OrderController extends Controller
             abort(404);
         }
 
-        return view('admin.ingaz.orders.show', compact('data'));
+        $activities = $this->buildOrderActivitiesTimeline($data);
+
+        return view('admin.ingaz.orders.show', compact('data', 'activities'));
     }
 
     public function show($orderId)
@@ -742,7 +744,53 @@ class OrderController extends Controller
             abort(404);
         }
 
-        return view('admin.ingaz.orders.show', compact('data'));
+        $activities = $this->buildOrderActivitiesTimeline($data);
+
+        return view('admin.ingaz.orders.show', compact('data', 'activities'));
+    }
+
+    private function buildOrderActivitiesTimeline(Order $order)
+    {
+        $activities = collect();
+
+        if (method_exists($order, 'activities')) {
+            $activities = $activities->merge($order->activities()->with('causer')->latest()->get());
+        }
+
+        if ($order->details && method_exists($order->details, 'activities')) {
+            $activities = $activities->merge($order->details->activities()->with('causer')->latest()->get());
+        }
+
+        foreach ($order->transfers as $transfer) {
+            if (method_exists($transfer, 'activities')) {
+                $activities = $activities->merge($transfer->activities()->with('causer')->latest()->get());
+            }
+        }
+
+        return $this->buildActivityTimeline(
+            $activities->sortByDesc('created_at')->take(15)->values(),
+            [
+                'status' => 'حالة الطلب',
+                'maid_id' => 'العاملة',
+                'customer_id' => 'الموظف المسؤول',
+                'user_id' => 'العميل',
+                'job_type_id' => 'نوع الوظيفة',
+                'payment_method' => 'طريقة الدفع',
+                'refuse_reason' => 'سبب الرفض أو الإرجاع',
+                'status_changed_at' => 'وقت تغيير الحالة',
+                'deadline_at' => 'الموعد النهائي',
+                'admin_id' => 'الموظف المسؤول',
+                'package_id' => 'الباقة',
+                'address_id' => 'العنوان',
+                'deliver_maid' => 'تسليم العاملة',
+                'name' => 'الاسم',
+                'phone' => 'رقم الهاتف',
+                'address' => 'العنوان',
+                'notes' => 'الملاحظات',
+                'file' => 'الملف',
+            ],
+            'الطلب'
+        );
     }
 
     public function download($id)

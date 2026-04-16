@@ -62,6 +62,12 @@ class RecruitmentRequestController extends Controller
                 ->editColumn('client_id', function ($row) {
                     return $row->client->name ?? '-';
                 })
+                ->editColumn('read_by', function ($row) {
+                    return $row->reader ? $row->reader->name : '-';
+                })
+                ->editColumn('is_read', function ($row) {
+                    return $row->is_read ? '<span class="badge bg-success">مقروء</span>' : '<span class="badge bg-warning">غير مقروء</span>';
+                })
                 ->addColumn('client_phone', function ($row) {
                     $phone = trim((string)(optional($row->client)->phone ?? ''));
                     if ($phone === '') {
@@ -227,6 +233,14 @@ public function show($id)
 {
    // جلب الطلب مع العميل والمساعدة (Maid) ونوع الوظيفة (JobType)
     $recruitmentRequest = objModel::with(['client', 'maid'])->findOrFail($id);
+
+    // تحديث حالة القراءة إذا لم يكن قد تم قراءته من قبل
+    if (!$recruitmentRequest->is_read) {
+        $recruitmentRequest->update([
+            'is_read' => true,
+            'read_by' => auth()->id(), // تخزين ID المسؤول الذي قرأ الطلب
+        ]);
+    }
 
     return view($this->folderPath . '.show', compact('recruitmentRequest'));
 }

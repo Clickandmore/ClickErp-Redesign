@@ -207,6 +207,8 @@
                             <th>{{helperTrans("ingaz.social_status")}}</th>
                             <th>{{helperTrans("ingaz.religion")}}</th>
                             <th>{{helperTrans("ingaz.status")}}</th>
+                            <th>تم القراءة؟</th>
+                            <th>قُرأ بواسطة</th>
                             <th>{{helperTrans("ingaz.actions")}}</th>
                         </tr>
                         </thead>
@@ -296,6 +298,8 @@
                     {data: 'social_status', name: 'social_status'},
                     {data: 'religion_id ', name: 'religion_id '},
                     {data: 'status', name: 'status', orderable: false},
+                    {data: 'is_read', name: 'is_read', orderable: false},
+                    {data: 'read_by', name: 'read_by', orderable: false},
                     {data: 'actions', name: 'actions', orderable: false, searchable: false}
                 ],
                 createdRow: function (row, data, dataIndex) {

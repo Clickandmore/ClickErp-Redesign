@@ -128,6 +128,9 @@
 
         .booking-customer-choose .customerOption {
             margin-bottom: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .booking-customer-choose .customerOption .btn {
@@ -144,6 +147,13 @@
             height: 40px;
             border-radius: 50%;
             object-fit: cover;
+        }
+
+        .booking-customer-choose .customerOption .btn span {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            text-align: start;
         }
 
         .booking-customer-choose .customerOption .btn {
@@ -169,6 +179,48 @@
             color: #fff;
             font-size: 13px;
             font-weight: 700;
+        }
+
+        .booking-customer-choose .customerOption .customer-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .booking-customer-choose .customerOption .service-action {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            border: 1px solid #d9d9d9;
+            background: #fff;
+            color: #4b5563;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .booking-customer-choose .customerOption .service-action:hover {
+            transform: translateY(-1px);
+            color: #fff;
+        }
+
+        .booking-customer-choose .customerOption .service-action.is-call:hover {
+            background: #0d6efd;
+            border-color: #0d6efd;
+        }
+
+        .booking-customer-choose .customerOption .service-action.is-whatsapp:hover {
+            background: #25d366;
+            border-color: #25d366;
+        }
+
+        .booking-customer-choose .customerOption .service-action.is-disabled {
+            background: #f3f4f6;
+            color: #9ca3af;
+            pointer-events: none;
+            border-color: #e5e7eb;
         }
 
         #cvBookingSubmitBtn {
@@ -828,6 +880,14 @@
                                 <h6 class="mb-2">{{ __('ingaz.choose_customer_service') }}</h6>
                                 <div class="choose booking-customer-choose">
                                     @forelse ($customerServices ?? collect() as $customerService)
+                                        @php
+                                            $contactPhone = $customerService->contact_phone ?? null;
+                                            $whatsappPhone = $customerService->whatsapp_phone ?? null;
+                                            $telLink = $customerService->formatted_contact_phone ??
+                                                ($contactPhone ? formatSaudiPhone($contactPhone) : null);
+                                            $whatsappLink = $customerService->formatted_whatsapp_phone ??
+                                                ($whatsappPhone ? formatSaudiPhone($whatsappPhone) : null);
+                                        @endphp
                                         <div class="customerOption">
                                             <input type="radio" class="btn-check" value="{{ $customerService->id }}"
                                                 name="customer" id="customer_{{ $customerService->id }}">
@@ -836,10 +896,37 @@
                                                     alt="{{ $customerService->name }}">
                                                 <span>
                                                     {{ $customerService->name }}
-                                                    <small class="d-block text-muted mt-1">اتصال: {{ $customerService->contact_phone ?? 'غير محدد' }}</small>
-                                                    <small class="d-block text-muted">واتساب: {{ $customerService->whatsapp_phone ?? 'غير محدد' }}</small>
+                                                    <small class="d-block text-muted mt-1">اختر ممثل الخدمة ثم تواصل مباشرة</small>
                                                 </span>
                                             </label>
+                                            <div class="customer-actions">
+                                                @if ($telLink)
+                                                    <a href="tel:{{ $telLink }}" class="service-action is-call"
+                                                        aria-label="اتصال بـ {{ $customerService->name }}"
+                                                        title="اتصال بـ {{ $customerService->name }}">
+                                                        <i class="fa-solid fa-phone"></i>
+                                                    </a>
+                                                @else
+                                                    <span class="service-action is-disabled" aria-hidden="true"
+                                                        title="رقم الاتصال غير متوفر">
+                                                        <i class="fa-solid fa-phone"></i>
+                                                    </span>
+                                                @endif
+
+                                                @if ($whatsappLink)
+                                                    <a href="https://wa.me/{{ $whatsappLink }}"
+                                                        class="service-action is-whatsapp" target="_blank" rel="noopener"
+                                                        aria-label="واتساب {{ $customerService->name }}"
+                                                        title="واتساب {{ $customerService->name }}">
+                                                        <i class="fab fa-whatsapp"></i>
+                                                    </a>
+                                                @else
+                                                    <span class="service-action is-disabled" aria-hidden="true"
+                                                        title="رقم الواتساب غير متوفر">
+                                                        <i class="fab fa-whatsapp"></i>
+                                                    </span>
+                                                @endif
+                                            </div>
                                         </div>
                                     @empty
                                         <div class="alert alert-danger mb-0">لا يوجد مسوقون متاحون حاليا.</div>

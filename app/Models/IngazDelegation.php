@@ -14,6 +14,9 @@ class IngazDelegation extends Model
 {
     use HasFactory;
 
+    public const STATUS_UNDER_PROCESS = 'under_process';
+    public const STATUS_EXECUTED = 'executed';
+
     protected $fillable = [
         'delegation_date_gregorian',
         'delegation_date_hijri',
@@ -35,6 +38,7 @@ class IngazDelegation extends Model
         'external_office_license_number',
         'external_office_address',
         'external_office_phone',
+        'status',
         'ingaz_number',
         'msaned_contract_number',
         'notes',
@@ -47,6 +51,19 @@ class IngazDelegation extends Model
         'visa_date' => 'date',
         'attachments' => 'array',
     ];
+
+    public static function statusOptions(): array
+    {
+        return [
+            self::STATUS_UNDER_PROCESS => 'تحت المعالجة',
+            self::STATUS_EXECUTED => 'تم تنفيذ التفويض',
+        ];
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return self::statusOptions()[$this->status] ?? $this->status;
+    }
 
     public function nationality()
     {

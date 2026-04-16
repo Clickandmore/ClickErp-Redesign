@@ -361,6 +361,8 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () 
             ->name('ingaz-delegations.find-maid-by-passport');
         Route::get('ingaz-delegations/{ingazDelegation}/print', [IngazDelegationController::class, 'print'])
             ->name('ingaz-delegations.print');
+        Route::patch('ingaz-delegations/{ingazDelegation}/status', [IngazDelegationController::class, 'updateStatus'])
+            ->name('ingaz-delegations.update-status');
         Route::resource('ingaz-delegations', IngazDelegationController::class);
         Route::get('cities', [App\Http\Controllers\admin\CountryController::class, 'citiesIndex'])->name('cities.index');
         Route::get('cities/create', [App\Http\Controllers\admin\CountryController::class, 'createCity'])->name('cities.create');
