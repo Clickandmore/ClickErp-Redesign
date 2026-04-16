@@ -8,6 +8,11 @@ use Illuminate\Support\Facades\DB;
 
 class OfficeRequest extends MainRequest
 {
+    protected function officeId(): mixed
+    {
+        return $this->route('office');
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      *
@@ -29,13 +34,13 @@ class OfficeRequest extends MainRequest
         return [
             "title:ar" => "required|string",
             "title:en" => "required|string",
-            "phone_office" => "required|numeric",
-            "license_number" => "required|numeric",
+            "phone_office" => "nullable|numeric",
+            "license_number" => "nullable|numeric",
             "nationality_id" => "required|exists:nationalities,id",
-            "street" => "required|string",
-            "manager_name" => "required|string",
+            "street" => "nullable|string",
+            "manager_name" => "nullable|string",
             "manager_email" => [
-                "required",
+                "nullable",
                 "email",
                 function ($attribute, $value, $fail) {
                     $existsInAdmins = DB::table('admins')->where('email', $value)->exists();
@@ -47,7 +52,7 @@ class OfficeRequest extends MainRequest
                 },
             ],
             "manager_phone" => [
-                "required",
+                "nullable",
                 "numeric",
                 function ($attribute, $value, $fail) {
                     $existsInAdmins = DB::table('admins')->where('phone', $value)->exists();
@@ -58,32 +63,32 @@ class OfficeRequest extends MainRequest
                     }
                 },
             ],
-            "password" => "required|string|min:6",
-            "file" => "required|file",
-            "file_name" => "required|string",
-            "bank_address" => "required|string",
-            "bank_account" => "required|string",
-            "bank_account_name" => "required|string",
-            "bank_swift_code" => "required|numeric",
-            "bank_iban" => "required|numeric",
-            "cost_of_dollar" => "required|numeric",
-            "cost_of_other" => "required|numeric",
-            "job_title_id" => "required|array",
-            "job_title_id.*" => "required|exists:job_types,id",
+            "password" => "nullable|string|min:6",
+            "file" => "nullable|file",
+            "file_name" => "nullable|string",
+            "bank_address" => "nullable|string",
+            "bank_account" => "nullable|string",
+            "bank_account_name" => "nullable|string",
+            "bank_swift_code" => "nullable|string",
+            "bank_iban" => "nullable|string",
+            "cost_of_dollar" => "nullable|numeric",
+            "cost_of_other" => "nullable|numeric",
+            "job_title_id" => "nullable|array",
+            "job_title_id.*" => "nullable|exists:job_types,id",
         ];
     }
 
 
     protected function update(): array
     {
-        $officeId = $this->route("office");
+        $officeId = $this->officeId();
         return [
             "title:ar" => "required|string",
             "title:en" => "required|string",
-            "phone_office" => "required|numeric",
-            "license_number" => "required|numeric",
+            "phone_office" => "nullable|numeric",
+            "license_number" => "nullable|numeric",
             "nationality_id" => "required|exists:nationalities,id",
-            "street" => "required|string",
+            "street" => "nullable|string",
             "manager_name" => "nullable|string",
             "manager_email" => [
                 "nullable",
@@ -132,12 +137,12 @@ class OfficeRequest extends MainRequest
             "bank_address" => "nullable|string",
             "bank_account" => "nullable|string",
             "bank_account_name" => "nullable|string",
-            "bank_swift_code" => "nullable|numeric",
-            "bank_iban" => "nullable|numeric",
+            "bank_swift_code" => "nullable|string",
+            "bank_iban" => "nullable|string",
             "cost_of_dollar" => "nullable|numeric",
             "cost_of_other" => "nullable|numeric",
-            "job_title_id" => "required|array",
-            "job_title_id.*" => "required|exists:job_types,id",
+            "job_title_id" => "nullable|array",
+            "job_title_id.*" => "nullable|exists:job_types,id",
         ];
     }
 

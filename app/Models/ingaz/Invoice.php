@@ -3,6 +3,7 @@
 namespace App\Models\ingaz;
 
 use App\Models\Contract;
+use App\Models\MusanedTransferItem;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -19,5 +20,10 @@ class Invoice extends Model
 
     public function contract(){
         return $this->belongsTo(Contract::class);
+    }
+
+    public function musanedTransferItem()
+    {
+        return $this->hasOne(MusanedTransferItem::class, 'invoice_id');
     }
 }

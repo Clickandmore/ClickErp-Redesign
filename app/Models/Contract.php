@@ -83,6 +83,12 @@ class Contract extends Model
     public function invoice(){
         return $this->hasOne(Invoice::class, 'contract_id');
     }
+
+    public function musanedTransferItem()
+    {
+        return $this->hasOne(MusanedTransferItem::class, 'contract_id');
+    }
+
     public function notes(){
         return $this->hasMany(ContractNote::class, 'contract_id');
     }

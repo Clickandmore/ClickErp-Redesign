@@ -240,24 +240,10 @@ class InvoiceController extends Controller
                         $contractCostCenter->id
                     );
 
-                    //3- انشاء سند قبض فعلي من حساب العميل الى الحساب الوسيط لمساند
-                    $musandAccountId = ConfirmSetting::query()
-                        ->where('title', ConfirmSettingTypes::MusanedIntermediateAccount->value)
-                        ->latest('updated_at')
-                        ->value('value');
-
-                    if (!$musandAccountId) {
-                        throw new \RuntimeException("لا يوجد حساب وسيط مساند محدد. الرجاء تحديده من صفحة إعدادات النظام المحاسبي.");
-                    }
-
-                    $musandAccount = Account::query()
-                        ->whereKey($musandAccountId)
-                        ->whereIn('parent_id', [122, 156])
-                        ->first();
-
-                    if (!$musandAccount) {
-                        throw new \RuntimeException("حساب مساند المحدد غير صحيح. يجب اختيار حساب تابع للبنوك أو لأرصدة مدينة أخرى من إعدادات النظام المحاسبي.");
-                    }
+                    //3- انشاء سند قبض فعلي من حساب العميل إلى حساب مساند.
+                    // إذا كان هناك حساب مساند مخصص لإجمالي التحصيلات يُستخدم أولاً، وإلا يتم
+                    // الرجوع للحساب الوسيط الحالي حفاظاً على التوافق مع القيود السابقة.
+                    $musandAccount = $this->resolveMusanedReceiptAccount();
 
                     $receiptBond = $this->storeReceiptBondForInvoice(
                         $invoice,
@@ -512,6 +498,7 @@ class InvoiceController extends Controller
             'contract.requiredMaidReligion',
             'contract.requiredMaidJobTitle',
             'contract.info',
+            'musanedTransferItem.transfer',
         ])->findOrFail($id);
 
         $settings = Setting::query()->first();
@@ -823,6 +810,54 @@ class InvoiceController extends Controller
             'bonds_print' => $bondId,
             'type' => 'qabd',
         ]);
+    }
+
+    private function resolveMusanedReceiptAccount(): Account
+    {
+        $directAccountId = ConfirmSetting::query()
+            ->where('title', ConfirmSettingTypes::MusanedAccount->value)
+            ->latest('updated_at')
+            ->value('value');
+
+        if ($directAccountId) {
+            $account = $this->findValidMusanedAccount((int) $directAccountId);
+            if ($account) {
+                return $account;
+            }
+
+            throw new \RuntimeException(
+                'حساب مساند المحدد غير صحيح. يجب اختيار حساب تابع للبنوك أو لأرصدة مدينة أخرى من إعدادات النظام المحاسبي.'
+            );
+        }
+
+        $intermediateAccountId = ConfirmSetting::query()
+            ->where('title', ConfirmSettingTypes::MusanedIntermediateAccount->value)
+            ->latest('updated_at')
+            ->value('value');
+
+        if (!$intermediateAccountId) {
+            throw new \RuntimeException(
+                'لا يوجد حساب مساند أو حساب وسيط مساند محدد. الرجاء تحديده من صفحة إعدادات النظام المحاسبي.'
+            );
+        }
+
+        $account = $this->findValidMusanedAccount((int) $intermediateAccountId);
+
+        if (!$account) {
+            throw new \RuntimeException(
+                'الحساب الوسيط لمساند المحدد غير صحيح. يجب اختيار حساب تابع للبنوك أو لأرصدة مدينة أخرى من إعدادات النظام المحاسبي.'
+            );
+        }
+
+        return $account;
+    }
+
+    private function findValidMusanedAccount(int $accountId): ?Account
+    {
+        return Account::query()
+            ->whereKey($accountId)
+            ->whereIn('parent_id', [122, 156])
+            ->first();
     }
 
     private function resolveRevenueTaxAccountId(): ?int

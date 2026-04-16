@@ -32,7 +32,7 @@ use App\Actions\ReligionAction;
 use App\Actions\JobTitleAction;
 use App\Actions\JobTypeAction;
 use Illuminate\Support\Facades\DB;
-use App\Helpers\NewPermKeys;
+use App\NewPermKeys;
 use PDF;
 use App\Models\ingaz\Invoice;
 
@@ -70,6 +70,175 @@ class RecruitmentContractController extends Controller
             || $admin->hasAnyRole(['super_admin', 'admin', 'Administrator']);
     }
 
+    private function getManualStatusTransition(?string $status): ?array
+    {
+        return match ($status) {
+            ContractStatusEnum::New->value => [
+                'next_status' => ContractStatusEnum::Msaned->value,
+                'permission' => NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED,
+                'button_text' => 'انتقال إلى مساند',
+            ],
+            ContractStatusEnum::AccreditationContracts->value => [
+                'next_status' => ContractStatusEnum::Msaned->value,
+                'permission' => NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED,
+                'button_text' => 'اعتماد العقد إلى مساند',
+            ],
+            ContractStatusEnum::Msaned->value => [
+                'next_status' => ContractStatusEnum::Tafwed->value,
+                'permission' => NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED,
+                'button_text' => 'انتقال إلى تفويض',
+            ],
+            ContractStatusEnum::Tafwed->value => [
+                'next_status' => ContractStatusEnum::Taffez->value,
+                'permission' => NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ,
+                'button_text' => 'انتقال إلى تفييز',
+            ],
+            ContractStatusEnum::Taffez->value => [
+                'next_status' => ContractStatusEnum::Tazker->value,
+                'permission' => NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER,
+                'button_text' => 'انتقال إلى تذكرة',
+            ],
+            default => null,
+        };
+    }
+
+    private function getBlockedTransitionReason(?string $status): string
+    {
+        return match ($status) {
+            ContractStatusEnum::PendingMaidSelection->value => 'يجب اختيار العاملة أولاً قبل تحديث حالة العقد',
+            ContractStatusEnum::Tazker->value => 'هذه المرحلة تتطلب إضافة رحلة أو إكمالها قبل الانتقال',
+            ContractStatusEnum::Arrival->value => 'هذا العقد في مرحلة الوصول ويتم استكماله تلقائياً حسب حالة الضمان',
+            ContractStatusEnum::Completed->value => 'العقد مكتمل ولا يمكن تحديث حالته يدوياً',
+            ContractStatusEnum::Shelter->value => 'العقد موجود في الإيواء ولا يقبل التحديث من هذه الشاشة',
+            ContractStatusEnum::Back->value => 'العقد مرتجع ولا يمكن تحديثه من المراحل الجارية',
+            ContractStatusEnum::Closed->value => 'العقد مغلق ولا يمكن تحديث حالته يدوياً',
+            ContractStatusEnum::Sari->value => 'هذا العقد ليس ضمن مراحل الاستقدام الحالية',
+            default => 'لا يتوفر انتقال تلقائي لهذه المرحلة حالياً',
+        };
+    }
+
+    private function resolveContractTransitionContext(Contract $contract): array
+    {
+        $transition = $this->getManualStatusTransition($contract->status);
+
+        if (!$transition) {
+            return [
+                'can_update' => false,
+                'http_status' => 400,
+                'current_status' => $contract->status,
+                'current_status_text' => getContractStatus($contract->status),
+                'next_status' => null,
+                'next_status_text' => null,
+                'button_text' => null,
+                'reason' => $this->getBlockedTransitionReason($contract->status),
+            ];
+        }
+
+        $hasPermission = @AdminGuardHasPerm($transition['permission']);
+
+        return [
+            'can_update' => $hasPermission,
+            'http_status' => $hasPermission ? 200 : 403,
+            'current_status' => $contract->status,
+            'current_status_text' => getContractStatus($contract->status),
+            'next_status' => $transition['next_status'],
+            'next_status_text' => getContractStatus($transition['next_status']),
+            'button_text' => $transition['button_text'],
+            'permission' => $transition['permission'],
+            'reason' => $hasPermission ? null : 'ليس لديك صلاحية لتحديث هذه المرحلة',
+        ];
+    }
+
+    private function resolveBulkActionContext(Contract $contract): array
+    {
+        $transitionContext = $this->resolveContractTransitionContext($contract);
+
+        if ($transitionContext['can_update']) {
+            return array_merge($transitionContext, [
+                'can_select' => true,
+                'action_type' => 'status_update',
+                'action_text' => $transitionContext['next_status_text'],
+            ]);
+        }
+
+        $travelHistory = $contract->relationLoaded('travelHistory')
+            ? $contract->travelHistory
+            : $contract->travelHistory()->latest('id')->first();
+
+        if ($contract->status === ContractStatusEnum::Tazker->value) {
+            if ($travelHistory) {
+                return [
+                    'can_select' => false,
+                    'http_status' => 400,
+                    'action_type' => 'travel_create',
+                    'current_status' => $contract->status,
+                    'current_status_text' => getContractStatus($contract->status),
+                    'next_status' => null,
+                    'next_status_text' => null,
+                    'action_text' => 'إضافة رحلة',
+                    'reason' => 'يوجد رحلة مسجلة بالفعل لهذا العقد',
+                ];
+            }
+
+            if (!@AdminGuardHasPerm(NewPermKeys::REC_CONTRACTS_ADD_TRAVEL) || !@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CONTROL)) {
+                return [
+                    'can_select' => false,
+                    'http_status' => 403,
+                    'action_type' => 'travel_create',
+                    'current_status' => $contract->status,
+                    'current_status_text' => getContractStatus($contract->status),
+                    'next_status' => null,
+                    'next_status_text' => null,
+                    'action_text' => 'إضافة رحلة',
+                    'reason' => 'ليس لديك صلاحية لإنشاء رحلة لهذا العقد',
+                ];
+            }
+
+            return [
+                'can_select' => true,
+                'http_status' => 200,
+                'action_type' => 'travel_create',
+                'current_status' => $contract->status,
+                'current_status_text' => getContractStatus($contract->status),
+                'next_status' => null,
+                'next_status_text' => null,
+                'action_text' => 'إضافة رحلة',
+                'reason' => null,
+            ];
+        }
+
+        return array_merge($transitionContext, [
+            'can_select' => false,
+            'action_type' => 'status_update',
+            'action_text' => $transitionContext['next_status_text'],
+        ]);
+    }
+
+    private function updateContractStatusRecord(Contract $contract, string $nextStatus, ?string $date = null): array
+    {
+        $currentStatus = $contract->status;
+        $statusDate = $date ?: now()->toDateString();
+
+        DB::transaction(function () use ($contract, $currentStatus, $nextStatus, $statusDate) {
+            $contract->update(['status' => $nextStatus]);
+
+            $contract->contract_status_logs()->create([
+                'status' => $nextStatus,
+                'date' => $statusDate,
+                'notes' => 'تم تحديث الحالة من ' . getContractStatus($currentStatus) . ' إلى ' . getContractStatus($nextStatus)
+            ]);
+        });
+
+        $contract->refresh();
+
+        return [
+            'current_status' => $currentStatus,
+            'next_status' => $nextStatus,
+            'current_status_text' => getContractStatus($currentStatus),
+            'next_status_text' => getContractStatus($nextStatus),
+        ];
+    }
+
 
     public function index(Request $request)
     {
@@ -88,6 +257,7 @@ class RecruitmentContractController extends Controller
                 'user', // جميع بيانات العميل
                 'user.nationality', // جنسية العميل (Country model)
                 'maid', // جميع بيانات العاملة
+                'travelHistory',
                 'maid.nationality.translations', // جنسية العاملة مع الترجمات
                 'maid.religion.translations', // ديانة العاملة مع الترجمات
                 'maid.office.translations', // المكتب الخارجي مع الترجمات
@@ -256,6 +426,29 @@ class RecruitmentContractController extends Controller
             // استخدام DataTables::eloquent بدلاً من get() لتحسين الأداء
             return DataTables::eloquent($rows)
                 ->addIndexColumn()
+                ->addColumn('bulk_select', function ($row) {
+                    $bulkActionContext = $this->resolveBulkActionContext($row);
+
+                    if (!$bulkActionContext['can_select']) {
+                        $iconClass = $bulkActionContext['http_status'] === 403 ? 'fa-lock' : 'fa-ban';
+
+                        return '<span class="text-muted" title="' . e($bulkActionContext['reason']) . '">
+                                    <i class="fas ' . $iconClass . '"></i>
+                                </span>';
+                    }
+
+                    return '<div class="form-check d-flex justify-content-center mb-0">
+                                <input class="form-check-input contract-bulk-checkbox" type="checkbox"
+                                    value="' . $row->id . '"
+                                    data-contract-id="' . $row->id . '"
+                                    data-action-type="' . e($bulkActionContext['action_type']) . '"
+                                    data-action-text="' . e($bulkActionContext['action_text']) . '"
+                                    data-current-status="' . e($bulkActionContext['current_status']) . '"
+                                    data-current-status-text="' . e($bulkActionContext['current_status_text']) . '"
+                                    data-next-status="' . e($bulkActionContext['next_status']) . '"
+                                    data-next-status-text="' . e($bulkActionContext['next_status_text']) . '">
+                            </div>';
+                })
                 ->editColumn('status', function ($row) {
                     $statusText = getContractStatus($row->status);
                     $statusColor = getContractStatusColor($row->status);
@@ -807,11 +1000,21 @@ class RecruitmentContractController extends Controller
                     }
 
                     // الفاتورة
-                    $invoice = Invoice::where('contract_id', $row->id)->first();
+                    $invoice = Invoice::with('musanedTransferItem.transfer')->where('contract_id', $row->id)->first();
                     if ($invoice) {
                         $actions .= '<li><a class="dropdown-item" href="' . route('invoices.show', $invoice->id) . '" target="_blank">
                                     <i class="fas fa-file-pdf"></i> عرض الفاتورة
                                 </a></li>';
+
+                        if ($invoice->musanedTransferItem && $invoice->musanedTransferItem->transfer) {
+                            $actions .= '<li><a class="dropdown-item" href="' . route('musaned-transfers.show', $invoice->musanedTransferItem->transfer->id) . '" target="_blank">
+                                    <i class="fas fa-money-bill-transfer"></i> عرض تحويل مساند
+                                </a></li>';
+                        } else {
+                            $actions .= '<li><a class="dropdown-item" href="' . route('musaned-transfers.create', ['contract_ids' => [$row->id]]) . '" target="_blank">
+                                    <i class="fas fa-money-bill-transfer"></i> تسجيل تحويل مساند
+                                </a></li>';
+                        }
                     } else {
                         $actions .= '<li><a class="dropdown-item" href="' . route('invoices.create') . '?contract_id=' . $row->id . '" target="_blank">
                                     <i class="fas fa-file-invoice"></i> اضافة فاتورة
@@ -2306,89 +2509,43 @@ class RecruitmentContractController extends Controller
     public function updateStatus(Request $request)
     {
         try {
-            $rowId = $request->row_id;
-            $nextStatus = $request->next_status;
-            $date = $request->date;
-
-            // منع الإغلاق اليدوي للعقود في مرحلة الضمان
-            if ($nextStatus === ContractStatusEnum::Closed->value) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'إغلاق العقد يتم تلقائياً بعد انتهاء فترة الضمان'
-                ], 400);
-            }
-
-            $contract = Contract::find($rowId);
-            if (!$contract) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'العقد غير موجود'
-                ], 404);
-            }
-
-            // منع تحديث حالة العقود المكتملة
-            if ($contract->status === ContractStatusEnum::Completed->value) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'لا يمكن تحديث حالة العقد المكتمل'
-                ], 400);
-            }
-
-            // منع تحديث حالة العقود في الإيواء
-            if ($contract->status === ContractStatusEnum::Shelter->value) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'لا يمكن تحديث حالة العقد الذي في الإيواء'
-                ], 400);
-            }
-
-            // التحقق من الصلاحيات حسب الحالة الجديدة
-            $hasPermission = false;
-            switch ($nextStatus) {
-                case ContractStatusEnum::Msaned->value:
-                    $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED);
-                    break;
-                case ContractStatusEnum::Tafwed->value:
-                    $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED);
-                    break;
-                case ContractStatusEnum::Taffez->value:
-                    $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ);
-                    break;
-                case ContractStatusEnum::Tazker->value:
-                    $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER);
-                    break;
-                default:
-                    $hasPermission = false;
-                    break;
-            }
-
-            if (!$hasPermission) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'ليس لديك صلاحية لتحديث الحالة'
-                ], 403);
-            }
-
-            // تحديث حالة العقد
-            $contract->update(['status' => $nextStatus]);
-
-            // إنشاء سجل حالة العقد
-            $contract->contract_status_logs()->create([
-                'status' => $nextStatus,
-                'date' => $date ?: now(),
-                'notes' => 'تم تحديث الحالة من ' . getContractStatus($contract->getOriginal('status')) . ' إلى ' . getContractStatus($nextStatus)
+            $request->validate([
+                'row_id' => 'required|integer|exists:contracts,id',
+                'next_status' => 'required|string',
+                'date' => 'nullable|date',
             ]);
 
-            // إرسال رسالة نصية للعميل إذا كان مطلوباً
-            $smsResult = false;
-            if ($request->send_sms == 'true' || $request->send_sms === true) {
-                $smsResult = $this->sendContractStatusSMS($contract, $nextStatus);
+            $rowId = (int) $request->row_id;
+            $requestedNextStatus = $request->next_status;
+            $date = $request->date;
+            $sendSms = filter_var($request->input('send_sms'), FILTER_VALIDATE_BOOLEAN);
+            $contract = Contract::with('user')->findOrFail($rowId);
+            $transitionContext = $this->resolveContractTransitionContext($contract);
+
+            if (!$transitionContext['can_update']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $transitionContext['reason']
+                ], $transitionContext['http_status']);
             }
 
-            $message = 'تم تحديث الحالة بنجاح إلى ' . getContractStatus($nextStatus);
+            if ($requestedNextStatus !== $transitionContext['next_status']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'المرحلة التالية المحددة لا تطابق المرحلة الحالية للعقد'
+                ], 422);
+            }
 
-            // إضافة معلومات الرسالة النصية للرد
-            if ($request->send_sms == 'true' || $request->send_sms === true) {
+            $updateResult = $this->updateContractStatusRecord($contract, $transitionContext['next_status'], $date);
+
+            $smsResult = false;
+            if ($sendSms) {
+                $smsResult = $this->sendContractStatusSMS($contract->fresh('user'), $transitionContext['next_status']);
+            }
+
+            $message = 'تم تحديث الحالة بنجاح من ' . $updateResult['current_status_text'] . ' إلى ' . $updateResult['next_status_text'];
+
+            if ($sendSms) {
                 if ($smsResult) {
                     $message .= ' وتم إرسال رسالة نصية للعميل';
                 } else {
@@ -2412,6 +2569,132 @@ class RecruitmentContractController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ أثناء تحديث الحالة: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function bulkUpdateStatus(Request $request)
+    {
+        try {
+            $request->validate([
+                'row_ids' => 'required|array|min:1',
+                'row_ids.*' => 'integer|distinct',
+                'date' => 'nullable|date',
+            ]);
+
+            $rowIds = collect($request->input('row_ids', []))
+                ->map(fn($id) => (int) $id)
+                ->filter()
+                ->unique()
+                ->values();
+
+            if ($rowIds->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لم يتم تحديد أي عقود للتحديث'
+                ], 422);
+            }
+
+            $sendSms = filter_var($request->input('send_sms'), FILTER_VALIDATE_BOOLEAN);
+            $date = $request->date;
+            $contracts = Contract::with('user')
+                ->whereIn('id', $rowIds)
+                ->get()
+                ->keyBy('id');
+
+            $updatedContracts = [];
+            $skippedContracts = [];
+            $smsSentCount = 0;
+
+            foreach ($rowIds as $rowId) {
+                /** @var \App\Models\Contract|null $contract */
+                $contract = $contracts->get($rowId);
+
+                if (!$contract) {
+                    $skippedContracts[] = [
+                        'id' => $rowId,
+                        'message' => 'العقد غير موجود'
+                    ];
+                    continue;
+                }
+
+                $transitionContext = $this->resolveContractTransitionContext($contract);
+
+                if (!$transitionContext['can_update']) {
+                    $skippedContracts[] = [
+                        'id' => $contract->id,
+                        'message' => $transitionContext['reason']
+                    ];
+                    continue;
+                }
+
+                try {
+                    $updateResult = $this->updateContractStatusRecord($contract, $transitionContext['next_status'], $date);
+
+                    $smsResult = false;
+                    if ($sendSms) {
+                        $smsResult = $this->sendContractStatusSMS($contract->fresh('user'), $transitionContext['next_status']);
+                        if ($smsResult) {
+                            $smsSentCount++;
+                        }
+                    }
+
+                    $updatedContracts[] = [
+                        'id' => $contract->id,
+                        'from' => $updateResult['current_status_text'],
+                        'to' => $updateResult['next_status_text'],
+                        'sms_sent' => $smsResult,
+                    ];
+                } catch (\Throwable $throwable) {
+                    logger()->error('Error in bulk contract status update item', [
+                        'contract_id' => $contract->id,
+                        'message' => $throwable->getMessage(),
+                        'trace' => $throwable->getTraceAsString()
+                    ]);
+
+                    $skippedContracts[] = [
+                        'id' => $contract->id,
+                        'message' => 'تعذر تحديث العقد حالياً'
+                    ];
+                }
+            }
+
+            $updatedCount = count($updatedContracts);
+            $skippedCount = count($skippedContracts);
+
+            $message = $updatedCount > 0
+                ? 'تم تحديث ' . $updatedCount . ' عقد بنجاح'
+                : 'لم يتم تحديث أي عقد';
+
+            if ($skippedCount > 0) {
+                $message .= ' وتعذر تحديث ' . $skippedCount . ' عقد';
+            }
+
+            if ($sendSms) {
+                $message .= $smsSentCount > 0
+                    ? ' وتم إرسال ' . $smsSentCount . ' إشعار للعميل'
+                    : ' ولم يتم إرسال أي إشعار للعميل';
+            }
+
+            return response()->json([
+                'success' => $updatedCount > 0,
+                'message' => $message,
+                'updated_count' => $updatedCount,
+                'skipped_count' => $skippedCount,
+                'sms_sent_count' => $smsSentCount,
+                'updated_contracts' => $updatedContracts,
+                'skipped_contracts' => $skippedContracts,
+            ], $updatedCount > 0 ? 200 : 422);
+        } catch (\Exception $e) {
+            logger()->error('Error in bulkUpdateStatus', [
+                'rowIds' => $request->input('row_ids', []),
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء التحديث الجماعي: ' . $e->getMessage()
             ], 500);
         }
     }

@@ -117,6 +117,9 @@
                             <a href="{{ $createRoute }}" class="btn btn-primary btn-sm">
                                 <i class="fas fa-user-plus me-1"></i>{{ helperTrans('ingaz.add_maid') }}
                             </a>
+                            <a href="{{ route('maids.bulk-import.create') }}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-file-upload me-1"></i>استيراد جماعي
+                            </a>
                         @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF))
                             <a href="{{ route('maids.export.pdf') }}" class="btn btn-outline-danger btn-sm" target="_blank">

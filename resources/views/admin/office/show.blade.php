@@ -71,7 +71,7 @@
 
 @section('content')
 
-    @if (@AdminGuardHasPerm(\App\PermKeys::JOB_TITLES_VIEW))
+    @if (@AdminGuardHasAnyPerm([\App\PermKeys::REC_OFFICES_VIEW, \App\PermKeys::OFFICE_VIEW, \App\PermKeys::JOB_TITLES_VIEW]))
         @php
             $locales = config('translatable.locales', []);
             $jobTypeNames = $office->jobTypes->map(function ($jobType) {
@@ -144,6 +144,10 @@
                                 <div class="detail-item">
                                     <span class="detail-label">{{ helperTrans('ingaz.office_type') }}</span>
                                     <span class="detail-value">{{ $jobTypeNames ?: '-' }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">{{ helperTrans('ingaz.linked_cvs') }}</span>
+                                    <span class="detail-value">{{ $office->maids_count ?? 0 }}</span>
                                 </div>
                                 <div class="detail-item">
                                     <span class="detail-label">{{ helperTrans('ingaz.bank_address') }}</span>

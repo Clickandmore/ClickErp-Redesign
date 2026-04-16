@@ -14,12 +14,11 @@ use App\Http\Actions\office\OfficeAttachmentAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\office\DeleteOfficeRequest;
 use App\Http\Requests\office\OfficeRequest;
+use App\Models\ingaz\Maid;
 use App\Models\office\Office as objModel;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Activity;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -31,7 +30,7 @@ use Yajra\DataTables\Facades\DataTables;
 class OfficeController extends Controller
 {
 
-    public $folderPath = "admin.office.";
+    public $folderPath = "admin.office";
     public $postData = ["title:ar", "title:en", "phone_office", "license_number",
         "nationality_id", "street", "manager_name", "manager_phone",
         "manager_email", "password", "bank_address", "bank_account", "bank_account_name", 'file', 'file_name',
@@ -43,27 +42,31 @@ class OfficeController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index(Request $request, objAction $Action)
+    public function index(Request $request, NationalityAction $nationalityAction)
     {
         if ($request->ajax()) {
-            $offices = objModel::query()->latest('id');
+            $offices = objModel::query()
+                ->with(['nationality', 'file'])
+                ->withCount('maids')
+                ->orderByTranslation('title', 'asc');
+
             return DataTables::of($offices)
                 ->addIndexColumn()
                 ->editColumn('nationality_id', function ($row) {
-                    return $row->nationality->title ?? '';
-                })
-                ->editColumn('manager_email', function ($row) {
-                    return $row->manager_email ?? '';
+                    return $row->nationality->title ?? $row->nationality->sub_title ?? '';
                 })
                 ->editColumn('title', function ($row) {
-                    return Str::limit($row->title, 20, '...') ?? '';
+                    return $row->title ?? '';
                 })
-                ->addColumn('office_type', function ($row) {
-                    return $row->jobTypes()
-                        ->with(['translations' => fn($q) => $q->where('locale', app()->getLocale())])
-                        ->get()
-                        ->map(fn($jt) => optional($jt->translations->first())->title)
-                        ->implode(', ');
+                ->addColumn('linked_cvs', function ($row) {
+                    return (string) ($row->maids_count ?? 0);
+                })
+                ->editColumn('cost_of_dollar', function ($row) {
+                    if ($row->cost_of_dollar === null || $row->cost_of_dollar === '') {
+                        return '-';
+                    }
+
+                    return number_format((float) $row->cost_of_dollar, 2);
                 })
                 ->addColumn('status', function ($row) {
                     if ($row->status == OfficesStatusEnum::Active->value) {
@@ -111,7 +114,9 @@ class OfficeController extends Controller
                                     <i class="fa fa-plus"></i> ' . __("ingaz.office_file") . '
                                    </a>';
                     }
-                    $sendEmailButton = '<button class="dropdown-item sendEmailResetPassword" data-id="' . $row->id . '"data-email="' . $row->manager_email . '">' . '  <i class="fa fa-email"></i> ' . __("ingaz.send_email_reset_password") . '</button>';
+                    if (filled($row->manager_email)) {
+                        $sendEmailButton = '<button class="dropdown-item sendEmailResetPassword" data-id="' . $row->id . '"data-email="' . $row->manager_email . '">' . '  <i class="fa fa-email"></i> ' . __("ingaz.send_email_reset_password") . '</button>';
+                    }
 
                     // Action Buttons
                     $actions = '
@@ -129,15 +134,23 @@ class OfficeController extends Controller
                                 </div>';
                     return $actions;
                 })
-                ->rawColumns(['actions', 'license_number', 'title', 'nationality_id', 'office_number', 'status'])->make(true);
+                ->rawColumns(['actions', 'status'])->make(true);
         }
-        $data['count'] = objModel::count();
-        $data["createRoute"] = route($this->mainRoute . ".create");
-        $data["dataTableRoute"] = route($this->mainRoute . ".index");
-        $data["bladeTitle"] = __("auth.admins");
-        $data["addButtonText"] = __("auth.admin");
-        $data["modalType"] = "";
-        return view($this->folderPath . '.index', compact('data'));
+
+        $stats = [
+            'total' => objModel::count(),
+            'active' => objModel::where('status', OfficesStatusEnum::Active->value)->count(),
+            'inactive' => objModel::where('status', OfficesStatusEnum::DisActive->value)->count(),
+            'linked_cvs' => Maid::whereNotNull('office_id')->count(),
+            'with_cost_of_dollar' => objModel::query()
+                ->whereNotNull('cost_of_dollar')
+                ->where('cost_of_dollar', '!=', '')
+                ->count(),
+        ];
+
+        $nationalities = $nationalityAction->get();
+
+        return view($this->folderPath . '.index', compact('stats', 'nationalities'));
     }
 
     /**
@@ -149,7 +162,9 @@ class OfficeController extends Controller
     {
         $nationalities = $nationalityAction->get();
         $jobTypes = $jobTypeAction->get();
-        return view($this->folderPath . ".create", compact('nationalities', 'jobTypes'));
+        $office = null;
+
+        return view($this->folderPath . ".form", compact('nationalities', 'jobTypes', 'office'));
 
     }
 
@@ -162,33 +177,65 @@ class OfficeController extends Controller
     public function store(OfficeRequest     $request, objAction $action, JopTypeOfficeAction $jopTypeOfficeAction,
                           AdminOfficeAction $adminOfficeAction, AdminAction $adminAction, OfficeAttachmentAction $officeAttachmentAction)
     {
-        DB::beginTransaction();
+        $office = null;
         $data = $request->validated();
         $jobTitleIds = $data['job_title_id'] ?? [];
-        unset($data['job_title_id'], $data['file'], $data['file_name']);
-        $office = $action->store($data);
-        foreach ($jobTitleIds as $jobTitleId) {
-            $jopTypeOfficeAction->store([
-                'office_id' => $office->id,
-                'jop_type_id' => $jobTitleId,
-            ]);
-        }
-        $admin = $adminAction->store([
-            'name' => $data['manager_name'],
-            'phone' => $data['manager_phone'],
-            'email' => $data['manager_email'],
-            'password' => Hash::make($data['password']),
-        ]);
-        $adminOfficeAction->store([
-            'office_id' => $office->id,
-            'admin_id' => $admin->id,
-        ]);
-        $officeAttachmentAction->store([
-            'office_id' => $office->id,
-            'file' => uploadFile($request->file('file'), 'office_attachments'),
-            'file_name' => $request->file_name,
-        ]);
-        DB::commit();
+        $managerPassword = $data['password'] ?? null;
+        $attachmentFile = $request->file('file');
+        $attachmentName = $data['file_name'] ?? null;
+
+        unset($data['job_title_id'], $data['file'], $data['file_name'], $data['password']);
+
+        DB::transaction(function () use (
+            &$office,
+            $action,
+            $data,
+            $jobTitleIds,
+            $jopTypeOfficeAction,
+            $adminAction,
+            $adminOfficeAction,
+            $officeAttachmentAction,
+            $attachmentFile,
+            $attachmentName,
+            $managerPassword
+        ) {
+            $office = $action->store($data);
+
+            foreach ($jobTitleIds as $jobTitleId) {
+                $jopTypeOfficeAction->store([
+                    'office_id' => $office->id,
+                    'jop_type_id' => $jobTitleId,
+                ]);
+            }
+
+            if (
+                filled($data['manager_name'] ?? null)
+                && filled($data['manager_phone'] ?? null)
+                && filled($data['manager_email'] ?? null)
+                && filled($managerPassword)
+            ) {
+                $admin = $adminAction->store([
+                    'name' => $data['manager_name'],
+                    'phone' => $data['manager_phone'],
+                    'email' => $data['manager_email'],
+                    'password' => Hash::make($managerPassword),
+                ]);
+
+                $adminOfficeAction->store([
+                    'office_id' => $office->id,
+                    'admin_id' => $admin->id,
+                ]);
+            }
+
+            if ($attachmentFile && filled($attachmentName)) {
+                $officeAttachmentAction->store([
+                    'office_id' => $office->id,
+                    'file' => uploadFile($attachmentFile, 'office_attachments'),
+                    'file_name' => $attachmentName,
+                ]);
+            }
+        });
+
         return jsonSuccess(['url' => route('offices.index')], null, 201);
     }
 
@@ -206,7 +253,7 @@ class OfficeController extends Controller
             'attachment',
             'file.jobTitle',
             'officeManager.admin',
-        ])->findOrFail($id);
+        ])->withCount('maids')->findOrFail($id);
 
         // $office->is_show = !$office->is_show;
         // $office->save();
@@ -232,10 +279,13 @@ class OfficeController extends Controller
      */
     public function edit(Request $request, $id, NationalityAction $nationalityAction, JobTypeAction $jobTypeAction)
     {
-        $office = objModel::findorfail($id);
+        $office = objModel::with(['jobTypes', 'attachment'])
+            ->withCount('maids')
+            ->findorfail($id);
         $nationalities = $nationalityAction->get();
         $jobTypes = $jobTypeAction->get();
-        return view($this->folderPath . ".edit", compact('nationalities', 'jobTypes', 'office'));
+
+        return view($this->folderPath . ".form", compact('nationalities', 'jobTypes', 'office'));
     }
 
     /**
@@ -247,48 +297,93 @@ class OfficeController extends Controller
      */
     public function update(OfficeRequest $request, objAction $action, $id, OfficeAttachmentAction $officeAttachmentAction, AdminAction $adminAction, AdminOfficeAction $adminOfficeAction)
     {
-        $data = $request->only($this->postData);
+        $data = $request->validated();
         $obj = $action->find($id);
-        if (isset($data['file']) && $data['file_name']) {
-            $attachment = $obj->attachment;
-            if (isset($attachment)) {
-                $attachment->update([
-                    'file' => uploadFile($request->file('file'), 'office_attachments'),
-                    'file_name' => $request->file_name,
+        $attachmentFile = $request->file('file');
+        $attachmentName = $data['file_name'] ?? null;
+        $managerPassword = $data['password'] ?? null;
+        $jobTitleIds = $data['job_title_id'] ?? [];
+        unset($data['job_title_id'], $data['file'], $data['file_name'], $data['password']);
+
+        DB::transaction(function () use (
+            $obj,
+            $data,
+            $attachmentFile,
+            $attachmentName,
+            $officeAttachmentAction,
+            $adminAction,
+            $adminOfficeAction,
+            $id,
+            $managerPassword,
+            $jobTitleIds,
+            $request
+        ) {
+            if ($attachmentFile && filled($attachmentName)) {
+                $attachment = $obj->attachment;
+
+                if (isset($attachment)) {
+                    $attachment->update([
+                        'file' => uploadFile($attachmentFile, 'office_attachments'),
+                        'file_name' => $attachmentName,
+                    ]);
+                } else {
+                    $officeAttachmentAction->store([
+                        'office_id' => $id,
+                        'file' => uploadFile($attachmentFile, 'office_attachments'),
+                        'file_name' => $attachmentName,
+                    ]);
+                }
+            }
+
+            if (isset($obj->officeManager->admin_id)) {
+                $admin = $adminAction->find($obj->officeManager->admin_id);
+                $adminData = [];
+
+                if (filled($data['manager_name'] ?? null)) {
+                    $adminData['name'] = $data['manager_name'];
+                }
+
+                if (filled($data['manager_phone'] ?? null)) {
+                    $adminData['phone'] = $data['manager_phone'];
+                }
+
+                if (filled($data['manager_email'] ?? null)) {
+                    $adminData['email'] = $data['manager_email'];
+                }
+
+                if (filled($managerPassword)) {
+                    $adminData['password'] = Hash::make($managerPassword);
+                }
+
+                if (! empty($adminData)) {
+                    $admin->update($adminData);
+                }
+            } elseif (
+                filled($data['manager_name'] ?? null)
+                && filled($data['manager_phone'] ?? null)
+                && filled($data['manager_email'] ?? null)
+                && filled($managerPassword)
+            ) {
+                $admin = $adminAction->store([
+                    'name' => $data['manager_name'],
+                    'phone' => $data['manager_phone'],
+                    'email' => $data['manager_email'],
+                    'password' => Hash::make($managerPassword),
                 ]);
-            } else {
-                $officeAttachmentAction->store([
+
+                $adminOfficeAction->store([
                     'office_id' => $id,
-                    'file' => uploadFile($request->file('file'), 'office_attachments'),
-                    'file_name' => $request->file_name,
+                    'admin_id' => $admin->id,
                 ]);
             }
-        }
-        unset($data['file'], $data['file_name']);
-        if (isset($obj->officeManager->admin_id)) {
-            $admin = $adminAction->find($obj->officeManager->admin_id);
-            $adminData['name'] = $data['manager_name'];
-            $adminData['phone'] = $data['manager_phone'];
-            $adminData['email'] = $data['manager_email'];
-            $adminData['password'] = Hash::make($data['password']);
-            $admin->update($adminData);
-        } else {
-            $admin = $adminAction->store([
-                'name' => $data['manager_name'],
-                'phone' => $data['manager_phone'],
-                'email' => $data['manager_email'],
-                'password' => Hash::make($data['password']),
-            ]);
-            $adminOfficeAction->store([
-                'office_id' => $id,
-                'admin_id' => $admin->id,
-            ]);
-        }
 
-        $jobTitleIds = $data['job_title_id'] ?? [];
-        unset($data['job_title_id']);
-        $obj->update($data);
-        $obj->jobTypes()->sync($jobTitleIds);
+            $obj->update($data);
+
+            if ($request->has('job_title_id')) {
+                $obj->jobTypes()->sync($jobTitleIds);
+            }
+        });
+
         return jsonSuccess(['url' => route('offices.index')], null, 201);
 
     }
@@ -310,8 +405,3 @@ class OfficeController extends Controller
         return jsonSuccess();
     }
 }
-
-
-
-
-

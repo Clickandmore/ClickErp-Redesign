@@ -4,8 +4,8 @@ namespace App\Models\office;
 
 use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\JobType;
+use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
-use App\Models\Maid;
 use App\Models\OfficeAttachment;
 use App\Models\RecruitmentOfficeTranslation;
 use Astrotomic\Translatable\Translatable;

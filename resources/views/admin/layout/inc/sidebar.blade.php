@@ -122,7 +122,9 @@
                 @php
                     $supportedLocales = array_keys(config('laravellocalization.supportedLocales', []));
                     $firstSegment = request()->segment(1);
-                    $moduleSegment = in_array($firstSegment, $supportedLocales, true) ? request()->segment(2) : $firstSegment;
+                    $moduleSegment = in_array($firstSegment, $supportedLocales, true)
+                        ? request()->segment(2)
+                        : $firstSegment;
 
                     $isHr = $moduleSegment === 'hr';
                     $isFinance = $moduleSegment === 'finance';
@@ -860,7 +862,9 @@
                 @php
                     $supportedLocales = array_keys(config('laravellocalization.supportedLocales', []));
                     $firstSegment = request()->segment(1);
-                    $moduleSegment = in_array($firstSegment, $supportedLocales, true) ? request()->segment(2) : $firstSegment;
+                    $moduleSegment = in_array($firstSegment, $supportedLocales, true)
+                        ? request()->segment(2)
+                        : $firstSegment;
                     $isHr = $moduleSegment === 'hr';
                 @endphp
                 <li class="{{ $isHr ? '' : 'collapsed' }}">
@@ -1154,10 +1158,10 @@
                                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#my_dashboard3"
                                         href="#">
                                         <i class="fa fa-cog"></i>
-                                        <span class="ms-2">{{ helperTrans('ingaz.maids_data_management') }}</span>
+                                        <span class="ms-2">{{ helperTrans('ingaz.recruitment_settings') }}</span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
-                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['job-titles.index', 'packages.index', 'nationalities.index', 'religions.index', 'countries.index']) ? 'show' : '' }}"
+                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['job-titles.index', 'packages.index', 'nationalities.index', 'religions.index', 'countries.index', 'offices.index', 'offices.create', 'offices.edit', 'offices.show', 'recruitment-offices.index', 'recruitment-offices.create', 'recruitment-offices.edit', 'recruitment-offices.show']) ? 'show' : '' }}"
                                         id="my_dashboard3">
                                         @if (@AdminGuardHasPerm(\App\PermKeys::NATIONALITIES_VIEW))
                                             <li>
@@ -1169,16 +1173,6 @@
                                             </li>
                                         @endif
 
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::REC_OFFICES_VIEW))
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'recruitment-offices.index' ? 'active' : '' }}"
-                                                    href="{{ route('recruitment-offices.index') }}">
-                                                    <i class="fa fa-building"></i>
-                                                    <span class="ms-2">
-                                                        {{ helperTrans('ingaz.recruitment-offices') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
                                         @if (@AdminGuardHasPerm(\App\PermKeys::JOB_TITLES_VIEW))
                                             <li>
                                                 <a class="m-link" href="{{ route('job-titles.index') }}">
@@ -1233,11 +1227,27 @@
                                                 <a class="m-link" href="{{ route('social-statuses.index') }}">
                                                     <i class="fa fa-heart"></i>
                                                     <span class="ms-2">الحالات الاجتماعية</span>
-                                                    <span class="badge bg-success ms-2"
-                                                        style="font-size: 10px;">✅</span>
+
                                                 </a>
                                             </li>
                                         @endif
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::PACKAGES_VIEW))
+                                            <li>
+                                                <a class="m-link" href="{{ route('packages.index') }}">
+                                                    <i class="fa fa-envelope"></i>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.packages') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                        {{-- @if (@AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW)) --}}
+                                        <li>
+                                            <a class="m-link {{ in_array(Route::currentRouteName(), ['offices.index', 'offices.create', 'offices.edit', 'offices.show', 'recruitment-offices.index', 'recruitment-offices.create', 'recruitment-offices.edit', 'recruitment-offices.show']) ? 'active' : '' }}"
+                                                href="{{ route('offices.index') }}">
+                                                <i class="fa fa-envelope"></i>
+                                                <span class="ms-2"> {{ helperTrans('ingaz.offices') }}</span>
+                                            </a>
+                                        </li>
+                                        {{-- @endif --}}
                                     </ul>
                                 </li>
                             @endif
@@ -1282,23 +1292,7 @@
                                     </ul>
                                 </li>
                             @endif
-                            @if (@AdminGuardHasPerm(\App\PermKeys::PACKAGES_VIEW))
-                                <li>
-                                    <a class="m-link" href="{{ route('packages.index') }}">
-                                        {{-- <i class="fa fa-arrow-left"></i> --}}
-                                        <span class="ms-2">{{ helperTrans('ingaz.packages') }}</span>
-                                    </a>
-                                </li>
-                            @endif
-                            @if (@AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW))
-                                <li>
-                                    <a class="m-link {{ Route::currentRouteName() == 'offices.index' ? 'active' : '' }}"
-                                        href="{{ route('offices.index') }}">
-                                        <i class="fa fa-envelope"></i>
-                                        <span class="ms-2"> {{ helperTrans('ingaz.offices') }}</span>
-                                    </a>
-                                </li>
-                            @endif
+
                         </ul>
                     </li>
                 @endif

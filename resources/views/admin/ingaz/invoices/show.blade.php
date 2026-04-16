@@ -58,6 +58,17 @@
                                 target="_blank" title="طباعة الفاتورة">
                                 <i class="fa-solid fa-print"></i>
                             </a>
+                            @if ($invoice->musanedTransferItem && $invoice->musanedTransferItem->transfer)
+                                <a href="{{ route('musaned-transfers.show', $invoice->musanedTransferItem->transfer->id) }}"
+                                    class="btn btn-light border" title="عرض تحويل مساند">
+                                    <i class="fa-solid fa-money-bill-transfer"></i>
+                                </a>
+                            @else
+                                <a href="{{ route('musaned-transfers.create', ['contract_ids' => [$invoice->contract_id]]) }}"
+                                    class="btn btn-light border" title="تسجيل تحويل مساند">
+                                    <i class="fa-solid fa-money-bill-transfer"></i>
+                                </a>
+                            @endif
                         </div>
                         <div class="text-end">
                             <div class="invoice-title">فاتورة إلكترونية</div>

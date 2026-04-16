@@ -64,15 +64,7 @@
                 $canViewHrModule = @AdminGuardCanViewPackageModule('hr');
                 $canViewFinanceModule = @AdminGuardCanViewPackageModule('finance');
 
-                $canViewCrm = $canViewCrmModule || @AdminGuardHasAnyPerm([
-                    \App\PermKeys::CLIENTS_VIEW,
-                    \App\PermKeys::CLIENTS_CREATE,
-                    \App\PermKeys::CLIENTS_EDIT,
-                    \App\PermKeys::CLIENTS_DELETE,
-                    \App\PermKeys::CLIENTS_EXPORT,
-                    \App\PermKeys::CLIENTS_SHOW,
-                    \App\PermKeys::CLIENTS_SETTINGS,
-                ]);
+                $canViewCrm = $canViewCrmModule || @AdminGuardHasAnyPerm([\App\PermKeys::CLIENTS_VIEW, \App\PermKeys::CLIENTS_CREATE, \App\PermKeys::CLIENTS_EDIT, \App\PermKeys::CLIENTS_DELETE, \App\PermKeys::CLIENTS_EXPORT, \App\PermKeys::CLIENTS_SHOW, \App\PermKeys::CLIENTS_SETTINGS]);
             @endphp
             <ul class="menu-list">
                 <!-- Dashboard Section -->
@@ -89,7 +81,9 @@
                 @php
                     $supportedLocales = array_keys(config('laravellocalization.supportedLocales', []));
                     $firstSegment = request()->segment(1);
-                    $moduleSegment = in_array($firstSegment, $supportedLocales, true) ? request()->segment(2) : $firstSegment;
+                    $moduleSegment = in_array($firstSegment, $supportedLocales, true)
+                        ? request()->segment(2)
+                        : $firstSegment;
 
                     $isHr = $moduleSegment === 'hr';
                     $isFinance = $moduleSegment === 'finance';
@@ -663,35 +657,38 @@
                 </li>
 
                 @if ($canViewCrm)
-                <li class="{{ $isCrm || request()->routeIs('admin.sms-templates.*') ? '' : 'collapsed' }}">
-                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#crm" href="#">
-                        <i class="fa-regular fa-file-lines me-2"></i>
-                        <span class="ms-2">{{ __('ingaz.crm') }}</span>
-                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
-                    </a>
-                    <ul class="sub-menu collapse {{ $isCrm || request()->routeIs('admin.sms-templates.*') ? 'show' : '' }}" id="crm">
-                        <li>
-                            <a class="m-link {{ Route::currentRouteName() == 'clients.index' ? 'active' : '' }}"
-                                href="{{ route('clients.index') }}">
-                                <i class="fa fa-user"></i>
-                                <span class="ms-2"> {{ helperTrans('ingaz.clients') }}</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a class="m-link {{ request()->routeIs('admin.sms-templates.*') ? 'active' : '' }}"
-                                href="{{ route('admin.sms-templates.index') }}">
-                                <i class="fa fa-sms"></i>
-                                <span class="ms-2">قوالب الرسائل النصية</span>
-                            </a>
-                        </li>
-                        @include('crm::crm')
-                    </ul>
-                </li>
+                    <li class="{{ $isCrm || request()->routeIs('admin.sms-templates.*') ? '' : 'collapsed' }}">
+                        <a class="m-link" data-bs-toggle="collapse" data-bs-target="#crm" href="#">
+                            <i class="fa-regular fa-file-lines me-2"></i>
+                            <span class="ms-2">{{ __('ingaz.crm') }}</span>
+                            <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                        </a>
+                        <ul class="sub-menu collapse {{ $isCrm || request()->routeIs('admin.sms-templates.*') ? 'show' : '' }}"
+                            id="crm">
+                            <li>
+                                <a class="m-link {{ Route::currentRouteName() == 'clients.index' ? 'active' : '' }}"
+                                    href="{{ route('clients.index') }}">
+                                    <i class="fa fa-user"></i>
+                                    <span class="ms-2"> {{ helperTrans('ingaz.clients') }}</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="m-link {{ request()->routeIs('admin.sms-templates.*') ? 'active' : '' }}"
+                                    href="{{ route('admin.sms-templates.index') }}">
+                                    <i class="fa fa-sms"></i>
+                                    <span class="ms-2">قوالب الرسائل النصية</span>
+                                </a>
+                            </li>
+                            @include('crm::crm')
+                        </ul>
+                    </li>
                 @endif
                 @php
                     $supportedLocales = array_keys(config('laravellocalization.supportedLocales', []));
                     $firstSegment = request()->segment(1);
-                    $moduleSegment = in_array($firstSegment, $supportedLocales, true) ? request()->segment(2) : $firstSegment;
+                    $moduleSegment = in_array($firstSegment, $supportedLocales, true)
+                        ? request()->segment(2)
+                        : $firstSegment;
                     $isHr = $moduleSegment === 'hr';
                 @endphp
                 <li class="{{ $isHr ? '' : 'collapsed' }}">
@@ -735,10 +732,11 @@
                             </a>
 
                             @php
-                                $websiteManagementOpen = request()->routeIs('settings.*')
-                                    || request()->routeIs('about-us.*')
-                                    || request()->routeIs('questions.*')
-                                    || request()->routeIs('dash.settings');
+                                $websiteManagementOpen =
+                                    request()->routeIs('settings.*') ||
+                                    request()->routeIs('about-us.*') ||
+                                    request()->routeIs('questions.*') ||
+                                    request()->routeIs('dash.settings');
                             @endphp
                             <ul class="sub-menu collapse {{ $websiteManagementOpen ? 'show' : '' }}"
                                 id="websiteManagement">
@@ -919,22 +917,11 @@
                             <a class="m-link" data-bs-toggle="collapse" data-bs-target="#my_dashboard3"
                                 href="#">
                                 <i class="fa fa-cog"></i>
-                                <span class="ms-2">{{ helperTrans('ingaz.maids_data_management') }}</span>
+                                <span class="ms-2">{{ helperTrans('ingaz.recruitment-settings') }}</span>
                                 <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                             </a>
                             <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['job-titles.index', 'packages.index', 'nationalities.index', 'religions.index', 'countries.index']) ? 'show' : '' }}"
                                 id="my_dashboard3">
-
-                                @if (@AdminGuardHasPerm(\App\PermKeys::REC_OFFICES_VIEW))
-                                    <li>
-                                        <a class="m-link {{ Route::currentRouteName() == 'recruitment-offices.index' ? 'active' : '' }}"
-                                            href="{{ route('recruitment-offices.index') }}">
-                                            <i class="fa fa-building"></i>
-                                            <span class="ms-2">
-                                                {{ helperTrans('ingaz.recruitment-offices') }}</span>
-                                        </a>
-                                    </li>
-                                @endif
                                 @if (@AdminGuardHasPerm(\App\PermKeys::JOB_TITLES_VIEW))
                                     <li>
                                         <a class="m-link" href="{{ route('job-titles.index') }}">
@@ -1043,7 +1030,7 @@
                             </li>
                         @endif
                         <li>
-                            <a class="m-link {{ Route::currentRouteName() == 'offices.index' ? 'active' : '' }}"
+                            <a class="m-link {{ in_array(Route::currentRouteName(), ['offices.index', 'offices.create', 'offices.edit', 'offices.show', 'recruitment-offices.index', 'recruitment-offices.create', 'recruitment-offices.edit', 'recruitment-offices.show']) ? 'active' : '' }}"
                                 href="{{ route('offices.index') }}">
                                 <i class="fa fa-envelope"></i>
                                 <span class="ms-2"> {{ helperTrans('ingaz.offices') }}</span>

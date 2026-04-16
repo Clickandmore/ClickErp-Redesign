@@ -23,6 +23,16 @@
     @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
         <div class="card">
             <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+                    <div>
+                        <h5 class="mb-1">إضافة عاملة جديدة</h5>
+                        <div class="text-muted small">إذا كانت لديك مجموعة سجلات، استخدم الاستيراد الجماعي مع شاشة المراجعة قبل الاعتماد.</div>
+                    </div>
+                    <a href="{{ route('maids.bulk-import.create') }}" class="btn btn-outline-success">
+                        <i class="fas fa-file-excel me-1"></i>
+                        استيراد جماعي من Excel
+                    </a>
+                </div>
                 <form class="row g-3 from-submit-global-maid" method="post" action="{{ route('maids.store') }}"
                     enctype="multipart/form-data" id="maidForm">
                     @csrf

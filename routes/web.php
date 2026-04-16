@@ -394,6 +394,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () 
     Route::post('/RecruitmentContract/completeTrip', [RecruitmentContractController::class, 'completeTrip'])->name('RecruitmentContract.completeTrip');
     Route::post('/travel/add', [RecruitmentContractController::class, 'addTravel'])->name('travel.add');
     Route::post('/RecruitmentContract/updateStatus', [RecruitmentContractController::class, 'updateStatus'])->name('RecruitmentContract.updateStatus');
+    Route::post('/RecruitmentContract/bulk-update-status', [RecruitmentContractController::class, 'bulkUpdateStatus'])->name('RecruitmentContract.bulkUpdateStatus');
     Route::post('/RecruitmentContract/cancel', [RecruitmentContractController::class, 'cancel'])->name('RecruitmentContract.cancel');
 });
 

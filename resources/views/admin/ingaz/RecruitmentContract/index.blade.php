@@ -160,6 +160,28 @@
         .stat-card-back .stat-icon {
             background: #dc2626;
         }
+
+        .bulk-update-card {
+            border: 1px solid rgba(13, 110, 253, 0.18);
+            background: linear-gradient(135deg, #f8fbff, #f3f8ff);
+        }
+
+        .bulk-stage-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(13, 110, 253, 0.08);
+            color: #0d6efd;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin: 0 8px 8px 0;
+        }
+
+        #dataTableObject tbody tr.table-primary > td {
+            background-color: rgba(13, 110, 253, 0.08) !important;
+        }
     </style>
 @endsection
 
@@ -617,6 +639,45 @@
             </div>
         </div>
 
+        <div class="card bulk-update-card shadow-sm mb-3 d-none" id="bulkUpdateCard">
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-lg-5">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-primary" id="bulkSelectedCount">0</span>
+                            <h6 class="mb-0">التحديث الجماعي للعقود</h6>
+                        </div>
+                        <div class="text-muted" id="bulkSelectionSummary">
+                            اختر العقود القابلة للتحديث من الجدول لتفعيل التحديث الجماعي.
+                        </div>
+                        <div class="mt-2" id="bulkStageSummary"></div>
+                    </div>
+                    <div class="col-md-3 col-lg-2" id="bulkStatusDateWrapper">
+                        <label for="bulkStatusDate" class="form-label">تاريخ التحديث</label>
+                        <input type="date" id="bulkStatusDate" class="form-control"
+                            value="{{ date('Y-m-d') }}" max="{{ date('Y-m-d') }}">
+                    </div>
+                    <div class="col-md-4 col-lg-2" id="bulkSmsWrapper">
+                        <div class="form-check mt-md-4 pt-md-2">
+                            <input class="form-check-input" type="checkbox" id="bulkSendSmsNotification" checked>
+                            <label class="form-check-label" for="bulkSendSmsNotification">
+                                إشعار العميل
+                            </label>
+                        </div>
+                        <small class="text-muted">يتم إرسال رسالة نصية لكل عقد يتم تحديثه</small>
+                    </div>
+                    <div class="col-lg-3 text-lg-end">
+                        <button type="button" class="btn btn-outline-secondary me-2" id="clearBulkSelectionBtn">
+                            <i class="fas fa-times me-1"></i>إلغاء التحديد
+                        </button>
+                        <button type="button" class="btn btn-primary" id="bulkUpdateStatusBtn" disabled>
+                            <i class="fas fa-layer-group me-1"></i>تحديث المحدد
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="table-responsive">
             <div class="card shadow">
                 <div class="card-body">
@@ -643,6 +704,12 @@
                         style="width:100%">
                         <thead>
                             <tr>
+                                <th class="text-center" style="width: 48px;">
+                                    <div class="form-check d-inline-flex mb-0">
+                                        <input class="form-check-input" type="checkbox" id="selectAllContracts"
+                                            title="تحديد جميع العقود القابلة للتحديث في الصفحة الحالية">
+                                    </div>
+                                </th>
                                 <th>ID</th>
                                 <th>معلومات العميل</th>
                                 <th>العاملة</th>
@@ -994,10 +1061,181 @@
             toggleStatsSections();
             syncStatSelection();
 
+            const selectedContracts = new Map();
+            let dataTable;
+
+            function escapeHtml(value) {
+                return $('<div>').text(value ?? '').html();
+            }
+
+            function clearBulkSelection() {
+                selectedContracts.clear();
+                $('#selectAllContracts').prop({
+                    checked: false,
+                    indeterminate: false
+                });
+                $('.contract-bulk-checkbox').prop('checked', false);
+                $('#dataTableObject tbody tr').removeClass('table-primary');
+                updateBulkSelectionState();
+            }
+
+            function buildBulkStageGroups(selectedItems) {
+                const groups = new Map();
+
+                selectedItems.forEach(function(item) {
+                    const targetText = item.actionType === 'travel_create'
+                        ? (item.actionText || 'إضافة رحلة')
+                        : item.nextStatusText;
+                    const key = `${item.actionType}:${item.currentStatus}->${item.nextStatus || item.actionText}`;
+                    if (!groups.has(key)) {
+                        groups.set(key, {
+                            count: 0,
+                            actionType: item.actionType,
+                            actionText: item.actionText,
+                            currentStatusText: item.currentStatusText,
+                            nextStatusText: targetText
+                        });
+                    }
+
+                    groups.get(key).count += 1;
+                });
+
+                return Array.from(groups.values());
+            }
+
+            function getSelectedActionTypes(selectedItems) {
+                return [...new Set(selectedItems.map(function(item) {
+                    return item.actionType;
+                }))];
+            }
+
+            function syncSelectAllCheckbox() {
+                const pageCheckboxes = $('.contract-bulk-checkbox:enabled');
+                const checkedCheckboxes = pageCheckboxes.filter(':checked');
+
+                $('#selectAllContracts').prop('disabled', pageCheckboxes.length === 0);
+                $('#selectAllContracts').prop('checked', pageCheckboxes.length > 0 && checkedCheckboxes.length === pageCheckboxes.length);
+                $('#selectAllContracts').prop('indeterminate', checkedCheckboxes.length > 0 && checkedCheckboxes.length < pageCheckboxes.length);
+            }
+
+            function updateBulkSelectionState() {
+                const selectedItems = Array.from(selectedContracts.values());
+                const selectedCount = selectedItems.length;
+                const actionTypes = getSelectedActionTypes(selectedItems);
+                const actionType = actionTypes.length === 1 ? actionTypes[0] : null;
+
+                $('#bulkSelectedCount').text(selectedCount);
+                $('#clearBulkSelectionBtn').prop('disabled', selectedCount === 0);
+
+                if (selectedCount === 0) {
+                    $('#bulkUpdateCard').addClass('d-none');
+                    $('#bulkSelectionSummary').text('اختر العقود القابلة للتحديث من الجدول لتفعيل التحديث الجماعي.');
+                    $('#bulkStageSummary').empty();
+                    $('#bulkStatusDateWrapper, #bulkSmsWrapper').removeClass('d-none');
+                    $('#bulkUpdateStatusBtn').text('تحديث المحدد').prop('disabled', true);
+                    syncSelectAllCheckbox();
+                    return;
+                }
+
+                $('#bulkUpdateCard').removeClass('d-none');
+
+                const groups = buildBulkStageGroups(selectedItems);
+                if (!actionType) {
+                    $('#bulkSelectionSummary').text(
+                        `تم تحديد ${selectedCount} عقد بعمليات مختلفة. اختر عقود تحديث المراحل وحدها أو عقود التذاكر وحدها لإضافة رحلة جماعية.`
+                    );
+                    $('#bulkStatusDateWrapper, #bulkSmsWrapper').addClass('d-none');
+                    $('#bulkUpdateStatusBtn').text('اختر نوعاً واحداً').prop('disabled', true);
+                } else if (actionType === 'travel_create') {
+                    $('#bulkSelectionSummary').text(
+                        `تم تحديد ${selectedCount} عقد في مرحلة التذاكر وسيتم تحويلها إلى شاشة إنشاء رحلة واحدة بشكل مجمع.`
+                    );
+                    $('#bulkStatusDateWrapper, #bulkSmsWrapper').addClass('d-none');
+                    $('#bulkUpdateStatusBtn').text('إضافة رحلة للمحدد').prop('disabled', false);
+                } else if (groups.length === 1) {
+                    const group = groups[0];
+                    $('#bulkSelectionSummary').text(
+                        `تم تحديد ${selectedCount} عقد في نفس المرحلة، وسيتم نقلها من ${group.currentStatusText} إلى ${group.nextStatusText}.`
+                    );
+                    $('#bulkStatusDateWrapper, #bulkSmsWrapper').removeClass('d-none');
+                    $('#bulkUpdateStatusBtn').text('تحديث المحدد').prop('disabled', false);
+                } else {
+                    $('#bulkSelectionSummary').text(
+                        `تم تحديد ${selectedCount} عقد من مراحل مختلفة، وسيتم تحديث كل عقد إلى مرحلته التالية المناسبة تلقائياً.`
+                    );
+                    $('#bulkStatusDateWrapper, #bulkSmsWrapper').removeClass('d-none');
+                    $('#bulkUpdateStatusBtn').text('تحديث المحدد').prop('disabled', false);
+                }
+
+                const summaryHtml = groups.map(function(group) {
+                    const actionIcon = group.actionType === 'travel_create'
+                        ? 'fa-plane'
+                        : 'fa-arrow-left';
+
+                    return `<span class="bulk-stage-badge">${escapeHtml(group.currentStatusText)} <i class="fas ${actionIcon}"></i> ${escapeHtml(group.nextStatusText)} <span class="badge bg-light text-primary">${group.count}</span></span>`;
+                }).join('');
+
+                $('#bulkStageSummary').html(summaryHtml);
+                syncSelectAllCheckbox();
+            }
+
+            function buildBulkUpdateResultHtml(response) {
+                const skippedContracts = response.skipped_contracts || [];
+                const visibleSkippedContracts = skippedContracts.slice(0, 6);
+                let html = '<div class="text-start">';
+
+                html += `<div class="mb-2">تم تحديث <strong>${response.updated_count || 0}</strong> عقد.</div>`;
+
+                if ((response.skipped_count || 0) > 0) {
+                    html += `<div class="mb-2">العقود التي لم تُحدّث: <strong>${response.skipped_count}</strong></div>`;
+                }
+
+                if ((response.sms_sent_count || 0) > 0) {
+                    html += `<div class="mb-2">الإشعارات المرسلة: <strong>${response.sms_sent_count}</strong></div>`;
+                }
+
+                if (visibleSkippedContracts.length > 0) {
+                    html += '<div class="small text-muted mt-3">';
+                    visibleSkippedContracts.forEach(function(item) {
+                        html += `<div>#${escapeHtml(item.id)}: ${escapeHtml(item.message)}</div>`;
+                    });
+
+                    if (skippedContracts.length > visibleSkippedContracts.length) {
+                        html += `<div>... و${skippedContracts.length - visibleSkippedContracts.length} عقود أخرى</div>`;
+                    }
+
+                    html += '</div>';
+                }
+
+                html += '</div>';
+
+                return html;
+            }
+
+            function syncSelectedRows() {
+                $('.contract-bulk-checkbox').each(function() {
+                    const checkbox = $(this);
+                    const contractId = String(checkbox.val());
+                    const isSelected = selectedContracts.has(contractId);
+
+                    checkbox.prop('checked', isSelected);
+                    checkbox.closest('tr').toggleClass('table-primary', isSelected);
+                });
+
+                updateBulkSelectionState();
+            }
+
             let columns = [{
+                    "data": 'bulk_select',
+                    name: 'bulk_select',
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center'
+                },
+                {
                     "data": 'id',
                     name: 'id',
-                    orderable: false,
+                    orderable: true,
                     searchable: false
                 },
                 {
@@ -1047,7 +1285,7 @@
             $('body').addClass('loading');
 
             // إنشاء DataTable مع الفلتر المطبق
-            let dataTable = $('#dataTableObject').DataTable({
+            dataTable = $('#dataTableObject').DataTable({
                 processing: CleanLoader.getCleanProcessingMessage(),
                 serverSide: true,
                 searching: false,
@@ -1110,7 +1348,7 @@
                 },
                 columns: columns,
                 order: [
-                    [0, 'desc']
+                    [1, 'desc']
                 ],
                 pageLength: 10, // تقليل عدد الصفوف لتسريع التحميل
                 lengthMenu: [
@@ -1156,12 +1394,149 @@
                 drawCallback: function(settings) {
                     // تمكين التفاعل بعد التحميل
                     $('#dataTableObject').removeClass('loading');
+                    syncSelectedRows();
 
                     // إعادة تهيئة tooltips إذا كانت موجودة
                     if (typeof $().tooltip === 'function') {
                         $('[data-bs-toggle="tooltip"]').tooltip();
                     }
                 }
+            });
+
+            $(document).on('change', '.contract-bulk-checkbox', function() {
+                const checkbox = $(this);
+                const contractId = String(checkbox.val());
+
+                if (checkbox.is(':checked')) {
+                    selectedContracts.set(contractId, {
+                        id: contractId,
+                        actionType: checkbox.data('action-type'),
+                        actionText: checkbox.data('action-text'),
+                        currentStatus: checkbox.data('current-status'),
+                        currentStatusText: checkbox.data('current-status-text'),
+                        nextStatus: checkbox.data('next-status'),
+                        nextStatusText: checkbox.data('next-status-text')
+                    });
+                } else {
+                    selectedContracts.delete(contractId);
+                }
+
+                checkbox.closest('tr').toggleClass('table-primary', checkbox.is(':checked'));
+                updateBulkSelectionState();
+            });
+
+            $('#selectAllContracts').on('change', function() {
+                const shouldSelect = $(this).is(':checked');
+
+                $('.contract-bulk-checkbox:enabled').each(function() {
+                    const checkbox = $(this);
+
+                    if (checkbox.is(':checked') !== shouldSelect) {
+                        checkbox.prop('checked', shouldSelect).trigger('change');
+                    }
+                });
+            });
+
+            $('#clearBulkSelectionBtn').on('click', function() {
+                clearBulkSelection();
+            });
+
+            $('#bulkUpdateStatusBtn').on('click', function() {
+                const selectedItems = Array.from(selectedContracts.values());
+                if (selectedItems.length === 0) {
+                    return;
+                }
+
+                const actionTypes = getSelectedActionTypes(selectedItems);
+                if (actionTypes.length !== 1) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'اختيار غير متجانس',
+                        text: 'اختر نوع عملية واحد فقط: إما تحديث مراحل العقود أو إضافة رحلة جماعية لعقود التذاكر.'
+                    });
+                    return;
+                }
+
+                const bulkButton = $(this);
+                const actionType = actionTypes[0];
+
+                if (actionType === 'travel_create') {
+                    const params = new URLSearchParams();
+                    selectedItems.forEach(function(item) {
+                        params.append('order_ids[]', item.id);
+                    });
+
+                    window.location.href = '{{ route('travel.control') }}' + '?' + params.toString();
+                    return;
+                }
+
+                const bulkDate = $('#bulkStatusDate').val();
+                const sendSms = $('#bulkSendSmsNotification').is(':checked');
+                const confirmationHtml = `
+                    <div class="text-start">
+                        <div class="mb-2">${escapeHtml($('#bulkSelectionSummary').text())}</div>
+                        <div class="mb-3">${$('#bulkStageSummary').html()}</div>
+                        <div class="small text-muted">تاريخ التحديث: ${escapeHtml(bulkDate)}</div>
+                        <div class="small text-muted mt-1">${sendSms ? 'سيتم إرسال إشعار نصي للعملاء المرتبطين بالعقود المحدثة.' : 'لن يتم إرسال إشعارات للعملاء في هذه العملية.'}</div>
+                    </div>
+                `;
+
+                Swal.fire({
+                    title: 'تأكيد التحديث الجماعي',
+                    html: confirmationHtml,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'نعم، حدّث العقود',
+                    cancelButtonText: 'إلغاء',
+                    confirmButtonColor: '#0d6efd'
+                }).then((result) => {
+                    if (!result.isConfirmed) {
+                        return;
+                    }
+
+                    bulkButton.prop('disabled', true);
+
+                    $.ajax({
+                        url: '{{ route('RecruitmentContract.bulkUpdateStatus') }}',
+                        method: 'POST',
+                        data: {
+                            row_ids: selectedItems.map(item => item.id),
+                            date: bulkDate,
+                            send_sms: sendSms,
+                            _token: '{{ csrf_token() }}'
+                        },
+                        success: function(response) {
+                            clearBulkSelection();
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'تم تنفيذ التحديث الجماعي',
+                                html: buildBulkUpdateResultHtml(response)
+                            }).then(() => {
+                                dataTable.ajax.reload(null, false);
+                            });
+                        },
+                        error: function(xhr) {
+                            const response = xhr.responseJSON || {};
+                            const message = response.message || 'حدث خطأ أثناء تنفيذ التحديث الجماعي';
+
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'تعذر تنفيذ التحديث الجماعي',
+                                html: buildBulkUpdateResultHtml({
+                                    updated_count: response.updated_count || 0,
+                                    skipped_count: response.skipped_count || 0,
+                                    sms_sent_count: response.sms_sent_count || 0,
+                                    skipped_contracts: response.skipped_contracts || [],
+                                    message: message
+                                }) + `<div class="text-start text-danger mt-3">${escapeHtml(message)}</div>`
+                            });
+                        },
+                        complete: function() {
+                            bulkButton.prop('disabled', selectedContracts.size === 0);
+                        }
+                    });
+                });
             });
 
             // تحديث الجدول عند تغيير الفلتر
@@ -1176,6 +1551,7 @@
                     return;
                 }
 
+                clearBulkSelection();
                 $('#dataTableObject').addClass('loading');
                 dataTable.ajax.reload(function() {
                     $('#dataTableObject').removeClass('loading');
@@ -1190,6 +1566,7 @@
             // تحديث الجدول عند تغيير فلتر حالة الضمان
             $('#warrantyStatusFilter').on('change', function() {
                 syncStatSelection();
+                clearBulkSelection();
                 $('#dataTableObject').addClass('loading');
                 dataTable.ajax.reload(function() {
                     $('#dataTableObject').removeClass('loading');
@@ -1216,6 +1593,7 @@
                 toggleStatsSections();
                 syncStatSelection();
 
+                clearBulkSelection();
                 $('#dataTableObject').addClass('loading');
                 dataTable.ajax.reload(function() {
                     $('#dataTableObject').removeClass('loading');
@@ -1241,6 +1619,7 @@
 
             // زر البحث
             $('#btnSubmit').on('click', function() {
+                clearBulkSelection();
                 $('#dataTableObject').addClass('loading');
                 dataTable.ajax.reload(function() {
                     $('#dataTableObject').removeClass('loading');
@@ -1258,6 +1637,7 @@
                 toggleStatsSections();
                 syncStatSelection();
 
+                clearBulkSelection();
                 $('#dataTableObject').addClass('loading');
                 dataTable.ajax.reload(function() {
                     $('#dataTableObject').removeClass('loading');
@@ -1440,12 +1820,6 @@
                 backContract(rowId, targetLabel);
             });
 
-            // معالج زر إضافة رحلة
-            $(document).on('click', '.add-travel-btn', function() {
-                var contractId = $(this).data('contract-id');
-                addTravel(contractId);
-            });
-
             // معالج زر تحديث الحالة
             $(document).on('click', '.update-status-btn', function() {
                 var rowId = $(this).data('row-id');
@@ -1561,56 +1935,6 @@
                     }
                 });
             }
-
-            // دالة إضافة رحلة
-            function addTravel(contractId) {
-                Swal.fire({
-                    title: 'إضافة رحلة جديدة',
-                    text: 'هل تريد إضافة رحلة جديدة لهذا العقد؟',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#28a745',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'نعم، إضافة رحلة',
-                    cancelButtonText: 'إلغاء'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            url: '{{ route('travel.add') }}',
-                            method: 'POST',
-                            data: {
-                                contract_id: contractId,
-                                _token: '{{ csrf_token() }}'
-                            },
-                            success: function(response) {
-                                if (response.success) {
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'تم إضافة الرحلة بنجاح',
-                                        text: response.message
-                                    }).then(() => {
-                                        dataTable.ajax.reload();
-                                    });
-                                } else {
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'خطأ',
-                                        text: response.message
-                                    });
-                                }
-                            },
-                            error: function() {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'خطأ',
-                                    text: 'حدث خطأ أثناء إضافة الرحلة'
-                                });
-                            }
-                        });
-                    }
-                });
-            }
-
 
             // معالج فتح Modal تحديث الحالة
             $('#updateStatusModal').on('show.bs.modal', function(event) {

@@ -4,6 +4,8 @@ use App\Http\Controllers\Admin\ContractReturnRequestController;
 use App\Http\Controllers\ingaz\ArrivalWorkerController;
 use App\Http\Controllers\ingaz\CountryPoliceController;
 use App\Http\Controllers\ingaz\MakeAccountsForClientsController;
+use App\Http\Controllers\ingaz\MaidBulkImportController;
+use App\Http\Controllers\ingaz\MusanedTransferController;
 use App\Http\Controllers\ingaz\PoliceSettingController;
 use App\Http\Controllers\ingaz\SelectWorkerController;
 use App\Http\Controllers\ingaz\SelectWorkerSettingsController;
@@ -182,6 +184,11 @@ Route::group(
             Route::get('maids/{id}/details', [\App\Http\Controllers\ingaz\MaidController::class, 'getMaidDetails'])->name('maids.details');
             Route::get('maids/rental', [\App\Http\Controllers\ingaz\MaidController::class, 'rentalIndex'])->name('maids.rental.index');
             Route::get('maids/rental/create', [\App\Http\Controllers\ingaz\MaidController::class, 'createRental'])->name('maids.rental.create');
+            Route::get('maids/bulk-import', [MaidBulkImportController::class, 'create'])->name('maids.bulk-import.create');
+            Route::get('maids/bulk-import/template', [MaidBulkImportController::class, 'template'])->name('maids.bulk-import.template');
+            Route::post('maids/bulk-import', [MaidBulkImportController::class, 'store'])->name('maids.bulk-import.store');
+            Route::get('maids/bulk-import/{maidBulkImport}', [MaidBulkImportController::class, 'show'])->name('maids.bulk-import.show');
+            Route::post('maids/bulk-import/{maidBulkImport}/approve', [MaidBulkImportController::class, 'approve'])->name('maids.bulk-import.approve');
             // Limit maid parameter to numeric IDs to avoid catching custom pages like create_rapid_cv
             Route::resource('maids', MaidController::class)->whereNumber('maid');
             Route::get('maids/create_rapid_cv', [MaidController::class, 'create_rapid_cv'])->name('maids.create_rapid_cv');
@@ -275,6 +282,7 @@ Route::group(
             // الفواتير
             Route::resource('invoices', InvoiceController::class);
             Route::get('invoices/download/{id}', [InvoiceController::class, 'downloadInvoice'])->name('invoice.download');
+            Route::resource('musaned-transfers', MusanedTransferController::class)->only(['index', 'create', 'store', 'show']);
 
             // إغلاق عقود الإيجار
             Route::get('RentContract/{id}/details', [RentContractController::class, 'getContractDetails'])->name('RentContract.details');
@@ -333,7 +341,8 @@ Route::group(
             Route::resource('return_requests', ReturnRequestController::class);
             Route::get('return_requests/export/pdf', [ReturnRequestController::class, 'exportPdf'])->name('return_requests.export.pdf');
             Route::get('return_requests/export/excel', [ReturnRequestController::class, 'exportExcel'])->name('return_requests.export.excel');
-            Route::resource('recruitment-offices', RecruitmentOfficeController::class);
+            Route::resource('recruitment-offices', OfficeController::class)
+                ->parameters(['recruitment-offices' => 'office']);
             Route::resource('shelter-places', ShelterPlaces::class);
             // Route::resource('roles', RoleController::class);
 

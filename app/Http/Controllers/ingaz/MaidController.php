@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\ingaz;
 
+use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Actions\ingaz\JobTitleAction;
 use App\Http\Actions\ingaz\JobTypeAction;
 use App\Http\Actions\ingaz\MaidAction as objAction;
@@ -1604,11 +1605,8 @@ class MaidController extends Controller
 
     public function exportPdf(Request $request)
     {
-        $maidsQuery = objModel::with('nationality', 'religion', 'jobTypes', 'jobTitles');
-        if ($request->boolean('deleted')) {
-            $maidsQuery->onlyTrashed();
-        }
-        $maids = $maidsQuery->get();
+        $this->configureMaidExportRuntime();
+        $maids = $this->buildMaidExportQuery($request)->lazy(200);
 
         // Create HTML content with RTL support and better styling
         $html = '<!DOCTYPE html>
@@ -1758,11 +1756,8 @@ class MaidController extends Controller
 
     public function exportExcel(Request $request)
     {
-        $maidsQuery = objModel::with('nationality', 'religion', 'jobTypes', 'jobTitles');
-        if ($request->boolean('deleted')) {
-            $maidsQuery->onlyTrashed();
-        }
-        $maids = $maidsQuery->get();
+        $this->configureMaidExportRuntime();
+        $maids = $this->buildMaidExportQuery($request)->lazy(200);
 
         // Create new Spreadsheet object
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
@@ -1850,6 +1845,58 @@ class MaidController extends Controller
 
         // Return file
         return response()->download($tempFile, 'maids.xlsx', $headers)->deleteFileAfterSend(true);
+    }
+
+    private function configureMaidExportRuntime(): void
+    {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(600);
+    }
+
+    private function buildMaidExportQuery(Request $request)
+    {
+        $maidsQuery = objModel::query()
+            ->with([
+                'nationality',
+                'religion',
+                'jobTypes',
+                'jobTitles',
+                'contracts' => function ($query) {
+                    $query->select(['id', 'maid_id', 'status'])
+                        ->where('status', ContractStatusEnum::Shelter->value);
+                },
+            ])
+            ->select([
+                'id',
+                'name',
+                'passport_num',
+                'id_number',
+                'nationality_id',
+                'religion_id',
+                'office_id',
+                'price',
+                'salary',
+                'age',
+                'available',
+                'status',
+                'is_pinned',
+                'created_at',
+                'experience_years',
+                'experience_status',
+                'maid_accommodation_type',
+                'id_expiry_date',
+                'request_type',
+            ]);
+
+        if ($request->boolean('deleted')) {
+            $maidsQuery->onlyTrashed();
+        }
+
+        $this->applyMaidFilter($request, $maidsQuery);
+
+        return $maidsQuery
+            ->orderByDesc('is_pinned')
+            ->orderByDesc('created_at');
     }
 
     private function createAjaxResponse(NationalityAction $act, RecruitmentOfficeAction $officeAction, ReligionAction $relAct, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction, $viewName, $additionalData = [])
