@@ -72,6 +72,36 @@
             padding: 1.35rem;
         }
 
+        .office-filter-card.is-collapsed .office-filter-body {
+            display: none;
+        }
+
+        .office-filter-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            border: 1px solid #d7dee8;
+            background: #fff;
+            color: #1f2937;
+            border-radius: .85rem;
+            padding: .55rem .9rem;
+            font-weight: 700;
+            transition: .2s ease;
+        }
+
+        .office-filter-toggle:hover {
+            border-color: #0d6efd;
+            color: #0d6efd;
+        }
+
+        .office-filter-toggle i {
+            transition: transform .2s ease;
+        }
+
+        .office-filter-card.is-collapsed .office-filter-toggle i {
+            transform: rotate(-180deg);
+        }
+
         .office-filter-grid {
             display: grid;
             grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -161,6 +191,46 @@
             color: #0f172a;
         }
 
+        .related-count-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 42px;
+            padding: .35rem .7rem;
+            border-radius: 999px;
+            font-weight: 800;
+            text-decoration: none;
+            transition: .2s ease;
+        }
+
+        .linked-cvs-link {
+            background: rgba(13, 110, 253, 0.10);
+            color: #0d6efd;
+        }
+
+        .linked-contracts-link {
+            background: rgba(25, 135, 84, 0.10);
+            color: #198754;
+        }
+
+        .related-count-badge.is-empty {
+            background: #f1f5f9;
+            color: #94a3b8;
+            cursor: default;
+        }
+
+        .linked-cvs-link:hover {
+            background: #0d6efd;
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .linked-contracts-link:hover {
+            background: #198754;
+            color: #fff;
+            text-decoration: none;
+        }
+
         @media (max-width: 1199px) {
             .office-filter-grid {
                 grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -197,7 +267,7 @@
                         <div>
                             <span class="badge bg-light text-primary border border-primary mb-3">{{ helperTrans('ingaz.offices') }}</span>
                             <h3 class="mb-2">{{ helperTrans('ingaz.offices') }}</h3>
-                            <p class="text-muted mb-0">{{ helperTrans('ingaz.filters') }} ، {{ helperTrans('ingaz.status') }} ، {{ helperTrans('ingaz.linked_cvs') }} ، {{ helperTrans('ingaz.cost_of_dollar') }}</p>
+                            <p class="text-muted mb-0">{{ helperTrans('ingaz.filters') }} ، {{ helperTrans('ingaz.status') }} ، {{ helperTrans('ingaz.linked_cvs') }} ، {{ helperTrans('ingaz.linked_contracts') }}</p>
                         </div>
 
                         @if (@AdminGuardHasAnyPerm([\App\PermKeys::REC_OFFICES_CONTROL, \App\PermKeys::JOB_TITLES_CONTROL]))
@@ -253,18 +323,22 @@
                     <div class="office-stat-card card">
                         <div class="card-body p-4 d-flex justify-content-between align-items-center">
                             <div>
-                                <div class="office-stat-label">{{ helperTrans('ingaz.offices_with_cost_of_dollar') }}</div>
-                                <div class="office-stat-value">{{ $stats['with_cost_of_dollar'] ?? 0 }}</div>
+                                <div class="office-stat-label">{{ helperTrans('ingaz.offices_with_linked_cvs') }}</div>
+                                <div class="office-stat-value">{{ $stats['offices_with_linked_cvs'] ?? 0 }}</div>
                             </div>
-                            <span class="office-stat-icon"><i class="fa fa-dollar-sign"></i></span>
+                            <span class="office-stat-icon"><i class="fa fa-link"></i></span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="office-filter-card card mb-4">
-                <div class="office-card-head">
+            <div class="office-filter-card card mb-4 is-collapsed" id="officeFilterCard">
+                <div class="office-card-head d-flex align-items-center justify-content-between gap-3">
                     <h5 class="office-card-title">{{ helperTrans('ingaz.filters') }}</h5>
+                    <button type="button" class="office-filter-toggle" id="toggleOfficeFilters" aria-expanded="false">
+                        <span id="toggleOfficeFiltersText">{{ helperTrans('ingaz.expand_filters') }}</span>
+                        <i class="fa fa-angle-up"></i>
+                    </button>
                 </div>
                 <div class="office-filter-body">
                     <div class="office-filter-grid">
@@ -342,7 +416,9 @@
                                     <th>#</th>
                                     <th>{{ helperTrans('ingaz.title') }}</th>
                                     <th>{{ helperTrans('ingaz.nationality') }}</th>
+                                    <th>{{ __('finance::finance.account_code') }}</th>
                                     <th>{{ helperTrans('ingaz.linked_cvs') }}</th>
+                                    <th>{{ helperTrans('ingaz.linked_contracts') }}</th>
                                     <th>{{ helperTrans('ingaz.cost_of_dollar') }}</th>
                                     <th>{{ helperTrans('ingaz.status') }}</th>
                                     <th>{{ helperTrans('ingaz.actions') }}</th>
@@ -381,9 +457,9 @@
 
                 const officeName = stripHtml(data[1]);
                 const nationalityName = stripHtml(data[2]);
-                const linkedCount = parseInt(stripHtml(data[3]) || '0', 10);
-                const costValue = stripHtml(data[4]);
-                const statusRaw = data[5] || '';
+                const linkedCount = parseInt(stripHtml(data[4]) || '0', 10);
+                const costValue = stripHtml(data[6]);
+                const statusRaw = data[7] || '';
                 const statusValue = statusRaw.includes('data-action="dis_active"') ? 'dis_active' : (statusRaw.includes('data-action="active"') ? 'active' : '');
 
                 if (titleFilter && !officeName.includes(titleFilter)) {
@@ -452,9 +528,33 @@
                         searchable: true
                     },
                     {
+                        data: 'account_code',
+                        orderable: true,
+                        searchable: true
+                    },
+                    {
                         data: 'linked_cvs',
                         orderable: true,
-                        searchable: false
+                        searchable: false,
+                        render: function(data, type) {
+                            if (type === 'sort' || type === 'type') {
+                                return parseInt(stripHtml(data) || '0', 10);
+                            }
+
+                            return data;
+                        }
+                    },
+                    {
+                        data: 'linked_contracts',
+                        orderable: true,
+                        searchable: false,
+                        render: function(data, type) {
+                            if (type === 'sort' || type === 'type') {
+                                return parseInt(stripHtml(data) || '0', 10);
+                            }
+
+                            return data;
+                        }
                     },
                     {
                         data: 'cost_of_dollar',
@@ -516,6 +616,13 @@
 
             $('#nationalityFilter, #statusFilter, #linkedFilter, #costFilter').on('change', function() {
                 officeTable.draw();
+            });
+
+            $('#toggleOfficeFilters').on('click', function() {
+                const $card = $('#officeFilterCard');
+                const isCollapsed = $card.toggleClass('is-collapsed').hasClass('is-collapsed');
+                $(this).attr('aria-expanded', String(!isCollapsed));
+                $('#toggleOfficeFiltersText').text(isCollapsed ? "{{ helperTrans('ingaz.expand_filters') }}" : "{{ helperTrans('ingaz.collapse_filters') }}");
             });
         });
 

@@ -547,7 +547,7 @@
 
                                 @if (isset($filterOptions) && isset($filterOptions['offices']))
                                     @foreach ($filterOptions['offices'] as $office)
-                                        <option value="{{ $office->id }}">{{ $office->title }}</option>
+                                        <option value="{{ $office->id }}" {{ (string) request('office_id') === (string) $office->id ? 'selected' : '' }}>{{ $office->title }}</option>
                                     @endforeach
                                 @else
                                     <option value="">لا توجد بيانات</option>

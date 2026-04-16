@@ -387,9 +387,7 @@ class RecruitmentContractController extends Controller
 
             // فلتر المكتب الخارجي
             if ($request->filled('office_id')) {
-                $query->whereHas('maid', function ($q) use ($request) {
-                    $q->where('office_id', $request->office_id);
-                });
+                $this->applyOfficeFilter($query, $request->office_id);
             }
 
             // فلتر مدينة العميل
@@ -3252,9 +3250,7 @@ class RecruitmentContractController extends Controller
 
         // فلتر المكتب الخارجي
         if ($request->filled('office_id')) {
-            $query->whereHas('maid', function ($q) use ($request) {
-                $q->where('office_id', $request->office_id);
-            });
+            $this->applyOfficeFilter($query, $request->office_id);
         }
 
         // فلتر مدينة العميل
@@ -3330,6 +3326,17 @@ class RecruitmentContractController extends Controller
             $q->orWhereHas('order', function ($orderQuery) use ($likeSearch) {
                 $orderQuery->where('id', 'like', $likeSearch)
                     ->orWhere('order_code', 'like', $likeSearch);
+            });
+        });
+    }
+
+    private function applyOfficeFilter($query, $officeId): void
+    {
+        $query->where(function ($officeQuery) use ($officeId) {
+            $officeQuery->whereHas('maid', function ($maidQuery) use ($officeId) {
+                $maidQuery->where('office_id', $officeId);
+            })->orWhereHas('info', function ($infoQuery) use ($officeId) {
+                $infoQuery->where('manual_maid_office_id', $officeId);
             });
         });
     }

@@ -146,6 +146,14 @@
                                     <span class="detail-value">{{ $jobTypeNames ?: '-' }}</span>
                                 </div>
                                 <div class="detail-item">
+                                    <span class="detail-label">{{ __('finance::finance.account_code') }}</span>
+                                    <span class="detail-value">{{ $office->account?->code ?? '-' }}</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">{{ __('finance::finance.Account Name') }}</span>
+                                    <span class="detail-value">{{ $office->account?->name ?? '-' }}</span>
+                                </div>
+                                <div class="detail-item">
                                     <span class="detail-label">{{ helperTrans('ingaz.linked_cvs') }}</span>
                                     <span class="detail-value">{{ $office->maids_count ?? 0 }}</span>
                                 </div>

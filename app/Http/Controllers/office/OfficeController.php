@@ -14,8 +14,8 @@ use App\Http\Actions\office\OfficeAttachmentAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\office\DeleteOfficeRequest;
 use App\Http\Requests\office\OfficeRequest;
-use App\Models\ingaz\Maid;
 use App\Models\office\Office as objModel;
+use App\Services\office\OfficeFinanceAccountService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -44,11 +44,19 @@ class OfficeController extends Controller
      */
     public function index(Request $request, NationalityAction $nationalityAction)
     {
+        $linkedContractsCountSubquery = $this->linkedContractsCountSubquery();
+
         if ($request->ajax()) {
             $offices = objModel::query()
-                ->with(['nationality', 'file'])
-                ->withCount('maids')
-                ->orderByTranslation('title', 'asc');
+                ->select('recruitment_offices.*')
+                ->with(['nationality', 'file', 'account'])
+                ->selectSub($linkedContractsCountSubquery, 'linked_contracts_count')
+                ->withCount(['maids as linked_cvs_count'])
+                ->get()
+                ->sortBy(function ($office) {
+                    return mb_strtolower((string) ($office->title ?? ''));
+                })
+                ->values();
 
             return DataTables::of($offices)
                 ->addIndexColumn()
@@ -58,8 +66,20 @@ class OfficeController extends Controller
                 ->editColumn('title', function ($row) {
                     return $row->title ?? '';
                 })
+                ->addColumn('account_code', function ($row) {
+                    return $row->account?->code ? (string) $row->account->code : '--';
+                })
                 ->addColumn('linked_cvs', function ($row) {
-                    return (string) ($row->maids_count ?? 0);
+                    $count = (int) ($row->linked_cvs_count ?? 0);
+                    $url = route('maids.index', ['office_id' => $row->id]);
+
+                    return $this->renderRelatedCountBadge($count, $url, 'linked-cvs-link');
+                })
+                ->addColumn('linked_contracts', function ($row) {
+                    $count = (int) ($row->linked_contracts_count ?? 0);
+                    $url = route('RecruitmentContract.index', ['office_id' => $row->id]);
+
+                    return $this->renderRelatedCountBadge($count, $url, 'linked-contracts-link');
                 })
                 ->editColumn('cost_of_dollar', function ($row) {
                     if ($row->cost_of_dollar === null || $row->cost_of_dollar === '') {
@@ -134,18 +154,20 @@ class OfficeController extends Controller
                                 </div>';
                     return $actions;
                 })
-                ->rawColumns(['actions', 'status'])->make(true);
+                ->rawColumns(['linked_cvs', 'linked_contracts', 'actions', 'status'])->make(true);
         }
+
+        $officeLinkedStats = objModel::query()
+            ->withCount('maids')
+            ->get(['id']);
 
         $stats = [
             'total' => objModel::count(),
             'active' => objModel::where('status', OfficesStatusEnum::Active->value)->count(),
             'inactive' => objModel::where('status', OfficesStatusEnum::DisActive->value)->count(),
-            'linked_cvs' => Maid::whereNotNull('office_id')->count(),
-            'with_cost_of_dollar' => objModel::query()
-                ->whereNotNull('cost_of_dollar')
-                ->where('cost_of_dollar', '!=', '')
-                ->count(),
+            // يُحسب من نفس relation المستخدمة في الجدول لضمان التطابق مع عدد السير الظاهر لكل مكتب.
+            'linked_cvs' => (int) $officeLinkedStats->sum('maids_count'),
+            'offices_with_linked_cvs' => (int) $officeLinkedStats->where('maids_count', '>', 0)->count(),
         ];
 
         $nationalities = $nationalityAction->get();
@@ -175,7 +197,8 @@ class OfficeController extends Controller
      * @return \Illuminate\Http\JsonResponse
      */
     public function store(OfficeRequest     $request, objAction $action, JopTypeOfficeAction $jopTypeOfficeAction,
-                          AdminOfficeAction $adminOfficeAction, AdminAction $adminAction, OfficeAttachmentAction $officeAttachmentAction)
+                          AdminOfficeAction $adminOfficeAction, AdminAction $adminAction, OfficeAttachmentAction $officeAttachmentAction,
+                          OfficeFinanceAccountService $officeFinanceAccountService)
     {
         $office = null;
         $data = $request->validated();
@@ -197,9 +220,12 @@ class OfficeController extends Controller
             $officeAttachmentAction,
             $attachmentFile,
             $attachmentName,
-            $managerPassword
+            $managerPassword,
+            $officeFinanceAccountService
         ) {
             $office = $action->store($data);
+
+            $officeFinanceAccountService->ensureForOffice($office);
 
             foreach ($jobTitleIds as $jobTitleId) {
                 $jopTypeOfficeAction->store([
@@ -253,6 +279,7 @@ class OfficeController extends Controller
             'attachment',
             'file.jobTitle',
             'officeManager.admin',
+            'account',
         ])->withCount('maids')->findOrFail($id);
 
         // $office->is_show = !$office->is_show;
@@ -279,7 +306,7 @@ class OfficeController extends Controller
      */
     public function edit(Request $request, $id, NationalityAction $nationalityAction, JobTypeAction $jobTypeAction)
     {
-        $office = objModel::with(['jobTypes', 'attachment'])
+        $office = objModel::with(['jobTypes', 'attachment', 'account'])
             ->withCount('maids')
             ->findorfail($id);
         $nationalities = $nationalityAction->get();
@@ -295,7 +322,9 @@ class OfficeController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function update(OfficeRequest $request, objAction $action, $id, OfficeAttachmentAction $officeAttachmentAction, AdminAction $adminAction, AdminOfficeAction $adminOfficeAction)
+    public function update(OfficeRequest $request, objAction $action, $id, OfficeAttachmentAction $officeAttachmentAction,
+                           AdminAction $adminAction, AdminOfficeAction $adminOfficeAction,
+                           OfficeFinanceAccountService $officeFinanceAccountService)
     {
         $data = $request->validated();
         $obj = $action->find($id);
@@ -316,7 +345,8 @@ class OfficeController extends Controller
             $id,
             $managerPassword,
             $jobTitleIds,
-            $request
+            $request,
+            $officeFinanceAccountService
         ) {
             if ($attachmentFile && filled($attachmentName)) {
                 $attachment = $obj->attachment;
@@ -379,6 +409,8 @@ class OfficeController extends Controller
 
             $obj->update($data);
 
+            $officeFinanceAccountService->ensureForOffice($obj->fresh(['translations', 'account']));
+
             if ($request->has('job_title_id')) {
                 $obj->jobTypes()->sync($jobTitleIds);
             }
@@ -403,5 +435,31 @@ class OfficeController extends Controller
         }
         $action->delete($id);
         return jsonSuccess();
+    }
+
+    private function linkedContractsCountSubquery()
+    {
+        return DB::table('contracts')
+            ->leftJoin('maids', 'maids.id', '=', 'contracts.maid_id')
+            ->leftJoin('contract_infos', 'contract_infos.contract_id', '=', 'contracts.id')
+            ->selectRaw('COUNT(DISTINCT contracts.id)')
+            ->whereIn('contracts.type', ['recruitment', 'maid'])
+            ->where(function ($query) {
+                $query->where(function ($maidQuery) {
+                    $maidQuery->whereColumn('maids.office_id', 'recruitment_offices.id')
+                        ->whereNull('maids.deleted_at');
+                })->orWhereColumn('contract_infos.manual_maid_office_id', 'recruitment_offices.id');
+            });
+    }
+
+    private function renderRelatedCountBadge(int $count, string $url, string $class): string
+    {
+        if ($count < 1) {
+            return '<span class="related-count-badge is-empty" data-order="0">0</span>';
+        }
+
+        return '<a href="' . $url . '" class="related-count-badge ' . $class . '" data-order="' . $count . '">'
+            . $count .
+            '</a>';
     }
 }

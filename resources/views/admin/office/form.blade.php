@@ -397,6 +397,12 @@
                                         <span class="office-meta-value">{{ $isEdit ? $office->id : '-' }}</span>
                                     </div>
                                     <div class="office-meta-item">
+                                        <span class="office-meta-label">{{ __('finance::finance.account_code') }}</span>
+                                        <span class="office-meta-value">
+                                            {{ $isEdit ? ($office->account?->code ?? 'يُنشأ تلقائياً') : 'يُنشأ تلقائياً تحت 221' }}
+                                        </span>
+                                    </div>
+                                    <div class="office-meta-item">
                                         <span class="office-meta-label">{{ helperTrans('ingaz.linked_cvs') }}</span>
                                         <span class="office-meta-value">{{ $isEdit ? ($office->maids_count ?? 0) : 0 }}</span>
                                     </div>

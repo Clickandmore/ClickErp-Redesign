@@ -15,6 +15,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 use App\Models\ingaz\JobTitlesTranslation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Nami\Finance\Models\Account;
 
 class Office extends Model
 {
@@ -52,6 +53,11 @@ class Office extends Model
         return $this->hasMany(Maid::class, 'office_id');
     }
 
+    public function account()
+    {
+        return $this->belongsTo(Account::class, 'account_id');
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
@@ -75,6 +81,7 @@ class Office extends Model
                 'cost_of_other',
                 'status',
                 'is_show',
+                'account_id',
             ])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
