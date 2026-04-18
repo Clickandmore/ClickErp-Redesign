@@ -31,6 +31,7 @@ use App\Actions\NationalityAction;
 use App\Actions\ReligionAction;
 use App\Actions\JobTitleAction;
 use App\Actions\JobTypeAction;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use App\NewPermKeys;
 use PDF;
@@ -239,6 +240,87 @@ class RecruitmentContractController extends Controller
         ];
     }
 
+    private function getCurrentContractStatuses(): array
+    {
+        return [
+            ContractStatusEnum::PendingMaidSelection->value,
+            ContractStatusEnum::New->value,
+            ContractStatusEnum::Msaned->value,
+            ContractStatusEnum::Tafwed->value,
+            ContractStatusEnum::Taffez->value,
+            ContractStatusEnum::Tazker->value,
+        ];
+    }
+
+    private function getDelayedArrivalStatuses(): array
+    {
+        return [
+            ContractStatusEnum::PendingMaidSelection->value,
+            ContractStatusEnum::New->value,
+            ContractStatusEnum::Msaned->value,
+            ContractStatusEnum::Tafwed->value,
+            ContractStatusEnum::Taffez->value,
+        ];
+    }
+
+    private function getEffectiveContractDateSql(): string
+    {
+        return "DATE(COALESCE(NULLIF((SELECT ci.contract_date FROM contract_infos as ci WHERE ci.contract_id = contracts.id LIMIT 1), '0000-00-00'), NULLIF(contracts.contract_date, '0000-00-00')))";
+    }
+
+    private function applyStatusFilter($query, ?string $statusFilter): void
+    {
+        if ($statusFilter === null || $statusFilter === '') {
+            return;
+        }
+
+        if ($statusFilter === 'current') {
+            $query->whereIn('status', $this->getCurrentContractStatuses());
+            return;
+        }
+
+        if ($statusFilter === 'completed_stage') {
+            $query->whereIn('status', [
+                ContractStatusEnum::Arrival->value,
+                ContractStatusEnum::Completed->value,
+            ]);
+            return;
+        }
+
+        if ($statusFilter === 'completed') {
+            $query->where('status', ContractStatusEnum::Completed->value);
+            return;
+        }
+
+        if ($statusFilter === 'arrival_today') {
+            $query->whereIn('status', [
+                ContractStatusEnum::Tazker->value,
+                ContractStatusEnum::Arrival->value,
+            ])->whereRaw(
+                "DATE((SELECT th.arrival_date FROM travel_histories as th WHERE th.order_id = contracts.id AND th.deleted_at IS NULL ORDER BY th.id DESC LIMIT 1)) = ?",
+                [Carbon::today()->toDateString()]
+            );
+            return;
+        }
+
+        if ($statusFilter === 'delayed_arrival') {
+            $query->whereIn('status', $this->getDelayedArrivalStatuses())
+                ->whereRaw($this->getEffectiveContractDateSql() . ' < ?', [
+                    Carbon::today()->subDays(60)->toDateString(),
+                ]);
+            return;
+        }
+
+        if ($statusFilter === 'expired_over_2y') {
+            $query->whereRaw($this->getEffectiveContractDateSql() . ' < ?', [
+                Carbon::today()->subYears(2)->toDateString(),
+            ]);
+            return;
+        }
+
+        $query->where('status', $statusFilter);
+    }
+
 
     public function index(Request $request)
     {
@@ -276,18 +358,7 @@ class RecruitmentContractController extends Controller
 
             // فلتر الحالة - استخدام query parameter فقط
             $statusFilter = $request->get('status');
-
-            if ($statusFilter !== null && $statusFilter !== '') {
-                if ($statusFilter == 'current') {
-                    $query->whereIn('status', [ContractStatusEnum::PendingMaidSelection, ContractStatusEnum::New, ContractStatusEnum::Msaned, ContractStatusEnum::Tafwed, ContractStatusEnum::Taffez, ContractStatusEnum::Tazker]);
-                } elseif ($statusFilter == 'completed_stage') {
-                    $query->whereIn('status', [ContractStatusEnum::Arrival->value, ContractStatusEnum::Completed->value]);
-                } elseif ($statusFilter == 'completed') {
-                    $query->where('status', ContractStatusEnum::Completed->value);
-                } else {
-                    $query->where('status', $statusFilter);
-                }
-            }
+            $this->applyStatusFilter($query, $statusFilter);
 
             // فلتر حالة الضمان إذا تم تمريرها (حسب تاريخ انتهاء الضمان)
             if ($request->filled('warranty_status')) {
@@ -792,6 +863,40 @@ class RecruitmentContractController extends Controller
 
                     return $contractInfo ?: '<span class="text-muted"><i class="fas fa-minus-circle me-1"></i>غير محدد</span>';
                 })
+                ->addColumn('duration', function ($row) {
+                    $duration = $this->buildContractDurationSummary($row);
+
+                    $html = '<div class="d-flex flex-column gap-2 text-nowrap">';
+                    $html .= '<div class="small text-muted d-flex align-items-center gap-2">'
+                        . '<i class="fas fa-hourglass-half text-secondary"></i>'
+                        . '<span><span class="text-secondary">إجمالي المدة: </span>' . e($duration['total_label']) . '</span>'
+                        . '</div>';
+
+                    if (!empty($duration['ended_at_label'])) {
+                        $html .= '<div class="small text-muted d-flex align-items-center gap-2">'
+                            . '<i class="fas fa-calendar-check text-secondary"></i>'
+                            . '<span><span class="text-secondary">حتى: </span>' . e($duration['ended_at_label']) . '</span>'
+                            . '</div>';
+                    }
+
+                    if ($duration['msaned_started']) {
+                        $badgeClass = $duration['msaned_badge_class'] ?? 'bg-success-subtle text-success';
+                        $html .= '<div class="small text-muted d-flex align-items-center gap-2">'
+                            . '<i class="fas fa-stopwatch text-secondary"></i>'
+                            . '<span><span class="text-secondary">من مساند: </span>' . e($duration['msaned_days_label']) . '</span>'
+                            . '</div>';
+                        $html .= '<div><span class="badge ' . $badgeClass . '">' . e($duration['msaned_progress_label']) . '</span></div>';
+                    } else {
+                        $html .= '<div class="small text-muted d-flex align-items-center gap-2">'
+                            . '<i class="fas fa-clock text-secondary"></i>'
+                            . '<span>لم يبدأ عداد مساند بعد</span>'
+                            . '</div>';
+                    }
+
+                    $html .= '</div>';
+
+                    return $html;
+                })
                 ->addColumn('marketer', function ($row) {
                     $marketerInfo = '';
 
@@ -955,10 +1060,20 @@ class RecruitmentContractController extends Controller
                                 break;
                             case ContractStatusEnum::Completed->value:
                                 // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
+                                $availableStatuses = $this->getCompletedContractStatusChangeOptions();
                                 $travelHistory = TravelHistory::where('order_id', $row->id)->first();
                                 if ($travelHistory && $travelHistory->status !== 'completed' && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
                                     return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
                                         <i class="fas fa-check me-1"></i>إكمال الرحلة
+                                    </button>';
+                                }
+
+                                if (!empty($availableStatuses)) {
+                                    $lastContractStatusLog = $row->getLastContractStatusLog();
+                                    $targetStatusesJson = htmlspecialchars(json_encode($availableStatuses, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
+
+                                    return '<button class="btn btn-warning btn-sm update-status-btn btn-action" data-bs-toggle="modal" data-bs-target="#updateStatusModal" data-row-id="' . $row->id . '" data-status="' . $row->status . '" data-next-status="" data-manual-status-select="1" data-target-statuses="' . $targetStatusesJson . '" data-date="' . ($lastContractStatusLog ? $lastContractStatusLog->date : \Carbon\Carbon::now()->format('Y-m-d')) . '" title="تعديل الحالة">
+                                        <i class="fas fa-random me-1"></i>تعديل الحالة
                                     </button>';
                                 }
                                 break;
@@ -1196,7 +1311,266 @@ class RecruitmentContractController extends Controller
         }
 
         //        return $contract;
-        return view('admin.ingaz.RecruitmentContract.details', compact('contract', 'info', 'marketer'));
+        $statusTimeline = $this->buildContractStageTimeline($contract);
+
+        return view('admin.ingaz.RecruitmentContract.details', compact('contract', 'info', 'marketer', 'statusTimeline'));
+    }
+
+    private function buildContractStageTimeline(Contract $contract): array
+    {
+        $logs = $contract->contract_status_logs
+            ->map(function ($log) use ($contract) {
+                $stageDate = $this->resolveContractStageDate($log, $contract);
+
+                if (!$stageDate) {
+                    return null;
+                }
+
+                return [
+                    'status' => $log->status,
+                    'status_label' => getEnumValue('contract_statuses', $log->status) ?? getContractStatus($log->status),
+                    'status_color' => getContractStatusColor($log->status),
+                    'started_at' => $stageDate,
+                    'notes' => $log->notes,
+                ];
+            })
+            ->filter()
+            ->sortBy(function ($log) {
+                return $log['started_at']->getTimestamp();
+            })
+            ->values();
+
+        if ($logs->isEmpty()) {
+            $fallbackStart = $contract->created_at ? Carbon::parse($contract->created_at) : now();
+
+            $logs = collect([
+                [
+                    'status' => $contract->status,
+                    'status_label' => getEnumValue('contract_statuses', $contract->status) ?? getContractStatus($contract->status),
+                    'status_color' => getContractStatusColor($contract->status),
+                    'started_at' => $fallbackStart,
+                    'notes' => null,
+                ],
+            ]);
+        }
+
+        $now = now();
+        $timelineItems = [];
+
+        foreach ($logs as $index => $log) {
+            $nextLog = $logs->get($index + 1);
+            $startedAt = $log['started_at']->copy();
+            $shouldTrackUntilNow = !$nextLog && $this->shouldTrackCurrentStageUntilNow($log['status']);
+            $endedAt = $nextLog
+                ? $nextLog['started_at']->copy()
+                : ($shouldTrackUntilNow ? $now->copy() : $startedAt->copy());
+
+            if ($endedAt->lt($startedAt)) {
+                $endedAt = $startedAt->copy();
+            }
+
+            $durationInSeconds = max($startedAt->diffInSeconds($endedAt, false), 0);
+
+            $timelineItems[] = [
+                'status' => $log['status'],
+                'status_label' => $log['status_label'],
+                'status_color' => $log['status_color'],
+                'started_at' => $startedAt,
+                'ended_at' => $endedAt,
+                'started_at_formatted' => $startedAt->format('Y-m-d H:i'),
+                'ended_at_formatted' => $nextLog
+                    ? $endedAt->format('Y-m-d H:i')
+                    : ($shouldTrackUntilNow ? 'حتى الآن' : $endedAt->format('Y-m-d H:i')),
+                'duration_in_seconds' => $durationInSeconds,
+                'duration_human' => $nextLog || $shouldTrackUntilNow
+                    ? $this->formatTimelineDuration($durationInSeconds)
+                    : 'مرحلة نهائية',
+                'is_current' => !$nextLog,
+                'is_active_stage' => $shouldTrackUntilNow,
+                'notes' => $log['notes'],
+            ];
+        }
+
+        $timelineItems = collect($timelineItems);
+        $firstStage = $timelineItems->first();
+        $currentStage = $timelineItems->last();
+        $longestStage = $timelineItems->sortByDesc('duration_in_seconds')->first();
+
+        return [
+            'items' => $timelineItems,
+            'started_at' => $firstStage['started_at'] ?? null,
+            'started_at_formatted' => $firstStage['started_at_formatted'] ?? null,
+            'total_duration' => $firstStage
+                ? $this->formatTimelineDuration(
+                    max($firstStage['started_at']->diffInSeconds($currentStage['ended_at'], false), 0)
+                )
+                : null,
+            'current_stage_label' => $currentStage['status_label'] ?? null,
+            'current_stage_duration' => $currentStage['duration_human'] ?? null,
+            'longest_stage_label' => $longestStage['status_label'] ?? null,
+            'longest_stage_duration' => $longestStage['duration_human'] ?? null,
+        ];
+    }
+
+    private function resolveContractStageDate($log, Contract $contract): ?Carbon
+    {
+        foreach ([$log->date ?? null, $log->created_at ?? null, $contract->created_at ?? null] as $date) {
+            if (!empty($date)) {
+                return Carbon::parse($date);
+            }
+        }
+
+        return null;
+    }
+
+    private function shouldTrackCurrentStageUntilNow(string $status): bool
+    {
+        return !in_array($status, [
+            ContractStatusEnum::Completed->value,
+            ContractStatusEnum::Back->value,
+            ContractStatusEnum::Closed->value,
+            ContractStatusEnum::UnderWarranty->value,
+            ContractStatusEnum::Sari->value,
+        ], true);
+    }
+
+    private function formatTimelineDuration(int $durationInSeconds): string
+    {
+        if ($durationInSeconds < 60) {
+            return 'أقل من دقيقة';
+        }
+
+        $totalMinutes = intdiv($durationInSeconds, 60);
+        $days = intdiv($totalMinutes, 1440);
+        $remainingMinutes = $totalMinutes % 1440;
+        $hours = intdiv($remainingMinutes, 60);
+        $minutes = $remainingMinutes % 60;
+
+        $parts = [];
+
+        if ($days > 0) {
+            $parts[] = $this->formatArabicDurationUnit($days, 'يوم', 'يومين', 'أيام');
+        }
+
+        if ($hours > 0) {
+            $parts[] = $this->formatArabicDurationUnit($hours, 'ساعة', 'ساعتين', 'ساعات');
+        }
+
+        if ($days === 0 && $minutes > 0) {
+            $parts[] = $this->formatArabicDurationUnit($minutes, 'دقيقة', 'دقيقتين', 'دقائق');
+        }
+
+        return implode(' و ', array_slice($parts, 0, 2));
+    }
+
+    private function formatArabicDurationUnit(int $value, string $single, string $dual, string $plural): string
+    {
+        if ($value === 1) {
+            return $single . ' واحدة';
+        }
+
+        if ($value === 2) {
+            return $dual;
+        }
+
+        return $value . ' ' . $plural;
+    }
+
+    private function buildContractDurationSummary(Contract $contract): array
+    {
+        $logs = $contract->contract_status_logs
+            ->map(function ($log) use ($contract) {
+                $resolvedAt = $this->resolveContractStageDate($log, $contract);
+
+                if (!$resolvedAt) {
+                    return null;
+                }
+
+                return [
+                    'status' => $log->status,
+                    'resolved_at' => $resolvedAt,
+                ];
+            })
+            ->filter()
+            ->sortBy(fn($log) => $log['resolved_at']->getTimestamp())
+            ->values();
+
+        $createdAt = $contract->created_at ? Carbon::parse($contract->created_at) : now();
+        $isFinalStatus = in_array($contract->status, [
+            ContractStatusEnum::Completed->value,
+            ContractStatusEnum::Back->value,
+            ContractStatusEnum::Closed->value,
+        ], true);
+        $endedAt = $this->resolveContractDurationEndDate($contract, $logs, $createdAt);
+
+        $totalDays = max($createdAt->copy()->startOfDay()->diffInDays($endedAt->copy()->startOfDay(), false), 0);
+        $msanedLog = $logs->firstWhere('status', ContractStatusEnum::Msaned->value);
+        $msanedStartedAt = $msanedLog['resolved_at'] ?? null;
+        $msanedDays = null;
+        $msanedProgressLabel = null;
+        $msanedBadgeClass = 'bg-success-subtle text-success';
+
+        if ($msanedStartedAt) {
+            $msanedDays = max($msanedStartedAt->copy()->startOfDay()->diffInDays($endedAt->copy()->startOfDay(), false), 0);
+
+            if ($msanedDays < 90) {
+                $remainingDays = 90 - $msanedDays;
+                $msanedProgressLabel = 'مضى ' . $this->formatArabicDaysCount($msanedDays) . ' والمتبقي ' . $this->formatArabicDaysCount($remainingDays);
+                $msanedBadgeClass = $remainingDays <= 15 ? 'bg-warning-subtle text-warning' : 'bg-success-subtle text-success';
+            } elseif ($msanedDays === 90) {
+                $msanedProgressLabel = 'اكتملت 90 يوم';
+                $msanedBadgeClass = 'bg-warning-subtle text-warning';
+            } else {
+                $extraDays = $msanedDays - 90;
+                $msanedProgressLabel = 'متجاوز ' . $this->formatArabicDaysCount($extraDays) . ' بعد 90 يوم';
+                $msanedBadgeClass = 'bg-danger-subtle text-danger';
+            }
+        }
+
+        return [
+            'total_days' => $totalDays,
+            'total_label' => $this->formatArabicDaysCount($totalDays),
+            'ended_at_label' => $isFinalStatus ? $endedAt->format('Y-m-d') : 'حتى الآن',
+            'msaned_started' => (bool) $msanedStartedAt,
+            'msaned_days' => $msanedDays,
+            'msaned_days_label' => $msanedDays !== null ? $this->formatArabicDaysCount($msanedDays) : null,
+            'msaned_progress_label' => $msanedProgressLabel,
+            'msaned_badge_class' => $msanedBadgeClass,
+        ];
+    }
+
+    private function resolveContractDurationEndDate(Contract $contract, $logs, Carbon $fallbackDate): Carbon
+    {
+        $finalStatuses = [
+            ContractStatusEnum::Completed->value,
+            ContractStatusEnum::Back->value,
+            ContractStatusEnum::Closed->value,
+        ];
+
+        if (in_array($contract->status, $finalStatuses, true)) {
+            $matchingLog = collect($logs)->reverse()->first(function ($log) use ($contract) {
+                return $log['status'] === $contract->status;
+            });
+
+            if (!empty($matchingLog['resolved_at'])) {
+                return $matchingLog['resolved_at']->copy();
+            }
+
+            if ($contract->updated_at) {
+                return Carbon::parse($contract->updated_at);
+            }
+        }
+
+        return now();
+    }
+
+    private function formatArabicDaysCount(int $days): string
+    {
+        if ($days <= 0) {
+            return '0 يوم';
+        }
+
+        return $this->formatArabicDurationUnit($days, 'يوم', 'يومين', 'أيام');
     }
 
     public function storeNote(Request $request, $contractId)
@@ -2504,6 +2878,44 @@ class RecruitmentContractController extends Controller
         }
     }
 
+    private function getCompletedContractStatusChangeOptions(): array
+    {
+        $statuses = [
+            ContractStatusEnum::PendingMaidSelection->value,
+            ContractStatusEnum::New->value,
+            ContractStatusEnum::Msaned->value,
+            ContractStatusEnum::Tafwed->value,
+            ContractStatusEnum::Taffez->value,
+            ContractStatusEnum::Tazker->value,
+            ContractStatusEnum::Arrival->value,
+            ContractStatusEnum::Back->value,
+        ];
+
+        return collect($statuses)
+            ->filter(fn(string $status) => $this->canMoveCompletedContractToStatus($status))
+            ->map(fn(string $status) => [
+                'value' => $status,
+                'label' => getEnumValue('contract_statuses', $status) ?? getContractStatus($status),
+            ])
+            ->values()
+            ->all();
+    }
+
+    private function canMoveCompletedContractToStatus(string $status): bool
+    {
+        return match ($status) {
+            ContractStatusEnum::PendingMaidSelection->value,
+            ContractStatusEnum::New->value,
+            ContractStatusEnum::Arrival->value => @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE),
+            ContractStatusEnum::Msaned->value => @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED),
+            ContractStatusEnum::Tafwed->value => @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED),
+            ContractStatusEnum::Taffez->value => @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ),
+            ContractStatusEnum::Tazker->value => @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER),
+            ContractStatusEnum::Back->value => @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN),
+            default => false,
+        };
+    }
+
     public function updateStatus(Request $request)
     {
         try {
@@ -2520,7 +2932,14 @@ class RecruitmentContractController extends Controller
             $contract = Contract::with('user')->findOrFail($rowId);
             $transitionContext = $this->resolveContractTransitionContext($contract);
 
-            if (!$transitionContext['can_update']) {
+            if (!$nextStatus) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لم يتم تحديد الحالة الجديدة للعقد'
+                ], 422);
+            }
+
+            if ($nextStatus === ContractStatusEnum::Closed->value) {
                 return response()->json([
                     'success' => false,
                     'message' => $transitionContext['reason']
@@ -2534,144 +2953,81 @@ class RecruitmentContractController extends Controller
                 ], 422);
             }
 
-            $updateResult = $this->updateContractStatusRecord($contract, $transitionContext['next_status'], $date);
-
-            $smsResult = false;
-            if ($sendSms) {
-                $smsResult = $this->sendContractStatusSMS($contract->fresh('user'), $transitionContext['next_status']);
+            if ($contract->status === ContractStatusEnum::Shelter->value) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العقد في حالة الانتظار ولا يمكن تغيير حالته'
+                ], 400);
             }
 
-            $message = 'تم تحديث الحالة بنجاح من ' . $updateResult['current_status_text'] . ' إلى ' . $updateResult['next_status_text'];
+            if ($contract->status === $nextStatus) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'الحالة الجديدة مطابقة للحالة الحالية'
+                ], 422);
+            }
 
-            if ($sendSms) {
+            if ($contract->status === ContractStatusEnum::Completed->value) {
+                $allowedStatuses = collect($this->getCompletedContractStatusChangeOptions())->pluck('value')->all();
+
+                if (!in_array($nextStatus, $allowedStatuses, true)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'ليس لديك صلاحية لتغيير حالة العقد المكتمل إلى الحالة المحددة'
+                    ], 403);
+                }
+            } else {
+                $hasPermission = false;
+                switch ($nextStatus) {
+                    case ContractStatusEnum::Msaned->value:
+                        $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED);
+                        break;
+                    case ContractStatusEnum::Tafwed->value:
+                        $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED);
+                        break;
+                    case ContractStatusEnum::Taffez->value:
+                        $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ);
+                        break;
+                    case ContractStatusEnum::Tazker->value:
+                        $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER);
+                        break;
+                    default:
+                        $hasPermission = false;
+                        break;
+                }
+
+                if (!$hasPermission) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'ليس لديك صلاحية لتغيير حالة العقد إلى الحالة المحددة'
+                    ], 403);
+                }
+            }
+
+            $oldStatus = $contract->status;
+            $contract->update(['status' => $nextStatus]);
+
+            $contract->contract_status_logs()->create([
+                'status' => $nextStatus,
+                'date' => $date ?: now(),
+                'notes' => 'تم تحديث الحالة من ' . getContractStatus($oldStatus) . ' إلى ' . getContractStatus($nextStatus)
+            ]);
+
+            // إرسال رسالة نصية للعميل إذا كان مطلوباً
+            $smsResult = false;
+            if ($request->send_sms == 'true' || $request->send_sms === true) {
+                $smsResult = $this->sendContractStatusSMS($contract, $nextStatus);
+            }
+
+            $message = 'تم تحديث الحالة بنجاح إلى ' . getContractStatus($nextStatus);
+
+            // إضافة معلومات الرسالة النصية للرد
+            if ($request->send_sms == 'true' || $request->send_sms === true) {
                 if ($smsResult) {
                     $message .= ' وتم إرسال رسالة نصية للعميل';
                 } else {
                     $message .= ' لكن فشل في إرسال الرسالة النصية للعميل';
                 }
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => $message,
-                'sms_sent' => $smsResult
-            ]);
-        } catch (\Exception $e) {
-            logger()->error('Error in updateStatus', [
-                'rowId' => $request->row_id,
-                'nextStatus' => $request->next_status,
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'حدث خطأ أثناء تحديث الحالة: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function bulkUpdateStatus(Request $request)
-    {
-        try {
-            $request->validate([
-                'row_ids' => 'required|array|min:1',
-                'row_ids.*' => 'integer|distinct',
-                'date' => 'nullable|date',
-            ]);
-
-            $rowIds = collect($request->input('row_ids', []))
-                ->map(fn($id) => (int) $id)
-                ->filter()
-                ->unique()
-                ->values();
-
-            if ($rowIds->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'لم يتم تحديد أي عقود للتحديث'
-                ], 422);
-            }
-
-            $sendSms = filter_var($request->input('send_sms'), FILTER_VALIDATE_BOOLEAN);
-            $date = $request->date;
-            $contracts = Contract::with('user')
-                ->whereIn('id', $rowIds)
-                ->get()
-                ->keyBy('id');
-
-            $updatedContracts = [];
-            $skippedContracts = [];
-            $smsSentCount = 0;
-
-            foreach ($rowIds as $rowId) {
-                /** @var \App\Models\Contract|null $contract */
-                $contract = $contracts->get($rowId);
-
-                if (!$contract) {
-                    $skippedContracts[] = [
-                        'id' => $rowId,
-                        'message' => 'العقد غير موجود'
-                    ];
-                    continue;
-                }
-
-                $transitionContext = $this->resolveContractTransitionContext($contract);
-
-                if (!$transitionContext['can_update']) {
-                    $skippedContracts[] = [
-                        'id' => $contract->id,
-                        'message' => $transitionContext['reason']
-                    ];
-                    continue;
-                }
-
-                try {
-                    $updateResult = $this->updateContractStatusRecord($contract, $transitionContext['next_status'], $date);
-
-                    $smsResult = false;
-                    if ($sendSms) {
-                        $smsResult = $this->sendContractStatusSMS($contract->fresh('user'), $transitionContext['next_status']);
-                        if ($smsResult) {
-                            $smsSentCount++;
-                        }
-                    }
-
-                    $updatedContracts[] = [
-                        'id' => $contract->id,
-                        'from' => $updateResult['current_status_text'],
-                        'to' => $updateResult['next_status_text'],
-                        'sms_sent' => $smsResult,
-                    ];
-                } catch (\Throwable $throwable) {
-                    logger()->error('Error in bulk contract status update item', [
-                        'contract_id' => $contract->id,
-                        'message' => $throwable->getMessage(),
-                        'trace' => $throwable->getTraceAsString()
-                    ]);
-
-                    $skippedContracts[] = [
-                        'id' => $contract->id,
-                        'message' => 'تعذر تحديث العقد حالياً'
-                    ];
-                }
-            }
-
-            $updatedCount = count($updatedContracts);
-            $skippedCount = count($skippedContracts);
-
-            $message = $updatedCount > 0
-                ? 'تم تحديث ' . $updatedCount . ' عقد بنجاح'
-                : 'لم يتم تحديث أي عقد';
-
-            if ($skippedCount > 0) {
-                $message .= ' وتعذر تحديث ' . $skippedCount . ' عقد';
-            }
-
-            if ($sendSms) {
-                $message .= $smsSentCount > 0
-                    ? ' وتم إرسال ' . $smsSentCount . ' إشعار للعميل'
-                    : ' ولم يتم إرسال أي إشعار للعميل';
             }
 
             return response()->json([
@@ -3130,27 +3486,7 @@ class RecruitmentContractController extends Controller
         // فلتر الحالة - استخدام query parameter فقط
         if (!$ignoreStatus) {
             $statusFilter = $request->get('status');
-            if ($statusFilter !== null && $statusFilter !== '') {
-                if ($statusFilter == 'current') {
-                    $query->whereIn('status', [
-                        ContractStatusEnum::PendingMaidSelection,
-                        ContractStatusEnum::New,
-                        ContractStatusEnum::Msaned,
-                        ContractStatusEnum::Tafwed,
-                        ContractStatusEnum::Taffez,
-                        ContractStatusEnum::Tazker
-                    ]);
-                } elseif ($statusFilter == 'completed_stage') {
-                    $query->whereIn('status', [
-                        ContractStatusEnum::Arrival->value,
-                        ContractStatusEnum::Completed->value,
-                    ]);
-                } elseif ($statusFilter == 'completed') {
-                    $query->where('status', ContractStatusEnum::Completed->value);
-                } else {
-                    $query->where('status', $statusFilter);
-                }
-            }
+            $this->applyStatusFilter($query, $statusFilter);
         }
 
         // فلتر حالة الضمان

@@ -659,19 +659,7 @@
                             <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
                                 <i class="fas fa-history text-muted"></i>{{ helperTrans('ingaz.activity_timeline') }}
                             </h5>
-                            <ul class="timeline">
-                                @forelse($activities as $activity)
-                                    <li class="timeline-item">
-                                        <div class="fw-semibold">
-                                            {{ $activity->description ?? helperTrans('ingaz.not_specified') }}</div>
-                                        <div class="text-muted small">{{ $activity->created_at?->diffForHumans() }}</div>
-                                    </li>
-                                @empty
-                                    <li class="timeline-item">
-                                        <div class="text-muted small">{{ helperTrans('ingaz.no_records') }}</div>
-                                    </li>
-                                @endforelse
-                            </ul>
+                            @include('admin.partials.activity-feed', ['activities' => $activities])
                         </div>
                     </div>
                 </div>

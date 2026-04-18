@@ -104,6 +104,13 @@
     </a>
 </li>
 <li>
+    <a class="m-link {{ request()->routeIs('payrolls.*') ? 'active' : '' }}"
+       href="{{ route('payrolls.index') }}">
+        <i class="fas fa-file-invoice-dollar"></i>
+        <span class="ms-2">{{ __('hr::hr.payrolls') }}</span>
+    </a>
+</li>
+<li>
     <a class="m-link {{ request()->routeIs('employee-rewards.*') ? 'active' : '' }}"
        href="{{ route('employee-rewards.index') }}">
         <i class="fas fa-award"></i>

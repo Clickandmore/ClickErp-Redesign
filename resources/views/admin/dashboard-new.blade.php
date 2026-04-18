@@ -169,7 +169,7 @@
                 'meta' => 'تذاكر جاهزة: ' . number_format($ticketsReady),
                 'video' => asset('admin/assets/img/new-dashboard/daily-arraivel.webm'),
                 'icon' => 'fas fa-plane-arrival',
-                'link' => route('RecruitmentContract.index', ['status' => \App\Enums\ingaz\ContractStatusEnum::Arrival->value]),
+                'link' => route('RecruitmentContract.index', ['status' => 'arrival_today']),
             ],
             [
                 'title' => 'المتأخرة بالوصول',
@@ -178,7 +178,7 @@
                 'meta' => 'مطلوب متابعة عاجلة',
                 'video' => asset('admin/assets/img/new-dashboard/ezgif.com-resize.webm'),
                 'icon' => 'fas fa-triangle-exclamation',
-                'link' => route('RecruitmentContract.index', ['status' => 'current']),
+                'link' => route('RecruitmentContract.index', ['status' => 'delayed_arrival']),
             ],
             [
                 'title' => 'عقود منتهية',
@@ -187,7 +187,7 @@
                 'meta' => 'ضمان ' . number_format($warrantyActive) . ' | مكتملة ' . number_format($completedContractsCount) . ' | مرتجع ' . number_format($returnedContracts),
                 'video' => asset('admin/assets/img/new-dashboard/ended-contracted.webm'),
                 'icon' => 'fas fa-hourglass-end',
-                'link' => route('RecruitmentContract.index', ['status' => \App\Enums\ingaz\ContractStatusEnum::Completed->value]),
+                'link' => route('RecruitmentContract.index', ['status' => 'expired_over_2y']),
             ]
         ];
 
