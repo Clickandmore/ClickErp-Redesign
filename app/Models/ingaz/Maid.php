@@ -246,25 +246,44 @@ class Maid extends Model
         ];
     }
 
-    public static function normalizeRequestType(?string $requestType): string
+    public static function normalizeRequestType(?string $requestType): ?string
     {
+        $requestType = is_string($requestType) ? trim($requestType) : $requestType;
+
         return array_key_exists($requestType, self::getRequestTypeOptions())
             ? $requestType
-            : self::REQUEST_TYPE_KNOWN;
+            : null;
+    }
+
+    public static function resolveRequestType(?string $requestType): string
+    {
+        return self::normalizeRequestType($requestType) ?? self::REQUEST_TYPE_CUSTOM;
     }
 
     public function scopeOfRequestType(Builder $query, ?string $requestType): Builder
     {
+        $requestType = self::normalizeRequestType($requestType);
+
         if (!$requestType) {
             return $query;
         }
 
-        return $query->where('request_type', self::normalizeRequestType($requestType));
+        if ($requestType === self::REQUEST_TYPE_CUSTOM) {
+            return $query->where(function (Builder $innerQuery) {
+                $innerQuery->where('request_type', self::REQUEST_TYPE_CUSTOM)
+                    ->orWhereNull('request_type')
+                    ->orWhere('request_type', '');
+            });
+        }
+
+        return $query->where('request_type', $requestType);
     }
 
     public function getRequestTypeLabelAttribute(): string
     {
-        return self::getRequestTypeOptions()[self::normalizeRequestType($this->request_type)] ?? helperTrans('ingaz.request_type_known');
+        $requestType = self::resolveRequestType($this->request_type);
+
+        return self::getRequestTypeOptions()[$requestType] ?? helperTrans('ingaz.request_type_custom');
     }
 
     // public function getCvCodeAttribute(): ?string

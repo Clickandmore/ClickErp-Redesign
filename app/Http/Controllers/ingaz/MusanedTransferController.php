@@ -449,6 +449,7 @@ class MusanedTransferController extends Controller
         foreach ($transfer->items as $item) {
             $statement = $this->buildSettlementItemStatement($transfer, $item);
             $costCenterId = $item->cost_center_id;
+            $nonOperationalCostCenterId = null;
 
             if ((float) $item->transferred_amount > 0) {
                 $this->appendConstraintLine($lines, $intermediateAccountId, 'debtor', (float) $item->transferred_amount, $statement, $costCenterId);
@@ -456,13 +457,15 @@ class MusanedTransferController extends Controller
             }
 
             if ((float) $item->commission_amount > 0) {
-                $this->appendConstraintLine($lines, $commissionAccountId, 'debtor', (float) $item->commission_amount, $statement, $costCenterId);
-                $this->appendConstraintLine($lines, (int) $item->source_account_id, 'creditor', (float) $item->commission_amount, $statement, $costCenterId);
+                // عمولة مساند ومقابلها لا تُرحّل على مركز تكلفة العقد.
+                $this->appendConstraintLine($lines, $commissionAccountId, 'debtor', (float) $item->commission_amount, $statement, $nonOperationalCostCenterId);
+                $this->appendConstraintLine($lines, (int) $item->source_account_id, 'creditor', (float) $item->commission_amount, $statement, $nonOperationalCostCenterId);
             }
 
             if ($expenseTaxAccountId && (float) $item->expense_tax_amount > 0) {
-                $this->appendConstraintLine($lines, $expenseTaxAccountId, 'debtor', (float) $item->expense_tax_amount, $statement, $costCenterId);
-                $this->appendConstraintLine($lines, $commissionAccountId, 'creditor', (float) $item->expense_tax_amount, $statement, $costCenterId);
+                // ضريبة المصروفات الخاصة بعمولة مساند لا تُحمّل على مركز تكلفة العقد.
+                $this->appendConstraintLine($lines, $expenseTaxAccountId, 'debtor', (float) $item->expense_tax_amount, $statement, $nonOperationalCostCenterId);
+                $this->appendConstraintLine($lines, $commissionAccountId, 'creditor', (float) $item->expense_tax_amount, $statement, $nonOperationalCostCenterId);
             }
         }
 

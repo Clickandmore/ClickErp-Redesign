@@ -28,10 +28,16 @@
                         <h5 class="mb-1">إضافة عاملة جديدة</h5>
                         <div class="text-muted small">إذا كانت لديك مجموعة سجلات، استخدم الاستيراد الجماعي مع شاشة المراجعة قبل الاعتماد.</div>
                     </div>
-                    <a href="{{ route('maids.bulk-import.create') }}" class="btn btn-outline-success">
-                        <i class="fas fa-file-excel me-1"></i>
-                        استيراد جماعي من Excel
-                    </a>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ route('maids.create_rapid_cv') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-bolt me-1"></i>
+                            سيرة مختصرة
+                        </a>
+                        <a href="{{ route('maids.bulk-import.create') }}" class="btn btn-outline-success">
+                            <i class="fas fa-file-excel me-1"></i>
+                            استيراد جماعي من Excel
+                        </a>
+                    </div>
                 </div>
                 <form class="row g-3 from-submit-global-maid" method="post" action="{{ route('maids.store') }}"
                     enctype="multipart/form-data" id="maidForm">
@@ -149,7 +155,7 @@
                     <div class="col-4" id="request_type_field">
                         <label for="request_type" class="form-label">{{ helperTrans('ingaz.request_type') }}</label>
                         @php
-                            $requestType = old('request_type', \App\Models\ingaz\Maid::REQUEST_TYPE_KNOWN);
+                            $requestType = old('request_type', \App\Models\ingaz\Maid::REQUEST_TYPE_CUSTOM);
                         @endphp
                         <select name="request_type" id="request_type" class="form-control">
                             @foreach (\App\Models\ingaz\Maid::getRequestTypeOptions() as $value => $label)
@@ -558,7 +564,7 @@
                     </div>
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit">{{ __('buttons.save') }}</button>
-                        <a href="{{ route('maids.index') }}"
+                        <a href="{{ $formRedirectRoute }}"
                             class="btn btn-outline-secondary">{{ __('buttons.cancel') }}</a>
                     </div>
                 </form>

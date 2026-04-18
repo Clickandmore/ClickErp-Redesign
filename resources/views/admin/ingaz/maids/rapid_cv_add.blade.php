@@ -23,16 +23,28 @@
     @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
         <div class="card">
             <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+                    <div>
+                        <h5 class="mb-1">إضافة سيرة مختصرة</h5>
+                        <div class="text-muted small">يمكن إدخال الحد الأدنى من البيانات الآن، مع إمكانية رفع ملف الجواز بشكل اختياري.</div>
+                    </div>
+                    <a href="{{ route('maids.create') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-right me-1"></i>
+                        إضافة سيرة كاملة
+                    </a>
+                </div>
                 <form class="row g-3 from-submit-global-maid" method="post" action="{{ route('maids.store_rapid_cv') }}"
-                    id="maidForm">
+                    enctype="multipart/form-data" id="maidForm">
                     @csrf
                     <input type="hidden" name="type_id" value="{{ $defaultTypeId }}">
                     <!-- اسم العاملة -->
                     <div class="col-12">
                         <label for="TextInput" class="form-label">
-                            {{ helperTrans('ingaz.maid_name') }} ({{ helperTrans('ingaz.en') }}) <span class="text-danger">*</span>
+                            {{ helperTrans('ingaz.maid_name') }} ({{ helperTrans('ingaz.en') }})
                         </label>
-                        <input type="text" name="name:en" class="form-control" required>
+                        <input type="text" name="name:en" class="form-control"
+                            placeholder="اختياري في السيرة المختصرة">
+                        <small class="text-muted">يمكن ترك اسم العاملة فارغًا في السيرة المختصرة.</small>
                     </div>
                     
                     <!-- الجنسية -->
@@ -73,8 +85,15 @@
                     </div>
 
                     <div class="col-12">
+                        <label for="cv_file" class="form-label">ملف الجواز</label>
+                        <input type="file" data-default-file="" name="cv_file" id="cv_file" class="dropify"
+                            accept=".pdf,.jpg,.jpeg,.png">
+                        <small class="text-muted">اختياري. الصيغ المدعومة: PDF, JPG, JPEG, PNG.</small>
+                    </div>
+
+                    <div class="col-12">
                         <button class="btn btn-primary" type="submit">{{ __('buttons.save') }}</button>
-                        <a href="{{ route('maids.index') }}"
+                        <a href="{{ route('maids.create') }}"
                             class="btn btn-outline-secondary">{{ __('buttons.cancel') }}</a>
                     </div>
                 </form>
@@ -91,6 +110,8 @@
     <script src="{{ asset('admin') }}/assets/js/bundle/sweetalert2.bundle.js"></script>
     <script>
         $(document).ready(function() {
+            $('.dropify').dropify();
+
             // التحقق من رقم الجواز - فحص التكرار
             var passportCheckTimeout;
             $('#passport_num').on('input', function() {

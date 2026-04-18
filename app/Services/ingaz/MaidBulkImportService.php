@@ -685,7 +685,7 @@ class MaidBulkImportService
         [$data['request_type'], $requestTypeError] = $this->resolveMappedValue(
             $rawRow['request_type'] ?? null,
             self::REQUEST_TYPE_ALIASES,
-            Maid::REQUEST_TYPE_KNOWN
+            Maid::REQUEST_TYPE_CUSTOM
         );
         if ($requestTypeError) {
             $errors[] = 'نوع الطلب: ' . $requestTypeError;

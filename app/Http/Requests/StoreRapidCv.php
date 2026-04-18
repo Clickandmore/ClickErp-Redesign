@@ -25,7 +25,7 @@ class StoreRapidCv extends MainRequest
     public function rules()
     {
         return [
-            'name:en' => 'required|string|max:255',
+            'name:en' => 'nullable|string|max:255',
             'nationality_id' => 'required|exists:nationalities,id',
             'passport_num' => [
                 'required',
@@ -33,13 +33,13 @@ class StoreRapidCv extends MainRequest
             ],
             'type_id' => 'required|exists:job_types,id',
             'office_id' => 'nullable|exists:recruitment_offices,id',
+            'cv_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ];
     }
 
     public function messages()
     {
         return [
-            'name:en.required' => 'اسم العاملة مطلوب',
             'name:en.string' => 'اسم العاملة يجب أن يكون نص',
             'name:en.max' => 'اسم العاملة يجب أن لا يتجاوز 255 حرف',
             'nationality_id.required' => helperTrans('web.nationality_id_is_required'),
@@ -50,6 +50,9 @@ class StoreRapidCv extends MainRequest
             'type_id.required' => helperTrans('web.type_id_is_required'),
             'type_id.exists' => helperTrans('web.invalid_type_id'),
             'office_id.exists' => helperTrans('web.office_id not exist'),
+            'cv_file.file' => 'ملف الجواز غير صالح',
+            'cv_file.mimes' => 'صيغة ملف الجواز يجب أن تكون PDF أو JPG أو JPEG أو PNG',
+            'cv_file.max' => 'حجم ملف الجواز يجب ألا يتجاوز 5 ميجابايت',
         ];
     }
 }

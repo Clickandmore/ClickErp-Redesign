@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Permissions;
 
+use App\Models\Permission;
 use Illuminate\Http\Request;
-use Spatie\Permission\Models\Role;
 use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
-use Spatie\Permission\Models\Permission;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class PermissionsController extends Controller
 {
@@ -20,11 +22,20 @@ class PermissionsController extends Controller
     }
 
     public function setPerms($id){
-        $role = Role::find($id);
-        $data = Permission::where('guard_name', 'admin')->get();
+        $role = $this->findAdminRole($id);
+        if (!$role) {
+            return redirect(route('dash.roles.index'))->with('error', 'لا يمكن إدارة صلاحيات دور غير تابع لحارس الإدارة.');
+        }
+
+        $data = Permission::query()
+            ->where('guard_name', 'admin')
+            ->orderBy('section_name')
+            ->orderBy('group_name')
+            ->orderBy('name')
+            ->get();
 
         // تنظيم الصلاحيات بطريقة جديدة
-        $organizedPermissions = $this->organizePermissions($data);
+        $organizedPermissions = $this->sortOrganizedPermissions($this->organizePermissions($data));
 
         // تحويل البيانات إلى الشكل المطلوب لملف العرض
         $formattedPermissions = [];
@@ -49,11 +60,30 @@ class PermissionsController extends Controller
             }
         }
 
-        $availableRoles = Role::all();
-        if($role) {
-            return view('admin.permissions.perm_control.control',compact('role','formattedPermissions','availableRoles'));
-        }
-        return redirect(route('dash.roles.index'));
+        $availableRoles = $this->adminRolesQuery()
+            ->withCount(['permissions', 'users'])
+            ->orderByRaw("CASE WHEN name IN ('Administrator', 'super_admin') THEN 0 ELSE 1 END")
+            ->orderByDesc('users_count')
+            ->orderBy('name')
+            ->get();
+
+        $adminsByRole = $this->getAdminsCountByRole();
+        $availableRoles->each(function (Role $availableRole) use ($adminsByRole) {
+            $availableRole->setAttribute('linked_admins_count', max(
+                (int) ($availableRole->users_count ?? 0),
+                (int) ($adminsByRole[$availableRole->id] ?? 0)
+            ));
+            $availableRole->setAttribute('is_protected', $this->isProtectedRole($availableRole));
+        });
+
+        $assignedPermissionNames = $role->permissions()->pluck('name')->all();
+
+        return view('admin.permissions.perm_control.control', compact(
+            'role',
+            'formattedPermissions',
+            'availableRoles',
+            'assignedPermissionNames'
+        ));
     }
 
     /**
@@ -64,127 +94,7 @@ class PermissionsController extends Controller
         $organized = [];
 
         foreach ($permissions as $permission) {
-            $name = $permission->name;
-
-            // تحديد القسم والمجموعة بناءً على اسم الصلاحية
-            if (str_starts_with($name, 'dashboard_')) {
-                $section = 'dashboard';
-                $group = 'dashboard';
-            } elseif (str_starts_with($name, 'clients_')) {
-                $section = 'clients';
-                $group = 'clients';
-            } elseif (str_starts_with($name, 'maids_')) {
-                $section = 'cv_management';
-                $group = 'maids';
-            } elseif (str_starts_with($name, 'orders_')) {
-                $section = 'orders';
-                $group = 'orders';
-            } elseif (str_starts_with($name, 'return_request_')) {
-                $section = 'orders';
-                $group = 'return_request';
-            } elseif (str_starts_with($name, 'rec_contract_') || str_starts_with($name, 'rec_contracts_') || str_starts_with($name, 'cancel_contract_')) {
-                $section = 'recruitment_contracts';
-                $group = 'rec_contracts';
-            } elseif (str_starts_with($name, 'rent_contract_')) {
-                $section = 'rent_contracts';
-                $group = 'rent_contract';
-            } elseif (str_starts_with($name, 'shelter_contract_')) {
-                $section = 'shelter_management';
-                $group = 'shelter_contract';
-            } elseif (str_starts_with($name, 'shelter_workers_')) {
-                $section = 'shelter_management';
-                $group = 'shelter_workers';
-            } elseif (str_starts_with($name, 'shelter_places_')) {
-                $section = 'shelter_management';
-                $group = 'shelter_places';
-            } elseif (str_starts_with($name, 'travel_')) {
-                $section = 'travel_management';
-                $group = 'travel';
-            } elseif (str_starts_with($name, 'rec_offices_')) {
-                $section = 'maids_settings';
-                $group = 'rec_offices';
-            } elseif (str_starts_with($name, 'complaint_')) {
-                $section = 'complaints';
-                $group = 'complaint';
-            } elseif (str_starts_with($name, 'complaint_type_')) {
-                $section = 'complaints';
-                $group = 'complaint_type';
-            } elseif (str_starts_with($name, 'sponsor_transfer_')) {
-                $section = 'additional_services';
-                $group = 'sponsor_transfer';
-            } elseif (str_starts_with($name, 'settings_')) {
-                $section = 'settings';
-                $group = 'settings';
-            } elseif (str_starts_with($name, 'activity_')) {
-                $section = 'settings';
-                $group = 'activity_log';
-            } elseif (str_starts_with($name, 'job_titles_')) {
-                $section = 'maids_settings';
-                $group = 'job_titles';
-            } elseif (str_starts_with($name, 'packages_')) {
-                $section = 'maids_settings';
-                $group = 'packages';
-            } elseif (str_starts_with($name, 'nationalities_')) {
-                $section = 'maids_settings';
-                $group = 'nationalities';
-            } elseif (str_starts_with($name, 'religions_')) {
-                $section = 'maids_settings';
-                $group = 'religions';
-            } elseif (str_starts_with($name, 'skills_')) {
-                $section = 'maids_settings';
-                $group = 'skills';
-            } elseif (str_starts_with($name, 'countries_')) {
-                $section = 'maids_settings';
-                $group = 'countries';
-            } elseif (str_starts_with($name, 'users_')) {
-                $section = 'users_management';
-                $group = 'users';
-            } elseif (str_starts_with($name, 'roles_')) {
-                $section = 'users_management';
-                $group = 'roles';
-            } elseif (str_starts_with($name, 'permissions_')) {
-                $section = 'users_management';
-                $group = 'permissions';
-            } elseif (str_starts_with($name, 'statistics_')) {
-                $section = 'content_management';
-                $group = 'statistics';
-            } elseif (str_starts_with($name, 'notifications_')) {
-                $section = 'content_management';
-                $group = 'notifications';
-            } elseif (str_starts_with($name, 'sliders_')) {
-                $section = 'content_management';
-                $group = 'sliders';
-            } elseif (str_starts_with($name, 'faq_')) {
-                $section = 'content_management';
-                $group = 'faq';
-            } elseif (str_starts_with($name, 'about_us_')) {
-                $section = 'content_management';
-                $group = 'about_us';
-            } elseif (str_starts_with($name, 'contact_')) {
-                $section = 'content_management';
-                $group = 'contact';
-            } elseif (str_starts_with($name, 'steps_')) {
-                $section = 'content_management';
-                $group = 'steps';
-            } elseif (str_starts_with($name, 'services_')) {
-                $section = 'content_management';
-                $group = 'services';
-            } elseif (str_starts_with($name, 'crm_')) {
-                $section = 'modules';
-                $group = 'crm';
-            } elseif (str_starts_with($name, 'hr_')) {
-                $section = 'modules';
-                $group = 'hr';
-            } elseif (str_starts_with($name, 'finance_')) {
-                $section = 'modules';
-                $group = 'finance';
-            } elseif (in_array($name, ['contract_settings', 'full_contract', 'set_perms', 'developers_perms', 'test_perm'])) {
-                $section = 'settings';
-                $group = 'contract_settings';
-            } else {
-                $section = 'other';
-                $group = 'other';
-            }
+            ['section' => $section, 'group' => $group] = $this->resolvePermissionPlacement($permission->name);
 
             if (!isset($organized[$section])) {
                 $organized[$section] = [];
@@ -197,6 +107,110 @@ class PermissionsController extends Controller
         }
 
         return $organized;
+    }
+
+    private function sortOrganizedPermissions(array $organized): array
+    {
+        $sectionOrder = array_flip([
+            'dashboard',
+            'users_management',
+            'clients',
+            'cv_management',
+            'orders',
+            'recruitment_contracts',
+            'rent_contracts',
+            'shelter_management',
+            'travel_management',
+            'complaints',
+            'additional_services',
+            'maids_settings',
+            'content_management',
+            'settings',
+            'modules',
+            'other',
+        ]);
+
+        uksort($organized, function (string $first, string $second) use ($sectionOrder) {
+            $firstOrder = $sectionOrder[$first] ?? 999;
+            $secondOrder = $sectionOrder[$second] ?? 999;
+
+            if ($firstOrder !== $secondOrder) {
+                return $firstOrder <=> $secondOrder;
+            }
+
+            return strnatcasecmp($this->getSectionTitle($first), $this->getSectionTitle($second));
+        });
+
+        foreach ($organized as &$groups) {
+            uksort($groups, function (string $first, string $second) {
+                return strnatcasecmp($this->getGroupTitle($first), $this->getGroupTitle($second));
+            });
+
+            foreach ($groups as &$permissions) {
+                usort($permissions, function ($first, $second) {
+                    $firstPriority = $this->getPermissionSortPriority($first->name);
+                    $secondPriority = $this->getPermissionSortPriority($second->name);
+
+                    if ($firstPriority !== $secondPriority) {
+                        return $firstPriority <=> $secondPriority;
+                    }
+
+                    return strnatcasecmp(
+                        $this->getPermissionDisplayName($first),
+                        $this->getPermissionDisplayName($second)
+                    );
+                });
+            }
+            unset($permissions);
+        }
+        unset($groups);
+
+        return $organized;
+    }
+
+    private function getPermissionSortPriority(string $permissionName): int
+    {
+        $exactOrder = [
+            'dashboard_view' => 10,
+            'dashboard_view_statistics' => 20,
+            'dashboard_analytics' => 30,
+            'dashboard_export' => 40,
+            'dashboard_manage' => 50,
+        ];
+
+        if (isset($exactOrder[$permissionName])) {
+            return $exactOrder[$permissionName];
+        }
+
+        $suffixes = [
+            'view' => 100,
+            'show' => 110,
+            'create' => 200,
+            'edit' => 300,
+            'update' => 310,
+            'delete' => 400,
+            'control' => 500,
+            'manage' => 510,
+            'assign' => 520,
+            'approve' => 600,
+            'reject' => 610,
+            'change_status' => 700,
+            'toggle_status' => 710,
+            'toggle_pin' => 720,
+            'export' => 800,
+            'export_pdf' => 810,
+            'export_excel' => 820,
+            'import' => 830,
+            'print' => 840,
+        ];
+
+        foreach ($suffixes as $suffix => $priority) {
+            if ($permissionName === $suffix || str_ends_with($permissionName, '_' . $suffix)) {
+                return $priority;
+            }
+        }
+
+        return 999;
     }
 
     /**
@@ -252,6 +266,7 @@ class PermissionsController extends Controller
             'dashboard' => 'لوحة التحكم',
             'clients' => 'العملاء',
             'maids' => 'السير الذاتية',
+            'social_status' => 'الحالة الاجتماعية',
             'orders' => 'الطلبات',
             'return_request' => 'طلبات الاسترجاع',
             'rec_contract' => 'عقود التوظيف',
@@ -343,7 +358,7 @@ class PermissionsController extends Controller
         // إذا لم توجد ترجمة، استخدم القيم الافتراضية
         $displayNames = [
             'dashboard_view' => 'عرض لوحة التحكم',
-            'DASHBOARD_VIEW_STATISTICS' => 'عرض إحصائيات لوحة التحكم',
+            'dashboard_view_statistics' => 'عرض إحصائيات لوحة التحكم',
             'dashboard_analytics' => 'إحصائيات لوحة التحكم',
             'dashboard_export' => 'تصدير بيانات لوحة التحكم',
             'dashboard_manage' => 'إدارة لوحة التحكم',
@@ -356,9 +371,18 @@ class PermissionsController extends Controller
             'dashboard_orders_statistics' => 'عرض إحصائيات الطلبات',
             'dashboard_top_customer_services' => 'عرض أفضل خدمة عملاء',
             'dashboard_orders_types' => 'عرض أنواع الطلبات',
+            'set_perms' => 'تعيين الصلاحيات',
+            'developers_perms' => 'صلاحيات المطور',
+            'full_contract' => 'العقد الكامل',
+            'contract_settings' => 'إعدادات العقد',
+            'complaints-read' => 'قراءة الشكاوى',
         ];
 
-        return $displayNames[$permissionName] ?? $permissionName;
+        if (isset($displayNames[$permissionName])) {
+            return $displayNames[$permissionName];
+        }
+
+        return $this->buildPermissionDisplayName($permissionName);
     }
 
     /**
@@ -376,7 +400,7 @@ class PermissionsController extends Controller
 
         $descriptions = [
             'dashboard_view' => 'إمكانية عرض لوحة التحكم الرئيسية',
-            'DASHBOARD_VIEW_STATISTICS' => 'إمكانية عرض إحصائيات لوحة التحكم',
+            'dashboard_view_statistics' => 'إمكانية عرض إحصائيات لوحة التحكم',
             'dashboard_analytics' => 'إمكانية عرض الإحصائيات والتحليلات',
             'dashboard_export' => 'إمكانية تصدير بيانات لوحة التحكم',
             'dashboard_manage' => 'إمكانية إدارة جميع مكونات لوحة التحكم',
@@ -391,15 +415,176 @@ class PermissionsController extends Controller
             'dashboard_orders_types' => 'إمكانية عرض أنواع الطلبات في لوحة التحكم',
         ];
 
-        return $descriptions[$permissionName] ?? 'صلاحية للوصول إلى هذه الميزة';
+        if (isset($descriptions[$permissionName])) {
+            return $descriptions[$permissionName];
+        }
+
+        return 'يمنح الوصول إلى ' . $this->getPermissionDisplayName($permission);
+    }
+
+    private function resolvePermissionPlacement(string $permissionName): array
+    {
+        $normalizedName = str_replace('-', '_', $permissionName);
+
+        $map = [
+            'dashboard_' => ['section' => 'dashboard', 'group' => 'dashboard'],
+            'clients_' => ['section' => 'clients', 'group' => 'clients'],
+            'maids_' => ['section' => 'cv_management', 'group' => 'maids'],
+            'cv_' => ['section' => 'cv_management', 'group' => 'maids'],
+            'orders_' => ['section' => 'orders', 'group' => 'orders'],
+            'return_request_' => ['section' => 'orders', 'group' => 'return_request'],
+            'rec_contract_' => ['section' => 'recruitment_contracts', 'group' => 'rec_contracts'],
+            'rec_contracts_' => ['section' => 'recruitment_contracts', 'group' => 'rec_contracts'],
+            'cancel_contract_' => ['section' => 'recruitment_contracts', 'group' => 'cancel_contract'],
+            'rent_contract_' => ['section' => 'rent_contracts', 'group' => 'rent_contract'],
+            'shelter_contract_' => ['section' => 'shelter_management', 'group' => 'shelter_contract'],
+            'shelter_workers_' => ['section' => 'shelter_management', 'group' => 'shelter_workers'],
+            'shelter_places_' => ['section' => 'shelter_management', 'group' => 'shelter_places'],
+            'travel_' => ['section' => 'travel_management', 'group' => 'travel'],
+            'rec_offices_' => ['section' => 'maids_settings', 'group' => 'rec_offices'],
+            'recruitment_offices_' => ['section' => 'maids_settings', 'group' => 'rec_offices'],
+            'complaint_type_' => ['section' => 'complaints', 'group' => 'complaint_type'],
+            'complaint_' => ['section' => 'complaints', 'group' => 'complaint'],
+            'complaints_' => ['section' => 'complaints', 'group' => 'complaint'],
+            'sponsor_transfer_' => ['section' => 'additional_services', 'group' => 'sponsor_transfer'],
+            'settings_' => ['section' => 'settings', 'group' => 'settings'],
+            'activity_' => ['section' => 'settings', 'group' => 'activity_log'],
+            'job_titles_' => ['section' => 'maids_settings', 'group' => 'job_titles'],
+            'social_status_' => ['section' => 'maids_settings', 'group' => 'social_status'],
+            'packages_' => ['section' => 'maids_settings', 'group' => 'packages'],
+            'nationalities_' => ['section' => 'maids_settings', 'group' => 'nationalities'],
+            'religions_' => ['section' => 'maids_settings', 'group' => 'religions'],
+            'relegions_' => ['section' => 'maids_settings', 'group' => 'religions'],
+            'skills_' => ['section' => 'maids_settings', 'group' => 'skills'],
+            'countries_' => ['section' => 'maids_settings', 'group' => 'countries'],
+            'users_' => ['section' => 'users_management', 'group' => 'users'],
+            'roles_' => ['section' => 'users_management', 'group' => 'roles'],
+            'permissions_' => ['section' => 'users_management', 'group' => 'permissions'],
+            'statistics_' => ['section' => 'content_management', 'group' => 'statistics'],
+            'stat_' => ['section' => 'content_management', 'group' => 'statistics'],
+            'notifications_' => ['section' => 'content_management', 'group' => 'notifications'],
+            'sliders_' => ['section' => 'content_management', 'group' => 'sliders'],
+            'faq_' => ['section' => 'content_management', 'group' => 'faq'],
+            'about_us_' => ['section' => 'content_management', 'group' => 'about_us'],
+            'contact_' => ['section' => 'content_management', 'group' => 'contact'],
+            'steps_' => ['section' => 'content_management', 'group' => 'steps'],
+            'services_' => ['section' => 'content_management', 'group' => 'services'],
+            'crm_' => ['section' => 'modules', 'group' => 'crm'],
+            'hr_' => ['section' => 'modules', 'group' => 'hr'],
+            'finance_' => ['section' => 'modules', 'group' => 'finance'],
+        ];
+
+        foreach ($map as $prefix => $placement) {
+            if (str_starts_with($normalizedName, $prefix)) {
+                return $placement;
+            }
+        }
+
+        if (in_array($normalizedName, ['contract_settings', 'full_contract', 'set_perms', 'developers_perms', 'test_perm'], true)) {
+            return ['section' => 'settings', 'group' => 'contract_settings'];
+        }
+
+        return ['section' => 'other', 'group' => 'other'];
+    }
+
+    private function buildPermissionDisplayName(string $permissionName): string
+    {
+        $specialNames = [
+            'set_perms' => 'تعيين الصلاحيات',
+            'developers_perms' => 'صلاحيات المطور',
+            'full_contract' => 'العقد الكامل',
+            'contract_settings' => 'إعدادات العقد',
+            'complaints-read' => 'قراءة الشكاوى',
+        ];
+
+        if (isset($specialNames[$permissionName])) {
+            return $specialNames[$permissionName];
+        }
+
+        ['group' => $group] = $this->resolvePermissionPlacement($permissionName);
+        $resourceTitle = $this->getGroupTitle($group);
+        $actionTitle = $this->getPermissionActionTitle($permissionName);
+
+        if ($actionTitle && $resourceTitle !== 'other') {
+            return trim($actionTitle . ' ' . $resourceTitle);
+        }
+
+        return str_replace('_', ' ', str_replace('-', ' ', $permissionName));
+    }
+
+    private function getPermissionActionTitle(string $permissionName): ?string
+    {
+        $normalizedName = str_replace('-', '_', $permissionName);
+
+        $suffixes = [
+            'change_status' => 'تغيير حالة',
+            'toggle_status' => 'تفعيل أو تعطيل',
+            'export_excel' => 'تصدير Excel',
+            'export_pdf' => 'تصدير PDF',
+            'toggle_pin' => 'تثبيت',
+            'download' => 'تنزيل',
+            'upload' => 'رفع',
+            'convert' => 'تحويل',
+            'analytics' => 'تحليلات',
+            'reports' => 'تقارير',
+            'approve' => 'اعتماد',
+            'reject' => 'رفض',
+            'assign' => 'تعيين',
+            'manage' => 'إدارة',
+            'control' => 'إدارة',
+            'create' => 'إضافة',
+            'edit' => 'تعديل',
+            'update' => 'تحديث',
+            'delete' => 'حذف',
+            'export' => 'تصدير',
+            'import' => 'استيراد',
+            'print' => 'طباعة',
+            'view' => 'عرض',
+            'show' => 'عرض',
+            'read' => 'قراءة',
+            'pin' => 'تثبيت',
+            'unpin' => 'إلغاء تثبيت',
+        ];
+
+        foreach ($suffixes as $suffix => $title) {
+            if ($normalizedName === $suffix || str_ends_with($normalizedName, '_' . $suffix)) {
+                return $title;
+            }
+        }
+
+        return null;
     }
 
     public function storePerms(Request $request){
         if(isset($request->role_id)){
-            $role = Role::find($request->role_id);
-            $permsArr = $request->perms ?? [];
-            //dd($permsArr);
-            $assignPerms = $role->syncPermissions($permsArr);
+            $role = $this->findAdminRole($request->role_id);
+            if (!$role) {
+                return redirect(route('dash.roles.index'))->with('error', 'لا يمكن تحديث صلاحيات دور غير إداري.');
+            }
+
+            $requestedPermissions = collect($request->input('perms', []))
+                ->filter(fn ($permissionName) => is_string($permissionName) && $permissionName !== '')
+                ->unique()
+                ->values();
+
+            $permissions = $requestedPermissions->isEmpty()
+                ? collect()
+                : Permission::query()
+                    ->where('guard_name', 'admin')
+                    ->whereIn('name', $requestedPermissions)
+                    ->get();
+
+            $role->syncPermissions($permissions);
+            $this->forgetPermissionCache();
+
+            $missingPermissions = $requestedPermissions->diff($permissions->pluck('name'));
+            if ($missingPermissions->isNotEmpty()) {
+                return redirect()->back()->with(
+                    'warning',
+                    'تم تحديث الصلاحيات وتجاهل العناصر غير المتاحة: ' . $missingPermissions->implode(' , ')
+                );
+            }
+
             return redirect()->back()->with('msg',__('admin.success'));
         }
         return redirect(route('dash.roles.index'));
@@ -408,10 +593,18 @@ class PermissionsController extends Controller
     public function index($id = null){
 
 
-        $data = Permission::all();
+        $data = Permission::withoutGlobalScopes()
+            ->where('guard_name', 'admin')
+            ->orderByDesc('is_active')
+            ->orderBy('section_name')
+            ->orderBy('group_name')
+            ->orderBy('name')
+            ->get();
         $editData = null;
         if($id != null){
-            $editData = Permission::find($id);
+            $editData = Permission::withoutGlobalScopes()
+                ->where('guard_name', 'admin')
+                ->find($id);
         }
         return view('admin.permissions.perm_keys.index',compact('data','editData'));
     }
@@ -421,29 +614,92 @@ class PermissionsController extends Controller
         if(isset($request->edit_id)){
             $id = $request->edit_id;
         }
-        $rules = ['name' => 'required|unique:permissions'.($id ? ',id' .($id ? ",$id" : '') : '')];
+        $rules = [
+            'name' => [
+                'required',
+                Rule::unique('permissions', 'name')
+                    ->where(fn ($query) => $query->where('guard_name', 'admin'))
+                    ->ignore($id),
+            ],
+        ];
         $validator = Validator::make($request->all(),$rules);
         if($validator->fails())
             return redirect()->back()->with('error',__('admin.roles_name_validation'));
 
-        $perm = Permission::updateOrCreate([
+        $existingPermission = $id
+            ? Permission::withoutGlobalScopes()->where('guard_name', 'admin')->find($id)
+            : null;
+
+        $perm = Permission::withoutGlobalScopes()->updateOrCreate([
                 'id' => $id
             ],[
                 'name' => $request->name,
                 'group_name' => $request->group_name,
                 'section_name' => $request->section_name,
                 'guard_name' => 'admin',
+                'is_active' => $existingPermission?->is_active ?? true,
         ]);
+
+        $this->forgetPermissionCache();
 
         return redirect(route('dash.developers.perms.index'))->with('msg',__('admin.success'));
     }
 
     public function delete(Request $request){
-        $perm = Permission::find($request->id);
+        $perm = Permission::withoutGlobalScopes()
+            ->where('guard_name', 'admin')
+            ->find($request->id);
         if($perm){
             $perm->delete();
+            $this->forgetPermissionCache();
         }
-        return redirect()->back();
+        return redirect()->back()->with('msg', __('admin.success'));
+    }
+
+    public function toggleStatus($id)
+    {
+        $permission = Permission::withoutGlobalScopes()
+            ->where('guard_name', 'admin')
+            ->find($id);
+
+        if (!$permission) {
+            return redirect()->back()->with('error', 'الصلاحية المطلوبة غير موجودة.');
+        }
+
+        $permission->is_active = ! (bool) $permission->is_active;
+        $permission->save();
+        $this->forgetPermissionCache();
+
+        return redirect()->back()->with('msg', __('admin.success'));
+    }
+
+    private function adminRolesQuery()
+    {
+        return Role::query()->where('guard_name', 'admin');
+    }
+
+    private function findAdminRole($id): ?Role
+    {
+        return $this->adminRolesQuery()->find($id);
+    }
+
+    private function isProtectedRole(Role $role): bool
+    {
+        return in_array($role->name, ['Administrator', 'super_admin'], true);
+    }
+
+    private function getAdminsCountByRole(): Collection
+    {
+        return collect(\DB::table('admins')
+            ->select('role_id', \DB::raw('count(*) as total'))
+            ->whereNotNull('role_id')
+            ->groupBy('role_id')
+            ->pluck('total', 'role_id'));
+    }
+
+    private function forgetPermissionCache(): void
+    {
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 
 }

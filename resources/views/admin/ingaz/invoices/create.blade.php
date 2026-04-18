@@ -194,7 +194,7 @@
             top: 20px;
         }
 
-        .side-section + .side-section {
+        .side-section+.side-section {
             margin-top: 16px;
             padding-top: 16px;
             border-top: 1px solid #edf2f7;
@@ -342,6 +342,7 @@
         }
 
         @media (max-width: 767px) {
+
             .page-toolbar,
             .editor-panel,
             .sidebar-panel {
@@ -375,21 +376,18 @@
         $contracts = $contracts ?? collect();
         $selectedContract = $selectedContract ?? null;
         $selectedContractFromList =
-            !$selectedContract && $selectedContractId
-                ? $contracts->firstWhere('id', (int) $selectedContractId)
-                : null;
+            !$selectedContract && $selectedContractId ? $contracts->firstWhere('id', (int) $selectedContractId) : null;
         $currentContract = $selectedContract ?: $selectedContractFromList;
         $currentNationality =
             optional($currentContract?->maid?->nationality ?? $currentContract?->requiredMaidNationality)->sub_title ?:
             (optional($currentContract?->maid?->nationality ?? $currentContract?->requiredMaidNationality)->title ?:
-                'غير محدد');
+            'غير محدد');
         $currentContractStatus = $currentContract
             ? getEnumValue('contract_statuses', $currentContract->status) ?? ($currentContract->status ?? 'غير محدد')
             : 'غير محدد';
         $currentClientName = $currentContract?->user?->name ?? 'غير محدد';
         $currentClientPhone =
-            trim(($currentContract?->user?->phone_code ?? '') . ($currentContract?->user?->phone ?? '')) ?:
-            'غير محدد';
+            trim(($currentContract?->user?->phone_code ?? '') . ($currentContract?->user?->phone ?? '')) ?: 'غير محدد';
         $currentClientIdentity = $currentContract?->user?->national_num ?? 'غير محدد';
         $canCreateInvoice = (bool) $currentContract || $contracts->isNotEmpty();
     @endphp
@@ -402,8 +400,8 @@
                         <i class="fas fa-file-invoice-dollar"></i>
                         فاتورة جديدة
                     </span>
-                    <div class="toolbar-title">إصدار فاتورة بشكل مختصر وسريع</div>
-                    <p class="toolbar-text">بيانات العقد والعميل في الجانب، والإدخال والطباعة أمام الموظف بدون نزول طويل.</p>
+                    <div class="toolbar-title">إصدار فاتورة </div>
+
                 </div>
 
                 <div class="d-flex flex-wrap gap-2">
@@ -460,7 +458,7 @@
                                                             $contract->maid?->nationality ??
                                                                 $contract->requiredMaidNationality,
                                                         )->title ?:
-                                                            'غير محدد');
+                                                        'غير محدد');
                                                     $contractStatus =
                                                         getEnumValue('contract_statuses', $contract->status) ??
                                                         ($contract->status ?? 'غير محدد');
@@ -488,7 +486,8 @@
                                                 لا توجد عقود متاحة حالياً لإصدار فاتورة جديدة.
                                             </div>
                                         @else
-                                            <div class="field-note">اختر العقد لتحديث بيانات العميل في العمود الجانبي مباشرة.</div>
+                                            <div class="field-note">اختر العقد لتحديث بيانات العميل في العمود الجانبي
+                                                مباشرة.</div>
                                         @endif
                                     </div>
                                 </div>
@@ -515,8 +514,7 @@
                                 <div class="col-md-6 col-lg-4">
                                     <label class="form-label" for="insurance_company">شركة التأمين</label>
                                     <input type="text" name="insurance_company" id="insurance_company"
-                                        class="form-control" value="{{ old('insurance_company') }}"
-                                        placeholder="اختياري">
+                                        class="form-control" value="{{ old('insurance_company') }}" placeholder="اختياري">
                                 </div>
                                 <div class="col-md-6 col-lg-4">
                                     <label class="form-label" for="direct_recruitment_cost">الاستقدام المباشر</label>
@@ -553,7 +551,8 @@
 
                             <div class="row g-3">
                                 <div class="col-md-6 col-lg-4">
-                                    <label class="form-label" for="visa_recruited_count">عدد المستقدمين في التأشيرة</label>
+                                    <label class="form-label" for="visa_recruited_count">عدد المستقدمين في
+                                        التأشيرة</label>
                                     <input type="number" min="1" name="visa_recruited_count"
                                         id="visa_recruited_count" class="form-control calc-input"
                                         value="{{ old('visa_recruited_count', 1) }}">
@@ -600,26 +599,27 @@
                                 <div class="row g-3">
                                     <div class="col-md-6 col-lg-3">
                                         <label class="form-label text-success" for="subtotal">المجموع</label>
-                                        <input type="number" step="0.01" min="0" name="subtotal" id="subtotal"
-                                            class="form-control total-field" value="{{ old('subtotal', 0) }}"
-                                            readonly>
+                                        <input type="number" step="0.01" min="0" name="subtotal"
+                                            id="subtotal" class="form-control total-field"
+                                            value="{{ old('subtotal', 0) }}" readonly>
                                     </div>
                                     <div class="col-md-6 col-lg-3">
                                         <label class="form-label" for="discount">الخصم</label>
-                                        <input type="number" step="0.01" min="0" name="discount" id="discount"
-                                            class="form-control calc-input" value="{{ old('discount', 0) }}">
+                                        <input type="number" step="0.01" min="0" name="discount"
+                                            id="discount" class="form-control calc-input"
+                                            value="{{ old('discount', 0) }}">
                                     </div>
                                     <div class="col-md-6 col-lg-3">
                                         <label class="form-label text-primary" for="vat_amount">الضريبة</label>
-                                        <input type="number" step="0.01" min="0" name="vat_amount" id="vat_amount"
-                                            class="form-control total-field" value="{{ old('vat_amount', 0) }}"
-                                            readonly>
+                                        <input type="number" step="0.01" min="0" name="vat_amount"
+                                            id="vat_amount" class="form-control total-field"
+                                            value="{{ old('vat_amount', 0) }}" readonly>
                                     </div>
                                     <div class="col-md-6 col-lg-3">
                                         <label class="form-label text-danger" for="total_due">المطلوب</label>
-                                        <input type="number" step="0.01" min="0" name="total_due" id="total_due"
-                                            class="form-control total-field" value="{{ old('total_due', 0) }}"
-                                            readonly>
+                                        <input type="number" step="0.01" min="0" name="total_due"
+                                            id="total_due" class="form-control total-field"
+                                            value="{{ old('total_due', 0) }}" readonly>
                                     </div>
                                 </div>
                             </div>
@@ -635,8 +635,7 @@
                                     <i class="fas fa-address-card"></i>
                                 </span>
                                 <div>
-                                    <div class="panel-title">العقد والعميل</div>
-                                    <p class="panel-subtitle">بيانات ثابتة في الجانب لتسهيل الإدخال والمراجعة والطباعة.</p>
+                                    <div class="panel-title">بيانات العقد والعميل</div>
                                 </div>
                             </div>
 
@@ -650,23 +649,28 @@
                                     </div>
                                     <div class="meta-item">
                                         <span class="meta-label">اسم العميل</span>
-                                        <strong class="meta-value" id="previewClientName">{{ $currentClientName }}</strong>
+                                        <strong class="meta-value"
+                                            id="previewClientName">{{ $currentClientName }}</strong>
                                     </div>
                                     <div class="meta-item">
                                         <span class="meta-label">الجنسية</span>
-                                        <strong class="meta-value" id="previewNationality">{{ $currentNationality }}</strong>
+                                        <strong class="meta-value"
+                                            id="previewNationality">{{ $currentNationality }}</strong>
                                     </div>
                                     <div class="meta-item">
                                         <span class="meta-label">حالة العقد</span>
-                                        <strong class="meta-value" id="previewContractStatus">{{ $currentContractStatus }}</strong>
+                                        <strong class="meta-value"
+                                            id="previewContractStatus">{{ $currentContractStatus }}</strong>
                                     </div>
                                     <div class="meta-item">
                                         <span class="meta-label">هوية العميل</span>
-                                        <strong class="meta-value" id="previewClientIdentity">{{ $currentClientIdentity }}</strong>
+                                        <strong class="meta-value"
+                                            id="previewClientIdentity">{{ $currentClientIdentity }}</strong>
                                     </div>
                                     <div class="meta-item">
                                         <span class="meta-label">رقم التواصل</span>
-                                        <strong class="meta-value" id="previewClientPhone">{{ $currentClientPhone }}</strong>
+                                        <strong class="meta-value"
+                                            id="previewClientPhone">{{ $currentClientPhone }}</strong>
                                     </div>
                                 </div>
                             </div>
@@ -744,18 +748,18 @@
                                             <i class="fas fa-print me-1"></i>
                                             طباعة الفاتورة
                                         </a>
-                                        <a href="#" class="btn btn-outline-dark d-none js-post-save-link" id="printInvoiceConstraintBtn"
-                                            target="_blank" rel="noopener">
+                                        <a href="#" class="btn btn-outline-dark d-none js-post-save-link"
+                                            id="printInvoiceConstraintBtn" target="_blank" rel="noopener">
                                             <i class="fas fa-book-open me-1"></i>
                                             طباعة قيد الفاتورة
                                         </a>
-                                        <a href="#" class="btn btn-outline-primary d-none js-post-save-link" id="printReceiptBondBtn"
-                                            target="_blank" rel="noopener">
+                                        <a href="#" class="btn btn-outline-primary d-none js-post-save-link"
+                                            id="printReceiptBondBtn" target="_blank" rel="noopener">
                                             <i class="fas fa-receipt me-1"></i>
                                             طباعة سند القبض
                                         </a>
-                                        <a href="#" class="btn btn-outline-dark d-none js-post-save-link" id="printReceiptConstraintBtn"
-                                            target="_blank" rel="noopener">
+                                        <a href="#" class="btn btn-outline-dark d-none js-post-save-link"
+                                            id="printReceiptConstraintBtn" target="_blank" rel="noopener">
                                             <i class="fas fa-file-invoice-dollar me-1"></i>
                                             طباعة قيد سند القبض
                                         </a>
@@ -863,14 +867,16 @@
                 $('#summaryDiscount').text(formatMoney(discount));
                 $('#summaryGrandTotal').text(formatMoney(totalDue));
 
-                $('#summaryDirectLine').text(`${directCount} × ${directCost.toFixed(2)} = ${formatMoney(directTotal)}`);
+                $('#summaryDirectLine').text(
+                    `${directCount} × ${directCost.toFixed(2)} = ${formatMoney(directTotal)}`);
                 $('#summaryExternalLine').text(
                     `${externalCount} × ${externalCost.toFixed(2)} = ${formatMoney(externalTotal)}`
                 );
                 $('#summaryGovernmentLine').text(
                     `${governmentCount} × ${governmentCost.toFixed(2)} = ${formatMoney(governmentTotal)}`
                 );
-                $('#summaryTicketLine').text(`${ticketCount} × ${ticketCost.toFixed(2)} = ${formatMoney(ticketTotal)}`);
+                $('#summaryTicketLine').text(
+                    `${ticketCount} × ${ticketCost.toFixed(2)} = ${formatMoney(ticketTotal)}`);
             }
 
             function extractErrorMessage(xhr) {
@@ -937,7 +943,8 @@
                             Swal.fire({
                                 icon: 'error',
                                 title: 'تعذر إصدار الفاتورة',
-                                text: response.message || 'حدث خطأ أثناء إصدار الفاتورة.',
+                                text: response.message ||
+                                    'حدث خطأ أثناء إصدار الفاتورة.',
                             });
                             return;
                         }

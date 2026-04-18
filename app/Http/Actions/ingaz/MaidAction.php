@@ -10,6 +10,7 @@ use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\User as ClientUser;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -151,7 +152,7 @@ class MaidAction extends MainAction
         }
 
         // Normalize request type and offer fields
-        $data['request_type'] = $data['request_type'] ?? 'known';
+        $data['request_type'] = Maid::resolveRequestType($data['request_type'] ?? null);
 
         $offerPrice = $data['offer_price'] ?? null;
         $data['offer_price'] = ($offerPrice === '' || $offerPrice === null) ? null : round((float)$offerPrice, 2);
@@ -282,7 +283,7 @@ class MaidAction extends MainAction
 
         
         if ($requestTypeColumnExists) {
-            $createData['request_type'] = $data['request_type'] ?? 'known';
+            $createData['request_type'] = Maid::resolveRequestType($data['request_type'] ?? null);
         }
 
         if ($offerPriceColumnExists) {
@@ -445,6 +446,31 @@ class MaidAction extends MainAction
 
     public function storeRapidCvMaid($createData, $request)
     {
+        if (isset($createData['cv_file']) && $createData['cv_file'] instanceof \Illuminate\Http\UploadedFile) {
+            $file = $createData['cv_file'];
+            $createData['cv_file'] = uploadFile($file, $this->fileFolder);
+
+            if (str_starts_with((string) $file->getMimeType(), 'image/') && empty($createData['image'])) {
+                $createData['image'] = $createData['cv_file'];
+            }
+        } else {
+            $createData['cv_file'] = $createData['cv_file'] ?? '';
+        }
+
+        $createData['name'] = filled($createData['name'] ?? null)
+            ? trim((string) $createData['name'])
+            : null;
+        $createData['religion_id'] = $createData['religion_id'] ?? (\App\Models\ingaz\Religion::query()->value('id') ?? 1);
+        $createData['price'] = $createData['price'] ?? 0;
+        $createData['salary'] = $createData['salary'] ?? 0;
+        $createData['age'] = $createData['age'] ?? 0;
+        $createData['height'] = $createData['height'] ?? '160';
+        $createData['weight'] = $createData['weight'] ?? '60';
+        $createData['available_at'] = $createData['available_at'] ?? now()->toDateString();
+        $createData['arrival_date'] = $createData['arrival_date'] ?? now()->toDateString();
+        $createData['image'] = $createData['image'] ?? null;
+        $createData['request_type'] = Maid::resolveRequestType($createData['request_type'] ?? null);
+
         $maid = $this->model->create($createData);
         $maid->jobTypes()->attach(1); // استقدام
         $maid->jobTypes()->sync($this->resolveRequiredJobTypeIds($request, $maid));
@@ -847,7 +873,7 @@ class MaidAction extends MainAction
         return $query->exists();
     }
 
-    private function resolveHrCountryIdForMaid(Maid $maid): int
+    public function resolveHrCountryIdForMaid(Maid $maid): int
     {
         if (!Schema::hasTable('hr_countries') || !Schema::hasTable('hr_countries_translations')) {
             return 142;
@@ -857,15 +883,21 @@ class MaidAction extends MainAction
 
         if ($countryTranslations === null) {
             $countryTranslations = DB::table('hr_countries_translations')
-                ->select('country_id', 'name', 'nationality')
+                ->select('country_id', 'name', 'nationality', 'name_official')
                 ->whereIn('locale', ['ar', 'en'])
                 ->get();
         }
 
-        $nationalityCandidates = array_filter([
-            $maid->nationality?->sub_title,
-            $maid->nationality?->title,
-        ]);
+        $nationalityCandidates = array_values(array_filter(array_merge(
+            [
+                $maid->nationality?->sub_title,
+                $maid->nationality?->title,
+            ],
+            collect($maid->nationality?->translations ?? [])
+                ->flatMap(fn ($translation) => [$translation->title ?? null, $translation->sub_title ?? null])
+                ->filter()
+                ->all()
+        )));
 
         foreach ($nationalityCandidates as $candidate) {
             $normalizedCandidate = $this->normalizeHrLookupValue($candidate);
@@ -874,7 +906,32 @@ class MaidAction extends MainAction
                 return in_array($normalizedCandidate, [
                     $this->normalizeHrLookupValue($row->name ?? ''),
                     $this->normalizeHrLookupValue($row->nationality ?? ''),
+                    $this->normalizeHrLookupValue($row->name_official ?? ''),
                 ], true);
+            });
+
+            if ($match) {
+                return (int) $match->country_id;
+            }
+        }
+
+        foreach ($nationalityCandidates as $candidate) {
+            $normalizedCandidate = $this->normalizeHrLookupValue($candidate);
+
+            $match = $countryTranslations->first(function ($row) use ($normalizedCandidate) {
+                $haystacks = array_filter([
+                    $this->normalizeHrLookupValue($row->name ?? ''),
+                    $this->normalizeHrLookupValue($row->nationality ?? ''),
+                    $this->normalizeHrLookupValue($row->name_official ?? ''),
+                ]);
+
+                foreach ($haystacks as $haystack) {
+                    if (Str::contains($haystack, $normalizedCandidate) || Str::contains($normalizedCandidate, $haystack)) {
+                        return true;
+                    }
+                }
+
+                return false;
             });
 
             if ($match) {
@@ -1078,7 +1135,9 @@ class MaidAction extends MainAction
         $translation->save();
 
         if ($requestTypeColumnExists) {
-            $data['request_type'] = $data['request_type'] ?? $maid->request_type ?? 'known';
+            $data['request_type'] = array_key_exists('request_type', $data)
+                ? Maid::resolveRequestType($data['request_type'])
+                : Maid::resolveRequestType($maid->request_type);
         } else {
             unset($data['request_type']);
         }

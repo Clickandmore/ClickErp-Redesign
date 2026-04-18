@@ -426,6 +426,9 @@
                     <div class="col-md-4">
                         <div class="roles-sidebar">
                             <h3 class="mb-4">{{ __('admin.permissions') }}</h3>
+                            <div class="alert alert-light border small text-muted">
+                                يتم عرض أدوار الحارس <code>admin</code> فقط داخل هذه اللوحة.
+                            </div>
 
                                 @if (@$availableRoles)
                                     @foreach ($availableRoles as $k => $singleRole)
@@ -439,10 +442,13 @@
                                             <h5>{{ $singleRole->name }}</h5>
                                             @if ($singleRole->id == $role->id)
                                                 <small>{{ __('admin.current_role') }}</small>
+                                            @elseif ($singleRole->is_protected ?? false)
+                                                <small>دور أساسي</small>
                                             @endif
                                                 </div>
                                                 <div class="role-permissions-count">
                                                     <span class="badge badge-light">{{ $rolePermissionsCount }} صلاحيات</span>
+                                                    <span class="badge badge-light">{{ $singleRole->linked_admins_count ?? 0 }} مشرفين</span>
                                                 </div>
                                             </div>
                                         </a>
@@ -467,6 +473,10 @@
                                      يمكنك اختيار كل صلاحيات الوحدة مرة واحدة باستخدام زر "اختيار الكل"
                                     </small>
                                     <br>
+                                    <small class="text-muted">
+                                        يتم إخفاء الصلاحيات المعطلة مؤقتاً من هذه الشاشة حتى لا تُسند للأدوار.
+                                    </small>
+                                    <br>
                                     {{-- <small class="text-success">
                                         <i class="fas fa-chart-bar"></i>
                                         إجمالي الأقسام: <strong>{{ count($organizedPermissions) }}</strong> |
@@ -475,10 +485,10 @@
                                     </small> --}}
                                 </div>
                                 <div>
-                                <button class="assign-all-btn" onclick="assignAllPerms()">
+                                <button type="button" class="assign-all-btn" onclick="assignAllPerms()">
                                         {{ __('admin.assign_all_perms') }}
                                     </button>
-                                    <button class="btn btn-outline-secondary btn-sm" onclick="clearAllPerms()">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearAllPerms()">
                                         إلغاء الكل
                                 </button>
                                 </div>
@@ -553,6 +563,10 @@
                                                         </div>
 
                                                         @foreach ($groupData['permissions'] as $permission)
+                                                                @php
+                                                                    $isPermissionAssigned = $role->name === 'super_admin'
+                                                                        || in_array($permission['name'], $assignedPermissionNames ?? [], true);
+                                                                @endphp
                                                                 <div class="permission-item">
                                                                 <div class="permission-info">
                                                                     <div class="permission-name">{{ $permission['display_name'] }}</div>
@@ -564,19 +578,7 @@
                                                                                type="checkbox"
                                                                            value="{{ $permission['name'] }}"
                                                                            data-group="{{ $groupName }}"
-                                                                               @php
-                                                                                   try {
-                                                                                       if($role->name === 'super_admin') {
-                                                                                           echo 'checked="checked"';
-                                                                                       } else {
-                                                                                       if(@$role->hasPermissionTo($permission['name'])) {
-                                                                                               echo 'checked="checked"';
-                                                                                           }
-                                                                                       }
-                                                                                   } catch (\Exception $e) {
-                                                                                       // Ignore permission not found error
-                                                                                   }
-                                                                               @endphp
+                                                                               @if($isPermissionAssigned) checked @endif
                                                                         >
                                                                     </label>
                                                                 </div>
@@ -608,7 +610,7 @@
                                 <a href="{{ route('dash.roles.index') }}" class="btn btn-danger">
                                        {{ __('admin.back') }}
                                 </a>
-                                <button class="btn btn-success" onclick="confirmSave()">
+                                <button type="button" class="btn btn-success" onclick="confirmSave()">
                                         {{ __('admin.confirm') }}
                                 </button>
                                 </div>

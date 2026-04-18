@@ -443,7 +443,7 @@ class IngazDelegationController extends Controller
         $maid->religion_id = $religionId;
         $maid->experience_status = $experienceStatus;
         $maid->experience_years = $experienceStatus === 'has_experience' ? max((int) ($maid->experience_years ?? 1), 1) : 0;
-        $maid->request_type = $maid->request_type ?: Maid::REQUEST_TYPE_KNOWN;
+        $maid->request_type = Maid::resolveRequestType($maid->request_type);
         $maid->save();
 
         MaidJobTitles::firstOrCreate([

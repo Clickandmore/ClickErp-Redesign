@@ -129,7 +129,7 @@
                     <div class="col-4">
                         <label for="request_type" class="form-label">{{ helperTrans('ingaz.request_type') }}</label>
                         @php
-                            $requestType = old('request_type', $obj->request_type ?? \App\Models\ingaz\Maid::REQUEST_TYPE_KNOWN);
+                            $requestType = old('request_type', \App\Models\ingaz\Maid::resolveRequestType($obj->request_type));
                         @endphp
                         <select name="request_type" id="request_type" class="form-control">
                             @foreach (\App\Models\ingaz\Maid::getRequestTypeOptions() as $value => $label)

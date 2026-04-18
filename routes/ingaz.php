@@ -478,6 +478,7 @@ Route::group(
             Route::name('developers.perms.')->prefix('developers')->group(function () {
                 Route::get('perms/{id?}', [PermissionsController::class, 'index'])->name('index');
                 Route::post('store', [PermissionsController::class, 'store'])->name('store');
+                Route::patch('toggle-status/{id}', [PermissionsController::class, 'toggleStatus'])->name('toggleStatus');
                 Route::delete('delete/{id}', [PermissionsController::class, 'delete'])->name('delete');
             });
 

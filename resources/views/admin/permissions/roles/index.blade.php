@@ -13,8 +13,12 @@
                             <form method="post" action='{{ route('dash.roles.store') }}' enctype="multipart/form-data">
                                 {{ csrf_field() }}
 
-                                <div><b>{{ __('admin.add') }}</b></div>
+                                <div><b>{{ @$editRole ? __('admin.edit') : __('admin.add') }}</b></div>
                                 <hr>
+
+                                <div class="alert alert-light border text-muted small">
+                                    يتم إنشاء وتعديل أدوار لوحة الإدارة فقط على الحارس <code>admin</code>.
+                                </div>
 
                                 <div class="form-group mb-5">
                                     <label for="name" class="form-label">{{ __('admin.roles_name') }}</label>
@@ -27,7 +31,7 @@
                                 @endif
 
                                 <div class="text-center mt-5">
-                                    @if (@$edit)
+                                    @if (@$editRole)
                                         <a href="{{ route('dash.roles.index') }}"
                                             class="btn btn-secondary">{{ __('admin.cancel') }}</a>
                                     @endif
@@ -46,12 +50,19 @@
                     <div class="text-center">
                         @if (@AdminGuardHasPerm(\App\PermKeys::ROLES_VIEW))
                             @include('components.session-messages')
+                            <div class="alert alert-info text-end">
+                                <strong>لوحة الأدوار</strong>
+                                <br>
+                                يتم عرض الأدوار الإدارية فقط، مع عدد المشرفين المرتبطين وعدد الصلاحيات لكل دور.
+                            </div>
                             <table class="table table-bordered table-striped">
                                 <thead>
                                     <tr class="" style="color: #fff">
                                         <th style="width:5%">#</th>
                                         <th>{{ __('admin.roles_name') }}</th>
-                                        <th style="width:10%">{{ __('admin.actions') }}</th>
+                                        <th style="width:14%">المشرفون</th>
+                                        <th style="width:14%">الصلاحيات</th>
+                                        <th style="width:12%">{{ __('admin.actions') }}</th>
                                     </tr>
                                 </thead>
 
@@ -60,22 +71,31 @@
                                         @foreach ($roles as $k => $singleRole)
                                             <tr>
                                                 <td>{{ $singleRole->id }}</td>
-                                                <td>{{ $singleRole->name }}</td>
+                                                <td class="text-end">
+                                                    <div class="fw-bold">{{ $singleRole->name }}</div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-primary">{{ $singleRole->linked_admins_count ?? 0 }}</span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-info text-dark">{{ $singleRole->permissions_count ?? 0 }}</span>
+                                                </td>
                                                 <td class="d-flex">
-                                                    {{-- @if (Auth::user()->can(\App\PermKeys::SET_PERMS)) --}}
-                                                        <a class="text-warning mx-2"
-                                                            href="{{ route('dash.perms.setPerms', ['id' => $singleRole->id]) }}">
-                                                            <li class="fa fa-cog"></li>
-                                                        </a>
-                                                    {{-- @endif --}}
+                                                    <a class="text-warning mx-2"
+                                                        href="{{ route('dash.perms.setPerms', ['id' => $singleRole->id]) }}"
+                                                        title="إدارة الصلاحيات">
+                                                        <li class="fa fa-cog"></li>
+                                                    </a>
 
                                                     <a class=" mx-2"
-                                                        href="{{ route('dash.roles.index', ['id' => $singleRole->id]) }}">
+                                                        href="{{ route('dash.roles.index', ['id' => $singleRole->id]) }}"
+                                                        title="تعديل الدور">
                                                         <li class="fa fa-edit"></li>
                                                     </a>
 
-                                                    @if (in_array(@$singleRole->id, ['1', '2', '3', '4']))
-                                                        <a class=" mx-2">
+                                                    @if (($singleRole->is_protected ?? false) || (($singleRole->linked_admins_count ?? 0) > 0))
+                                                        <a class="mx-2 text-muted"
+                                                            title="@if ($singleRole->is_protected ?? false) هذا دور أساسي @else لا يمكن حذف دور مرتبط بمشرفين @endif">
                                                             <li class="fa fa-ban"></li>
                                                         </a>
                                                     @else
@@ -85,7 +105,7 @@
                                                             {!! csrf_field() !!}
                                                             <input type="hidden" name="_method" value="delete">
                                                             <a onclick="delete_confirm($(this),event)" class=""
-                                                                style="color:#dd2c2c">
+                                                                style="color:#dd2c2c" title="حذف الدور">
                                                                 <li class="fa fa-trash"></li>
                                                             </a>
                                                         </form>

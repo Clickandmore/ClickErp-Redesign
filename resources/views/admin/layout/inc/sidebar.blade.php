@@ -179,23 +179,14 @@
                                         <span class="ms-2">{{ helperTrans('ingaz.cv_management') }}</span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
-                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['maids.index', 'noneAvailableMaids', 'maids.deleted_cvs', 'maids.create', 'maids.create_rapid_cv']) ? 'show' : '' }}"
+                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['maids.index', 'noneAvailableMaids', 'maids.deleted_cvs', 'maids.create', 'maids.create_rapid_cv', 'maids.rental.index', 'maids.rental.create']) ? 'show' : '' }}"
                                         id="cvManagement">
                                         @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
                                             <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'maids.create' ? 'active' : '' }}"
+                                                <a class="m-link {{ in_array(Route::currentRouteName(), ['maids.create', 'maids.create_rapid_cv']) ? 'active' : '' }}"
                                                     href="{{ route('maids.create') }}">
                                                     <i class="fa fa-plus"></i>
                                                     <span class="ms-2">{{ helperTrans('ingaz.add_cv') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'maids.create_rapid_cv' ? 'active' : '' }}"
-                                                    href="{{ route('maids.create_rapid_cv') }}">
-                                                    <i class="fa fa-plus"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.add_rapid_cv') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -205,6 +196,13 @@
                                                     href="{{ route('maids.index') }}">
                                                     <i class="fa fa-list"></i>
                                                     <span class="ms-2">{{ helperTrans('ingaz.cvs') }}</span>
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="m-link {{ in_array(Route::currentRouteName(), ['maids.rental.index', 'maids.rental.create']) ? 'active' : '' }}"
+                                                    href="{{ route('maids.rental.index') }}">
+                                                    <i class="fas fa-history"></i>
+                                                    <span class="ms-2">سير عاملات الإيجار</span>
                                                 </a>
                                             </li>
                                             <li>
@@ -475,7 +473,7 @@
                                         <span class="ms-2"> {{ helperTrans('ingaz.Rent contracts') }} </span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
-                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RentContract.index', 'RentContract.create', 'RentContract.show', 'RentContract.edit', 'packages.index', 'rent-contract-terms.index', 'maids.rental.index', 'maids.rental.create']) ? 'show' : '' }}"
+                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RentContract.index', 'RentContract.create', 'RentContract.show', 'RentContract.edit', 'packages.index', 'rent-contract-terms.index']) ? 'show' : '' }}"
                                         id="rentcontracts">
                                         @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE))
                                             <li>
@@ -493,13 +491,6 @@
                                                     href="{{ route('rental-orders.index') }}">
                                                     <i class="fas fa-shopping-cart"></i>
                                                     <span class="ms-2">طلبات الإيجار</span>
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="m-link {{ in_array(Route::currentRouteName(), ['maids.rental.index', 'maids.rental.create']) ? 'active' : '' }}"
-                                                    href="{{ route('maids.rental.index') }}">
-                                                    <i class="fas fa-history"></i>
-                                                    <span class="ms-2">سير عاملات الإيجار</span>
                                                 </a>
                                             </li>
                                             <li>

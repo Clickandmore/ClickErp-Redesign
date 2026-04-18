@@ -12,6 +12,10 @@
                     <b>{{__('admin.perms_keys_devs_only')}}</b>
                 </div>
 
+                <div class="alert alert-info text-center">
+                    يمكنك الآن إيقاف الصلاحية مؤقتاً دون حذفها. الصلاحية المعطلة لا تظهر في شاشة تعيين الصلاحيات ولا تُستخدم في التحقق حتى تتم إعادة تفعيلها.
+                </div>
+
                 <div class="col-md-4">
                     <div class="card-body">
 
@@ -19,7 +23,7 @@
                             enctype="multipart/form-data">
                             {{ csrf_field() }}
 
-                            <div><b>{{ __('admin.add') }}</b></div>
+                            <div><b>{{ @$editData ? __('admin.edit') : __('admin.add') }}</b></div>
                             <hr>
 
                             <div class="row col-md-12 mb-3">
@@ -59,7 +63,7 @@
 
                             <div class="row mb-3 col-md-12 text-center mt-5">
                                 <div class="col-sm-12 text-sm-end text-center mt-10">
-                                    @if(@$edit)
+                                    @if(@$editData)
                                         <a href="{{ route('dash.developers.perms.index') }}" class="btn btn-fr-bg-light">{{ __('admin.cancel') }}</a>
                                     @endif
                                     <button type="submit" class="btn btn-fr-bg">{{ __('admin.confirm') }}</button>
@@ -88,6 +92,8 @@
                                     <th>{{ __('admin.perms_group_name') }}</th>
                                     <th>{{ __('admin.perms_section_name') }}</th>
                                     <th>{{ __('admin.perms_translation') }}</th>
+                                    <th>الحالة</th>
+                                    <th>تعطيل مؤقت</th>
                                     <th style="width:5%">{{ __('admin.edit') }}</th>
                                     <th style="width:5%">{{ __('admin.delete') }}</th>
                                 </tr>
@@ -96,12 +102,30 @@
                             <tbody>
                                 @if (!empty(@$data))
                                     @foreach ($data as $k => $singleRow)
-                                        <tr>
+                                        <tr class="{{ $singleRow->is_active ? '' : 'table-warning' }}">
                                             <td>{{ @$singleRow->id }}</td>
                                             <td>{{ @$singleRow->name }}</td>
                                             <td>{{ @$singleRow->group_name }}</td>
                                             <td>{{ @$singleRow->section_name }}</td>
                                             <td>{{ __("permissions.$singleRow->name") }}</td>
+                                            <td>
+                                                @if ($singleRow->is_active)
+                                                    <span class="badge bg-success">مفعلة</span>
+                                                @else
+                                                    <span class="badge bg-secondary">معطلة</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <form action="{{ route('dash.developers.perms.toggleStatus', ['id' => $singleRow->id]) }}"
+                                                    method="post">
+                                                    {!! csrf_field() !!}
+                                                    @method('PATCH')
+                                                    <button type="submit"
+                                                        class="btn btn-sm {{ $singleRow->is_active ? 'btn-warning' : 'btn-success' }}">
+                                                        {{ $singleRow->is_active ? 'إيقاف مؤقت' : 'إعادة تفعيل' }}
+                                                    </button>
+                                                </form>
+                                            </td>
                                             <td><a href="{{ route('dash.developers.perms.index', ['id' => $singleRow->id]) }}">
                                                     <li class="fa fa-edit"></li>
                                                 </a>
