@@ -5,6 +5,19 @@
 php artisan db:seed --class=AddPackageModulePermissionsSeeder
 ```
 
+## حماية packages من ضياع التعديلات
+
+- المجلدات `packages/crm` و`packages/finance` و`packages/hr` هي `git submodules` وليست مجلدات عادية.
+- قبل أي `pull` أو `submodule update` شغّل:
+```bash
+./scripts/safe-submodule-update.sh
+```
+- إذا أردت سحب آخر تحديثات الحزم من الريموت بشكل آمن:
+```bash
+./scripts/safe-submodule-update.sh --remote
+```
+- أي تعديل داخل `packages/*` يجب أن يُعمل له `commit` و`push` داخل الحزمة نفسها أولًا، ثم تعمل `commit` في المشروع الرئيسي لتحديث مؤشر الـ submodule.
+
 ---
 
 **1. Run the Command to Start a New Project:**

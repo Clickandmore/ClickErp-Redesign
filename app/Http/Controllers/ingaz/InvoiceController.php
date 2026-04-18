@@ -584,7 +584,7 @@ class InvoiceController extends Controller
 
     private function buildInvoiceItems(Invoice $invoice): array
     {
-        $rawItems = [
+        $items = [
             [
                 'label' => 'تكاليف الاستقدام المباشر',
                 'qty' => (int) $invoice->direct_recruitment_count,
@@ -615,23 +615,17 @@ class InvoiceController extends Controller
             ],
         ];
 
-        $items = array_values(array_filter($rawItems, function ($item) {
-            return $item['qty'] > 0 || $item['unit'] > 0 || $item['vat_amount'] > 0;
-        }));
-
-        if (empty($items)) {
-            $items = $rawItems;
-        }
-
         foreach ($items as &$item) {
-            $item['line_subtotal'] = $item['qty'] * $item['unit'];
-            $item['line_discount'] = 0;
-            $item['line_total'] = $item['line_subtotal'] - $item['line_discount'];
-            $item['line_grand_total'] = $item['line_total'] + $item['vat_amount'];
+            $item['line_subtotal'] = $this->roundMoney($item['qty'] * $item['unit']);
+            $item['line_discount'] = 0.0;
+            $item['line_total'] = $this->roundMoney($item['line_subtotal'] - $item['line_discount']);
+            $item['line_grand_total'] = $this->roundMoney($item['line_total'] + $item['vat_amount']);
         }
         unset($item);
 
-        return $items;
+        return array_values(array_filter($items, function ($item) {
+            return $item['line_grand_total'] > 0;
+        }));
     }
 
     private function buildServiceDescription(Invoice $invoice): string
