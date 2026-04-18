@@ -132,7 +132,7 @@
                                         <td>{{ number_format($item['unit'], 2) }}</td>
                                         <td>{{ (int) ($item['vat_rate'] * 100) }}%</td>
                                         <td>{{ number_format($item['vat_amount'], 2) }}</td>
-                                        <td>{{ number_format($item['line_total'], 2) }}</td>
+                                        <td>{{ number_format($item['line_grand_total'], 2) }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>

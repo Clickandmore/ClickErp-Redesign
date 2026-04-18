@@ -1855,6 +1855,11 @@
                 window.location.href = url;
             }
 
+            $(document).on('click', '.add-travel-btn', function(e) {
+                e.preventDefault();
+                addTravel($(this).data('contract-id'));
+            });
+
             // معالج زر الإرجاع من عمود المرحلة التالية
             $(document).on('click', '.backContract', function() {
                 var rowId = $(this).data('row-id');
@@ -2425,4 +2430,3 @@
         });
     </script>
 @endsection
-

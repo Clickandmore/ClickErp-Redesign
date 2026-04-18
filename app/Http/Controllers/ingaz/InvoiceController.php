@@ -7,6 +7,7 @@ use App\Models\Contract;
 use App\Models\ingaz\Invoice;
 use App\Models\ingaz\Setting;
 use App\Models\ingaz\User as ClientUser;
+use App\Services\ingaz\InvoiceCalculationService;
 use Illuminate\Http\Request;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Enums\BondPaymentTypes;
@@ -165,6 +166,7 @@ class InvoiceController extends Controller
             $result = DB::transaction(function () use ($request, $service, $yearService, $bondService) {
                 $contract = Contract::with(['user', 'maid.nationality', 'requiredMaidNationality'])
                     ->findOrFail($request->contract_id);
+                $invoicePayload = $this->buildInvoicePayload($request);
 
                 if ($contract->invoice()->exists()) {
                     throw new \RuntimeException('هذا العقد لديه فاتورة سابقة');
@@ -204,20 +206,20 @@ class InvoiceController extends Controller
                 $invoice = Invoice::create([
                     'contract_id' => $request->contract_id,
                     'insurance_company' => $request->insurance_company ?? null,
-                    'direct_recruitment_cost' => $request->direct_recruitment_cost ?? 0,
-                    'external_recruitment_cost' => $request->external_recruitment_cost ?? 0,
-                    'government_cost' => $request->government_cost ?? 0,
-                    'internal_ticket_cost' => $request->internal_ticket_cost ?? 0,
-                    'visa_recruited_count' => $request->visa_recruited_count ?? 0,
-                    'direct_recruitment_count' => $request->direct_recruitment_count ?? 0,
-                    'external_recruitment_count' => $request->external_recruitment_count ?? 0,
-                    'insured_count' => $request->insured_count ?? 0,
-                    'government_cost_count' => $request->government_cost_count ?? 0,
-                    'internal_ticket_count' => $request->internal_ticket_count ?? 0,
-                    'subtotal' => $request->subtotal ?? 0,
-                    'discount' => $request->discount ?? 0,
-                    'vat_amount' => $request->vat_amount ?? 0,
-                    'total_due' => $request->total_due ?? 0,
+                    'direct_recruitment_cost' => $invoicePayload['direct_recruitment_cost'],
+                    'external_recruitment_cost' => $invoicePayload['external_recruitment_cost'],
+                    'government_cost' => $invoicePayload['government_cost'],
+                    'internal_ticket_cost' => $invoicePayload['internal_ticket_cost'],
+                    'visa_recruited_count' => $invoicePayload['visa_recruited_count'],
+                    'direct_recruitment_count' => $invoicePayload['direct_recruitment_count'],
+                    'external_recruitment_count' => $invoicePayload['external_recruitment_count'],
+                    'insured_count' => $invoicePayload['insured_count'],
+                    'government_cost_count' => $invoicePayload['government_cost_count'],
+                    'internal_ticket_count' => $invoicePayload['internal_ticket_count'],
+                    'subtotal' => $invoicePayload['subtotal'],
+                    'discount' => $invoicePayload['discount'],
+                    'vat_amount' => $invoicePayload['vat_amount'],
+                    'total_due' => $invoicePayload['total_due'],
                     'is_paid' => true,
                     'paid_at' => now(),
                 ]);
@@ -586,32 +588,28 @@ class InvoiceController extends Controller
     {
         $items = [
             [
+                'key' => 'direct',
                 'label' => 'تكاليف الاستقدام المباشر',
                 'qty' => (int) $invoice->direct_recruitment_count,
                 'unit' => (float) $invoice->direct_recruitment_cost,
-                'vat_rate' => 0.15,
-                'vat_amount' => (float) $invoice->vat_amount,
             ],
             [
+                'key' => 'external',
                 'label' => 'تكاليف الاستقدام الخارجية',
                 'qty' => (int) $invoice->external_recruitment_count,
                 'unit' => (float) $invoice->external_recruitment_cost,
-                'vat_rate' => 0,
-                'vat_amount' => 0,
             ],
             [
+                'key' => 'government',
                 'label' => 'تكاليف حكومية',
                 'qty' => (int) $invoice->government_cost_count,
                 'unit' => (float) $invoice->government_cost,
-                'vat_rate' => 0,
-                'vat_amount' => 0,
             ],
             [
+                'key' => 'ticket',
                 'label' => 'تكلفة التذكرة الداخلية',
                 'qty' => (int) $invoice->internal_ticket_count,
                 'unit' => (float) $invoice->internal_ticket_cost,
-                'vat_rate' => 0,
-                'vat_amount' => 0,
             ],
         ];
 
@@ -619,6 +617,20 @@ class InvoiceController extends Controller
             $item['line_subtotal'] = $this->roundMoney($item['qty'] * $item['unit']);
             $item['line_discount'] = 0.0;
             $item['line_total'] = $this->roundMoney($item['line_subtotal'] - $item['line_discount']);
+        }
+        unset($item);
+
+        $vatDistribution = $this->invoiceCalculationService()->distributeStoredVat(
+            (float) $invoice->vat_amount,
+            [
+                'direct' => $items[0]['line_total'],
+                'ticket' => $items[3]['line_total'],
+            ]
+        );
+
+        foreach ($items as &$item) {
+            $item['vat_amount'] = $vatDistribution[$item['key']] ?? 0.0;
+            $item['vat_rate'] = $item['vat_amount'] > 0 ? InvoiceCalculationService::VAT_RATE : 0.0;
             $item['line_grand_total'] = $this->roundMoney($item['line_total'] + $item['vat_amount']);
         }
         unset($item);
@@ -626,6 +638,34 @@ class InvoiceController extends Controller
         return array_values(array_filter($items, function ($item) {
             return $item['line_grand_total'] > 0;
         }));
+    }
+
+    private function buildInvoicePayload(Request $request): array
+    {
+        $calculator = $this->invoiceCalculationService();
+
+        $payload = [
+            'direct_recruitment_cost' => $calculator->normalizeMoney($request->direct_recruitment_cost ?? 0),
+            'external_recruitment_cost' => $calculator->normalizeMoney($request->external_recruitment_cost ?? 0),
+            'government_cost' => $calculator->normalizeMoney($request->government_cost ?? 0),
+            'internal_ticket_cost' => $calculator->normalizeMoney($request->internal_ticket_cost ?? 0),
+            'visa_recruited_count' => $calculator->normalizeCount($request->visa_recruited_count ?? 0),
+            'direct_recruitment_count' => $calculator->normalizeCount($request->direct_recruitment_count ?? 0),
+            'external_recruitment_count' => $calculator->normalizeCount($request->external_recruitment_count ?? 0),
+            'insured_count' => $calculator->normalizeCount($request->insured_count ?? 0),
+            'government_cost_count' => $calculator->normalizeCount($request->government_cost_count ?? 0),
+            'internal_ticket_count' => $calculator->normalizeCount($request->internal_ticket_count ?? 0),
+            'discount' => $calculator->normalizeMoney($request->discount ?? 0),
+        ];
+
+        $totals = $calculator->calculateTotals($payload);
+
+        return array_merge($payload, [
+            'subtotal' => $totals['subtotal'],
+            'discount' => $totals['discount'],
+            'vat_amount' => $totals['vat_amount'],
+            'total_due' => $totals['total_due'],
+        ]);
     }
 
     private function buildServiceDescription(Invoice $invoice): string
@@ -1041,6 +1081,11 @@ class InvoiceController extends Controller
     private function roundMoney(float $amount): float
     {
         return round($amount, 2);
+    }
+
+    private function invoiceCalculationService(): InvoiceCalculationService
+    {
+        return app(InvoiceCalculationService::class);
     }
 
     private function isRecruitmentLiabilityAccount(int $accountId): bool

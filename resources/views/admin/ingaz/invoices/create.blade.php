@@ -855,7 +855,8 @@
                 const ticketTotal = ticketCost * ticketCount;
 
                 const subtotal = directTotal + externalTotal + governmentTotal + ticketTotal;
-                const vat = directTotal * 0.15;
+                const taxableSubtotal = directTotal + ticketTotal;
+                const vat = taxableSubtotal * 0.15;
                 const totalDue = Math.max(0, subtotal + vat - discount);
 
                 $('#subtotal').val(subtotal.toFixed(2));

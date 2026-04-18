@@ -31,6 +31,7 @@ use App\Actions\NationalityAction;
 use App\Actions\ReligionAction;
 use App\Actions\JobTitleAction;
 use App\Actions\JobTypeAction;
+use App\Services\ingaz\RecruitmentTripAccountingService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use App\NewPermKeys;
@@ -968,7 +969,7 @@ class RecruitmentContractController extends Controller
                             }
                         } else {
                             if ($hasAddTravelPermission) {
-                                return '<button class="btn btn-primary btn-sm add-travel-btn btn-action" style="padding: 10px; margin: 10px;" data-contract-id="' . $row->id . '" title="إضافة رحلة">
+                                return '<button type="button" class="btn btn-primary btn-sm add-travel-btn btn-action" style="padding: 10px; margin: 10px;" data-contract-id="' . $row->id . '" title="إضافة رحلة">
                                     <i class="fas fa-plane me-1"></i>إضافة رحلة
                                 </button>';
                             } else {
@@ -1223,7 +1224,7 @@ class RecruitmentContractController extends Controller
                         !$travelHistory &&
                         @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_ADD_TRAVEL)
                     ) {
-                        $actions .= '<li><button class="dropdown-item add-travel-btn" data-contract-id="' . $row->id . '">
+                        $actions .= '<li><button type="button" class="dropdown-item add-travel-btn" data-contract-id="' . $row->id . '">
                                         <i class="fas fa-plane"></i> إضافة رحلة
                                     </button></li>';
                     }
@@ -2800,7 +2801,7 @@ class RecruitmentContractController extends Controller
         return response()->download($tempFile, 'contracts.xlsx', $headers)->deleteFileAfterSend(true);
     }
 
-    public function completeTrip(Request $request, $tripId = null)
+    public function completeTrip(Request $request, RecruitmentTripAccountingService $tripAccountingService, $tripId = null)
     {
         try {
             // التحقق من صلاحية إكمال الرحلة
@@ -2844,6 +2845,8 @@ class RecruitmentContractController extends Controller
                 ], 422);
             }
 
+            $accountingResult = null;
+
             DB::beginTransaction();
 
             try {
@@ -2878,6 +2881,8 @@ class RecruitmentContractController extends Controller
                     'notes' => $statusLogNote
                 ]);
 
+                $accountingResult = $tripAccountingService->recordCompletionEntries($contract, $travelHistory);
+
                 DB::commit();
 
                 logger()->info('Trip completed and contract status updated', [
@@ -2886,11 +2891,19 @@ class RecruitmentContractController extends Controller
                     'warranty_status' => $contract->warranty_status
                 ]);
 
+                $message = $contract->status === ContractStatusEnum::Completed->value
+                    ? 'تم إكمال الرحلة وتحديث حالة العقد إلى مكتمل بنجاح'
+                    : 'تم إكمال الرحلة وتحديث حالة العقد إلى مرحلة الوصول وتفعيل الضمان بنجاح';
+
+                if (($accountingResult['created_revenue_constraint'] ?? false) || ($accountingResult['created_external_office_cost_constraint'] ?? false)) {
+                    $message .= ' وتم إنشاء القيود المحاسبية المرتبطة بالفاتورة.';
+                } elseif (($accountingResult['skipped_reason'] ?? null) === 'missing_invoice') {
+                    $message .= ' لم يتم إنشاء القيود المحاسبية لعدم وجود فاتورة على العقد.';
+                }
+
                 return response()->json([
                     'success' => true,
-                    'message' => $contract->status === ContractStatusEnum::Completed->value
-                        ? 'تم إكمال الرحلة وتحديث حالة العقد إلى مكتمل بنجاح'
-                        : 'تم إكمال الرحلة وتحديث حالة العقد إلى مرحلة الوصول وتفعيل الضمان بنجاح'
+                    'message' => $message
                 ]);
             } catch (\Exception $e) {
                 DB::rollBack();

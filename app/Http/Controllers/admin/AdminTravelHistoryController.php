@@ -13,6 +13,7 @@ use App\Models\auth\Admin;
 use App\Models\ingaz\Order;
 use App\Models\TravelHistory;
 use App\Models\TravelHistoryFiles;
+use App\Services\ingaz\RecruitmentTripAccountingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -584,12 +585,14 @@ class AdminTravelHistoryController extends Controller
             /**
      * إكتمال الرحلة
      */
-    public function completeTrip(Request $request, $id)
+    public function completeTrip(Request $request, RecruitmentTripAccountingService $tripAccountingService, $id)
     {
         try {
             $travel = TravelHistory::findOrFail($id);
             $tripRecords = $this->resolveTripRecords($travel);
             $updatedContracts = 0;
+            $accountingCreatedContracts = 0;
+            $accountingSkippedContracts = [];
 
             $dispatchBlockingContracts = [];
 
@@ -669,6 +672,16 @@ class AdminTravelHistoryController extends Controller
                             'date' => now(),
                             'notes' => $statusLogNote
                         ]);
+
+                        $accountingResult = $tripAccountingService->recordCompletionEntries($contract, $tripRecord);
+
+                        if (($accountingResult['created_revenue_constraint'] ?? false) || ($accountingResult['created_external_office_cost_constraint'] ?? false)) {
+                            $accountingCreatedContracts++;
+                        }
+
+                        if (($accountingResult['skipped_reason'] ?? null) === 'missing_invoice') {
+                            $accountingSkippedContracts[] = '#' . $contract->id;
+                        }
                     }
                     // إذا كان عقد إيجار، تفعيل الضمان بشكل مختلف
                     else if ($contract instanceof \App\Models\RentalContract) {
@@ -696,13 +709,25 @@ class AdminTravelHistoryController extends Controller
             $orderCount = $tripRecords->pluck('order_id')->filter()->unique()->count();
             $isGrouped = $orderCount > 1;
 
+            $message = $updatedContracts > 0
+                ? ($isGrouped
+                    ? 'تم إكتمال الرحلة المجمعة وتحديث ' . $updatedContracts . ' عقد بنجاح'
+                    : 'تم إكتمال الرحلة وتحديث حالة العقد إلى مرحلة الوصول وتفعيل الضمان بنجاح')
+                : 'تم إكتمال الرحلة بنجاح';
+
+            if ($accountingCreatedContracts > 0) {
+                $message .= $isGrouped
+                    ? ' وتم إنشاء القيود المحاسبية لـ ' . $accountingCreatedContracts . ' عقد.'
+                    : ' وتم إنشاء القيود المحاسبية المرتبطة بالفاتورة.';
+            }
+
+            if (!empty($accountingSkippedContracts)) {
+                $message .= ' لم تُنشأ القيود المحاسبية للعقود ' . implode('، ', array_unique($accountingSkippedContracts)) . ' لعدم وجود فاتورة.';
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => $updatedContracts > 0
-                    ? ($isGrouped
-                        ? 'تم إكتمال الرحلة المجمعة وتحديث ' . $updatedContracts . ' عقد بنجاح'
-                        : 'تم إكتمال الرحلة وتحديث حالة العقد إلى مرحلة الوصول وتفعيل الضمان بنجاح')
-                    : 'تم إكتمال الرحلة بنجاح'
+                'message' => $message
             ]);
 
         } catch (\Exception $e) {
