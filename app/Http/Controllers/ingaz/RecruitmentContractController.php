@@ -3017,6 +3017,132 @@ class RecruitmentContractController extends Controller
         };
     }
 
+    public function bulkUpdateStatus(Request $request)
+    {
+        try {
+            $request->validate([
+                'row_ids' => 'required|array|min:1',
+                'row_ids.*' => 'integer|exists:contracts,id',
+                'date' => 'nullable|date',
+            ]);
+
+            $rowIds = collect($request->input('row_ids', []))
+                ->map(fn($id) => (int) $id)
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
+            $date = $request->date;
+            $sendSms = filter_var($request->input('send_sms'), FILTER_VALIDATE_BOOLEAN);
+            $contracts = Contract::with(['user', 'travelHistory'])
+                ->whereIn('id', $rowIds)
+                ->get()
+                ->keyBy('id');
+
+            $updatedCount = 0;
+            $skippedCount = 0;
+            $smsSentCount = 0;
+            $updatedContracts = [];
+            $skippedContracts = [];
+
+            foreach ($rowIds as $rowId) {
+                $contract = $contracts->get($rowId);
+
+                if (!$contract) {
+                    $skippedCount++;
+                    $skippedContracts[] = [
+                        'id' => $rowId,
+                        'message' => 'العقد غير موجود',
+                    ];
+                    continue;
+                }
+
+                try {
+                    $actionContext = $this->resolveBulkActionContext($contract);
+
+                    if (!$actionContext['can_select']) {
+                        $skippedCount++;
+                        $skippedContracts[] = [
+                            'id' => $contract->id,
+                            'message' => $actionContext['reason'] ?? 'تعذر تحديث العقد المحدد',
+                        ];
+                        continue;
+                    }
+
+                    if (($actionContext['action_type'] ?? null) !== 'status_update' || empty($actionContext['next_status'])) {
+                        $skippedCount++;
+                        $skippedContracts[] = [
+                            'id' => $contract->id,
+                            'message' => 'العقد المحدد لا يدعم التحديث الجماعي من هذه الشاشة',
+                        ];
+                        continue;
+                    }
+
+                    $statusUpdate = $this->updateContractStatusRecord($contract, $actionContext['next_status'], $date);
+                    $smsSent = false;
+
+                    if ($sendSms) {
+                        $smsSent = $this->sendContractStatusSMS($contract, $actionContext['next_status']);
+                        if ($smsSent) {
+                            $smsSentCount++;
+                        }
+                    }
+
+                    $updatedCount++;
+                    $updatedContracts[] = array_merge([
+                        'id' => $contract->id,
+                        'sms_sent' => $smsSent,
+                    ], $statusUpdate);
+                } catch (\Throwable $contractException) {
+                    logger()->error('Error updating contract during bulkUpdateStatus', [
+                        'rowId' => $rowId,
+                        'message' => $contractException->getMessage(),
+                        'trace' => $contractException->getTraceAsString(),
+                    ]);
+
+                    $skippedCount++;
+                    $skippedContracts[] = [
+                        'id' => $rowId,
+                        'message' => 'حدث خطأ أثناء تحديث هذا العقد',
+                    ];
+                }
+            }
+
+            $message = $updatedCount > 0
+                ? 'تم تحديث ' . $updatedCount . ' عقد بنجاح'
+                : 'لم يتم تحديث أي عقد';
+
+            if ($skippedCount > 0) {
+                $message .= ' وتعذر تحديث ' . $skippedCount . ' عقد';
+            }
+
+            if ($sendSms && $smsSentCount > 0) {
+                $message .= ' وتم إرسال ' . $smsSentCount . ' إشعار';
+            }
+
+            return response()->json([
+                'success' => $updatedCount > 0,
+                'message' => $message,
+                'updated_count' => $updatedCount,
+                'skipped_count' => $skippedCount,
+                'sms_sent_count' => $smsSentCount,
+                'updated_contracts' => $updatedContracts,
+                'skipped_contracts' => $skippedContracts,
+            ], $updatedCount > 0 ? 200 : 422);
+        } catch (\Exception $e) {
+            logger()->error('Error in bulkUpdateStatus', [
+                'rowIds' => $request->input('row_ids', []),
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء التحديث الجماعي: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function updateStatus(Request $request)
     {
         try {
@@ -3027,11 +3153,10 @@ class RecruitmentContractController extends Controller
             ]);
 
             $rowId = (int) $request->row_id;
-            $requestedNextStatus = $request->next_status;
+            $nextStatus = (string) $request->next_status;
             $date = $request->date;
             $sendSms = filter_var($request->input('send_sms'), FILTER_VALIDATE_BOOLEAN);
             $contract = Contract::with('user')->findOrFail($rowId);
-            $transitionContext = $this->resolveContractTransitionContext($contract);
 
             if (!$nextStatus) {
                 return response()->json([
@@ -3043,15 +3168,8 @@ class RecruitmentContractController extends Controller
             if ($nextStatus === ContractStatusEnum::Closed->value) {
                 return response()->json([
                     'success' => false,
-                    'message' => $transitionContext['reason']
-                ], $transitionContext['http_status']);
-            }
-
-            if ($requestedNextStatus !== $transitionContext['next_status']) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'المرحلة التالية المحددة لا تطابق المرحلة الحالية للعقد'
-                ], 422);
+                    'message' => 'إغلاق العقد يتم تلقائياً بعد انتهاء فترة الضمان'
+                ], 400);
             }
 
             if ($contract->status === ContractStatusEnum::Shelter->value) {
@@ -3078,52 +3196,43 @@ class RecruitmentContractController extends Controller
                     ], 403);
                 }
             } else {
-                $hasPermission = false;
-                switch ($nextStatus) {
-                    case ContractStatusEnum::Msaned->value:
-                        $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED);
-                        break;
-                    case ContractStatusEnum::Tafwed->value:
-                        $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED);
-                        break;
-                    case ContractStatusEnum::Taffez->value:
-                        $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ);
-                        break;
-                    case ContractStatusEnum::Tazker->value:
-                        $hasPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER);
-                        break;
-                    default:
-                        $hasPermission = false;
-                        break;
-                }
+                $transitionContext = $this->resolveContractTransitionContext($contract);
 
-                if (!$hasPermission) {
+                if (!$transitionContext['next_status']) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'ليس لديك صلاحية لتغيير حالة العقد إلى الحالة المحددة'
-                    ], 403);
+                        'message' => $transitionContext['reason']
+                    ], $transitionContext['http_status']);
+                }
+
+                if ($nextStatus !== $transitionContext['next_status']) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'المرحلة التالية المحددة لا تطابق المرحلة الحالية للعقد'
+                    ], 422);
+                }
+
+                if (!$transitionContext['can_update']) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $transitionContext['reason']
+                    ], $transitionContext['http_status']);
                 }
             }
 
-            $oldStatus = $contract->status;
-            $contract->update(['status' => $nextStatus]);
+            $statusUpdate = $this->updateContractStatusRecord($contract, $nextStatus, $date);
 
-            $contract->contract_status_logs()->create([
-                'status' => $nextStatus,
-                'date' => $date ?: now(),
-                'notes' => 'تم تحديث الحالة من ' . getContractStatus($oldStatus) . ' إلى ' . getContractStatus($nextStatus)
-            ]);
-
-            // إرسال رسالة نصية للعميل إذا كان مطلوباً
             $smsResult = false;
-            if ($request->send_sms == 'true' || $request->send_sms === true) {
+            if ($sendSms) {
                 $smsResult = $this->sendContractStatusSMS($contract, $nextStatus);
             }
 
-            $message = 'تم تحديث الحالة بنجاح إلى ' . getContractStatus($nextStatus);
+            $message = 'تم تحديث الحالة بنجاح من '
+                . $statusUpdate['current_status_text']
+                . ' إلى '
+                . $statusUpdate['next_status_text'];
 
-            // إضافة معلومات الرسالة النصية للرد
-            if ($request->send_sms == 'true' || $request->send_sms === true) {
+            if ($sendSms) {
                 if ($smsResult) {
                     $message .= ' وتم إرسال رسالة نصية للعميل';
                 } else {
@@ -3132,24 +3241,23 @@ class RecruitmentContractController extends Controller
             }
 
             return response()->json([
-                'success' => $updatedCount > 0,
+                'success' => true,
                 'message' => $message,
-                'updated_count' => $updatedCount,
-                'skipped_count' => $skippedCount,
-                'sms_sent_count' => $smsSentCount,
-                'updated_contracts' => $updatedContracts,
-                'skipped_contracts' => $skippedContracts,
-            ], $updatedCount > 0 ? 200 : 422);
+                'contract_id' => $contract->id,
+                'current_status' => $statusUpdate['current_status'],
+                'next_status' => $statusUpdate['next_status'],
+                'sms_sent' => $smsResult,
+            ]);
         } catch (\Exception $e) {
-            logger()->error('Error in bulkUpdateStatus', [
-                'rowIds' => $request->input('row_ids', []),
+            logger()->error('Error in updateStatus', [
+                'rowId' => $request->input('row_id'),
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء التحديث الجماعي: ' . $e->getMessage()
+                'message' => 'حدث خطأ أثناء تحديث الحالة: ' . $e->getMessage()
             ], 500);
         }
     }
