@@ -212,10 +212,16 @@
                 <i class="fas fa-file-contract text-primary me-2"></i>
                 {{ helperTrans('ingaz.All Recruitment contracts') }}
             </h3>
-            <a href="{{ route('RecruitmentContract.create') }}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>
-                {{ helperTrans('ingaz.add_recruitment_contract') }}
-            </a>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ route('RecruitmentContract.externalOfficeDispatch.index') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-paper-plane me-2"></i>
+                    إرسالات المكتب الخارجي
+                </a>
+                <a href="{{ route('RecruitmentContract.create') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>
+                    {{ helperTrans('ingaz.add_recruitment_contract') }}
+                </a>
+            </div>
         </div>
 
         {{-- احصائيات العقود --}}
@@ -2419,5 +2425,4 @@
         });
     </script>
 @endsection
-
 

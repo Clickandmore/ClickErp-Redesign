@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
-use App\Models\ingaz\Maid;
-use App\Models\ContractReturnRequest;use App\Models\ingaz\User;
-use App\Models\ContractInfo;
 use App\Enums\ingaz\ContractStatusEnum;
+use App\Models\ingaz\Maid;
+use App\Models\ContractReturnRequest;
+use App\Models\ingaz\User;
+use App\Models\ContractInfo;
 use App\Models\ingaz\ContractNote;
 use App\Models\ingaz\Invoice;
 use Illuminate\Database\Eloquent\Model;
@@ -109,6 +110,251 @@ class Contract extends Model
     public function travelHistory()
     {
         return $this->hasOne(\App\Models\TravelHistory::class, 'order_id', 'id');
+    }
+
+    public function externalOfficeDispatch()
+    {
+        return $this->hasOne(ContractExternalOfficeDispatch::class, 'contract_id');
+    }
+
+    public function isCurrentRecruitmentContract(): bool
+    {
+        return in_array($this->status, [
+            ContractStatusEnum::PendingMaidSelection->value,
+            ContractStatusEnum::New->value,
+            ContractStatusEnum::Msaned->value,
+            ContractStatusEnum::Tafwed->value,
+            ContractStatusEnum::Taffez->value,
+            ContractStatusEnum::Tazker->value,
+        ], true);
+    }
+
+    public function canManageExternalOfficeDispatch(): bool
+    {
+        return $this->isCurrentRecruitmentContract();
+    }
+
+    public function resolveExternalOfficeDispatchOffice(): ?RecruitmentOffices
+    {
+        if ($this->maid) {
+            return $this->maid->office ?? $this->maid->recruitmentOffice;
+        }
+
+        return $this->info?->manualMaidOffice;
+    }
+
+    public function buildExternalOfficeDispatchSourceData(): array
+    {
+        $this->loadMissing([
+            'user',
+            'maid.religion',
+            'maid.office',
+            'maid.recruitmentOffice',
+            'info.manualMaidOffice',
+        ]);
+
+        $office = $this->resolveExternalOfficeDispatchOffice();
+        $officeCost = null;
+
+        if (filled($office?->cost_of_dollar)) {
+            $officeCost = number_format((float) str_replace(',', '', (string) $office->cost_of_dollar), 2, '.', '');
+        }
+
+        return [
+            'contract_number' => (string) $this->id,
+            'visa_number' => trim((string) ($this->info?->visa_number ?? '')),
+            'sponsor_name' => trim((string) ($this->user?->name ?? '')),
+            'sponsor_identity_number' => trim((string) ($this->user?->national_num ?? '')),
+            'worker_name' => trim((string) ($this->maid?->name ?? $this->info?->manual_maid_name ?? '')),
+            'passport_number' => trim((string) ($this->maid?->passport_num ?? $this->info?->manual_maid_passport_num ?? '')),
+            'worker_age' => $this->formatExternalOfficeDispatchAge($this->maid?->age),
+            'worker_experience' => $this->formatExternalOfficeDispatchExperience(),
+            'worker_religion' => trim((string) ($this->maid?->religion?->title ?? '')),
+            'office_name' => trim((string) ($office?->title ?? '')),
+            'recruitment_office_id' => $office?->id,
+            'office_contract_cost_usd' => $officeCost,
+        ];
+    }
+
+    public function buildExternalOfficeDispatchSourceHash(): string
+    {
+        return sha1(json_encode(
+            $this->buildExternalOfficeDispatchSourceData(),
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        ));
+    }
+
+    public function externalOfficeDispatchSourceValidationErrors(): array
+    {
+        $data = $this->buildExternalOfficeDispatchSourceData();
+        $errors = [];
+
+        if (!$this->maid) {
+            $errors[] = 'يجب ربط عاملة فعلية بالعقد قبل إنشاء إرسالية المكتب الخارجي.';
+        }
+
+        if ($data['visa_number'] === '') {
+            $errors[] = 'رقم التأشيرة غير موجود على العقد.';
+        }
+
+        if ($data['sponsor_name'] === '') {
+            $errors[] = 'اسم الكفيل غير مكتمل على بيانات العميل.';
+        }
+
+        if ($data['sponsor_identity_number'] === '') {
+            $errors[] = 'رقم هوية العميل غير مكتمل.';
+        }
+
+        if ($data['worker_name'] === '') {
+            $errors[] = 'اسم العاملة غير مكتمل.';
+        }
+
+        if ($data['passport_number'] === '') {
+            $errors[] = 'رقم جواز العاملة غير مكتمل.';
+        }
+
+        if ($data['worker_age'] === '') {
+            $errors[] = 'عمر العاملة غير مكتمل.';
+        }
+
+        if ($data['worker_experience'] === '') {
+            $errors[] = 'خبرة العاملة غير مكتملة.';
+        }
+
+        if ($data['worker_religion'] === '') {
+            $errors[] = 'ديانة العاملة غير مكتملة.';
+        }
+
+        if ($data['office_name'] === '') {
+            $errors[] = 'المكتب الخارجي غير محدد على العاملة.';
+        }
+
+        if (blank($data['office_contract_cost_usd'])) {
+            $errors[] = 'تكلفة العقد بالدولار غير محددة على المكتب الخارجي.';
+        }
+
+        return $errors;
+    }
+
+    public function resolveExternalOfficeDispatchArrivalStation(): ?string
+    {
+        if ($this->relationLoaded('externalOfficeDispatch') && filled($this->externalOfficeDispatch?->arrival_station)) {
+            return trim((string) $this->externalOfficeDispatch->arrival_station);
+        }
+
+        $this->loadMissing('user');
+
+        if (filled($this->user?->city)) {
+            return trim((string) $this->user->city);
+        }
+
+        $travelHistory = $this->relationLoaded('travelHistory')
+            ? $this->travelHistory
+            : $this->travelHistory()->latest('id')->first();
+
+        if (filled($travelHistory?->arrival_airport)) {
+            return trim((string) $travelHistory->arrival_airport);
+        }
+
+        return null;
+    }
+
+    public function getExternalOfficeDispatchState(): array
+    {
+        $dispatch = $this->relationLoaded('externalOfficeDispatch')
+            ? $this->externalOfficeDispatch
+            : $this->externalOfficeDispatch()->first();
+
+        if (!$dispatch) {
+            return [
+                'code' => 'missing',
+                'label' => 'غير مكتملة',
+                'message' => 'لم يتم إنشاء إرسالية المكتب الخارجي لهذا العقد بعد.',
+                'is_completed' => false,
+            ];
+        }
+
+        if (!$dispatch->dispatch_date || !filled($dispatch->arrival_station)) {
+            return [
+                'code' => 'incomplete',
+                'label' => 'غير مكتملة',
+                'message' => 'تاريخ الإرسالية أو محطة الوصول غير مكتملين.',
+                'is_completed' => false,
+            ];
+        }
+
+        $sourceErrors = $this->externalOfficeDispatchSourceValidationErrors();
+        if (!empty($sourceErrors)) {
+            return [
+                'code' => 'outdated',
+                'label' => 'تحتاج تحديث',
+                'message' => implode(' ', $sourceErrors),
+                'is_completed' => false,
+            ];
+        }
+
+        if ($dispatch->source_hash !== $this->buildExternalOfficeDispatchSourceHash()) {
+            return [
+                'code' => 'outdated',
+                'label' => 'تحتاج تحديث',
+                'message' => 'تم تعديل بيانات العقد أو العاملة أو المكتب بعد إنشاء الإرسالية الحالية.',
+                'is_completed' => false,
+            ];
+        }
+
+        return [
+            'code' => 'completed',
+            'label' => 'مكتملة',
+            'message' => 'تمت إرسالية المكتب الخارجي بتاريخ ' . optional($dispatch->dispatch_date)->format('Y-m-d') . '.',
+            'is_completed' => true,
+        ];
+    }
+
+    public function hasCompletedExternalOfficeDispatch(): bool
+    {
+        return (bool) ($this->getExternalOfficeDispatchState()['is_completed'] ?? false);
+    }
+
+    private function formatExternalOfficeDispatchExperience(): string
+    {
+        if (!$this->maid) {
+            return '';
+        }
+
+        $experienceYears = $this->maid->experience_years;
+
+        if ($this->maid->experience_status === 'has_experience') {
+            if (filled($experienceYears)) {
+                return trim((string) $experienceYears) . ' سنوات';
+            }
+
+            return __('ingaz.has_experience_label');
+        }
+
+        if ($this->maid->experience_status === 'no_experience') {
+            return __('ingaz.no_experience_label');
+        }
+
+        if (filled($experienceYears)) {
+            return trim((string) $experienceYears) . ' سنوات';
+        }
+
+        return '';
+    }
+
+    private function formatExternalOfficeDispatchAge($age): string
+    {
+        if ($age === null || $age === '') {
+            return '';
+        }
+
+        $normalizedAge = (float) $age;
+
+        if ((int) $normalizedAge == $normalizedAge) {
+            return (string) (int) $normalizedAge;
+        }
+
+        return rtrim(rtrim(number_format($normalizedAge, 2, '.', ''), '0'), '.');
     }
 
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\admin;
 use App\Constants;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\ingaz\RecruitmentContractExternalOfficeDispatchController;
 use App\Http\Traits\SendSMSTrait;
 use App\Models\AdminNotification;
 use App\Models\Contract;
@@ -590,6 +591,31 @@ class AdminTravelHistoryController extends Controller
             $tripRecords = $this->resolveTripRecords($travel);
             $updatedContracts = 0;
 
+            $dispatchBlockingContracts = [];
+
+            foreach ($tripRecords as $tripRecord) {
+                if (!$tripRecord->order_id) {
+                    continue;
+                }
+
+                $linkedContract = Contract::find($tripRecord->order_id);
+                if (!$linkedContract) {
+                    continue;
+                }
+
+                $dispatchError = RecruitmentContractExternalOfficeDispatchController::ensureDispatchCompleted($linkedContract);
+                if ($dispatchError) {
+                    $dispatchBlockingContracts[] = '#' . $linkedContract->id;
+                }
+            }
+
+            if (!empty($dispatchBlockingContracts)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن إكمال الرحلة قبل إتمام إرسالية المكتب الخارجي للعقود: ' . implode('، ', array_unique($dispatchBlockingContracts))
+                ], 422);
+            }
+
             \DB::beginTransaction();
 
             foreach ($tripRecords as $tripRecord) {
@@ -603,7 +629,6 @@ class AdminTravelHistoryController extends Controller
                 }
                 $tripRecord->arrived_at = now();
                 $tripRecord->arrival_confirmed_by = auth('admin')->id();
-                $tripRecord->save();
 
                 // البحث عن العقد المرتبط بالرحلة
                 $contract = null;
@@ -619,6 +644,12 @@ class AdminTravelHistoryController extends Controller
 
                 // إذا وجد العقد، تحديث حالته وتفعيل الضمان
                 if ($contract) {
+                    if ($contract instanceof \App\Models\Contract) {
+                        RecruitmentContractExternalOfficeDispatchController::syncArrivalStationFromDispatch($contract, $tripRecord);
+                    }
+
+                    $tripRecord->save();
+
                     // بعد إكمال الرحلة ينتقل العقد أولاً إلى الوصول، ثم يحدد الضمان الحالة النهائية
                     $contract->update(['status' => ContractStatusEnum::Arrival->value]);
                     $updatedContracts++;
@@ -655,6 +686,8 @@ class AdminTravelHistoryController extends Controller
                         'contract_status' => $contract->status,
                         'warranty_status' => $contract->warranty_status ?? 'N/A'
                     ]);
+                } else {
+                    $tripRecord->save();
                 }
             }
 

@@ -39,6 +39,7 @@ use App\Http\Controllers\ingaz\RentContractController;
 use App\Http\Controllers\ingaz\NotificationController;
 use App\Http\Controllers\ingaz\StatisticController;
 use App\Http\Controllers\ingaz\DeportationTravelController;
+use App\Http\Controllers\ingaz\RecruitmentContractExternalOfficeDispatchController;
 use App\Http\Controllers\ingaz\UserController;
 use App\Http\Controllers\ingaz\MaidController;
 use App\Http\Controllers\ingaz\SettingController;
@@ -264,6 +265,10 @@ Route::group(
             Route::get('RecruitmentContract/statistics', [RecruitmentContractController::class, 'statistics'])->name('RecruitmentContract.statistics');
             Route::get('RecruitmentContract/export/pdf', [RecruitmentContractController::class, 'exportPdf'])->name('RecruitmentContract.export.pdf');
             Route::get('RecruitmentContract/export/excel', [RecruitmentContractController::class, 'exportExcel'])->name('RecruitmentContract.export.excel');
+            Route::get('RecruitmentContract/external-office-dispatches', [RecruitmentContractExternalOfficeDispatchController::class, 'index'])->name('RecruitmentContract.externalOfficeDispatch.index');
+            Route::get('RecruitmentContract/{contract}/external-office-dispatch', [RecruitmentContractExternalOfficeDispatchController::class, 'edit'])->name('RecruitmentContract.externalOfficeDispatch.edit');
+            Route::post('RecruitmentContract/{contract}/external-office-dispatch', [RecruitmentContractExternalOfficeDispatchController::class, 'store'])->name('RecruitmentContract.externalOfficeDispatch.store');
+            Route::get('RecruitmentContract/{contract}/external-office-dispatch/print', [RecruitmentContractExternalOfficeDispatchController::class, 'print'])->name('RecruitmentContract.externalOfficeDispatch.print');
 
             Route::resource('RecruitmentContract', RecruitmentContractController::class);
             Route::get('RecruitmentContractBack/{id}', [RecruitmentContractController::class, 'back'])->name('RecruitmentContract.back');

@@ -11,6 +11,16 @@
     $deliveryFormUrl = route('contract_download_form.download', ['contract_id' => $contract->id]);
     $deliveryFormPdfUrl = route('contract_download_form.download', ['contract_id' => $contract->id, 'driver' => 'dompdf', 'download' => 1]);
     $statusTimelineItems = $statusTimeline['items'] ?? collect();
+    $externalOfficeDispatch = $contract->externalOfficeDispatch;
+    $externalOfficeDispatchState = $contract->getExternalOfficeDispatchState();
+    $canManageExternalOfficeDispatch = $contract->isCurrentRecruitmentContract();
+    $externalOfficeDispatchFormUrl = route('RecruitmentContract.externalOfficeDispatch.edit', $contract->id);
+    $externalOfficeDispatchPrintUrl = $externalOfficeDispatch
+        ? route('RecruitmentContract.externalOfficeDispatch.print', $contract->id)
+        : null;
+    $externalOfficeDispatchPdfUrl = $externalOfficeDispatch
+        ? route('RecruitmentContract.externalOfficeDispatch.print', ['contract' => $contract->id, 'driver' => 'dompdf', 'download' => 1])
+        : null;
 @endphp
 
 <style>
@@ -968,6 +978,59 @@
                 </div>
             @endif
 
+            @if ($canManageExternalOfficeDispatch || $externalOfficeDispatch)
+                <div class="row">
+                    <div class="col-12 mb-4">
+                        <div class="info-card">
+                            <div class="card-title">
+                                <i class="fas fa-paper-plane text-primary"></i>
+                                إرسالية المكتب الخارجي
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">الحالة:</span>
+                                <span class="info-value">
+                                    <span
+                                        class="badge bg-{{ $externalOfficeDispatchState['code'] === 'completed' ? 'success' : ($externalOfficeDispatchState['code'] === 'outdated' ? 'warning text-dark' : 'secondary') }}">
+                                        {{ $externalOfficeDispatchState['label'] }}
+                                    </span>
+                                </span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">التفاصيل:</span>
+                                <span class="info-value">{{ $externalOfficeDispatchState['message'] }}</span>
+                            </div>
+                            @if ($canManageExternalOfficeDispatch)
+                                <div class="alert alert-warning mt-3 mb-0">
+                                    يجب إتمام إرسالية المكتب الخارجي قبل وصول العقد أو إغلاقه.
+                                </div>
+                            @endif
+                            <div class="d-flex flex-wrap gap-2 mt-3">
+                                @if ($canManageExternalOfficeDispatch)
+                                    <a href="{{ $externalOfficeDispatchFormUrl }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-pen-to-square me-1"></i>
+                                        إدارة الإرسالية
+                                    </a>
+                                @endif
+                                @if ($externalOfficeDispatchPrintUrl)
+                                    <a href="{{ $externalOfficeDispatchPrintUrl }}" class="btn btn-outline-secondary"
+                                        target="_blank" rel="noopener">
+                                        <i class="fas fa-eye me-1"></i>
+                                        معاينة الإرسالية
+                                    </a>
+                                @endif
+                                @if ($externalOfficeDispatchPdfUrl)
+                                    <a href="{{ $externalOfficeDispatchPdfUrl }}" class="btn btn-primary"
+                                        target="_blank" rel="noopener">
+                                        <i class="fas fa-download me-1"></i>
+                                        تنزيل PDF
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             @if ($canShowDeliveryForm)
                 <div class="row">
                     <div class="col-12 mb-4">
@@ -1155,6 +1218,18 @@
 
             <!-- أزرار الإجراءات -->
             <div class="action-buttons">
+                @if ($canManageExternalOfficeDispatch)
+                    <a href="{{ $externalOfficeDispatchFormUrl }}" class="btn-icon btn-edit"
+                        title="إدارة إرسالية المكتب الخارجي">
+                        <i class="fas fa-paper-plane"></i>
+                    </a>
+                @elseif ($externalOfficeDispatchPrintUrl)
+                    <a href="{{ $externalOfficeDispatchPrintUrl }}" class="btn-icon btn-print"
+                        title="عرض إرسالية المكتب الخارجي" target="_blank" rel="noopener">
+                        <i class="fas fa-paper-plane"></i>
+                    </a>
+                @endif
+
                 @if ($canShowDeliveryForm)
                     <a href="{{ $deliveryFormUrl }}" class="btn-icon btn-print" title="عرض نموذج تسليم العاملة"
                         target="_blank" rel="noopener">

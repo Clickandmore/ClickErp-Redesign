@@ -308,7 +308,7 @@
                                         <span class="ms-2"> {{ helperTrans('ingaz.Recruitment contracts') }} </span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
-                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RecruitmentContracts.index', 'RecruitmentContract.create', 'contract-return-requests.index', 'invoices.index']) ? 'show' : '' }}"
+                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RecruitmentContracts.index', 'RecruitmentContract.index', 'RecruitmentContract.create', 'RecruitmentContract.externalOfficeDispatch.index', 'RecruitmentContract.externalOfficeDispatch.edit', 'RecruitmentContract.externalOfficeDispatch.print', 'contract-return-requests.index', 'invoices.index']) ? 'show' : '' }}"
                                         id="contracts">
                                         @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE))
                                             <li>
@@ -332,6 +332,8 @@
                                                 </a>
                                             </li>
 
+
+
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.index' && request()->input('status') == 'completed' ? 'active' : '' }}"
                                                     href="{{ route('RecruitmentContract.index', ['status' => 'completed', 'warranty_status' => 'expired,not_applicable']) }}">
@@ -351,7 +353,13 @@
                                                         class="badge bg-danger ms-2">{{ $contractsCount['back'] }}</span>
                                                 </a>
                                             </li>
-
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('RecruitmentContract.externalOfficeDispatch.*') ? 'active' : '' }}"
+                                                    href="{{ route('RecruitmentContract.externalOfficeDispatch.index') }}">
+                                                    <i class="fa fa-paper-plane"></i>
+                                                    <span class="ms-2">إرسالايات المكتب الخارجي</span>
+                                                </a>
+                                            </li>
                                             {{-- @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED))
                                         <li>
                                             <a class="m-link"

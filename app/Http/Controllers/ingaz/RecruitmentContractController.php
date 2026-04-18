@@ -340,6 +340,7 @@ class RecruitmentContractController extends Controller
                 'user.nationality', // جنسية العميل (Country model)
                 'maid', // جميع بيانات العاملة
                 'travelHistory',
+                'externalOfficeDispatch',
                 'maid.nationality.translations', // جنسية العاملة مع الترجمات
                 'maid.religion.translations', // ديانة العاملة مع الترجمات
                 'maid.office.translations', // المكتب الخارجي مع الترجمات
@@ -861,6 +862,15 @@ class RecruitmentContractController extends Controller
                     //     $contractInfo .= '<br><div class="mt-2"><strong>المتطلبات المفضلة:</strong><br>' . implode(' ', $preferredRequirements) . '</div>';
                     // }
 
+                    if ($row->isCurrentRecruitmentContract() || $row->externalOfficeDispatch) {
+                        $dispatchBadge = $this->getExternalOfficeDispatchBadgeConfig($row);
+                        $contractInfo .= '<div class="mt-2">'
+                            . '<span class="badge bg-' . e($dispatchBadge['class']) . '" title="' . e($dispatchBadge['message']) . '">'
+                            . e($dispatchBadge['label'])
+                            . '</span>'
+                            . '</div>';
+                    }
+
                     return $contractInfo ?: '<span class="text-muted"><i class="fas fa-minus-circle me-1"></i>غير محدد</span>';
                 })
                 ->addColumn('duration', function ($row) {
@@ -1103,6 +1113,28 @@ class RecruitmentContractController extends Controller
                                     <i class="fas fa-eye"></i> عرض تفاصيل العقد
                                 </a></li>';
 
+                    if ($row->isCurrentRecruitmentContract() || $row->externalOfficeDispatch) {
+                        $dispatchState = $row->getExternalOfficeDispatchState();
+                        $dispatchManageLabel = $row->isCurrentRecruitmentContract()
+                            ? ($dispatchState['is_completed']
+                                ? 'عرض إرسالية المكتب الخارجي'
+                                : 'استكمال إرسالية المكتب الخارجي')
+                            : 'عرض إرسالية المكتب الخارجي';
+
+                        $actions .= '<li><a class="dropdown-item" href="' . e(route('RecruitmentContract.externalOfficeDispatch.edit', $row->id)) . '">
+                                        <i class="fas fa-paper-plane"></i> ' . e($dispatchManageLabel) . '
+                                    </a></li>';
+
+                        if ($row->externalOfficeDispatch) {
+                            $actions .= '<li><a class="dropdown-item" href="' . e(route('RecruitmentContract.externalOfficeDispatch.print', $row->id)) . '" target="_blank" rel="noopener">
+                                            <i class="fas fa-file-lines"></i> معاينة إرسالية المكتب الخارجي
+                                        </a></li>';
+                            $actions .= '<li><a class="dropdown-item" href="' . e(route('RecruitmentContract.externalOfficeDispatch.print', ['contract' => $row->id, 'driver' => 'dompdf', 'download' => 1])) . '" target="_blank" rel="noopener">
+                                            <i class="fas fa-file-pdf"></i> تنزيل إرسالية المكتب الخارجي PDF
+                                        </a></li>';
+                        }
+                    }
+
                     if (in_array($row->status, [ContractStatusEnum::Arrival->value, ContractStatusEnum::Completed->value], true)) {
                         $actions .= '<li><a class="dropdown-item" href="' . e(route('contract_download_form.download', ['contract_id' => $row->id])) . '" target="_blank" rel="noopener">
                                     <i class="fas fa-file-signature"></i> عرض نموذج تسليم العاملة
@@ -1271,10 +1303,12 @@ class RecruitmentContractController extends Controller
             'maid.nationality',
             'maid.religion',
             'maid.jobTitles',
+            'maid.office',
             'info.prevSponsorship',
             'info.manualMaidNationality',
             'info.manualMaidOffice',
             'info.shelter',
+            'externalOfficeDispatch',
             'contract_status_logs' => function ($query) {
                 $query->orderByDesc('date')->orderByDesc('id');
             },
@@ -1571,6 +1605,34 @@ class RecruitmentContractController extends Controller
         }
 
         return $this->formatArabicDurationUnit($days, 'يوم', 'يومين', 'أيام');
+    }
+
+    private function getExternalOfficeDispatchBadgeConfig(Contract $contract): array
+    {
+        $state = $contract->getExternalOfficeDispatchState();
+
+        return match ($state['code']) {
+            'completed' => [
+                'class' => 'success',
+                'label' => 'إرسالية المكتب: مكتملة',
+                'message' => $state['message'],
+            ],
+            'outdated' => [
+                'class' => 'warning text-dark',
+                'label' => 'إرسالية المكتب: تحتاج تحديث',
+                'message' => $state['message'],
+            ],
+            'incomplete' => [
+                'class' => 'danger',
+                'label' => 'إرسالية المكتب: غير مكتملة',
+                'message' => $state['message'],
+            ],
+            default => [
+                'class' => 'secondary',
+                'label' => 'إرسالية المكتب: غير مكتملة',
+                'message' => $state['message'],
+            ],
+        };
     }
 
     public function storeNote(Request $request, $contractId)
@@ -2357,6 +2419,22 @@ class RecruitmentContractController extends Controller
                 ]);
             }
 
+            if (in_array($request->status, [
+                ContractStatusEnum::Arrival->value,
+                ContractStatusEnum::Closed->value,
+                ContractStatusEnum::UnderWarranty->value,
+                ContractStatusEnum::Completed->value,
+            ], true)) {
+                $dispatchError = RecruitmentContractExternalOfficeDispatchController::ensureDispatchCompleted($contract);
+
+                if ($dispatchError) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $dispatchError
+                    ], 422);
+                }
+            }
+
             // تحديث حالة العقد
             $contract->update([
                 'status' => $request->status,
@@ -2758,6 +2836,14 @@ class RecruitmentContractController extends Controller
                 ], 404);
             }
 
+            $dispatchError = RecruitmentContractExternalOfficeDispatchController::ensureDispatchCompleted($contract);
+            if ($dispatchError) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $dispatchError
+                ], 422);
+            }
+
             DB::beginTransaction();
 
             try {
@@ -2767,6 +2853,8 @@ class RecruitmentContractController extends Controller
                 if (!$travelHistory->arrival_time) {
                     $travelHistory->arrival_time = now()->format('H:i:s');
                 }
+
+                RecruitmentContractExternalOfficeDispatchController::syncArrivalStationFromDispatch($contract, $travelHistory);
 
                 // تحديث حالة الرحلة إلى مكتملة
                 $travelHistory->status = 'completed';
