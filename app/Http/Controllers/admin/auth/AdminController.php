@@ -76,7 +76,15 @@ class AdminController extends Controller
                     return Arr::get(Constant::globalArray['admin_typeis'], "{$key}." . App::getLocale(), __('admin.not_specified'));
                 })
                 ->addColumn('role', function ($row) {
-                    return $row->role?->name ?? '-';
+                    if (!$row->role) {
+                        return '-';
+                    }
+
+                    if ($row->role->guard_name !== 'admin') {
+                        return '<span class="text-danger">' . e($row->role->name) . ' (' . e($row->role->guard_name) . ')</span>';
+                    }
+
+                    return e($row->role->name);
                 })
                 ->editColumn('phone', function ($row) {
                     return $row->contact_phone ?? '-';
@@ -197,12 +205,7 @@ class AdminController extends Controller
     public function create(Request $request, ObjAction $action)
     {
         if ($request->ajax()) {
-            $roles = Role::query();
-            // if($currentUser->role_id == Constants::CLIENT_ROLE_ID){
-            //     $roles = $roles->where('id', Constants::PARENT_ROLE_ID)
-            //     ->orWhere('id', Constants::EMPLOYEE_ROLE_ID);
-            // }
-            $roles = $roles->pluck('name', 'id')->all();
+            $roles = $this->adminRolesQuery()->pluck('name', 'id')->all();
             $admin_typeis = $action->getAdminTypies(); // Assuming this method exists in ObjAction
             $returnHTML = view($this->folderPath . ".create", compact('roles', 'admin_typeis'))->render();
             return jsonSuccess(["html" => $returnHTML]);
@@ -228,15 +231,11 @@ class AdminController extends Controller
     {
         if ($request->ajax()) {
             $obj = $action->find($id);
-            $roles = Role::query();
-            // if($currentUser->role_id == Constants::CLIENT_ROLE_ID){
-            //     $roles = $roles->where('id', Constants::PARENT_ROLE_ID)
-            //     ->orWhere('id', Constants::EMPLOYEE_ROLE_ID);
-            // }
-            $roles = $roles->pluck('name', 'id')->all();
+            $roles = $this->adminRolesQuery()->pluck('name', 'id')->all();
             $adminRole = $obj->roles->pluck('id')->toArray();
             $admin_typeis = $action->getAdminTypies();
-            $returnHTML = view($this->folderPath . ".edit", compact('obj', 'roles', 'adminRole', 'admin_typeis'))->render();
+            $hasInvalidCurrentRole = $obj->role && $obj->role->guard_name !== 'admin';
+            $returnHTML = view($this->folderPath . ".edit", compact('obj', 'roles', 'adminRole', 'admin_typeis', 'hasInvalidCurrentRole'))->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
     }
@@ -343,6 +342,15 @@ class AdminController extends Controller
             ],
         ], 422);
     }
+
+    private function adminRolesQuery()
+    {
+        return Role::query()
+            ->where('guard_name', 'admin')
+            ->orderByRaw("CASE WHEN name IN ('Administrator', 'super_admin') THEN 0 ELSE 1 END")
+            ->orderBy('name');
+    }
+
     /** login */
     public function formLogin()
     {

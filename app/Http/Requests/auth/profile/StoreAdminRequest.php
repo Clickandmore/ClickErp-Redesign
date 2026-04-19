@@ -4,6 +4,7 @@ namespace App\Http\Requests\auth\profile;
 
 use App\Enums\auth\AdminTypes;
 use App\Http\Requests\MainRequest;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 
 class StoreAdminRequest extends MainRequest
@@ -21,6 +22,7 @@ class StoreAdminRequest extends MainRequest
             'phone' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:admins'],
             'admin_type' => ['required', new Enum(AdminTypes::class)],
+            'role_id' => ['required', Rule::exists('roles', 'id')->where('guard_name', 'admin')],
             'whatsapp' => ['nullable', 'string', 'max:255'],
             'verification_phone' => ['nullable', 'string', 'max:255'],
             'sex_type' => ['required', "in:0,1"],

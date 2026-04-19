@@ -20,6 +20,7 @@ class UpdateAdminRequest extends MainRequest
             'name' => ['required'],
             'phone' => ['required', 'string', 'max:255'],
             'email' => ['required', Rule::unique('admins')->ignore($this->admin)],
+            'role_id' => ['required', Rule::exists('roles', 'id')->where('guard_name', 'admin')],
             'whatsapp' => ['nullable', 'string', 'max:255'],
             'verification_phone' => ['nullable', 'string', 'max:255'],
             'sex_type' => ['required', "in:0,1"],

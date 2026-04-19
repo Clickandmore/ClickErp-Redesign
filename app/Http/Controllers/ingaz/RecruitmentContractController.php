@@ -69,7 +69,7 @@ class RecruitmentContractController extends Controller
         }
 
         return $admin->admin_type === 'super_admin'
-            || $admin->hasAnyRole(['super_admin', 'admin', 'Administrator']);
+            || adminHasAnyRoleSafe($admin, ['super_admin', 'admin', 'Administrator']);
     }
 
     private function getManualStatusTransition(?string $status): ?array

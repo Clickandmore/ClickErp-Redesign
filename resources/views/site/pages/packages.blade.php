@@ -405,6 +405,14 @@
                                                             <span>{{ helperTrans('web.occupation') }}</span>
                                                             <h3>{{ $type->title }}</h3>
                                                         </li>
+                                                        @php
+                                                            $rentalPrice = $maid->resolvePriceForService('egar');
+                                                        @endphp
+                                                        <li>
+                                                            <span>{{ __('ingaz.monthly_rental') }}</span>
+                                                            <h3>{{ $rentalPrice !== null ? formatMoney($rentalPrice) : '--' }}
+                                                                {{ $rentalPrice !== null ? helperTrans('ingaz.r_s') : '' }}</h3>
+                                                        </li>
                                                     </ul>
                                                 </div>
                                             </div>

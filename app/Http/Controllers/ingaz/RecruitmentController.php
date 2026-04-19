@@ -109,10 +109,14 @@ class RecruitmentController extends Controller
     {
         $client = User::findOrFail($client_id);
         $maid = Maid::with(['nationality', 'religion', 'jobTypes'])->findOrFail($maid_id);
+        $currentAdmin = Auth::guard('admin')->user();
 
         // Get employees if user is admin
         $employees = [];
-        if (Auth::guard('admin')->user()->hasRole('admin')) {
+        if ($currentAdmin && (
+            $currentAdmin->admin_type === 'super_admin'
+            || adminHasAnyRoleSafe($currentAdmin, ['super_admin', 'admin', 'Administrator'])
+        )) {
             $employees = Admin::query()
                 ->where('admin_type', 'customer_service')
                 ->where(function ($query) {

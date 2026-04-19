@@ -30,7 +30,7 @@ class StoreContractRequest extends MainRequest
         $currentAdmin = Auth::guard('admin')->user();
         $canSelectAnyMarketer = $currentAdmin && (
             $currentAdmin->admin_type === 'super_admin'
-            || $currentAdmin->hasAnyRole(['super_admin', 'admin', 'Administrator'])
+            || adminHasAnyRoleSafe($currentAdmin, ['super_admin', 'admin', 'Administrator'])
         );
 
         $marketerRules = ['required', 'exists:admins,id'];

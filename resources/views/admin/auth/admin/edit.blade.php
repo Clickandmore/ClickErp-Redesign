@@ -61,7 +61,7 @@
         <div class="col-4">
             <label for="TextInput" class="form-label"> {{ __('admin.role_id') }} </label>
             <select name="role_id" id="role_id" class="form-control show-tick ms">
-                <option value="" disabled>{{ __('admin.choose') }}</option>
+                <option value="" disabled @selected($hasInvalidCurrentRole ?? false)>{{ __('admin.choose') }}</option>
                 @forelse (@$roles ?? [] as $id => $name)
                     <option value="{{ $id }}" @if (@$obj->role_id == $id) selected @endif>
                         {{ $name }}
@@ -70,6 +70,18 @@
                 @endforelse
             </select>
         </div>
+
+        @if($hasInvalidCurrentRole ?? false)
+            <div class="col-12">
+                <div class="alert alert-warning mb-0">
+                    هذا الموظف مرتبط حالياً بالدور
+                    <strong>{{ $obj->role?->name }}</strong>
+                    على الحارس
+                    <strong>{{ $obj->role?->guard_name }}</strong>
+                    وهو غير صالح لمشرفي لوحة التحكم. اختر دوراً من أدوار الإدارة ثم احفظ التعديل.
+                </div>
+            </div>
+        @endif
 
 
         {{-- <div class="row">

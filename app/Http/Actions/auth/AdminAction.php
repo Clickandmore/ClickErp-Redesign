@@ -24,7 +24,8 @@ class AdminAction extends MainAction
 
     public function storeAdmin($data, $request)
     {
-        //dd($data);
+        $role = $this->resolveAdminRole($data['role_id'] ?? null);
+
         $admin = Admin::create([
             'name' => $data['name'],
             'email' => $data['email'],
@@ -33,21 +34,16 @@ class AdminAction extends MainAction
             'verification_phone' => !empty($data['verification_phone']) ? $data['verification_phone'] : $data['phone'],
             'admin_type' => $data['admin_type'],
             'sex_type' => $data['sex_type'],
-            'role_id' => $data['role_id'],
+            'role_id' => $role?->id,
             'sort' => $data['sort'] ?? 999,
             'status' => $data['status'] ?? 'active',
             'note' => $data['note'] ?? null,
             'password' => bcrypt($data['password'])
         ]);
 
-        //set role for permissions
-        if ($admin) {
-            $role = Role::find($admin->role_id);
-            if ($role) {
-                $admin->syncRoles([$role->name]);
-            }
+        if ($admin && $role) {
+            $admin->syncRoles([$role]);
         }
-        //end set role
 
         return $admin;
     }
@@ -55,18 +51,27 @@ class AdminAction extends MainAction
     public function updateAdmin($id, $data, $request)
     {
         $admin = $this->find($id);
+        $role = $this->resolveAdminRole($data['role_id'] ?? null);
         $data['whatsapp'] = !empty($data['whatsapp']) ? $data['whatsapp'] : $data['phone'];
         $data['verification_phone'] = !empty($data['verification_phone']) ? $data['verification_phone'] : $data['phone'];
+        $data['role_id'] = $role?->id;
         $admin->update($data);
-        //set role for permissions
-        if ($admin) {
-            $role = Role::find($admin->role_id);
-            if ($role) {
-                $admin->syncRoles([$role->name]);
-            }
-        }
-        //end set role
+
+        $admin->syncRoles($role ? [$role] : []);
+
         return $admin;
+    }
+
+    private function resolveAdminRole($roleId): ?Role
+    {
+        if (empty($roleId)) {
+            return null;
+        }
+
+        return Role::query()
+            ->whereKey($roleId)
+            ->where('guard_name', 'admin')
+            ->first();
     }
 
 }

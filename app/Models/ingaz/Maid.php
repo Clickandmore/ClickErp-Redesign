@@ -477,6 +477,57 @@ class Maid extends Model
         return 'recruitment';
     }
 
+    protected function normalizeServiceType(?string $serviceType): ?string
+    {
+        if (!is_string($serviceType) || trim($serviceType) === '') {
+            return null;
+        }
+
+        $normalized = mb_strtolower(trim($serviceType));
+
+        return match ($normalized) {
+            'egar', 'rental', 'rent' => 'rental',
+            'transfer', 'instant', 'immediate' => 'transfer',
+            'estqdam', 'recruitment', 'recruit' => 'recruitment',
+            default => null,
+        };
+    }
+
+    protected function firstPositiveNumericValue(...$values): ?float
+    {
+        foreach ($values as $value) {
+            if ($value !== null && (float) $value > 0) {
+                return (float) $value;
+            }
+        }
+
+        return null;
+    }
+
+    public function resolvePriceForService(?string $serviceType = null): ?float
+    {
+        $serviceType = $this->normalizeServiceType($serviceType);
+        $nationality = $this->nationality;
+
+        return match ($serviceType) {
+            'rental' => $this->firstPositiveNumericValue(
+                $nationality?->rental_cost,
+                $this->price,
+                $nationality?->price
+            ),
+            'transfer' => $this->firstPositiveNumericValue(
+                $nationality?->service_transportation_cost,
+                $this->price,
+                $nationality?->price
+            ),
+            'recruitment' => $this->firstPositiveNumericValue(
+                $this->price,
+                $nationality?->price
+            ),
+            default => $this->resolved_price,
+        };
+    }
+
     public function getResolvedPriceAttribute(): ?float
     {
         if ($this->price !== null && (float) $this->price > 0) {

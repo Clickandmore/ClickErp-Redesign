@@ -257,6 +257,38 @@ function AdminGuardHasPerm($perm_name)
     return $user->can($perm_name) ?? false;
 }
 
+function adminHasAnyRoleSafe($admin, array $roleNames): bool
+{
+    if (!$admin) {
+        return false;
+    }
+
+    $resolvedRoleNames = collect();
+
+    if (method_exists($admin, 'getRoleNames')) {
+        try {
+            $resolvedRoleNames = $resolvedRoleNames->merge($admin->getRoleNames()->all());
+        } catch (\Throwable $e) {
+            // Fall back to the legacy role_id relation if Spatie role resolution fails.
+        }
+    }
+
+    if (method_exists($admin, 'role')) {
+        try {
+            $legacyRoleName = $admin->role?->name;
+            if (!empty($legacyRoleName)) {
+                $resolvedRoleNames->push($legacyRoleName);
+            }
+        } catch (\Throwable $e) {
+            // Ignore legacy relation lookup failures and rely on resolved roles only.
+        }
+    }
+
+    return $resolvedRoleNames
+        ->filter(fn ($roleName) => is_string($roleName) && $roleName !== '')
+        ->contains(fn ($roleName) => in_array($roleName, $roleNames, true));
+}
+
 /**
  * التحقق من وجود أي صلاحية من مجموعة صلاحيات
  */

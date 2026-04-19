@@ -21,7 +21,10 @@
 
                 $offerPriceRaw = $maid->offer_price !== null ? (float) $maid->offer_price : null;
                 $salaryRaw = $maid->resolved_salary !== null ? (float) $maid->resolved_salary : null;
-                $priceRaw = $maid->resolved_price !== null ? (float) $maid->resolved_price : null;
+                $recruitmentPriceRaw = $maid->resolvePriceForService('estqdam');
+                $rentalPriceRaw = $maid->resolvePriceForService('egar');
+                $transferPriceRaw = $maid->resolvePriceForService('transfer');
+                $priceRaw = $recruitmentPriceRaw !== null ? (float) $recruitmentPriceRaw : null;
 
                 $offerStartsOk = empty($offerStarts) || $offerStarts <= $todayDate;
                 $offerExpiresOk = empty($offerExpires) || $offerExpires >= $todayDate;
@@ -34,6 +37,8 @@
                 $offerPriceDisplay = $offerPriceRaw !== null ? formatMoney($offerPriceRaw) : null;
                 $salaryDisplay = $salaryRaw !== null ? formatMoney($salaryRaw) : null;
                 $priceDisplay = $priceRaw !== null ? formatMoney($priceRaw) : null;
+                $rentalPriceDisplay = $rentalPriceRaw !== null ? formatMoney($rentalPriceRaw) : null;
+                $transferPriceDisplay = $transferPriceRaw !== null ? formatMoney($transferPriceRaw) : null;
                 $salaryAfterOffer = $salaryAfterOfferRaw !== null ? formatMoney($salaryAfterOfferRaw) : null;
                 $cvFile = $maid->cv_file ?? $maid->cv_preview;
                 $cv_code = $maid->cv_code ? $maid->cv_code : null;
@@ -239,8 +244,8 @@
                                         </p>
                                         {{-- <p>{{ __('ingaz.monthly_rental') }}: {{ $maid->resolved_salary ?? '0.00' }} {{ __('ingaz.SAR') }} --}}
                                         <p>{{ __('ingaz.monthly_rental') }}: <span>
-                                                {{ formatMoney($maid->price ?? 0) }}
-                                                {{ __('ingaz.SAR') }}
+                                                {{ $rentalPriceDisplay ?? '--' }}
+                                                {{ $rentalPriceDisplay ? __('ingaz.SAR') : '' }}
                                             </span>
                                         </p>
                                         <p>{{ __('ingaz.contract_duration') }} :
@@ -352,8 +357,8 @@
                                         </p>
                                         <p>{{ __('ingaz.cost_with_tax') }} :
                                             <span>
-                                                {{ $maid->resolved_price !== null ? formatMoney($maid->resolved_price) : '' }}
-                                                {{ __('ingaz.SAR') }}
+                                                {{ $transferPriceDisplay ?? '--' }}
+                                                {{ $transferPriceDisplay ? __('ingaz.SAR') : '' }}
                                             </span>
                                         </p>
                                         <p>{{ __('ingaz.transfer_duration') }} :

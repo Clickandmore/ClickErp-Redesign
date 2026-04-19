@@ -22,7 +22,8 @@ class AdminService extends MainService
 
     public function storeAdmin($data, $request)
     {
-        //dd($data);
+        $role = $this->resolveAdminRole($data['role_id'] ?? null);
+
         $admin = Admin::create([
             'name' => $data['name'],
             'email' => $data['email'],
@@ -30,19 +31,14 @@ class AdminService extends MainService
             'phone' => $data['phone'],
             'admin_type' => $data['admin_type'],
             'sex_type' => $data['sex_type'],
-            'role_id' => $data['role_id'],
+            'role_id' => $role?->id,
             'sort' => $data['sort'] ?? 999,
             'password' => bcrypt($data['password'])
         ]);
 
-        //set role for permissions
-        if ($admin) {
-            $role = Role::find($admin->role_id);
-            if ($role) {
-                $admin->syncRoles([$role->name]);
-            }
+        if ($admin && $role) {
+            $admin->syncRoles([$role]);
         }
-        //end set role
 
         return $admin;
     }
@@ -50,16 +46,23 @@ class AdminService extends MainService
     public function updateAdmin($id, $data, $request)
     {
         $admin = $this->find($id);
+        $role = $this->resolveAdminRole($data['role_id'] ?? null);
+        $data['role_id'] = $role?->id;
         $admin->update($data);
-        //set role for permissions
-        if ($admin) {
-            $role = Role::find($admin->role_id);
-            if ($role) {
-                $admin->syncRoles([$role->name]);
-            }
-        }
-        //end set role
+        $admin->syncRoles($role ? [$role] : []);
         return $admin;
+    }
+
+    private function resolveAdminRole($roleId): ?Role
+    {
+        if (empty($roleId)) {
+            return null;
+        }
+
+        return Role::query()
+            ->whereKey($roleId)
+            ->where('guard_name', 'admin')
+            ->first();
     }
 
 }

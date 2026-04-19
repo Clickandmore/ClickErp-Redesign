@@ -304,7 +304,8 @@
         $offerExpires = optional($maid->offer_expires_at)->format('Y-m-d');
         $offerPriceRaw = $maid->offer_price !== null ? (float) $maid->offer_price : null;
         $salaryRaw = $maid->resolved_salary !== null ? (float) $maid->resolved_salary : null;
-        $priceRaw = $maid->resolved_price !== null ? (float) $maid->resolved_price : null;
+        $servicePrice = $maid->resolvePriceForService($type);
+        $priceRaw = $servicePrice !== null ? (float) $servicePrice : null;
         $priceDisplay = $priceRaw !== null ? formatMoney($priceRaw) : null;
         $salaryDisplay = $salaryRaw !== null ? formatMoney($salaryRaw) : null;
         $offerActive =
@@ -312,7 +313,7 @@
             (empty($offerStarts) || $offerStarts <= $todayDate) &&
             (empty($offerExpires) || $offerExpires >= $todayDate);
         $offerPriceDisplay = $offerPriceRaw !== null ? formatMoney($offerPriceRaw) : null;
-        $cvPublicLink = route('site.all-workers.show', $maid->id);
+        $cvPublicLink = route('site.all-workers.show', $maid->id) . ($type ? '?type=' . urlencode($type) : '');
         $qrImage = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' . urlencode($cvPublicLink);
     @endphp
     <!-- cv page -->
