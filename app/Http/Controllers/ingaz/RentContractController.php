@@ -10,6 +10,8 @@ use App\Models\ContractPayment;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\User;
 use App\Models\ingaz\Order;
+use App\Models\ingaz\Package;
+use App\Models\ingaz\JobType;
 use App\Models\ingaz\Nationality;
 use App\Models\Country;
 use App\Models\auth\Admin;
@@ -20,6 +22,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 use App\Http\Actions\ingaz\RecruitmentOfficeAction;
 use App\Http\Requests\StoreRentalContractRequest;
@@ -292,6 +295,8 @@ class RentContractController extends Controller
 
     public function create(RecruitmentOfficeAction $officeAction, Request $request)
     {
+        $rentalJobTypeId = $this->getRentalJobTypeId();
+
         \Log::info('RentContract create method called', [
             'request_params' => $request->all(),
             'has_order_id' => $request->has('order_id'),
@@ -299,7 +304,7 @@ class RentContractController extends Controller
         ]);
 
         // الحصول على الطلبات المنتهية من نوع تأجير (job_type_id = 2)
-        $endedOrders = Order::where('job_type_id', 2)
+        $endedOrders = Order::where('job_type_id', $rentalJobTypeId)
                            ->whereIn('status', [OrderEnum::Done->value])
                            ->with(['user', 'maid'])
                            ->latest()
@@ -308,8 +313,8 @@ class RentContractController extends Controller
         // إذا تم تمرير order_id، احصل على بيانات الطلب
         $selectedOrder = null;
         if ($request->has('order_id')) {
-            $selectedOrder = Order::with(['user', 'maid', 'details.package'])
-                                ->where('job_type_id', 2)
+            $selectedOrder = Order::with(['user', 'maid.nationality.translations', 'maid.religion.translations', 'details.package'])
+                                ->where('job_type_id', $rentalJobTypeId)
                                 ->find($request->order_id);
 
             \Log::info('Selected order for rent contract', [
@@ -325,14 +330,18 @@ class RentContractController extends Controller
         }
 
         // الحصول على العاملات المتاحة من نوع تأجير
-        $availableRentalMaids = Maid::Shown()
-                                   ->whereHas('jobTypes', function($query) {
-                                       $query->where('job_type_id', 2); // تأجير
-                                   })
-                                   ->where('available', true)
-                                   ->with(['nationality.translations', 'religion.translations'])
-                                   ->latest()
-                                   ->get();
+        $requestedMaidId = $request->filled('maid_id')
+            ? (int) $request->input('maid_id')
+            : null;
+
+        $availableRentalMaids = $this->getAvailableRentalMaidsQuery(
+            $selectedOrder?->maid_id ?: $requestedMaidId
+        )->get();
+
+        $packages = Package::with(['translations', 'nationality.translations'])
+            ->orderBy('days_count')
+            ->orderBy('price_with_tax')
+            ->get();
 
         // الحصول على المسوقين النشطين
         $marketers = Admin::whereNull('deleted_at')
@@ -373,6 +382,7 @@ class RentContractController extends Controller
         return view($this->folderPath . '.create', compact(
             'endedOrders',
             'availableRentalMaids',
+            'packages',
             'marketers',
             'nationalities',
             'existing_clients',
@@ -388,6 +398,10 @@ class RentContractController extends Controller
     {
         try {
             DB::beginTransaction();
+
+            $profession = $request->filled('profession')
+                ? $request->profession
+                : $request->new_client_job;
 
             // إنشاء أو تحديث بيانات العميل
             if ($request->new_existing_client_id) {
@@ -407,7 +421,7 @@ class RentContractController extends Controller
                     'family_num' => $request->new_client_family_num,
                     'children' => $request->new_client_children,
                     'job' => $request->new_client_job,
-                    'profession' => $request->profession,
+                    'profession' => $profession,
                     'monthly_income' => $request->monthly_income,
                 ]);
             } else {
@@ -427,7 +441,7 @@ class RentContractController extends Controller
                     'family_num' => $request->new_client_family_num,
                     'children' => $request->new_client_children,
                     'job' => $request->new_client_job,
-                    'profession' => $request->profession,
+                    'profession' => $profession,
                     'monthly_income' => $request->monthly_income,
                     'register_from' => 'admin',
                     'status' => 1,
@@ -445,25 +459,48 @@ class RentContractController extends Controller
                 'contract_number' => $this->generateContractNumber(),
             ]);
 
-            // حساب تاريخ انتهاء الإنجاز
-            $contractDurationDays = $request->contract_duration_days ?: ($request->contract_duration_months * 30);
+            $selectedPackage = Package::find($request->package_id);
+            $contractDurationDays = (int) ($request->contract_duration_days ?: ($selectedPackage?->days_count ?: ($request->contract_duration_months * 30)));
+            $contractDurationMonths = (int) ($request->contract_duration_months ?: max(1, (int) ceil($contractDurationDays / 30)));
+            $monthlyCost = (float) ($request->monthly_cost ?: ($selectedPackage && $contractDurationMonths > 0
+                ? round((float) $selectedPackage->price_with_tax / $contractDurationMonths, 2)
+                : 0));
             $ingazTo = $request->ingaz_to ?: \Carbon\Carbon::parse($request->ingaz_from)->addDays($contractDurationDays);
 
-            // حساب قيمة العقد
-            $contractValue = $request->total_contract_value ?: ($request->monthly_cost * $request->contract_duration_months);
+            $contractValue = (float) ($request->total_contract_value ?: ($selectedPackage?->price_with_tax ?: ($monthlyCost * $contractDurationMonths)));
+            $paidAmount = 0.0;
+
+            if ($request->payment_status === 'paid') {
+                $paidAmount = $contractValue;
+            } elseif ($request->payment_status === 'partial') {
+                $paidAmount = min((float) $request->paid_amount, $contractValue);
+            }
+
+            $remainingAmount = max(0, $contractValue - $paidAmount);
+            $paymentReceiptPath = $request->hasFile('payment_receipt')
+                ? $request->file('payment_receipt')->store('rental-contracts/create/receipts', 'public')
+                : null;
 
             // إنشاء معلومات العقد
             RentalContractInfo::create([
                 'rental_contract_id' => $rentalContract->id,
+                'package_id' => $request->package_id,
+                'payment_type' => $request->payment_type,
+                'payment_status' => $request->payment_status,
+                'payment_receipt_path' => $paymentReceiptPath,
+                'payment_confirmed_at' => $paidAmount > 0 ? now() : null,
+                'payment_confirmed_by' => $paidAmount > 0 ? auth('admin')->id() : null,
                 'working_hours_per_day' => $request->working_hours ?: 8,
                 'hourly_rate' => $request->hourly_rate,
                 'monthly_salary' => $request->monthly_salary,
                 'sponsorship_transfer' => $request->sponsorship_transfer,
                 'rental_type' => $request->rental_type,
-                'monthly_cost' => $request->monthly_cost,
-                'contract_duration_months' => $request->contract_duration_months,
+                'monthly_cost' => $monthlyCost,
+                'contract_duration_months' => $contractDurationMonths,
                 'contract_duration_days' => $contractDurationDays,
                 'contract_value' => $contractValue,
+                'paid_amount' => $paidAmount,
+                'remaining_amount' => $remainingAmount,
                 'ingaz_from' => $request->ingaz_from,
                 'ingaz_to' => $ingazTo,
                 'notes' => $request->notes,
@@ -539,16 +576,7 @@ class RentContractController extends Controller
         $contract = RentalContract::with(['user', 'maid', 'info', 'marketer'])->findOrFail($id);
 
         // الحصول على العاملات المتاحة من نوع تأجير
-        $availableRentalMaids = Maid::Shown()
-                                   ->whereHas('jobTypes', function($query) {
-                                       $query->where('job_type_id', 2);
-                                   })
-                                   ->where(function($query) use ($contract) {
-                                       $query->where('available', true)
-                                             ->orWhere('id', $contract->maid_id);
-                                   })
-                                   ->latest()
-                                   ->get();
+        $availableRentalMaids = $this->getAvailableRentalMaidsQuery($contract->maid_id)->get();
 
         $marketers = Admin::whereNull('deleted_at')->orderBy('name')->get();
         $nationalities = Nationality::with('translations')->get();
@@ -905,6 +933,70 @@ class RentContractController extends Controller
             'active' => 'نشط',
             'expired' => 'منتهي',
         ];
+    }
+
+    private function getAvailableRentalMaidsQuery(?int $currentMaidId = null)
+    {
+        $rentalJobTypeId = $this->getRentalJobTypeId();
+
+        return Maid::query()
+            ->Shown()
+            ->whereHas('jobTypes', function ($query) use ($rentalJobTypeId) {
+                $query->where('job_type_id', $rentalJobTypeId);
+            })
+            ->where('status', '!=', 'backout')
+            ->where(function ($query) use ($currentMaidId) {
+                $query->where('available', true);
+
+                if ($currentMaidId) {
+                    $query->orWhere('id', $currentMaidId);
+                }
+            })
+            ->where(function ($query) use ($currentMaidId) {
+                $query->whereDoesntHave('rentalContracts', function ($contractQuery) use ($currentMaidId) {
+                    $contractQuery->whereIn('status', $this->rentalActiveContractStatuses());
+
+                    if ($currentMaidId) {
+                        $contractQuery->where('maid_id', '!=', $currentMaidId);
+                    }
+                });
+
+                if ($currentMaidId) {
+                    $query->orWhere('id', $currentMaidId);
+                }
+            })
+            ->with(['nationality.translations', 'religion.translations', 'jobTitles.translations'])
+            ->latest();
+    }
+
+    private function rentalActiveContractStatuses(): array
+    {
+        return ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'transferred', 'suspended'];
+    }
+
+    private function getRentalJobTypeId(): int
+    {
+        $jobType = JobType::with('translations')->get()->first(function ($type) {
+            $title = $this->normalizeArabicText($type->title ?? '');
+
+            foreach (['ايجار', 'إيجار', 'تأجير', 'rent', 'rental'] as $keyword) {
+                if (Str::contains($title, $this->normalizeArabicText($keyword))) {
+                    return true;
+                }
+            }
+
+            return false;
+        });
+
+        return (int) ($jobType?->id ?? 2);
+    }
+
+    private function normalizeArabicText(?string $value): string
+    {
+        $value = trim((string) $value);
+        $value = Str::lower($value);
+
+        return str_replace(['أ', 'إ', 'آ', 'ى', 'ة'], ['ا', 'ا', 'ا', 'ي', 'ه'], $value);
     }
 
     /**

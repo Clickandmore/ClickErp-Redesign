@@ -58,6 +58,22 @@
                 $sariStatus = \App\Enums\ingaz\ContractStatusEnum::Sari;
                 $closedStatus = \App\Enums\ingaz\ContractStatusEnum::Closed;
                 $completedStatus = \App\Enums\ingaz\ContractStatusEnum::Completed;
+                $contractsCount = array_merge([
+                    'new' => 0,
+                    'msaned' => 0,
+                    'tafwed' => 0,
+                    'taffez' => 0,
+                    'tazker' => 0,
+                    'under_warranty' => 0,
+                    'back' => 0,
+                    'arrival' => 0,
+                    'closed' => 0,
+                    'completed' => 0,
+                    'pending_maid_selection' => 0,
+                    'all' => 0,
+                    'are_valid' => 0,
+                    'external_office_dispatch_pending' => 0,
+                ], $contractsCount ?? []);
 
                 $canViewCrmModule = @AdminGuardHasPerm(\App\PermKeys::CRM_MODULE);
                 $canViewHrModule = @AdminGuardCanViewPackageModule('hr');

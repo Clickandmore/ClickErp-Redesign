@@ -1347,15 +1347,32 @@ class RecruitmentContractController extends Controller
 
         //        return $contract;
         $statusTimeline = $this->buildContractStageTimeline($contract);
+        $durationSummary = $this->buildContractDurationSummary($contract);
+        $statusHistory = $contract->contract_status_logs->map(function ($log) use ($contract) {
+            return [
+                'status' => $log->status,
+                'status_label' => getEnumValue('contract_statuses', $log->status) ?? getContractStatus($log->status),
+                'display_date' => $this->formatContractStatusLogDate($log, $contract),
+                'notes' => $log->notes,
+            ];
+        });
 
-        return view('admin.ingaz.RecruitmentContract.details', compact('contract', 'info', 'marketer', 'statusTimeline'));
+        return view('admin.ingaz.RecruitmentContract.details', compact(
+            'contract',
+            'info',
+            'marketer',
+            'statusTimeline',
+            'durationSummary',
+            'statusHistory'
+        ));
     }
 
     private function buildContractStageTimeline(Contract $contract): array
     {
         $logs = $contract->contract_status_logs
             ->map(function ($log) use ($contract) {
-                $stageDate = $this->resolveContractStageDate($log, $contract);
+                $stageMoment = $this->resolveContractStageMoment($log, $contract);
+                $stageDate = $stageMoment['at'] ?? null;
 
                 if (!$stageDate) {
                     return null;
@@ -1366,6 +1383,7 @@ class RecruitmentContractController extends Controller
                     'status_label' => getEnumValue('contract_statuses', $log->status) ?? getContractStatus($log->status),
                     'status_color' => getContractStatusColor($log->status),
                     'started_at' => $stageDate,
+                    'started_precision' => $stageMoment['precision'] ?? 'time',
                     'notes' => $log->notes,
                 ];
             })
@@ -1412,10 +1430,10 @@ class RecruitmentContractController extends Controller
                 'status_color' => $log['status_color'],
                 'started_at' => $startedAt,
                 'ended_at' => $endedAt,
-                'started_at_formatted' => $startedAt->format('Y-m-d H:i'),
+                'started_at_formatted' => $this->formatResolvedStageDate($startedAt, $log['started_precision'] ?? 'time'),
                 'ended_at_formatted' => $nextLog
-                    ? $endedAt->format('Y-m-d H:i')
-                    : ($shouldTrackUntilNow ? 'حتى الآن' : $endedAt->format('Y-m-d H:i')),
+                    ? $this->formatResolvedStageDate($endedAt, $nextLog['started_precision'] ?? 'time')
+                    : ($shouldTrackUntilNow ? 'حتى الآن' : $this->formatResolvedStageDate($endedAt, $log['started_precision'] ?? 'time')),
                 'duration_in_seconds' => $durationInSeconds,
                 'duration_human' => $nextLog || $shouldTrackUntilNow
                     ? $this->formatTimelineDuration($durationInSeconds)
@@ -1449,13 +1467,98 @@ class RecruitmentContractController extends Controller
 
     private function resolveContractStageDate($log, Contract $contract): ?Carbon
     {
-        foreach ([$log->date ?? null, $log->created_at ?? null, $contract->created_at ?? null] as $date) {
-            if (!empty($date)) {
-                return Carbon::parse($date);
+        return $this->resolveContractStageMoment($log, $contract)['at'] ?? null;
+    }
+
+    private function resolveContractStageMoment($log, Contract $contract): ?array
+    {
+        $loggedDate = $this->normalizeContractStageDate($log->date ?? null);
+        $createdAt = $this->normalizeContractStageDate($log->created_at ?? null);
+
+        if ($loggedDate && $createdAt) {
+            if ($loggedDate->isSameDay($createdAt)) {
+                return [
+                    'at' => $createdAt->copy(),
+                    'precision' => 'time',
+                ];
             }
+
+            return [
+                'at' => $loggedDate->copy()->startOfDay(),
+                'precision' => 'date',
+            ];
+        }
+
+        if ($createdAt) {
+            return [
+                'at' => $createdAt->copy(),
+                'precision' => 'time',
+            ];
+        }
+
+        if ($loggedDate) {
+            return [
+                'at' => $loggedDate->copy()->startOfDay(),
+                'precision' => 'date',
+            ];
+        }
+
+        $contractCreatedAt = $this->normalizeContractStageDate($contract->created_at ?? null);
+
+        if ($contractCreatedAt) {
+            return [
+                'at' => $contractCreatedAt->copy(),
+                'precision' => 'time',
+            ];
         }
 
         return null;
+    }
+
+    private function normalizeContractStageDate($value): ?Carbon
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        if ($value instanceof Carbon) {
+            $parsed = $value->copy();
+        } else {
+            $normalized = trim((string) $value);
+
+            if ($normalized === '' || in_array($normalized, ['0000-00-00', '0000-00-00 00:00:00'], true)) {
+                return null;
+            }
+
+            try {
+                $parsed = Carbon::parse($normalized);
+            } catch (\Throwable $exception) {
+                return null;
+            }
+        }
+
+        return (int) $parsed->year <= 1 ? null : $parsed;
+    }
+
+    private function formatResolvedStageDate(Carbon $date, string $precision = 'time'): string
+    {
+        return $precision === 'date'
+            ? $date->format('Y-m-d')
+            : $date->format('Y-m-d H:i');
+    }
+
+    private function formatContractStatusLogDate($log, Contract $contract): string
+    {
+        $resolvedDate = $this->resolveContractStageMoment($log, $contract);
+
+        if (!$resolvedDate) {
+            return 'غير محدد';
+        }
+
+        return $this->formatResolvedStageDate(
+            $resolvedDate['at'],
+            $resolvedDate['precision'] ?? 'time'
+        );
     }
 
     private function shouldTrackCurrentStageUntilNow(string $status): bool

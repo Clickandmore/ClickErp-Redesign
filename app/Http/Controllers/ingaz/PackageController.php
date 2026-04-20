@@ -8,8 +8,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ingaz\PackageRequest;
 use App\Models\ingaz\Package as objModel;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Yajra\DataTables\Facades\DataTables;
 
 class PackageController extends Controller
 {
@@ -30,25 +28,41 @@ class PackageController extends Controller
     public function index(Request $request, objAction $Action)
     {
         if ($request->ajax()) {
-            $rows = objModel::query()->with('nationality')->latest();
-            return DataTables::of($rows)
-                ->addIndexColumn()
-                ->addColumn('nationality', function ($row) {
-                    $nationality = $row->nationality?->sub_title ?? $row->nationality?->title ?? '-';
-                    return e($nationality);
-                })
-                ->addColumn('actions', function ($row) {
-                    $editButton = '';
-                    $deleteButton = '';
-                    if (@AdminGuardHasPerm(\App\PermKeys::PACKAGES_CONTROL)) {
-                        $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
-                    }
+            $rows = objModel::query()
+                ->with('nationality')
+                ->latest()
+                ->get();
 
-                    if (@AdminGuardHasPerm(\App\PermKeys::PACKAGES_DELETE)) {
-                        $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
-                    }
-                    return $editButton . " " . $deleteButton;
-                })->escapeColumns([])->make(true);
+            $data = $rows->values()->map(function ($row, $index) {
+                $editButton = '';
+                $deleteButton = '';
+
+                if (@AdminGuardHasPerm(\App\PermKeys::PACKAGES_CONTROL)) {
+                    $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->title ?: ('#' . $row->id));
+                }
+
+                if (@AdminGuardHasPerm(\App\PermKeys::PACKAGES_DELETE)) {
+                    $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                }
+
+                return [
+                    'DT_RowIndex' => $index + 1,
+                    'title' => $row->title,
+                    'nationality' => $this->resolveNationalityLabel($row),
+                    'original_price' => $row->original_price,
+                    'price_after_discount' => $row->price_after_discount,
+                    'price_with_tax' => $row->price_with_tax,
+                    'days_count' => $row->days_count,
+                    'actions' => $editButton . " " . $deleteButton,
+                ];
+            });
+
+            return response()->json([
+                'draw' => (int) $request->input('draw'),
+                'recordsTotal' => $rows->count(),
+                'recordsFiltered' => $rows->count(),
+                'data' => $data,
+            ]);
         }
         $data["createRoute"] = route($this->mainRoute . ".create");
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
@@ -57,6 +71,19 @@ class PackageController extends Controller
         $data["modalType"] = "";
         return view($this->folderPath . '.index', $data);
 
+    }
+
+    private function resolveNationalityLabel(objModel $row): string
+    {
+        if ($row->nationality) {
+            return $row->nationality->sub_title ?? $row->nationality->title ?? '-';
+        }
+
+        if ($row->nationality_id) {
+            return 'جنسية غير موجودة';
+        }
+
+        return 'جميع الجنسيات';
     }
 
     /**
