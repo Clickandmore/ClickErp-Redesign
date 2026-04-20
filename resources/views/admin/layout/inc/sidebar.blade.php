@@ -369,7 +369,7 @@
                                                 <a class="m-link {{ request()->routeIs('RecruitmentContract.externalOfficeDispatch.*') ? 'active' : '' }}"
                                                     href="{{ route('RecruitmentContract.externalOfficeDispatch.index') }}">
                                                     <i class="fa fa-paper-plane"></i>
-                                                    <span class="ms-2">إرسالايات المكتب الخارجي</span>
+                                                    <span class="ms-2"> الارساليات </span>
                                                     <span
                                                         class="badge {{ ($contractsCount['external_office_dispatch_pending'] ?? 0) > 0 ? 'bg-warning text-dark' : 'bg-secondary' }} ms-2"
                                                         title="العقود التي لم تُرسل بعد">

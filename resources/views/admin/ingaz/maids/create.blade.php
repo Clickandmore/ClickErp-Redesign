@@ -7,6 +7,14 @@
     $isRentalForm = $isRentalForm ?? false;
     $formRedirectRoute = $formRedirectRoute ?? route('maids.index');
     $requireIdFields = $requireIdFields ?? true;
+    $selectedTypeId = (int) old('type_id', $defaultTypeId ?? 0);
+    $selectedTypeTitle = collect($types ?? [])->firstWhere('id', $selectedTypeId)->title ?? '';
+    $normalizedSelectedTypeTitle = mb_strtolower(trim((string) $selectedTypeTitle));
+    $normalizedSelectedTypeTitle = str_replace(['أ', 'إ', 'آ'], 'ا', $normalizedSelectedTypeTitle);
+    $showArrivalDateField = $isRentalForm
+        || str_contains($normalizedSelectedTypeTitle, 'ايجار')
+        || str_contains($normalizedSelectedTypeTitle, 'تاجير')
+        || str_contains($normalizedSelectedTypeTitle, 'rent');
 @endphp
 
 @section('style')
@@ -278,8 +286,9 @@
                         <input type="text" name="duration" class="form-control"
                             value="{{ old('duration', '24 شهر') }}">
                     </div>
-                    <div class="col-4">
-                        <label for="arrival_date" class="form-label">تاريخ وصول العاملة</label>
+                    <div class="col-4" id="arrival_date_field" style="{{ $showArrivalDateField ? '' : 'display: none;' }}">
+                        <label for="arrival_date" class="form-label">تاريخ وصول العاملة <small
+                                class="text-muted">(اختياري)</small></label>
                         <input type="date" name="arrival_date" id="arrival_date" class="form-control"
                             value="{{ old('arrival_date') }}">
                     </div>
@@ -1041,6 +1050,8 @@
                 var salaryInput = $('input[name="salary"]');
                 var jobSelect = $('select[name="job_id[]"]');
                 var requestTypeSelect = $('#request_type');
+                var arrivalDateField = $('#arrival_date_field');
+                var arrivalDateInput = $('#arrival_date');
                 var shouldUpdateMaritalTranslation = true;
 
                 // Reset all fields to default state
@@ -1052,6 +1063,7 @@
                 jobField.show();
                 requestTypeField.show();
                 languagesField.show();
+                arrivalDateField.hide();
                 priceLabel.text('{{ helperTrans('ingaz.price') }}');
                 idInputs.attr('required', 'required');
                 heightWeightInputs.attr('required', 'required');
@@ -1060,6 +1072,7 @@
                 salaryInput.attr('required', 'required');
                 jobSelect.attr('required', 'required');
                 requestTypeSelect.prop('disabled', false);
+                arrivalDateInput.prop('required', false);
 
                 // Set price to 0 in all cases
                 $('#price').val('0');
@@ -1069,6 +1082,7 @@
                     // Hide ID fields for recruitment flows
                     idFields.hide();
                     idInputs.removeAttr('required');
+                    arrivalDateInput.val('');
                     rentalFinanceSection.hide();
                 } else if (typeContext.isInstantTransfer) {
                     console.log('Hiding fields for إستلام فورى');
@@ -1087,6 +1101,7 @@
                     heightWeightInputs.removeAttr('required');
                     maritalStatusSelect.removeAttr('required');
                     officeSelect.removeAttr('required');
+                    arrivalDateInput.val('');
                     rentalFinanceSection.hide();
                 } else if (typeContext.isRental) {
                     console.log('Hiding fields for ايجار/تأجير');
@@ -1097,6 +1112,7 @@
                     officeField.hide();
                     requestTypeField.hide();
                     languagesField.hide();
+                    arrivalDateField.show();
                     priceLabel.text('تكلفه الايجار الشهري');
                     maritalStatusEnField.val('');
                     shouldUpdateMaritalTranslation = false;
@@ -1119,6 +1135,7 @@
                         }
                     }
                 } else {
+                    arrivalDateInput.val('');
                     rentalFinanceSection.hide();
                 }
 

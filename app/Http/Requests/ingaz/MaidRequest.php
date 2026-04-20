@@ -3,6 +3,7 @@
 namespace App\Http\Requests\ingaz;
 
 use App\Http\Requests\MainRequest;
+use App\Models\ingaz\JobType;
 use Illuminate\Validation\Rule;
 
 class MaidRequest extends MainRequest
@@ -63,8 +64,17 @@ class MaidRequest extends MainRequest
             'offer_description' => 'nullable|string',
             'offer_starts_at' => 'nullable|date',
             'offer_expires_at' => 'nullable|date|after_or_equal:offer_starts_at',
-            'arrival_date' => 'required|date',
+            'arrival_date' => 'nullable|date',
         ];
+    }
+
+    protected function prepareForValidation()
+    {
+        if (!$this->isSelectedRentalType()) {
+            $this->merge([
+                'arrival_date' => null,
+            ]);
+        }
     }
 
     public function messages()
@@ -97,7 +107,6 @@ class MaidRequest extends MainRequest
             'offer_price.min' => helperTrans('web.price_must_be_numeric'),
             'offer_expires_at.after_or_equal' => 'تاريخ انتهاء العرض يجب أن يكون بعد أو مساوي لتاريخ بداية العرض',
             'offer_duration.max' => 'مدة العرض يجب ألا تتجاوز 255 حرفاً',
-            'arrival_date.required' => 'تاريخ وصول العاملة مطلوب',
             'arrival_date.date' => 'تاريخ وصول العاملة يجب أن يكون تاريخاً صالحاً',
         ];
     }
@@ -105,26 +114,34 @@ class MaidRequest extends MainRequest
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
-            $typeId = (int) $this->input('type_id');
-            if ($typeId <= 0) {
+            if (!$this->isSelectedRentalType()) {
                 return;
             }
 
-            $jobType = \App\Models\ingaz\JobType::find($typeId);
-            $title = mb_strtolower(trim((string) ($jobType?->title ?? '')));
-            $normalizedTitle = str_replace(['أ', 'إ', 'آ'], 'ا', $title);
-
-            $isRentalType = $typeId === 2
-                || str_contains($normalizedTitle, 'ايجار')
-                || str_contains($normalizedTitle, 'تاجير')
-                || str_contains($normalizedTitle, 'rent');
-
-            if ($isRentalType && !$this->boolean('rental_finance_items_confirmed')) {
+            if (!$this->boolean('rental_finance_items_confirmed')) {
                 $validator->errors()->add(
                     'rental_finance_items_confirmed',
                     'يرجى تأكيد بنود التأجير من النافذة المنبثقة قبل حفظ العاملة'
                 );
             }
         });
+    }
+
+    private function isSelectedRentalType(): bool
+    {
+        $typeId = (int) $this->input('type_id');
+
+        if ($typeId <= 0) {
+            return false;
+        }
+
+        $jobType = JobType::find($typeId);
+        $title = mb_strtolower(trim((string) ($jobType?->title ?? '')));
+        $normalizedTitle = str_replace(['أ', 'إ', 'آ'], 'ا', $title);
+
+        return $typeId === 2
+            || str_contains($normalizedTitle, 'ايجار')
+            || str_contains($normalizedTitle, 'تاجير')
+            || str_contains($normalizedTitle, 'rent');
     }
 }
