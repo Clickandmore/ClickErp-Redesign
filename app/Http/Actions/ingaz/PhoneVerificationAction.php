@@ -49,6 +49,12 @@ class PhoneVerificationAction extends MainAction
             $this->storeMessage('ارسال رسالة نصية الى العميل', $msg, NotificationActionEnum::SMS->value, $user->id);
         }
 
+        logger()->info('Msegat SMS Sent Successfully', [
+            'phone' => $request->phone,
+            'code' => $code,
+            'result' => $result
+        ]);
+
         return ["code" => $code];
     }
 

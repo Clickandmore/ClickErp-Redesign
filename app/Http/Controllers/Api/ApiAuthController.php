@@ -1,7 +1,9 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ingaz\API\ResendOtpRequest;
 use App\Http\Requests\ingaz\auth\RegisterRequest;
 use App\Http\Actions\ingaz\UserAction as ObjAction;
 use App\Http\Requests\ingaz\auth\LoginRequest;
@@ -14,10 +16,15 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Request;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use App\Http\Actions\ingaz\PhoneVerificationAction;
+use App\Http\Actions\ingaz\UserAction;
+use App\Http\Requests\ingaz\API\ChangePasswordRequest;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Crypt;
 
 class ApiAuthController extends Controller
 {
-    public $postData = ['name','register_from','password','phone_code','phone'];
+    public $postData = ['name', 'register_from', 'password', 'phone_code', 'phone'];
     /**
      * Create a new AuthController instance.
      *
@@ -25,7 +32,7 @@ class ApiAuthController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['login', 'register']]);
+        $this->middleware('auth:api', ['except' => ['login', 'register', 'change_password']]);
     }
 
 
@@ -34,44 +41,59 @@ class ApiAuthController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function register(RegisterRequest $request, ObjAction $action) {
-        $dataInsert = $request->only($this->postData);
+    public function register(
+        RegisterRequest $request,
+        UserAction $userAction,
+        PhoneVerificationAction $phoneVerificationAction
+    ) {
+        $data = $request->validated();
 
-        // Check if this is first time registration
-        $isFirstTime = !User::where('phone', $request->phone)->exists();
+        // Rate limit
+        RateLimiter::hit('register:' . $data['phone'], 60);
 
-        // If not first time, remove name from dataInsert
-        if (!$isFirstTime) {
-            unset($dataInsert['name']);
-        }
+        // Hash password
+        $data['password'] = Hash::make($data['password']);
 
-        $user = $action->storeUser($dataInsert);
-        $credentials = request(['phone', 'password']);
-        if (! $token = JWTAuth::attempt($credentials)) {
-            return jsonSuccess( null,['error' => 'Unauthorized'],401);
-        }
-        return $this->respondWithToken1($token,$user);
+        // Remove recaptcha if exists
+        unset($data['g-recaptcha-response']);
+
+        unset($data['password_confirmation']);
+
+        // Create user
+        $user = $userAction->store($data);
+
+        // Send verification code
+        $phoneVerificationAction->storeSendCode([
+            'phone'      => $data['phone'],
+            'phone_code' => $data['phone_code'],
+        ], $request);
+
+        // Encrypt phone (optional)
+        $encryptedPhone = Crypt::encryptString($data['phone']);
+
+        $data = [
+            'phone'           => $data['phone'],
+            'encrypted_phone' => $encryptedPhone,
+            'next_step'       => 'verify_otp'
+        ];
+        return apiResponse(true,  __('ingaz.register_successfully'), $data, 201);
+
+        // return response()->json([
+        //     'status'  => true,
+        //     'message' => __('ingaz.register_successfully'),
+        //     'data'    => [
+        //         'phone'           => $data['phone'],
+        //         'encrypted_phone' => $encryptedPhone,
+        //         'next_step'       => 'verify_otp'
+        //     ]
+        // ], 201);
     }
 
     public function update(UpdateProfileRequest $request, ObjAction $action)
     {
-
-        $dataInsert = $request->only($this->postData);
-        $data = $action->updateUser(Auth::user()->id,$dataInsert);
-        $token = $this->generateToken();
-        $user = User::find(Auth::user()->id);
-        $user->token = $token;
-        $users = UserResource::make($user);
-        if($data) {
-            return jsonSuccess($users);
-        }else {
-            return response()->json([
-                'code' => 422,
-                'data' => null,
-                'message' => 'كلمة المرور القديمة غير صحيحة',
-            ], 422);
-        }
+        //
     }
+
 
     protected function generateToken()
     {
@@ -81,10 +103,11 @@ class ApiAuthController extends Controller
         return $token;
     }
 
-    public function update_password(PasswordRequest $request, ObjAction $action) {
+    public function update_password(PasswordRequest $request, ObjAction $action)
+    {
         $data = $action->updatePassword($request);
 
-        if($data) {
+        if ($data) {
             return response()->json([
                 'code' => 200,
                 'data' => $data,
@@ -106,49 +129,76 @@ class ApiAuthController extends Controller
      */
     public function login(LoginRequest $request)
     {
-        $user = User::where('phone', $request->phone)->first();
+        $key = 'login:' . $request->phone;
 
-        // If user doesn't exist, this is a new registration
-        if (!$user) {
-            // Check if name is provided for new registration
-            if (!$request->has('name')) {
-                return response()->json([
-                    'code' => 422,
-                    'data' => null,
-                    'message' => 'يرجى إدخال الاسم للمستخدم الجديد',
-                    'is_new_user' => true
-                ], 422);
-            }
-
-            // Create new user
-            $dataInsert = $request->only(['name', 'phone', 'password']);
-            $dataInsert['register_from'] = 'app';
-            $dataInsert['phone_code'] = '966'; // Default phone code
-
-            $user = (new ObjAction)->storeUser($dataInsert);
-            $token = JWTAuth::fromUser($user);
-            return $this->respondWithToken1($token, $user);
-        }
-
-        // Existing user - verify password
-        if (!Hash::check($request->password, $user->password)) {
+        if (RateLimiter::tooManyAttempts($key, 5)) {
             return response()->json([
-                'code' => 401,
-                'data' => null,
-                'message' => 'كلمة المرور غير صحيحة',
-            ], 200);
+                'status'  => false,
+                'message' => __('web.wait_before_retry'),
+            ], 429);
         }
 
-        $token = JWTAuth::attempt(['phone' => $request->phone, 'password' => $request->password]);
+        RateLimiter::hit($key, 60);
 
-        if (!$token) {
-            return jsonSuccess(null, 'Unauthorized', 401);
+        $data = $request->validated();
+        unset($data['g-recaptcha-response']);
+
+        if (Auth::guard('web')->attempt($data)) {
+            $result =  [
+                'success'      => true,
+                'message' => 'تم تسجيل الدخول بنجاح',
+                'user' => Auth::guard('web')->user(),
+            ];
+        } else {
+            $result = [
+                'success'      => false,
+                'message' => 'بيانات الدخول غير صحيحة',
+            ];
         }
 
-        return $this->respondWithToken($token);
+
+        if (!$result['success']) {
+            return response()->json([
+                'status'  => false,
+                'message' => __('ingaz.incorrect_password'),
+            ], 422);
+        }
+
+        $user = $result['user'];
+
+        // إنشاء توكن
+        $token = JWTAuth::fromUser($user);
+
+        // مسح محاولات الفشل بعد نجاح تسجيل الدخول
+        RateLimiter::clear($key);
+
+        $data = [
+            'user' => [
+                'id'    => $user->id,
+                'name'  => $user->name,
+                'phone' => $user->phone,
+            ],
+            'token' => $token,
+        ];
+
+        return apiResponse(true,  __('ingaz.login_successfully'), $data, 200);
+
+        // return response()->json([
+        //     'status'  => true,
+        //     'message' => __('ingaz.login_successfully'),
+        //     'data'    => [
+        //         'user' => [
+        //             'id'    => $user->id,
+        //             'name'  => $user->name,
+        //             'phone' => $user->phone,
+        //         ],
+        //         'token' => $token,
+        //     ]
+        // ], 200);
+        // return $this->respondWithToken($token);
     }
 
-    protected function respondWithToken1($token,$user)
+    protected function respondWithToken1($token, $user)
     {
         $user->token = $token;
         $users = UserResource::make($user);
@@ -182,7 +232,7 @@ class ApiAuthController extends Controller
      */
     public function logout()
     {
-        UserFirebaseToken::where("user_id",Auth::user()->id)->delete();
+        UserFirebaseToken::where("user_id", Auth::user()->id)->delete();
         auth()->logout();
         return jsonSuccess(null, 'Successfully logged out');
     }
@@ -211,5 +261,30 @@ class ApiAuthController extends Controller
         $user = auth()->user();
         $user->delete();
         return jsonSuccess(null, 'Successfully Deleted');
+    }
+
+
+    public function change_password(ChangePasswordRequest $request, UserAction $userAction)
+    {
+        $data = $request->validated();
+        $user = $userAction->getWhereFirst(['phone' => $data['phone']]);
+        $user->update(['password' => Hash::make($data['password'])]);
+
+        // إبطال الجلسات القديمة
+        $user->setRememberToken(\Illuminate\Support\Str::random(60));
+        $user->save();
+
+        return apiResponse(true,  __('ingaz.Password changed successfully'), [
+            "phone" => $data['phone']
+        ], 201);
+    }
+
+    public function resendOTP(ResendOtpRequest $request, PhoneVerificationAction $phoneVerificationAction)
+    {
+        $data = $request->validated();
+        $phoneVerificationAction->storeSendCode($data, $request);
+        return apiResponse(true,  __("web.resend_code_successfuly"), [
+            "phone" => $data['phone']
+        ], 201);
     }
 }

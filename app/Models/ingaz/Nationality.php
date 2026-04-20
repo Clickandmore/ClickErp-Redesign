@@ -44,4 +44,13 @@ class Nationality extends Model
             ->logOnly(['*'])
             ->logOnlyDirty();
     }
+
+    protected $appends = [
+        'logo_url',
+    ];
+
+    public function getLogoURLAttribute()
+    {
+        return asset('storage/' . $this->logo) ?? null;
+    }
 }

@@ -2,9 +2,9 @@
 
 namespace App\Models\ingaz;
 
+use App\Models\AdminNotification;
 use App\Models\ingaz\User;
 use App\Models\auth\Admin;
-use App\Notifications\NewComplaintNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
@@ -21,13 +21,36 @@ class Complaint extends Model
         'resolved_at' => 'datetime',
     ];
 
+    public function getFileUrlAttribute()
+    {
+        if (!$this->file) return null;
+
+        // هذا سيقوم بإنشاء رابط كامل مثل: https://api.yourdomain.com/storage/complaints/name.jpg
+        return asset('storage/' . $this->file);
+    }
+
+    // تأكد من إضافة الحقل لخاصية الـ appends ليظهر في الـ JSON
+    protected $appends = ['file_url'];
+
     protected static function booted()
     {
         static::created(function ($complaint) {
-            // Notify all admin users
-            $adminUsers = User::role('admin')->get();
-            foreach ($adminUsers as $admin) {
-                $admin->notify(new NewComplaintNotification($complaint));
+            $admins = Admin::query()->get();
+
+            foreach ($admins as $admin) {
+                AdminNotification::create([
+                    'admin_id' => $admin->id,
+                    'created_by' => auth('admin')->id(),
+                    'title' => 'شكوى جديدة',
+                    'message' => 'تم استلام شكوى جديدة من ' . ($complaint->user?->name ?? 'مستخدم'),
+                    'type' => 'new_complaint',
+                    'link' => route('complaints.show', $complaint->id),
+                    'data' => [
+                        'complaint_id' => $complaint->id,
+                        'user_id' => $complaint->user_id,
+                        'complaint_type_id' => $complaint->complaint_type_id,
+                    ],
+                ]);
             }
         });
     }

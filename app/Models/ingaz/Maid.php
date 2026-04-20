@@ -115,6 +115,30 @@ class Maid extends Model
     protected $primaryJobTypeInstance;
     protected static array $officeSerialIndex = [];
 
+    protected $appends = [
+        'resolved_price',
+        'resolved_salary',
+        'image_url',
+        'cv_preview_url',
+        'cv_file_url',
+    ];
+
+    public function getImageURLAttribute()
+    {
+        return asset('storage/' . $this->image) ?? null;
+    }
+
+    public function getCvPreviewURLAttribute()
+    {
+        return asset('storage/' . $this->cv_preview);
+    }
+
+    public function getCvFileURLAttribute()
+    {
+        return asset('storage/' . $this->cv_file);
+    }
+
+
 
     ####### relations
     public function nationality()
@@ -405,7 +429,7 @@ class Maid extends Model
         }
 
         $instantJobTypes = $jobTypes
-            ->filter(fn ($jobType) => $this->isInstantJobType($jobType))
+            ->filter(fn($jobType) => $this->isInstantJobType($jobType))
             ->values();
 
         if ($instantJobTypes->isNotEmpty()) {
@@ -425,7 +449,7 @@ class Maid extends Model
         $jobTypes = $this->getLoadedJobTypes();
 
         if ($this->isInstantShelterListing()) {
-            $instantJobType = $jobTypes->first(fn ($jobType) => $this->isInstantJobType($jobType));
+            $instantJobType = $jobTypes->first(fn($jobType) => $this->isInstantJobType($jobType));
 
             if ($instantJobType) {
                 return $instantJobType;

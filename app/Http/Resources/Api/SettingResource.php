@@ -16,12 +16,55 @@ class SettingResource extends JsonResource
         {
         return [
 			'id' => (int)$this->id,
-			'whatsapp' => (string)$this->whatsapp,
-            'privacy' => html_entity_decode(strip_tags($this->privacy)),
-            'terms_conditions' => html_entity_decode(strip_tags($this->terms_conditions)),
-            'about_us_app' => html_entity_decode(strip_tags($this->about_us_app)),
-			// 'created_at' => (string)$this->created_at,
-			// 'updated_at' => (string)$this->updated_at,
+			'website_name' => (string)$this->website_name,
+			'email' => (string)$this->email,
+            'phone' => (string)$this->phone,
+            'other_phone' => (string)$this->other_phone,
+            'whatsapp' => (string)$this->whatsapp,
+
+            'tax_number' => (string)$this->tax_number,
+            'location' => (string)$this->location,
+            'map_link' => (string)$this->map_link,
+
+            'experience_years' => (int)$this->experience_years,
+            'copyright' => (string)$this->copyright,
+
+            'logo_header' => (string)$this->logo_header,
+            'logo_footer' => (string)$this->logo_footer,
+            'favicon' => (string)$this->favicon,
+            'cover_image' => (string)$this->cover_image,
+
+            'zatch_logo' => (string)$this->zatch_logo,
+            'about_image' => (string)$this->about_image,
+            'experience_image' => (string)$this->experience_image,
+            'qr_code' => (string)$this->qr_code,
+            'second_qr_code' => (string)$this->second_qr_code,
+
+            'facebook' => (string)$this->facebook,
+            'twitter' => (string)$this->twitter,
+            'instagram' => (string)$this->instagram,
+            'snapchat' => (string)$this->snapchat,
+            'linkedin' => (string)$this->linkedin,
+            'youtube' => (string)$this->youtube,
+
+            'about_us_sub_title' => (string)$this->about_us_sub_title,
+            'footer_text' => (string)$this->footer_text,
+            'note_ar' => (string)$this->note_ar,
+            'note_en' => (string)$this->note_en,
+
+            'work_times' => (string)$this->work_times,
+            'offer_text' => (string)$this->offer_text,
+
+            'privacy_policy' => (string)$this->privacy_policy,
+            'terms_conditions' => (string)$this->terms_conditions,
+            'return_conditions' => (string)$this->return_conditions,
+            'rights_maids' => (string)$this->rights_maids,
+            'rights_users' => (string)$this->rights_users,
+            'about_us_app' => (string)$this->about_us_app,
+            'show_public_site' => (bool)$this->show_public_site,
+            'customer_services' => (string)$this->customer_services,
+            'has_offers' => (bool)$this->has_offers,
+            'show_customer_service_during_booking' => (bool)$this->show_customer_service_during_booking
 		];
     }
 }

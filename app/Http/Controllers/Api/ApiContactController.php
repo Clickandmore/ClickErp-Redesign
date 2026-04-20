@@ -4,14 +4,21 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Actions\ingaz\ContactAction as objAction;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\ingaz\ContactRequest;
-use App\Http\Resources\Api\ContactResource as objResource;
+use App\Http\Requests\ingaz\API\ContactUsRequest;
+use App\Http\Traits\API\ApiResponse;
 use App\Models\ingaz\Contact as objModel;
+use App\Models\ingaz\Contact;
 use Illuminate\Http\Request;
 
 class ApiContactController extends Controller
 {
-    public $postData = ['name','email','phone','subject','message'];
+    use ApiResponse;
+    public $postData = [
+        'name',
+        'phone',
+        'subject',
+        'message',
+    ];
     /**
      * Display a listing of the resource.
      *
@@ -38,12 +45,12 @@ class ApiContactController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(ContactRequest $request, objAction $action)
+    public function store(ContactUsRequest $request)
     {
-        $dataInsert = $request->only($this->postData);
-        $contact = $action->store($dataInsert);
-        $data = objResource::make($contact);
-        return jsonSuccess($data,'تم بنجاح',200);
+        $data = $request->validated();
+        unset($data['g-recaptcha-response']);
+        Contact::create($data);
+        return $this->successResponse($data, 'تم بنجاح', 200);
     }
 
     /**

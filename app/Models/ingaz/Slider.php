@@ -25,4 +25,14 @@ class Slider extends Model
             ->logOnly(['*'])
             ->logOnlyDirty();
     }
+
+
+    protected $appends = [
+        'image_url',
+    ];
+
+    public function getImageURLAttribute()
+    {
+        return asset('storage/' . $this->image) ?? null;
+    }
 }

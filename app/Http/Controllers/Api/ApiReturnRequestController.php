@@ -2,95 +2,136 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Actions\ingaz\ReturnRequestAction as objAction;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\ingaz\ReturnRequestRequest;
-use App\Models\ingaz\ReturnRequest as objModel;
+use App\Http\Resources\Api\RetuenRequestsResource;
+use App\Models\Contract;
+use App\Models\ContractReturnRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Validator;
 
 class ApiReturnRequestController extends Controller
 {
-        public $postData = ['maid_id','notes','order_id','file'];
+    /**
+     * Display a listing of the resource.
+     */
+    public function index(Request $request)
+    {
+        $sql = ContractReturnRequest::where('user_id', Auth::id())
+            ->with(['contract.maid'])
+            ->orderBy('created_at', 'desc');
 
-        /**
-         * Display a listing of the resource.
-         *
-         * @return \Illuminate\Http\Response
-         */
-        public function index(Request $request, objAction $action)
-        {
-            //
+        return generalReturn($request, $sql, RetuenRequestsResource::class, __("api.All items"));
+    }
+
+    /**
+     * Show create data for return request.
+     */
+    public function create(Request $request)
+    {
+        $request->validate([
+            'contract_id' => 'required|integer',
+        ]);
+
+        $contract = Contract::where('id', $request->input('contract_id'))
+            ->where('user_id', Auth::id())
+            ->with(['maid'])
+            ->first();
+
+        if (!$contract) {
+            return apiResponse(false, __('api.not found'), [], 404);
         }
 
-        /**
-         * Show the form for creating a new resource.
-         *
-         * @return \Illuminate\Http\Response
-         */
-        public function create(Request $request)
-        {
-            //
+        return apiResponse(true, 'تم بنجاح', [
+            'contract' => $contract,
+            'has_pending_return_request' => $contract->hasPendingReturnRequest(),
+        ], 200);
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'contract_id' => 'required|integer|exists:contracts,id',
+            'notes' => 'required|string|max:1000',
+        ]);
+
+        $contract = Contract::where('id', $validated['contract_id'])
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if (!$contract) {
+            return apiResponse(false, __('api.not found'), [], 404);
         }
 
-        /**
-         * Store a newly created resource in storage.
-         *
-         * @param  \Illuminate\Http\Request  $request
-         * @return \Illuminate\Http\Response
-         */
-        public function store(ReturnRequestRequest $request, objAction $action)
-        {
-            $dataInsert = $request->only($this->postData);
-            $dataInsert['user_id'] = getAuthUser()->id;
-            $data = $action->storeRequest($dataInsert);
-            return jsonSuccess($data);
-
+        if ($contract->hasPendingReturnRequest()) {
+            return apiResponse(false, 'يوجد طلب استرجاع معلق لهذا العقد', [], 422);
         }
 
-        /**
-         * Display the specified resource.
-         *
-         * @param  int  $id
-         * @return \Illuminate\Http\Response
-         */
-        public function show($id)
-        {
-            //
+        $returnRequest = ContractReturnRequest::create([
+            'contract_id' => $contract->id,
+            'user_id' => Auth::id(),
+            'notes' => $validated['notes'],
+            'status' => 'pending',
+        ])->load(['contract.maid']);
+
+        return apiResponse(true, 'تم إرسال طلب الاسترجاع بنجاح', [
+            'returnRequest' => $returnRequest,
+        ], 200);
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show($id)
+    {
+        $returnRequest = ContractReturnRequest::where('id', $id)
+            ->where('user_id', Auth::id())
+            ->with(['contract.maid', 'processedBy'])
+            ->first();
+
+        if (!$returnRequest) {
+            return apiResponse(false, __('api.not found'), [], 404);
         }
 
-        /**
-         * Show the form for editing the specified resource.
-         *
-         * @param  int  $id
-         * @return \Illuminate\Http\Response
-         */
-        public function edit($id, Request $request, ObjAction $action)
-        {
-            //
+        return apiResponse(true, 'تم بنجاح', [
+            'returnRequest' => $returnRequest,
+        ], 200);
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit($id)
+    {
+        return apiResponse(false, 'Method Not Allowed', [], 405);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, $id)
+    {
+        return apiResponse(false, 'Method Not Allowed', [], 405);
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy($id)
+    {
+        $returnRequest = ContractReturnRequest::where('id', $id)
+            ->where('user_id', Auth::id())
+            ->where('status', 'pending')
+            ->first();
+
+        if (!$returnRequest) {
+            return apiResponse(false, 'لا يمكن إلغاء هذا الطلب', [], 404);
         }
 
-        /**
-         * Update the specified resource in storage.
-         *
-         * @param  \Illuminate\Http\Request  $request
-         * @param  int  $id
-         * @return \Illuminate\Http\Response
-         */
-        public function update(Request $request, $id, ObjAction $action)
-        {
-            //
-        }
+        $returnRequest->delete();
 
-        /**
-         * Remove the specified resource from storage.
-         *
-         * @param  int  $id
-         * @return \Illuminate\Http\Response
-         */
-        public function destroy($id, ObjAction $action)
-        {
-            //
-        }
+        return apiResponse(true, 'تم إلغاء طلب الاسترجاع بنجاح', [], 200);
+    }
 }

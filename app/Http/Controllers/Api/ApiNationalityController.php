@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Actions\ingaz\NationalityAction as objAction;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\ingaz\NationalityRequest;
-use App\Http\Resources\Api\NationalityResource as objResource;
-use App\Models\ingaz\Nationality as objModel;
 use Illuminate\Http\Request;
+use App\Models\ingaz\Notification;
+use App\Http\Actions\ingaz\NotificationAction;
 
 class ApiNationalityController extends Controller
 {
@@ -16,11 +14,14 @@ class ApiNationalityController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index(Request $request)
+    public function index(NotificationAction $action)
     {
-       $nationality = objModel::with('translations')->get();
-       $nationalities = objResource::collection($nationality);
-       return jsonSuccess($nationalities,__('api.All items'));
+       // $notifications = $action->getWhere(['user_id' => auth('web')->id()]);
+        // return view('site.pages.profile.notifications',get_defined_vars());
+
+        $data['notifications'] = Notification::where('user_id',getGuardedUser()->id)->get();
+
+        return apiResponse(true, __('api.All items'), $data, 200);
     }
 
     /**

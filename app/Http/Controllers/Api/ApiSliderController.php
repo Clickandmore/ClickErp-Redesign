@@ -18,9 +18,9 @@ class ApiSliderController extends Controller
      */
     public function index(Request $request)
     {
-       $Slider = objModel::with('translations')->get();
-       $Sliders = objResource::collection($Slider);
-       return jsonSuccess($Sliders,__('api.All items'));
+       $sliders = objModel::with('translations')->get();
+       $result = objResource::collection($sliders);
+       return jsonSuccess($result,__('api.All items'));
     }
 
     /**

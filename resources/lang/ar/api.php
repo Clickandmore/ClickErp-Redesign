@@ -1,4 +1,4 @@
-<?php return array (
+<?php return array(
   'All items' => 'جميع العناصر',
   'not found' => 'غير موجود',
   'The code is wrong' => 'الرمز خاطئ',
@@ -23,4 +23,6 @@
   'Fast news' => 'Fast news',
   'Features' => 'Features',
   'what_do' => 'What do',
+  'cancellation_already_exists' => 'يوجد طلب إلغاء لهذا العقد بالفعل.',
+  'cancellation_submitted_successfully' => 'تم إرسال طلب إلغاء العقد بنجاح.',
 );

@@ -18,4 +18,6 @@ return [
     "store disactive" => "store disactive",
     "status not found" => "status not found",
     'khedmaty' => 'khedmaty',
+    'cancellation_already_exists' => 'A cancellation request for this contract already exists.',
+  'cancellation_submitted_successfully' => 'Contract cancellation request submitted successfully.',
 ];

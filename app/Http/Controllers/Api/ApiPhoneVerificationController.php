@@ -9,10 +9,14 @@ use App\Http\Requests\ingaz\auth\ResetPasswordRequest;
 use App\Http\Requests\ingaz\auth\SendCodeRequest;
 use App\Http\Requests\ingaz\PhoneVerificationRequest;
 use Illuminate\Http\Request;
+use App\Http\Actions\ingaz\PhoneVerificationAction;
+use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Facades\Crypt;
+use App\Http\Actions\ingaz\UserAction;
 
 class ApiPhoneVerificationController extends Controller
 {
-    public $postData = ['phone_code','phone'];
+    public $postData = ['phone_code', 'phone'];
     /**
      * Display a listing of the resource.
      *
@@ -39,31 +43,104 @@ class ApiPhoneVerificationController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(SendCodeRequest $request, objAction $action)
+    public function store(SendCodeRequest $request, PhoneVerificationAction $phoneVerificationAction)
     {
-        $dataInsert = $request->only($this->postData);
-        $data = $action->storeSendCode($dataInsert,$request);
-        return jsonSuccess($data);
+
     }
 
-    public function confirm_code(ConfirmCodeRequest $request, objAction $action)
+    public function resend_code(SendCodeRequest $request, PhoneVerificationAction $phoneVerificationAction)
     {
-        $data = $action->confirmCode($request);
-        if (!$data) {
+        $data = $request->validated();
+        $phoneVerificationAction->storeSendCode($data, $request);
+        return jsonSuccess(null, __("web.resend_code_successfuly"), 200);
+    }
+
+    public function confirm_code(ConfirmCodeRequest $request, PhoneVerificationAction $phoneVerificationAction)
+    {
+        $data = $request->validated();
+
+        // تحقق من الكود
+        $isValid = $phoneVerificationAction->confirmCode($request);
+
+        if (!$isValid) {
             return response()->json([
-                'code' => 422,
-                'data' => $data,
-                'message' => __('api.The code is wrong')
+                'status'  => false,
+                'message' => __('ingaz.code_is_wrong'),
             ], 422);
-        } else {
-            return $data;
         }
+
+        // جلب المستخدم
+        $user = $phoneVerificationAction->getUser($request);
+
+        // لو تستخدم Sanctum (مفضل في API)
+        if (!$user) {
+            return response()->json([
+                'status'  => false,
+                'message' => __('api.not found'),
+            ], 404);
+        }
+
+        $token = JWTAuth::fromUser($user);
+
+        return response()->json([
+            'status'  => true,
+            'message' => __('ingaz.login_successfully'),
+            'data'    => [
+                'user'  => [
+                    'id'    => $user->id,
+                    'name'  => $user->name,
+                    'phone' => $user->phone,
+                    // 'email' => $user->email,
+                ],
+                'token' => $token,
+            ]
+        ], 200);
     }
 
-    public function reset_password(ResetPasswordRequest $request, objAction $action)
+    public function reset_password_otp(ConfirmCodeRequest $request, PhoneVerificationAction $phoneVerificationAction, UserAction $userAction){
+        $data = $request->validated();
+        $response = $phoneVerificationAction->confirmCode($request);
+        if (!$response) {
+            return response()->json([
+                'status'  => false,
+                'message' => __("ingaz.code_is_wrong"),
+            ], 422);
+        }
+
+        $user = $userAction->find($response->getData()->data->id);
+        $encryptedPhone = Crypt::encryptString($user->phone);
+
+         return response()->json([
+            'status'  => true,
+            'message' => __('ingaz.code_confirm_successfully'),
+            'data'    => [
+                'phone'           => $data['phone'],
+                'encrypted_phone' => $encryptedPhone,
+                'next_step'       => 'verify_otp'
+            ]
+        ], 200);
+    }
+
+    public function reset_password(ResetPasswordRequest $request, PhoneVerificationAction $phoneVerificationAction)
     {
-        $data = $action->updatePassword($request);
-        return jsonSuccess();
+        $data = $request->validated();
+
+        unset($data['g-recaptcha-response']);
+
+        // إرسال كود التحقق
+        $phoneVerificationAction->storeSendCode($data, $request);
+
+        $encryptedPhone = Crypt::encryptString($data['phone']);
+
+        return response()->json([
+            'status'  => true,
+            'message' => __('ingaz.code_send_successfully'),
+            'data'    => [
+                'phone'           => $data['phone'],
+                'encrypted_phone' => $encryptedPhone,
+                'next_step'       => 'verify_otp'
+            ]
+        ], 200);
     }
 
     /**
@@ -108,6 +185,6 @@ class ApiPhoneVerificationController extends Controller
      */
     public function destroy($id)
     {
-       //
+        //
     }
 }

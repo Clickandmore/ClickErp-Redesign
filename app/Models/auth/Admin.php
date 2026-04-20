@@ -6,16 +6,17 @@ use App\Models\ingaz\ComplaintComment;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use App\Models\ingaz\Maid;
 
 class Admin extends Authenticatable
 {
-    use HasFactory, HasRoles, SoftDeletes;
+    use HasFactory, HasRoles, Notifiable, SoftDeletes;
     protected $table ='admins';
-    // protected $guard = 'admin';
     protected $guarded = [];
+    protected $guard_name = 'admin';
 
 
     public function role()

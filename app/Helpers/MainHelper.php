@@ -979,3 +979,14 @@ if (!function_exists('formatMoney')) {
         return rtrim(rtrim($formatted, '0'), '.');
     };
 }
+
+
+if (!function_exists('apiResponse')) {
+    function apiResponse($status, $message, $data = null, $statusCode = 200){
+        return response()->json([
+            'status'  => $status,
+            'message' => $message,
+            'data'    => $data
+        ], $statusCode);
+    }
+}

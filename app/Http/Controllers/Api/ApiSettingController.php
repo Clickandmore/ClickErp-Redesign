@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Actions\ingaz\SettingAction as objAction;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\SettingResource as objResource;
+use App\Http\Traits\API\ApiResponse;
 use App\Models\ingaz\Setting as objModel;
 use Illuminate\Http\Request;
 
 class ApiSettingController extends Controller
 {
+    use ApiResponse;
     /**
      * Display a listing of the resource.
      *
@@ -20,9 +22,9 @@ class ApiSettingController extends Controller
        $data = objModel::with('translations')->first();
        if (isset($data->id)) {
             $settings = objResource::make($data);
-            return jsonSuccess($settings,__('api.All items'));
+            return $this->successResponse($settings, __('api.All items'), 200);
        } else {
-            return jsonSuccess(null,__('api.not found'),201);
+            return $this->successResponse(null, __('api.not found'), 201);
        }
     }
 

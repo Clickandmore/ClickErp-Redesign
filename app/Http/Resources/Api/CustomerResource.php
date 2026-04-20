@@ -6,25 +6,24 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class CustomerResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return array|\Illuminate\Contracts\Support\Arrayable|\JsonSerializable
-     */
-    public function toArray($request)
-        {
-        return [
-			'id' => (int)$this->id,
-			'name' => (string)$this->name,
-			'email' => (string)$this->email,
-			'phone' => (string)($this->contact_phone ?? ''),
-			'whatsapp' => (string)($this->whatsapp_phone ?? ''),
-			'image' => (string)showFile($this->image),
-			'sex_type' => (boolean)$this->sex_type,
-			// 'remember_token' => (string)$this->remember_token,
+	/**
+	 * Transform the resource into an array.
+	 *
+	 * @param  \Illuminate\Http\Request  $request
+	 * @return array|\Illuminate\Contracts\Support\Arrayable|\JsonSerializable
+	 */
+	public function toArray($request)
+	{
+		return [
+			"id" => (int)$this->id,
+			"name" => (string)$this->name,
+			"phone" => (string)$this->phone,
+			"email" => (string)$this->email,
+			"image" => (string)showFile($this->image),
+			"sex_type" => $this->sex_type,
+			"whatsapp" => (string)$this->whatsapp,
 			// 'created_at' => (string)$this->created_at,
 			// 'updated_at' => (string)$this->updated_at,
 		];
-    }
+	}
 }
