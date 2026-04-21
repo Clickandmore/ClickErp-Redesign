@@ -50,6 +50,7 @@ use App\Http\Controllers\ingaz\SliderController;
 use App\Http\Controllers\ingaz\ReligionController;
 use App\Http\Controllers\ingaz\SocialStatusController;
 use App\Http\Controllers\ingaz\QuestionController;
+use App\Http\Controllers\ingaz\ReportController;
 use App\Http\Controllers\ingaz\ContactController;
 use App\Http\Controllers\ingaz\ServiceController;
 use App\Http\Controllers\ingaz\AboutUsController;
@@ -179,6 +180,8 @@ Route::group(
             Route::resource('clients', UserController::class);
             Route::resource('make-accounts-for-clients', MakeAccountsForClientsController::class);
             Route::resource('skills', SkillController::class);
+            Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+            Route::get('reports/export/{report}', [ReportController::class, 'export'])->name('reports.export');
             Route::get('show-maid-details/{id}', [\App\Http\Controllers\ingaz\MaidController::class, 'showMaidDetails'])->name('showMaidDetails');
             Route::get('maids-not-available', [\App\Http\Controllers\ingaz\MaidController::class, 'noneAvailableMaids'])->name('noneAvailableMaids');
             Route::get('maids/cvs-deleted', [\App\Http\Controllers\ingaz\MaidController::class, 'deletedCvs'])->name('maids.deleted_cvs');
@@ -464,6 +467,7 @@ Route::group(
 
             //** SETTINGS **//
             Route::get('/settings', [AdminSettingsController::class, 'index'])->name('settings');
+            Route::get('/settings/announcements', [AdminSettingsController::class, 'announcements'])->name('settings.announcements');
             Route::post('/settings/store', [AdminSettingsController::class, 'store'])->name('settings.store');
 
             //** ROLES **//

@@ -12,6 +12,7 @@ use App\Http\Actions\MainAction;
 use App\Http\Traits\SendSMSTrait;
 use App\Models\ingaz\OrderDetail;
 use App\Models\ingaz\Notification;
+use App\Support\AutomationSettings;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Enums\ingaz\NotificationActionEnum;
@@ -63,7 +64,7 @@ class OrderAction extends MainAction
         $order = $this->store($data);
 
         // استخدام مدة الحجز من الإعدادات
-        $expirationHours = \App\Models\ingaz\Setting::getValue('order_expiration_hours', 24);
+        $expirationHours = AutomationSettings::orderExpirationHours();
         $order->setExpirationTime($expirationHours);
 
         if ($request->details_list) {

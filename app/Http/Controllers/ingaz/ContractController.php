@@ -353,6 +353,7 @@ class ContractController extends Controller
     public function deliveryFormDownload($id)
     {
         $contract = Contract::with(['user', 'maid.nationality', 'info', 'marketer', 'travelHistory'])->findOrFail($id);
+        $documentBranding = documentBranding();
 
         $clientName = $contract->user->name ?? '';
         $clientNationalNumber = $contract->user->national_num ?? '';
@@ -375,8 +376,8 @@ class ContractController extends Controller
         $viewData = [
             'contract' => $contract,
             'contract_number' => $contract->id,
-            'delivery_company_name' => 'بلاتنيوم الشرقية للاستقدام',
-            'delivery_office_name' => 'مكتب بلاتنيوم الشرقية للاستقدام',
+            'delivery_company_name' => $documentBranding['company_name'],
+            'delivery_office_name' => $documentBranding['office_name'],
             'client_name' => $clientName,
             'national_identification_number' => $clientNationalNumber,
             'client_phone' => $clientPhone,
@@ -394,6 +395,7 @@ class ContractController extends Controller
             'printed_by' => $printedBy,
             'printed_at' => Carbon::now()->format('Y/m/d H:i:s'),
             'contract_signed_at' => optional($contract->created_at)->format('Y/m/d H:i') ?: '--',
+            'document_footer_note' => $documentBranding['footer_note'],
             'preview_url' => route('contract_download_form.download', ['contract_id' => $contract->id]),
             'print_url' => route('contract_download_form.download', [
                 'contract_id' => $contract->id,

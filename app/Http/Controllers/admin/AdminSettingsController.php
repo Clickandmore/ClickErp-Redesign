@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\NewSettings;
+use App\Models\ingaz\FastNew;
+use App\Support\AutomationSettings;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
@@ -19,27 +22,27 @@ class AdminSettingsController extends Controller
         }
 
         try {
-            $settings = new NewSettings();
-
-            $fields = [
-                'warrenty_period',
-                'bank_transfer_data',
-                'sadad_transfer_data',
-                'show_popup',
-                'popup_image',
-            ];
-
-            $data = [];
-            foreach ($fields as $field) {
-                $data[$field] = $settings->getSetting($field);
-            }
-
-            // For debugging purposes
-            Log::info('Settings loaded:', $data);
-
-            return view('admin.settings.index', compact('data', 'fields'));
+            return $this->renderOperationsView();
         } catch (\Exception $e) {
             Log::error('Error loading settings: ' . $e->getMessage());
+            return redirect()->back()->with('error', __('admin.error_loading_settings'));
+        }
+    }
+
+    public function announcements()
+    {
+        if (!@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW)) {
+            return redirect()->back()->with('error', __('admin.no_permissions'));
+        }
+
+        try {
+            $data = $this->getSettingsPayload();
+            $recentFastNews = FastNew::query()->latest()->take(5)->get();
+            $fastNewsCount = FastNew::query()->count();
+
+            return view('admin.settings.announcements', compact('data', 'recentFastNews', 'fastNewsCount'));
+        } catch (\Exception $e) {
+            Log::error('Error loading announcements settings: ' . $e->getMessage());
             return redirect()->back()->with('error', __('admin.error_loading_settings'));
         }
     }
@@ -52,62 +55,149 @@ class AdminSettingsController extends Controller
 
         try {
             $settings = new NewSettings();
+            $section = $request->input('section', 'operations');
 
-            // Validate the request
-            $request->validate([
-                'warrenty_period' => 'nullable|numeric|min:0',
-                'bank_transfer_data' => 'nullable|string',
-                'sadad_transfer_data' => 'nullable|string',
-                'order_expiration_hours' => 'nullable|integer|min:1|max:720',
-                'popup_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            ]);
+            $this->validateSectionRequest($request, $section);
 
             DB::beginTransaction();
 
-            // Save show_popup setting
-            $show_popup = $request->has('show_popup') ? '1' : '0';
-            $settings->setSetting('show_popup', $show_popup);
-
-            // Save other text fields
-            $text_fields = [
-                'warrenty_period',
-                'bank_transfer_data',
-                'sadad_transfer_data',
-            ];
-
-            foreach ($text_fields as $field) {
-                if ($request->has($field)) {
-                    $settings->setSetting($field, $request->$field);
-                }
-            }
-
-            if ($request->filled('order_expiration_hours')) {
-                \App\Models\ingaz\Setting::setValue('order_expiration_hours', $request->order_expiration_hours, 'orders');
-            }
-
-            // Handle popup image upload
-            if ($request->hasFile('popup_image')) {
-                $file = $request->file('popup_image');
-
-                // Delete old image if exists
-                $old_image = $settings->getSetting('popup_image');
-                if ($old_image) {
-                    Storage::delete('public/' . $old_image);
-                }
-
-                // Store new image
-                $path = $file->store('images/settings', 'public');
-                $settings->setSetting('popup_image', $path);
+            if ($section === 'announcements') {
+                $this->storeAnnouncementsSettings($request, $settings);
+            } else {
+                $this->storeOperationsSettings($request, $settings);
             }
 
             DB::commit();
+            if ($section !== 'announcements') {
+                $this->refreshAutomationDrivenData();
+            }
             Log::info('Settings updated successfully');
-            return redirect()->back()->with('success', __('admin.settings_updated_successfully'));
+            return redirect($this->resolveRedirectRoute($section))->with('success', __('admin.settings_updated_successfully'));
 
         } catch (\Exception $e) {
-            DB::rollBack();
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
             Log::error('Error updating settings: ' . $e->getMessage());
             return redirect()->back()->with('error', __('admin.settings_update_failed'))->withInput();
+        }
+    }
+
+    private function renderOperationsView()
+    {
+        $data = $this->getSettingsPayload();
+
+        // For debugging purposes
+        Log::info('Settings loaded:', $data);
+
+        return view('admin.settings.index', compact('data'));
+    }
+
+    private function getSettingsPayload(): array
+    {
+        $settings = new NewSettings();
+        $fields = [
+            'bank_transfer_data',
+            'sadad_transfer_data',
+            'show_popup',
+            'popup_image',
+        ];
+
+        $data = [];
+        foreach ($fields as $field) {
+            $data[$field] = $settings->getSetting($field);
+        }
+
+        return array_merge($data, AutomationSettings::all());
+    }
+
+    private function validateSectionRequest(Request $request, string $section): void
+    {
+        if ($section === 'announcements') {
+            $request->validate([
+                'section' => 'required|in:announcements',
+                'popup_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            ]);
+
+            return;
+        }
+
+        $request->validate([
+            'section' => 'required|in:operations',
+            'warranty_period_days' => 'required|integer|min:1|max:3650',
+            'order_expiration_hours' => 'required|integer|min:1|max:720',
+            'order_new_deadline_hours' => 'required|integer|min:1|max:720',
+            'order_under_process_deadline_hours' => 'required|integer|min:1|max:720',
+            'order_urgent_threshold_hours' => 'required|integer|min:1|max:720',
+            'old_pending_orders_days' => 'required|integer|min:1|max:3650',
+            'warranty_status_update_time' => 'required|date_format:H:i',
+            'warranty_initialize_interval_hours' => 'required|integer|min:1|max:24',
+            'orders_timer_interval_minutes' => 'required|integer|min:1|max:60',
+            'orders_expired_handler_interval_minutes' => 'required|integer|min:1|max:60',
+            'orders_auto_cancel_interval_minutes' => 'required|integer|min:1|max:60',
+            'bank_transfer_data' => 'nullable|string',
+            'sadad_transfer_data' => 'nullable|string',
+        ]);
+    }
+
+    private function storeOperationsSettings(Request $request, NewSettings $settings): void
+    {
+        foreach (['bank_transfer_data', 'sadad_transfer_data'] as $field) {
+            if ($request->has($field)) {
+                $settings->setSetting($field, $request->$field);
+            }
+        }
+
+        AutomationSettings::persist($request->only(AutomationSettings::keys()));
+    }
+
+    private function storeAnnouncementsSettings(Request $request, NewSettings $settings): void
+    {
+        $show_popup = $request->has('show_popup') ? '1' : '0';
+        $settings->setSetting('show_popup', $show_popup);
+
+        if ($request->hasFile('popup_image')) {
+            $file = $request->file('popup_image');
+
+            $old_image = $settings->getSetting('popup_image');
+            if ($old_image) {
+                Storage::delete('public/' . $old_image);
+            }
+
+            $path = $file->store('images/settings', 'public');
+            $settings->setSetting('popup_image', $path);
+        }
+    }
+
+    private function resolveRedirectRoute(string $section): string
+    {
+        return $section === 'announcements'
+            ? route('dash.settings.announcements')
+            : route('dash.settings');
+    }
+
+    private function refreshAutomationDrivenData(): void
+    {
+        foreach ([
+            'contracts:initialize-warranty',
+            'orders:update-expiration',
+            'orders:update-timer',
+        ] as $command) {
+            try {
+                $exitCode = Artisan::call($command);
+
+                if ($exitCode !== 0) {
+                    Log::warning('Automation refresh command returned a non-zero exit code', [
+                        'command' => $command,
+                        'exit_code' => $exitCode,
+                    ]);
+                }
+            } catch (\Throwable $exception) {
+                Log::warning('Automation refresh command failed', [
+                    'command' => $command,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
         }
     }
 

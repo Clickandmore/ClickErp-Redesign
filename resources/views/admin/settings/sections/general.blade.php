@@ -49,6 +49,52 @@
         </div>
 
         <div class="col-12">
+            <h6 class="text-muted mb-2">هوية النماذج والعقود</h6>
+            <div class="row g-3">
+                @foreach (config('translatable.locales') as $locale)
+                    <div class="col-md-6">
+                        <label class="form-label">اسم الشركة على النماذج {{ getFieldLanguage($locale) }}</label>
+                        <input type="text" name="document_company_name:{{ $locale }}" class="form-control"
+                               value="{{ $settings->translate($locale)->document_company_name ?? '' }}"
+                               placeholder="مثال: شركة بلاتنيوم الشرقية للاستقدام">
+                    </div>
+                @endforeach
+
+                @foreach (config('translatable.locales') as $locale)
+                    <div class="col-md-6">
+                        <label class="form-label">اسم المكتب على النماذج {{ getFieldLanguage($locale) }}</label>
+                        <input type="text" name="document_office_name:{{ $locale }}" class="form-control"
+                               value="{{ $settings->translate($locale)->document_office_name ?? '' }}"
+                               placeholder="مثال: مكتب بلاتنيوم الشرقية للاستقدام">
+                    </div>
+                @endforeach
+
+                <div class="col-md-6">
+                    <label class="form-label">لوجو النماذج والعقود</label>
+                    <input type="file" name="document_logo" class="form-control" accept="image/*">
+                    <small class="text-muted d-block mt-1">عند تركه فارغاً سيتم استخدام لوجو الهدر الحالي.</small>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label d-block">المعاينة الحالية</label>
+                    @php
+                        $documentLogo = showFile($settings->document_logo ?: $settings->logo_header);
+                    @endphp
+                    @if ($documentLogo)
+                        <img src="{{ $documentLogo }}" alt="لوجو النماذج" class="img-fluid rounded border p-2"
+                             style="max-height: 120px;">
+                    @else
+                        <div class="text-muted small">لا يوجد لوجو مخصص للنماذج حالياً.</div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <hr>
+        </div>
+
+        <div class="col-12">
             <h6 class="text-muted mb-2">بيانات التواصل</h6>
             <div class="row g-3">
                 <div class="col-md-6 col-xl-4">

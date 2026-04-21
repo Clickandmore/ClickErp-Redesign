@@ -36,6 +36,10 @@ class SettingAction extends MainAction
             $image = $data['cover_image'];
             $data['cover_image'] = uploadFile($image, $this->fileFolder, 1);
         }
+        if ($request->hasFile('admin_login_background')) {
+            $image = $data['admin_login_background'];
+            $data['admin_login_background'] = uploadFile($image, $this->fileFolder, 1);
+        }
         if ($request->hasFile('light_image')) {
             $image = $data['light_image'];
             $data['light_image'] = uploadFile($image, $this->fileFolder, 1);
@@ -51,10 +55,17 @@ class SettingAction extends MainAction
             $data['second_qr_image'] = uploadFile($image, $this->fileFolder, 1);
         }
 
-
-        if ($request->hasFile('')) {
+        if ($request->hasFile('logo_header')) {
             $image = $data['logo_header'];
             $data['logo_header'] = uploadFile($image, $this->fileFolder, 1);
+        }
+        if ($request->hasFile('document_logo')) {
+            $image = $data['document_logo'];
+            $data['document_logo'] = uploadFile($image, $this->fileFolder, 1);
+        }
+        if ($request->hasFile('admin_logo')) {
+            $image = $data['admin_logo'];
+            $data['admin_logo'] = uploadFile($image, $this->fileFolder, 1);
         }
         if ($request->hasFile('about_image')) {
             $image = $data['about_image'];
@@ -90,6 +101,11 @@ class SettingAction extends MainAction
             $image = $data['cover_image'];
             $data['cover_image'] = uploadFile($image, $this->fileFolder, 1);
         }
+        if (isset($data['admin_login_background']) && $data['admin_login_background'] instanceof \Illuminate\Http\UploadedFile) {
+            deleteFile($setting->admin_login_background);
+            $image = $data['admin_login_background'];
+            $data['admin_login_background'] = uploadFile($image, $this->fileFolder, 1);
+        }
         if (isset($data['light_image']) && $data['light_image'] instanceof \Illuminate\Http\UploadedFile) {
             deleteFile($setting->light_image);
             $image = $data['light_image'];
@@ -114,6 +130,16 @@ class SettingAction extends MainAction
             deleteFile($setting->logo_header);
             $image = $data['logo_header'];
             $data['logo_header'] = uploadFile($image, $this->fileFolder, 1);
+        }
+        if (isset($data['document_logo']) && $data['document_logo'] instanceof \Illuminate\Http\UploadedFile) {
+            deleteFile($setting->document_logo);
+            $image = $data['document_logo'];
+            $data['document_logo'] = uploadFile($image, $this->fileFolder, 1);
+        }
+        if (isset($data['admin_logo']) && $data['admin_logo'] instanceof \Illuminate\Http\UploadedFile) {
+            deleteFile($setting->admin_logo);
+            $image = $data['admin_logo'];
+            $data['admin_logo'] = uploadFile($image, $this->fileFolder, 1);
         }
         if (isset($data['logo_footer']) && $data['logo_footer'] instanceof \Illuminate\Http\UploadedFile) {
             deleteFile($setting->logo_footer);

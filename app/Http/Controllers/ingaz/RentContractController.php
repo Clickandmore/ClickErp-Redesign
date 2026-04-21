@@ -1725,6 +1725,15 @@ class RentContractController extends Controller
                 $contractSettings[$key] = $setting ? $setting->value : null;
             }
 
+            $contractSettings['company_name'] = documentSetting(
+                'document_company_name',
+                $contractSettings['company_name'] ?? 'شركة بلاتنيوم الشرقية للاستقدام'
+            );
+            $contractSettings['address'] = $contractSettings['address'] ?: documentSetting('location', 'الرياض');
+            $contractSettings['phone'] = $contractSettings['phone'] ?: documentSetting('phone', '');
+            $contractSettings['email'] = $contractSettings['email'] ?: documentSetting('email', '');
+            $contractSettings['logo'] = documentSetting('document_logo', $contractSettings['logo'] ?? null);
+
             // Get contract terms from database
             $termsPage1 = collect(); // Empty collection for now
             $termsPage2 = collect();

@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Models\Contract;
 use App\Models\TravelHistory;
+use App\Support\AutomationSettings;
 use Carbon\Carbon;
 
 class UpdateWarrantyStatus extends Command
@@ -40,6 +41,7 @@ class UpdateWarrantyStatus extends Command
     public function handle()
     {
         $this->info('Starting warranty status update...');
+        $warrantyPeriodDays = AutomationSettings::warrantyPeriodDays();
 
         // جلب العقود في مرحلة الوصول أو المكتملة التي قد تحتاج إعادة تقييم
         $contracts = Contract::whereIn('status', [
@@ -77,7 +79,7 @@ class UpdateWarrantyStatus extends Command
                     continue;
                 }
 
-                $warrantyEndDate = $arrivalDateTime->copy()->addDays(90);
+                $warrantyEndDate = $arrivalDateTime->copy()->addDays($warrantyPeriodDays);
 
                 $updates = [
                     'warranty_start_date' => $arrivalDateTime,

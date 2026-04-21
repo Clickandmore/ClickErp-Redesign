@@ -77,7 +77,7 @@
 
     <!-- Footer -->
     <div class="footer">
-        &copy; {{ date('Y') }} شركتك. جميع الحقوق محفوظة.
+        &copy; {{ date('Y') }} {{ config('app.name') }}. جميع الحقوق محفوظة.
     </div>
 </div>
 

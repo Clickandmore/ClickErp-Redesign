@@ -16,6 +16,7 @@ use App\Models\ingaz\MaidJobTitles;
 use App\Models\ingaz\OrderDetail;
 use App\Http\Controllers\Controller;
 use App\Models\ingaz\OrderTransfers;
+use App\Support\AutomationSettings;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use App\Models\ingaz\Order as objModel;
@@ -117,17 +118,18 @@ class RentalOrderController extends Controller
 
             // Apply timer status filter
             if ($request->filled('timer_status')) {
-                $query->where(function($q) use ($request) {
+                $urgentThresholdHours = AutomationSettings::orderUrgentThresholdHours();
+                $query->where(function($q) use ($request, $urgentThresholdHours) {
                     switch ($request->timer_status) {
                         case 'overdue':
                             $q->where('deadline_at', '<', now());
                             break;
                         case 'urgent':
                             $q->where('deadline_at', '>', now())
-                              ->where('deadline_at', '<', now()->addHours(2));
+                              ->where('deadline_at', '<', now()->addHours($urgentThresholdHours));
                             break;
                         case 'normal':
-                            $q->where('deadline_at', '>', now()->addHours(2));
+                            $q->where('deadline_at', '>', now()->addHours($urgentThresholdHours));
                             break;
                     }
                 });

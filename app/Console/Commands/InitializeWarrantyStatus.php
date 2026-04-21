@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Models\Contract;
 use App\Models\TravelHistory;
+use App\Support\AutomationSettings;
 use Carbon\Carbon;
 
 class InitializeWarrantyStatus extends Command
@@ -30,6 +31,7 @@ class InitializeWarrantyStatus extends Command
     public function handle()
     {
         $this->info('Initializing warranty status for arrival and completed contracts...');
+        $warrantyPeriodDays = AutomationSettings::warrantyPeriodDays();
 
         // جلب جميع العقود في الوصول أو المكتملة
         $contracts = Contract::whereIn('status', [
@@ -65,7 +67,7 @@ class InitializeWarrantyStatus extends Command
                     continue;
                 }
 
-                $warrantyEndDate = $arrivalDateTime->copy()->addDays(90);
+                $warrantyEndDate = $arrivalDateTime->copy()->addDays($warrantyPeriodDays);
 
                 // تحديث تواريخ الضمان في العقد
                 $contract->warranty_start_date = $arrivalDateTime;
@@ -89,7 +91,7 @@ class InitializeWarrantyStatus extends Command
                 // محاولة الحصول على تاريخ الوصول من معلومات العقد
                 if ($contract->info && $contract->info->arrival_date) {
                     $arrivalDate = Carbon::parse($contract->info->arrival_date);
-                    $warrantyEndDate = $arrivalDate->copy()->addDays(90);
+                    $warrantyEndDate = $arrivalDate->copy()->addDays($warrantyPeriodDays);
 
                     $contract->warranty_start_date = $arrivalDate;
                     $contract->warranty_end_date = $warrantyEndDate;
@@ -106,11 +108,11 @@ class InitializeWarrantyStatus extends Command
                         $this->info("Contract {$contract->id}: Warranty active (from contract info) until {$warrantyEndDate->format('Y-m-d')}");
                     }
                 } else {
-                    // إذا لم نجد أي تاريخ وصول، نفترض أن الضمان انتهى إذا مر أكثر من 90 يوم على إكمال العقد
+                    // إذا لم نجد أي تاريخ وصول، نفترض أن الضمان انتهى إذا مر أكثر من مدة الضمان على إكمال العقد
                     $completedDate = $contract->updated_at;
                     $daysSinceCompleted = $completedDate->diffInDays(now());
 
-                    if ($daysSinceCompleted > 90) {
+                    if ($daysSinceCompleted > $warrantyPeriodDays) {
                         $contract->status = ContractStatusEnum::Completed->value;
                         $contract->warranty_status = 'expired';
                         $expiredCount++;
@@ -120,7 +122,7 @@ class InitializeWarrantyStatus extends Command
                         $contract->status = ContractStatusEnum::Arrival->value;
                         $contract->warranty_status = 'active';
                         $contract->warranty_start_date = $completedDate;
-                        $contract->warranty_end_date = $completedDate->copy()->addDays(90);
+                        $contract->warranty_end_date = $completedDate->copy()->addDays($warrantyPeriodDays);
                         $activeCount++;
                         $this->info("Contract {$contract->id}: Warranty active (estimated from completion date)");
                     }

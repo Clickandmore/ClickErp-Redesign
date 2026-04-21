@@ -33,6 +33,16 @@
                 <div class="col-md-6 col-xl-4">
                     <div class="card h-100">
                         <div class="card-body">
+                            <h6 class="mb-2">لوجو شاشة تسجيل الدخول للإدارة</h6>
+                            <p class="text-muted small mb-2">يُستخدم فقط في شاشة <code>/dashboard/login</code>.</p>
+                            <input type="file" data-default-file="{{ showFile($settings->admin_logo) ?? '' }}"
+                                   name="admin_logo" class="dropify">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-4">
+                    <div class="card h-100">
+                        <div class="card-body">
                             <h6 class="mb-2">الفيف أيكون</h6>
                             <input type="file" data-default-file="{{ showFile($settings->favicon) ?? '' }}"
                                    name="favicon" class="dropify">
@@ -82,6 +92,16 @@
                             <h6 class="mb-2">صورة غلاف صفحة السير الذاتية</h6>
                             <input type="file" data-default-file="{{ showFile($settings->cover_image) ?? '' }}"
                                    name="cover_image" class="dropify">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-xl-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="mb-2">خلفية شاشة تسجيل الدخول للإدارة</h6>
+                            <p class="text-muted small mb-2">تظهر في صفحة <code>/dashboard/login</code> فقط.</p>
+                            <input type="file" data-default-file="{{ showFile($settings->admin_login_background) ?? '' }}"
+                                   name="admin_login_background" class="dropify">
                         </div>
                     </div>
                 </div>

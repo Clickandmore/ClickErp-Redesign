@@ -504,20 +504,24 @@ class InvoiceController extends Controller
         ])->findOrFail($id);
 
         $settings = Setting::query()->first();
-        $settingsLogo = ($settings && $settings->logo_header) ? showFile($settings->logo_header) : null;
+        $documentBranding = documentBranding();
+        $settingsLogo = documentLogoUrl();
         $settingsZatcaLogo = ($settings && $settings->zatch_logo) ? showFile($settings->zatch_logo) : null;
         $settingsQr = ($settings && $settings->qr_image) ? showFile($settings->qr_image) : null;
         $settingsSecondQr = ($settings && $settings->second_qr_image) ? showFile($settings->second_qr_image) : null;
 
-        $supplierName = (string) ($settings?->website_name ?: 'شركة بلاتنيوم الشرقية للاستقدام');
+        $supplierName = (string) documentSetting('document_company_name', $settings?->website_name ?: 'شركة بلاتنيوم الشرقية للاستقدام');
         $supplierAddress = (string) ($settings?->location ?: 'الرياض، المملكة العربية السعودية');
         $supplierPhone = (string) ($settings?->phone ?: '-');
         $supplierOtherPhone = (string) ($settings?->other_phone ?: '-');
         $supplierEmail = (string) ($settings?->email ?: '-');
         $supplierTaxNumber = (string) ($settings?->tax_number ?: '314232024200003');
-        $supplierLogo = $settingsLogo ?: asset('admin/assets/img/company_logo.png');
+        $supplierLogo = $settingsLogo ?: $documentBranding['logo_url'];
         $zatcaLogo = $settingsZatcaLogo ?: asset('site/assets/images/zatca-logo.png');
         $qrImage = $settingsQr ?: ($settingsSecondQr ?: asset('site/assets/images/qr1.png'));
+        $invoiceTitle = (string) documentSetting('invoice_title', 'فاتورة ضريبية مبسطة');
+        $invoiceSubtitle = (string) documentSetting('invoice_subtitle', 'Simplified Tax Invoice');
+        $invoiceFooterText = (string) replaceDocumentPlaceholders(documentSetting('invoice_footer_text', ''));
 
         $serviceDesc = 'طلب تعاقد';
         $serviceLongDescription = $this->buildServiceDescription($invoice);
@@ -559,6 +563,9 @@ class InvoiceController extends Controller
             'supplierEmail' => $supplierEmail,
             'supplierTaxNumber' => $supplierTaxNumber,
             'supplierLogo' => $supplierLogo,
+            'invoiceTitle' => $invoiceTitle,
+            'invoiceSubtitle' => $invoiceSubtitle,
+            'invoiceFooterText' => $invoiceFooterText,
             'zatcaLogo' => $zatcaLogo,
             'qrImage' => $qrImage,
             'serviceDesc' => $serviceDesc,

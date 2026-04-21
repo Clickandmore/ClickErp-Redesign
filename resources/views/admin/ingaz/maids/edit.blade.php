@@ -120,7 +120,7 @@
                             <option value="0">لا - لا تسكين</option>
                             <option value="1">نعم - تسكين للإيواء</option>
                         </select>
-                        <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم شركة بلاتنيوم الشرقية</small>
+                        <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم {{ documentSetting('document_company_name', 'شركة بلاتنيوم الشرقية') }}</small>
                     </div>
 
                     <!-- الوظائف -->

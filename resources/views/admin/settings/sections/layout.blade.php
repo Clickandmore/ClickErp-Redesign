@@ -56,7 +56,10 @@
     @php
         $activeSection = $activeSection ?? request()->route('section');
         if (!$activeSection && Route::currentRouteName() === 'dash.settings') {
-            $activeSection = 'additional';
+            $activeSection = 'operations';
+        }
+        if (!$activeSection && Route::currentRouteName() === 'dash.settings.announcements') {
+            $activeSection = 'announcements';
         }
         $activeSection = $activeSection ?: 'general';
     @endphp
@@ -87,8 +90,11 @@
                     <a class="nav-link {{ $activeSection === 'policies' ? 'active' : '' }}" href="{{ route('settings.section', 'policies') }}">
                         <span class="fw-semibold">{{ __('admin.settings_section_policies') }}</span>
                     </a>
-                    <a class="nav-link {{ $activeSection === 'additional' ? 'active' : '' }}" href="{{ route('dash.settings') }}">
+                    <a class="nav-link {{ $activeSection === 'operations' ? 'active' : '' }}" href="{{ route('dash.settings') }}">
                         <span class="fw-semibold">{{ __('admin.settings_section_additional') }}</span>
+                    </a>
+                    <a class="nav-link {{ $activeSection === 'announcements' ? 'active' : '' }}" href="{{ route('dash.settings.announcements') }}">
+                        <span class="fw-semibold">{{ __('admin.settings_section_announcements') }}</span>
                     </a>
                 </nav>
             </div>

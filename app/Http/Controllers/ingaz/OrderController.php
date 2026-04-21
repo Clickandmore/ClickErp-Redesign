@@ -16,6 +16,7 @@ use App\Models\ingaz\UserAddress;
 use App\Models\ingaz\MaidJobTitles;
 use App\Http\Controllers\Controller;
 use App\Models\ingaz\OrderTransfers;
+use App\Support\AutomationSettings;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Validation\Rule;
@@ -138,17 +139,18 @@ class OrderController extends Controller
 
             // Apply timer status filter
             if ($request->filled('timer_status')) {
-                $query->where(function ($q) use ($request) {
+                $urgentThresholdHours = AutomationSettings::orderUrgentThresholdHours();
+                $query->where(function ($q) use ($request, $urgentThresholdHours) {
                     switch ($request->timer_status) {
                         case 'overdue':
                             $q->where('deadline_at', '<', now());
                             break;
                         case 'urgent':
                             $q->where('deadline_at', '>', now())
-                                ->where('deadline_at', '<', now()->addHours(2));
+                                ->where('deadline_at', '<', now()->addHours($urgentThresholdHours));
                             break;
                         case 'normal':
-                            $q->where('deadline_at', '>', now()->addHours(2));
+                            $q->where('deadline_at', '>', now()->addHours($urgentThresholdHours));
                             break;
                     }
                 });
@@ -498,11 +500,9 @@ class OrderController extends Controller
             $order->status = $newStatus;
             $order->status_changed_at = now();
 
-            if ($newStatus === OrderEnum::New->value) {
-                $order->deadline_at = now()->addHours(24);
-            } elseif ($newStatus === OrderEnum::UnderProcess->value) {
-                $order->deadline_at = now()->addHours(48);
-            }
+            $order->deadline_at = $order->getDeadlineHours() > 0
+                ? now()->addHours($order->getDeadlineHours())
+                : null;
 
             if ($this->isRefusalStatus($newStatus)) {
                 $order->refuse_reason = $this->resolveRefuseReason($validated['refuse_reason'] ?? null, $newStatus);
@@ -1176,8 +1176,8 @@ class OrderController extends Controller
     private function getTimerPhaseLabel(?string $status): string
     {
         return match ($status) {
-            OrderEnum::New->value => __('ingaz.timer_phase_new'),
-            OrderEnum::UnderProcess->value => __('ingaz.timer_phase_under_process'),
+            OrderEnum::New->value => __('ingaz.timer_phase_new_base') . ' (' . AutomationSettings::orderNewDeadlineHours() . ' ' . __('ingaz.hours') . ')',
+            OrderEnum::UnderProcess->value => __('ingaz.timer_phase_under_process_base') . ' (' . AutomationSettings::orderUnderProcessDeadlineHours() . ' ' . __('ingaz.hours') . ')',
             default => __('ingaz.timer_phase_default'),
         };
     }

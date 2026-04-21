@@ -35,9 +35,16 @@ Route::group(
         Route::group(["namespace" => "admin\\auth",'prefix' =>"dashboard"], function () {
             Route::get('login', 'AdminController@formLogin')->name("admin.form.login");
             Route::post('/login', 'AdminController@login')->name('admin.login');
+            Route::get('forgot-password', 'ForgotPasswordController@create')->name('admin.password.request');
+            Route::post('forgot-password', 'ForgotPasswordController@store')->name('admin.password.email');
+            Route::get('reset-password', 'ResetPasswordController@edit')->name('admin.password.reset');
+            Route::post('reset-password', 'ResetPasswordController@update')->name('admin.password.update');
             Route::get('/logout', 'AdminController@logout')->name('admin.logout');
         });
     Route::group(["middleware" => "admin",'prefix'=>"dashboard"], function () {
+        Route::get('reports', function () {
+            return redirect()->route('reports.index');
+        })->name('dashboard.reports.index');
 
         Route::group(["namespace" => "admin"], function () {
 

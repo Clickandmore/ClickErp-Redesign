@@ -295,17 +295,17 @@
 
     <!-- العلامة المائية -->
     <div class="watermark">
-        <img src="{{ isset($settings) && !empty($settings->logo_header) ? showFile($settings->logo_header) : asset('admin/assets/img/company_logo.png') }}" alt="Logo" style="width: 100%; height: 100%; opacity: 0.1;">
+        <img src="{{ documentLogoUrl(asset('admin/assets/img/company_logo.png')) }}" alt="Logo" style="width: 100%; height: 100%; opacity: 0.1;">
     </div>
 
     <div class="contract-container">
         <!-- رأس العقد -->
         <div class="header">
             <div class="logo-container">
-                <img src="{{ isset($settings) && !empty($settings->logo_header) ? showFile($settings->logo_header) : asset('admin/assets/img/company_logo.png') }}" alt="شعار الشركة">
+                <img src="{{ documentLogoUrl(asset('admin/assets/img/company_logo.png')) }}" alt="شعار الشركة">
             </div>
             <h1>عقد نقل كفالة العمالة المنزلية</h1>
-            <p style="font-size: 14pt; margin: 5px 0;">{{ $contractSettings['company_name'] ?? 'شركة بلاتينيوم الشرقية للاستقدام' }}</p>
+            <p style="font-size: 14pt; margin: 5px 0;">{{ documentSetting('document_company_name', $contractSettings['company_name'] ?? 'شركة بلاتينيوم الشرقية للاستقدام') }}</p>
             <p style="font-size: 12pt; color: #666;">ترخيص رقم: {{ $contractSettings['license_number'] ?? '1234567890' }}</p>
             <p style="font-size: 11pt; color: #888;">{{ $contractSettings['address'] ?? 'الرياض، المملكة العربية السعودية' }}</p>
         </div>
@@ -411,7 +411,7 @@
         <div class="signatures-section">
             <div style="margin-top: 40px;">
                 <div style="font-weight: bold; margin-bottom: 20px;">أطراف العقد:</div>
-                <div>الطرف الأول: {{ $contractSettings['company_name'] ?? 'شركة بلاتينيوم الشرقية للاستقدام' }}</div>
+                <div>الطرف الأول: {{ documentSetting('document_company_name', $contractSettings['company_name'] ?? 'شركة بلاتينيوم الشرقية للاستقدام') }}</div>
                 <div>الطرف الثاني: {{ $transfer->newSponsor->name ?? '[اسم_العميل]' }}</div>
 
                 <!-- قسم التوقيع -->
@@ -463,7 +463,7 @@
                 <div style="margin-top: 50px; display: flex; justify-content: space-between;">
                     <div style="text-align: center; width: 45%;">
                         <div style="border-top: 1px solid #000; padding-top: 10px; margin-top: 50px;">
-                            <strong>{{ $contractSettings['company_name'] ?? 'شركة بلاتينيوم الشرقية للاستقدام' }}</strong><br>
+                            <strong>{{ documentSetting('document_company_name', $contractSettings['company_name'] ?? 'شركة بلاتينيوم الشرقية للاستقدام') }}</strong><br>
                             الطرف الأول
                         </div>
                     </div>

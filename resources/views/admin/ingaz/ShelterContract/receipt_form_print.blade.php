@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>نموذج استلام عاملة وتعهد</title>
+    <title>{{ documentSetting('shelter_receipt_title', 'استلام عاملة وتعهد') }}</title>
     <style>
         :root {
             --bg: #f4f7fb;
@@ -291,10 +291,22 @@
 
 <body>
     @php
-        $logoPath = public_path('admin/assets/img/company_logo.png');
-        $defaultReceiptText = 'كما أتعهد في حالة نقل خدمات العاملة إلى صاحب عمل آخر بإخطار مكتب / شركة بلاتنيوم الشرقية للاستقدام وتزويده كتابياً بكافة بيانات صاحب العمل الجديد من اسم وهوية وعنوان ورقم جوال. وفي حال عدم القيام بذلك أتحمل كامل المسؤولية عن أي مطالبات أو التزامات تخص العاملة.';
-        $defaultSettlementText = 'كما أتعهد بتسليم العاملة كافة مستحقاتها وإثبات ذلك بمخالصة رسمية تفيد باستلامها جميع رواتبها ومستحقاتها وعدم مطالبتها بأي حق، وذلك وفق النموذج المعتمد لدى الجهات الرسمية.';
+        $documentBranding = documentBranding();
+        $documentTitle = documentSetting('shelter_receipt_title', 'استلام عاملة وتعهد');
+        $documentSubtitle = documentSetting('shelter_receipt_subtitle', 'نموذج تسليم لحالات الإيواء');
+        $documentCompanyName = $document_company_name ?? $documentBranding['company_name'];
+        $documentOfficeName = $document_office_name ?? $documentBranding['office_name'];
+        $logoPath = documentLogoPath() ?: public_path('admin/assets/img/company_logo.png');
+        $defaultReceiptText = replaceDocumentPlaceholders((string) documentSetting(
+            'shelter_receipt_default_text',
+            'كما أتعهد في حالة نقل خدمات العاملة إلى صاحب عمل آخر بإخطار [اسم_المكتب] وتزويده كتابياً بكافة بيانات صاحب العمل الجديد من اسم وهوية وعنوان ورقم جوال. وفي حال عدم القيام بذلك أتحمل كامل المسؤولية عن أي مطالبات أو التزامات تخص العاملة.'
+        ));
+        $defaultSettlementText = replaceDocumentPlaceholders((string) documentSetting(
+            'shelter_receipt_default_settlement_text',
+            'كما أتعهد بتسليم العاملة كافة مستحقاتها وإثبات ذلك بمخالصة رسمية تفيد باستلامها جميع رواتبها ومستحقاتها وعدم مطالبتها بأي حق، وذلك وفق النموذج المعتمد لدى الجهات الرسمية.'
+        ));
         $receiptText = trim((string) $text_receipt);
+        $documentFooterNote = $document_footer_note ?? $documentBranding['footer_note'];
     @endphp
 
     <div class="page-shell">
@@ -306,11 +318,11 @@
         <div class="paper">
             <div class="header">
                 @if (file_exists($logoPath))
-                    <img src="{{ $logoPath }}" alt="شركة بلاتينيوم">
+                    <img src="{{ $logoPath }}" alt="{{ $documentCompanyName }}">
                 @endif
-                <p class="company">مكتب / شركة بلاتنيوم الشرقية للاستقدام</p>
-                <h1 class="title">استلام عاملة وتعهد</h1>
-                <p class="subtitle">نموذج تسليم لحالات الإيواء</p>
+                <p class="company">{{ $documentCompanyName }}</p>
+                <h1 class="title">{{ $documentTitle }}</h1>
+                <p class="subtitle">{{ $documentSubtitle }}</p>
             </div>
 
             <div class="content">
@@ -359,7 +371,7 @@
                         </tr>
                         <tr>
                             <td class="intro-label">من جهة</td>
-                            <td class="intro-value"><strong>مكتب / شركة بلاتنيوم الشرقية للاستقدام</strong></td>
+                            <td class="intro-value"><strong>{{ $documentOfficeName }}</strong></td>
                         </tr>
                         <tr>
                             <td class="intro-label">بتاريخ</td>
@@ -397,7 +409,7 @@
                 </table>
 
                 <div class="footer-note">
-                    عند الضغط على الطباعة أو الحفظ سيتم فتح نسخة طباعة مستقلة ومنسقة للطابعة.
+                    {{ $documentFooterNote }}
                 </div>
 
                 <div class="meta-footer">
@@ -405,7 +417,7 @@
                         <tr>
                             <td>
                                 <span class="meta-title">الجهة المتعاقدة</span>
-                                <span class="field-value" dir="auto">مكتب / شركة بلاتنيوم الشرقية للاستقدام</span>
+                                <span class="field-value" dir="auto">{{ $documentCompanyName }}</span>
                             </td>
                             <td>
                                 <span class="meta-title">تاريخ الاستلام / العقد</span>

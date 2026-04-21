@@ -58,22 +58,25 @@
                 $sariStatus = \App\Enums\ingaz\ContractStatusEnum::Sari;
                 $closedStatus = \App\Enums\ingaz\ContractStatusEnum::Closed;
                 $completedStatus = \App\Enums\ingaz\ContractStatusEnum::Completed;
-                $contractsCount = array_merge([
-                    'new' => 0,
-                    'msaned' => 0,
-                    'tafwed' => 0,
-                    'taffez' => 0,
-                    'tazker' => 0,
-                    'under_warranty' => 0,
-                    'back' => 0,
-                    'arrival' => 0,
-                    'closed' => 0,
-                    'completed' => 0,
-                    'pending_maid_selection' => 0,
-                    'all' => 0,
-                    'are_valid' => 0,
-                    'external_office_dispatch_pending' => 0,
-                ], $contractsCount ?? []);
+                $contractsCount = array_merge(
+                    [
+                        'new' => 0,
+                        'msaned' => 0,
+                        'tafwed' => 0,
+                        'taffez' => 0,
+                        'tazker' => 0,
+                        'under_warranty' => 0,
+                        'back' => 0,
+                        'arrival' => 0,
+                        'closed' => 0,
+                        'completed' => 0,
+                        'pending_maid_selection' => 0,
+                        'all' => 0,
+                        'are_valid' => 0,
+                        'external_office_dispatch_pending' => 0,
+                    ],
+                    $contractsCount ?? [],
+                );
 
                 $canViewCrmModule = @AdminGuardHasPerm(\App\PermKeys::CRM_MODULE);
                 $canViewHrModule = @AdminGuardCanViewPackageModule('hr');
@@ -97,6 +100,7 @@
 
                 $canViewComplaints = @AdminGuardHasPerm(\App\PermKeys::COMPLAINT_VIEW);
                 $canViewSponsorshipTransfer = @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_VIEW);
+                $canViewReports = @AdminGuardHasAnyPerm([\App\PermKeys::MAIDS_EXPORT, \App\PermKeys::MAIDS_EXPORT_PDF, \App\PermKeys::MAIDS_EXPORT_EXCEL, \App\PermKeys::ORDERS_EXPORT, \App\PermKeys::REC_CONTRACTS_EXPORT, \App\PermKeys::RENT_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_VIEW, \App\NewPermKeys::REC_CONTRACTS_EXPORT, \App\NewPermKeys::REPORTS_EXPORT]);
 
                 $canViewOperations =
                     $canViewCv ||
@@ -138,6 +142,7 @@
                         </a>
                     </li>
                 @endif
+
                 @php
                     $supportedLocales = array_keys(config('laravellocalization.supportedLocales', []));
                     $firstSegment = request()->segment(1);
@@ -880,6 +885,15 @@
                                     </ul>
                                 </li>
                             @endif
+                            @if ($canViewReports)
+                                <li>
+                                    <a class="m-link {{ request()->routeIs('reports.*') ? 'active' : '' }}"
+                                        href="{{ route('reports.index') }}">
+                                        <i class="fa fa-chart-pie me-2"></i>
+                                        <span class="ms-2">إدارة التقارير</span>
+                                    </a>
+                                </li>
+                            @endif
                             <!-- Settings Section -->
                             {{-- <li class="divider py-2 lh-sm"><span class="small">الإعدادات</span></li> --}}
                             <!-- Maids Settings Section -->
@@ -998,13 +1012,13 @@
                                             request()->routeIs('settings.*') ||
                                             request()->routeIs('about-us.*') ||
                                             request()->routeIs('questions.*') ||
-                                            request()->routeIs('dash.settings');
+                                            request()->routeIs('dash.settings*');
                                     @endphp
                                     <ul class="sub-menu collapse {{ $websiteManagementOpen ? 'show' : '' }}"
                                         id="websiteManagement">
                                         @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                                             <li>
-                                                <a class="m-link {{ request()->routeIs('settings.*') ? 'active' : '' }}"
+                                                <a class="m-link {{ request()->routeIs('settings.*') || request()->routeIs('dash.settings*') ? 'active' : '' }}"
                                                     href="{{ route('settings.section', 'general') }}">
                                                     <i class="fa fa-cogs"></i>
                                                     <span

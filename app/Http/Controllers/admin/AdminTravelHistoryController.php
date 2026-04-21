@@ -14,6 +14,7 @@ use App\Models\ingaz\Order;
 use App\Models\TravelHistory;
 use App\Models\TravelHistoryFiles;
 use App\Services\ingaz\RecruitmentTripAccountingService;
+use App\Support\AutomationSettings;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -688,7 +689,7 @@ class AdminTravelHistoryController extends Controller
                         $contract->update([
                             'warranty_status' => 'active',
                             'warranty_start_date' => now(),
-                            'warranty_end_date' => now()->addDays(90), // 90 يوم ضمان
+                            'warranty_end_date' => now()->addDays(AutomationSettings::warrantyPeriodDays()),
                         ]);
                     }
 

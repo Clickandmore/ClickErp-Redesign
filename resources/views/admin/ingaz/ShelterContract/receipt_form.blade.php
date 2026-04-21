@@ -4,7 +4,25 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>نموذج استلام عاملة وتعهد</title>
+    @php
+        $documentBranding = documentBranding();
+        $documentTitle = documentSetting('shelter_receipt_title', 'نموذج استلام عاملة وتعهد');
+        $documentSubtitle = documentSetting('shelter_receipt_subtitle', 'نموذج تسليم مخصص لحالات الإيواء');
+        $documentCompanyName = $document_company_name ?? $documentBranding['company_name'];
+        $documentOfficeName = $document_office_name ?? $documentBranding['office_name'];
+        $logoPath = documentLogoPath() ?: public_path('admin/assets/img/company_logo.png');
+        $defaultReceiptText = replaceDocumentPlaceholders((string) documentSetting(
+            'shelter_receipt_default_text',
+            'كما يتعهد صاحب العمل في حالة نقل خدمات العاملة إلى صاحب عمل آخر بإخطار [اسم_المكتب] وتزويده كتابياً بكافة بيانات صاحب العمل الجديد من اسم وهوية وعنوان ورقم جوال. وفي حال عدم القيام بذلك يكون صاحب العمل الأول مسؤولاً مسؤولية كاملة عن كل ما يحدث للعاملة أو أي مطالبات تتقدم بها.'
+        ));
+        $defaultSettlementText = replaceDocumentPlaceholders((string) documentSetting(
+            'shelter_receipt_default_settlement_text',
+            'ويتعهد صاحب العمل بتسليم العاملة كافة مستحقاتها وإثبات ذلك بمخالصة تفيد باستلامها جميع رواتبها ومستحقاتها وعدم مطالبتها بأي حق، وتكون المخالصة حسب النموذج الرسمي المعتمد لدى الملحقية العمالية سواء عادت بعد نهاية عقدها أو قبله.'
+        ));
+        $receiptText = trim((string) $text_receipt);
+        $documentFooterNote = $document_footer_note ?? $documentBranding['footer_note'];
+    @endphp
+    <title>{{ $documentTitle }}</title>
     <style>
         * {
             box-sizing: border-box;
@@ -136,21 +154,14 @@
 </head>
 
 <body>
-    @php
-        $logoPath = public_path('admin/assets/img/company_logo.png');
-        $defaultReceiptText = 'كما يتعهد صاحب العمل في حالة نقل خدمات العاملة إلى صاحب عمل آخر بإخطار مكتب بلاتنيوم الشرقية للاستقدام وتزويده كتابياً بكافة بيانات صاحب العمل الجديد من اسم وهوية وعنوان ورقم جوال. وفي حال عدم القيام بذلك يكون صاحب العمل الأول مسؤولاً مسؤولية كاملة عن كل ما يحدث للعاملة أو أي مطالبات تتقدم بها.';
-        $defaultSettlementText = 'ويتعهد صاحب العمل بتسليم العاملة كافة مستحقاتها وإثبات ذلك بمخالصة تفيد باستلامها جميع رواتبها ومستحقاتها وعدم مطالبتها بأي حق، وتكون المخالصة حسب النموذج الرسمي المعتمد لدى الملحقية العمالية سواء عادت بعد نهاية عقدها أو قبله.';
-        $receiptText = trim((string) $text_receipt);
-    @endphp
-
     <div class="page">
         <div class="header">
             @if (file_exists($logoPath))
-                <img class="logo" src="{{ $logoPath }}" alt="شركة بلاتينيوم">
+                <img class="logo" src="{{ $logoPath }}" alt="{{ $documentCompanyName }}">
             @endif
-            <p class="company-name">مكتب بلاتنيوم الشرقية للاستقدام</p>
-            <h1 class="title">استلام عاملة وتعهد</h1>
-            <p class="subtitle">نموذج تسليم مخصص لحالات الإيواء</p>
+            <p class="company-name">{{ $documentCompanyName }}</p>
+            <h1 class="title">{{ $documentTitle }}</h1>
+            <p class="subtitle">{{ $documentSubtitle }}</p>
         </div>
 
         <h2 class="section-title">بيانات العميل والعاملة</h2>
@@ -185,7 +196,7 @@
             <p>
                 أقر أنا <strong>{{ $client_name ?: '....................' }}</strong>، هوية رقم
                 <strong>{{ $national_identification_number ?: '....................' }}</strong>، بأنني قد استلمت العاملة
-                <strong>{{ $cvs_name ?: '....................' }}</strong> من مكتب بلاتنيوم الشرقية للاستقدام بتاريخ
+                <strong>{{ $cvs_name ?: '....................' }}</strong> من {{ $documentOfficeName }} بتاريخ
                 <strong>{{ $date_receipt ?: '--' }}</strong>.
             </p>
 
@@ -215,7 +226,7 @@
         </table>
 
         <div class="footer-note">
-            تم إنشاء هذا النموذج إلكترونياً بواسطة نظام بلاتنيوم.
+            {{ $documentFooterNote }}
         </div>
     </div>
 </body>

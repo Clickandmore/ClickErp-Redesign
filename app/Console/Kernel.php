@@ -5,9 +5,9 @@ namespace App\Console;
 use App\Enums\ingaz\OrderEnum;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Order;
+use App\Support\AutomationSettings;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
-use App\Http\Controllers\Admin\AdminContractController;
 
 class Kernel extends ConsoleKernel
 {
@@ -20,26 +20,41 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         // $schedule->command('inspire')->hourly();
+        $warrantyUpdateTime = AutomationSettings::warrantyStatusUpdateTime();
+        $warrantyInitializeCron = AutomationSettings::hoursCronExpression(
+            AutomationSettings::warrantyInitializeIntervalHours()
+        );
+        $ordersTimerCron = AutomationSettings::minutesCronExpression(
+            AutomationSettings::ordersTimerIntervalMinutes()
+        );
+        $ordersExpiredHandlerCron = AutomationSettings::minutesCronExpression(
+            AutomationSettings::ordersExpiredHandlerIntervalMinutes()
+        );
+        $ordersAutoCancelCron = AutomationSettings::minutesCronExpression(
+            AutomationSettings::ordersAutoCancelIntervalMinutes()
+        );
+        $orderUrgentThresholdHours = AutomationSettings::orderUrgentThresholdHours();
+        $oldPendingOrdersDays = AutomationSettings::oldPendingOrdersDays();
 
         // ============ تحديثات الضمان ============
 
         // 1. تحديث حالة الضمان للعقود المكتملة يومياً في الساعة 1 صباحاً
         $schedule->command('contracts:update-warranty-status')
-            ->dailyAt('01:00')
+            ->dailyAt($warrantyUpdateTime)
             ->withoutOverlapping()
             ->runInBackground()
             ->appendOutputTo(storage_path('logs/warranty-update.log'));
 
         // 2. تهيئة الضمان للعقود الجديدة كل 6 ساعات
         $schedule->command('contracts:initialize-warranty')
-            ->everySixHours()
+            ->cron($warrantyInitializeCron)
             ->withoutOverlapping()
             ->runInBackground();
 
         // ============ تحديثات الطلبات ============
 
         // 3. تحديث تايمر الطلبات كل 30 دقيقة
-        $schedule->call(function () {
+        $schedule->call(function () use ($orderUrgentThresholdHours) {
             // تحديث حالة الطلبات المتأخرة
             $overdueOrders = Order::where('status', OrderEnum::New->value)
                 ->where('deadline_at', '<', now())
@@ -56,7 +71,7 @@ class Kernel extends ConsoleKernel
             // إرسال تنبيهات للطلبات العاجلة (أقل من ساعتين)
             $urgentOrders = Order::where('status', OrderEnum::New->value)
                 ->where('deadline_at', '>', now())
-                ->where('deadline_at', '<', now()->addHours(2))
+                ->where('deadline_at', '<', now()->addHours($orderUrgentThresholdHours))
                 ->get();
 
             foreach ($urgentOrders as $order) {
@@ -66,20 +81,20 @@ class Kernel extends ConsoleKernel
                     'minutes_remaining' => $order->deadline_at->diffInMinutes(now())
                 ]);
             }
-        })->everyThirtyMinutes()
+        })->cron($ordersTimerCron)
           ->name('update-orders-timer')
           ->withoutOverlapping()
           ->runInBackground();
 
         // 4. تنظيف الطلبات القديمة المعلقة شهرياً
-        $schedule->call(function () {
-            // الطلبات المعلقة لأكثر من 30 يوم
+        $schedule->call(function () use ($oldPendingOrdersDays) {
+            // الطلبات المعلقة لأكثر من المدة المحددة
             $oldPendingOrders = Order::whereIn('status', [OrderEnum::New->value, OrderEnum::UnderProcess->value])
-                ->where('created_at', '<', now()->subDays(30))
+                ->where('created_at', '<', now()->subDays($oldPendingOrdersDays))
                 ->count();
 
             if ($oldPendingOrders > 0) {
-                \Log::warning("Found {$oldPendingOrders} old pending orders (>30 days)");
+                \Log::warning("Found {$oldPendingOrders} old pending orders (>{$oldPendingOrdersDays} days)");
             }
         })->monthly()
           ->name('check-old-orders')
@@ -127,13 +142,13 @@ class Kernel extends ConsoleKernel
 
         
         $schedule->command('orders:cancel-expired')
-             ->hourly()
+             ->cron($ordersAutoCancelCron)
              ->withoutOverlapping()
              ->runInBackground();
 
         // Auto-refuse expired orders
         $schedule->command('orders:handle-expired')
-            ->everyFiveMinutes()
+            ->cron($ordersExpiredHandlerCron)
             ->withoutOverlapping()
             ->runInBackground();
     }

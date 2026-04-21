@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>فاتورة ضريبية مبسطة</title>
+    <title>{{ documentSetting('invoice_title', 'فاتورة ضريبية مبسطة') }}</title>
     <style>
         :root {
             --border: #d1d5db;
@@ -404,8 +404,8 @@
             </div>
 
             <div class="title-row">
-                <h1>فاتورة ضريبية مبسطة</h1>
-                <h2>Simplified Tax Invoice</h2>
+                <h1>{{ $invoiceTitle ?? 'فاتورة ضريبية مبسطة' }}</h1>
+                <h2>{{ $invoiceSubtitle ?? 'Simplified Tax Invoice' }}</h2>
             </div>
 
             <div class="top-grid">
@@ -554,6 +554,12 @@
                     <div class="col">الرقم الضريبي: {{ $supplierTaxNumber }}</div>
                 </div>
             </div>
+
+            @if (!empty($invoiceFooterText))
+                <div class="footer-strip" style="margin-top: 10px; background: #fff;">
+                    {!! nl2br(e($invoiceFooterText)) !!}
+                </div>
+            @endif
 
             <div class="credit-strip">
                 @if ($clickLogoExists)

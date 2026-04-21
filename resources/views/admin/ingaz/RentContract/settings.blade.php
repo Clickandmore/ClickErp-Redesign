@@ -37,7 +37,7 @@
                                     <div class="col-md-6 mb-3">
                                         <label class="form-label">اسم الشركة</label>
                                         <input type="text" name="company_name" class="form-control"
-                                               value="{{ $settings['company_name'] ?? 'شركة بلاتنيوم الشرقية للاستقدام' }}"
+                                               value="{{ $settings['company_name'] ?? documentSetting('document_company_name', 'شركة بلاتنيوم الشرقية للاستقدام') }}"
                                                data-validation="required">
                                     </div>
 

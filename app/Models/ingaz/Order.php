@@ -4,6 +4,7 @@ namespace App\Models\ingaz;
 
 use App\Models\auth\Admin;
 use App\Enums\ingaz\OrderEnum;
+use App\Support\AutomationSettings;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
@@ -186,6 +187,7 @@ class Order extends Model
 
     public function setExpirationTime($hours = 24)
     {
+        $hours = $hours ?: AutomationSettings::orderExpirationHours();
         $this->expiration_time = now()->addHours($hours);
         $this->save();
     }
@@ -206,18 +208,19 @@ class Order extends Model
     public function updateDeadline()
     {
         $deadlineHours = $this->getDeadlineHours();
-        $this->deadline_at = now()->addHours($deadlineHours);
+        $baseTime = $this->status_changed_at ?: $this->created_at ?: now();
+        $this->deadline_at = $baseTime->copy()->addHours($deadlineHours);
     }
 
     public function getDeadlineHours()
     {
         switch ($this->status) {
             case OrderEnum::New->value:
-                return 24; // 24 ساعة للطلبات الجديدة
+                return AutomationSettings::orderNewDeadlineHours();
             case OrderEnum::UnderProcess->value:
-                return 48; // 48 ساعة للطلبات تحت الإجراء
+                return AutomationSettings::orderUnderProcessDeadlineHours();
             default:
-                return 0; // لا يوجد موعد نهائي للحالات الأخرى
+                return 0;
         }
     }
 
@@ -267,7 +270,7 @@ class Order extends Model
             return 'overdue';
         }
 
-        if ($remaining['hours'] < 2) {
+        if ($remaining['hours'] < AutomationSettings::orderUrgentThresholdHours()) {
             return 'urgent';
         }
 

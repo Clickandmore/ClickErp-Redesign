@@ -164,8 +164,8 @@
 
     <div class="invoice-wrap">
         <div class="title-row">
-            <p class="title">فاتورة ضريبية مبسطة</p>
-            <p class="subtitle">رقم الفاتورة: {{ $invoice->id }} | رقم العقد: {{ $invoice->contract_id }}</p>
+            <p class="title">{{ $invoiceTitle ?? 'فاتورة ضريبية مبسطة' }}</p>
+            <p class="subtitle">{{ $invoiceSubtitle ?? ('رقم الفاتورة: ' . $invoice->id . ' | رقم العقد: ' . $invoice->contract_id) }}</p>
         </div>
 
         <table class="info-table">
@@ -269,6 +269,9 @@
         </table>
 
         <p class="note">تمت الطباعة بواسطة: {{ $printedBy ?? '---' }} | وقت الطباعة: {{ optional($printedAt)->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s') }}</p>
+        @if (!empty($invoiceFooterText))
+            <p class="note">{!! nl2br(e($invoiceFooterText)) !!}</p>
+        @endif
         <p class="note">رابط الفاتورة: {{ $invoiceUrl }}</p>
         <p class="credit-note">
             @if ($clickLogoExists)

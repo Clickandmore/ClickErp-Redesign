@@ -9,6 +9,7 @@ use App\Models\ingaz\User;
 use App\Models\ContractInfo;
 use App\Models\ingaz\ContractNote;
 use App\Models\ingaz\Invoice;
+use App\Support\AutomationSettings;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Spatie\Activitylog\LogOptions;
@@ -449,7 +450,7 @@ class Contract extends Model
             return;
         }
 
-        $warrantyEndDate = $arrivalDateTime->copy()->addDays(90);
+        $warrantyEndDate = $arrivalDateTime->copy()->addDays(AutomationSettings::warrantyPeriodDays());
         $updates = [
             'warranty_start_date' => $arrivalDateTime,
             'warranty_end_date' => $warrantyEndDate,

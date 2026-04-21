@@ -1728,13 +1728,16 @@ class SponsorshipTransferController extends Controller
             ->get()
             ->groupBy('page_number');
 
+        $documentBranding = documentBranding();
+
         // إعدادات العقد (يمكن تخزينها في جدول منفصل لاحقاً)
         $contractSettings = [
-            'company_name' => 'شركة بلاتينيوم الشرقية للاستقدام',
+            'company_name' => $documentBranding['company_name'],
             'license_number' => '1234567890',
-            'address' => 'الرياض، المملكة العربية السعودية',
-            'phone' => '+966 11 123 4567',
-            'email' => 'info@ingaz.com'
+            'address' => documentSetting('location', 'الرياض، المملكة العربية السعودية'),
+            'phone' => documentSetting('phone', '+966 11 123 4567'),
+            'email' => documentSetting('email', 'info@ingaz.com'),
+            'logo' => documentSetting('document_logo'),
         ];
 
         return view('admin.print.sponsorship-transfer-contract-enhanced', compact('transfer', 'contractTerms', 'contractSettings'));

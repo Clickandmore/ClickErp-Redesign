@@ -3,7 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>طباعة عقد تأجير - {{ $contract->contract_number ?? 'غير محدد' }}</title>
+    @php
+        $documentTitle = documentSetting('rental_contract_title', 'عقد تأجير عاملة منزلية');
+        $documentCompanyName = documentSetting('document_company_name', $contractSettings['company_name'] ?? 'شركة بلاتنيوم الشرقية للاستقدام');
+        $documentLogo = documentLogoUrl(asset('admin/assets/img/company_logo.png'));
+        $documentAddress = $contractSettings['address'] ?? documentSetting('location', 'الرياض');
+        $documentPhone = $contractSettings['phone'] ?? documentSetting('phone', '');
+        $documentEmail = $contractSettings['email'] ?? documentSetting('email', '');
+        $rentalIntroText = replaceDocumentPlaceholders((string) documentSetting(
+            'rental_contract_intro_text',
+            'حيث أن الطرف الأول مرخص ويسمح له بتقديم خدمات العمالة المنزلية ولديه الخبرات والإمكانيات اللازمة لتوفير خدمات العمالة المنزلية، وذلك وفق الأنظمة والقرارات والتعليمات المعمول بها في المملكة العربية السعودية وبما لا يتعارض مع أحكام الشريعة الإسلامية، وأحاجة الطرف الثاني لخدمات بعض العمالة المنزلية، فقد اتفق الطرفان وهما بكامل أهليتهما المعتبرة شرعا ونظاما على ما يلي:'
+        ));
+    @endphp
+    <title>{{ $documentTitle }} - {{ $contract->contract_number ?? 'غير محدد' }}</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <style>
@@ -412,9 +424,9 @@
                 <!-- Logo في أعلى الصفحة -->
                 <div class="logo-container">
                     {{-- <img src="{{ $logoUrl }}" alt="شركة بلاتنيوم الشرقية"> --}}
-                    <img src="{{ isset($settings) && !empty($settings->logo_header) ? showFile($settings->logo_header) : asset('admin/assets/img/company_logo.png') }}" alt="شركة بلاتنيوم الشرقية">
+                    <img src="{{ $documentLogo }}" alt="{{ $documentCompanyName }}">
                 </div>
-                <h1>عقد</h1>
+                <h1>{{ $documentTitle }}</h1>
             </div>
 
             <div class="contract-info">
@@ -423,10 +435,10 @@
 
             <div class="parties-section">
                 <div class="party">
-                    <div class="party-title">1- شركة بلاتنيوم الشرقية للاستقدام</div>
+                    <div class="party-title">1- {{ $documentCompanyName }}</div>
                     <div>لاستقدام العمالة المنزلية ترخيص وزارة العمل رقم / {{ $contractSettings['license_number'] ?? '4001772' }} وتاريخ : {{ $contractSettings['license_date'] ?? '2022/10/13' }} م سجل تجاري رقم / {{ $contractSettings['commercial_register'] ?? '1010601958' }}</div>
                     <div>وتاريخ: {{ \Carbon\Carbon::parse($contractSettings['commercial_date'] ?? '1441/03/03')->format('Y/m/d') }} هـ صادر من الرياض</div>
-                    <div>وعنوانه الرياض صندوق بريد: الرمز البريدي: مكتب: جوال: البريد الالكتروني</div>
+                    <div>وعنوانه {{ $documentAddress ?: '-' }} | هاتف: {{ $documentPhone ?: '-' }} | البريد الالكتروني: {{ $documentEmail ?: '-' }}</div>
                     <div>ويمثله في التوقيع من هذا العقد المدير بصفته المالك ويشار إليه فيما بعد بـ (الطرف الأول).</div>
                 </div>
 
@@ -439,7 +451,7 @@
 
             <div class="contract-body">
                 <p><strong>تمهيد:</strong></p>
-                <p>حيث أن الطرف الأول مرخص ويسمح له بتقديم خدمات العمالة المنزلية ولديه الخبرات والإمكانيات اللازمة لتوفير خدمات العمالة المنزلية، وذلك وفق الأنظمة والقرارات والتعليمات المعمول بها في المملكة العربية السعودية وبما لا يتعارض مع أحكام الشريعة الإسلامية، وأحاجة الطرف الثاني لخدمات بعض العمالة المنزلية، فقد اتفق الطرفان وهما بكامل أهليتهما المعتبرة شرعا ونظاما على ما يلي:</p>
+                <p>{{ $rentalIntroText }}</p>
             </div>
 
             <div class="terms-section">
@@ -643,7 +655,7 @@
             <!-- قسم التوقيعات مع ميزة التوقيع -->
             <div class="signatures-section">
                 <div style="margin-top: 40px;">
-                    <div>اسم الطرف الأول: شركة بلاتنيوم الشرقية للاستقدام</div>
+                    <div>اسم الطرف الأول: {{ $documentCompanyName }}</div>
                     <div>اسم الطرف الثاني: {{ $contract->user->name ?? 'Maram omar alzahrani' }}</div>
 
                     <!-- قسم التوقيع -->

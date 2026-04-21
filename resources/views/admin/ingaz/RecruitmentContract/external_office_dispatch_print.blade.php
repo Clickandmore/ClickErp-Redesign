@@ -6,6 +6,8 @@
         'incomplete' => '#dc3545',
         default => '#6c757d',
     };
+    $documentCompanyName = documentSetting('document_company_name', 'بلاتنيوم الشرقية للاستقدام');
+    $documentFooterNote = documentBranding()['footer_note'];
 @endphp
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -160,7 +162,7 @@
     <div class="document">
         <div class="header">
             <h1>إرسالية المكتب الخارجي</h1>
-            <p>العقد رقم #{{ $contract->id }} - بلاتنيوم الشرقية للاستقدام</p>
+            <p>العقد رقم #{{ $contract->id }} - {{ $documentCompanyName }}</p>
         </div>
 
         <div class="meta">
@@ -231,6 +233,7 @@
         </div>
 
         <div class="footer">
+            {{ $documentFooterNote }}<br>
             تم إنشاء هذه النسخة من النظام بتاريخ {{ now()->format('Y-m-d H:i') }}.
         </div>
     </div>

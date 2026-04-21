@@ -22,6 +22,20 @@ class Setting extends Model
         'rights_users',
         'copyright',
         'website_name',
+        'document_company_name',
+        'document_office_name',
+        'document_footer_note',
+        'delivery_form_title',
+        'delivery_form_default_text',
+        'shelter_receipt_title',
+        'shelter_receipt_subtitle',
+        'shelter_receipt_default_text',
+        'shelter_receipt_default_settlement_text',
+        'invoice_title',
+        'invoice_subtitle',
+        'invoice_footer_text',
+        'rental_contract_title',
+        'rental_contract_intro_text',
         'about_us_sub_title',
         'footer_text',
         'terms_conditions',
@@ -41,7 +55,7 @@ class Setting extends Model
 //        $this->translatedAttributes = array_diff($this->fillable, ['setting_id','locale','created_at','updated_at']);
 //    }
 
-    protected $fillable = ['logo_header', 'light_image', 'cover_image', 'there_are_offer', 'logo_footer', 'favicon', 'about_image', 'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin', 'youtube', 'whatsapp', 'email', 'phone', 'other_phone', 'map_link', 'show_public_site'
+    protected $fillable = ['logo_header', 'document_logo', 'admin_logo', 'light_image', 'cover_image', 'admin_login_background', 'there_are_offer', 'logo_footer', 'favicon', 'about_image', 'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin', 'youtube', 'whatsapp', 'email', 'phone', 'other_phone', 'map_link', 'show_public_site'
         , 'qr_image', 'experience_image', 'second_qr_image', 'tax_number', 'zatch_logo'
     ];
 

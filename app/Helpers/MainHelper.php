@@ -369,6 +369,135 @@ if (!function_exists('showFile')) {
     }
 }
 
+if (!function_exists('documentSettingsRecord')) {
+    function documentSettingsRecord()
+    {
+        static $resolved = false;
+        static $settings = null;
+
+        if ($resolved) {
+            return $settings;
+        }
+
+        $resolved = true;
+
+        if (!class_exists(Setting::class) || !\Illuminate\Support\Facades\Schema::hasTable('settings')) {
+            return null;
+        }
+
+        $settings = Setting::with('translations')->first();
+
+        return $settings;
+    }
+}
+
+if (!function_exists('documentSetting')) {
+    function documentSetting(string $key, $default = null, ?string $locale = null)
+    {
+        $settings = documentSettingsRecord();
+
+        if (!$settings) {
+            return $default;
+        }
+
+        $translatedAttributes = (array) ($settings->translatedAttributes ?? []);
+
+        if (in_array($key, $translatedAttributes, true)) {
+            $locale = $locale ?: app()->getLocale();
+            $translations = collect($settings->translations ?? []);
+            $translation = $translations->firstWhere('locale', $locale)
+                ?: $translations->firstWhere('locale', config('app.fallback_locale'))
+                ?: $translations->first();
+
+            $value = $translation->{$key} ?? null;
+        } else {
+            $value = $settings->{$key} ?? null;
+        }
+
+        return blank($value) ? $default : $value;
+    }
+}
+
+if (!function_exists('documentLogoUrl')) {
+    function documentLogoUrl($default = null)
+    {
+        $logo = documentSetting('document_logo') ?: documentSetting('logo_header');
+        $url = showFile($logo);
+
+        return $url ?: $default;
+    }
+}
+
+if (!function_exists('documentLogoPath')) {
+    function documentLogoPath()
+    {
+        $logo = documentSetting('document_logo') ?: documentSetting('logo_header');
+
+        if (!is_string($logo) || $logo === '') {
+            return null;
+        }
+
+        $path = public_path('storage/' . ltrim($logo, '/'));
+
+        return file_exists($path) ? $path : null;
+    }
+}
+
+if (!function_exists('replaceDocumentPlaceholders')) {
+    function replaceDocumentPlaceholders($text, array $replacements = [])
+    {
+        if ($text === null) {
+            return null;
+        }
+
+        $branding = [
+            'company_name' => documentSetting('document_company_name', documentSetting('website_name', 'بلاتنيوم الشرقية للاستقدام')),
+            'office_name' => documentSetting('document_office_name', 'مكتب بلاتنيوم الشرقية للاستقدام'),
+        ];
+
+        $tokens = [
+            '[اسم_الشركة]' => $branding['company_name'],
+            '[اسم_المكتب]' => $branding['office_name'],
+            '[company_name]' => $branding['company_name'],
+            '[office_name]' => $branding['office_name'],
+        ];
+
+        foreach ($replacements as $key => $value) {
+            $tokens['[' . $key . ']'] = (string) $value;
+        }
+
+        return strtr((string) $text, $tokens);
+    }
+}
+
+if (!function_exists('documentBranding')) {
+    function documentBranding(?string $locale = null): array
+    {
+        $locale = $locale ?: app()->getLocale();
+        $defaultCompanyName = documentSetting('website_name', 'بلاتنيوم الشرقية للاستقدام', $locale);
+        $companyName = documentSetting('document_company_name', $defaultCompanyName, $locale);
+        $officeName = documentSetting('document_office_name', 'مكتب بلاتنيوم الشرقية للاستقدام', $locale);
+        $footerTemplate = documentSetting(
+            'document_footer_note',
+            'تم إنشاء هذا النموذج إلكترونياً بواسطة [اسم_الشركة].',
+            $locale
+        );
+
+        return [
+            'company_name' => $companyName,
+            'office_name' => $officeName,
+            'logo_url' => documentLogoUrl(asset('admin/assets/img/company_logo.png')),
+            'logo_path' => documentLogoPath(),
+            'footer_note' => replaceDocumentPlaceholders($footerTemplate, [
+                'اسم_الشركة' => $companyName,
+                'اسم_المكتب' => $officeName,
+                'company_name' => $companyName,
+                'office_name' => $officeName,
+            ]),
+        ];
+    }
+}
+
 if (!function_exists('imageOrNull')) {
     function imageOrNull($fileFullPath)
     {

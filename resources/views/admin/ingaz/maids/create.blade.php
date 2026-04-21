@@ -107,7 +107,7 @@
                             <option value="1" {{ $defaultShelterContract === '1' ? 'selected' : '' }}>نعم - تسكين
                                 للإيواء</option>
                         </select>
-                        <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم شركة بلاتنيوم الشرقية</small>
+                        <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم {{ documentSetting('document_company_name', 'شركة بلاتنيوم الشرقية') }}</small>
                     </div> --}}
 
                     <!-- خيار تسكين للإيواء -->

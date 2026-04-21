@@ -686,6 +686,8 @@
     'select_order_hint' => 'Select an order from the list to load its details instantly.',
     'timer_phase_new' => 'New requests (24h)',
     'timer_phase_under_process' => 'Under-process requests (48h)',
+    'timer_phase_new_base' => 'New requests',
+    'timer_phase_under_process_base' => 'Under-process requests',
     'timer_phase_default' => 'Monitoring phase',
     'call_client' => 'Call client',
     'open_full_order' => 'Open full order',

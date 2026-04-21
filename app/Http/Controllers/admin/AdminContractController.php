@@ -13,8 +13,8 @@ use App\Models\ShelterWorkers;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
 use App\Enums\ingaz\ContractStatusEnum;
-use App\Models\ingaz\Setting;
 use App\Models\RentalContractTerm;
+use App\Support\AutomationSettings;
 
 class AdminContractController extends Controller
 {
@@ -153,6 +153,15 @@ class AdminContractController extends Controller
                 $contractSettings[$key] = $setting ? $setting->value : null;
             }
 
+            $contractSettings['company_name'] = documentSetting(
+                'document_company_name',
+                $contractSettings['company_name'] ?? 'شركة بلاتنيوم الشرقية للاستقدام'
+            );
+            $contractSettings['address'] = $contractSettings['address'] ?: documentSetting('location', 'الرياض');
+            $contractSettings['phone'] = $contractSettings['phone'] ?: documentSetting('phone', '');
+            $contractSettings['email'] = $contractSettings['email'] ?: documentSetting('email', '');
+            $contractSettings['logo'] = documentSetting('document_logo', $contractSettings['logo'] ?? null);
+
             // Get contract terms from database
             try {
                 // Since we don't have page field in RentContractTerm, we'll split them by order
@@ -216,7 +225,7 @@ class AdminContractController extends Controller
     {
         try {
             // Get warranty period from settings
-            $warrantyPeriod = Setting::where('key', 'warranty_period')->first()->value ?? 90; // default 90 days
+            $warrantyPeriod = AutomationSettings::warrantyPeriodDays();
 
             // Get all contracts under warranty
             $contracts = Contract::where('status', ContractStatusEnum::UnderWarranty)->get();

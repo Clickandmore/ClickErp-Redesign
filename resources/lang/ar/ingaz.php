@@ -797,6 +797,8 @@
   'select_order_hint' => 'اختر طلباً من الجدول لعرض التفاصيل الفورية.',
   'timer_phase_new' => 'طلبات جديدة (24 ساعة)',
   'timer_phase_under_process' => 'طلبات تحت الإجراء (48 ساعة)',
+  'timer_phase_new_base' => 'طلبات جديدة',
+  'timer_phase_under_process_base' => 'طلبات تحت الإجراء',
   'timer_phase_default' => 'قيد المتابعة',
   'call_client' => 'الاتصال بالعميل',
   'open_full_order' => 'فتح صفحة الطلب',

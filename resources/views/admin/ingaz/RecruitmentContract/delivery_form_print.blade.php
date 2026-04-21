@@ -5,7 +5,16 @@
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>نموذج تسليم عاملة منزلية</title>
+    @php
+        $documentBranding = documentBranding();
+        $documentTitle = documentSetting('delivery_form_title', 'نموذج تسليم عاملة منزلية');
+        $deliveryCompanyName = $documentBranding['company_name'];
+        $deliveryOfficeName = $documentBranding['office_name'];
+        $defaultReceiptText = trim((string) replaceDocumentPlaceholders(documentSetting('delivery_form_default_text', '')));
+        $receiptText = trim((string) ($text_receipt ?: $defaultReceiptText));
+        $documentFooterNote = $document_footer_note ?? $documentBranding['footer_note'];
+    @endphp
+    <title>{{ $documentTitle }}</title>
     <style>
         * {
             box-sizing: border-box;
@@ -138,6 +147,12 @@
             text-align: left;
         }
 
+        .note {
+            margin-top: 12px;
+            font-size: 11px;
+            text-align: center;
+        }
+
         @page {
             size: A4;
             margin: 12mm;
@@ -167,10 +182,6 @@
 </head>
 
 <body>
-    @php
-        $receiptText = trim((string) $text_receipt);
-    @endphp
-
     <div class="page-shell">
         <div class="toolbar">
             <a class="btn" href="{{ $print_url }}" target="_blank" rel="noopener">طباعة النموذج</a>
@@ -178,7 +189,7 @@
         </div>
 
         <div class="sheet">
-            <h1 class="title">نموذج تسليم عاملة منزلية</h1>
+            <h1 class="title">{{ $documentTitle }}</h1>
 
             <table class="single-row">
                 <tr>
@@ -223,7 +234,7 @@
                 </p>
                 <p>
                     وبهذا قد أصبح شركة /
-                    <span class="fill">{{ $delivery_company_name ?: 'بلاتنيوم الشرقية للاستقدام' }}</span>
+                    <span class="fill">{{ $deliveryCompanyName }}</span>
                     خالي من المسؤولية منذ استلامي للخادمة .
                 </p>
                 @if ($receiptText !== '')
@@ -231,7 +242,7 @@
                 @endif
             </div>
 
-            <p class="company-name">{{ $delivery_office_name ?: 'مكتب بلاتنيوم الشرقية للاستقدام' }}</p>
+            <p class="company-name">{{ $deliveryOfficeName }}</p>
 
             <table class="signature-table">
                 <tr>
@@ -265,6 +276,10 @@
                     </td>
                 </tr>
             </table>
+
+            @if ($documentFooterNote)
+                <p class="note">{{ $documentFooterNote }}</p>
+            @endif
         </div>
     </div>
 </body>

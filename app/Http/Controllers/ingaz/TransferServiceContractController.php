@@ -364,13 +364,20 @@ class TransferServiceContractController extends Controller
             'newSponsor'
         ]);
 
+        $documentBranding = documentBranding();
+
         // إعدادات العقد الافتراضية
         $contractSettings = [
+            'company_name' => $documentBranding['company_name'],
             'license_number' => '4001772',
             'license_date' => '2022/10/13',
             'commercial_register' => '1010601958',
             'commercial_date' => '1441/03/03',
-            'fax' => '966550316770+'
+            'address' => documentSetting('location', 'الرياض'),
+            'phone' => documentSetting('phone', ''),
+            'email' => documentSetting('email', ''),
+            'fax' => '966550316770+',
+            'logo' => documentSetting('document_logo'),
         ];
 
         return view('admin.ingaz.print.transfer-service-contract', compact('transferServiceContract', 'contractSettings'));

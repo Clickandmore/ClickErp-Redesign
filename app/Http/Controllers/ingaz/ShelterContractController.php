@@ -14,6 +14,7 @@ use App\Models\RecruitmentOffices;
 use App\Models\ingaz\Nationality;
 use App\Models\ShelterPlaces;
 use App\NewPermKeys;
+use App\Support\AutomationSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
@@ -449,6 +450,7 @@ class ShelterContractController extends Controller
 
     private function resolveGuaranteeData(Contract $contract): array
     {
+        $guaranteePeriodDays = AutomationSettings::warrantyPeriodDays();
         $arrivalDate = $this->resolveArrivalDate($contract);
         if (!$arrivalDate) {
             return [
@@ -458,7 +460,7 @@ class ShelterContractController extends Controller
             ];
         }
 
-        $guaranteeEndDate = $arrivalDate->copy()->addDays(90);
+        $guaranteeEndDate = $arrivalDate->copy()->addDays($guaranteePeriodDays);
         $today = now();
 
         if ($today->lte($guaranteeEndDate)) {
@@ -1411,42 +1413,43 @@ class ShelterContractController extends Controller
         if ($request->filled('status')) {
             $guaranteeStatus = $request->input('status');
             $today = now();
+            $guaranteePeriodDays = AutomationSettings::warrantyPeriodDays();
 
             if ($guaranteeStatus === 'within_guarantee') {
-                // Within guarantee period (90 days from arrival)
-                $rows->whereHas('info', function ($query) use ($today) {
+                // Within guarantee period
+                $rows->whereHas('info', function ($query) use ($today, $guaranteePeriodDays) {
                     $query->where(function ($q) use ($today) {
-                        $q->where(function ($subQ) use ($today) {
+                        $q->where(function ($subQ) use ($today, $guaranteePeriodDays) {
                             $subQ->whereNotNull('arrival_date')
-                                ->whereDate('arrival_date', '>=', $today->copy()->subDays(90));
-                        })->orWhere(function ($subQ) use ($today) {
+                                ->whereDate('arrival_date', '>=', $today->copy()->subDays($guaranteePeriodDays));
+                        })->orWhere(function ($subQ) use ($today, $guaranteePeriodDays) {
                             $subQ->whereNotNull('visa_milad_date')
-                                ->whereDate('visa_milad_date', '>=', $today->copy()->subDays(90));
-                        })->orWhere(function ($subQ) use ($today) {
+                                ->whereDate('visa_milad_date', '>=', $today->copy()->subDays($guaranteePeriodDays));
+                        })->orWhere(function ($subQ) use ($today, $guaranteePeriodDays) {
                             $subQ->whereNotNull('contract_date')
-                                ->whereDate('contract_date', '>=', $today->copy()->subDays(90));
-                        })->orWhere(function ($subQ) use ($today) {
+                                ->whereDate('contract_date', '>=', $today->copy()->subDays($guaranteePeriodDays));
+                        })->orWhere(function ($subQ) use ($today, $guaranteePeriodDays) {
                             $subQ->whereNotNull('ingaz_from')
-                                ->whereDate('ingaz_from', '>=', $today->copy()->subDays(90));
+                                ->whereDate('ingaz_from', '>=', $today->copy()->subDays($guaranteePeriodDays));
                         });
                     });
                 });
             } elseif ($guaranteeStatus === 'expired_guarantee') {
                 // Expired guarantee period
-                $rows->whereHas('info', function ($query) use ($today) {
+                $rows->whereHas('info', function ($query) use ($today, $guaranteePeriodDays) {
                     $query->where(function ($q) use ($today) {
-                        $q->where(function ($subQ) use ($today) {
+                        $q->where(function ($subQ) use ($today, $guaranteePeriodDays) {
                             $subQ->whereNotNull('arrival_date')
-                                ->whereDate('arrival_date', '<', $today->copy()->subDays(90));
-                        })->orWhere(function ($subQ) use ($today) {
+                                ->whereDate('arrival_date', '<', $today->copy()->subDays($guaranteePeriodDays));
+                        })->orWhere(function ($subQ) use ($today, $guaranteePeriodDays) {
                             $subQ->whereNotNull('visa_milad_date')
-                                ->whereDate('visa_milad_date', '<', $today->copy()->subDays(90));
-                        })->orWhere(function ($subQ) use ($today) {
+                                ->whereDate('visa_milad_date', '<', $today->copy()->subDays($guaranteePeriodDays));
+                        })->orWhere(function ($subQ) use ($today, $guaranteePeriodDays) {
                             $subQ->whereNotNull('contract_date')
-                                ->whereDate('contract_date', '<', $today->copy()->subDays(90));
-                        })->orWhere(function ($subQ) use ($today) {
+                                ->whereDate('contract_date', '<', $today->copy()->subDays($guaranteePeriodDays));
+                        })->orWhere(function ($subQ) use ($today, $guaranteePeriodDays) {
                             $subQ->whereNotNull('ingaz_from')
-                                ->whereDate('ingaz_from', '<', $today->copy()->subDays(90));
+                                ->whereDate('ingaz_from', '<', $today->copy()->subDays($guaranteePeriodDays));
                         });
                     });
                 });
@@ -3056,6 +3059,7 @@ class ShelterContractController extends Controller
     public function deliveryShelterContractDownload($id)
     {
         $contract = Contract::with(['user', 'maid.nationality', 'info'])->findOrFail($id);
+        $documentBranding = documentBranding();
         $clientName = $contract->user->name ?? '';
         $clientNationalNumber = $contract->user->national_num ?? '';
 
@@ -3077,6 +3081,9 @@ class ShelterContractController extends Controller
         ]);
         $viewData = [
             'contract' => $contract,
+            'document_company_name' => $documentBranding['company_name'],
+            'document_office_name' => $documentBranding['office_name'],
+            'document_footer_note' => $documentBranding['footer_note'],
             'client_name' => $clientName,
             'national_identification_number' => $clientNationalNumber,
             'passport_id' => $passportId,

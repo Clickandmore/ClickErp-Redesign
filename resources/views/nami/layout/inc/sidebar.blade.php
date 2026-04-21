@@ -732,17 +732,17 @@
                             </a>
 
                             @php
-                                $websiteManagementOpen =
-                                    request()->routeIs('settings.*') ||
-                                    request()->routeIs('about-us.*') ||
-                                    request()->routeIs('questions.*') ||
-                                    request()->routeIs('dash.settings');
+                                    $websiteManagementOpen =
+                                        request()->routeIs('settings.*') ||
+                                        request()->routeIs('about-us.*') ||
+                                        request()->routeIs('questions.*') ||
+                                        request()->routeIs('dash.settings*');
                             @endphp
                             <ul class="sub-menu collapse {{ $websiteManagementOpen ? 'show' : '' }}"
                                 id="websiteManagement">
                                 @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                                     <li>
-                                        <a class="m-link {{ request()->routeIs('settings.*') ? 'active' : '' }}"
+                                        <a class="m-link {{ request()->routeIs('settings.*') || request()->routeIs('dash.settings*') ? 'active' : '' }}"
                                             href="{{ route('settings.section', 'general') }}">
                                             <i class="fa fa-cogs"></i>
                                             <span class="ms-2">{{ helperTrans('ingaz.website_settings') }}</span>

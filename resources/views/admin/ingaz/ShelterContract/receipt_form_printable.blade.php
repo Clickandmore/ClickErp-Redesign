@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>نسخة طباعة نموذج استلام عاملة وتعهد</title>
+    <title>نسخة طباعة {{ documentSetting('shelter_receipt_title', 'استلام عاملة وتعهد') }}</title>
     <style>
         @page {
             size: A4;
@@ -183,10 +183,22 @@
 
 <body>
     @php
-        $logoPath = public_path('admin/assets/img/company_logo.png');
-        $defaultReceiptText = 'كما أتعهد في حالة نقل خدمات العاملة إلى صاحب عمل آخر بإخطار مكتب / شركة بلاتنيوم الشرقية للاستقدام وتزويده كتابياً بكافة بيانات صاحب العمل الجديد من اسم وهوية وعنوان ورقم جوال. وفي حال عدم القيام بذلك أتحمل كامل المسؤولية عن أي مطالبات أو التزامات تخص العاملة.';
-        $defaultSettlementText = 'كما أتعهد بتسليم العاملة كافة مستحقاتها وإثبات ذلك بمخالصة رسمية تفيد باستلامها جميع رواتبها ومستحقاتها وعدم مطالبتها بأي حق، وذلك وفق النموذج المعتمد لدى الجهات الرسمية.';
+        $documentBranding = documentBranding();
+        $documentTitle = documentSetting('shelter_receipt_title', 'استلام عاملة وتعهد');
+        $documentSubtitle = documentSetting('shelter_receipt_subtitle', 'نسخة مخصصة للطباعة والحفظ');
+        $documentCompanyName = $document_company_name ?? $documentBranding['company_name'];
+        $documentOfficeName = $document_office_name ?? $documentBranding['office_name'];
+        $logoPath = documentLogoPath() ?: public_path('admin/assets/img/company_logo.png');
+        $defaultReceiptText = replaceDocumentPlaceholders((string) documentSetting(
+            'shelter_receipt_default_text',
+            'كما أتعهد في حالة نقل خدمات العاملة إلى صاحب عمل آخر بإخطار [اسم_المكتب] وتزويده كتابياً بكافة بيانات صاحب العمل الجديد من اسم وهوية وعنوان ورقم جوال. وفي حال عدم القيام بذلك أتحمل كامل المسؤولية عن أي مطالبات أو التزامات تخص العاملة.'
+        ));
+        $defaultSettlementText = replaceDocumentPlaceholders((string) documentSetting(
+            'shelter_receipt_default_settlement_text',
+            'كما أتعهد بتسليم العاملة كافة مستحقاتها وإثبات ذلك بمخالصة رسمية تفيد باستلامها جميع رواتبها ومستحقاتها وعدم مطالبتها بأي حق، وذلك وفق النموذج المعتمد لدى الجهات الرسمية.'
+        ));
         $receiptText = trim((string) $text_receipt);
+        $documentFooterNote = $document_footer_note ?? $documentBranding['footer_note'];
     @endphp
 
     <div class="print-tools">
@@ -198,11 +210,11 @@
     <div class="sheet">
         <div class="header">
             @if (file_exists($logoPath))
-                <img src="{{ $logoPath }}" alt="شركة بلاتينيوم">
+                <img src="{{ $logoPath }}" alt="{{ $documentCompanyName }}">
             @endif
-            <p class="company-name">مكتب / شركة بلاتنيوم الشرقية للاستقدام</p>
-            <h1 class="title">استلام عاملة وتعهد</h1>
-            <p class="subtitle">نسخة مخصصة للطباعة والحفظ</p>
+            <p class="company-name">{{ $documentCompanyName }}</p>
+            <h1 class="title">{{ $documentTitle }}</h1>
+            <p class="subtitle">{{ $documentSubtitle }}</p>
         </div>
 
         <div class="section-title">بيانات العميل والعاملة</div>
@@ -249,7 +261,7 @@
             </tr>
             <tr>
                 <td class="intro-label">من جهة</td>
-                <td><strong>مكتب / شركة بلاتنيوم الشرقية للاستقدام</strong></td>
+                <td><strong>{{ $documentOfficeName }}</strong></td>
             </tr>
             <tr>
                 <td class="intro-label">بتاريخ</td>
@@ -286,7 +298,7 @@
         <table class="meta-table footer-meta">
             <tr>
                 <td class="meta-label">الجهة المتعاقدة</td>
-                <td><span class="field-value" dir="auto">مكتب / شركة بلاتنيوم الشرقية للاستقدام</span></td>
+                <td><span class="field-value" dir="auto">{{ $documentCompanyName }}</span></td>
                 <td class="meta-label">تاريخ الاستلام / العقد</td>
                 <td><span class="field-value ltr">{{ $date_receipt ?: '--' }}</span></td>
             </tr>
@@ -302,7 +314,12 @@
             </tr>
         </table>
 
-        <div class="note">إذا لم تظهر نافذة الطباعة تلقائياً استخدم زر "طباعة الآن" أعلى الصفحة.</div>
+        <div class="note">
+            @if ($documentFooterNote)
+                {{ $documentFooterNote }}<br>
+            @endif
+            إذا لم تظهر نافذة الطباعة تلقائياً استخدم زر "طباعة الآن" أعلى الصفحة.
+        </div>
     </div>
 
     <script>

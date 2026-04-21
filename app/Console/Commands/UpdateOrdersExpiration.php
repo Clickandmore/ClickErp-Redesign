@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\ingaz\Order;
 use App\Enums\ingaz\OrderEnum;
-use Carbon\Carbon;
+use App\Support\AutomationSettings;
 
 class UpdateOrdersExpiration extends Command
 {
@@ -16,15 +16,14 @@ class UpdateOrdersExpiration extends Command
     {
         $this->info('Updating expiration time for existing orders...');
 
-        // Get all new orders without expiration time
+        // Update all active new orders so settings changes apply immediately
         $newOrders = Order::where('status', OrderEnum::New->value)
-            ->whereNull('expiration_time')
             ->get();
 
-        $this->info("Found {$newOrders->count()} orders without expiration time");
+        $this->info("Found {$newOrders->count()} new orders to refresh");
 
         // Get expiration hours from settings
-        $expirationHours = \App\Models\ingaz\Setting::getValue('order_expiration_hours', 24);
+        $expirationHours = AutomationSettings::orderExpirationHours();
 
         // Update each order
         foreach ($newOrders as $order) {
