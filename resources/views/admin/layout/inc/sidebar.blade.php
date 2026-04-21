@@ -949,7 +949,7 @@
                             <span class="ms-2">إدارة الرسائل</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['notifications.index', 'whatsapp.notifications.index', 'messages.index']) || Request::is('admin/sms-templates*') ? 'show' : '' }}"
+                        <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['notifications.index', 'whatsapp.notifications.index', 'messages.index', 'notifications.settings']) || Request::is('admin/sms-templates*') ? 'show' : '' }}"
                             id="smsManagement">
                             @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
                                 <li>
@@ -966,6 +966,15 @@
                                         href="{{ route('whatsapp.notifications.index') }}">
                                         <i class="fa fa-whatsapp text-success"></i>
                                         <span class="ms-2">إرسال رسائل واتساب</span>
+                                    </a>
+                                </li>
+                            @endif
+                            @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
+                                <li>
+                                    <a class="m-link {{ Route::currentRouteName() == 'notifications.settings' ? 'active' : '' }}"
+                                        href="{{ route('notifications.settings') }}">
+                                        <i class="fa fa-plug"></i>
+                                        <span class="ms-2">إعدادات الربط</span>
                                     </a>
                                 </li>
                             @endif

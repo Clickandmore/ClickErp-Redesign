@@ -9,7 +9,7 @@ use App\Http\Traits\SendSMSTrait;
 use App\Models\ingaz\Notification;
 use App\Models\ingaz\User;
 use App\Models\SmsTemplate;
-use App\Services\WhatsApp\MetaWhatsAppService;
+use App\Services\WhatsApp\WhatsAppMessagingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -19,9 +19,9 @@ class NotificationAction extends MainAction
 {
     use Firebase, SendSMSTrait;
 
-    private MetaWhatsAppService $whatsAppService;
+    private WhatsAppMessagingService $whatsAppService;
 
-    public function __construct(Notification $model, MetaWhatsAppService $whatsAppService)
+    public function __construct(Notification $model, WhatsAppMessagingService $whatsAppService)
     {
         $this->model = $model;
         $this->fileFolder = 'images/Notification/';
@@ -102,6 +102,7 @@ class NotificationAction extends MainAction
     {
         $purpose = (string) $request->input('whatsapp_purpose', config('services.whatsapp.default_purpose', 'verification'));
         $message = trim((string) $request->input('message_override', ''));
+        $senderKey = trim((string) $request->input('whatsapp_sender_key', ''));
 
         $allowedPurposes = ['verification', 'follow_up'];
         if ((bool) config('services.whatsapp.allow_advertising', false)) {
@@ -118,6 +119,19 @@ class NotificationAction extends MainAction
             throw ValidationException::withMessages([
                 'message_override' => 'نص رسالة واتساب لا يمكن أن يكون فارغًا.',
             ]);
+        }
+
+        $resolvedSender = null;
+        if ($this->whatsAppService->driver() === 'ultramsg') {
+            $resolvedSender = $this->whatsAppService->resolveSender($senderKey);
+
+            if (!$resolvedSender) {
+                throw ValidationException::withMessages([
+                    'whatsapp_sender_key' => 'اختر رقم واتساب صالحًا من الحسابات المفعلة.',
+                ]);
+            }
+
+            $senderKey = (string) ($resolvedSender['key'] ?? '');
         }
 
         if (!$this->whatsAppService->isConfigured()) {
@@ -144,6 +158,7 @@ class NotificationAction extends MainAction
             $response = $this->whatsAppService->sendText((string) $user->phone, $message, [
                 'purpose' => $purpose,
                 'user_id' => $user->id,
+                'sender_key' => $senderKey,
             ]);
 
             if (!$this->isSuccessfulWhatsAppResponse($response)) {
@@ -158,6 +173,9 @@ class NotificationAction extends MainAction
         return [
             'channel' => 'whatsapp',
             'purpose' => $purpose,
+            'driver' => $this->whatsAppService->driver(),
+            'sender_key' => $senderKey !== '' ? $senderKey : null,
+            'sender_name' => $resolvedSender['name'] ?? null,
             'total_count' => $users->count(),
             'sent_count' => $sentCount,
             'failed_count' => $failedCount,

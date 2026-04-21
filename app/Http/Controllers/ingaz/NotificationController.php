@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ingaz\StoreNotificationRequest;
 use App\Models\SmsTemplate;
 use App\Models\ingaz\User;
-use App\Services\WhatsApp\MetaWhatsAppService;
+use App\Services\WhatsApp\WhatsAppMessagingService;
 
 class NotificationController extends Controller
 {
@@ -27,12 +27,14 @@ class NotificationController extends Controller
         return view($this->folderPath . '.index', compact('appUsers', 'smsTemplates', 'totalEligibleUsers'));
     }
 
-    public function indexWhatsApp(MetaWhatsAppService $whatsAppService)
+    public function indexWhatsApp(WhatsAppMessagingService $whatsAppService)
     {
         $appUsers = $this->eligibleUsers();
         $totalEligibleUsers = $appUsers->count();
 
         $whatsappConfig = [
+            'driver' => $whatsAppService->driver(),
+            'provider_label' => $whatsAppService->providerLabel(),
             'configured' => $whatsAppService->isConfigured(),
             'missing' => $whatsAppService->missingConfigKeys(),
             'bulk_limit' => (int) config('services.whatsapp.bulk_send_limit', 200),
@@ -41,6 +43,8 @@ class NotificationController extends Controller
             'allow_advertising' => (bool) config('services.whatsapp.allow_advertising', false),
             'webhook_verify_url' => route('api.webhooks.whatsapp.verify', [], false),
             'webhook_receive_url' => route('api.webhooks.whatsapp.receive', [], false),
+            'senders' => $whatsAppService->availableSenders(),
+            'default_sender_key' => $whatsAppService->defaultSenderKey(),
         ];
 
         return view($this->folderPath . '.whatsapp', compact('appUsers', 'totalEligibleUsers', 'whatsappConfig'));

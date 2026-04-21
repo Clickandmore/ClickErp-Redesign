@@ -13,6 +13,7 @@ use App\Models\ingaz\JobType;
 use App\Models\ingaz\Setting;
 use App\Models\ingaz\DevelopSetting;
 use App\Models\ingaz\FastNew;
+use App\Support\CommunicationSettings;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
@@ -46,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
         $directories = glob($migrationsPath . '/*', GLOB_ONLYDIR);
         $paths = array_merge([$migrationsPath], $directories);
         $this->loadMigrationsFrom($paths);
+        CommunicationSettings::applyRuntimeConfig();
 
         if ($this->app->runningInConsole()) {
             return;

@@ -36,6 +36,7 @@ return [
     ],
 
     'whatsapp' => [
+        'driver' => env('WHATSAPP_DRIVER', 'meta'),
         'graph_version' => env('WHATSAPP_GRAPH_VERSION', 'v23.0'),
         'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
         'access_token' => env('WHATSAPP_ACCESS_TOKEN'),
@@ -46,6 +47,11 @@ return [
         'bulk_confirmation_keyword' => env('WHATSAPP_BULK_CONFIRMATION_KEYWORD', 'SEND_ALL_WHATSAPP'),
         'default_purpose' => env('WHATSAPP_DEFAULT_PURPOSE', 'verification'),
         'allow_advertising' => filter_var(env('WHATSAPP_ALLOW_ADVERTISING', false), FILTER_VALIDATE_BOOLEAN),
+        'ultramsg' => [
+            'api_url' => env('ULTRAMSG_API_URL', 'https://api.ultramsg.com'),
+            'default_instance_key' => env('ULTRAMSG_DEFAULT_INSTANCE_KEY', ''),
+            'instances' => [],
+        ],
     ],
 
 ];

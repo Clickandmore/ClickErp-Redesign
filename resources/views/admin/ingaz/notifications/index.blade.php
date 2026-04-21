@@ -18,6 +18,10 @@
                         <i class="fa fa-whatsapp me-1"></i>
                         إرسال واتساب (تحقق/متابعة)
                     </a>
+                    <a href="{{ route('notifications.settings') }}" class="btn btn-outline-dark">
+                        <i class="fa fa-plug me-1"></i>
+                        إعدادات الربط
+                    </a>
                     <a href="{{ route('messages.index') }}" class="btn btn-outline-secondary">
                         <i class="fa fa-inbox me-1"></i>
                         سجل الرسائل

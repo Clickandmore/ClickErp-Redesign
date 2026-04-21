@@ -29,6 +29,7 @@ class StoreNotificationRequest extends MainRequest
             'sms_template_id' => 'required_if:type,sms|integer|exists:sms_templates,id',
             'sender_name_type' => 'required_if:type,sms|in:advertising,verification',
             'whatsapp_purpose' => 'required_if:type,whatsapp|in:verification,follow_up,advertising',
+            'whatsapp_sender_key' => 'nullable|string|max:100',
             'template_variables' => 'nullable|array',
             'template_variables.*' => 'nullable|string|max:255',
             'message_override' => 'nullable|string|max:1000|required_if:type,whatsapp',

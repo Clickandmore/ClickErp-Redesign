@@ -18,6 +18,10 @@
                         <i class="fa fa-sms me-1"></i>
                         إرسال SMS
                     </a>
+                    <a href="{{ route('notifications.settings') }}" class="btn btn-outline-dark">
+                        <i class="fa fa-plug me-1"></i>
+                        إعدادات الربط
+                    </a>
                     <a href="{{ route('messages.index') }}" class="btn btn-outline-secondary">
                         <i class="fa fa-inbox me-1"></i>
                         سجل الرسائل
@@ -27,17 +31,26 @@
             <div class="card-body">
                 <div class="alert {{ $whatsappConfig['configured'] ? 'alert-success' : 'alert-danger' }} mb-4">
                     @if ($whatsappConfig['configured'])
-                        <strong>حالة الربط:</strong> تكامل واتساب مع Meta جاهز للإرسال.
+                        <strong>حالة الربط:</strong> تكامل واتساب عبر {{ $whatsappConfig['provider_label'] }} جاهز للإرسال.
                     @else
                         <strong>حالة الربط:</strong> غير مكتمل. القيم المفقودة:
                         <code>{{ implode(', ', $whatsappConfig['missing']) }}</code>
                     @endif
-                    <hr>
-                    <div class="small">
-                        <div><strong>Webhook Verify URL:</strong> <code>{{ $whatsappConfig['webhook_verify_url'] }}</code></div>
-                        <div><strong>Webhook Receive URL:</strong> <code>{{ $whatsappConfig['webhook_receive_url'] }}</code></div>
-                        <div class="mt-1 text-muted">استخدم نفس المسارين على دومين عام (HTTPS) داخل Meta.</div>
-                    </div>
+                    @if ($whatsappConfig['driver'] === 'meta')
+                        <hr>
+                        <div class="small">
+                            <div><strong>Webhook Verify URL:</strong> <code>{{ $whatsappConfig['webhook_verify_url'] }}</code></div>
+                            <div><strong>Webhook Receive URL:</strong> <code>{{ $whatsappConfig['webhook_receive_url'] }}</code></div>
+                            <div class="mt-1 text-muted">استخدم نفس المسارين على دومين عام (HTTPS) داخل Meta.</div>
+                        </div>
+                    @else
+                        <hr>
+                        <div class="small">
+                            <div><strong>المزود الحالي:</strong> UltraMsg</div>
+                            <div><strong>عدد الأرقام المفعلة:</strong> {{ count($whatsappConfig['senders']) }}</div>
+                            <div class="mt-1 text-muted">يمكنك ربط أكثر من رقم من شاشة إعدادات الربط، ثم اختيار الرقم المرسل منه عند التنفيذ.</div>
+                        </div>
+                    @endif
                 </div>
 
                 <div class="alert alert-info mb-4">
@@ -72,6 +85,19 @@
                             <option value="all">كل العملاء (يتطلب تأكيد)</option>
                         </select>
                     </div>
+
+                    @if ($whatsappConfig['driver'] === 'ultramsg' && count($whatsappConfig['senders']) > 0)
+                        <div class="col-md-4">
+                            <label for="whatsapp_sender_key" class="form-label">الرقم المُرسل منه</label>
+                            <select name="whatsapp_sender_key" id="whatsapp_sender_key" class="form-control">
+                                @foreach ($whatsappConfig['senders'] as $sender)
+                                    <option value="{{ $sender['key'] }}" {{ $whatsappConfig['default_sender_key'] === $sender['key'] ? 'selected' : '' }}>
+                                        {{ $sender['name'] }}@if(!empty($sender['phone_number'])) - {{ $sender['phone_number'] }} @endif ({{ $sender['instance_id'] }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
 
                     <div class="col-md-4 d-flex align-items-end">
                         <div class="w-100 bg-light rounded p-3 text-center">

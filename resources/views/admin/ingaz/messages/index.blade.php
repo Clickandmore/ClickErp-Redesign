@@ -14,17 +14,23 @@
                             <i class="fa fa-inbox me-2"></i>
                             سجل الرسائل المرسلة (SMS / WhatsApp)
                         </h4>
-                        <form class="d-flex flex-wrap gap-2" method="get" action="{{ route('messages.index') }}">
-                            <select name="type" class="form-control">
-                                <option value="all" {{ ($type ?? 'all') === 'all' ? 'selected' : '' }}>كل القنوات</option>
-                                <option value="sms" {{ ($type ?? 'all') === 'sms' ? 'selected' : '' }}>SMS</option>
-                                <option value="whatsapp" {{ ($type ?? 'all') === 'whatsapp' ? 'selected' : '' }}>WhatsApp</option>
-                            </select>
-                            <input type="text" name="q" class="form-control"
-                                placeholder="بحث بالاسم أو الهاتف أو نص الرسالة"
-                                value="{{ request('q') }}">
-                            <button class="btn btn-primary" type="submit">بحث</button>
-                        </form>
+                        <div class="d-flex flex-wrap gap-2">
+                            <a href="{{ route('notifications.settings') }}" class="btn btn-outline-dark">
+                                <i class="fa fa-plug me-1"></i>
+                                إعدادات الربط
+                            </a>
+                            <form class="d-flex flex-wrap gap-2" method="get" action="{{ route('messages.index') }}">
+                                <select name="type" class="form-control">
+                                    <option value="all" {{ ($type ?? 'all') === 'all' ? 'selected' : '' }}>كل القنوات</option>
+                                    <option value="sms" {{ ($type ?? 'all') === 'sms' ? 'selected' : '' }}>SMS</option>
+                                    <option value="whatsapp" {{ ($type ?? 'all') === 'whatsapp' ? 'selected' : '' }}>WhatsApp</option>
+                                </select>
+                                <input type="text" name="q" class="form-control"
+                                    placeholder="بحث بالاسم أو الهاتف أو نص الرسالة"
+                                    value="{{ request('q') }}">
+                                <button class="btn btn-primary" type="submit">بحث</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
                 <div class="card-body table-responsive">

@@ -37,6 +37,7 @@ use App\Http\Controllers\ingaz\RecruitmentOfficeController;
 use App\Http\Controllers\ingaz\SponsorshipTransferController;
 use App\Http\Controllers\ingaz\RentContractController;
 use App\Http\Controllers\ingaz\NotificationController;
+use App\Http\Controllers\ingaz\NotificationSettingsController;
 use App\Http\Controllers\ingaz\StatisticController;
 use App\Http\Controllers\ingaz\DeportationTravelController;
 use App\Http\Controllers\ingaz\RecruitmentContractExternalOfficeDispatchController;
@@ -343,6 +344,8 @@ Route::group(
             Route::post('sms-dispatch', [NotificationController::class, 'store'])->name('notifications.store');
             Route::get('whatsapp-dispatch', [NotificationController::class, 'indexWhatsApp'])->name('whatsapp.notifications.index');
             Route::post('whatsapp-dispatch', [NotificationController::class, 'storeWhatsApp'])->name('whatsapp.notifications.store');
+            Route::get('notifications-settings', [NotificationSettingsController::class, 'edit'])->name('notifications.settings');
+            Route::post('notifications-settings', [NotificationSettingsController::class, 'update'])->name('notifications.settings.update');
             Route::resource('statistics', StatisticController::class);
 
             Route::resource('steps', StepController::class);
