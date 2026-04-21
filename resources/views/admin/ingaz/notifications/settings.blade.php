@@ -8,7 +8,8 @@
 @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
     @php
         $oldSection = old('section');
-        $currentSettings = $settings;
+        $communicationSettings = \App\Support\CommunicationSettings::all();
+        $currentSettings = $communicationSettings;
         $maskSecret = function ($value, int $visible = 4) {
             $value = trim((string) $value);
             if ($value === '') {
@@ -23,17 +24,17 @@
             return str_repeat('*', max(6, $length - $visible)) . substr($value, -$visible);
         };
 
-        $emailData = $settings['email'] ?? [];
+        $emailData = $communicationSettings['email'] ?? [];
         if ($oldSection === 'email') {
             $emailData = array_replace_recursive($emailData, old('email', []));
         }
 
-        $smsData = $settings['sms'] ?? [];
+        $smsData = $communicationSettings['sms'] ?? [];
         if ($oldSection === 'sms') {
             $smsData = array_replace_recursive($smsData, old('sms', []));
         }
 
-        $whatsappData = $settings['whatsapp'] ?? [];
+        $whatsappData = $communicationSettings['whatsapp'] ?? [];
         if ($oldSection === 'whatsapp') {
             $whatsappData = array_replace_recursive($whatsappData, old('whatsapp', []));
         }

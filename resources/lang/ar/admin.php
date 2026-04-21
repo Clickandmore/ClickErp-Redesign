@@ -337,6 +337,8 @@
     'settings_section_additional' => 'إعدادات التشغيل',
     'settings_section_announcements' => 'الأخبار والإعلانات',
     'settings_manage_sections_hint' => 'تنظيم الإعدادات على أقسام واضحة لتسهيل الإدارة.',
+    'form_settings' => 'إعدادات النماذج',
+    'form_settings_hint' => 'إدارة عناوين ونصوص النماذج مع معاينة وطباعة تجريبية ببيانات وهمية.',
     'back' => 'الرجوع',
     'about_us' => 'من نحن',
     'english' => 'English',

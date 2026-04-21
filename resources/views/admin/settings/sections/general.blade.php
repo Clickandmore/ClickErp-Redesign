@@ -49,44 +49,10 @@
         </div>
 
         <div class="col-12">
-            <h6 class="text-muted mb-2">هوية النماذج والعقود</h6>
-            <div class="row g-3">
-                @foreach (config('translatable.locales') as $locale)
-                    <div class="col-md-6">
-                        <label class="form-label">اسم الشركة على النماذج {{ getFieldLanguage($locale) }}</label>
-                        <input type="text" name="document_company_name:{{ $locale }}" class="form-control"
-                               value="{{ $settings->translate($locale)->document_company_name ?? '' }}"
-                               placeholder="مثال: شركة بلاتنيوم الشرقية للاستقدام">
-                    </div>
-                @endforeach
-
-                @foreach (config('translatable.locales') as $locale)
-                    <div class="col-md-6">
-                        <label class="form-label">اسم المكتب على النماذج {{ getFieldLanguage($locale) }}</label>
-                        <input type="text" name="document_office_name:{{ $locale }}" class="form-control"
-                               value="{{ $settings->translate($locale)->document_office_name ?? '' }}"
-                               placeholder="مثال: مكتب بلاتنيوم الشرقية للاستقدام">
-                    </div>
-                @endforeach
-
-                <div class="col-md-6">
-                    <label class="form-label">لوجو النماذج والعقود</label>
-                    <input type="file" name="document_logo" class="form-control" accept="image/*">
-                    <small class="text-muted d-block mt-1">عند تركه فارغاً سيتم استخدام لوجو الهدر الحالي.</small>
-                </div>
-
-                <div class="col-md-6">
-                    <label class="form-label d-block">المعاينة الحالية</label>
-                    @php
-                        $documentLogo = showFile($settings->document_logo ?: $settings->logo_header);
-                    @endphp
-                    @if ($documentLogo)
-                        <img src="{{ $documentLogo }}" alt="لوجو النماذج" class="img-fluid rounded border p-2"
-                             style="max-height: 120px;">
-                    @else
-                        <div class="text-muted small">لا يوجد لوجو مخصص للنماذج حالياً.</div>
-                    @endif
-                </div>
+            <div class="alert alert-info mb-0">
+                تم نقل هوية النماذج والعقود إلى
+                <a href="{{ route('form-settings.index') }}" class="alert-link">إعدادات النماذج</a>
+                لتكون مستقلة عن إعدادات الموقع العامة.
             </div>
         </div>
 
@@ -149,6 +115,58 @@
                         <input type="text" name="map_link" class="form-control"
                                value="{{ $settings->map_link ?? '' }}">
                     </fieldset>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <hr>
+        </div>
+
+        <div class="col-12">
+            <h6 class="text-muted mb-2">روابط الهيدر السريعة</h6>
+            <p class="text-muted small mb-3">يمكنك تعديل النص والرابط لكل زر. اترك العنوان أو الرابط فارغاً لإخفائه من الهيدر.</p>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">عنوان الرابط السريع الأول</label>
+                    <input type="text" name="header_link_1_title" class="form-control"
+                           value="{{ old('header_link_1_title', $settings->header_link_1_title ?? 'مساند برو') }}"
+                           placeholder="مثال: مساند برو">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">رابط الرابط السريع الأول</label>
+                    <input type="url" name="header_link_1_url" class="form-control"
+                           value="{{ old('header_link_1_url', $settings->header_link_1_url ?? 'https://pros.musaned.com.sa/login') }}"
+                           placeholder="https://example.com">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">عنوان الرابط السريع الثاني</label>
+                    <input type="text" name="header_link_2_title" class="form-control"
+                           value="{{ old('header_link_2_title', $settings->header_link_2_title ?? 'مساند توثيق') }}"
+                           placeholder="مثال: مساند توثيق">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">رابط الرابط السريع الثاني</label>
+                    <input type="url" name="header_link_2_url" class="form-control"
+                           value="{{ old('header_link_2_url', $settings->header_link_2_url ?? 'https://tawtheeq.musaned.com.sa/') }}"
+                           placeholder="https://example.com">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">عنوان زر اللايف شات</label>
+                    <input type="text" name="live_chat_title" class="form-control"
+                           value="{{ old('live_chat_title', $settings->live_chat_title ?? 'اللايف شات') }}"
+                           placeholder="مثال: اللايف شات">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">رابط اللايف شات</label>
+                    <input type="url" name="live_chat_url" class="form-control"
+                           value="{{ old('live_chat_url', $settings->live_chat_url ?? 'https://salesiq.zoho.sa/platinumeastern/liveview') }}"
+                           placeholder="https://example.com">
                 </div>
             </div>
         </div>

@@ -335,6 +335,8 @@ return [
     'settings_section_additional' => 'Operations Settings',
     'settings_section_announcements' => 'News & Popups',
     'settings_manage_sections_hint' => 'Manage settings through clear, separate sections.',
+    'form_settings' => 'Form Settings',
+    'form_settings_hint' => 'Manage form titles and texts with preview and demo printing.',
     'back' => 'Back',
     'about_us' => 'About Us',
     'english' => 'English',

@@ -1016,13 +1016,14 @@
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
 
-                                    @php
-                                        $websiteManagementOpen =
-                                            request()->routeIs('settings.*') ||
+                                        @php
+                                            $websiteManagementOpen =
+                                                request()->routeIs('settings.*') ||
+                                                request()->routeIs('form-settings.*') ||
                                             request()->routeIs('about-us.*') ||
                                             request()->routeIs('questions.*') ||
                                             request()->routeIs('dash.settings*');
-                                    @endphp
+                                        @endphp
                                     <ul class="sub-menu collapse {{ $websiteManagementOpen ? 'show' : '' }}"
                                         id="websiteManagement">
                                         @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
@@ -1032,6 +1033,16 @@
                                                     <i class="fa fa-cogs"></i>
                                                     <span
                                                         class="ms-2">{{ helperTrans('ingaz.website_settings') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('form-settings.*') ? 'active' : '' }}"
+                                                    href="{{ route('form-settings.index') }}">
+                                                    <i class="fa fa-file-lines"></i>
+                                                    <span class="ms-2">{{ __('admin.form_settings') }}</span>
                                                 </a>
                                             </li>
                                         @endif

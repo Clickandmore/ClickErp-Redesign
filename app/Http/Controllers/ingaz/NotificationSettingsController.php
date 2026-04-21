@@ -19,7 +19,7 @@ class NotificationSettingsController extends Controller
         }
 
         return view('admin.ingaz.notifications.settings', [
-            'settings' => CommunicationSettings::all(),
+            'communicationSettings' => CommunicationSettings::all(),
         ]);
     }
 

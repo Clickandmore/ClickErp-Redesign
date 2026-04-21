@@ -89,93 +89,10 @@
         </div>
 
         <div class="col-12">
-            <h6 class="text-muted mb-2">محتوى النماذج والعقود</h6>
-            <p class="text-muted small mb-3">
-                يمكن استخدام المتغيرات <code>[اسم_الشركة]</code> و <code>[اسم_المكتب]</code> داخل النصوص.
-            </p>
-            <div class="row g-3">
-                @foreach (config('translatable.locales') as $locale)
-                    <div class="col-12">
-                        <div class="card border">
-                            <div class="card-body">
-                                <h6 class="mb-3">إعدادات {{ getFieldLanguage($locale) }}</h6>
-                                <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label">عنوان نموذج تسليم العمالة</label>
-                                        <input type="text" name="delivery_form_title:{{ $locale }}" class="form-control"
-                                               value="{{ $settings->translate($locale)->delivery_form_title ?? '' }}">
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        <label class="form-label">عنوان نموذج الإيواء</label>
-                                        <input type="text" name="shelter_receipt_title:{{ $locale }}" class="form-control"
-                                               value="{{ $settings->translate($locale)->shelter_receipt_title ?? '' }}">
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        <label class="form-label">العنوان الفرعي لنموذج الإيواء</label>
-                                        <input type="text" name="shelter_receipt_subtitle:{{ $locale }}" class="form-control"
-                                               value="{{ $settings->translate($locale)->shelter_receipt_subtitle ?? '' }}">
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        <label class="form-label">عنوان الفاتورة</label>
-                                        <input type="text" name="invoice_title:{{ $locale }}" class="form-control"
-                                               value="{{ $settings->translate($locale)->invoice_title ?? '' }}">
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        <label class="form-label">العنوان الفرعي للفاتورة</label>
-                                        <input type="text" name="invoice_subtitle:{{ $locale }}" class="form-control"
-                                               value="{{ $settings->translate($locale)->invoice_subtitle ?? '' }}">
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        <label class="form-label">عنوان عقد الإيجار</label>
-                                        <input type="text" name="rental_contract_title:{{ $locale }}" class="form-control"
-                                               value="{{ $settings->translate($locale)->rental_contract_title ?? '' }}">
-                                    </div>
-
-                                    <div class="col-12">
-                                        <label class="form-label">النص الافتراضي لنموذج تسليم العمالة</label>
-                                        <textarea rows="4" name="delivery_form_default_text:{{ $locale }}"
-                                                  class="form-control">{{ $settings->translate($locale)->delivery_form_default_text ?? '' }}</textarea>
-                                    </div>
-
-                                    <div class="col-12">
-                                        <label class="form-label">النص الافتراضي لنموذج الإيواء</label>
-                                        <textarea rows="4" name="shelter_receipt_default_text:{{ $locale }}"
-                                                  class="form-control">{{ $settings->translate($locale)->shelter_receipt_default_text ?? '' }}</textarea>
-                                    </div>
-
-                                    <div class="col-12">
-                                        <label class="form-label">نص المخالصة/التسوية لنموذج الإيواء</label>
-                                        <textarea rows="4" name="shelter_receipt_default_settlement_text:{{ $locale }}"
-                                                  class="form-control">{{ $settings->translate($locale)->shelter_receipt_default_settlement_text ?? '' }}</textarea>
-                                    </div>
-
-                                    <div class="col-12">
-                                        <label class="form-label">مقدمة عقد الإيجار</label>
-                                        <textarea rows="4" name="rental_contract_intro_text:{{ $locale }}"
-                                                  class="form-control">{{ $settings->translate($locale)->rental_contract_intro_text ?? '' }}</textarea>
-                                    </div>
-
-                                    <div class="col-12">
-                                        <label class="form-label">تذييل الفاتورة</label>
-                                        <textarea rows="3" name="invoice_footer_text:{{ $locale }}"
-                                                  class="form-control">{{ $settings->translate($locale)->invoice_footer_text ?? '' }}</textarea>
-                                    </div>
-
-                                    <div class="col-12">
-                                        <label class="form-label">تذييل عام لجميع النماذج</label>
-                                        <textarea rows="3" name="document_footer_note:{{ $locale }}"
-                                                  class="form-control">{{ $settings->translate($locale)->document_footer_note ?? '' }}</textarea>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
+            <div class="alert alert-info mb-0">
+                تم نقل جميع إعدادات النماذج والعقود إلى
+                <a href="{{ route('form-settings.index') }}" class="alert-link">إعدادات النماذج</a>
+                مع معاينة وطباعة تجريبية ببيانات وهمية.
             </div>
         </div>
 

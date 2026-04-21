@@ -20,6 +20,7 @@ use App\Http\Controllers\admin\ActivityLogController;
 use App\Http\Controllers\Permissions\RolesController;
 use App\Http\Controllers\admin\AdminContractController;
 use App\Http\Controllers\admin\AdminSettingsController;
+use App\Http\Controllers\admin\FormSettingsController;
 use App\Http\Controllers\admin\PrintContractController;
 use App\Http\Controllers\admin\ShelterWorkersController;
 use App\Http\Controllers\Permissions\PermissionsController;
@@ -162,6 +163,11 @@ Route::group(
             //** PRINT CONTRACT **//
             Route::get('/print_contract/{contractId?}', [PrintContractController::class, 'contract'])->name('print.contract');
             //** END NEW *//
+
+            Route::get('form-settings', [FormSettingsController::class, 'index'])->name('form-settings.index');
+            Route::put('form-settings', [FormSettingsController::class, 'update'])->name('form-settings.update');
+            Route::get('form-settings/preview/{template}', [FormSettingsController::class, 'preview'])->name('form-settings.preview');
+            Route::get('form-settings/preview/{template}/print', [FormSettingsController::class, 'print'])->name('form-settings.preview.print');
 
             Route::resource('settings', SettingController::class);
             Route::get('settings/section/{section}', [SettingController::class, 'section'])->name('settings.section');

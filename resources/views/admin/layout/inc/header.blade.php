@@ -2,7 +2,296 @@
 $locale = \App::currentLocale();
 $scaleDirection = ($locale == "ar")? "scale-right":"scale-left";
 $user = getAuthUser();
+$settings = $settings ?? null;
+$appTimezone = config('app.timezone', 'Asia/Riyadh');
+$headerNow = now()->timezone($appTimezone);
+$quickLinks = collect([
+    [
+        'title' => optional($settings)->header_link_1_title ?? 'مساند برو',
+        'url' => optional($settings)->header_link_1_url ?? 'https://pros.musaned.com.sa/login',
+        'icon' => 'fa-external-link',
+        'variant' => 'default',
+    ],
+    [
+        'title' => optional($settings)->header_link_2_title ?? 'مساند توثيق',
+        'url' => optional($settings)->header_link_2_url ?? 'https://tawtheeq.musaned.com.sa/',
+        'icon' => 'fa-file-text-o',
+        'variant' => 'default',
+    ],
+    [
+        'title' => optional($settings)->live_chat_title ?? 'اللايف شات',
+        'url' => optional($settings)->live_chat_url ?? 'https://salesiq.zoho.sa/platinumeastern/liveview',
+        'icon' => 'fa-comments',
+        'variant' => 'primary',
+    ],
+])->filter(function ($link) {
+    return filled($link['title']) && filled($link['url']);
+});
 @endphp
+@once
+    <style>
+        .page-header .navbar {
+            gap: 0.7rem;
+            align-items: center;
+            flex-wrap: nowrap;
+        }
+
+        .cm-brand {
+            min-height: 42px;
+            min-width: auto;
+            max-width: 220px;
+            gap: 0.55rem;
+        }
+
+        .cm-header-logo {
+            height: 34px;
+        }
+
+        .cm-brand-text {
+            line-height: 1.05;
+        }
+
+        .cm-brand-subtitle {
+            font-size: 12px;
+            font-weight: 700;
+            color: #102033;
+        }
+
+        .cm-header-center {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: nowrap;
+            min-width: 0;
+        }
+
+        .header-left {
+            min-width: 0;
+        }
+
+        .cm-header-meta {
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: 0.45rem;
+            min-width: 0;
+        }
+
+        .cm-header-meta-card {
+            min-width: auto;
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.34rem 0.62rem 0.34rem 0.38rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            box-shadow: none;
+            white-space: nowrap;
+        }
+
+        .cm-header-meta-icon {
+            width: 28px;
+            height: 28px;
+            flex: 0 0 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(13, 110, 253, 0.16) 0%, rgba(13, 110, 253, 0.06) 100%);
+            color: #0d6efd;
+            font-size: 0.8rem;
+        }
+
+        .cm-header-meta-body {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.4rem;
+            min-width: 0;
+        }
+
+        .cm-header-meta-label {
+            display: none;
+        }
+
+        .cm-header-meta-value {
+            color: #0f172a;
+            font-size: 0.82rem;
+            font-weight: 700;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+
+        .cm-header-meta-subvalue {
+            color: #475569;
+            font-size: 0.72rem;
+            margin-top: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .cm-header-shortcuts {
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: 0.45rem;
+            flex: 1 1 auto;
+            min-height: auto;
+            min-width: 0;
+        }
+
+        .cm-header-shortcuts-label {
+            display: none;
+        }
+
+        .cm-header-shortcuts-list {
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: 0.4rem;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .cm-header-shortcuts-list::-webkit-scrollbar {
+            display: none;
+        }
+
+        .cm-header-shortcut {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.42rem 0.72rem;
+            border-radius: 10px;
+            border: 1px solid rgba(13, 110, 253, 0.1);
+            background: rgba(255, 255, 255, 0.92);
+            color: #1f2937;
+            font-size: 0.78rem;
+            font-weight: 600;
+            line-height: 1;
+            text-decoration: none;
+            box-shadow: none;
+            white-space: nowrap;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+        }
+
+        .cm-header-shortcut:hover {
+            color: #0d6efd;
+            transform: translateY(-1px);
+            box-shadow: none;
+        }
+
+        .cm-header-shortcut.is-primary {
+            background: rgba(13, 110, 253, 0.12);
+            border-color: rgba(13, 110, 253, 0.14);
+            color: #0d6efd;
+        }
+
+        .cm-header-shortcut.is-primary:hover {
+            color: #0d6efd;
+        }
+
+        .cm-header-shortcut i {
+            font-size: 0.75rem;
+        }
+
+        .cm-header-action {
+            width: 38px;
+            height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            background: rgba(255, 255, 255, 0.94);
+            color: #0f172a;
+            box-shadow: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+        }
+
+        .cm-header-action:hover {
+            color: #0d6efd;
+            transform: translateY(-1px);
+            box-shadow: none;
+        }
+
+        .cm-header-open-site {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.45rem 0.75rem;
+            border-radius: 10px;
+            text-decoration: none;
+            background: #0f6b6e;
+            color: #fff;
+            font-size: 0.78rem;
+            font-weight: 700;
+            box-shadow: none;
+            white-space: nowrap;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .cm-header-open-site:hover {
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: none;
+        }
+
+        .cm-header-open-site i {
+            font-size: 0.82rem;
+        }
+
+        .header-right {
+            gap: 0.35rem;
+        }
+
+        @media (max-width: 1199.98px) {
+            .page-header .navbar {
+                gap: 0.55rem;
+            }
+
+            .cm-header-shortcut {
+                padding: 0.4rem 0.62rem;
+                font-size: 0.74rem;
+            }
+        }
+
+        @media (max-width: 1550px) {
+            .cm-header-meta-subvalue {
+                display: none;
+            }
+        }
+
+        @media (max-width: 1380px) {
+            .cm-header-meta {
+                display: none;
+            }
+        }
+
+        @media (max-width: 1280px) {
+            .cm-header-open-site span {
+                display: none;
+            }
+
+            .cm-header-open-site {
+                width: 38px;
+                height: 38px;
+                padding: 0;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 991.98px) {
+            .cm-brand {
+                margin-inline-start: 0.65rem !important;
+                margin-inline-end: 0 !important;
+                max-width: 180px;
+            }
+        }
+    </style>
+@endonce
 <header class="page-header sticky-top px-xl-4 px-sm-2 px-0 py-lg-2 py-1">
     <div class="container-fluid">
         <nav class="navbar">
@@ -38,44 +327,46 @@ $user = getAuthUser();
             </div>
 
             <div class="header-left flex-grow-1 d-none d-md-block">
-                <div class="main-search px-3 flex-fill">
-                    <input class="form-control" type="text" placeholder="">
-                    <div class="card shadow rounded-4 search-result slidedown">
-                       <div class="card-body">
-                            <small class="text-uppercase text-muted">روابط سريعة </small>
-                            <div class="d-flex flex-wrap align-items-start mt-2 mb-4">
-
-
+                <div class="px-3 flex-fill">
+                    <div class="cm-header-center">
+                        <div class="cm-header-meta">
+                            <div class="cm-header-meta-card">
+                                <span class="cm-header-meta-icon">
+                                    <i class="fa fa-calendar"></i>
+                                </span>
+                                <div class="cm-header-meta-body">
+                                    <span class="cm-header-meta-label">الوقت</span>
+                                    <strong class="cm-header-meta-value" id="cm-live-time">{{ $headerNow->format('H:i:s') }}</strong>
+                                    <small class="cm-header-meta-subvalue" id="cm-live-date">{{ $headerNow->format('Y-m-d') }}</small>
+                                </div>
                             </div>
-                            {{-- <small class="text-uppercase text-muted">Suggestions</small>
-                            <div class="card list-group list-group-flush list-group-custom mt-2">
-                                <a class="list-group-item list-group-item-action text-truncate" href="#">
-                                    <div class="fw-bold">Helper Class</div>
-                                    <small class="text-muted">Lorem Ipsum is simply dummy text of the printing and
-                                        typesetting industry.</small>
-                                </a>
-                                <a class="list-group-item list-group-item-action text-truncate" href="#">
-                                    <div class="fw-bold">Date Range Picker</div>
-                                    <small class="text-muted">There are many variations of passages of Lorem Ipsum
-                                        available</small>
-                                </a>
-                                <a class="list-group-item list-group-item-action text-truncate" href="#">
-                                    <div class="fw-bold">Image Input</div>
-                                    <small class="text-muted">It is a long established fact that a reader will be
-                                        distracted</small>
-                                </a>
-                                <a class="list-group-item list-group-item-action text-truncate" href="#">
-                                    <div class="fw-bold">DataTables for jQuery</div>
-                                    <small class="text-muted">Lorem Ipsum is simply dummy text of the printing and
-                                        typesetting industry.</small>
-                                </a>
-                                <a class="list-group-item list-group-item-action text-truncate" href="#">
-                                    <div class="fw-bold">Development Setup</div>
-                                    <small class="text-muted">Contrary to popular belief, Lorem Ipsum is not simply
-                                        random text.</small>
-                                </a>
-                            </div> --}}
+
+                            <div class="cm-header-meta-card">
+                                <span class="cm-header-meta-icon">
+                                    <i class="fa fa-clock-o"></i>
+                                </span>
+                                <div class="cm-header-meta-body">
+                                    <span class="cm-header-meta-label">المدة</span>
+                                    <strong class="cm-header-meta-value" id="cm-session-duration">00:00</strong>
+                                    <small class="cm-header-meta-subvalue">منذ فتح النظام</small>
+                                </div>
+                            </div>
                         </div>
+
+                        @if ($quickLinks->isNotEmpty())
+                            <div class="cm-header-shortcuts">
+                                <p class="cm-header-shortcuts-label mb-0">روابط سريعة</p>
+                                <div class="cm-header-shortcuts-list">
+                                    @foreach ($quickLinks as $link)
+                                        <a class="cm-header-shortcut {{ $link['variant'] === 'primary' ? 'is-primary' : '' }}"
+                                           href="{{ $link['url'] }}" target="_blank" rel="noopener noreferrer">
+                                            <i class="fa {{ $link['icon'] }}"></i>
+                                            <span>{{ $link['title'] }}</span>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -83,7 +374,7 @@ $user = getAuthUser();
             <ul class="header-right justify-content-end d-flex align-items-center mb-0">
                 <li>
                     <div class="dropdown morphing {{$scaleDirection}} notifications">
-                        <a class="nav-link dropdown-toggle after-none" href="#" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle after-none cm-header-action" href="#" role="button" data-bs-toggle="dropdown" title="الإشعارات">
 
                             <i class="fa fa-bell"></i>
                             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge" style="display: none;">
@@ -107,8 +398,8 @@ $user = getAuthUser();
                 </li>
 
                 <li class="d-none d-xl-inline-block">
-                    <a class="nav-link fullscreen" href="#{{--javascript:void(0);--}}"
-                        onclick="toggleFullScreen(documentElement)">
+                    <a class="nav-link fullscreen cm-header-action" href="#{{--javascript:void(0);--}}"
+                        onclick="toggleFullScreen(documentElement)" title="ملء الشاشة">
                         <svg viewBox="0 0 16 16" width="18px" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd"
                                 d="M5.8279 10.172C5.73414 10.0783 5.60698 10.0256 5.4744 10.0256C5.34182 10.0256 5.21467 10.0783 5.1209 10.172L1.0249 14.268V11.5C1.0249 11.3674 0.972224 11.2402 0.878456 11.1464C0.784688 11.0527 0.657511 11 0.524902 11C0.392294 11 0.265117 11.0527 0.171349 11.1464C0.0775808 11.2402 0.0249023 11.3674 0.0249023 11.5V15.475C0.0249023 15.6076 0.0775808 15.7348 0.171349 15.8285C0.265117 15.9223 0.392294 15.975 0.524902 15.975H4.4999C4.63251 15.975 4.75969 15.9223 4.85346 15.8285C4.94722 15.7348 4.9999 15.6076 4.9999 15.475C4.9999 15.3424 4.94722 15.2152 4.85346 15.1214C4.75969 15.0277 4.63251 14.975 4.4999 14.975H1.7319L5.8279 10.879C5.92164 10.7852 5.9743 10.6581 5.9743 10.5255C5.9743 10.3929 5.92164 10.2658 5.8279 10.172ZM10.1719 10.172C10.2657 10.0783 10.3928 10.0256 10.5254 10.0256C10.658 10.0256 10.7851 10.0783 10.8789 10.172L14.9749 14.268V11.5C14.9749 11.3674 15.0276 11.2402 15.1213 11.1464C15.2151 11.0527 15.3423 11 15.4749 11C15.6075 11 15.7347 11.0527 15.8285 11.1464C15.9222 11.2402 15.9749 11.3674 15.9749 11.5V15.475C15.9749 15.6076 15.9222 15.7348 15.8285 15.8285C15.7347 15.9223 15.6075 15.975 15.4749 15.975H11.4999C11.3673 15.975 11.2401 15.9223 11.1463 15.8285C11.0526 15.7348 10.9999 15.6076 10.9999 15.475C10.9999 15.3424 11.0526 15.2152 11.1463 15.1214C11.2401 15.0277 11.3673 14.975 11.4999 14.975H14.2679L10.1719 10.879C10.0782 10.7852 10.0255 10.6581 10.0255 10.5255C10.0255 10.3929 10.0782 10.2658 10.1719 10.172ZM5.8279 5.82799C5.73414 5.92173 5.60698 5.97439 5.4744 5.97439C5.34182 5.97439 5.21467 5.92173 5.1209 5.82799L1.0249 1.73199V4.49999C1.0249 4.6326 0.972224 4.75978 0.878456 4.85355C0.784688 4.94732 0.657511 4.99999 0.524902 4.99999C0.392294 4.99999 0.265117 4.94732 0.171349 4.85355C0.0775808 4.75978 0.0249023 4.6326 0.0249023 4.49999V0.524994C0.0249023 0.392386 0.0775808 0.265209 0.171349 0.17144C0.265117 0.0776723 0.392294 0.0249939 0.524902 0.0249939H4.4999C4.63251 0.0249939 4.75969 0.0776723 4.85346 0.17144C4.94722 0.265209 4.9999 0.392386 4.9999 0.524994C4.9999 0.657602 4.94722 0.784779 4.85346 0.878547C4.75969 0.972315 4.63251 1.02499 4.4999 1.02499H1.7319L5.8279 5.12099C5.92164 5.21476 5.9743 5.34191 5.9743 5.47449C5.9743 5.60708 5.92164 5.73423 5.8279 5.82799Z" />
@@ -120,7 +411,7 @@ $user = getAuthUser();
 
                 <li class="d-none d-xl-inline-block">
                     <div class="dropdown morphing {{$scaleDirection}} Language mx-sm-2">
-                        <a class="nav-link dropdown-toggle after-none" href="#" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle after-none cm-header-action" href="#" role="button" data-bs-toggle="dropdown" title="اللغة">
                             <svg viewBox="0 0 16 16" width="18px" fill="currentColor"
                                 xmlns="http://www.w3.org/2000/svg">
                                 <path class="fill-secondary"
@@ -154,7 +445,7 @@ $user = getAuthUser();
                 </li>
 
                 <li class="d-none d-sm-inline-block d-xl-none">
-                    <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#MynotesModal">
+                    <a class="nav-link cm-header-action" href="#" data-bs-toggle="modal" data-bs-target="#MynotesModal" title="الملاحظات">
                         <svg viewBox="0 0 16 16" width="18px" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path class="fill-secondary"
                                 d="M1.5 0A1.5 1.5 0 0 0 0 1.5V13a1 1 0 0 0 1 1V1.5a.5.5 0 0 1 .5-.5H14a1 1 0 0 0-1-1H1.5z" />
@@ -163,20 +454,22 @@ $user = getAuthUser();
                         </svg>
                     </a>
                 </li>
+
                 <li class="d-none d-xl-inline-block">
-                    <a class="nav-link" href="{{url('/')}}" >
-                        <svg class="avatar xs" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path
-                                d="M15.7469 6C15.9125 6.64062 16 7.30937 16 8C16 8.69063 15.9125 9.35938 15.7469 10H11.9C11.9656 9.35625 12 8.65938 12 8C12 7.3125 11.9656 6.64375 11.9 6H15.7469ZM15.4187 5H11.7719C11.4594 3.00437 10.8406 1.33188 10.0437 0.263813C12.4937 0.909063 14.4812 2.68563 15.4187 5ZM10.7594 5H5.24062C5.43125 3.8625 5.725 2.85562 6.08437 2.04219C6.4125 1.30437 6.77812 0.769063 7.13125 0.431563C7.48125 0.0993125 7.77187 0 8 0C8.22812 0 8.51875 0.0993125 8.86875 0.431563C9.22187 0.769063 9.5875 1.30437 9.91562 2.04219C10.275 2.85562 10.5687 3.8625 10.7594 5ZM0.581563 5C1.51844 2.68563 3.50625 0.909063 5.95625 0.263813C5.15938 1.33188 4.54063 3.00437 4.22813 5H0.581563ZM4.1 6C4.03437 6.64375 3.97187 7.3125 3.97187 8C3.97187 8.65938 4.03437 9.35625 4.1 10H0.252031C0.0875 9.35938 0 8.69063 0 8C0 7.30937 0.0875 6.64062 0.252031 6H4.1ZM6.08437 13.9563C5.725 13.1438 5.43125 12.1375 5.24062 11H10.7594C10.5687 12.1375 10.275 13.1438 9.91562 13.9563C9.5875 14.6969 9.22187 15.2313 8.86875 15.5688C8.51875 15.9 8.22813 16 7.97188 16C7.77188 16 7.48125 15.9 7.13125 15.5688C6.77812 15.2313 6.4125 14.6969 6.08437 13.9563ZM5.95625 15.7375C3.50625 15.0906 1.51844 13.3156 0.581563 11H4.22813C4.54063 12.9969 5.15938 14.6687 5.95625 15.7375ZM10.0437 15.7375C10.8406 14.6687 11.4594 12.9969 11.7719 11H15.4187C14.4812 13.3156 12.4937 15.0906 10.0437 15.7375Z"
-                                fill="black"/>
-                            <path class="fill-secondary"
-                                  d="M10.8969 10C10.9625 9.3625 11 8.69375 11 8C11 7.30625 10.9625 6.6375 10.8969 6H5.10317C5.03755 6.6375 4.97192 7.30625 4.97192 8C4.97192 8.69375 5.03755 9.3625 5.10317 10H10.8969Z"
-                                  fill="black"/>
-                        </svg>
+                    <a class="cm-header-open-site" href="{{ url('/') }}" target="_blank" rel="noopener noreferrer" title="عرض الموقع الخارجي">
+                        <i class="fa fa-globe"></i>
+                        <span>الموقع</span>
+                    </a>
                 </li>
 
                 <li class="d-none d-sm-inline-block d-xl-none">
-                    <a class="nav-link" href="#" data-bs-toggle="modal" data-bs-target="#RecentChat">
+                    <a class="nav-link cm-header-action" href="{{ url('/') }}" target="_blank" rel="noopener noreferrer" title="الموقع الخارجي">
+                        <i class="fa fa-globe"></i>
+                    </a>
+                </li>
+
+                <li class="d-none d-sm-inline-block d-xl-none">
+                    <a class="nav-link cm-header-action" href="#" data-bs-toggle="modal" data-bs-target="#RecentChat" title="المحادثات">
                         <svg viewBox="0 0 16 16" width="18px" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path
                                 d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
@@ -254,3 +547,66 @@ $user = getAuthUser();
         </nav>
     </div>
 </header>
+@once
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const liveDate = document.getElementById('cm-live-date');
+            const liveTime = document.getElementById('cm-live-time');
+            const sessionDuration = document.getElementById('cm-session-duration');
+
+            if (!liveDate || !liveTime || !sessionDuration) {
+                return;
+            }
+
+            const timezone = @json($appTimezone);
+            const locale = @json($locale === 'ar' ? 'ar-SA' : 'en-US');
+            const storageKey = 'clickerp_admin_session_opened_at';
+            const dateFormatter = new Intl.DateTimeFormat(locale, {
+                timeZone: timezone,
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            });
+            const timeFormatter = new Intl.DateTimeFormat(locale, {
+                timeZone: timezone,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+
+            let openedAt = sessionStorage.getItem(storageKey);
+            if (!openedAt) {
+                openedAt = String(Date.now());
+                sessionStorage.setItem(storageKey, openedAt);
+            }
+
+            openedAt = parseInt(openedAt, 10);
+
+            const pad = (value) => String(value).padStart(2, '0');
+
+            const formatDuration = (milliseconds) => {
+                const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+
+                if (hours > 0) {
+                    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+                }
+
+                return `${pad(minutes)}:${pad(seconds)}`;
+            };
+
+            const renderHeaderClock = () => {
+                const now = new Date();
+                liveDate.textContent = dateFormatter.format(now);
+                liveTime.textContent = timeFormatter.format(now);
+                sessionDuration.textContent = formatDuration(Date.now() - openedAt);
+            };
+
+            renderHeaderClock();
+            window.setInterval(renderHeaderClock, 1000);
+        });
+    </script>
+@endonce
