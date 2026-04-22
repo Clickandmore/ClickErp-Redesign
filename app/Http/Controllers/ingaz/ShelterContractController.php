@@ -5,6 +5,7 @@ namespace App\Http\Controllers\ingaz;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ingaz\ShelterContactStore;
+use App\PermKeys;
 use App\Models\Contract;
 use App\Models\ContractInfo;
 use App\Models\ingaz\JobType;
@@ -13,7 +14,6 @@ use Illuminate\Support\Facades\DB;
 use App\Models\RecruitmentOffices;
 use App\Models\ingaz\Nationality;
 use App\Models\ShelterPlaces;
-use App\NewPermKeys;
 use App\Support\AutomationSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,43 +31,176 @@ class ShelterContractController extends Controller
 
     public function __construct()
     {
-        $this->middleware('permission:shelter_contract_view|shelter_contract_control,admin', [
-            'only' => [
-                'index',
-                'show',
-                'getData',
-                'availableForTransfer',
-                'deportationStage',
-                'generalShelter',
-                'searchByPassport',
-                'getContractDetails',
-                'getNationalities',
-                'getShelterPlaces',
-                'export',
-                'deported',
-                'showDeportationProcedures',
-                'getActivityLog',
-                'deliveryShelterContractDownload',
-            ],
+        $this->middleware($this->permissionMiddleware($this->shelterInsideViewPermissions()), ['only' => ['index', 'getData']]);
+        $this->middleware($this->permissionMiddleware($this->shelterAvailableForTransferViewPermissions()), ['only' => ['availableForTransfer']]);
+        $this->middleware($this->permissionMiddleware($this->shelterDeportationStageViewPermissions()), ['only' => ['deportationStage']]);
+        $this->middleware($this->permissionMiddleware($this->shelterDeportedViewPermissions()), ['only' => ['deported']]);
+        $this->middleware($this->permissionMiddleware($this->shelterContractDetailViewPermissions()), [
+            'only' => ['show', 'generalShelter', 'export', 'deliveryShelterContractDownload'],
         ]);
-        $this->middleware('permission:shelter_contract_create|shelter_contract_control,admin', [
-            'only' => ['create', 'store'],
+        $this->middleware($this->permissionMiddleware($this->shelterDeportationProceduresViewPermissions()), [
+            'only' => ['showDeportationProcedures', 'getActivityLog'],
         ]);
-        $this->middleware('permission:shelter_contract_edit|shelter_contract_control,admin', [
-            'only' => [
-                'edit',
-                'update',
-                'back',
-                'updateQuickTags',
-                'startDeportation',
-                'updateDeportationProcedures',
-                'changeWorkDesire',
-                'toggleInstantReceipt',
-            ],
+        $this->middleware($this->permissionMiddleware(array_merge(
+            $this->shelterAdditionCreatePermissions(),
+            $this->shelterContractEditPermissions()
+        )), [
+            'only' => ['searchByPassport', 'getContractDetails', 'getNationalities', 'getShelterPlaces'],
         ]);
-        $this->middleware('permission:shelter_contract_delete|shelter_contract_control,admin', [
-            'only' => ['destroy'],
+        $this->middleware($this->permissionMiddleware($this->shelterAdditionCreatePermissions()), ['only' => ['create', 'store']]);
+        $this->middleware($this->permissionMiddleware($this->shelterContractEditPermissions()), ['only' => ['edit', 'update']]);
+        $this->middleware($this->permissionMiddleware($this->shelterRemoveFromShelterPermissions()), ['only' => ['back']]);
+        $this->middleware($this->permissionMiddleware($this->shelterQuickTagsEditPermissions()), ['only' => ['updateQuickTags']]);
+        $this->middleware($this->permissionMiddleware($this->shelterDeportationProceduresEditPermissions()), [
+            'only' => ['startDeportation', 'updateDeportationProcedures'],
         ]);
+        $this->middleware($this->permissionMiddleware($this->shelterWorkDesireEditPermissions()), ['only' => ['changeWorkDesire']]);
+        $this->middleware($this->permissionMiddleware($this->shelterInstantReceiptEditPermissions()), ['only' => ['toggleInstantReceipt']]);
+        $this->middleware($this->permissionMiddleware([PermKeys::SHELTER_CONTRACT_DELETE, PermKeys::SHELTER_CONTRACT_CONTROL]), ['only' => ['destroy']]);
+    }
+
+    private function permissionMiddleware(array $permissions): string
+    {
+        return 'permission:' . implode('|', array_values(array_unique($permissions))) . ',admin';
+    }
+
+    private function adminCanAny(array $permissions): bool
+    {
+        $admin = Auth::guard('admin')->user();
+
+        if (!$admin) {
+            return false;
+        }
+
+        foreach (array_values(array_unique($permissions)) as $permission) {
+            if ($admin->can($permission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function shelterAdditionCreatePermissions(): array
+    {
+        return [
+            PermKeys::SHELTER_CONTRACT_ADDITION_CREATE,
+            PermKeys::SHELTER_CONTRACT_CREATE,
+            PermKeys::SHELTER_CONTRACT_CONTROL,
+        ];
+    }
+
+    private function shelterInsideViewPermissions(): array
+    {
+        return [
+            PermKeys::SHELTER_CONTRACT_INSIDE_VIEW,
+            PermKeys::SHELTER_CONTRACT_VIEW,
+            PermKeys::SHELTER_CONTRACT_CONTROL,
+        ];
+    }
+
+    private function shelterAvailableForTransferViewPermissions(): array
+    {
+        return [
+            PermKeys::SHELTER_CONTRACT_AVAILABLE_FOR_TRANSFER_VIEW,
+            PermKeys::SHELTER_CONTRACT_VIEW,
+            PermKeys::SHELTER_CONTRACT_CONTROL,
+        ];
+    }
+
+    private function shelterDeportationStageViewPermissions(): array
+    {
+        return [
+            PermKeys::SHELTER_CONTRACT_DEPORTATION_STAGE_VIEW,
+            PermKeys::SHELTER_CONTRACT_VIEW,
+            PermKeys::SHELTER_CONTRACT_CONTROL,
+        ];
+    }
+
+    private function shelterDeportedViewPermissions(): array
+    {
+        return [
+            PermKeys::SHELTER_CONTRACT_DEPORTED_VIEW,
+            PermKeys::SHELTER_CONTRACT_VIEW,
+            PermKeys::SHELTER_CONTRACT_CONTROL,
+        ];
+    }
+
+    private function shelterContractDetailViewPermissions(): array
+    {
+        return [
+            PermKeys::SHELTER_CONTRACT_INSIDE_VIEW,
+            PermKeys::SHELTER_CONTRACT_AVAILABLE_FOR_TRANSFER_VIEW,
+            PermKeys::SHELTER_CONTRACT_DEPORTATION_STAGE_VIEW,
+            PermKeys::SHELTER_CONTRACT_DEPORTED_VIEW,
+            PermKeys::SHELTER_CONTRACT_DEPORTATION_PROCEDURES_VIEW,
+            PermKeys::SHELTER_CONTRACT_VIEW,
+            PermKeys::SHELTER_CONTRACT_CONTROL,
+        ];
+    }
+
+    private function shelterDeportationProceduresViewPermissions(): array
+    {
+        return [
+            PermKeys::SHELTER_CONTRACT_DEPORTATION_PROCEDURES_VIEW,
+            PermKeys::SHELTER_CONTRACT_DEPORTATION_STAGE_VIEW,
+            PermKeys::SHELTER_CONTRACT_DEPORTED_VIEW,
+            PermKeys::SHELTER_CONTRACT_VIEW,
+            PermKeys::SHELTER_CONTRACT_CONTROL,
+        ];
+    }
+
+    private function shelterContractEditPermissions(): array
+    {
+        return [
+            PermKeys::SHELTER_CONTRACT_EDIT,
+            PermKeys::SHELTER_CONTRACT_CONTROL,
+        ];
+    }
+
+    private function shelterDeportationProceduresEditPermissions(): array
+    {
+        return [
+            PermKeys::SHELTER_CONTRACT_DEPORTATION_PROCEDURES_EDIT,
+            PermKeys::SHELTER_CONTRACT_EDIT,
+            PermKeys::SHELTER_CONTRACT_CONTROL,
+        ];
+    }
+
+    private function shelterWorkDesireEditPermissions(): array
+    {
+        return [
+            PermKeys::SHELTER_CONTRACT_WORK_DESIRE_EDIT,
+            PermKeys::SHELTER_CONTRACT_EDIT,
+            PermKeys::SHELTER_CONTRACT_CONTROL,
+        ];
+    }
+
+    private function shelterQuickTagsEditPermissions(): array
+    {
+        return [
+            PermKeys::SHELTER_CONTRACT_QUICK_TAGS_EDIT,
+            PermKeys::SHELTER_CONTRACT_EDIT,
+            PermKeys::SHELTER_CONTRACT_CONTROL,
+        ];
+    }
+
+    private function shelterInstantReceiptEditPermissions(): array
+    {
+        return [
+            PermKeys::SHELTER_CONTRACT_INSTANT_RECEIPT_EDIT,
+            PermKeys::SHELTER_CONTRACT_EDIT,
+            PermKeys::SHELTER_CONTRACT_CONTROL,
+        ];
+    }
+
+    private function shelterRemoveFromShelterPermissions(): array
+    {
+        return [
+            PermKeys::SHELTER_CONTRACT_REMOVE_FROM_SHELTER_EDIT,
+            PermKeys::SHELTER_CONTRACT_EDIT,
+            PermKeys::SHELTER_CONTRACT_CONTROL,
+        ];
     }
 
     public function index(Request $request)
@@ -2027,40 +2160,54 @@ class ShelterContractController extends Controller
                     return $html;
                 })
                 ->addColumn('actions', function ($row) {
+                    $canViewDetails = $this->adminCanAny($this->shelterContractDetailViewPermissions());
+                    $canEditContract = $this->adminCanAny($this->shelterContractEditPermissions());
+                    $canChangeWorkDesire = $this->adminCanAny($this->shelterWorkDesireEditPermissions());
+                    $canEditQuickTags = $this->adminCanAny($this->shelterQuickTagsEditPermissions());
+                    $canToggleInstantReceipt = $this->adminCanAny($this->shelterInstantReceiptEditPermissions());
+                    $canRemoveFromShelter = $this->adminCanAny($this->shelterRemoveFromShelterPermissions());
+                    $canViewDeportationProcedures = $this->adminCanAny($this->shelterDeportationProceduresViewPermissions());
+                    $canManageDeportationProcedures = $this->adminCanAny($this->shelterDeportationProceduresEditPermissions());
+                    $canCreateTransferRequest = $this->adminCanAny([
+                        PermKeys::SPONSOR_TRANSFER_CREATE,
+                        PermKeys::SPONSOR_TRANSFER_CONTROL,
+                    ]);
+
                     $actions = '<div class="dropdown actions-dropdown">
                                     <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
                                         <i class="fas fa-cogs me-1"></i> الإجراءات
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
 
-                    // عرض التفاصيل
-                    $actions .= '<li><a class="dropdown-item" href="' . route('ShelterContract.show', $row->id) . '">
-                                    <i class="fas fa-eye"></i> عرض التفاصيل
-                                </a></li>';
-                    // عرض نموذج الاستلام
-                    $actions .= '<li><a class="dropdown-item" href="' . route('shelter_contract_form.download', $row->id) . '" target="_blank">
-                                    <i class="fas fa-eye"></i> عرض نموذج الاستلام
-                                </a></li>';
+                    if ($canViewDetails) {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('ShelterContract.show', $row->id) . '">
+                                        <i class="fas fa-eye"></i> عرض التفاصيل
+                                    </a></li>';
+                        $actions .= '<li><a class="dropdown-item" href="' . route('shelter_contract_form.download', $row->id) . '" target="_blank">
+                                        <i class="fas fa-eye"></i> عرض نموذج الاستلام
+                                    </a></li>';
+                    }
 
-                    // تحرير
-                    $actions .= '<li><a class="dropdown-item" href="' . route('ShelterContract.edit', $row->id) . '">
-                                    <i class="fas fa-edit"></i> تحرير
-                                </a></li>';
+                    if ($canEditContract) {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('ShelterContract.edit', $row->id) . '">
+                                        <i class="fas fa-edit"></i> تحرير
+                                    </a></li>';
+                    }
 
-                    // تغيير رغبة العمل
-                    $actions .= '<li><a class="dropdown-item change-work-desire" href="#" data-id="' . $row->id . '" data-current="' . ($row->info ? $row->info->wants_to_work : 'unknown') . '">
-                                    <i class="fas fa-exchange-alt"></i> تغيير رغبة العمل
-                                </a></li>';
+                    if ($canChangeWorkDesire) {
+                        $actions .= '<li><a class="dropdown-item change-work-desire" href="#" data-id="' . $row->id . '" data-current="' . ($row->info ? $row->info->wants_to_work : 'unknown') . '">
+                                        <i class="fas fa-exchange-alt"></i> تغيير رغبة العمل
+                                    </a></li>';
+                    }
 
-                    if ($this->supportsQuickTags()) {
+                    if ($canEditQuickTags && $this->supportsQuickTags()) {
                         $quickTags = htmlspecialchars(implode(', ', $this->extractQuickTags(optional($row->info)->shelter_quick_tags)), ENT_QUOTES, 'UTF-8');
                         $actions .= '<li><a class="dropdown-item edit-quick-tags" href="#" data-id="' . $row->id . '" data-tags="' . $quickTags . '">
                                         <i class="fas fa-tags"></i> تعديل التصنيفات السريعة
                                     </a></li>';
                     }
 
-                    // تغيير حالة الاستلام الفوري (فقط إذا كانت ترغب بالعمل)
-                    if ($row->info && $row->info->wants_to_work === 'yes') {
+                    if ($canToggleInstantReceipt && $row->info && $row->info->wants_to_work === 'yes') {
                         $currentStatus = $row->info->is_available_for_instant ? 'متاحة' : 'غير متاحة';
                         $newStatus = $row->info->is_available_for_instant ? 'إخفاء من الموقع' : 'إظهار على الموقع';
                         $icon = $row->info->is_available_for_instant ? 'fa-eye-slash' : 'fa-eye';
@@ -2071,15 +2218,14 @@ class ShelterContractController extends Controller
                                     </a></li>';
                     }
 
-                    $actions .= '<li><hr class="dropdown-divider"></li>';
+                    if ($canRemoveFromShelter) {
+                        $actions .= '<li><hr class="dropdown-divider"></li>';
+                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="back" data-id="' . $row->id . '" data-text="هل أنت متأكد من حذف العقد من الإيواء؟ سيعود العقد إلى العقود المكتملة">
+                                        <i class="fas fa-undo"></i> حذف من الإيواء
+                                    </a></li>';
+                    }
 
-                    // حذف من الإيواء (متاح دائماً للعقود في الإيواء)
-                    $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="back" data-id="' . $row->id . '" data-text="هل أنت متأكد من حذف العقد من الإيواء؟ سيعود العقد إلى العقود المكتملة">
-                                    <i class="fas fa-undo"></i> حذف من الإيواء
-                                </a></li>';
-
-                    // نقل الكفالة (فقط إذا كانت ترغب بالعمل)
-                    if ($row->info && $row->info->wants_to_work === 'yes') {
+                    if ($canCreateTransferRequest && $row->info && $row->info->wants_to_work === 'yes') {
                         $actions .= '<li><hr class="dropdown-divider"></li>';
                         $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="transfer" data-id="' . $row->id . '" data-text="سيتم فتح صفحة إضافة طلب نقل كفالة">
                                         <i class="fas fa-exchange-alt"></i> إضافة طلب نقل كفالة
@@ -2092,24 +2238,23 @@ class ShelterContractController extends Controller
                                     </div></li>';
                     }
 
-                    // إجراءات الترحيل (فقط إذا كانت لا ترغب بالعمل)
                     if ($row->info && $row->info->wants_to_work === 'no') {
                         $actions .= '<li><hr class="dropdown-divider"></li>';
 
-                        // التحقق من وجود إجراءات ترحيل
                         $deportationProcedure = $row->deportationProcedure;
 
                         if ($deportationProcedure) {
-                            // عرض إجراءات الترحيل الموجودة
-                            $actions .= '<li><a class="dropdown-item" href="' . route('ShelterContract.deportation.procedures', $row->id) . '">
-                                            <i class="fas fa-clipboard-check"></i> عرض إجراءات الترحيل
-                                        </a></li>';
+                            if ($canViewDeportationProcedures) {
+                                $actions .= '<li><a class="dropdown-item" href="' . route('ShelterContract.deportation.procedures', $row->id) . '">
+                                                <i class="fas fa-clipboard-check"></i> عرض إجراءات الترحيل
+                                            </a></li>';
+                            }
 
                             $canConfirmProcedures = !$deportationProcedure->procedures_confirmed
                                 && $deportationProcedure->status !== 'completed'
                                 && $deportationProcedure->areAllQuestionsAnswered();
 
-                            if ($canConfirmProcedures) {
+                            if ($canManageDeportationProcedures && $canConfirmProcedures) {
                                 $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="confirm-procedures" data-id="' . $deportationProcedure->id . '" data-text="هل تريد تأكيد اكتمال جميع إجراءات الترحيل؟">
                                                 <i class="fas fa-check-double"></i> تأكيد اكتمال الإجراءات
                                             </a></li>';
@@ -2119,13 +2264,12 @@ class ShelterContractController extends Controller
                                 && $deportationProcedure->trip_scheduled
                                 && $deportationProcedure->procedures_confirmed;
 
-                            if ($canCompleteDeportation) {
+                            if ($canManageDeportationProcedures && $canCompleteDeportation) {
                                 $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="complete-deportation" data-id="' . $deportationProcedure->id . '" data-text="بعد إتمام الترحيل سيتم نقل العقد إلى قائمة تم الترحيل. هل تريد المتابعة؟">
                                                 <i class="fas fa-plane-arrival"></i> إكمال الترحيل
                                             </a></li>';
                             }
-                        } else {
-                            // بدء إجراءات الترحيل
+                        } elseif ($canManageDeportationProcedures) {
                             $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="start-deportation" data-id="' . $row->id . '" data-text="هل تريد بدء إجراءات الترحيل للعاملة؟">
                                             <i class="fas fa-plane-departure"></i> بدء إجراءات الترحيل
                                         </a></li>';
@@ -2834,21 +2978,26 @@ class ShelterContractController extends Controller
                     return '<span class="badge text-bg-danger">تم الترحيل</span>';
                 })
                 ->addColumn('actions', function ($row) {
+                    $canViewDetails = $this->adminCanAny($this->shelterContractDetailViewPermissions());
+                    $canViewDeportationProcedures = $this->adminCanAny($this->shelterDeportationProceduresViewPermissions());
+
                     $actions = '<div class="dropdown actions-dropdown">
                                     <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
                                         <i class="fas fa-cogs me-1"></i> الإجراءات
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
 
-                    // عرض الإجراءات
-                    $actions .= '<li><a class="dropdown-item" href="' . route('ShelterContract.deportation.procedures', $row->contract_id) . '">
-                                    <i class="fas fa-clipboard-check"></i> عرض إجراءات الترحيل
-                                </a></li>';
+                    if ($canViewDeportationProcedures) {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('ShelterContract.deportation.procedures', $row->contract_id) . '">
+                                        <i class="fas fa-clipboard-check"></i> عرض إجراءات الترحيل
+                                    </a></li>';
+                    }
 
-                    // عرض تفاصيل العقد
-                    $actions .= '<li><a class="dropdown-item" href="' . route('ShelterContract.show', $row->contract_id) . '">
-                                    <i class="fas fa-eye"></i> عرض تفاصيل العقد
-                                </a></li>';
+                    if ($canViewDetails) {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('ShelterContract.show', $row->contract_id) . '">
+                                        <i class="fas fa-eye"></i> عرض تفاصيل العقد
+                                    </a></li>';
+                    }
 
                     $actions .= '</ul></div>';
 

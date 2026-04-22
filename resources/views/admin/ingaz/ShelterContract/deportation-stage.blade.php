@@ -58,7 +58,7 @@
 @endsection
 
 @section('content')
-    @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
+    @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_DEPORTATION_STAGE_VIEW, \App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
         <div class="container-fluid">
             <!-- Page Title Section -->
             <div class="row mb-4">

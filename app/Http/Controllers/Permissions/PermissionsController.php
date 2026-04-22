@@ -142,8 +142,8 @@ class PermissionsController extends Controller
             'rent_contract',
             'rental_orders',
             'shelter_contract',
-            'shelter_workers',
             'shelter_places',
+            'shelter_workers',
             'travel',
             'complaint',
             'complaint_type',
@@ -392,7 +392,7 @@ class PermissionsController extends Controller
             'rental_orders' => 'طلبات الإيجار',
             'shelter_contract' => 'عقود الإيواء',
             'shelter_workers' => 'عمال الإيواء',
-            'shelter_places' => 'أماكن الإيواء',
+            'shelter_places' => 'مقرات الإيواء',
             'travel' => 'رحلات الاستقدام والترحيل',
             'rec_offices' => 'مكاتب التوظيف',
             'complaint' => 'الشكاوى',
@@ -960,6 +960,19 @@ class PermissionsController extends Controller
             'recruitment_requests' => 'الطلبات الخاصة',
             'renew_contracts' => 'طلبات تجديد العقود',
             'rental_orders' => 'طلبات الإيجار',
+            'shelter_contract' => 'عقود الإيواء',
+            'shelter_workers' => 'عمال الإيواء',
+            'shelter_places' => 'مقرات الإيواء',
+            'shelter_contract_addition' => 'الإضافة',
+            'shelter_contract_inside' => 'داخل الإيواء',
+            'shelter_contract_available_for_transfer' => 'متاح للنقل',
+            'shelter_contract_deportation_stage' => 'مرحلة الترحيل',
+            'shelter_contract_deported' => 'تم الترحيل',
+            'shelter_contract_deportation_procedures' => 'إجراءات الترحيل',
+            'shelter_contract_work_desire' => 'رغبة العمل',
+            'shelter_contract_quick_tags' => 'التصنيفات السريعة',
+            'shelter_contract_instant_receipt' => 'الاستلام الفوري',
+            'shelter_contract_remove_from_shelter' => 'حذف من الإيواء',
             'sponsor_transfer_web_requests' => 'طلبات الموقع الخارجي لنقل الكفالة',
             'confirm_clients' => 'تأكيد العملاء المحتملين',
             'messages_reports' => 'رسائل الموقع',
@@ -1152,6 +1165,21 @@ class PermissionsController extends Controller
             'followups' => 'المتابعات',
             'return' => 'المرتجعات',
             'warranty' => 'الضمان',
+            'shelter' => 'الإيواء',
+            'inside' => 'داخل',
+            'available' => 'المتاح',
+            'deportation' => 'الترحيل',
+            'stage' => 'المرحلة',
+            'procedures' => 'الإجراءات',
+            'quick' => 'السريعة',
+            'tags' => 'التصنيفات',
+            'desire' => 'الرغبة',
+            'instant' => 'الفوري',
+            'receipt' => 'الاستلام',
+            'remove' => 'إزالة',
+            'addition' => 'الإضافة',
+            'places' => 'المقرات',
+            'workers' => 'العمال',
             'travel' => 'الرحلات',
             'print' => 'الطباعة',
             'send' => 'الإرسال',
@@ -1361,6 +1389,13 @@ class PermissionsController extends Controller
                 }
 
                 uasort($rows, function (array $first, array $second) {
+                    $firstPriority = $this->getPermissionRowSortPriority($first['key']);
+                    $secondPriority = $this->getPermissionRowSortPriority($second['key']);
+
+                    if ($firstPriority !== $secondPriority) {
+                        return $firstPriority <=> $secondPriority;
+                    }
+
                     return strnatcasecmp($first['title'], $second['title']);
                 });
 
@@ -1494,6 +1529,29 @@ class PermissionsController extends Controller
         }
 
         return array_values(array_filter($lanes, fn (array $lane) => $lane['sections'] !== []));
+    }
+
+    private function getPermissionRowSortPriority(string $resourceKey): int
+    {
+        $resourceKey = str_replace('-', '_', trim($resourceKey));
+
+        $priorities = [
+            'shelter_contract_addition' => 10,
+            'shelter_contract_inside' => 20,
+            'shelter_contract_available_for_transfer' => 30,
+            'shelter_contract_deportation_stage' => 40,
+            'shelter_contract_deported' => 50,
+            'shelter_contract_deportation_procedures' => 60,
+            'shelter_places' => 70,
+            'shelter_contract_work_desire' => 80,
+            'shelter_contract_quick_tags' => 90,
+            'shelter_contract_instant_receipt' => 100,
+            'shelter_contract_remove_from_shelter' => 110,
+            'shelter_contract' => 120,
+            'shelter_workers' => 130,
+        ];
+
+        return $priorities[$resourceKey] ?? 999;
     }
 
     private function buildPermissionMatrixEntry(Permission $permission): array

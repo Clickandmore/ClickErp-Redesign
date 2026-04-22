@@ -224,7 +224,7 @@
         <div class="card-header">
             <h4 class="card-title">العقود داخل الإيواء العامة</h4>
             <div class="card-tools">
-                @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_CREATE, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
+                @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_ADDITION_CREATE, \App\PermKeys::SHELTER_CONTRACT_CREATE, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
                     <a href="{{ route('ShelterContract.create') }}" class="btn btn-primary">
                         <i class="fa fa-plus"></i> إضافة عقد داخل الإيواء جديد
                     </a>

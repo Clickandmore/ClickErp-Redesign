@@ -271,7 +271,7 @@ class TestPermissionsDisplayCommand extends Command
             'shelter_contract' => 'عقود الإيواء',
             'shelter_workers' => 'عمال الإيواء',
             'shelter_places' => 'أماكن الإيواء',
-            'travel' => 'السفر',
+            'travel' => 'رحلات الاستقدام والترحيل',
             'rec_offices' => 'مكاتب التوظيف',
             'complaint' => 'الشكاوى',
             'complaint_type' => 'أنواع الشكاوى',

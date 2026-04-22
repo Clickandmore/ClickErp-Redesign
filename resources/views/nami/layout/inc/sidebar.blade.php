@@ -65,7 +65,22 @@
                 $canViewFinanceModule = @AdminGuardCanViewPackageModule('finance');
 
                 $canViewCrm = $canViewCrmModule || @AdminGuardHasAnyPerm([\App\PermKeys::CLIENTS_VIEW, \App\PermKeys::CLIENTS_CREATE, \App\PermKeys::CLIENTS_EDIT, \App\PermKeys::CLIENTS_DELETE, \App\PermKeys::CLIENTS_EXPORT, \App\PermKeys::CLIENTS_SHOW, \App\PermKeys::CLIENTS_SETTINGS]);
-                $canViewLogistics = @AdminGuardHasPerm(\App\PermKeys::TRAVEL_VIEW);
+                $canViewShelterContracts = @AdminGuardHasAnyPerm([
+                    \App\PermKeys::SHELTER_CONTRACT_VIEW,
+                    \App\PermKeys::SHELTER_CONTRACT_CREATE,
+                    \App\PermKeys::SHELTER_CONTRACT_CONTROL,
+                    \App\PermKeys::SHELTER_CONTRACT_ADDITION_CREATE,
+                    \App\PermKeys::SHELTER_CONTRACT_INSIDE_VIEW,
+                    \App\PermKeys::SHELTER_CONTRACT_AVAILABLE_FOR_TRANSFER_VIEW,
+                    \App\PermKeys::SHELTER_CONTRACT_DEPORTATION_STAGE_VIEW,
+                    \App\PermKeys::SHELTER_CONTRACT_DEPORTED_VIEW,
+                    \App\PermKeys::SHELTER_PLACES_VIEW,
+                    \App\PermKeys::SHELTER_PLACES_CREATE,
+                    \App\PermKeys::SHELTER_PLACES_EDIT,
+                    \App\PermKeys::SHELTER_PLACES_DELETE,
+                    \App\PermKeys::SHELTER_PLACES_CONTROL,
+                ]);
+                $canViewLogistics = @AdminGuardHasAnyPerm([\App\PermKeys::TRAVEL_VIEW, \App\PermKeys::TRAVEL_CREATE, \App\PermKeys::TRAVEL_EDIT, \App\PermKeys::TRAVEL_DELETE, \App\PermKeys::TRAVEL_CONTROL]);
             @endphp
             <ul class="menu-list">
                 <!-- Dashboard Section -->
@@ -445,6 +460,7 @@
                         </li>
 
                         <!-- Shelter Contracts -->
+                        @if ($canViewShelterContracts)
                         <li class="collapsed">
                             <a class="m-link" data-bs-toggle="collapse" data-bs-target="#sheltercontracts"
                                 href="#">
@@ -454,7 +470,7 @@
                             </a>
                             <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['ShelterContract.index', 'ShelterContract.create', 'ShelterContract.edit', 'ShelterContract.availableForTransfer', 'ShelterContract.deportationStage', 'ShelterContract.generalShelter', 'ShelterContract.deported', 'shelter-places.index', 'shelter-places.create', 'shelter-places.edit']) ? 'show' : '' }}"
                                 id="sheltercontracts">
-                                @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_CREATE, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
+                                @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_ADDITION_CREATE, \App\PermKeys::SHELTER_CONTRACT_CREATE, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
                                     <li>
                                         <a class="m-link {{ request()->routeIs('ShelterContract.create') ? 'active' : '' }}"
                                             href="{{ route('ShelterContract.create') }}">
@@ -463,7 +479,7 @@
                                         </a>
                                     </li>
                                 @endif
-                                @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
+                                @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_INSIDE_VIEW, \App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
                                     <li>
                                         <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.index' ? 'active' : '' }}"
                                             href="{{ route('ShelterContract.index') }}">
@@ -471,6 +487,8 @@
                                             <span class="ms-2"> داخل الإيواء</span>
                                         </a>
                                     </li>
+                                @endif
+                                @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_AVAILABLE_FOR_TRANSFER_VIEW, \App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
                                     <li>
                                         <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.availableForTransfer' ? 'active' : '' }}"
                                             href="{{ route('ShelterContract.availableForTransfer') }}">
@@ -478,6 +496,8 @@
                                             <span class="ms-2">متاح للنقل</span>
                                         </a>
                                     </li>
+                                @endif
+                                @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_DEPORTATION_STAGE_VIEW, \App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
                                     <li>
                                         <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.deportationStage' ? 'active' : '' }}"
                                             href="{{ route('ShelterContract.deportationStage') }}">
@@ -485,6 +505,8 @@
                                             <span class="ms-2">مرحلة الترحيل</span>
                                         </a>
                                     </li>
+                                @endif
+                                @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_DEPORTED_VIEW, \App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
                                     <li>
                                         <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.deported' ? 'active' : '' }}"
                                             href="{{ route('ShelterContract.deported') }}">
@@ -518,6 +540,7 @@
                                 @endif
                             </ul>
                         </li>
+                        @endif
 
                         <!-- Logistics Services Section -->
                         @if ($canViewLogistics)

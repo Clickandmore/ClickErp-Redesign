@@ -8,6 +8,10 @@
     إجراءات الترحيل - {{ $contract->maid->name ?? 'غير محدد' }}
 @endsection
 
+@php
+    $canEditDeportationProcedures = @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_DEPORTATION_PROCEDURES_EDIT, \App\PermKeys::SHELTER_CONTRACT_EDIT, \App\PermKeys::SHELTER_CONTRACT_CONTROL]);
+@endphp
+
 @section('style')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -862,7 +866,7 @@
 
                             <!-- أزرار الإجراءات -->
                             <div class="action-buttons">
-                                @if ($procedure->status !== 'completed' && !$procedure->procedures_confirmed)
+                                @if ($canEditDeportationProcedures && $procedure->status !== 'completed' && !$procedure->procedures_confirmed)
                                     <button type="button" class="btn btn-save" onclick="savePartialProgress()">
                                         <i class="fa fa-save"></i> حفظ التقدم الجزئي
                                     </button>
@@ -872,19 +876,19 @@
                                     </button>
                                 @endif
 
-                                @if ($procedure->areAllQuestionsAnswered() && !$procedure->procedures_confirmed && $procedure->status !== 'completed')
+                                @if ($canEditDeportationProcedures && $procedure->areAllQuestionsAnswered() && !$procedure->procedures_confirmed && $procedure->status !== 'completed')
                                     <button type="button" class="btn btn-info" onclick="confirmProcedures()">
                                         <i class="fa fa-check-double"></i> تأكيد اكتمال الإجراءات
                                     </button>
                                 @endif
 
-                                @if ($procedure->procedures_confirmed && !$procedure->trip_scheduled && $procedure->status !== 'completed' && @AdminGuardHasPerm(\App\PermKeys::TRAVEL_CREATE))
+                                @if ($canEditDeportationProcedures && $procedure->procedures_confirmed && !$procedure->trip_scheduled && $procedure->status !== 'completed' && @AdminGuardHasPerm(\App\PermKeys::TRAVEL_CREATE))
                                     <button type="button" class="btn btn-warning" onclick="scheduleTrip()">
                                         <i class="fa fa-plane"></i> جدولة رحلة
                                     </button>
                                 @endif
 
-                                @if ($procedure->procedures_confirmed && $procedure->trip_scheduled && $procedure->status !== 'completed')
+                                @if ($canEditDeportationProcedures && $procedure->procedures_confirmed && $procedure->trip_scheduled && $procedure->status !== 'completed')
                                     <button type="button" class="btn btn-success"
                                         onclick="confirmCompleteDeportation()">
                                         <i class="fa fa-check-circle"></i> إكمال الترحيل

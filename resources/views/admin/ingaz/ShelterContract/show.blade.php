@@ -290,6 +290,25 @@
     عرض تفاصيل عقد الملجأ
 @endsection
 
+@php
+    $canEditShelterContract = @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_EDIT, \App\PermKeys::SHELTER_CONTRACT_CONTROL]);
+    $canViewDeportationProcedures = @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_DEPORTATION_PROCEDURES_VIEW, \App\PermKeys::SHELTER_CONTRACT_DEPORTATION_STAGE_VIEW, \App\PermKeys::SHELTER_CONTRACT_DEPORTED_VIEW, \App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL]);
+    $canManageDeportationProcedures = @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_DEPORTATION_PROCEDURES_EDIT, \App\PermKeys::SHELTER_CONTRACT_EDIT, \App\PermKeys::SHELTER_CONTRACT_CONTROL]);
+    $canRemoveFromShelter = @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_REMOVE_FROM_SHELTER_EDIT, \App\PermKeys::SHELTER_CONTRACT_EDIT, \App\PermKeys::SHELTER_CONTRACT_CONTROL]);
+    $canCreateTransferRequest = @AdminGuardHasAnyPerm([\App\PermKeys::SPONSOR_TRANSFER_CREATE, \App\PermKeys::SPONSOR_TRANSFER_CONTROL]);
+    $backRoute = route('dashboard.index');
+
+    if ($contract->deportationProcedure && $contract->deportationProcedure->status === 'completed' && @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_DEPORTED_VIEW, \App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL])) {
+        $backRoute = route('ShelterContract.deported');
+    } elseif (optional($contract->info)->wants_to_work === 'no' && @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_DEPORTATION_STAGE_VIEW, \App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL])) {
+        $backRoute = route('ShelterContract.deportationStage');
+    } elseif (optional($contract->info)->wants_to_work === 'yes' && @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_AVAILABLE_FOR_TRANSFER_VIEW, \App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL])) {
+        $backRoute = route('ShelterContract.availableForTransfer');
+    } elseif (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_INSIDE_VIEW, \App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL])) {
+        $backRoute = route('ShelterContract.index');
+    }
+@endphp
+
 @section('content')
 <div class="details-container">
     <div class="details-content">
@@ -325,11 +344,11 @@
                 </div>
             </div>
             <div class="hero-actions">
-                <a href="{{ route('ShelterContract.index') }}" class="btn-action">
+                <a href="{{ $backRoute }}" class="btn-action">
                     <i class="fas fa-arrow-right"></i>
                     <span>عودة</span>
                 </a>
-                @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_EDIT, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
+                @if ($canEditShelterContract)
                     <a href="{{ route('ShelterContract.edit', $contract->id) }}" class="btn-action">
                         <i class="fas fa-edit"></i>
                         <span>تعديل</span>
@@ -544,14 +563,14 @@
                 <i class="fas fa-cogs"></i>خيارات إضافية
             </div>
             <div class="action-grid">
-                @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_EDIT, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
+                @if ($canEditShelterContract)
                     <a href="{{ route('ShelterContract.edit', $contract->id) }}" class="action-card action-card--edit">
                         <i class="fas fa-edit"></i>
                         <span>تعديل بيانات العقد</span>
                     </a>
                 @endif
 
-                @if($contract->info && $contract->info->wants_to_work == 'yes')
+                @if($contract->info && $contract->info->wants_to_work == 'yes' && $canCreateTransferRequest)
                     <a href="{{ route('SponsorshipTransfer.create', ['contract_id' => $contract->id]) }}" class="action-card action-card--transfer">
                         <i class="fas fa-exchange-alt"></i>
                         <span>بدء نقل الكفالة</span>
@@ -560,17 +579,17 @@
                     @php
                         $deportationProcedure = $contract->deportationProcedure;
                     @endphp
-                    @if(!$deportationProcedure && @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_EDIT, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
+                    @if(!$deportationProcedure && $canManageDeportationProcedures)
                         <button type="button" onclick="startDeportation({{ $contract->id }})" class="action-card action-card--warning">
                             <i class="fas fa-plane-departure"></i>
                             <span>إجراءات الترحيل</span>
                         </button>
-                    @elseif($deportationProcedure->status !== 'completed' && @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_EDIT, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
+                    @elseif($deportationProcedure && $deportationProcedure->status !== 'completed' && $canViewDeportationProcedures)
                         <a href="{{ route('ShelterContract.deportation.procedures', $contract->id) }}" class="action-card action-card--warning">
                             <i class="fas fa-tasks"></i>
                             <span>متابعة الترحيل</span>
                         </a>
-                    @else
+                    @elseif($deportationProcedure && $canViewDeportationProcedures)
                         <span class="action-card action-card--warning disabled">
                             <i class="fas fa-check-circle"></i>
                             <span>تم إنهاء الترحيل</span>
@@ -578,10 +597,12 @@
                     @endif
                 @endif
 
-                <button onclick="confirmBack({{ $contract->id }})" type="button" class="action-card action-card--danger">
-                    <i class="fas fa-undo"></i>
-                    <span>إرجاع العقد</span>
-                </button>
+                @if ($canRemoveFromShelter)
+                    <button onclick="confirmBack({{ $contract->id }})" type="button" class="action-card action-card--danger">
+                        <i class="fas fa-undo"></i>
+                        <span>إرجاع العقد</span>
+                    </button>
+                @endif
             </div>
         </div>
     </div>

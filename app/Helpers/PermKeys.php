@@ -383,6 +383,17 @@ const PARTENR_CONTROL = 'partenr_control';
     const SHELTER_CONTRACT_EDIT = 'shelter_contract_edit';
     const SHELTER_CONTRACT_DELETE = 'shelter_contract_delete';
     const SHELTER_CONTRACT_CONTROL = 'shelter_contract_control';
+    const SHELTER_CONTRACT_ADDITION_CREATE = 'shelter_contract_addition_create';
+    const SHELTER_CONTRACT_INSIDE_VIEW = 'shelter_contract_inside_view';
+    const SHELTER_CONTRACT_AVAILABLE_FOR_TRANSFER_VIEW = 'shelter_contract_available_for_transfer_view';
+    const SHELTER_CONTRACT_DEPORTATION_STAGE_VIEW = 'shelter_contract_deportation_stage_view';
+    const SHELTER_CONTRACT_DEPORTED_VIEW = 'shelter_contract_deported_view';
+    const SHELTER_CONTRACT_DEPORTATION_PROCEDURES_VIEW = 'shelter_contract_deportation_procedures_view';
+    const SHELTER_CONTRACT_DEPORTATION_PROCEDURES_EDIT = 'shelter_contract_deportation_procedures_edit';
+    const SHELTER_CONTRACT_WORK_DESIRE_EDIT = 'shelter_contract_work_desire_edit';
+    const SHELTER_CONTRACT_QUICK_TAGS_EDIT = 'shelter_contract_quick_tags_edit';
+    const SHELTER_CONTRACT_INSTANT_RECEIPT_EDIT = 'shelter_contract_instant_receipt_edit';
+    const SHELTER_CONTRACT_REMOVE_FROM_SHELTER_EDIT = 'shelter_contract_remove_from_shelter_edit';
 
     // ========================================
     // عمال الإيواء (Shelter Workers)

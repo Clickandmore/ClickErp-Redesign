@@ -20,7 +20,7 @@
 @endsection
 @section('content')
     @if (
-        (!$isEditMode && @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_CREATE, \App\PermKeys::SHELTER_CONTRACT_CONTROL])) ||
+        (!$isEditMode && @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_ADDITION_CREATE, \App\PermKeys::SHELTER_CONTRACT_CREATE, \App\PermKeys::SHELTER_CONTRACT_CONTROL])) ||
         ($isEditMode && @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_EDIT, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
     )
         <script>

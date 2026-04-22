@@ -147,7 +147,7 @@
     'recruitment_contracts' => 'عقود الاستقدام ',
     'rent_contracts' => 'عقود الإيجار',
     'shelter_management' => 'إدارة الإيواء',
-    'travel_management' => 'الرحلات',
+    'travel_management' => 'الخدمات اللوجستية',
     'other' => 'أخرى',
     'client' => 'عميل',
     'sponsor' => 'الكفيل',
