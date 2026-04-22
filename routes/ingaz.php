@@ -507,15 +507,26 @@ Route::group(
     }
 );
 
-// DeportationTravel routes
-Route::prefix('DeportationTravel')->name('DeportationTravel.')->group(function () {
-    Route::get('/', [DeportationTravelController::class, 'index'])->name('index');
-    Route::get('/create', [DeportationTravelController::class, 'create'])->name('create');
-    Route::get('/statistics', [DeportationTravelController::class, 'statistics'])->name('statistics');
-    Route::post('/store', [DeportationTravelController::class, 'store'])->name('store');
-    Route::get('/{id}', [DeportationTravelController::class, 'show'])->name('show');
-    Route::post('/{id}/complete', [DeportationTravelController::class, 'complete'])->name('complete');
-    Route::delete('/{id}', [DeportationTravelController::class, 'destroy'])->name('destroy');
-});
+Route::group(
+    [
+        'prefix' => LaravelLocalization::setLocale(),
+        'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath'],
+    ],
+    function () {
+        Route::group(['prefix' => 'admin', 'middleware' => 'auth:admin'], function () {
+            Route::prefix('DeportationTravel')->name('DeportationTravel.')->group(function () {
+                Route::get('/', [DeportationTravelController::class, 'index'])->name('index');
+                Route::get('/create', [DeportationTravelController::class, 'create'])->name('create');
+                Route::get('/statistics', [DeportationTravelController::class, 'statistics'])->name('statistics');
+                Route::post('/store', [DeportationTravelController::class, 'store'])->name('store');
+                Route::get('/{id}/edit', [DeportationTravelController::class, 'edit'])->name('edit');
+                Route::post('/{id}', [DeportationTravelController::class, 'update'])->name('update');
+                Route::get('/{id}', [DeportationTravelController::class, 'show'])->name('show');
+                Route::post('/{id}/complete', [DeportationTravelController::class, 'complete'])->name('complete');
+                Route::delete('/{id}', [DeportationTravelController::class, 'destroy'])->name('destroy');
+            });
+        });
+    }
+);
 
 Route::get("ShelterContract/deportation/{id}/activity-log", [ShelterContractController::class, "getActivityLog"])->name("ShelterContract.deportation.activity-log");

@@ -308,7 +308,15 @@ class PermissionsController extends Controller
             return null;
         }
 
-        return str_replace('-', '_', $value);
+        return $this->normalizeLegacyPermissionPlacementKey(str_replace('-', '_', $value));
+    }
+
+    private function normalizeLegacyPermissionPlacementKey(string $value): string
+    {
+        return match ($value) {
+            'shelter_contracts' => 'shelter_contract',
+            default => $value,
+        };
     }
 
     /**
@@ -324,7 +332,7 @@ class PermissionsController extends Controller
             'recruitment_contracts' => 'عقود الاستقدام ',
             'rent_contracts' => 'عقود الإيجار',
             'shelter_management' => 'إدارة الإيواء',
-            'travel_management' => 'الرحلات',
+            'travel_management' => 'الخدمات اللوجستية',
             'contracts' => 'العقود',
             'complaints' => 'الشكاوى',
             'additional_services' => 'خدمات إضافية',
@@ -385,7 +393,7 @@ class PermissionsController extends Controller
             'shelter_contract' => 'عقود الإيواء',
             'shelter_workers' => 'عمال الإيواء',
             'shelter_places' => 'أماكن الإيواء',
-            'travel' => 'الرحلات',
+            'travel' => 'رحلات الاستقدام والترحيل',
             'rec_offices' => 'مكاتب التوظيف',
             'complaint' => 'الشكاوى',
             'complaint_type' => 'أنواع الشكاوى',
@@ -650,6 +658,18 @@ class PermissionsController extends Controller
     private function overridePermissionPlacement(string $permissionName, ?string $section, ?string $group): array
     {
         $normalizedName = str_replace(['.', '-'], '_', $permissionName);
+        $section = $section ? $this->normalizeLegacyPermissionPlacementKey($section) : $section;
+        $group = $group ? $this->normalizeLegacyPermissionPlacementKey($group) : $group;
+
+        if (
+            in_array($group, ['shelter_contract', 'shelter_workers', 'shelter_places'], true)
+            && in_array($section, ['contract_management', 'shelter_management', null, ''], true)
+        ) {
+            return [
+                'section' => 'shelter_management',
+                'group' => $group,
+            ];
+        }
 
         if ($group === 'cv' || str_starts_with($normalizedName, 'cv_')) {
             return [
@@ -669,6 +689,23 @@ class PermissionsController extends Controller
             return [
                 'section' => 'clients',
                 'group' => 'crm',
+            ];
+        }
+
+        if ($group === 'travel' || str_starts_with($normalizedName, 'travel_')) {
+            return [
+                'section' => 'travel_management',
+                'group' => 'travel',
+            ];
+        }
+
+        if (
+            in_array($group, ['sponsor_transfer', 'sponsor_transfer_web_requests'], true) ||
+            preg_match('/^sponsor_transfer(_web_requests)?_/', $normalizedName)
+        ) {
+            return [
+                'section' => 'additional_services',
+                'group' => $group ?: $this->resolvePermissionPlacement($permissionName)['group'],
             ];
         }
 

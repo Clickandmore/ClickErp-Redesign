@@ -182,7 +182,7 @@ class RecruitmentContractController extends Controller
                 ];
             }
 
-            if (!@AdminGuardHasPerm(NewPermKeys::REC_CONTRACTS_ADD_TRAVEL) || !@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CONTROL)) {
+            if (!@AdminGuardHasPerm(NewPermKeys::REC_CONTRACTS_ADD_TRAVEL) || !@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CREATE)) {
                 return [
                     'can_select' => false,
                     'http_status' => 403,
@@ -3030,7 +3030,7 @@ class RecruitmentContractController extends Controller
     {
         try {
             // التحقق من صلاحية إضافة رحلة
-            if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_ADD_TRAVEL)) {
+            if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_ADD_TRAVEL) || !@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CREATE)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'ليس لديك صلاحية لإضافة رحلة'

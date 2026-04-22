@@ -339,13 +339,53 @@ return array (
     ),
     36 =>
     array (
+      'name' => 'sponsor_transfer_view',
+      'group' => 'sponsor_transfer',
+      'section' => 'additional_services',
+      'display_name' => 'عرض طلبات نقل الكفالة',
+      'description' => 'إمكانية عرض طلبات نقل الكفالة من لوحة التحكم.',
+    ),
+    37 =>
+    array (
+      'name' => 'sponsor_transfer_create',
+      'group' => 'sponsor_transfer',
+      'section' => 'additional_services',
+      'display_name' => 'إضافة طلب نقل كفالة',
+      'description' => 'إمكانية إنشاء طلب نقل كفالة جديد.',
+    ),
+    38 =>
+    array (
+      'name' => 'sponsor_transfer_edit',
+      'group' => 'sponsor_transfer',
+      'section' => 'additional_services',
+      'display_name' => 'تعديل طلبات نقل الكفالة',
+      'description' => 'إمكانية تعديل بيانات طلبات نقل الكفالة.',
+    ),
+    39 =>
+    array (
+      'name' => 'sponsor_transfer_delete',
+      'group' => 'sponsor_transfer',
+      'section' => 'additional_services',
+      'display_name' => 'حذف طلبات نقل الكفالة',
+      'description' => 'إمكانية حذف طلبات نقل الكفالة.',
+    ),
+    40 =>
+    array (
+      'name' => 'sponsor_transfer_control',
+      'group' => 'sponsor_transfer',
+      'section' => 'additional_services',
+      'display_name' => 'التحكم في طلبات نقل الكفالة',
+      'description' => 'إمكانية إدارة خطوات طلبات نقل الكفالة والتحكم بها.',
+    ),
+    41 =>
+    array (
       'name' => 'contact_view',
       'group' => 'contact',
       'section' => 'orders',
       'display_name' => 'عرض طلبات التواصل',
       'description' => 'إمكانية عرض طلبات التواصل ضمن قائمة الطلبات.',
     ),
-    37 =>
+    42 =>
     array (
       'name' => 'contact_create',
       'group' => 'contact',
@@ -353,7 +393,7 @@ return array (
       'display_name' => 'إضافة طلب تواصل',
       'description' => 'إمكانية إضافة طلب تواصل.',
     ),
-    38 =>
+    43 =>
     array (
       'name' => 'contact_edit',
       'group' => 'contact',
@@ -361,7 +401,7 @@ return array (
       'display_name' => 'تعديل طلبات التواصل',
       'description' => 'إمكانية تعديل بيانات طلبات التواصل.',
     ),
-    39 =>
+    44 =>
     array (
       'name' => 'contact_delete',
       'group' => 'contact',
@@ -369,13 +409,93 @@ return array (
       'display_name' => 'حذف طلبات التواصل',
       'description' => 'إمكانية حذف طلبات التواصل.',
     ),
-    40 =>
+    45 =>
     array (
       'name' => 'contact_control',
       'group' => 'contact',
       'section' => 'orders',
       'display_name' => 'التحكم في طلبات التواصل',
       'description' => 'إمكانية إدارة طلبات التواصل والتحكم بها.',
+    ),
+    46 =>
+    array (
+      'name' => 'travel_view',
+      'group' => 'travel',
+      'section' => 'travel_management',
+      'display_name' => 'عرض رحلات الاستقدام والترحيل',
+      'description' => 'إمكانية عرض صفحات وقوائم رحلات الاستقدام والترحيل ضمن الخدمات اللوجستية.',
+    ),
+    47 =>
+    array (
+      'name' => 'travel_create',
+      'group' => 'travel',
+      'section' => 'travel_management',
+      'display_name' => 'جدولة رحلة استقدام أو ترحيل',
+      'description' => 'إمكانية إنشاء وجدولة رحلات الاستقدام والترحيل ضمن الخدمات اللوجستية.',
+    ),
+    48 =>
+    array (
+      'name' => 'travel_edit',
+      'group' => 'travel',
+      'section' => 'travel_management',
+      'display_name' => 'تعديل رحلات الاستقدام والترحيل',
+      'description' => 'إمكانية تعديل بيانات الرحلات اللوجستية قبل اكتمالها.',
+    ),
+    49 =>
+    array (
+      'name' => 'travel_delete',
+      'group' => 'travel',
+      'section' => 'travel_management',
+      'display_name' => 'حذف رحلات الاستقدام والترحيل',
+      'description' => 'إمكانية حذف الرحلات اللوجستية غير المكتملة ومرفقاتها.',
+    ),
+    50 =>
+    array (
+      'name' => 'travel_control',
+      'group' => 'travel',
+      'section' => 'travel_management',
+      'display_name' => 'إدارة رحلات الاستقدام والترحيل',
+      'description' => 'إمكانية إسناد الرحلات، تأكيد اكتمالها، وإدارة الإجراءات التشغيلية لرحلات الخدمات اللوجستية.',
+    ),
+    51 =>
+    array (
+      'name' => 'rec_contracts_add_travel',
+      'group' => 'rec_contracts',
+      'section' => 'recruitment_contracts',
+      'display_name' => 'إضافة رحلة للعقد',
+      'description' => 'إمكانية إضافة رحلة جديدة لعقد الاستقدام من شاشة العقود.',
+    ),
+    52 =>
+    array (
+      'name' => 'rec_contracts_edit_travel',
+      'group' => 'rec_contracts',
+      'section' => 'recruitment_contracts',
+      'display_name' => 'تعديل رحلة العقد',
+      'description' => 'إمكانية تعديل بيانات رحلة عقد الاستقدام من شاشة العقود.',
+    ),
+    53 =>
+    array (
+      'name' => 'rec_contracts_delete_travel',
+      'group' => 'rec_contracts',
+      'section' => 'recruitment_contracts',
+      'display_name' => 'حذف رحلة العقد',
+      'description' => 'إمكانية حذف رحلة مرتبطة بعقد الاستقدام من شاشة العقود.',
+    ),
+    54 =>
+    array (
+      'name' => 'rec_contracts_complete_travel',
+      'group' => 'rec_contracts',
+      'section' => 'recruitment_contracts',
+      'display_name' => 'تحديد اكتمال الرحلة',
+      'description' => 'إمكانية تأكيد اكتمال رحلة عقد الاستقدام من شاشة العقود.',
+    ),
+    55 =>
+    array (
+      'name' => 'rec_contracts_view_travel',
+      'group' => 'rec_contracts',
+      'section' => 'recruitment_contracts',
+      'display_name' => 'عرض تفاصيل الرحلة',
+      'description' => 'إمكانية عرض تفاصيل الرحلات المرتبطة بعقود الاستقدام.',
     ),
   ),
 );

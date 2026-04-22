@@ -48,7 +48,7 @@
 
 @section('content')
     <div class="page-body p-4 text-dark admin-tables">
-        @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_CONTRACT_VIEW))
+        @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
             <div class="container-fluid ">
                 <!-- Page Title Section -->
                 <div class="row mb-4">
@@ -72,10 +72,12 @@
                         <button type="button" id="exportPdf" class="btn btn-danger">
                             <i class="fas fa-file-pdf me-2"></i>تصدير PDF
                         </button>
-                        <a href="{{ route('ShelterContract.create') }}" class="btn btn-primary">
-                            <i class="fas fa-plus me-2"></i>
-                            {{ helperTrans('ingaz.add_shelter_contract') }}
-                        </a>
+                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_CREATE, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
+                            <a href="{{ route('ShelterContract.create') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>
+                                {{ helperTrans('ingaz.add_shelter_contract') }}
+                            </a>
+                        @endif
                     </div>
                 </div>
 

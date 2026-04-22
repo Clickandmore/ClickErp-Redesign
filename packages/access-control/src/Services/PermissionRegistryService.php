@@ -353,6 +353,8 @@ class PermissionRegistryService
     private function inferPlacement(string $permissionName, ?string $group = null, ?string $section = null): array
     {
         $normalizedName = str_replace(['.', '-'], '_', $permissionName);
+        $group = $this->normalizeLegacyPlacementKey($group);
+        $section = $this->normalizeLegacyPlacementKey($section);
 
         $map = [
             'dashboard_' => ['section' => 'dashboard', 'group' => 'dashboard'],
@@ -420,6 +422,16 @@ class PermissionRegistryService
             }
         }
 
+        if (
+            in_array($group, ['shelter_contract', 'shelter_workers', 'shelter_places'], true)
+            && in_array($section, ['contract_management', 'shelter_management', null], true)
+        ) {
+            return [
+                'section' => 'shelter_management',
+                'group' => $group,
+            ];
+        }
+
         $resolvedGroup = $this->normalizeGroup($group ?? $this->resourceGroupFromPermissionName($permissionName));
         $resolvedSection = $section ?: $this->sectionForGroup($resolvedGroup);
 
@@ -427,6 +439,24 @@ class PermissionRegistryService
             'section' => $resolvedSection,
             'group' => $resolvedGroup,
         ];
+    }
+
+    private function normalizeLegacyPlacementKey(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $normalized = str_replace('-', '_', trim($value));
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        return match ($normalized) {
+            'shelter_contracts' => 'shelter_contract',
+            default => $normalized,
+        };
     }
 
     private function resourceGroupFromPermissionName(string $permissionName): string

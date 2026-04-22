@@ -18,10 +18,10 @@ class ShelterPlaces extends Controller
 
     function __construct()
     {
-        // $this->middleware('permission:مقرات الايواء-قراءة,admin', ['only' => ['index']]);
-        // $this->middleware('permission:مقرات الايواء-انشاء,admin', ['only' => ['create', 'store']]);
-        // $this->middleware('permission:مقرات الايواء-تعديل,admin', ['only' => ['edit', 'update']]);
-        // $this->middleware('permission:مقرات الايواء-حذف,admin', ['only' => ['destroy']]);
+        $this->middleware('permission:shelter_places_view|shelter_places_control,admin', ['only' => ['index']]);
+        $this->middleware('permission:shelter_places_create|shelter_places_control,admin', ['only' => ['create', 'store']]);
+        $this->middleware('permission:shelter_places_edit|shelter_places_control,admin', ['only' => ['edit', 'update']]);
+        $this->middleware('permission:shelter_places_delete|shelter_places_control,admin', ['only' => ['destroy']]);
     }
 
 

@@ -180,12 +180,12 @@ return [
     'shelter_places_delete' => 'Delete Shelter Places',
     'shelter_places_control' => 'Control Shelter Places',
 
-    // Travel
-    'travel_view' => 'View Travel',
-    'travel_create' => 'Create Travel Record',
-    'travel_edit' => 'Edit Travel',
-    'travel_delete' => 'Delete Travel',
-    'travel_control' => 'Control Travel',
+    // Logistics
+    'travel_view' => 'View Arrival and Deportation Trips',
+    'travel_create' => 'Schedule Arrival or Deportation Trip',
+    'travel_edit' => 'Edit Arrival and Deportation Trips',
+    'travel_delete' => 'Delete Arrival and Deportation Trips',
+    'travel_control' => 'Manage Arrival and Deportation Trips',
 
     // Recruitment Offices
     'rec_offices_view' => 'View Recruitment Offices',
@@ -384,7 +384,7 @@ return [
     'rental_orders' => 'Rental Orders',
     'shelter_contracts' => 'Shelter Contracts',
     'shelter_workers' => 'Shelter Workers',
-    'travel' => 'Travel',
+    'travel' => 'Arrival and Deportation Trips',
     'rec_offices' => 'Recruitment Offices',
     'shelter_places' => 'Shelter Places',
     'sponsor_transfer' => 'Sponsor Transfer',

@@ -329,10 +329,12 @@
                     <i class="fas fa-arrow-right"></i>
                     <span>عودة</span>
                 </a>
-                <a href="{{ route('ShelterContract.edit', $contract->id) }}" class="btn-action">
-                    <i class="fas fa-edit"></i>
-                    <span>تعديل</span>
-                </a>
+                @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_EDIT, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
+                    <a href="{{ route('ShelterContract.edit', $contract->id) }}" class="btn-action">
+                        <i class="fas fa-edit"></i>
+                        <span>تعديل</span>
+                    </a>
+                @endif
                 <button type="button" onclick="window.print()" class="btn-action btn-action--ghost">
                     <i class="fas fa-print"></i>
                     <span>طباعة</span>
@@ -542,10 +544,12 @@
                 <i class="fas fa-cogs"></i>خيارات إضافية
             </div>
             <div class="action-grid">
-                <a href="{{ route('ShelterContract.edit', $contract->id) }}" class="action-card action-card--edit">
-                    <i class="fas fa-edit"></i>
-                    <span>تعديل بيانات العقد</span>
-                </a>
+                @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_EDIT, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
+                    <a href="{{ route('ShelterContract.edit', $contract->id) }}" class="action-card action-card--edit">
+                        <i class="fas fa-edit"></i>
+                        <span>تعديل بيانات العقد</span>
+                    </a>
+                @endif
 
                 @if($contract->info && $contract->info->wants_to_work == 'yes')
                     <a href="{{ route('SponsorshipTransfer.create', ['contract_id' => $contract->id]) }}" class="action-card action-card--transfer">
@@ -556,12 +560,12 @@
                     @php
                         $deportationProcedure = $contract->deportationProcedure;
                     @endphp
-                    @if(!$deportationProcedure)
+                    @if(!$deportationProcedure && @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_EDIT, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
                         <button type="button" onclick="startDeportation({{ $contract->id }})" class="action-card action-card--warning">
                             <i class="fas fa-plane-departure"></i>
                             <span>إجراءات الترحيل</span>
                         </button>
-                    @elseif($deportationProcedure->status !== 'completed')
+                    @elseif($deportationProcedure->status !== 'completed' && @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_EDIT, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
                         <a href="{{ route('ShelterContract.deportation.procedures', $contract->id) }}" class="action-card action-card--warning">
                             <i class="fas fa-tasks"></i>
                             <span>متابعة الترحيل</span>

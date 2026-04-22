@@ -10,6 +10,14 @@ use Illuminate\Support\Facades\Storage;
 
 class ShelterWorkersController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('permission:shelter_workers_view|shelter_workers_control,admin', ['only' => ['index', 'show', 'download']]);
+        $this->middleware('permission:shelter_workers_create|shelter_workers_control,admin', ['only' => ['create', 'store']]);
+        $this->middleware('permission:shelter_workers_edit|shelter_workers_control,admin', ['only' => ['edit', 'update']]);
+        $this->middleware('permission:shelter_workers_delete|shelter_workers_control,admin', ['only' => ['destroy', 'deleteFile']]);
+    }
+
     public function index(Request $request)
     {
         $search = $request->input('search');

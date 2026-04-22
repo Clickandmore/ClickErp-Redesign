@@ -144,12 +144,12 @@ return [
     'shelter_places_delete' => 'حذف أماكن الإيواء',
     'shelter_places_control' => 'التحكم في أماكن الإيواء',
 
-    // السفر
-    'travel_view' => 'عرض السفر',
-    'travel_create' => 'إضافة سجل سفر',
-    'travel_edit' => 'تعديل السفر',
-    'travel_delete' => 'حذف السفر',
-    'travel_control' => 'التحكم في السفر',
+    // الخدمات اللوجستية
+    'travel_view' => 'عرض رحلات الاستقدام والترحيل',
+    'travel_create' => 'جدولة رحلة استقدام أو ترحيل',
+    'travel_edit' => 'تعديل رحلات الاستقدام والترحيل',
+    'travel_delete' => 'حذف رحلات الاستقدام والترحيل',
+    'travel_control' => 'إدارة رحلات الاستقدام والترحيل',
 
     // مكاتب التوظيف
     'rec_offices_view' => 'عرض مكاتب التوظيف',
@@ -348,7 +348,7 @@ return [
     'rental_orders' => 'طلبات الإيجار',
     'shelter_contracts' => 'عقود الإيواء',
     'shelter_workers' => 'عمال الإيواء',
-    'travel' => 'السفر',
+    'travel' => 'رحلات الاستقدام والترحيل',
     'rec_offices' => 'مكاتب التوظيف',
     'shelter_places' => 'أماكن الإيواء',
     'sponsor_transfer' => 'تحويل الكفالة',

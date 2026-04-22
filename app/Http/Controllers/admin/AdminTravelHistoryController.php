@@ -28,6 +28,15 @@ class AdminTravelHistoryController extends Controller
 {
     use SendSMSTrait;
 
+    public function __construct()
+    {
+        $this->middleware('permission:travel_view,admin', ['only' => ['index', 'statistics', 'calendarEvents', 'downloadFile']]);
+        $this->middleware('permission:travel_control,admin', ['only' => ['assignableStaff', 'assignTrip', 'completeTrip']]);
+        $this->middleware('permission:travel_delete,admin', ['only' => ['destroy', 'deleteFile']]);
+        $this->middleware('permission:travel_create,admin', ['only' => ['storeTravelHistory']]);
+        $this->middleware('permission:travel_create|travel_edit,admin', ['only' => ['checkTripExists']]);
+    }
+
     public function index(Request $request)
     {
         if ($request->ajax()) {
@@ -192,36 +201,40 @@ class AdminTravelHistoryController extends Controller
                 ->addColumn('actions', function($row) {
                     $tripId = data_get($row, 'id');
                     $status = data_get($row, 'status');
-                    $actions = '<div class="dropdown actions-dropdown">
-                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button"  aria-expanded="false" title="الإجراءات المتاحة">
-                                        <i class="fas fa-cogs me-1"></i> الإجراءات
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
+                    $canEdit = auth('admin')->check() && \AdminGuardHasPerm(\App\PermKeys::TRAVEL_EDIT);
+                    $canDelete = auth('admin')->check() && \AdminGuardHasPerm(\App\PermKeys::TRAVEL_DELETE);
+                    $canControl = auth('admin')->check() && \AdminGuardHasPerm(\App\PermKeys::TRAVEL_CONTROL);
+                    $menuItems = [];
 
-                    // تعديل
-                    $actions .= '<li><a class="dropdown-item" href="' . route('travel.control') . '?id=' . $tripId . '">
-                                    <i class="fas fa-edit"></i> ' . __('admin.edit') . '
-                                </a></li>';
-
-                    // إكتمال الرحلة (للرحلات النشطة أو غير المكتملة)
-                    if (in_array($status, ['pending', 'scheduled', 'new', 'active', 'in_progress', 'confirmed'])) {
-                        $actions .= '<li><a class="dropdown-item text-success" href="javascript:void(0)" onclick="completeTrip(' . $tripId . ')">
-                                        <i class="fas fa-check-circle"></i> إكتمال الرحلة
-                                    </a></li>';
+                    if ($canEdit) {
+                        $menuItems[] = '<li><a class="dropdown-item" href="' . route('travel.edit', $tripId) . '">
+                                            <i class="fas fa-edit"></i> ' . __('admin.edit') . '
+                                        </a></li>';
                     }
 
-                    if (auth('admin')->user() && \AdminGuardHasPerm(\App\PermKeys::TRAVEL_CONTROL)) {
-                        $actions .= '<li><hr class="dropdown-divider"></li>';
-
-                        // حذف
-                        $actions .= '<li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="deleteTravel(' . $tripId . ')">
-                                        <i class="fas fa-trash"></i> ' . __('admin.delete') . '
-                                    </a></li>';
+                    if ($canControl && in_array($status, ['pending', 'scheduled', 'new', 'active', 'in_progress', 'confirmed'], true)) {
+                        $menuItems[] = '<li><a class="dropdown-item text-success" href="javascript:void(0)" onclick="completeTrip(' . $tripId . ')">
+                                            <i class="fas fa-check-circle"></i> إكتمال الرحلة
+                                        </a></li>';
                     }
 
-                    $actions .= '</ul></div>';
+                    if ($canDelete) {
+                        $menuItems[] = '<li><a class="dropdown-item text-danger" href="javascript:void(0)" onclick="deleteTravel(' . $tripId . ')">
+                                            <i class="fas fa-trash"></i> ' . __('admin.delete') . '
+                                        </a></li>';
+                    }
 
-                    return $actions;
+                    if ($menuItems === []) {
+                        return '<span class="text-muted">لا توجد إجراءات</span>';
+                    }
+
+                    return '<div class="dropdown actions-dropdown">
+                                <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
+                                    <i class="fas fa-cogs me-1"></i> الإجراءات
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-lg">'
+                                . implode('', $menuItems) .
+                                '</ul></div>';
                 })
                 ->rawColumns(['user_data', 'maid_data', 'travel_details', 'order_id', 'actions'])
                 ->make(true);
@@ -797,6 +810,8 @@ class AdminTravelHistoryController extends Controller
             }
         }
 
+        $this->authorizeTravelFormAccess((bool) $data);
+
         if ($selectedOrderIds->isEmpty() && $orderId) {
             $selectedOrderIds = collect([(int) $orderId]);
         }
@@ -908,6 +923,8 @@ class AdminTravelHistoryController extends Controller
         if ($id || $request->id) {
             $editingTrip = TravelHistory::find($id ?: $request->id);
         }
+
+        $this->authorizeTravelFormAccess((bool) $editingTrip);
 
         $savedTrips = collect();
 
@@ -1244,5 +1261,12 @@ class AdminTravelHistoryController extends Controller
                 'message' => 'حدث خطأ أثناء التحقق من وجود الرحلة'
             ], 500);
         }
+    }
+
+    private function authorizeTravelFormAccess(bool $editing): void
+    {
+        $requiredPermission = $editing ? \App\PermKeys::TRAVEL_EDIT : \App\PermKeys::TRAVEL_CREATE;
+
+        abort_unless(\AdminGuardHasPerm($requiredPermission), 403);
     }
 }

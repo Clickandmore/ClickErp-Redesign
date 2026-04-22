@@ -19,7 +19,10 @@
     {{ $isEditMode ? helperTrans('ingaz.edit Shelter contract') : helperTrans('ingaz.add Shelter contract') }}
 @endsection
 @section('content')
-    @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_CONTRACT_CONTROL))
+    @if (
+        (!$isEditMode && @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_CREATE, \App\PermKeys::SHELTER_CONTRACT_CONTROL])) ||
+        ($isEditMode && @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_EDIT, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
+    )
         <script>
             console.log('=== Page Loaded - ShelterContract {{ $isEditMode ? 'Edit' : 'Create' }} ===');
             console.log('jQuery version:', $.fn.jquery);

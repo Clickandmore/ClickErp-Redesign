@@ -878,7 +878,7 @@
                                     </button>
                                 @endif
 
-                                @if ($procedure->procedures_confirmed && !$procedure->trip_scheduled && $procedure->status !== 'completed')
+                                @if ($procedure->procedures_confirmed && !$procedure->trip_scheduled && $procedure->status !== 'completed' && @AdminGuardHasPerm(\App\PermKeys::TRAVEL_CREATE))
                                     <button type="button" class="btn btn-warning" onclick="scheduleTrip()">
                                         <i class="fa fa-plane"></i> جدولة رحلة
                                     </button>

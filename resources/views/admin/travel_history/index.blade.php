@@ -196,9 +196,11 @@
                             <h4 class="page-title">
                                 <i class="fa fa-plane-arrival"></i> {{ __('admin.travel') }}
                             </h4>
-                            <a href="{{ route('travel.control') }}" class="btn btn-success">
-                                <i class="fa fa-plus"></i> @lang('admin.add')
-                            </a>
+                            @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CREATE))
+                                <a href="{{ route('travel.control') }}" class="btn btn-success">
+                                    <i class="fa fa-plus"></i> @lang('admin.add')
+                                </a>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -317,20 +319,26 @@
                                     <div id="calendarTripInfo" class="small text-muted mb-3">
                                         اختر رحلة من التقويم لعرض التفاصيل وإسنادها.
                                     </div>
-                                    <div class="mb-2">
-                                        <label class="form-label">الموظف / السائق</label>
-                                        <select id="assignStaffSelect" class="form-select">
-                                            <option value="">-- اختر --</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">ملاحظة الإسناد</label>
-                                        <textarea id="assignmentNote" class="form-control" rows="3"
-                                            placeholder="ملاحظة اختيارية"></textarea>
-                                    </div>
-                                    <button id="assignTripBtn" type="button" class="btn btn-primary w-100" disabled>
-                                        <i class="fa fa-paper-plane"></i> إسناد وإرسال تنبيه
-                                    </button>
+                                    @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CONTROL))
+                                        <div class="mb-2">
+                                            <label class="form-label">الموظف / السائق</label>
+                                            <select id="assignStaffSelect" class="form-select">
+                                                <option value="">-- اختر --</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">ملاحظة الإسناد</label>
+                                            <textarea id="assignmentNote" class="form-control" rows="3"
+                                                placeholder="ملاحظة اختيارية"></textarea>
+                                        </div>
+                                        <button id="assignTripBtn" type="button" class="btn btn-primary w-100" disabled>
+                                            <i class="fa fa-paper-plane"></i> إسناد وإرسال تنبيه
+                                        </button>
+                                    @else
+                                        <div class="alert alert-light border small mb-3">
+                                            لديك صلاحية عرض الرحلات فقط. إسناد الرحلة متاح لمن يملك صلاحية الإدارة.
+                                        </div>
+                                    @endif
                                     <hr>
                                     <h6 class="mb-2">جميع رحلات الوصول</h6>
                                     <div id="calendarTripList" class="calendar-trip-list small text-muted">
@@ -401,10 +409,11 @@
             loadTable();
             loadStatistics();
             initLogisticsCalendar();
-            loadAssignableStaff();
-
-            $('#assignStaffSelect').on('change', toggleAssignButtonState);
-            $('#assignTripBtn').on('click', assignSelectedTrip);
+            @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CONTROL))
+                loadAssignableStaff();
+                $('#assignStaffSelect').on('change', toggleAssignButtonState);
+                $('#assignTripBtn').on('click', assignSelectedTrip);
+            @endif
             $(document).on('click', '.calendar-trip-item', function() {
                 const eventId = String($(this).data('event-id'));
                 if (!logisticsCalendar) {
@@ -769,7 +778,7 @@
 
 
 
-        @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CONTROL))
+        @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_DELETE))
             function deleteTravel(id) {
                 Swal.fire({
                     title: 'هل أنت متأكد؟',
@@ -801,7 +810,9 @@
                     }
                 });
             }
+        @endif
 
+        @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CONTROL))
             // إكتمال الرحلة
             function completeTrip(id) {
                 Swal.fire({

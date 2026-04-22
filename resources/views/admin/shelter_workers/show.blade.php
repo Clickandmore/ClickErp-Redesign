@@ -61,7 +61,7 @@
                                         class="btn btn-sm btn-primary">{{ __('admin.download') }}</a>
 
                                     <!-- Delete Button -->
-                                    @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_WORKERS_CONTROL))
+                                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_WORKERS_DELETE, \App\PermKeys::SHELTER_WORKERS_CONTROL]))
                                         <form
                                             action="{{ route('shelter_workers.delete_file', ['field' => $field, 'id' => $shelterWorker->id]) }}"
                                             method="POST" style="display:inline;">

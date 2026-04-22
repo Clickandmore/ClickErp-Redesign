@@ -3,7 +3,7 @@
 {{helperTrans("ingaz.edit Shelter contract")}}
 @endsection
 @section('content')
-@if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_CONTRACT_CONTROL))
+@if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_EDIT, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
 
     <form class="row g-3 contractForm" method="post" action="{{route("ShelterContract.update", $contract->id)}}">
         @csrf

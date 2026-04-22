@@ -1,12 +1,20 @@
 @extends('admin.layout.indexs.index')
 
 @section('content')
+    @php
+        $isEditingTrip = isset($travel) && $travel;
+        $canManageTrip = $isEditingTrip
+            ? @AdminGuardHasPerm(\App\PermKeys::TRAVEL_EDIT)
+            : @AdminGuardHasPerm(\App\PermKeys::TRAVEL_CREATE);
+    @endphp
+
+    @if ($canManageTrip)
     <div class="container-fluid">
         <div class="page-title-box">
             <div class="row align-items-center">
                 <div class="col-sm-6">
                     <h4 class="page-title">
-                        <i class="fa fa-plane"></i> جدولة رحلة ترحيل جديدة
+                        <i class="fa fa-plane"></i> {{ $isEditingTrip ? 'تعديل رحلة ترحيل' : 'جدولة رحلة ترحيل جديدة' }}
                     </h4>
                 </div>
             </div>
@@ -31,7 +39,7 @@
                     </div>
                 @endif
 
-                <form id="form-deportation-travel" action="{{ route('DeportationTravel.store') }}" method="POST">
+                <form id="form-deportation-travel" action="{{ $isEditingTrip ? route('DeportationTravel.update', $travel->id) : route('DeportationTravel.store') }}" method="POST">
                     @csrf
 
                     @if ($contract)
@@ -39,7 +47,7 @@
                     @else
                         <div class="mb-3">
                             <label class="form-label">رقم العقد <span class="text-danger">*</span></label>
-                            <input type="number" name="contract_id" class="form-control" required>
+                            <input type="number" name="contract_id" class="form-control" value="{{ old('contract_id', $travel->order_id ?? '') }}" required>
                         </div>
                     @endif
 
@@ -48,11 +56,11 @@
                             <label class="form-label">المطار <span class="text-danger">*</span></label>
                             <select name="arrival_airport" class="form-control" required>
                                 <option value="">اختر المطار</option>
-                                <option value="مطار الملك خالد الدولي - الرياض">مطار الملك خالد الدولي - الرياض</option>
-                                <option value="مطار الملك عبدالعزيز الدولي - جدة">مطار الملك عبدالعزيز الدولي - جدة
+                                <option value="مطار الملك خالد الدولي - الرياض" {{ old('arrival_airport', $travel->arrival_airport ?? '') === 'مطار الملك خالد الدولي - الرياض' ? 'selected' : '' }}>مطار الملك خالد الدولي - الرياض</option>
+                                <option value="مطار الملك عبدالعزيز الدولي - جدة" {{ old('arrival_airport', $travel->arrival_airport ?? '') === 'مطار الملك عبدالعزيز الدولي - جدة' ? 'selected' : '' }}>مطار الملك عبدالعزيز الدولي - جدة
                                 </option>
-                                <option value="مطار الملك فهد الدولي - الدمام">مطار الملك فهد الدولي - الدمام</option>
-                                <option value="مطار الأمير محمد بن عبدالعزيز - المدينة">مطار الأمير محمد بن عبدالعزيز -
+                                <option value="مطار الملك فهد الدولي - الدمام" {{ old('arrival_airport', $travel->arrival_airport ?? '') === 'مطار الملك فهد الدولي - الدمام' ? 'selected' : '' }}>مطار الملك فهد الدولي - الدمام</option>
+                                <option value="مطار الأمير محمد بن عبدالعزيز - المدينة" {{ old('arrival_airport', $travel->arrival_airport ?? '') === 'مطار الأمير محمد بن عبدالعزيز - المدينة' ? 'selected' : '' }}>مطار الأمير محمد بن عبدالعزيز -
                                     المدينة
                                 </option>
                             </select>
@@ -62,9 +70,9 @@
                             <label class="form-label">وسيلة السفر <span class="text-danger">*</span></label>
                             <select name="travel_with" class="form-control" required>
                                 <option value="">اختر وسيلة السفر</option>
-                                <option value="مطار">مطار</option>
-                                <option value="نقل جماعي">نقل جماعي</option>
-                                <option value="قطار">قطار</option>
+                                <option value="مطار" {{ old('travel_with', $travel->travel_with ?? '') === 'مطار' ? 'selected' : '' }}>مطار</option>
+                                <option value="نقل جماعي" {{ old('travel_with', $travel->travel_with ?? '') === 'نقل جماعي' ? 'selected' : '' }}>نقل جماعي</option>
+                                <option value="قطار" {{ old('travel_with', $travel->travel_with ?? '') === 'قطار' ? 'selected' : '' }}>قطار</option>
                             </select>
                         </div>
                     </div>
@@ -72,35 +80,35 @@
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label class="form-label">تاريخ الرحلة <span class="text-danger">*</span></label>
-                            <input type="date" name="arrival_date" class="form-control" required>
+                            <input type="date" name="arrival_date" class="form-control" value="{{ old('arrival_date', isset($travel->arrival_date) ? \Carbon\Carbon::parse($travel->arrival_date)->format('Y-m-d') : '') }}" required>
                         </div>
 
                         <div class="col-md-4 mb-3">
                             <label class="form-label">وقت الرحلة <span class="text-danger">*</span></label>
-                            <input type="time" name="arrival_time" class="form-control" required>
+                            <input type="time" name="arrival_time" class="form-control" value="{{ old('arrival_time', $travel->arrival_time ?? '') }}" required>
                         </div>
 
                         <div class="col-md-4 mb-3">
                             <label class="form-label">شركة الطيران</label>
-                            <input type="text" name="flight_company" class="form-control" placeholder="اختياري">
+                            <input type="text" name="flight_company" class="form-control" value="{{ old('flight_company', $travel->flight_company ?? '') }}" placeholder="اختياري">
                         </div>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">رقم الرحلة</label>
-                            <input type="text" name="flight_number" class="form-control" placeholder="اختياري">
+                            <input type="text" name="flight_number" class="form-control" value="{{ old('flight_number', $travel->flight_number ?? '') }}" placeholder="اختياري">
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <label class="form-label">ملاحظات</label>
-                            <textarea name="notes" class="form-control" rows="3"></textarea>
+                            <textarea name="notes" class="form-control" rows="3">{{ old('notes', $travel->notes ?? '') }}</textarea>
                         </div>
                     </div>
 
                     <div class="text-end mt-4">
                         <button type="submit" id="submitTravelBtn" class="btn btn-success">
-                            <i class="fa fa-save"></i> جدولة الرحلة
+                            <i class="fa fa-save"></i> {{ $isEditingTrip ? 'تحديث الرحلة' : 'جدولة الرحلة' }}
                         </button>
 
                         <a href="{{ route('DeportationTravel.index') }}" class="btn btn-secondary">
@@ -111,6 +119,9 @@
             </div>
         </div>
     </div>
+    @else
+        @include('components.no_permissions')
+    @endif
 @endsection
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
@@ -138,14 +149,15 @@
                 },
                 success: function(response) {
                     handleSuccessResponce(response)
+                    @if (!$isEditingTrip)
                     $('#form-deportation-travel')[0].reset();
+                    @endif
                 },
                 error: function(xhr) {
-                    // console.log(xhr);
+                    let errorMessages = '';
                     
                     if (xhr.status === 422) {
                         let errors = xhr.responseJSON.errors;
-                        let errorMessages = '';
                         for (let key in errors) {
                             errorMessages +=
                                 `<p style="margin:0 0 5px; color:red; text-align:center;">${errors[key][0]}</p>`;

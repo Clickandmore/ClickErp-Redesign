@@ -65,6 +65,7 @@
                 $canViewFinanceModule = @AdminGuardCanViewPackageModule('finance');
 
                 $canViewCrm = $canViewCrmModule || @AdminGuardHasAnyPerm([\App\PermKeys::CLIENTS_VIEW, \App\PermKeys::CLIENTS_CREATE, \App\PermKeys::CLIENTS_EDIT, \App\PermKeys::CLIENTS_DELETE, \App\PermKeys::CLIENTS_EXPORT, \App\PermKeys::CLIENTS_SHOW, \App\PermKeys::CLIENTS_SETTINGS]);
+                $canViewLogistics = @AdminGuardHasPerm(\App\PermKeys::TRAVEL_VIEW);
             @endphp
             <ul class="menu-list">
                 <!-- Dashboard Section -->
@@ -451,17 +452,18 @@
                                 <span class="ms-2"> {{ __('ingaz.shelter_management') }} </span>
                                 <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                             </a>
-                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['ShelterContract.index', 'ShelterContract.availableForTransfer', 'ShelterContract.deportationStage', 'ShelterContract.generalShelter', 'ShelterContract.deported']) ? 'show' : '' }}"
+                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['ShelterContract.index', 'ShelterContract.create', 'ShelterContract.edit', 'ShelterContract.availableForTransfer', 'ShelterContract.deportationStage', 'ShelterContract.generalShelter', 'ShelterContract.deported', 'shelter-places.index', 'shelter-places.create', 'shelter-places.edit']) ? 'show' : '' }}"
                                 id="sheltercontracts">
-                                @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_CONTRACT_CONTROL))
+                                @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_CREATE, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
                                     <li>
-                                        <a class="m-link" href="{{ route('ShelterContract.create') }}">
+                                        <a class="m-link {{ request()->routeIs('ShelterContract.create') ? 'active' : '' }}"
+                                            href="{{ route('ShelterContract.create') }}">
                                             <i class="icon-star"></i>
                                             <span class="ms-2">{{ helperTrans('ingaz.add_shelter') }}</span>
                                         </a>
                                     </li>
                                 @endif
-                                @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_CONTRACT_VIEW))
+                                @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
                                     <li>
                                         <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.index' ? 'active' : '' }}"
                                             href="{{ route('ShelterContract.index') }}">
@@ -505,9 +507,9 @@
                                         </a>
                                     </li>
                                 @endif --}}
-                                @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_PLACES_VIEW))
+                                @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_PLACES_VIEW, \App\PermKeys::SHELTER_PLACES_CREATE, \App\PermKeys::SHELTER_PLACES_EDIT, \App\PermKeys::SHELTER_PLACES_DELETE, \App\PermKeys::SHELTER_PLACES_CONTROL]))
                                     <li>
-                                        <a class="m-link {{ Route::currentRouteName() == 'shelter-places.index' ? 'active' : '' }}"
+                                        <a class="m-link {{ request()->routeIs('shelter-places.index') || request()->routeIs('shelter-places.create') || request()->routeIs('shelter-places.edit') ? 'active' : '' }}"
                                             href="{{ route('shelter-places.index') }}">
                                             <i class="fa fa-building"></i>
                                             <span class="ms-2"> {{ helperTrans('ingaz.shelter-places') }}</span>
@@ -518,33 +520,35 @@
                         </li>
 
                         <!-- Logistics Services Section -->
-                        <li class="collapsed">
-                            <a class="m-link" data-bs-toggle="collapse" data-bs-target="#logisticsMenu"
-                                href="#">
-                                <i class="fa fa-truck"></i>
-                                <span class="ms-2">الخدمات اللوجستية</span>
-                                <span class="arrow fa fa-angle-left ms-auto text-end"></span>
-                            </a>
-                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['DeportationTravel.index', 'DeportationTravel.create', 'travel', 'travel.control']) ? 'show' : '' }}"
-                                id="logisticsMenu">
-                                <li>
-                                    <a class="m-link {{ Route::currentRouteName() == 'DeportationTravel.index' ? 'active' : '' }}"
-                                        href="{{ route('DeportationTravel.index') }}">
-                                        <i class="fa fa-plane-departure"></i>
-                                        <span class="ms-2">رحلات الترحيل</span>
-                                    </a>
-                                </li>
-                                @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_VIEW))
-                                    <li>
-                                        <a class="m-link {{ Route::currentRouteName() == 'travel' ? 'active' : '' }}"
-                                            href="{{ route('travel') }}">
-                                            <i class="fa fa-plane-arrival"></i>
-                                            <span class="ms-2">رحلات الاستقدام</span>
-                                        </a>
-                                    </li>
-                                @endif
-                            </ul>
-                        </li>
+                        @if ($canViewLogistics)
+                            <li class="collapsed">
+                                <a class="m-link" data-bs-toggle="collapse" data-bs-target="#logisticsMenu"
+                                    href="#">
+                                    <i class="fa fa-truck"></i>
+                                    <span class="ms-2">الخدمات اللوجستية</span>
+                                    <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                                </a>
+                                <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['DeportationTravel.index', 'DeportationTravel.create', 'DeportationTravel.edit', 'travel', 'travel.control', 'travel.edit']) ? 'show' : '' }}"
+                                    id="logisticsMenu">
+                                    @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_VIEW))
+                                        <li>
+                                            <a class="m-link {{ in_array(Route::currentRouteName(), ['DeportationTravel.index', 'DeportationTravel.create', 'DeportationTravel.edit']) ? 'active' : '' }}"
+                                                href="{{ route('DeportationTravel.index') }}">
+                                                <i class="fa fa-plane-departure"></i>
+                                                <span class="ms-2">رحلات الترحيل</span>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="m-link {{ in_array(Route::currentRouteName(), ['travel', 'travel.control', 'travel.edit']) ? 'active' : '' }}"
+                                                href="{{ route('travel') }}">
+                                                <i class="fa fa-plane-arrival"></i>
+                                                <span class="ms-2">رحلات الاستقدام</span>
+                                            </a>
+                                        </li>
+                                    @endif
+                                </ul>
+                            </li>
+                        @endif
 
                         <!-- Complaints Section -->
                         @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_VIEW))

@@ -11,7 +11,10 @@
 
 
 @section('content')
-@if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_WORKERS_CONTROL))
+@if (
+    (!@$data && @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_WORKERS_CREATE, \App\PermKeys::SHELTER_WORKERS_CONTROL])) ||
+    (@$data && @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_WORKERS_EDIT, \App\PermKeys::SHELTER_WORKERS_CONTROL]))
+)
 
     <h1>
         @if (@$data)

@@ -57,6 +57,7 @@
 
 @section('content')
 <div class="page-body p-4 text-dark admin-tables">
+    @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_VIEW))
     <div class="container-fluid rtl-page">
         <div class="row mb-4">
             <div class="col-12">
@@ -64,9 +65,11 @@
                     <h4 class="page-title">
                         <i class="fa fa-plane-departure"></i> رحلات الترحيل
                     </h4>
-                    <a href="{{ route('DeportationTravel.create') }}" class="btn btn-success">
-                        <i class="fa fa-plus"></i> جدولة رحلة جديدة
-                    </a>
+                    @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CREATE))
+                        <a href="{{ route('DeportationTravel.create') }}" class="btn btn-success">
+                            <i class="fa fa-plus"></i> جدولة رحلة جديدة
+                        </a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -189,20 +192,26 @@
                             <div id="calendarTripInfo" class="small text-muted mb-3">
                                 اختر رحلة من التقويم لعرض التفاصيل وإسنادها.
                             </div>
-                            <div class="mb-2">
-                                <label class="form-label">الموظف / السائق</label>
-                                <select id="assignStaffSelect" class="form-select">
-                                    <option value="">-- اختر --</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">ملاحظة الإسناد</label>
-                                <textarea id="assignmentNote" class="form-control" rows="3"
-                                    placeholder="ملاحظة اختيارية"></textarea>
-                            </div>
-                            <button id="assignTripBtn" type="button" class="btn btn-primary w-100" disabled>
-                                <i class="fa fa-paper-plane"></i> إسناد وإرسال تنبيه
-                            </button>
+                            @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CONTROL))
+                                <div class="mb-2">
+                                    <label class="form-label">الموظف / السائق</label>
+                                    <select id="assignStaffSelect" class="form-select">
+                                        <option value="">-- اختر --</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">ملاحظة الإسناد</label>
+                                    <textarea id="assignmentNote" class="form-control" rows="3"
+                                        placeholder="ملاحظة اختيارية"></textarea>
+                                </div>
+                                <button id="assignTripBtn" type="button" class="btn btn-primary w-100" disabled>
+                                    <i class="fa fa-paper-plane"></i> إسناد وإرسال تنبيه
+                                </button>
+                            @else
+                                <div class="alert alert-light border small mb-3">
+                                    لديك صلاحية عرض الرحلات فقط. إسناد الرحلة متاح لمن يملك صلاحية الإدارة.
+                                </div>
+                            @endif
                             <hr>
                             <h6 class="mb-2">جميع رحلات الترحيل</h6>
                             <div id="calendarTripList" class="calendar-trip-list small text-muted">
@@ -247,6 +256,9 @@
             </div>
         </div>
     </div>
+    @else
+        @include('components.no_permissions')
+    @endif
 </div>
 @endsection
 
@@ -261,15 +273,18 @@ let logisticsCalendar = null;
 let selectedCalendarTripId = null;
 const calendarScope = 'deportation';
 const travelAssignRouteTemplate = @json(route('travel.assign', ['id' => '__ID__']));
+const deportationTravelDeleteRouteTemplate = @json(route('DeportationTravel.destroy', ['id' => '__ID__']));
+const deportationTravelCompleteRouteTemplate = @json(route('DeportationTravel.complete', ['id' => '__ID__']));
 
 $(document).ready(function() {
     loadTable();
     updateStatistics();
     initLogisticsCalendar();
+    @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CONTROL))
     loadAssignableStaff();
-
     $('#assignStaffSelect').on('change', toggleAssignButtonState);
     $('#assignTripBtn').on('click', assignSelectedTrip);
+    @endif
     $(document).on('click', '.calendar-trip-item', function() {
         const eventId = String($(this).data('event-id'));
         if (!logisticsCalendar) {
@@ -540,7 +555,7 @@ function deleteTravel(id) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: `{{ route('DeportationTravel.index') }}/${id}`,
+                url: deportationTravelDeleteRouteTemplate.replace('__ID__', id),
                 type: 'DELETE',
                 data: {
                     _token: '{{ csrf_token() }}'
@@ -571,7 +586,7 @@ function completeTrip(id) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: `{{ url('DeportationTravel') }}/${id}/complete`,
+                url: deportationTravelCompleteRouteTemplate.replace('__ID__', id),
                 type: 'POST',
                 data: {
                     _token: '{{ csrf_token() }}'

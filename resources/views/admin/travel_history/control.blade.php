@@ -53,7 +53,13 @@
 
 
 @section('content')
-@if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CONTROL))
+@php
+    $canManageTravelForm = @$data
+        ? @AdminGuardHasPerm(\App\PermKeys::TRAVEL_EDIT)
+        : @AdminGuardHasPerm(\App\PermKeys::TRAVEL_CREATE);
+@endphp
+
+@if ($canManageTravelForm)
 
 <h1>
     @if (@$data)

@@ -29,6 +29,47 @@ class ShelterContractController extends Controller
     public $folderPath = "admin.ingaz.ShelterContract";
     protected ?int $instantJobTypeId = null;
 
+    public function __construct()
+    {
+        $this->middleware('permission:shelter_contract_view|shelter_contract_control,admin', [
+            'only' => [
+                'index',
+                'show',
+                'getData',
+                'availableForTransfer',
+                'deportationStage',
+                'generalShelter',
+                'searchByPassport',
+                'getContractDetails',
+                'getNationalities',
+                'getShelterPlaces',
+                'export',
+                'deported',
+                'showDeportationProcedures',
+                'getActivityLog',
+                'deliveryShelterContractDownload',
+            ],
+        ]);
+        $this->middleware('permission:shelter_contract_create|shelter_contract_control,admin', [
+            'only' => ['create', 'store'],
+        ]);
+        $this->middleware('permission:shelter_contract_edit|shelter_contract_control,admin', [
+            'only' => [
+                'edit',
+                'update',
+                'back',
+                'updateQuickTags',
+                'startDeportation',
+                'updateDeportationProcedures',
+                'changeWorkDesire',
+                'toggleInstantReceipt',
+            ],
+        ]);
+        $this->middleware('permission:shelter_contract_delete|shelter_contract_control,admin', [
+            'only' => ['destroy'],
+        ]);
+    }
+
     public function index(Request $request)
     {
         $statsContracts = Contract::insideShelter()

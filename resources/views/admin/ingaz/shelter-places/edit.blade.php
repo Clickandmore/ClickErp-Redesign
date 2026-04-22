@@ -1,4 +1,4 @@
-@if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_PLACES_CONTROL))
+@if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_PLACES_EDIT, \App\PermKeys::SHELTER_PLACES_CONTROL]))
 <form class="row g-3 from-submit-global" method="post" action="{{route("shelter-places.update",$obj->id)}}">
     @csrf
     @method('Put')

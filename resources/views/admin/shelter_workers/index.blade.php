@@ -47,9 +47,12 @@
             </div>
 
             <div class="col-md-3 col-sm-12 d-flex justify-content-center justify-content-md-end align-items-center">
-                <a href="{{ route('shelter_workers.control') }}" id="add-button" class="btn btn-success" type="button">
-                    @lang('admin.add')
-                </a>
+                @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_WORKERS_CREATE, \App\PermKeys::SHELTER_WORKERS_CONTROL]))
+                    <a href="{{ route('shelter_workers.control') }}" id="add-button" class="btn btn-success"
+                        type="button">
+                        @lang('admin.add')
+                    </a>
+                @endif
             </div>
         </div>
 
@@ -85,7 +88,7 @@
                     <th>{{ __('admin.received_by_other') }}</th>
                     <th>{{ __('admin.sh_status') }}</th>
                     <th>@lang('admin.sh_reserve_date')</th>
-                    @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_WORKERS_CONTROL))
+                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_WORKERS_EDIT, \App\PermKeys::SHELTER_WORKERS_DELETE, \App\PermKeys::SHELTER_WORKERS_CONTROL]))
                         <th class="" style="width:10%">{{ __('admin.actions') }}</th>
                     @endif
                 </tr>
@@ -110,25 +113,29 @@
                                 class="badge bg-dark">{{ __("shelter_worker_statuses.worker_status.$singleRow->status") }}</span>
                         </td>
                         <td>{{ $singleRow->reserve_date ?? '--' }}</td>
-                        @if (@AdminGuardHasPerm(\App\PermKeys::SHELTER_WORKERS_CONTROL))
+                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_WORKERS_EDIT, \App\PermKeys::SHELTER_WORKERS_DELETE, \App\PermKeys::SHELTER_WORKERS_CONTROL]))
                             <td class="PrintHide">
                                 <div class="d-flex justify-content-center">
                                     <a class="btn btn-sm" href="{{ route('shelter_workers.show', $singleRow->id) }}">
                                         <li class="fa fa-eye"></li>
                                     </a>
-                                    <a class="btn btn-sm"
-                                        href="{{ route('shelter_workers.update', $singleRow->id) . '/edit' }}">
-                                        <li class="fa fa-edit"></li>
-                                    </a>
-                                    <form action="{{ route('shelter_workers.delete', $singleRow->id) }}" method="POST"
-                                        id="dataDeleteForm-{{ $singleRow->id }}">
-                                        @csrf
-                                        @method('DELETE')
-                                        <a class="btn btn-sm btnDeleteTrgt" data-id="{{ $singleRow->id }}"
-                                            href="javascript:{}">
-                                            حذف
+                                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_WORKERS_EDIT, \App\PermKeys::SHELTER_WORKERS_CONTROL]))
+                                        <a class="btn btn-sm"
+                                            href="{{ route('shelter_workers.update', $singleRow->id) . '/edit' }}">
+                                            <li class="fa fa-edit"></li>
                                         </a>
-                                    </form>
+                                    @endif
+                                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_WORKERS_DELETE, \App\PermKeys::SHELTER_WORKERS_CONTROL]))
+                                        <form action="{{ route('shelter_workers.delete', $singleRow->id) }}" method="POST"
+                                            id="dataDeleteForm-{{ $singleRow->id }}">
+                                            @csrf
+                                            @method('DELETE')
+                                            <a class="btn btn-sm btnDeleteTrgt" data-id="{{ $singleRow->id }}"
+                                                href="javascript:{}">
+                                                حذف
+                                            </a>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         @endif
