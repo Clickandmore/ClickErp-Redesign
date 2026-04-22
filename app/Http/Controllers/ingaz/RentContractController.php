@@ -568,7 +568,149 @@ class RentContractController extends Controller
             'order'
         ])->findOrFail($id);
 
-        return view($this->folderPath . '.show', compact('contract'));
+        $availableReplacementMaids = $this->getAvailableRentalMaidsQuery()
+            ->when($contract->maid_id, function ($query) use ($contract) {
+                $query->where('id', '!=', $contract->maid_id);
+            })
+            ->get();
+
+        $activities = $this->buildActivityTimeline(
+            $contract->activities()->with('causer')->latest()->limit(20)->get(),
+            [
+                'maid_id' => 'العاملة',
+                'reason' => 'سبب التغيير',
+                'status' => 'حالة العقد',
+                'marketer_id' => 'المسوق',
+                'contract_date' => 'تاريخ العقد',
+                'contract_sent_at' => 'تاريخ إرسال العقد',
+                'contract_signed_at' => 'تاريخ توقيع العقد',
+                'maid_delivered_at' => 'تاريخ تسليم العاملة',
+                'warranty_status' => 'حالة الضمان',
+                'warranty_start_date' => 'بداية الضمان',
+                'warranty_end_date' => 'نهاية الضمان',
+            ],
+            'عقد التأجير'
+        );
+
+        return view($this->folderPath . '.show', compact('contract', 'availableReplacementMaids', 'activities'));
+    }
+
+    public function changeMaid(Request $request, $id)
+    {
+        $isAjaxRequest = $request->expectsJson() || $request->ajax();
+
+        if (!@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_EDIT)) {
+            $message = 'ليس لديك صلاحية لتغيير العاملة في عقد التأجير';
+
+            return $isAjaxRequest
+                ? response()->json(['success' => false, 'message' => $message], 403)
+                : redirect()->back()->with('error', $message);
+        }
+
+        $validated = $request->validate([
+            'new_maid_id' => 'required|exists:maids,id',
+            'reason' => 'required|string|max:1000',
+        ]);
+
+        try {
+            $result = DB::transaction(function () use ($id, $validated) {
+                $contract = RentalContract::with(['maid', 'order'])->lockForUpdate()->findOrFail($id);
+
+                if (in_array($contract->status, ['completed', 'cancelled'], true)) {
+                    throw new \RuntimeException('لا يمكن تغيير العاملة في عقد مكتمل أو ملغي');
+                }
+
+                $oldMaid = $contract->maid_id
+                    ? Maid::query()->lockForUpdate()->find($contract->maid_id)
+                    : null;
+
+                if ($oldMaid && (int) $validated['new_maid_id'] === (int) $oldMaid->id) {
+                    throw new \RuntimeException('العاملة المختارة هي العاملة الحالية للعقد');
+                }
+
+                $newMaid = $this->getAvailableRentalMaidsQuery()
+                    ->whereKey((int) $validated['new_maid_id'])
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$newMaid) {
+                    throw new \RuntimeException('العاملة المختارة غير متاحة للتأجير أو مرتبطة بحجز حالي');
+                }
+
+                activity()->withoutLogs(function () use ($contract, $newMaid) {
+                    $contract->update([
+                        'maid_id' => $newMaid->id,
+                    ]);
+                });
+
+                if ($contract->order) {
+                    $contract->order->update([
+                        'maid_id' => $newMaid->id,
+                    ]);
+                }
+
+                $newMaid->update([
+                    'status' => 'contracted',
+                    'available' => false,
+                ]);
+
+                if ($oldMaid) {
+                    $this->syncMaidBookingState($oldMaid);
+                }
+
+                $description = $oldMaid
+                    ? 'تم تغيير العاملة من ' . $oldMaid->name . ' إلى ' . $newMaid->name . ' بسبب: ' . $validated['reason']
+                    : 'تم تعيين العاملة ' . $newMaid->name . ' على العقد بسبب: ' . $validated['reason'];
+
+                activity()
+                    ->causedBy(Auth::guard('admin')->user())
+                    ->performedOn($contract)
+                    ->event('maid_changed')
+                    ->withProperties([
+                        'attributes' => [
+                            'maid_id' => $newMaid->id,
+                            'reason' => $validated['reason'],
+                        ],
+                        'old' => [
+                            'maid_id' => $oldMaid?->id,
+                        ],
+                        'old_maid_name' => $oldMaid?->name,
+                        'new_maid_name' => $newMaid->name,
+                    ])
+                    ->log($description);
+
+                return [
+                    'old_maid_name' => $oldMaid?->name,
+                    'new_maid_name' => $newMaid->name,
+                ];
+            });
+
+            $message = 'تم تغيير العاملة في عقد التأجير بنجاح';
+
+            return $isAjaxRequest
+                ? response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'data' => $result,
+                ])
+                : redirect()->route($this->mainRoute . '.show', $id)->with('success', $message);
+        } catch (\RuntimeException $e) {
+            return $isAjaxRequest
+                ? response()->json(['success' => false, 'message' => $e->getMessage()], 422)
+                : redirect()->back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error('Error changing maid in rental contract', [
+                'contract_id' => $id,
+                'new_maid_id' => $validated['new_maid_id'] ?? null,
+                'error' => $e->getMessage(),
+            ]);
+
+            $message = 'حدث خطأ أثناء تغيير العاملة في عقد التأجير';
+
+            return $isAjaxRequest
+                ? response()->json(['success' => false, 'message' => $message], 500)
+                : redirect()->back()->with('error', $message);
+        }
     }
 
     public function edit($id)
@@ -646,11 +788,11 @@ class RentContractController extends Controller
 
             // تحديث حالة العاملات
             if ($oldMaidId && $oldMaidId != $request->maid_id) {
-                // إرجاع العاملة السابقة للإتاحة
-                Maid::where('id', $oldMaidId)->update([
-                    'status' => 'available',
-                    'available' => true,
-                ]);
+                $oldMaid = Maid::find($oldMaidId);
+
+                if ($oldMaid) {
+                    $this->syncMaidBookingState($oldMaid);
+                }
             }
 
             if ($request->maid_id) {
@@ -681,17 +823,18 @@ class RentContractController extends Controller
             DB::beginTransaction();
 
             $contract = RentalContract::with(['maid'])->findOrFail($id);
-
-            // إرجاع العاملة للإتاحة
-            if ($contract->maid) {
-                $contract->maid->update([
-                    'status' => 'available',
-                    'available' => true,
-                ]);
-            }
+            $releasedMaidId = $contract->maid_id;
 
             // حذف العقد (سيحذف معلومات العقد تلقائياً بسبب cascade)
             $contract->delete();
+
+            if ($releasedMaidId) {
+                $releasedMaid = Maid::find($releasedMaidId);
+
+                if ($releasedMaid) {
+                    $this->syncMaidBookingState($releasedMaid);
+                }
+            }
 
             DB::commit();
 
@@ -946,7 +1089,10 @@ class RentContractController extends Controller
             })
             ->where('status', '!=', 'backout')
             ->where(function ($query) use ($currentMaidId) {
-                $query->where('available', true);
+                $query->where(function ($availableQuery) {
+                    $availableQuery->where('available', true)
+                        ->where('status', 'available');
+                });
 
                 if ($currentMaidId) {
                     $query->orWhere('id', $currentMaidId);
@@ -965,6 +1111,24 @@ class RentContractController extends Controller
                     $query->orWhere('id', $currentMaidId);
                 }
             })
+            ->where(function ($query) use ($currentMaidId) {
+                $query->whereDoesntHave('orders', function ($orderQuery) {
+                    $orderQuery->whereIn('status', $this->rentalBookedOrderStatuses());
+                });
+
+                if ($currentMaidId) {
+                    $query->orWhere('id', $currentMaidId);
+                }
+            })
+            ->where(function ($query) use ($currentMaidId) {
+                $query->whereDoesntHave('contracts', function ($contractQuery) {
+                    $contractQuery->whereIn('status', $this->recruitmentBusyContractStatuses());
+                });
+
+                if ($currentMaidId) {
+                    $query->orWhere('id', $currentMaidId);
+                }
+            })
             ->with(['nationality.translations', 'religion.translations', 'jobTitles.translations'])
             ->latest();
     }
@@ -972,6 +1136,77 @@ class RentContractController extends Controller
     private function rentalActiveContractStatuses(): array
     {
         return ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'transferred', 'suspended'];
+    }
+
+    private function rentalBookedOrderStatuses(): array
+    {
+        return [
+            OrderEnum::New->value,
+            OrderEnum::UnderProcess->value,
+            OrderEnum::Contracted->value,
+            OrderEnum::ContractedWithoutContract->value,
+        ];
+    }
+
+    private function recruitmentBusyContractStatuses(): array
+    {
+        return [
+            ContractStatusEnum::New->value,
+            ContractStatusEnum::AccreditationContracts->value,
+            ContractStatusEnum::Msaned->value,
+            ContractStatusEnum::Tafwed->value,
+            ContractStatusEnum::Taffez->value,
+            ContractStatusEnum::Tazker->value,
+            ContractStatusEnum::Arrival->value,
+            ContractStatusEnum::Sari->value,
+            ContractStatusEnum::Shelter->value,
+            ContractStatusEnum::PendingMaidSelection->value,
+            ContractStatusEnum::Trial->value,
+            ContractStatusEnum::InProgress->value,
+            ContractStatusEnum::ClientContracted->value,
+            ContractStatusEnum::DelegateSelected->value,
+            ContractStatusEnum::UnderWarranty->value,
+        ];
+    }
+
+    private function syncMaidBookingState(Maid $maid): void
+    {
+        if ($maid->status === 'backout') {
+            $maid->update([
+                'available' => false,
+            ]);
+
+            return;
+        }
+
+        $hasActiveRentalContracts = RentalContract::query()
+            ->where('maid_id', $maid->id)
+            ->whereIn('status', $this->rentalActiveContractStatuses())
+            ->exists();
+
+        if ($hasActiveRentalContracts) {
+            $maid->update([
+                'status' => 'contracted',
+                'available' => false,
+            ]);
+
+            return;
+        }
+
+        $hasBusyRecruitmentContracts = Contract::query()
+            ->where('maid_id', $maid->id)
+            ->whereIn('status', $this->recruitmentBusyContractStatuses())
+            ->exists();
+
+        $hasBusyOrders = Order::query()
+            ->where('maid_id', $maid->id)
+            ->whereIn('status', $this->rentalBookedOrderStatuses())
+            ->exists();
+
+        $maid->update([
+            'status' => ($hasBusyRecruitmentContracts || $hasBusyOrders) ? 'reserved' : 'available',
+            'available' => !($hasBusyRecruitmentContracts || $hasBusyOrders),
+        ]);
     }
 
     private function getRentalJobTypeId(): int

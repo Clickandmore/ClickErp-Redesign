@@ -85,6 +85,8 @@ class Controller extends BaseController
             'Order' => 'الطلب',
             'OrderDetail' => 'تفاصيل الطلب',
             'OrderTransfers' => 'ملف الطلب',
+            'RentalContract' => 'عقد التأجير',
+            'RentalContractInfo' => 'بيانات عقد التأجير',
             default => $defaultSubjectLabel ?: ($subjectType ? Str::headline($subjectType) : 'السجل'),
         };
     }
@@ -95,6 +97,7 @@ class Controller extends BaseController
             'created' => 'إضافة',
             'updated' => 'تحديث',
             'deleted' => 'حذف',
+            'maid_changed' => 'تغيير',
             default => 'تنفيذ إجراء على',
         };
     }

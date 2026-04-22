@@ -181,6 +181,7 @@ return [
 
         Nami\Finance\FinanceServiceProvider::class,
         Nami\Crm\CrmServiceProvider::class,
+        Nami\AccessControl\AccessControlServiceProvider::class,
 
         Nami\Hr\HrServiceProvider::class,
     ],

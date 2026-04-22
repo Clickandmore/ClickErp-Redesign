@@ -248,6 +248,12 @@ class UserController extends Controller
                         </a></li>';
                     }
 
+                    if (\Illuminate\Support\Facades\Route::has('crm.client_attachments.index')) {
+                        $menuItems .= '<li><a class="dropdown-item" href="' . route('crm.client_attachments.index', ['user_id' => $row->id]) . '">
+                            <i class="fas fa-paperclip me-2 text-info"></i>' . __('crm::crm.client_attachments') . '
+                        </a></li>';
+                    }
+
                     if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_CREATE_RECRUITMENT)) {
                         $menuItems .= '<li><a class="dropdown-item" href="' . route('admin.recruitment.select.maid', ['client_id' => $row->id]) . '">
                             <i class="fas fa-user-plus me-2 text-success"></i>' . helperTrans('ingaz.create_recruitment_request') . '

@@ -142,7 +142,7 @@
                                 <span class="ms-2">{{ helperTrans('ingaz.orders') }} </span>
                                 <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                             </a>
-                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['orders.current', 'orders.ended']) ? 'show' : '' }}"
+                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['orders.index', 'return_requests.index', 'orders.current', 'orders.ended', 'professional_application.index', 'recruitment_requests.index', 'renew-contracts.index', 'contact.index']) ? 'show' : '' }}"
                                 id="my_dashboard2">
                                 @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW))
                                     <li>
@@ -176,36 +176,43 @@
                                         </a>
                                     </li>
                                 @endif
-                                {{-- @if (@AdminGuardHasPerm(\App\PermKeys::professional_application_VIEW)) --}}
-                                <li>
-                                    <a class="m-link {{ Route::currentRouteName() == 'professional_application.index' ? 'active' : '' }}"
-                                        href="{{ route('professional_application.index') }}">
-                                        <i class="fa fa-envelope"></i>
-                                        <span class="ms-2">
-                                            {{ helperTrans('ingaz.request_professional_labor') }}</span>
-                                    </a>
-                                </li>
-                                {{-- @endif --}}
-
-                                {{-- @if (@AdminGuardHasPerm(\App\PermKeys::recruitment_requests_VIEW)) --}}
-                                <li>
-                                    <a class="m-link {{ Route::currentRouteName() == 'recruitment_requests.index' ? 'active' : '' }}"
-                                        href="{{ route('recruitment_requests.index') }}">
-                                        <i class="fa fa-envelope"></i>
-                                        <span class="ms-2">طلبات خاصة</span>
-                                    </a>
-                                </li>
-                                {{-- @endif --}}
-
-                                {{-- @if (@AdminGuardHasPerm(\App\PermKeys::renew - contracts_VIEW)) --}}
-                                <li>
-                                    <a class="m-link {{ Route::currentRouteName() == 'renew-contracts.index' ? 'active' : '' }}"
-                                        href="{{ route('renew-contracts.index') }}">
-                                        <i class="fa fa-envelope"></i>
-                                        <span class="ms-2"> {{ helperTrans('ingaz.renew-contracts') }}</span>
-                                    </a>
-                                </li>
-                                {{-- @endif --}}
+                                @if (@AdminGuardHasPerm(\App\PermKeys::PROFESSIONAL_APPLICATION_VIEW))
+                                    <li>
+                                        <a class="m-link {{ Route::currentRouteName() == 'professional_application.index' ? 'active' : '' }}"
+                                            href="{{ route('professional_application.index') }}">
+                                            <i class="fa fa-envelope"></i>
+                                            <span class="ms-2">
+                                                {{ helperTrans('ingaz.request_professional_labor') }}</span>
+                                        </a>
+                                    </li>
+                                @endif
+                                @if (@AdminGuardHasPerm(\App\PermKeys::RECRUITMENT_REQUESTS_VIEW))
+                                    <li>
+                                        <a class="m-link {{ Route::currentRouteName() == 'recruitment_requests.index' ? 'active' : '' }}"
+                                            href="{{ route('recruitment_requests.index') }}">
+                                            <i class="fa fa-envelope"></i>
+                                            <span class="ms-2">طلبات خاصة</span>
+                                        </a>
+                                    </li>
+                                @endif
+                                @if (@AdminGuardHasPerm(\App\PermKeys::RENEW_CONTRACTS_VIEW))
+                                    <li>
+                                        <a class="m-link {{ Route::currentRouteName() == 'renew-contracts.index' ? 'active' : '' }}"
+                                            href="{{ route('renew-contracts.index') }}">
+                                            <i class="fa fa-envelope"></i>
+                                            <span class="ms-2"> {{ helperTrans('ingaz.renew-contracts') }}</span>
+                                        </a>
+                                    </li>
+                                @endif
+                                @if (@AdminGuardHasPerm(\App\PermKeys::CONTACT_VIEW))
+                                    <li>
+                                        <a class="m-link {{ Route::currentRouteName() == 'contact.index' ? 'active' : '' }}"
+                                            href="{{ route('contact.index') }}">
+                                            <i class="fa fa-comments"></i>
+                                            <span class="ms-2">طلبات التواصل</span>
+                                        </a>
+                                    </li>
+                                @endif
                             </ul>
                         </li>
 
@@ -716,6 +723,7 @@
                 </li>
                 {{--                @include('finance::stock') --}}
                 @include('finance::zatca')
+                @include('access-control::menu-group')
                 <li class="collapsed">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#settingsOperation" href="#">
                         <i class="fa fa-cog fa-lg"></i>

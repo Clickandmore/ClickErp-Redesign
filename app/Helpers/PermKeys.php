@@ -20,15 +20,30 @@ const PARTENR_CONTROL = 'partenr_control';
     const DASHBOARD_ANALYTICS = 'dashboard_analytics';
     const DASHBOARD_EXPORT = 'dashboard_export';
     const DASHBOARD_VIEW_STATISTICS = 'dashboard_view_statistics';
+    const DASHBOARD_MANAGE = 'dashboard_manage';
 
     // صلاحيات أقسام الصفحة الرئيسية
+    const DASHBOARD_RECRUITMENT_ORDERS_COUNT = 'dashboard_recruitment_orders_count';
+    const DASHBOARD_RECRUITMENT_CONTRACTS_COUNT = 'dashboard_recruitment_contracts_count';
     const DASHBOARD_CLIENTS_COUNT = 'dashboard_clients_count';
     const DASHBOARD_CONTACTS_COUNT = 'dashboard_contacts_count';
     const DASHBOARD_CURRENT_ORDERS_COUNT = 'dashboard_current_orders_count';
     const DASHBOARD_CV_COUNT = 'dashboard_cv_count';
     const DASHBOARD_EMPLOYEES_COUNT = 'dashboard_employees_count';
     const DASHBOARD_COMPLETED_CV_COUNT = 'dashboard_completed_cv_count';
+    const DASHBOARD_RENTAL_CONTRACTS_COUNT = 'dashboard_rental_contracts_count';
+    const DASHBOARD_RENTAL_ORDERS_COUNT = 'dashboard_rental_orders_count';
+    const DASHBOARD_SPONSORSHIP_TRANSFERS_COUNT = 'dashboard_sponsorship_transfers_count';
+    const DASHBOARD_SPONSORSHIP_TRANSFER_REQUESTS_COUNT = 'dashboard_sponsorship_transfer_requests_count';
+    const DASHBOARD_SHELTER_COUNT = 'dashboard_shelter_count';
     const DASHBOARD_ORDERS_STATISTICS = 'dashboard_orders_statistics';
+    const DASHBOARD_OPERATIONS_OVERVIEW = 'dashboard_operations_overview';
+    const DASHBOARD_CONTRACTS_OVERVIEW = 'dashboard_contracts_overview';
+    const DASHBOARD_NATIONALITIES_STATISTICS = 'dashboard_nationalities_statistics';
+    const DASHBOARD_OFFICES_STATISTICS = 'dashboard_offices_statistics';
+    const DASHBOARD_RECENT_ACTIVITIES = 'dashboard_recent_activities';
+    const DASHBOARD_CALENDAR_EVENTS = 'dashboard_calendar_events';
+    const DASHBOARD_EMPLOYEE_PERFORMANCE = 'dashboard_employee_performance';
     const DASHBOARD_TOP_CUSTOMER_SERVICES = 'dashboard_top_customer_services';
     const DASHBOARD_ORDERS_TYPES = 'dashboard_orders_types';
 
@@ -92,6 +107,13 @@ const PARTENR_CONTROL = 'partenr_control';
 
     // صلاحيات الإدارة
     const ORDERS_CONTROL = 'orders_control';
+
+    // صلاحيات قوائم الطلبات الفرعية في السايدبار
+    const PROFESSIONAL_APPLICATION_VIEW = 'professional_application_view';
+    const RECRUITMENT_REQUESTS_VIEW = 'recruitment_requests_view';
+    const RENEW_CONTRACTS_VIEW = 'renew_contracts_view';
+    const RENTAL_ORDERS_VIEW = 'rental_orders_view';
+    const SPONSOR_TRANSFER_WEB_REQUESTS_VIEW = 'sponsor_transfer_web_requests_view';
 
     // ========================================
     // طلبات الاسترجاع (Return Requests)

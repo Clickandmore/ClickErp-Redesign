@@ -36,10 +36,14 @@ class MaidController extends Controller
 
     public function __construct()
     {
-        // $this->middleware('permission:العاملات-قراءة,admin', ['only' => ['index']]);
-        // $this->middleware('permission:العاملات-انشاء,admin', ['only' => ['create', 'store']]);
-        // $this->middleware('permission:العاملات-تعديل,admin', ['only' => ['edit', 'update']]);
-        // $this->middleware('permission:العاملات-حذف,admin', ['only' => ['destroy']]);
+        $this->middleware('permission:maids_view,admin', ['only' => ['index', 'rentalIndex', 'noneAvailableMaids', 'deletedCvs']]);
+        $this->middleware('permission:maids_create,admin', ['only' => ['create', 'createRental', 'create_rapid_cv', 'store', 'store_rapid_cv']]);
+        $this->middleware('permission:maids_edit,admin', ['only' => ['edit', 'update', 'update_cv', 'updateOffer', 'backout', 'clearBackout', 'suspendCv']]);
+        $this->middleware('permission:maids_delete,admin', ['only' => ['destroy', 'restore']]);
+        $this->middleware('permission:maids_toggle_status,admin', ['only' => ['show']]);
+        $this->middleware('permission:maids_toggle_pin,admin', ['only' => ['togglePin']]);
+        $this->middleware('permission:maids_export|maids_export_pdf,admin', ['only' => ['exportPdf']]);
+        $this->middleware('permission:maids_export|maids_export_excel,admin', ['only' => ['exportExcel']]);
     }
 
     /**

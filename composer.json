@@ -44,7 +44,8 @@
             "Nami\\Finance\\Database\\Seeders\\": "packages/finance/database/seeders/",
             "Nami\\Hr\\": "packages/hr/src/",
             "Nami\\Hr\\Database\\Seeders\\": "packages/hr/database/seeders/",
-            "Nami\\Crm\\": "packages/crm/src/"
+            "Nami\\Crm\\": "packages/crm/src/",
+            "Nami\\AccessControl\\": "packages/access-control/src/"
 
         },
         "files": [

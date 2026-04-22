@@ -190,6 +190,27 @@
             opacity: 0.9;
         }
 
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .section-header .card-title {
+            margin-bottom: 0;
+        }
+
+        .activity-wrapper .border.rounded-3 {
+            border-color: #eef1f4 !important;
+        }
+
+        .maid-select-hint {
+            font-size: 13px;
+            color: #6c757d;
+        }
+
         @media print {
             .action-buttons {
                 display: none !important;
@@ -321,9 +342,18 @@
                 <!-- معلومات العاملة -->
                 <div class="col-md-6 mb-4">
                     <div class="info-card maid-info">
-                        <div class="card-title">
-                            <i class="fas fa-female text-warning"></i>
-                            معلومات العاملة
+                        <div class="section-header">
+                            <div class="card-title">
+                                <i class="fas fa-female text-warning"></i>
+                                معلومات العاملة
+                            </div>
+                            @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_EDIT) && !in_array($contract->status, ['completed', 'cancelled'], true))
+                                <button type="button" class="btn btn-sm btn-warning text-dark" data-bs-toggle="modal"
+                                    data-bs-target="#changeMaidModal">
+                                    <i class="fas fa-exchange-alt me-1"></i>
+                                    تغيير العاملة
+                                </button>
+                            @endif
                         </div>
                         @if ($contract->maid)
                             <div class="text-center mb-3">
@@ -524,7 +554,75 @@
                     </div>
                 </div>
             </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="info-card activity-wrapper">
+                        <div class="card-title">
+                            <i class="fas fa-history text-info"></i>
+                            سجل النشاط
+                        </div>
+                        @include('admin.partials.activity-feed', ['activities' => $activities])
+                    </div>
+                </div>
+            </div>
         </div>
+
+        @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_EDIT) && !in_array($contract->status, ['completed', 'cancelled'], true))
+            <div class="modal fade" id="changeMaidModal" tabindex="-1" aria-labelledby="changeMaidModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="changeMaidModalLabel">تغيير العاملة لعقد التأجير</h5>
+                            <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                        </div>
+                        <form id="changeMaidForm">
+                            <div class="modal-body">
+                                <div class="alert alert-light border">
+                                    <div class="fw-semibold mb-1">العاملة الحالية</div>
+                                    <div>{{ $contract->maid?->name ?? 'لا توجد عاملة مرتبطة بالعقد' }}</div>
+                                    <div class="maid-select-hint">ستظهر فقط عاملات التأجير المتاحات فعليًا وغير
+                                        المرتبطات بحجز أو عقد نشط.</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="new_maid_id" class="form-label">العاملة البديلة</label>
+                                    <select name="new_maid_id" id="new_maid_id" class="form-select" required>
+                                        <option value="">اختر العاملة المتاحة</option>
+                                        @forelse ($availableReplacementMaids as $maid)
+                                            <option value="{{ $maid->id }}">
+                                                {{ $maid->name }} - {{ $maid->passport_num }} -
+                                                {{ optional($maid->nationality)->title ?? 'بدون جنسية' }}
+                                            </option>
+                                        @empty
+                                            <option value="" disabled>لا توجد عاملات تأجير متاحات حالياً</option>
+                                        @endforelse
+                                    </select>
+                                    <div class="invalid-feedback d-block d-none" data-field-error="new_maid_id"></div>
+                                </div>
+
+                                <div class="mb-0">
+                                    <label for="change_reason" class="form-label">سبب التغيير</label>
+                                    <textarea name="reason" id="change_reason" rows="4" class="form-control" maxlength="1000"
+                                        placeholder="اكتب سبب تغيير العاملة" required></textarea>
+                                    <div class="invalid-feedback d-block d-none" data-field-error="reason"></div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+                                <button type="submit" class="btn btn-warning text-dark" id="submitChangeMaidBtn"
+                                    {{ $availableReplacementMaids->isEmpty() ? 'disabled' : '' }}>
+                                    <i class="fas fa-save me-1"></i>
+                                    حفظ التغيير
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         <!-- Action Buttons -->
         <div class="action-buttons no-print">
@@ -659,6 +757,75 @@
                     }
                 });
                 
+            });
+
+            $('#changeMaidForm').on('submit', function(e) {
+                e.preventDefault();
+
+                const form = $(this);
+                const submitButton = $('#submitChangeMaidBtn');
+                const fieldErrors = form.find('[data-field-error]');
+
+                fieldErrors.addClass('d-none').text('');
+
+                submitButton.prop('disabled', true);
+
+                $.ajax({
+                    url: "{{ route('RentContract.changeMaid', $contract->id) }}",
+                    method: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        new_maid_id: $('#new_maid_id').val(),
+                        reason: $('#change_reason').val(),
+                    },
+                    success: function(response) {
+                        if (!response.success) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'تعذر تغيير العاملة',
+                                text: response.message || 'حدث خطأ غير متوقع',
+                            });
+                            return;
+                        }
+
+                        $('#changeMaidModal').modal('hide');
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم الحفظ',
+                            text: response.message,
+                        }).then(() => {
+                            location.reload();
+                        });
+                    },
+                    error: function(xhr) {
+                        const response = xhr.responseJSON || {};
+                        const errors = response.errors || {};
+
+                        Object.keys(errors).forEach(function(field) {
+                            const errorTarget = form.find(`[data-field-error="${field}"]`);
+                            if (errorTarget.length) {
+                                errorTarget.removeClass('d-none').text(errors[field][0]);
+                            }
+                        });
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'تعذر تغيير العاملة',
+                            text: response.message || 'حدث خطأ أثناء تنفيذ العملية',
+                        });
+                    },
+                    complete: function() {
+                        submitButton.prop('disabled', {{ $availableReplacementMaids->isEmpty() ? 'true' : 'false' }});
+                    }
+                });
+            });
+
+            $('#changeMaidModal').on('hidden.bs.modal', function() {
+                const form = $('#changeMaidForm');
+                form.trigger('reset');
+                form.find('[data-field-error]').addClass('d-none').text('');
+                $('#submitChangeMaidBtn').prop('disabled', {{ $availableReplacementMaids->isEmpty() ? 'true' : 'false' }});
             });
 
         });

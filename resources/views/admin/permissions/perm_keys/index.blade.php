@@ -105,9 +105,9 @@
                                         <tr class="{{ $singleRow->is_active ? '' : 'table-warning' }}">
                                             <td>{{ @$singleRow->id }}</td>
                                             <td>{{ @$singleRow->name }}</td>
-                                            <td>{{ @$singleRow->group_name }}</td>
-                                            <td>{{ @$singleRow->section_name }}</td>
-                                            <td>{{ __("permissions.$singleRow->name") }}</td>
+                                            <td>{{ @$singleRow->display_group_name ?? @$singleRow->group_name }}</td>
+                                            <td>{{ @$singleRow->display_section_name ?? @$singleRow->section_name }}</td>
+                                            <td>{{ @$singleRow->translated_name ?? __("permissions.$singleRow->name") }}</td>
                                             <td>
                                                 @if ($singleRow->is_active)
                                                     <span class="badge bg-success">مفعلة</span>

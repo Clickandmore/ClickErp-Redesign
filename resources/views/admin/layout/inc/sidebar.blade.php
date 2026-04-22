@@ -88,18 +88,18 @@
 
                 $canViewContactRequests = @AdminGuardHasAnyPerm([\App\PermKeys::CONTACT_VIEW, \App\PermKeys::CONTACT_CREATE, \App\PermKeys::CONTACT_EDIT, \App\PermKeys::CONTACT_DELETE, \App\PermKeys::CONTACT_CONTROL]);
 
-                $canViewOrders = @AdminGuardHasAnyPerm([\App\PermKeys::ORDERS_VIEW, \App\PermKeys::ORDERS_CREATE, \App\PermKeys::ORDERS_EDIT, \App\PermKeys::ORDERS_DELETE, \App\PermKeys::ORDERS_EXPORT, \App\PermKeys::RETURN_REQUEST_VIEW, \App\PermKeys::RETURN_REQUEST_CREATE, \App\PermKeys::RETURN_REQUEST_EDIT, \App\PermKeys::RETURN_REQUEST_DELETE]) || $canViewContactRequests;
+                $canViewOrders = @AdminGuardHasAnyPerm([\App\PermKeys::ORDERS_VIEW, \App\PermKeys::ORDERS_CREATE, \App\PermKeys::ORDERS_EDIT, \App\PermKeys::ORDERS_DELETE, \App\PermKeys::ORDERS_EXPORT, \App\PermKeys::RETURN_REQUEST_VIEW, \App\PermKeys::RETURN_REQUEST_CREATE, \App\PermKeys::RETURN_REQUEST_EDIT, \App\PermKeys::RETURN_REQUEST_DELETE, \App\PermKeys::PROFESSIONAL_APPLICATION_VIEW, \App\PermKeys::RECRUITMENT_REQUESTS_VIEW, \App\PermKeys::RENEW_CONTRACTS_VIEW]) || $canViewContactRequests;
 
                 $canViewRecruitmentContracts = @AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_VIEW, \App\NewPermKeys::REC_CONTRACTS_CREATE, \App\NewPermKeys::REC_CONTRACTS_UPDATE, \App\NewPermKeys::REC_CONTRACTS_EDIT, \App\NewPermKeys::REC_CONTRACTS_DELETE, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER, \App\NewPermKeys::REC_CONTRACTS_RETURN, \App\NewPermKeys::REC_CONTRACTS_RETURN_VIEW]);
 
-                $canViewRentContracts = @AdminGuardHasAnyPerm([\App\PermKeys::RENT_CONTRACT_VIEW, \App\PermKeys::RENT_CONTRACT_CREATE, \App\PermKeys::RENT_CONTRACT_EDIT, \App\PermKeys::RENT_CONTRACT_DELETE, \App\PermKeys::RENT_CONTRACT_CONTROL, \App\PermKeys::CONTRACT_SETTINGS, \App\PermKeys::PACKAGES_VIEW]);
+                $canViewRentContracts = @AdminGuardHasAnyPerm([\App\PermKeys::RENT_CONTRACT_VIEW, \App\PermKeys::RENT_CONTRACT_CREATE, \App\PermKeys::RENT_CONTRACT_EDIT, \App\PermKeys::RENT_CONTRACT_DELETE, \App\PermKeys::RENT_CONTRACT_CONTROL, \App\PermKeys::CONTRACT_SETTINGS, \App\PermKeys::PACKAGES_VIEW, \App\PermKeys::RENTAL_ORDERS_VIEW]);
 
                 $canViewShelterContracts = @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL, \App\PermKeys::SHELTER_PLACES_VIEW, \App\PermKeys::SHELTER_WORKERS_VIEW]);
 
                 $canViewLogistics = @AdminGuardHasAnyPerm([\App\PermKeys::TRAVEL_VIEW, \App\PermKeys::TRAVEL_CREATE, \App\PermKeys::TRAVEL_EDIT, \App\PermKeys::TRAVEL_DELETE, \App\PermKeys::TRAVEL_CONTROL]);
 
                 $canViewComplaints = @AdminGuardHasPerm(\App\PermKeys::COMPLAINT_VIEW);
-                $canViewSponsorshipTransfer = @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_VIEW);
+                $canViewSponsorshipTransfer = @AdminGuardHasAnyPerm([\App\PermKeys::SPONSOR_TRANSFER_VIEW, \App\PermKeys::SPONSOR_TRANSFER_WEB_REQUESTS_VIEW, \App\PermKeys::SPONSOR_TRANSFER_CREATE, \App\PermKeys::SPONSOR_TRANSFER_EDIT, \App\PermKeys::SPONSOR_TRANSFER_DELETE]);
                 $canViewReports = @AdminGuardHasAnyPerm([\App\PermKeys::MAIDS_EXPORT, \App\PermKeys::MAIDS_EXPORT_PDF, \App\PermKeys::MAIDS_EXPORT_EXCEL, \App\PermKeys::ORDERS_EXPORT, \App\PermKeys::REC_CONTRACTS_EXPORT, \App\PermKeys::RENT_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_VIEW, \App\NewPermKeys::REC_CONTRACTS_EXPORT, \App\NewPermKeys::REPORTS_EXPORT]);
 
                 $canViewOperations =
@@ -294,7 +294,7 @@
                                                 </a>
                                             </li>
                                         @endif
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW))
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::PROFESSIONAL_APPLICATION_VIEW))
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'professional_application.index' ? 'active' : '' }}"
                                                     href="{{ route('professional_application.index') }}">
@@ -303,6 +303,8 @@
                                                         {{ helperTrans('ingaz.request_professional_labor') }}</span>
                                                 </a>
                                             </li>
+                                        @endif
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::RECRUITMENT_REQUESTS_VIEW))
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'recruitment_requests.index' ? 'active' : '' }}"
                                                     href="{{ route('recruitment_requests.index') }}">
@@ -310,6 +312,8 @@
                                                     <span class="ms-2">طلبات خاصة</span>
                                                 </a>
                                             </li>
+                                        @endif
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::RENEW_CONTRACTS_VIEW))
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'renew-contracts.index' ? 'active' : '' }}"
                                                     href="{{ route('renew-contracts.index') }}">
@@ -531,7 +535,7 @@
                                                 </a>
                                             </li>
                                         @endif
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_VIEW))
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::RENTAL_ORDERS_VIEW))
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'rental-orders.index' ? 'active' : '' }}"
                                                     href="{{ route('rental-orders.index') }}">
@@ -812,7 +816,7 @@
                             {{--                            </ul> --}}
                             {{--                        </li> --}}
                             <!-- Additional Services Section -->
-                            @if (@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_VIEW))
+                            @if ($canViewSponsorshipTransfer)
                                 <li class="collapsed">
                                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#sponsorshipTransfer"
                                         href="#">
@@ -822,65 +826,73 @@
                                     </a>
                                     <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['SponsorshipTransfer.create', 'SponsorshipTransfer.index', 'SponsorshipTransfer.webRequests', 'ShelterContract.availableForTransfer', 'SponsorshipTransfer.trial', 'SponsorshipTransfer.failed', 'SponsorshipTransfer.transferred', 'transfer-contract-terms.index', 'transfer-contract-terms.create', 'transfer-contract-terms.edit']) ? 'show' : '' }}"
                                         id="sponsorshipTransfer">
-                                        <li>
-                                            <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.index' ? 'active' : '' }}"
-                                                href="{{ route('SponsorshipTransfer.index') }}">
-                                                <i class="fa fa-list"></i>
-                                                <span
-                                                    class="ms-2">{{ helperTrans('ingaz.sponsorship_transfer_requests') }}</span>
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.webRequests' ? 'active' : '' }}"
-                                                href="{{ route('SponsorshipTransfer.webRequests') }}">
-                                                <i class="fa fa-globe"></i>
-                                                <span class="ms-2">طلبات الموقع الخارجي</span>
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.create' ? 'active' : '' }}"
-                                                href="{{ route('SponsorshipTransfer.create') }}">
-                                                <i class="fa fa-plus"></i>
-                                                <span
-                                                    class="ms-2">{{ helperTrans('ingaz.add_transfer_request') }}</span>
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.availableForTransfer' ? 'active' : '' }}"
-                                                href="{{ route('ShelterContract.availableForTransfer') }}">
-                                                <i class="fa fa-check-circle"></i>
-                                                <span
-                                                    class="ms-2">{{ helperTrans('ingaz.available_for_transfer') }}</span>
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.trial' ? 'active' : '' }}"
-                                                href="{{ route('SponsorshipTransfer.trial') }}">
-                                                <i class="fa fa-clock-o"></i>
-                                                <span class="ms-2">{{ helperTrans('ingaz.trial_period') }}</span>
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.failed' ? 'active' : '' }}"
-                                                href="{{ route('SponsorshipTransfer.failed') }}">
-                                                <i class="fa fa-times-circle"></i>
-                                                <span class="ms-2">{{ helperTrans('ingaz.trial_failed') }}</span>
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.transferred' ? 'active' : '' }}"
-                                                href="{{ route('SponsorshipTransfer.transferred') }}">
-                                                <i class="fa fa-check"></i>
-                                                <span class="ms-2">{{ helperTrans('ingaz.transferred') }}</span>
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="m-link {{ in_array(Route::currentRouteName(), ['transfer-contract-terms.index', 'transfer-contract-terms.create', 'transfer-contract-terms.edit']) ? 'active' : '' }}"
-                                                href="{{ route('transfer-contract-terms.index') }}">
-                                                <i class="fa fa-file-text"></i>
-                                                <span class="ms-2">بنود عقد نقل الكفالة</span>
-                                            </a>
-                                        </li>
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_VIEW))
+                                            <li>
+                                                <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.index' ? 'active' : '' }}"
+                                                    href="{{ route('SponsorshipTransfer.index') }}">
+                                                    <i class="fa fa-list"></i>
+                                                    <span
+                                                        class="ms-2">{{ helperTrans('ingaz.sponsorship_transfer_requests') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_WEB_REQUESTS_VIEW))
+                                            <li>
+                                                <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.webRequests' ? 'active' : '' }}"
+                                                    href="{{ route('SponsorshipTransfer.webRequests') }}">
+                                                    <i class="fa fa-globe"></i>
+                                                    <span class="ms-2">طلبات الموقع الخارجي</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_CREATE))
+                                            <li>
+                                                <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.create' ? 'active' : '' }}"
+                                                    href="{{ route('SponsorshipTransfer.create') }}">
+                                                    <i class="fa fa-plus"></i>
+                                                    <span
+                                                        class="ms-2">{{ helperTrans('ingaz.add_transfer_request') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_VIEW))
+                                            <li>
+                                                <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.availableForTransfer' ? 'active' : '' }}"
+                                                    href="{{ route('ShelterContract.availableForTransfer') }}">
+                                                    <i class="fa fa-check-circle"></i>
+                                                    <span
+                                                        class="ms-2">{{ helperTrans('ingaz.available_for_transfer') }}</span>
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.trial' ? 'active' : '' }}"
+                                                    href="{{ route('SponsorshipTransfer.trial') }}">
+                                                    <i class="fa fa-clock-o"></i>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.trial_period') }}</span>
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.failed' ? 'active' : '' }}"
+                                                    href="{{ route('SponsorshipTransfer.failed') }}">
+                                                    <i class="fa fa-times-circle"></i>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.trial_failed') }}</span>
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.transferred' ? 'active' : '' }}"
+                                                    href="{{ route('SponsorshipTransfer.transferred') }}">
+                                                    <i class="fa fa-check"></i>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.transferred') }}</span>
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="m-link {{ in_array(Route::currentRouteName(), ['transfer-contract-terms.index', 'transfer-contract-terms.create', 'transfer-contract-terms.edit']) ? 'active' : '' }}"
+                                                    href="{{ route('transfer-contract-terms.index') }}">
+                                                    <i class="fa fa-file-text"></i>
+                                                    <span class="ms-2">بنود عقد نقل الكفالة</span>
+                                                </a>
+                                            </li>
+                                        @endif
 
                                     </ul>
                                 </li>
@@ -940,6 +952,7 @@
                 </li>
                 {{--                @include('finance::stock') --}}
                 @include('finance::zatca')
+                @include('access-control::menu-group')
 
                 {{-- اعدادات الرسائل النصية --}}
                 @if ($canViewSms)

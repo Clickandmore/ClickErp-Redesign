@@ -10,6 +10,126 @@
 @endsection
 
 @section('content')
+    @php
+        $canManageDashboard = AdminGuardHasPerm(\App\PermKeys::DASHBOARD_MANAGE);
+        $canViewDashboardStatistics = $canManageDashboard || AdminGuardHasPerm(\App\PermKeys::DASHBOARD_VIEW_STATISTICS);
+        $canViewDashboardAnalytics = $canManageDashboard || AdminGuardHasPerm(\App\PermKeys::DASHBOARD_ANALYTICS);
+
+        $canViewDashboardSection = static function (?string $permission = null, array $fallbackPermissions = [], bool $allowStatistics = false, bool $allowAnalytics = false) use ($canManageDashboard, $canViewDashboardStatistics, $canViewDashboardAnalytics): bool {
+            if ($canManageDashboard) {
+                return true;
+            }
+
+            if ($permission && AdminGuardHasPerm($permission)) {
+                return true;
+            }
+
+            foreach ($fallbackPermissions as $fallbackPermission) {
+                if ($fallbackPermission && AdminGuardHasPerm($fallbackPermission)) {
+                    return true;
+                }
+            }
+
+            if ($allowStatistics && $canViewDashboardStatistics) {
+                return true;
+            }
+
+            if ($allowAnalytics && $canViewDashboardAnalytics) {
+                return true;
+            }
+
+            return false;
+        };
+
+        $canViewRecruitmentOrdersCard = $canViewDashboardSection(
+            \App\PermKeys::DASHBOARD_RECRUITMENT_ORDERS_COUNT,
+            [\App\PermKeys::DASHBOARD_CURRENT_ORDERS_COUNT],
+            true
+        );
+        $canViewRecruitmentContractsCard = $canViewDashboardSection(
+            \App\PermKeys::DASHBOARD_RECRUITMENT_CONTRACTS_COUNT,
+            [\App\PermKeys::DASHBOARD_ORDERS_STATISTICS],
+            true
+        );
+        $canViewCvCard = $canViewDashboardSection(\App\PermKeys::DASHBOARD_CV_COUNT, [], true);
+        $canViewClientsCard = $canViewDashboardSection(\App\PermKeys::DASHBOARD_CLIENTS_COUNT, [], true);
+        $canViewTopStatsRow = $canViewRecruitmentOrdersCard || $canViewRecruitmentContractsCard || $canViewCvCard || $canViewClientsCard;
+
+        $canViewRentalContractsCard = $canViewDashboardSection(
+            \App\PermKeys::DASHBOARD_RENTAL_CONTRACTS_COUNT,
+            [\App\PermKeys::RENT_CONTRACT_VIEW],
+            true
+        );
+        $canViewRentalOrdersCard = $canViewDashboardSection(\App\PermKeys::DASHBOARD_RENTAL_ORDERS_COUNT, [], true);
+        $canViewSponsorshipTransfersCard = $canViewDashboardSection(
+            \App\PermKeys::DASHBOARD_SPONSORSHIP_TRANSFERS_COUNT,
+            [\App\PermKeys::SPONSOR_TRANSFER_VIEW],
+            true
+        );
+        $canViewSponsorshipTransferRequestsCard = $canViewDashboardSection(
+            \App\PermKeys::DASHBOARD_SPONSORSHIP_TRANSFER_REQUESTS_COUNT,
+            [\App\PermKeys::SPONSOR_TRANSFER_VIEW],
+            true
+        );
+        $canViewShelterCard = $canViewDashboardSection(\App\PermKeys::DASHBOARD_SHELTER_COUNT, [], true);
+        $canViewSecondStatsRow = $canViewRentalContractsCard || $canViewRentalOrdersCard || $canViewSponsorshipTransfersCard || $canViewSponsorshipTransferRequestsCard || $canViewShelterCard;
+
+        $canViewOperationsSection = $canViewDashboardSection(
+            \App\PermKeys::DASHBOARD_OPERATIONS_OVERVIEW,
+            [\App\PermKeys::DASHBOARD_ORDERS_STATISTICS],
+            false,
+            true
+        );
+        $canViewContractsOverviewSection = $canViewDashboardSection(
+            \App\PermKeys::DASHBOARD_CONTRACTS_OVERVIEW,
+            [],
+            false,
+            true
+        );
+        $canViewNationalitiesPanel = $canViewDashboardSection(
+            \App\PermKeys::DASHBOARD_NATIONALITIES_STATISTICS,
+            [\App\PermKeys::DASHBOARD_ORDERS_TYPES],
+            false,
+            true
+        );
+        $canViewOfficesPanel = $canViewDashboardSection(
+            \App\PermKeys::DASHBOARD_OFFICES_STATISTICS,
+            [],
+            false,
+            true
+        );
+        $canViewRecentActivitiesPanel = $canViewDashboardSection(
+            \App\PermKeys::DASHBOARD_RECENT_ACTIVITIES,
+            [\App\PermKeys::DASHBOARD_TOP_CUSTOMER_SERVICES],
+            false,
+            true
+        );
+        $canViewAnalyticsSummaryRow = $canViewNationalitiesPanel || $canViewOfficesPanel || $canViewRecentActivitiesPanel;
+
+        $canViewCalendarPanel = $canViewDashboardSection(
+            \App\PermKeys::DASHBOARD_CALENDAR_EVENTS,
+            [\App\PermKeys::TRAVEL_VIEW],
+            false,
+            true
+        );
+        $canViewEmployeePerformancePanel = $canViewDashboardSection(
+            \App\PermKeys::DASHBOARD_EMPLOYEE_PERFORMANCE,
+            [\App\PermKeys::DASHBOARD_EMPLOYEES_COUNT],
+            false,
+            true
+        );
+        $canViewBottomRow = $canViewCalendarPanel || $canViewEmployeePerformancePanel;
+
+        $hasAnyDashboardSection = $canViewTopStatsRow
+            || $canViewOperationsSection
+            || $canViewSecondStatsRow
+            || $canViewContractsOverviewSection
+            || $canViewAnalyticsSummaryRow
+            || $canViewBottomRow;
+        $hasDashboardAccess = AdminGuardHasPerm(\App\PermKeys::DASHBOARD_VIEW) || $hasAnyDashboardSection;
+    @endphp
+
+    @if ($hasDashboardAccess)
     <div class="dashboard-hero surface-card">
         <div class="hero-main">
             <p class="hero-eyebrow">مؤشرات فورية</p>
@@ -59,7 +179,13 @@
         </div>
     </div>
 
+    @if (!$hasAnyDashboardSection)
+        @include('components.no_permissions')
+    @endif
+
+    @if ($canViewTopStatsRow)
     <div class="stat-row">
+        @if ($canViewRecruitmentOrdersCard)
         <div class="stat-card is-1">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
@@ -79,7 +205,9 @@
                     style="width: {{ round((($ordersStats['under_process'] ?? 0) / $orderTotal) * 100) }}%"></div>
             </div>
         </div>
+        @endif
 
+        @if ($canViewRecruitmentContractsCard)
         <div class="stat-card is-2">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
@@ -99,7 +227,9 @@
                     style="width: {{ round((($contractsPipeline['pre_arrival'] ?? 0) / $ctTotal) * 100) }}%"></div>
             </div>
         </div>
+        @endif
 
+        @if ($canViewCvCard)
         <div class="stat-card is-3">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
@@ -118,7 +248,9 @@
                     style="width: {{ round((($cvStats['booked'] ?? 0) / $cvTotal) * 100) }}%"></div>
             </div>
         </div>
+        @endif
 
+        @if ($canViewClientsCard)
         <div class="stat-card is-4">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
@@ -137,7 +269,9 @@
                     style="width: {{ round((($clientsStats['no_orders'] ?? 0) / $clTotal) * 100) }}%"></div>
             </div>
         </div>
+        @endif
     </div>
+    @endif
 
     @php
 
@@ -269,6 +403,7 @@
         );
     @endphp
 
+    @if ($canViewOperationsSection)
     <div class="data-section" id="operations">
         <div class="section-head">
             <div>
@@ -363,8 +498,11 @@
             </div>
         </div>
     </div>
+    @endif
 
+    @if ($canViewSecondStatsRow)
     <div class="stat-row mt-3">
+        @if ($canViewRentalContractsCard)
         <div class="stat-card is-5">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
@@ -377,7 +515,9 @@
                 {{ number_format($rentalStats['in_workflow'] ?? 0) }} | مكتملة:
                 {{ number_format($rentalStats['completed'] ?? 0) }}</div>
         </div>
+        @endif
 
+        @if ($canViewRentalOrdersCard)
         <div class="stat-card is-6">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
@@ -390,7 +530,9 @@
                 {{ number_format($rentalOrderStats['under_process'] ?? 0) }} | مكتملة:
                 {{ number_format($rentalOrderStats['completed'] ?? 0) }}</div>
         </div>
+        @endif
 
+        @if ($canViewSponsorshipTransfersCard)
         <div class="stat-card is-2">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
@@ -403,7 +545,9 @@
                 {{ number_format($transferStats['approved'] ?? 0) }} | منقولة:
                 {{ number_format($transferStats['transferred'] ?? 0) }}</div>
         </div>
+        @endif
 
+        @if ($canViewSponsorshipTransferRequestsCard)
         <div class="stat-card is-1">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
@@ -416,7 +560,9 @@
                 {{ number_format($transferWebRequestStats['paid'] ?? 0) }} | مكتملة:
                 {{ number_format($transferWebRequestStats['completed'] ?? 0) }}</div>
         </div>
+        @endif
 
+        @if ($canViewShelterCard)
         <div class="stat-card is-7">
             <div class="stat-head d-flex justify-content-between align-items-center">
                 <div>
@@ -428,7 +574,9 @@
             <div class="mt-3 stat-meta">مشغول: {{ number_format($shelterStats['occupied'] ?? 0) }} | متاح:
                 {{ number_format($shelterStats['available'] ?? 0) }}</div>
         </div>
+        @endif
     </div>
+    @endif
 
     @php
         $analyticsStats = $contractAnalyticsStats ?? [];
@@ -519,6 +667,7 @@
         ];
     @endphp
 
+    @if ($canViewContractsOverviewSection)
     <div id="contracts-overview" class="surface-card mt-3 contracts-overview-section">
         <div class="contract-section-header">
             <div class="contract-section-heading">
@@ -708,8 +857,11 @@
             </div>
         </div>
     </div>
+    @endif
 
+    @if ($canViewAnalyticsSummaryRow)
     <div class="row g-4 mt-3">
+        @if ($canViewNationalitiesPanel)
         <div class="col-xxl-4 col-lg-5">
             <div class="panel-card h-100">
                 <div class="panel-head">
@@ -736,6 +888,8 @@
                 </ul>
             </div>
         </div>
+        @endif
+        @if ($canViewOfficesPanel)
         <div class="col-xxl-4 col-lg-4">
             <div class="panel-card h-100">
                 <div class="panel-head">
@@ -809,6 +963,8 @@
                 </div>
             </div>
         </div>
+        @endif
+        @if ($canViewRecentActivitiesPanel)
         <div class="col-xxl-4 col-lg-3">
             <div class="panel-card h-100">
                 <div class="panel-head">
@@ -836,9 +992,13 @@
                 </div>
             </div>
         </div>
+        @endif
     </div>
+    @endif
 
+    @if ($canViewBottomRow)
     <div class="row g-4 mt-3">
+        @if ($canViewCalendarPanel)
         <div class="col-xxl-8">
             <div class="panel-card h-100">
                 <div class="panel-head">
@@ -851,6 +1011,8 @@
                 <div id="calendar" class="calendar-shell"></div>
             </div>
         </div>
+        @endif
+        @if ($canViewEmployeePerformancePanel)
         <div class="col-xxl-4">
             <div class="panel-card h-100">
                 <div class="panel-head">
@@ -909,7 +1071,10 @@
                 </div>
             </div>
         </div>
+        @endif
     </div>
+    @endif
+    @endif
 @endsection
 @section('js')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1080,35 +1245,39 @@
             }
 
             // الجنسيات
-            const nationalitiesCtx = document.getElementById('nationalitiesChart').getContext('2d');
-            new Chart(nationalitiesCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: {!! json_encode($nationalityLabels ?? ['الفلبين', 'إندونيسيا', 'بنغلاديش', 'الهند', 'أخرى']) !!},
-                    datasets: [{
-                        data: {!! json_encode($nationalityData ?? [35, 25, 20, 15, 5]) !!},
-                        backgroundColor: [chartColor1, successColor, chartColor2, chartColor4, chartColor5],
-                        borderColor: '#fff',
-                        borderWidth: 3,
-                        hoverOffset: 8,
-                        cutout: '68%'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                            rtl: true,
-                            textDirection: 'rtl'
+            const nationalitiesCanvas = document.getElementById('nationalitiesChart');
+            if (nationalitiesCanvas) {
+                const nationalitiesCtx = nationalitiesCanvas.getContext('2d');
+
+                new Chart(nationalitiesCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: {!! json_encode($nationalityLabels ?? ['الفلبين', 'إندونيسيا', 'بنغلاديش', 'الهند', 'أخرى']) !!},
+                        datasets: [{
+                            data: {!! json_encode($nationalityData ?? [35, 25, 20, 15, 5]) !!},
+                            backgroundColor: [chartColor1, successColor, chartColor2, chartColor4, chartColor5],
+                            borderColor: '#fff',
+                            borderWidth: 3,
+                            hoverOffset: 8,
+                            cutout: '68%'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                rtl: true,
+                                textDirection: 'rtl'
+                            }
                         }
                     }
-                }
-            });
+                });
+            }
 
             // التقويم
             const calendarEl = document.getElementById('calendar');
