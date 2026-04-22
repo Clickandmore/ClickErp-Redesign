@@ -315,7 +315,7 @@
 {{-- @endsection --}}
 @section('content')
 
-    @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW))
+    @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_DELETED_VIEW))
         <!-- رأس الصفحة المخصص -->
         <div class="page-header">
             <h2 style="color: #007bff;"><i class="fas fa-user-times text-primary me-2"></i> السير الذاتية المحذوفة </h2>
@@ -722,7 +722,6 @@
         });
     </script>
 @endsection
-
 
 
 

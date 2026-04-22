@@ -23,3 +23,9 @@ yarn-error.log
 /storage/framework/testing
 /storage/framework/testing
 /finance_tree
+
+# Local package artifacts
+/packages/*/vendor/
+/packages/*/node_modules/
+/packages/*/.idea/
+/packages/*/.vscode/

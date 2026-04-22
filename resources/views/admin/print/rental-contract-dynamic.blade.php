@@ -539,7 +539,7 @@
                         <img src="{{ asset('storage/signatures/' . $contract->signature) }}" alt="التوقيع المحفوظ">
                     </div>
                 @elseif(isset($allowSignature) && $allowSignature)
-                    <!-- Canvas للتوقيع - يظهر فقط بعد إرسال العقد -->
+                    <!-- Canvas للتوقيع - يظهر عندما يكون العقد بانتظار التوقيع -->
                     <div class="signature-canvas-container">
                         <canvas id="signatureCanvas" width="400" height="150"></canvas>
                     </div>
@@ -561,7 +561,7 @@
                     <div class="signature-not-available">
                         <p style="color: #666; text-align: center; padding: 20px;">
                             <i class="fas fa-info-circle"></i>
-                            التوقيع متاح بعد إرسال العقد للعميل
+                            التوقيع متاح عندما يكون العقد بانتظار التوقيع
                         </p>
                     </div>
                 @endif

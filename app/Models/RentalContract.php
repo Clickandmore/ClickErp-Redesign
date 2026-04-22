@@ -132,7 +132,7 @@ class RentalContract extends Model
     // Scopes للمراحل الجديدة
     public function scopeWaitingContractSend($query)
     {
-        return $query->where('status', 'waiting_contract_send');
+        return $query->whereIn('status', ['waiting_contract_send', 'contract_sent']);
     }
 
     public function scopeContractSent($query)
@@ -161,8 +161,8 @@ class RentalContract extends Model
     {
         $statusTexts = [
             'new' => 'جديد', 
-            'waiting_contract_send' => 'انتظار إرسال العقد',
-            'contract_sent' => 'تم إرسال العقد',
+            'waiting_contract_send' => 'بانتظار التوقيع',
+            'contract_sent' => 'بانتظار التوقيع',
             'contract_signed' => 'تم توقيع العقد',
             'maid_delivered' => 'تم تسليم العاملة',
             'active' => 'نشط',
@@ -194,17 +194,17 @@ class RentalContract extends Model
     // طرق للتحكم في workflow
     public function canPrintContract()
     {
-        return $this->status === 'waiting_contract_send';
+        return in_array($this->status, ['waiting_contract_send', 'contract_sent'], true);
     }
 
     public function canSendContract()
     {
-        return $this->status === 'waiting_contract_send';
+        return false;
     }
 
     public function canSignContract()
     {
-        return $this->status === 'contract_sent';
+        return in_array($this->status, ['waiting_contract_send', 'contract_sent'], true);
     }
 
     public function canDeliverMaid()

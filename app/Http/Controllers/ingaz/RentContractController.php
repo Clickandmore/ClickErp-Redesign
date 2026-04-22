@@ -43,28 +43,12 @@ class RentContractController extends Controller
 
             // Apply status filter with closure type consideration
             if ($status) {
-                if ($status === 'transferred') {
-                    // Show only transferred contracts
-                    $query->where('status', 'completed')->where('closure_type', 'transferred');
-                } elseif ($status === 'available') {
-                    // Show only contracts closed and made available
-                    $query->where('status', 'completed')->where('closure_type', 'available');
-                } else {
-                    // Other statuses
-                    $query->where('status', $status);
-                }
+                $this->applyRentalContractStatusFilter($query, $status);
             }
 
             // Apply other filters
             if ($request->filled('status_filter')) {
-                $statusFilter = $request->status_filter;
-                if ($statusFilter === 'transferred') {
-                    $query->where('status', 'completed')->where('closure_type', 'transferred');
-                } elseif ($statusFilter === 'available') {
-                    $query->where('status', 'completed')->where('closure_type', 'available');
-                } else {
-                    $query->where('status', $statusFilter);
-                }
+                $this->applyRentalContractStatusFilter($query, $request->status_filter);
             }
 
             if ($request->filled('date_from')) {
@@ -217,13 +201,6 @@ class RentContractController extends Controller
                     $actions .= '<li><a class="dropdown-item" href="' . route('print.rental.contract', $row->id) . '" target="_blank">
                                     <i class="fas fa-print"></i> طباعة العقد
                                 </a></li>';
-
-                    // إجراءات workflow الجديدة
-                    if ($row->canSendContract()) {
-                        $actions .= '<li><button class="dropdown-item text-info send-contract" data-id="' . $row->id . '">
-                                        <i class="fas fa-paper-plane"></i> تأكيد إرسال العقد
-                                    </button></li>';
-                    }
 
                     if ($row->canSignContract()) {
                         $actions .= '<li><button class="dropdown-item text-success sign-contract" data-id="' . $row->id . '">
@@ -454,9 +431,11 @@ class RentContractController extends Controller
             'maid_id' => $request->maid_id,
                 'marketer_id' => $request->marketer_id,
                 'order_id' => $request->order_id,
-                'status' => 'waiting_contract_send',
+                'status' => 'contract_sent',
                 'contract_date' => $request->contract_date,
                 'contract_number' => $this->generateContractNumber(),
+                'contract_sent_at' => now(),
+                'contract_sent_by' => auth('admin')->id(),
             ]);
 
             $selectedPackage = Package::find($request->package_id);
@@ -582,7 +561,7 @@ class RentContractController extends Controller
                 'status' => 'حالة العقد',
                 'marketer_id' => 'المسوق',
                 'contract_date' => 'تاريخ العقد',
-                'contract_sent_at' => 'تاريخ إرسال العقد',
+                'contract_sent_at' => 'بداية مرحلة التوقيع',
                 'contract_signed_at' => 'تاريخ توقيع العقد',
                 'maid_delivered_at' => 'تاريخ تسليم العاملة',
                 'warranty_status' => 'حالة الضمان',
@@ -592,7 +571,31 @@ class RentContractController extends Controller
             'عقد التأجير'
         );
 
-        return view($this->folderPath . '.show', compact('contract', 'availableReplacementMaids', 'activities'));
+        $maidChangeHistory = $contract->activities()
+            ->with('causer')
+            ->where('event', 'maid_changed')
+            ->latest()
+            ->get()
+            ->map(function ($activity) {
+                return [
+                    'old_maid_name' => data_get($activity, 'properties.old_maid_name')
+                        ?? data_get($activity, 'properties.old.maid_name')
+                        ?? 'غير محدد',
+                    'new_maid_name' => data_get($activity, 'properties.new_maid_name')
+                        ?? data_get($activity, 'properties.attributes.maid_name')
+                        ?? 'غير محدد',
+                    'reason' => data_get($activity, 'properties.attributes.reason') ?: 'لم يكتب سبب',
+                    'changed_by' => optional($activity->causer)->name ?? 'النظام',
+                    'changed_at' => $activity->created_at,
+                ];
+            });
+
+        return view($this->folderPath . '.show', compact(
+            'contract',
+            'availableReplacementMaids',
+            'activities',
+            'maidChangeHistory'
+        ));
     }
 
     public function changeMaid(Request $request, $id)
@@ -902,8 +905,8 @@ class RentContractController extends Controller
 
         $badges = [
             'new' => '<span class="badge bg-primary">جديد</span>',
-            'waiting_contract_send' => '<span class="badge bg-warning">انتظار إرسال العقد</span>',
-            'contract_sent' => '<span class="badge bg-info">تم إرسال العقد</span>',
+            'waiting_contract_send' => '<span class="badge bg-warning">بانتظار التوقيع</span>',
+            'contract_sent' => '<span class="badge bg-warning">بانتظار التوقيع</span>',
             'contract_signed' => '<span class="badge bg-success">تم توقيع العقد</span>',
             'maid_delivered' => '<span class="badge bg-primary">تم تسليم العاملة</span>',
             'active' => '<span class="badge bg-success">نشط</span>',
@@ -1076,6 +1079,30 @@ class RentContractController extends Controller
             'active' => 'نشط',
             'expired' => 'منتهي',
         ];
+    }
+
+    private function applyRentalContractStatusFilter($query, ?string $status): void
+    {
+        if (!$status) {
+            return;
+        }
+
+        if ($status === 'transferred') {
+            $query->where('status', 'completed')->where('closure_type', 'transferred');
+            return;
+        }
+
+        if ($status === 'available') {
+            $query->where('status', 'completed')->where('closure_type', 'available');
+            return;
+        }
+
+        if (in_array($status, ['waiting_contract_send', 'contract_sent'], true)) {
+            $query->whereIn('status', ['waiting_contract_send', 'contract_sent']);
+            return;
+        }
+
+        $query->where('status', $status);
     }
 
     private function getAvailableRentalMaidsQuery(?int $currentMaidId = null)
@@ -1642,33 +1669,10 @@ class RentContractController extends Controller
     // طرق workflow الجديدة مثل نقل الكفالة
     public function sendContract(Request $request, $id)
     {
-        try {
-            $contract = RentalContract::findOrFail($id);
-
-            if (!$contract->canSendContract()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'لا يمكن إرسال العقد في هذه المرحلة'
-                ], 400);
-            }
-
-            $contract->update([
-                'status' => 'contract_sent',
-                'contract_sent_at' => now(),
-                'contract_sent_by' => auth()->id()
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'تم تأكيد إرسال العقد بنجاح'
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'حدث خطأ: ' . $e->getMessage()
-            ], 500);
-        }
+        return response()->json([
+            'success' => false,
+            'message' => 'تم إلغاء مرحلة إرسال العقد، وأصبحت عقود الإيجار تبدأ مباشرة بانتظار التوقيع'
+        ], 410);
     }
 
     public function signContract(Request $request, $id)
@@ -1685,6 +1689,8 @@ class RentContractController extends Controller
 
             $contract->update([
                 'status' => 'contract_signed',
+                'contract_sent_at' => $contract->contract_sent_at ?: now(),
+                'contract_sent_by' => $contract->contract_sent_by ?: auth('admin')->id(),
                 'contract_signed_at' => now(),
                 'contract_signed_by' => auth()->id()
             ]);
@@ -1985,8 +1991,8 @@ class RentContractController extends Controller
                 // If there's an issue with terms, use empty collections
             }
 
-            // Check if contract allows signature (after being sent)
-            $allowSignature = in_array($contract->status, ['contract_sent', 'contract_signed', 'maid_delivered', 'active']);
+            // التوقيع متاح عندما يكون العقد بانتظار التوقيع أو بعده
+            $allowSignature = in_array($contract->status, ['waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active']);
 
             return view('admin.print.rental-contract-dynamic', compact('contract', 'contractSettings', 'termsPage1', 'termsPage2', 'termsPage3', 'allowSignature'));
 

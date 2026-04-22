@@ -306,6 +306,8 @@ class SponsorshipTransferController extends Controller
      */
     public function webRequests(Request $request)
     {
+        abort_unless(@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_WEB_REQUESTS_VIEW), 403);
+
         $baseQuery = Order::query()->where('job_type_id', 3);
         $statistics = [
             'new' => (clone $baseQuery)->where('status', 'new')->count(),
@@ -382,26 +384,28 @@ class SponsorshipTransferController extends Controller
                                     <ul class="dropdown-menu dropdown-menu-end shadow-lg">';
 
                     // عرض تفاصيل الطلب
-                    $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.webRequest.show', $row->id) . '">
-                                    <i class="fas fa-eye"></i> عرض التفاصيل
-                                </a></li>';
+                    if (@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_WEB_REQUESTS_VIEW)) {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.webRequest.show', $row->id) . '">
+                                        <i class="fas fa-eye"></i> عرض التفاصيل
+                                    </a></li>';
+                    }
 
                     // إنشاء طلب نقل كفالة
-                    if ($row->status == 'new' || $row->status == 'paid') {
+                    if (($row->status == 'new' || $row->status == 'paid') && @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_CREATE)) {
                         $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.create', ['order_id' => $row->id]) . '">
                                         <i class="fas fa-exchange-alt"></i> إنشاء طلب نقل كفالة
                                     </a></li>';
                     }
 
                     // إلغاء الطلب وإرجاع العاملة متاحة
-                    if ($row->status == 'new' || $row->status == 'paid') {
+                    if (($row->status == 'new' || $row->status == 'paid') && @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_EDIT)) {
                         $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="cancel-order" data-id="' . $row->id . '" data-text="إلغاء الطلب وإرجاع العاملة متاحة مرة أخرى">
                                         <i class="fas fa-times"></i> إلغاء الطلب
                                     </a></li>';
                     }
 
                     // تحديث حالة الطلب
-                    if ($row->status == 'new') {
+                    if ($row->status == 'new' && @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_EDIT)) {
                         $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="update-status" data-id="' . $row->id . '" data-status="started" data-text="تحديث حالة الطلب إلى معالج">
                                         <i="fas fa-play"></i> بدء المعالجة
                                         </a></li>';
@@ -423,6 +427,8 @@ class SponsorshipTransferController extends Controller
      */
     public function showWebRequest($id)
     {
+        abort_unless(@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_WEB_REQUESTS_VIEW), 403);
+
         $order = Order::with(['user', 'maid.nationality', 'details.admin'])
             ->where('job_type_id', 3)
             ->findOrFail($id);
@@ -1082,6 +1088,8 @@ class SponsorshipTransferController extends Controller
      */
     public function cancelOrder(Request $request, $id)
     {
+        abort_unless(@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_EDIT), 403);
+
         try {
             $order = Order::findOrFail($id);
 

@@ -40,6 +40,8 @@ class RentalOrderController extends Controller
 
     public function index(Request $request)
     {
+        abort_unless(@AdminGuardHasPerm(\App\PermKeys::RENTAL_ORDERS_VIEW), 403);
+
         if ($request->ajax()) {
             \Log::info('Rental Orders AJAX request received', [
                 'request_data' => $request->all(),

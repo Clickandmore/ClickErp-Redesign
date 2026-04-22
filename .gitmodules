@@ -2,11 +2,14 @@
 	path = packages/crm
 	url = git@github.com:Clickandmore/crm-rec.git
 	branch = main
+	ignore = dirty
 [submodule "packages/finance"]
 	path = packages/finance
 	url = git@github.com:Clickandmore/finance-rec.git
 	branch = main
+	ignore = dirty
 [submodule "packages/hr"]
 	path = packages/hr
 	url = git@github.com:Clickandmore/hr-rec.git
 	branch = main
+	ignore = dirty

@@ -114,7 +114,10 @@ class MaidRequest extends MainRequest
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
-            if (!$this->isSelectedRentalType()) {
+            if (
+                !$this->isSelectedRentalType()
+                || !$this->isMethod('post')
+            ) {
                 return;
             }
 

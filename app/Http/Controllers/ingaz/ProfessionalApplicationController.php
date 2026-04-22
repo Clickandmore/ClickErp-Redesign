@@ -28,6 +28,8 @@ class ProfessionalApplicationController extends Controller
 
     public function index(Request $request, objAction $Action, JobTitleAction $jobTitleAction)
     {
+        abort_unless(@AdminGuardHasPerm(\App\PermKeys::PROFESSIONAL_APPLICATION_VIEW), 403);
+
         if ($request->ajax()) {
             $rows = objModel::query()
                 ->when($request->filled('status'), function ($query) use ($request) {
@@ -56,6 +58,10 @@ class ProfessionalApplicationController extends Controller
                 })
                 ->editColumn('status', function ($row) {
                     if ($row->status == RequestsStatusEnum::Pending->value) {
+                        if (!@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT)) {
+                            return '<span class="badge bg-warning" > ' . RequestsStatusEnum::tryFrom($row->status)->lang() . '</span>';
+                        }
+
                         return '
                         <div class="btn-group" role="group">
                             <button class="btn btn-success btn-sm accept-request" data-id="' . $row->id . '" data-store-id="' . @$row->id . '">
@@ -74,27 +80,33 @@ class ProfessionalApplicationController extends Controller
 
                 })
                 ->addColumn('actions', function ($row) {
-                    // if (@AdminGuardHasPerm(\App\PermKeys::PARTNER_DELETE)) {
-                    $deleteButton = ' <button class="dropdown-item delete-order-request" data-id="' . $row->id . '">
-                            <i class="fa fa-trash"></i> حذف الطلب
-                        </button>';
-                    // }
-                    // if (@AdminGuardHasPerm(\App\PermKeys::PARTNER_SHOW)) {
-                    $showButton = '<a class="dropdown-item" href="' . route('professional_application.show', $row->id) . '">
+                    $items = [];
+
+                    if (@AdminGuardHasPerm(\App\PermKeys::PROFESSIONAL_APPLICATION_VIEW)) {
+                        $items[] = '<li><a class="dropdown-item" href="' . route('professional_application.show', $row->id) . '">
                                     <i class="fas fa-eye"></i> عرض التفاصيل
-                                </a>';
-                    // }
-                    $actions = '
+                                </a></li>';
+                    }
+
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE)) {
+                        $items[] = '<li><button class="dropdown-item delete-order-request" data-id="' . $row->id . '">
+                            <i class="fa fa-trash"></i> حذف الطلب
+                        </button></li>';
+                    }
+
+                    if ($items === []) {
+                        return '<span class="text-muted">-</span>';
+                    }
+
+                    return '
                                 <div class="dropdown actions-dropdown">
                                     <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="الإجراءات المتاحة">
                                         <i class="fas fa-cogs me-1"></i> الإجراءات
                                     </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow-lg">
-                                        <li>' . $showButton . '</li>
-                                        <li>' . $deleteButton . '</li>
-                                    </ul>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-lg">'
+                                        . implode('', $items) .
+                                    '</ul>
                                 </div>';
-                    return $actions;
                 })
                 ->escapeColumns([])->make(true);
         }
@@ -142,6 +154,8 @@ class ProfessionalApplicationController extends Controller
 
     public function update(objRequest $request, objAction $action, $id)
     {
+        abort_unless(@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT), 403);
+
         $contract = objModel::findOrFail($id);
         if ($request->has('status')) {
             $contract->update([
@@ -160,12 +174,16 @@ class ProfessionalApplicationController extends Controller
 
     public function show($id)
     {
+        abort_unless(@AdminGuardHasPerm(\App\PermKeys::PROFESSIONAL_APPLICATION_VIEW), 403);
+
         $application = objModel::with(['user', 'jobtitle'])->findOrFail($id);
         return view($this->folderPath . '.show', compact('application'));
     }
 
     public function destroy($id, objAction $action)
     {
+        abort_unless(@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE), 403);
+
         $action->delete($id);
         return jsonSuccess(['success' => true]);
     }

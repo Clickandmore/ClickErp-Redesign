@@ -65,28 +65,20 @@
                         <div class="col-12">
                             <h5>تتبع مراحل العقد</h5>
                             <div class="timeline">
-                                <!-- إرسال العقد -->
+                                <!-- بانتظار التوقيع -->
                                 <div class="time-label">
-                                    <span class="bg-{{ $contract->contract_sent_at ? 'success' : 'secondary' }}">
-                                        إرسال العقد
+                                    <span class="bg-{{ in_array($contract->status, ['waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active'], true) ? 'success' : 'secondary' }}">
+                                        بانتظار التوقيع
                                     </span>
                                 </div>
                                 <div>
-                                    <i class="fas fa-envelope bg-{{ $contract->contract_sent_at ? 'success' : 'secondary' }}"></i>
+                                    <i class="fas fa-file-signature bg-{{ in_array($contract->status, ['waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active'], true) ? 'success' : 'secondary' }}"></i>
                                     <div class="timeline-item">
                                         <span class="time">
-                                            @if($contract->contract_sent_at)
-                                                <i class="fas fa-clock"></i> {{ $contract->contract_sent_at->format('Y-m-d H:i') }}
-                                            @else
-                                                لم يتم بعد
-                                            @endif
+                                            <i class="fas fa-clock"></i> {{ optional($contract->contract_sent_at ?? $contract->created_at)->format('Y-m-d H:i') }}
                                         </span>
                                         <h3 class="timeline-header">
-                                            @if($contract->contractSentBy)
-                                                تم الإرسال بواسطة {{ $contract->contractSentBy->name }}
-                                            @else
-                                                إرسال العقد للعميل
-                                            @endif
+                                            العقد جاهز لتوقيع العميل
                                         </h3>
                                     </div>
                                 </div>
@@ -188,14 +180,6 @@
                                     <p>تأكد من استكمال جميع الخطوات التالية قبل بدء فترة التجربة:</p>
                                     <ul class="list-group list-group-flush mb-3">
                                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                                            تم إرسال العقد للعميل
-                                            @if($contract->contract_sent_at)
-                                                <span class="badge bg-success rounded-pill">مكتمل</span>
-                                            @else
-                                                <span class="badge bg-danger rounded-pill">غير مكتمل</span>
-                                            @endif
-                                        </li>
-                                        <li class="list-group-item d-flex justify-content-between align-items-center">
                                             تم توقيع العقد من العميل
                                             @if($contract->contract_signed_at)
                                                 <span class="badge bg-success rounded-pill">مكتمل</span>
@@ -214,7 +198,7 @@
                                     </ul>
 
                                     @php
-                                        $canStart = $contract->contract_sent_at && $contract->contract_signed_at && $contract->maid_delivered_at;
+                                        $canStart = $contract->contract_signed_at && $contract->maid_delivered_at;
                                     @endphp
 
                                     <button type="button" class="btn btn-warning btn-lg"

@@ -114,7 +114,7 @@
 @endsection
 
 @section('content')
-    @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW))
+    @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_RENTAL_VIEW))
         <div class="rental-page">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
                 <div>

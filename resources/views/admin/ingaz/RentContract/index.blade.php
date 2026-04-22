@@ -165,11 +165,8 @@
                             <option value="" {{ request('status') ? '' : 'selected' }}>جميع الحالات</option>
                             <option value="new" {{ request('status') === 'new' ? 'selected' : '' }}>جديد</option>
                             <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>نشط</option>
-                            <option value="waiting_contract_send" {{ request('status') === 'waiting_contract_send' ? 'selected' : '' }}>
-                                انتظار إرسال العقد
-                            </option>
-                            <option value="contract_sent" {{ request('status') === 'contract_sent' ? 'selected' : '' }}>
-                                تم إرسال العقد
+                            <option value="contract_sent" {{ in_array(request('status'), ['contract_sent', 'waiting_contract_send'], true) ? 'selected' : '' }}>
+                                بانتظار التوقيع
                             </option>
                             <option value="contract_signed" {{ request('status') === 'contract_signed' ? 'selected' : '' }}>
                                 تم توقيع العقد
@@ -1515,27 +1512,6 @@
                             title: 'خطأ',
                             text: message
                         });
-                    }
-                });
-            });
-
-            // إجراءات workflow الجديدة
-            $(document).on('click', '.send-contract', function() {
-                const contractId = $(this).data('id');
-
-                Swal.fire({
-                    title: 'تأكيد إرسال العقد',
-                    text: 'هل تم إرسال العقد للعميل فعلاً؟',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#17a2b8',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'نعم، تم الإرسال',
-                    cancelButtonText: 'إلغاء'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        executeWorkflowAction(contractId, 'send-contract',
-                            'تم تأكيد إرسال العقد بنجاح');
                     }
                 });
             });

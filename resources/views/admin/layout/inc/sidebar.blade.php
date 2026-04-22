@@ -84,7 +84,7 @@
 
                 $canViewCrm = $canViewCrmModule || @AdminGuardHasAnyPerm([\App\PermKeys::CLIENTS_VIEW, \App\PermKeys::CLIENTS_CREATE, \App\PermKeys::CLIENTS_EDIT, \App\PermKeys::CLIENTS_DELETE, \App\PermKeys::CLIENTS_EXPORT, \App\PermKeys::CLIENTS_SHOW, \App\PermKeys::CLIENTS_SETTINGS]);
 
-                $canViewCv = @AdminGuardHasAnyPerm([\App\PermKeys::MAIDS_VIEW, \App\PermKeys::MAIDS_CREATE, \App\PermKeys::MAIDS_EDIT, \App\PermKeys::MAIDS_DELETE, \App\PermKeys::MAIDS_EXPORT, \App\PermKeys::MAIDS_CONTROL, \App\PermKeys::MAIDS_TOGGLE_STATUS, \App\PermKeys::MAIDS_TOGGLE_PIN]);
+                $canViewCv = @AdminGuardHasAnyPerm([\App\PermKeys::MAIDS_VIEW, \App\PermKeys::MAIDS_CREATE, \App\PermKeys::MAIDS_EDIT, \App\PermKeys::MAIDS_DELETE, \App\PermKeys::MAIDS_EXPORT, \App\PermKeys::MAIDS_CONTROL, \App\PermKeys::MAIDS_TOGGLE_STATUS, \App\PermKeys::MAIDS_TOGGLE_PIN, \App\PermKeys::MAIDS_RENTAL_VIEW, \App\PermKeys::MAIDS_BACKOUT_VIEW, \App\PermKeys::MAIDS_DELETED_VIEW]);
 
                 $canViewContactRequests = @AdminGuardHasAnyPerm([\App\PermKeys::CONTACT_VIEW, \App\PermKeys::CONTACT_CREATE, \App\PermKeys::CONTACT_EDIT, \App\PermKeys::CONTACT_DELETE, \App\PermKeys::CONTACT_CONTROL]);
 
@@ -222,6 +222,8 @@
                                                     <span class="ms-2">{{ helperTrans('ingaz.cvs') }}</span>
                                                 </a>
                                             </li>
+                                        @endif
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_RENTAL_VIEW))
                                             <li>
                                                 <a class="m-link {{ in_array(Route::currentRouteName(), ['maids.rental.index', 'maids.rental.create']) ? 'active' : '' }}"
                                                     href="{{ route('maids.rental.index') }}">
@@ -229,6 +231,8 @@
                                                     <span class="ms-2">سير عاملات الإيجار</span>
                                                 </a>
                                             </li>
+                                        @endif
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_BACKOUT_VIEW))
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'noneAvailableMaids' ? 'active' : '' }}"
                                                     href="{{ route('noneAvailableMaids') }}">
@@ -236,6 +240,8 @@
                                                     <span class="ms-2">عاملات باك اوت</span>
                                                 </a>
                                             </li>
+                                        @endif
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_DELETED_VIEW))
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'maids.deleted_cvs' ? 'active' : '' }}"
                                                     href="{{ route('maids.deleted_cvs') }}">
@@ -244,7 +250,6 @@
                                                 </a>
                                             </li>
                                         @endif
-
                                     </ul>
                                 </li>
                             @endif
@@ -543,6 +548,8 @@
                                                     <span class="ms-2">طلبات الإيجار</span>
                                                 </a>
                                             </li>
+                                        @endif
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_VIEW))
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'RentContract.index' && !request('status') ? 'active' : '' }}"
                                                     href="{{ route('RentContract.index') }}">

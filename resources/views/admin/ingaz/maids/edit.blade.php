@@ -298,7 +298,7 @@
                             {{helperTrans("ingaz.id_number")}}
                         </label>
                         <input type="text" name="id_number" id="id_number" class="form-control" maxlength="30"
-                               required value="{{$obj->id_number}}">
+                               value="{{$obj->id_number}}">
                         <small class="text-muted">يمكن إدخال أرقام أو حروف أو شرطة (-) بحد أقصى 30 خانة</small>
                     </div>
 
@@ -306,7 +306,7 @@
                         <label for="TextInput" class="form-label">
                             {{helperTrans("ingaz.id_expiry_date")}}
                         </label>
-                        <input type="date" name="id_expiry_date" class="form-control" required
+                        <input type="date" name="id_expiry_date" class="form-control"
                                value="{{$obj->id_expiry_date}}">
                     </div>
 
@@ -1232,6 +1232,7 @@
                     priceLabel.text('تكلفه الايجار الشهري');
                     maritalStatusEnField.val('');
                     shouldUpdateMaritalTranslation = false;
+                    idInputs.removeAttr('required');
                     heightWeightInputs.removeAttr('required');
                     maritalStatusSelect.removeAttr('required');
                     salaryInput.removeAttr('required');

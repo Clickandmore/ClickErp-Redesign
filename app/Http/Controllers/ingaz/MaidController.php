@@ -36,7 +36,10 @@ class MaidController extends Controller
 
     public function __construct()
     {
-        $this->middleware('permission:maids_view,admin', ['only' => ['index', 'rentalIndex', 'noneAvailableMaids', 'deletedCvs']]);
+        $this->middleware('permission:maids_view,admin', ['only' => ['index']]);
+        $this->middleware('permission:maids_rental_view,admin', ['only' => ['rentalIndex']]);
+        $this->middleware('permission:maids_backout_view,admin', ['only' => ['noneAvailableMaids']]);
+        $this->middleware('permission:maids_deleted_view,admin', ['only' => ['deletedCvs']]);
         $this->middleware('permission:maids_create,admin', ['only' => ['create', 'createRental', 'create_rapid_cv', 'store', 'store_rapid_cv']]);
         $this->middleware('permission:maids_edit,admin', ['only' => ['edit', 'update', 'update_cv', 'updateOffer', 'backout', 'clearBackout', 'suspendCv']]);
         $this->middleware('permission:maids_delete,admin', ['only' => ['destroy', 'restore']]);
@@ -93,17 +96,7 @@ class MaidController extends Controller
             $statsQuery = objModel::query();
             $this->applyRecruitmentMaidsScope($statsQuery);
             $this->applyMaidFilter($request, $statsQuery);
-            $statsBase = clone $statsQuery;
-            $stats = [
-                'total' => (clone $statsBase)->count(),
-                'available' => (clone $statsBase)->where('status', 'available')->count(),
-                'reserved' => (clone $statsBase)->where('status', 'reserved')->count(),
-                'in_accommodation' => (clone $statsBase)->where('maid_accommodation_type', 2)->count(),
-                'backout' => (clone $statsBase)->where('status', 'backout')->count(),
-                'suspended' => (clone $statsBase)->where('status', 'suspended')->count(),
-                'deported' => (clone $statsBase)->where('status', 'deported')->count(),
-                'pinned' => (clone $statsBase)->where('is_pinned', 1)->count(),
-            ];
+            $stats = $this->buildRecruitmentMaidStats($statsQuery);
 
             return DataTables::of($query)
                 ->addIndexColumn()
@@ -210,7 +203,7 @@ class MaidController extends Controller
                     $hasActiveRecruitmentContract = $row->contracts
                         ->whereIn('status', $this->recruitmentContractStatuses())
                         ->isNotEmpty();
-                    $hasActiveOrder = $row->orders->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract'])->isNotEmpty();
+                    $hasActiveOrder = $row->orders->whereIn('status', $this->activeOrderStatuses())->isNotEmpty();
 
                     if ($row->maid_accommodation_type == 2) {
                         $statusMeta = ['class' => 'bg-info-subtle text-info', 'icon' => 'fa-warehouse', 'label' => $labelAccommodation];
@@ -219,7 +212,7 @@ class MaidController extends Controller
                         }
                     } elseif ($hasActiveRecruitmentContract && !in_array($row->status, ['backout', 'suspended', 'deported'], true)) {
                         $statusMeta = $statuses['contracted'];
-                    } elseif ($hasActiveOrder && $row->status === 'available') {
+                    } elseif ($row->status === 'reserved' || (($hasActiveOrder || !$row->available) && $row->status === 'available')) {
                         $statusMeta = $statuses['reserved'];
                     }
 
@@ -404,7 +397,7 @@ class MaidController extends Controller
                 })
                 ->addColumn('metrics', function (Maid $row) {
                     $ordersTotal = $row->orders->count();
-                    $activeOrders = $row->orders->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract'])->count();
+                    $activeOrders = $row->orders->whereIn('status', $this->activeOrderStatuses())->count();
                     $contractsTotal = $row->contracts->count();
                     $activeContracts = $row->contracts->whereIn('status', $this->recruitmentContractStatuses())->count();
                     
@@ -495,17 +488,7 @@ class MaidController extends Controller
 
         $statsBase = objModel::query();
         $this->applyRecruitmentMaidsScope($statsBase);
-        $stats = [
-            'total' => (clone $statsBase)->count(),
-            'available' => (clone $statsBase)->where('status', 'available')->count(),
-            'reserved' => (clone $statsBase)->where('status', 'reserved')->count(),
-            // 'in_accommodation' => objModel::where('status', 'in_accommodation')->count(),
-            'in_accommodation' => (clone $statsBase)->where('maid_accommodation_type', '2')->count(),
-            'backout' => (clone $statsBase)->where('status', 'backout')->count(),
-            'suspended' => (clone $statsBase)->where('status', 'suspended')->count(),
-            'deported' => (clone $statsBase)->where('status', 'deported')->count(),
-            'pinned' => (clone $statsBase)->where('is_pinned', 1)->count(),
-        ];
+        $stats = $this->buildRecruitmentMaidStats($statsBase);
 
         $filters = [
             'nationalities' => Nationality::orderByTranslation('sub_title', 'asc')->get(['id']),
@@ -1995,6 +1978,11 @@ class MaidController extends Controller
         ];
     }
 
+    private function activeOrderStatuses(): array
+    {
+        return ['new', 'under_process', 'contracted', 'contracted_without_contract'];
+    }
+
     private function rentalActiveContractStatuses(): array
     {
         return ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'transferred', 'suspended'];
@@ -2118,6 +2106,119 @@ class MaidController extends Controller
         ];
     }
 
+    private function buildRecruitmentMaidStats($baseQuery): array
+    {
+        return [
+            'total' => (clone $baseQuery)->count(),
+            'available' => $this->countRecruitmentMaidsByEffectiveStatus($baseQuery, 'available'),
+            'reserved' => $this->countRecruitmentMaidsByEffectiveStatus($baseQuery, 'reserved'),
+            'in_accommodation' => $this->countRecruitmentMaidsByEffectiveStatus($baseQuery, 'in_accommodation'),
+            'backout' => $this->countRecruitmentMaidsByEffectiveStatus($baseQuery, 'backout'),
+            'suspended' => $this->countRecruitmentMaidsByEffectiveStatus($baseQuery, 'suspended'),
+            'deported' => $this->countRecruitmentMaidsByEffectiveStatus($baseQuery, 'deported'),
+            'pinned' => (clone $baseQuery)->where('is_pinned', 1)->count(),
+        ];
+    }
+
+    private function countRecruitmentMaidsByEffectiveStatus($baseQuery, string $status): int
+    {
+        $query = clone $baseQuery;
+        $this->applyEffectiveStatusFilter($query, [$status]);
+
+        return $query->count();
+    }
+
+    private function applyEffectiveStatusFilter($rows, array $statuses): void
+    {
+        $statuses = array_values(array_unique(array_filter(
+            array_map(static fn($status) => is_string($status) ? trim($status) : $status, $statuses),
+            static fn($status) => !is_null($status) && $status !== ''
+        )));
+
+        if (empty($statuses)) {
+            return;
+        }
+
+        $rows->where(function ($outerQuery) use ($statuses) {
+            foreach ($statuses as $index => $status) {
+                $method = $index === 0 ? 'where' : 'orWhere';
+                $outerQuery->{$method}(function ($statusQuery) use ($status) {
+                    $this->applySingleEffectiveStatusCondition($statusQuery, $status);
+                });
+            }
+        });
+    }
+
+    private function applySingleEffectiveStatusCondition($query, string $status): void
+    {
+        $activeOrderStatuses = $this->activeOrderStatuses();
+        $recruitmentContractStatuses = $this->recruitmentContractStatuses();
+
+        switch ($status) {
+            case 'available':
+                $query->where('status', 'available')
+                    ->where('available', true)
+                    ->where('maid_accommodation_type', '!=', 2)
+                    ->whereDoesntHave('contracts', function ($contractQuery) use ($recruitmentContractStatuses) {
+                        $contractQuery->whereIn('status', $recruitmentContractStatuses);
+                    })
+                    ->whereDoesntHave('orders', function ($orderQuery) use ($activeOrderStatuses) {
+                        $orderQuery->whereIn('status', $activeOrderStatuses);
+                    });
+                break;
+
+            case 'reserved':
+                $query->where('maid_accommodation_type', '!=', 2)
+                    ->whereDoesntHave('contracts', function ($contractQuery) use ($recruitmentContractStatuses) {
+                        $contractQuery->whereIn('status', $recruitmentContractStatuses);
+                    })
+                    ->where(function ($reservedQuery) use ($activeOrderStatuses) {
+                        $reservedQuery->where('status', 'reserved')
+                            ->orWhere(function ($availableReservedQuery) use ($activeOrderStatuses) {
+                                $availableReservedQuery->where('status', 'available')
+                                    ->where(function ($availabilityQuery) use ($activeOrderStatuses) {
+                                        $availabilityQuery->where('available', false)
+                                            ->orWhereHas('orders', function ($orderQuery) use ($activeOrderStatuses) {
+                                                $orderQuery->whereIn('status', $activeOrderStatuses);
+                                            });
+                                    });
+                            });
+                    });
+                break;
+
+            case 'contracted':
+                $query->where('maid_accommodation_type', '!=', 2)
+                    ->whereNotIn('status', ['backout', 'suspended', 'deported'])
+                    ->whereHas('contracts', function ($contractQuery) use ($recruitmentContractStatuses) {
+                        $contractQuery->whereIn('status', $recruitmentContractStatuses);
+                    });
+                break;
+
+            case 'in_accommodation':
+                $query->where('maid_accommodation_type', 2)
+                    ->where('status', '!=', 'deported');
+                break;
+
+            case 'backout':
+                $query->where('status', 'backout')
+                    ->where('maid_accommodation_type', '!=', 2);
+                break;
+
+            case 'suspended':
+                $query->where('status', 'suspended')
+                    ->where('maid_accommodation_type', '!=', 2);
+                break;
+
+            case 'deported':
+                $query->where('status', 'deported');
+                break;
+
+            default:
+                $query->where('status', $status);
+                break;
+        }
+    }
+
     public function applyMaidFilter($request, $rows)
     {
         if ($request->filled('keyword')) {
@@ -2185,32 +2286,7 @@ class MaidController extends Controller
                 ->values();
 
             if ($statuses->isNotEmpty()) {
-                $plainStatuses = $statuses->reject(fn($status) => in_array($status, ['contracted', 'in_accommodation'], true))->values()->all();
-                $includeInAccommodation = $statuses->contains('in_accommodation');
-                $includeContracted = $statuses->contains('contracted');
-                $recruitmentContractStatuses = $this->recruitmentContractStatuses();
-
-                $rows->where(function ($statusQuery) use ($plainStatuses, $includeInAccommodation, $includeContracted, $recruitmentContractStatuses) {
-                    $hasCondition = false;
-
-                    if (!empty($plainStatuses)) {
-                        $statusQuery->whereIn('status', $plainStatuses);
-                        $hasCondition = true;
-                    }
-
-                    if ($includeInAccommodation) {
-                        $method = $hasCondition ? 'orWhere' : 'where';
-                        $statusQuery->{$method}('maid_accommodation_type', 2);
-                        $hasCondition = true;
-                    }
-
-                    if ($includeContracted) {
-                        $method = $hasCondition ? 'orWhereHas' : 'whereHas';
-                        $statusQuery->{$method}('contracts', function ($contractQuery) use ($recruitmentContractStatuses) {
-                            $contractQuery->whereIn('status', $recruitmentContractStatuses);
-                        });
-                    }
-                });
+                $this->applyEffectiveStatusFilter($rows, $statuses->all());
             }
         }
 
@@ -2247,21 +2323,22 @@ class MaidController extends Controller
             if ($request->cv_status == 'available') {
                 $rows->where('available', 1)
                     ->where('status', 'available')
+                    ->where('maid_accommodation_type', '!=', 2)
                     ->whereDoesntHave('contracts', function ($q) {
-                        $q->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival']);
+                        $q->whereIn('status', $this->recruitmentContractStatuses());
                     })
                     ->whereDoesntHave('orders', function ($q) {
-                        $q->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract']);
+                        $q->whereIn('status', $this->activeOrderStatuses());
                     });
             } elseif ($request->cv_status == 'reserved') {
                 $rows->where(function ($q) {
                     $q->where('available', 0)
                         ->where('status', 'reserved')
                         ->orWhereHas('contracts', function ($subQ) {
-                            $subQ->whereIn('status', ['new', 'msaned', 'tafwed', 'taffez', 'tazker', 'arrival']);
+                            $subQ->whereIn('status', $this->recruitmentContractStatuses());
                         })
                         ->orWhereHas('orders', function ($subQ) {
-                            $subQ->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract']);
+                            $subQ->whereIn('status', $this->activeOrderStatuses());
                         });
                 });
             } elseif ($request->cv_status == 'backout') {
