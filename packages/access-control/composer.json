@@ -1,9 +1,0 @@
-{
-    "name": "nami/access-control",
-    "description": "Access control package for roles and permissions",
-    "autoload": {
-        "psr-4": {
-            "Nami\\AccessControl\\": "src/"
-        }
-    }
-}
