@@ -34,7 +34,7 @@
                                     </div>
                                     <div class="text">
                                         <h4>{{helperTrans('web.email')}} : </h4>
-                                        <a href="mailto:{{ $settings->eamil ?? 'info@platinumeastern.com' }}">{{ $settings->eamil ?? 'info@platinumeastern.com' }}</a>
+                                        <a href="mailto:{{ $settings->eamil ?? 'info@ruknedem.com' }}">{{ $settings->eamil ?? 'info@ruknedem.com' }}</a>
                                     </div>
                                 </li>
                                 <li class="field">

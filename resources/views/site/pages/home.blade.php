@@ -642,7 +642,7 @@
                     {{ __('web.our_services') }}
                 </i>
             </div>
-            <h2 class="title">{{ isset($whatDoSetting) ? $whatDoSetting->title : 'خدمات شركه بلاتينيوم' }}</h2>
+            <h2 class="title">{{ isset($whatDoSetting) ? $whatDoSetting->title : 'خدمات شركه ركن اديم' }}</h2>
             <p class="hint">{{ isset($whatDoSetting) ? $whatDoSetting->description : ' خدماتنا مرخصه من وزاره الموارد البشريه والتنميه الاجتماعية لضمان راحتك وراحه اسرتك' }}
             </p>
         </div> --}}

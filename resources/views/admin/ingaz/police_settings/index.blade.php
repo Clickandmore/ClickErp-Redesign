@@ -63,7 +63,7 @@
                     {{ helperTrans('ingaz.description_1') }}
                     ({{ helperTrans('ingaz.'.$locale) }})
                 </label>
-                <textarea name="description_2:{{ $locale }}" class="form-control mytextarea" data-validation="required">{!! isset($policeSetting) ? $policeSetting->description_2 : 'تحرص شركة بلاتينيوم الشرقية على توفير بيئة عمل آمنة وواضحة لكلٍ من العملاء والعاملات. لذلك قمنا بإعداد كتيبات التوجيهات والإرشادات بشكل مبسط ومترجم إلى لغات الجنسيات المختلفة، حتى يتمكن الجميع من الاطلاع عليها وفهم حقوقهم وواجباتهم بسهولة.
+                <textarea name="description_2:{{ $locale }}" class="form-control mytextarea" data-validation="required">{!! isset($policeSetting) ? $policeSetting->description_2 : 'تحرص شركة ركن اديم على توفير بيئة عمل آمنة وواضحة لكلٍ من العملاء والعاملات. لذلك قمنا بإعداد كتيبات التوجيهات والإرشادات بشكل مبسط ومترجم إلى لغات الجنسيات المختلفة، حتى يتمكن الجميع من الاطلاع عليها وفهم حقوقهم وواجباتهم بسهولة.
 يمكنكم تحميل الملفات الخاصة بكل دولة من خلال البطاقات أدناه.' !!}</textarea>
             </div>
         @endforeach
