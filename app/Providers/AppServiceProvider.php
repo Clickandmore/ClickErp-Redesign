@@ -14,11 +14,13 @@ use App\Models\ingaz\Setting;
 use App\Models\ingaz\DevelopSetting;
 use App\Models\ingaz\FastNew;
 use App\Support\CommunicationSettings;
+use App\Validation\CustomValidator;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\ServiceProvider;
 use App\Models\printSetting\PrintSetting;
 
@@ -42,6 +44,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot()
     {
         Schema::defaultStringLength(255);
+        Validator::resolver(function ($translator, $data, $rules, $messages, $attributes) {
+            return new CustomValidator($translator, $data, $rules, $messages, $attributes);
+        });
 //        Register custom migration paths
         $migrationsPath = database_path('migrations');
         $directories = glob($migrationsPath . '/*', GLOB_ONLYDIR);

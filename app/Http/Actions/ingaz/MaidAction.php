@@ -12,6 +12,7 @@ use App\Models\ingaz\User as ClientUser;
 use App\Services\ingaz\RentalMaidAccountingService;
 use App\Services\ingaz\RentalMaidFinanceService;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -279,7 +280,7 @@ class MaidAction extends MainAction
             'cv_preview' => $data['cv_preview'] ?? null,
             'office_id' => $data['office_id'] ?? null,
             'status' => $data['status'],
-            'added_by'=> $data['added_by'] ?? null,
+            'added_by' => $data['added_by'] ?? null,
             'available' => $data['available'],
             'available_at' => $data['available_at'],
             'arrival_date' => $data['arrival_date'],
@@ -331,7 +332,7 @@ class MaidAction extends MainAction
 
         try {
             $maid = DB::transaction(function () use ($createData, $data, $request, $experienceStatus, $jobTypeIds, $maritalStatusAr, $maritalStatusEn) {
-                $maid = $this->model->create($createData);
+                $maid = $this->createMaidRecord($createData);
                 \Log::info('Maid created successfully with ID: ' . $maid->id);
 
                 if (isset($maritalStatusAr)) {
@@ -461,7 +462,14 @@ class MaidAction extends MainAction
             $file = $createData['cv_file'];
             $createData['cv_file'] = uploadFile($file, $this->fileFolder);
 
-            if (str_starts_with((string) $file->getMimeType(), 'image/') && empty($createData['image'])) {
+            $clientMimeType = strtolower((string) $file->getClientMimeType());
+            $clientExtension = strtolower((string) $file->getClientOriginalExtension());
+            $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'];
+
+            if (
+                (str_starts_with($clientMimeType, 'image/') || in_array($clientExtension, $imageExtensions, true))
+                && empty($createData['image'])
+            ) {
                 $createData['image'] = $createData['cv_file'];
             }
         } else {
@@ -482,10 +490,32 @@ class MaidAction extends MainAction
         $createData['image'] = $createData['image'] ?? null;
         $createData['request_type'] = Maid::resolveRequestType($createData['request_type'] ?? null);
 
-        $maid = $this->model->create($createData);
+        $maid = $this->createMaidRecord($createData);
         $maid->jobTypes()->attach(1); // استقدام
         $maid->jobTypes()->sync($this->resolveRequiredJobTypeIds($request, $maid));
         return $maid;
+    }
+
+    protected function createMaidRecord(array $createData): Maid
+    {
+        $createData['added_by'] = $this->resolveValidMaidAddedBy($createData['added_by'] ?? null);
+
+        try {
+            return $this->model->create($createData);
+        } catch (QueryException $exception) {
+            if (!$this->shouldRetryMaidCreationWithoutAddedBy($exception, $createData)) {
+                throw $exception;
+            }
+
+            \Log::warning('Retrying maid creation without added_by because the foreign key does not match the current schema.', [
+                'added_by' => $createData['added_by'] ?? null,
+                'message' => $exception->getMessage(),
+            ]);
+
+            $createData['added_by'] = null;
+
+            return $this->model->create($createData);
+        }
     }
 
     protected function resolveRequiredJobTypeIds($request, ?Maid $maid = null): array
@@ -514,6 +544,96 @@ class MaidAction extends MainAction
             ->unique()
             ->values()
             ->all();
+    }
+
+    protected function resolveValidMaidAddedBy($addedBy): ?int
+    {
+        if (!Schema::hasColumn('maids', 'added_by')) {
+            return null;
+        }
+
+        $addedBy = filter_var($addedBy, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if (!$addedBy) {
+            return null;
+        }
+
+        $referenceTables = $this->getMaidAddedByReferenceTables();
+        if ($referenceTables === []) {
+            return $addedBy;
+        }
+
+        foreach ($referenceTables as $table) {
+            if (!Schema::hasTable($table) || !DB::table($table)->where('id', $addedBy)->exists()) {
+                return null;
+            }
+        }
+
+        return (int) $addedBy;
+    }
+
+    protected function getMaidAddedByReferenceTables(): array
+    {
+        static $referenceTables;
+
+        if ($referenceTables !== null) {
+            return $referenceTables;
+        }
+
+        $referenceTables = [];
+
+        try {
+            $connection = DB::connection();
+            $driver = $connection->getDriverName();
+
+            if ($driver === 'mysql') {
+                $databaseName = $connection->getDatabaseName();
+                $rows = $connection->select(
+                    'SELECT REFERENCED_TABLE_NAME AS table_name
+                     FROM information_schema.KEY_COLUMN_USAGE
+                     WHERE TABLE_SCHEMA = ?
+                       AND TABLE_NAME = ?
+                       AND COLUMN_NAME = ?
+                       AND REFERENCED_TABLE_NAME IS NOT NULL',
+                    [$databaseName, 'maids', 'added_by']
+                );
+
+                $referenceTables = collect($rows)
+                    ->map(fn ($row) => data_get($row, 'table_name'))
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+            } elseif ($driver === 'sqlite') {
+                $rows = $connection->select("PRAGMA foreign_key_list('maids')");
+
+                $referenceTables = collect($rows)
+                    ->filter(fn ($row) => data_get($row, 'from') === 'added_by')
+                    ->map(fn ($row) => data_get($row, 'table'))
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+            }
+        } catch (\Throwable $exception) {
+            \Log::warning('Unable to inspect maids.added_by foreign keys.', [
+                'message' => $exception->getMessage(),
+            ]);
+        }
+
+        return $referenceTables;
+    }
+
+    protected function shouldRetryMaidCreationWithoutAddedBy(QueryException $exception, array $createData): bool
+    {
+        if (empty($createData['added_by'])) {
+            return false;
+        }
+
+        $message = strtolower($exception->getMessage());
+
+        return str_contains($message, 'maids')
+            && str_contains($message, 'added_by')
+            && (str_contains($message, 'foreign key') || str_contains($message, 'integrity constraint violation'));
     }
 
     private function syncRentalMaidFinancialAdjustments(Maid $maid, $request): void

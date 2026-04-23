@@ -1001,7 +1001,8 @@ class AdminTravelHistoryController extends Controller
             if (!empty($request->file('files')) && $savedTrips->isNotEmpty()) {
                 foreach ($request->file('files') as $k => $file) {
                     $originalFileName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-                    $fileName = $originalFileName . '-' . time() . $k . '.' . $file->extension();
+                    $fileExtension = strtolower((string) $file->getClientOriginalExtension());
+                    $fileName = $originalFileName . '-' . time() . $k . ($fileExtension !== '' ? '.' . $fileExtension : '');
                     $file->move(Constants::PUBLIC_TRAVEL_DIR, $fileName);
 
                     foreach ($savedTrips as $savedTrip) {
@@ -1188,7 +1189,8 @@ class AdminTravelHistoryController extends Controller
         if (!empty($request->file('files'))) {
             foreach ($request->file('files') as $k => $file) {
                 $originalFileName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME); // Get the original filename without extension
-                $fileName = $originalFileName . '-' . time() . $k . '.' . $file->extension();
+                $fileExtension = strtolower((string) $file->getClientOriginalExtension());
+                $fileName = $originalFileName . '-' . time() . $k . ($fileExtension !== '' ? '.' . $fileExtension : '');
                 $file->move(Constants::PUBLIC_TRAVEL_DIR, $fileName);
                 TravelHistoryFiles::create([
                     'travel_id' => $data->id,

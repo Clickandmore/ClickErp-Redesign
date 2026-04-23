@@ -1260,7 +1260,7 @@ class MaidController extends Controller
 
         // Set default status in Arabic
         $data['status'] = 'available';
-        $data['added_by'] = auth()->user()->id;
+        $data['added_by'] = auth('admin')->id() ?? auth()->id();
 
         // $data['added_by'] = null; // Temporarily set to null
         // $data = $action->storeMaid($data, $request);
@@ -1278,7 +1278,7 @@ class MaidController extends Controller
 
         // Set defaults so the rapid form saves without missing fields
         $data['status'] = 'available';
-        $data['added_by'] = auth()->id();
+        $data['added_by'] = auth('admin')->id() ?? auth()->id();
         $data['available'] = $data['available'] ?? 1;
         // Rapid CVs should not be visible on the public site by default
         $data['is_show'] = $data['is_show'] ?? 0;

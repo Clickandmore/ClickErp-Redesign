@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\Permission;
 use Spatie\Permission\Models\Role;
-use Illuminate\Support\Facades\DB;
+use Spatie\Permission\PermissionRegistrar;
 
 class AssignAllPermissionsToAdminCommand extends Command
 {
@@ -41,7 +41,9 @@ class AssignAllPermissionsToAdminCommand extends Command
         $this->info("✅ تم العثور على دور: {$adminRole->name} (ID: {$adminRole->id})");
 
         // الحصول على جميع الصلاحيات مع نفس الـ guard
-        $allPermissions = Permission::where('guard_name', $adminRole->guard_name)->get();
+        $allPermissions = Permission::withoutGlobalScopes()
+            ->where('guard_name', $adminRole->guard_name)
+            ->get();
         $this->info("📊 عدد الصلاحيات الموجودة: {$allPermissions->count()}");
 
         // الحصول على الصلاحيات المخصصة حالياً للدور
@@ -50,6 +52,7 @@ class AssignAllPermissionsToAdminCommand extends Command
 
         // إضافة جميع الصلاحيات للدور
         $adminRole->syncPermissions($allPermissions);
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         // التحقق من النتيجة
         $newPermissions = $adminRole->fresh()->permissions;
