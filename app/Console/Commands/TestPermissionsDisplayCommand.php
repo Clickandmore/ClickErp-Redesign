@@ -101,7 +101,7 @@ class TestPermissionsDisplayCommand extends Command
                 $section = 'settings';
                 $group = 'settings';
             } elseif (str_starts_with($name, 'activity_')) {
-                $section = 'settings';
+                $section = 'users_management';
                 $group = 'activity_log';
             } elseif (str_starts_with($name, 'job_titles_')) {
                 $section = 'maids_settings';

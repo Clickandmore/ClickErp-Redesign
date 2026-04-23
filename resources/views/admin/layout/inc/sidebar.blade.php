@@ -135,13 +135,10 @@
 
                 $canViewMaidsData = @AdminGuardHasAnyPerm([\App\PermKeys::NATIONALITIES_VIEW, \App\PermKeys::REC_OFFICES_VIEW, \App\PermKeys::JOB_TITLES_VIEW, \App\PermKeys::RELIGIONS_VIEW, \App\PermKeys::SKILLS_VIEW, \App\PermKeys::USERS_VIEW, \App\PermKeys::MAIDS_VIEW]);
 
-                $canViewStaffManagement = @AdminGuardHasAnyPerm([\App\PermKeys::USERS_VIEW, \App\PermKeys::ROLES_VIEW, \App\PermKeys::SETTINGS_VIEW]);
-
                 $canViewSettingsOperation =
                     $canViewWebsiteManagement ||
                     $canViewHomeSettings ||
                     $canViewMaidsData ||
-                    $canViewStaffManagement ||
                     @AdminGuardHasAnyPerm([\App\PermKeys::PACKAGES_VIEW, \App\PermKeys::OFFICE_VIEW]);
             @endphp
             <ul class="menu-list">
@@ -1348,48 +1345,6 @@
                                     </ul>
                                 </li>
                             @endif
-                            @if ($canViewStaffManagement)
-                                <li class="collapsed">
-                                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#staffManagement"
-                                        href="#">
-                                        <i class="fa fa-users"></i>
-                                        <span class="ms-2">{{ helperTrans('ingaz.staff_management') }}</span>
-                                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
-                                    </a>
-                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['admins.index', 'dash.roles.index', 'dash.activity.log']) ? 'show' : '' }}"
-                                        id="staffManagement">
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::USERS_VIEW))
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'admins.index' ? 'active' : '' }}"
-                                                    href="{{ route('admins.index') }}">
-                                                    <i class="fa fa-users"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.users') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::ROLES_VIEW))
-                                            <li>
-                                                <a href="{{ route('dash.roles.index') }}"
-                                                    class="m-link @if (Route::currentRouteName() == 'dash.roles.index') active @endif">
-                                                    <i class="fa fa-user"></i>
-                                                    <span
-                                                        class="ms-2">{{ helperTrans('ingaz.permissions') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'dash.activity.log' ? 'active' : '' }}"
-                                                    href="{{ route('dash.activity.log') }}">
-                                                    <i class="fa fa-history"></i>
-                                                    <span class="ms-2">{{ __('admin.activity_log') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-                                    </ul>
-                                </li>
-                            @endif
-
                         </ul>
                     </li>
                 @endif

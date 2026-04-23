@@ -904,7 +904,7 @@
     'cv_convert' => 'تحويل السيرة الذاتية',
     'cv_analytics' => 'تحليلات السير الذاتية',
     'cv_reports' => 'تقارير السير الذاتية',
-    'users_management' => 'إدارة المستخدمين',
+    'users_management' => 'التحكم بالوصول',
     'contract_management' => 'إدارة العقود',
     'organization_management' => 'إدارة المؤسسات',
     'order_management' => 'إدارة الطلبات',

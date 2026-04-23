@@ -870,7 +870,7 @@ return [
     'cv_analytics' => 'CV Analytics',
     'cv_reports' => 'CV Reports',
 
-    'users_management' => 'Users Management',
+    'users_management' => 'Access Control',
     'contract_management' => 'Contract Management',
     'organization_management' => 'Organization Management',
     'order_management' => 'Order Management',

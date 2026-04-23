@@ -12,7 +12,7 @@ return [
     'additional_services' => 'Additional Services',
     'settings' => 'Settings',
     'maids_settings' => 'CV Settings',
-    'users_management' => 'User Management',
+    'users_management' => 'Access Control',
     'content_management' => 'Content Management',
 
     // ========================================

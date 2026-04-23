@@ -12,7 +12,7 @@ return [
     'additional_services' => 'خدمات إضافية',
     'settings' => 'الإعدادات',
     'maids_settings' => 'إعدادات السير الذاتية',
-    'users_management' => 'إدارة المستخدمين',
+    'users_management' => 'التحكم بالوصول',
     'content_management' => 'إدارة المحتوى',
 
     // ========================================
