@@ -34,9 +34,9 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label for="title">رقم البند <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control @error('title') is-invalid @enderror"
-                                               id="title" name="term_number" value="{{ old('term_number') }}" required>
+                                        <label for="term_number">رقم البند</label>
+                                        <input type="number" class="form-control @error('term_number') is-invalid @enderror"
+                                               id="term_number" name="term_number" value="{{ old('term_number') }}" min="1">
                                         @error('term_number')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -48,7 +48,7 @@
                                         <input type="number"
                                                class="form-control @error('section_order') is-invalid @enderror"
                                                id="section_order" name="section_order"
-                                               value="{{ old('section_order', 0) }}" min="0">
+                                               value="{{ old('section_order', 1) }}" min="1">
                                         @error('section_order')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -60,7 +60,7 @@
                                         <input type="number"
                                                class="form-control @error('term_order') is-invalid @enderror"
                                                id="term_order" name="term_order"
-                                               value="{{ old('term_order', 0) }}" min="0">
+                                               value="{{ old('term_order', 1) }}" min="1">
                                         @error('term_order')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -72,7 +72,7 @@
                                         <input type="number"
                                                class="form-control @error('page_number') is-invalid @enderror"
                                                id="page_number" name="page_number"
-                                               value="{{ old('page_number', 0) }}" min="0">
+                                               value="{{ old('page_number', 1) }}" min="1" max="3" required>
                                         @error('page_number')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror

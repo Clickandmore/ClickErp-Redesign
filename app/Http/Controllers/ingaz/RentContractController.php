@@ -5,6 +5,7 @@ namespace App\Http\Controllers\ingaz;
 use App\Models\RentalContract;
 use App\Models\RentalContractInfo;
 use App\Models\RentalContractExtension;
+use App\Models\RentalContractTerm;
 use App\Models\Contract;
 use App\Models\ContractPayment;
 use App\Models\ingaz\Maid;
@@ -2029,21 +2030,10 @@ class RentContractController extends Controller
             $contractSettings['email'] = $contractSettings['email'] ?: documentSetting('email', '');
             $contractSettings['logo'] = documentSetting('document_logo', $contractSettings['logo'] ?? null);
 
-            // Get contract terms from database
-            $termsPage1 = collect(); // Empty collection for now
-            $termsPage2 = collect();
-            $termsPage3 = collect();
-
-            // Try to get terms from RentContractTerm
-            try {
-                // Since we don't have page field in RentContractTerm, we'll split them by order
-                $allTerms = \App\Models\RentContractTerm::active()->ordered()->get();
-                $termsPage1 = $allTerms->take(5); // First 5 terms on page 1
-                $termsPage2 = $allTerms->slice(5, 5); // Next 5 terms on page 2
-                $termsPage3 = $allTerms->slice(10); // Remaining terms on page 3
-            } catch (\Exception $e) {
-                // If there's an issue with terms, use empty collections
-            }
+            // Use the same structured terms managed from the admin terms screen.
+            $termsPage1 = RentalContractTerm::active()->byPage(1)->ordered()->get();
+            $termsPage2 = RentalContractTerm::active()->byPage(2)->ordered()->get();
+            $termsPage3 = RentalContractTerm::active()->byPage(3)->ordered()->get();
 
             // التوقيع متاح عندما يكون العقد بانتظار التوقيع أو بعده
             $allowSignature = in_array($contract->status, ['waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active']);

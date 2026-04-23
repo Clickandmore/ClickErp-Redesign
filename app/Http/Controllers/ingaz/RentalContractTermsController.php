@@ -3,13 +3,9 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Controllers\Controller;
-use App\Models\ingaz\Service as objModel;
 use App\Models\RentalContractTerm;
-use App\Models\ingaz\Setting;
-use App\Models\RentContractTerm;
+use App\Models\Setting;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Yajra\DataTables\Facades\DataTables;
 
 class RentalContractTermsController extends Controller
 {
@@ -19,7 +15,10 @@ class RentalContractTermsController extends Controller
 
     public function index()
     {
-        $terms = RentalContractTerm::query()->get();
+        $terms = RentalContractTerm::query()
+            ->orderBy('page_number')
+            ->ordered()
+            ->get();
         $data["createRoute"] = route('rent-contract-terms.create');
         $data["dataTableRoute"] = route('rent-contract-terms.index');
         $data["bladeTitle"] = helperTrans('api.services');
@@ -42,17 +41,13 @@ class RentalContractTermsController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'section_title' => 'required|string',
-            'term_number' => 'required|numeric',
-            'section_order' => 'required|numeric',
-            'term_order' => 'required|numeric',
-            'page_number' => 'required|numeric',
-            'term_content' => 'required|string',
-            'is_active' => 'required',
-        ]);
+        $data = $this->validatedTermData($request);
+
         RentalContractTerm::create($data);
-        return redirect(route('rent-contract-terms.index'));
+
+        return redirect()
+            ->route('rent-contract-terms.index')
+            ->with('success', 'تم إضافة بند العقد بنجاح');
     }
 
     public function edit($id)
@@ -69,36 +64,8 @@ class RentalContractTermsController extends Controller
      */
     public function update(Request $request, $id)
     {
-        // حذف جميع البنود القديمة
-        // RentalContractTerm::truncate();
-
-        // // إضافة البنود الجديدة
-        // if ($request->has('terms')) {
-        //     foreach ($request->terms as $term) {
-        //         if (!empty($term['term_content'])) {
-        //             RentalContractTerm::create([
-        //                 'section_title' => $term['section_title'],
-        //                 'section_order' => $term['section_order'] ?? 1,
-        //                 'term_number' => $term['term_number'] ?? null,
-        //                 'term_content' => $term['term_content'],
-        //                 'term_order' => $term['term_order'] ?? 1,
-        //                 'page_number' => $term['page_number'] ?? 1,
-        //                 'is_active' => isset($term['is_active']) ? true : false
-        //             ]);
-        //         }
-        //     }
-        // }
-
         $rentalContractTerm = RentalContractTerm::findOrFail($id);
-        $rentalContractTerm->section_title = $request->section_title;
-        $rentalContractTerm->section_order = $request->section_order ?? 1;
-        $rentalContractTerm->term_number = $request->term_number ?? null;
-        $rentalContractTerm->term_content = $request->term_content;
-        $rentalContractTerm->term_order = $request->term_order ?? 1;
-        $rentalContractTerm->page_number = $request->page_number ?? 1;
-        $rentalContractTerm->is_active = isset($request->is_active) ? true : false;
-
-        $rentalContractTerm->save();
+        $rentalContractTerm->update($this->validatedTermData($request));
 
         return redirect()->route('rent-contract-terms.index')
             ->with('success', 'تم تحديث بنود العقد بنجاح');
@@ -198,7 +165,7 @@ class RentalContractTermsController extends Controller
             RentalContractTerm::create($term);
         }
 
-        return redirect()->route('rent-contract-terms.edit')
+        return redirect()->route('rent-contract-terms.index')
             ->with('success', 'تم استيراد البنود الافتراضية بنجاح');
     }
 
@@ -266,12 +233,33 @@ class RentalContractTermsController extends Controller
         return jsonSuccess(['url' => route('rent-contract.settings')], __("تم حفظ الإعدادات بنجاح"), 201);
     }
 
-    public function destroy($id){
+    public function destroy($id)
+    {
         $rent_contract_term = RentalContractTerm::findOrFail($id);
         $rent_contract_term->delete();
+
         return response()->json(
             ['success' => true, 'message' => 'تم حذف البند بنجاح.'],
             200
         );
+    }
+
+    private function validatedTermData(Request $request): array
+    {
+        $data = $request->validate([
+            'section_title' => ['required', 'string', 'max:255'],
+            'term_number' => ['nullable', 'integer', 'min:1'],
+            'section_order' => ['nullable', 'integer', 'min:1'],
+            'term_order' => ['nullable', 'integer', 'min:1'],
+            'page_number' => ['required', 'integer', 'in:1,2,3'],
+            'term_content' => ['required', 'string'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        $data['section_order'] = $data['section_order'] ?? 1;
+        $data['term_order'] = $data['term_order'] ?? 1;
+        $data['is_active'] = $request->boolean('is_active');
+
+        return $data;
     }
 }

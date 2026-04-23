@@ -8,7 +8,7 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title">تعديل البند: {{ $term->title }}</h3>
+                        <h3 class="card-title">تعديل البند: {{ $term->section_title }}</h3>
                         <div class="card-tools">
                             <a href="{{ route('rent-contract-terms.index') }}" class="btn btn-secondary btn-sm">
                                 <i class="fas fa-arrow-right"></i> العودة للقائمة
@@ -27,7 +27,7 @@
                                         <input type="text"
                                                class="form-control @error('section_title') is-invalid @enderror"
                                                id="section_title" name="section_title"
-                                               value="{{ $term->section_title }}" required>
+                                               value="{{ old('section_title', $term->section_title) }}" required>
                                         @error('section_title')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -35,9 +35,10 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <label for="title">رقم البند <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control @error('title') is-invalid @enderror"
-                                               id="title" name="term_number" value="{{ $term->term_number }}" required>
+                                        <label for="term_number">رقم البند</label>
+                                        <input type="number" class="form-control @error('term_number') is-invalid @enderror"
+                                               id="term_number" name="term_number"
+                                               value="{{ old('term_number', $term->term_number) }}" min="1">
                                         @error('term_number')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -49,7 +50,7 @@
                                         <input type="number"
                                                class="form-control @error('section_order') is-invalid @enderror"
                                                id="section_order" name="section_order"
-                                               value="{{ $term->section_order }}" min="0">
+                                               value="{{ old('section_order', $term->section_order) }}" min="1">
                                         @error('section_order')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -61,7 +62,7 @@
                                         <input type="number"
                                                class="form-control @error('term_order') is-invalid @enderror"
                                                id="term_order" name="term_order"
-                                               value="{{ $term->term_order }}" min="0">
+                                               value="{{ old('term_order', $term->term_order) }}" min="1">
                                         @error('term_order')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -73,7 +74,7 @@
                                         <input type="number"
                                                class="form-control @error('page_number') is-invalid @enderror"
                                                id="page_number" name="page_number"
-                                               value="{{ $term->page_number }}" min="0">
+                                               value="{{ old('page_number', $term->page_number) }}" min="1" max="3" required>
                                         @error('page_number')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -82,7 +83,7 @@
                                 <div class="form-group">
                                     <label for="term_content">محتوى البند <span class="text-danger">*</span></label>
                                     <textarea class="form-control @error('term_content') is-invalid @enderror"
-                                              name="term_content" rows="5" required>{{ $term->term_content }}</textarea>
+                                              name="term_content" rows="5" required>{{ old('term_content', $term->term_content) }}</textarea>
                                     @error('term_content')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
