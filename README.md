@@ -1,8 +1,12 @@
 
-## 00. تشغيل Seeder الخاص بالصلاحيات بالموديول crm, finance, hr
-قم بتشغيل Seeder الأساسي:
+## 00. تشغيل Seeder الخاص بالصلاحيات
+قم بتشغيل Seeders :
 ```bash
-php artisan db:seed --class=AddPackageModulePermissionsSeeder
+php artisan access-control:sync-permissions --registry-only --no-assign-roles
+php artisan access-control:sync-permissions --include-main
+php artisan assign:all-permissions-to-admin
+php artisan admin:assign-permissions-to-first
+php artisan permission:cache-reset
 ```
 
 ## حماية packages من ضياع التعديلات
