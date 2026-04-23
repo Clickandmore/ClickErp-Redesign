@@ -67,7 +67,10 @@
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
         ],
+        "package:attach": "bash ./scripts/package-attach-branches.sh",
+        "package:backup": "bash ./scripts/package-backup.sh",
         "package:check": "bash ./scripts/check-package-repos.sh",
+        "package:update-safe": "bash ./scripts/safe-submodule-update.sh",
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
         ],

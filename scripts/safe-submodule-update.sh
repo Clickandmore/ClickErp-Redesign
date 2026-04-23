@@ -44,6 +44,9 @@ if [[ ${#submodules[@]} -eq 0 ]]; then
     exit 1
 fi
 
+bash "$repo_root/scripts/package-backup.sh"
+bash "$repo_root/scripts/package-attach-branches.sh" --quiet
+
 check_clean() {
     local label="$1"
     local path="$2"
@@ -70,6 +73,7 @@ done
 
 git submodule sync --recursive
 git submodule update "${update_args[@]}"
+bash "$repo_root/scripts/package-attach-branches.sh" --quiet
 
 echo "Submodules are synced and clean."
 git submodule status --recursive
