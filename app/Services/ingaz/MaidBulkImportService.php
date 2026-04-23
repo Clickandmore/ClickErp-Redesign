@@ -41,14 +41,6 @@ class MaidBulkImportService
 
     private const DEFAULT_DURATION = '24 شهر';
 
-    private const DEFAULT_RENTAL_FINANCE_ITEMS = [
-        ['type' => 'expense', 'label' => 'رسوم تأشيرة', 'amount' => 2000],
-        ['type' => 'expense', 'label' => 'تفويض', 'amount' => 133],
-        ['type' => 'expense', 'label' => 'الإقامة', 'amount' => 0],
-        ['type' => 'expense', 'label' => 'كرت عمل', 'amount' => 0],
-        ['type' => 'expense', 'label' => 'تأمين طبي', 'amount' => 0],
-    ];
-
     private const LANGUAGE_ALIASES = [
         'arabic' => ['arabic', 'العربية', 'عربي'],
         'english' => ['english', 'الإنجليزية', 'انجليزي', 'الانجليزية'],
@@ -73,6 +65,10 @@ class MaidBulkImportService
         'متزوجة' => 'married',
         'متزوج' => 'married',
     ];
+
+    public function __construct(protected RentalMaidFinanceService $rentalMaidFinanceService)
+    {
+    }
 
     public function templateColumns(): array
     {
@@ -746,7 +742,7 @@ class MaidBulkImportService
         }
 
         if ($jobType && $this->isRentalJobType($jobType)) {
-            $data['rental_finance_items'] = self::DEFAULT_RENTAL_FINANCE_ITEMS;
+            $data['rental_finance_items'] = $this->rentalMaidFinanceService->getFormItems();
             $data['rental_finance_items_confirmed'] = 1;
         }
 

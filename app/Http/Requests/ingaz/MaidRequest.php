@@ -40,6 +40,18 @@ class MaidRequest extends MainRequest
             'experience_years' => 'nullable',
             'experience_status' => 'required|in:has_experience,no_experience',
             'religion_id' => 'nullable|exists:religions,id',
+            'id_number' => [
+                Rule::requiredIf(fn () => $this->requiresIdentityFields()),
+                'nullable',
+                'string',
+                'max:30',
+                'regex:/^[0-9A-Za-z-]{5,30}$/',
+            ],
+            'id_expiry_date' => [
+                Rule::requiredIf(fn () => $this->requiresIdentityFields()),
+                'nullable',
+                'date',
+            ],
             'age' => 'nullable|numeric|min:20|max:50',
             'childrens_count' => 'nullable|numeric',
             'duration' => 'nullable|string',
@@ -49,11 +61,16 @@ class MaidRequest extends MainRequest
             'job_id' => 'required|array',
             'job_id.*' => 'required|exists:job_titles,id',
             'type_id' => 'required|exists:job_types,id',
-            'office_id' => 'nullable|exists:recruitment_offices,id',
+            'office_id' => [
+                Rule::requiredIf(fn () => $this->requiresOfficeField()),
+                'nullable',
+                'exists:recruitment_offices,id',
+            ],
             'languages' => 'nullable|array',
             'percentage' => 'nullable|array',
             'expertises' => 'nullable|array',
             'rental_finance_items' => 'nullable|array',
+            'rental_finance_items.*.account_id' => 'nullable|exists:fn_accounts,id',
             'rental_finance_items.*.type' => 'nullable|in:income,expense',
             'rental_finance_items.*.label' => 'nullable|string|max:150',
             'rental_finance_items.*.amount' => 'nullable|numeric|min:0',
@@ -93,6 +110,11 @@ class MaidRequest extends MainRequest
             'salary.numeric' => helperTrans('web.salary_must_be_numeric'),
             'religion_id.required' => helperTrans('web.religion_id_is_required'),
             'religion_id.exists' => helperTrans('web.invalid_religion_id'),
+            'id_number.required' => 'رقم الهوية مطلوب لعاملة التأجير',
+            'id_number.max' => 'رقم الهوية يجب ألا يتجاوز 30 خانة',
+            'id_number.regex' => 'يجب إدخال رقم هوية صالح من 5 إلى 30 خانة باستخدام الأرقام أو الحروف أو الشرطة (-)',
+            'id_expiry_date.required' => 'تاريخ انتهاء الهوية مطلوب لعاملة التأجير',
+            'id_expiry_date.date' => 'تاريخ انتهاء الهوية يجب أن يكون تاريخاً صالحاً',
             'age.numeric' => helperTrans('web.age_must_be_numeric'),
             'age.min' => __('web.age_min', ['min'=> '20']),
             'age.max' => __('web.age_max', ['max'=> '50']),
@@ -102,6 +124,7 @@ class MaidRequest extends MainRequest
             'job_id.*.exists' => helperTrans('web.invalid_job_id'),
             'type_id.required' => helperTrans('web.type_id_is_required'),
             'type_id.exists' => helperTrans('web.invalid_type_id'),
+            'office_id.required' => 'المكتب الخارجي مطلوب لعاملة التأجير',
             'office_id.exists' => helperTrans('web.office_id not exist'),
             'offer_price.numeric' => helperTrans('web.price_must_be_numeric'),
             'offer_price.min' => helperTrans('web.price_must_be_numeric'),
@@ -146,5 +169,15 @@ class MaidRequest extends MainRequest
             || str_contains($normalizedTitle, 'ايجار')
             || str_contains($normalizedTitle, 'تاجير')
             || str_contains($normalizedTitle, 'rent');
+    }
+
+    private function requiresIdentityFields(): bool
+    {
+        return $this->isSelectedRentalType();
+    }
+
+    private function requiresOfficeField(): bool
+    {
+        return $this->isSelectedRentalType();
     }
 }

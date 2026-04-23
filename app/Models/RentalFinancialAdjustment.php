@@ -12,6 +12,9 @@ class RentalFinancialAdjustment extends Model
     protected $fillable = [
         'rental_contract_id',
         'maid_id',
+        'account_id',
+        'constraint_id',
+        'cost_center_id',
         'type',
         'label',
         'amount',
@@ -36,6 +39,21 @@ class RentalFinancialAdjustment extends Model
     public function maid()
     {
         return $this->belongsTo(\App\Models\ingaz\Maid::class, 'maid_id');
+    }
+
+    public function account()
+    {
+        return $this->belongsTo(\Nami\Finance\Models\Account::class, 'account_id');
+    }
+
+    public function constraint()
+    {
+        return $this->belongsTo(\Nami\Finance\Models\Constraint::class, 'constraint_id');
+    }
+
+    public function costCenter()
+    {
+        return $this->belongsTo(\Nami\Finance\Models\CostCenter::class, 'cost_center_id');
     }
 
     public function creator()

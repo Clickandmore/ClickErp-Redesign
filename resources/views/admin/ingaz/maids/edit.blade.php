@@ -12,25 +12,36 @@
         || str_contains($normalizedSelectedTypeTitle, 'ايجار')
         || str_contains($normalizedSelectedTypeTitle, 'تاجير')
         || str_contains($normalizedSelectedTypeTitle, 'rent');
-    $defaultRentalFinanceItems = [
-        ['type' => 'expense', 'label' => 'رسوم تأشيرة', 'amount' => 2000],
-        ['type' => 'expense', 'label' => 'تفويض', 'amount' => 133],
-        ['type' => 'expense', 'label' => 'الإقامة', 'amount' => 0],
-        ['type' => 'expense', 'label' => 'كرت عمل', 'amount' => 0],
-        ['type' => 'expense', 'label' => 'تأمين طبي', 'amount' => 0],
-    ];
-    $rentalFinanceItems = $obj->rentalFinancialAdjustments()
+    $defaultRentalFinanceItems = app(\App\Services\ingaz\RentalMaidFinanceService::class)->getFormItems();
+    $storedRentalFinanceItems = $obj->rentalFinancialAdjustments()
         ->where('context', 'maid')
-        ->get(['id', 'type', 'label', 'amount'])
+        ->with('account:id,code,name')
+        ->get(['id', 'type', 'label', 'amount', 'account_id'])
         ->map(fn ($item) => [
             'id' => $item->id,
+            'account_id' => $item->account_id,
+            'account_code' => $item->account?->code,
             'type' => $item->type,
             'label' => $item->label,
             'amount' => $item->amount,
         ])
         ->values()
         ->all();
-    $rentalFinanceItems = !empty($rentalFinanceItems) ? $rentalFinanceItems : $defaultRentalFinanceItems;
+    $rentalFinanceItems = old('rental_finance_items', !empty($storedRentalFinanceItems) ? $storedRentalFinanceItems : $defaultRentalFinanceItems);
+    $rentalFinanceItems = collect($rentalFinanceItems)->map(function ($item) {
+        $account = !empty($item['account_id'])
+            ? \Nami\Finance\Models\Account::query()->select(['id', 'code', 'name'])->find($item['account_id'])
+            : null;
+
+        return [
+            'id' => $item['id'] ?? null,
+            'account_id' => $item['account_id'] ?? null,
+            'account_code' => $item['account_code'] ?? $account?->code,
+            'type' => $item['type'] ?? 'expense',
+            'label' => $account?->name ?? ($item['label'] ?? ''),
+            'amount' => $item['amount'] ?? 0,
+        ];
+    })->values()->all();
 @endphp
 
 @section("style")
@@ -561,7 +572,7 @@
                                     <table class="table table-bordered align-middle mb-0">
                                         <thead class="table-light">
                                             <tr>
-                                                <th style="width: 18%;">النوع</th>
+                                                <th style="width: 15%;">الحساب</th>
                                                 <th>البند</th>
                                                 <th style="width: 22%;">المبلغ</th>
                                             </tr>
@@ -569,12 +580,17 @@
                                         <tbody>
                                             @foreach ($rentalFinanceItems as $index => $item)
                                                 <tr>
-                                                    <td>{{ ($item['type'] ?? 'expense') === 'income' ? 'إيراد' : 'مصروف' }}</td>
+                                                    <td>
+                                                        <span class="badge bg-light text-dark border">
+                                                            {{ $item['account_code'] ?: '-' }}
+                                                        </span>
+                                                    </td>
                                                     <td>
                                                         {{ $item['label'] ?? '' }}
                                                         @if (!empty($item['id']))
                                                             <input type="hidden" name="rental_finance_items[{{ $index }}][id]" value="{{ $item['id'] }}">
                                                         @endif
+                                                        <input type="hidden" name="rental_finance_items[{{ $index }}][account_id]" value="{{ $item['account_id'] ?? '' }}">
                                                         <input type="hidden" name="rental_finance_items[{{ $index }}][type]" value="{{ $item['type'] ?? 'expense' }}">
                                                         <input type="hidden" name="rental_finance_items[{{ $index }}][label]" value="{{ $item['label'] ?? '' }}">
                                                     </td>
@@ -895,9 +911,7 @@
                     heightWeightFields.hide();
                     maritalStatusField.hide();
                     salaryField.hide();
-                    officeField.hide();
                     languagesField.hide();
-                    idFields.hide();
                     priceLabel.text('تكلفه الايجار الشهري');
 
                     // Show shelter option for rental maids
@@ -909,8 +923,6 @@
                     $('input[name="height"], input[name="weight"]').removeAttr('required');
                     $('select[name="marital_status:ar"]').removeAttr('required');
                     $('input[name="salary"]').removeAttr('required');
-                    $('select[name="office_id"]').removeAttr('required');
-                    $('input[name="id_number"], input[name="id_expiry_date"]').removeAttr('required');
 
                     // Set rental cost from nationality if selected
                     var selectedNationality = $('#Pnationality_id option:selected');
@@ -1226,17 +1238,14 @@
                     heightWeightFields.hide();
                     maritalStatusField.hide();
                     salaryField.hide();
-                    officeField.hide();
                     languagesField.hide();
                     arrivalDateField.show();
                     priceLabel.text('تكلفه الايجار الشهري');
                     maritalStatusEnField.val('');
                     shouldUpdateMaritalTranslation = false;
-                    idInputs.removeAttr('required');
                     heightWeightInputs.removeAttr('required');
                     maritalStatusSelect.removeAttr('required');
                     salaryInput.removeAttr('required');
-                    officeSelect.removeAttr('required');
                     rentalFinanceSection.show();
                 } else {
                     arrivalDateInput.val('');
@@ -1301,7 +1310,7 @@
 
                 var isValid = true;
                 var errors = [];
-                var selectedType = $('select[name="type_id"] option:selected').text().trim();
+                var typeContext = getTypeContext();
 
                 // التحقق من الملفات
                 var image = $('input[name="image"]').get(0).files.length;
@@ -1312,12 +1321,18 @@
                     isValid = false;
                 }
 
-                // التحقق من رقم الهوية فقط إذا لم يكن نوع السيرة "استقدام" أو "إستلام فورى" أو "ايجار عمالة" أو "تأجير"
-                if (selectedType !== 'استقدام' && selectedType !== 'إستلام فورى' && selectedType !== 'ايجار عمالة' && selectedType !== 'تأجير') {
+                // التحقق من رقم الهوية وتاريخ الانتهاء لكل الأنواع التي تتطلبهما، ومنها التأجير
+                if (!typeContext.isRecruitment && !typeContext.isInstantTransfer) {
                     var idNumber = $('#id_number').val().trim();
                     var idPattern = /^[0-9a-zA-Z-]{5,30}$/;
                     if (!idNumber || !idPattern.test(idNumber)) {
                         errors.push('يجب إدخال رقم هوية صالح (5-30 خانة من الأرقام أو الحروف أو الشرطة)');
+                        isValid = false;
+                    }
+
+                    var idExpiryDate = $('input[name="id_expiry_date"]').val().trim();
+                    if (!idExpiryDate) {
+                        errors.push('تاريخ انتهاء الهوية مطلوب');
                         isValid = false;
                     }
                 }
@@ -1347,28 +1362,25 @@
                     }
                 }
 
-                // التحقق من الحقول المطلوبة فقط إذا لم يكن نوع السيرة "إستلام فورى" أو "ايجار عمالة" أو "تأجير"
-                if (selectedType !== 'إستلام فورى' && selectedType !== 'ايجار عمالة' && selectedType !== 'تأجير') {
-                    var additionalRequiredFields = {
-                        'office_id': 'مكتب التوظيف'
-                    };
-
-                    // التحقق من الحقول الإضافية المطلوبة
-                    for (var field in additionalRequiredFields) {
-                        var value = $('[name="' + field + '"]').val();
-                        if (!value || value.trim() === '') {
-                            errors.push(additionalRequiredFields[field] + ' مطلوب');
-                            isValid = false;
-                        }
+                // المكتب الخارجي مطلوب لكل الأنواع ما عدا الاستلام الفوري
+                if (!typeContext.isInstantTransfer) {
+                    var officeValue = $('[name="office_id"]').val();
+                    if (!officeValue || officeValue.trim() === '') {
+                        errors.push('المكتب الخارجي مطلوب');
+                        isValid = false;
                     }
+                }
 
+                if (!typeContext.isInstantTransfer) {
                     // التحقق من الوظائف
                     var jobs = $('select[name="job_id[]"]').val();
                     if (!jobs || jobs.length === 0) {
                         errors.push('معرف الوظيفة مطلوب');
                         isValid = false;
                     }
+                }
 
+                if (!typeContext.isInstantTransfer && !typeContext.isRental) {
                     var maritalStatus = $('select[name="marital_status:ar"]').val();
                     if (!maritalStatus || maritalStatus.trim() === '') {
                         errors.push('الحالة الاجتماعية مطلوبة');

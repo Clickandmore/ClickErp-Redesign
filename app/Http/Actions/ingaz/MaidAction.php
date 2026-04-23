@@ -9,6 +9,8 @@ use App\Models\ContractInfo;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\User as ClientUser;
+use App\Services\ingaz\RentalMaidAccountingService;
+use App\Services\ingaz\RentalMaidFinanceService;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -22,8 +24,12 @@ use Nami\Hr\Models\Shift as HrShift;
 
 class MaidAction extends MainAction
 {
-    public function __construct(Maid $model, protected MaidExpertiseAction $maidExpertiseAction)
-    {
+    public function __construct(
+        Maid $model,
+        protected MaidExpertiseAction $maidExpertiseAction,
+        protected RentalMaidFinanceService $rentalMaidFinanceService,
+        protected RentalMaidAccountingService $rentalMaidAccountingService
+    ) {
         $this->model = $model;
         $this->fileFolder = 'images/Maid/';
     }
@@ -311,6 +317,9 @@ class MaidAction extends MainAction
         $jobTypeIds = $this->resolveRequiredJobTypeIds($request);
 
         // Handle marital_status:ar field for translation
+        $maritalStatusAr = null;
+        $maritalStatusEn = null;
+
         if (isset($data['marital_status:ar'])) {
             $maritalStatusAr = $data['marital_status:ar'];
             unset($data['marital_status:ar']);
@@ -321,125 +330,127 @@ class MaidAction extends MainAction
         }
 
         try {
-            // dd($createData, $data,$maritalStatusAr, $maritalStatusEn);
-            $maid = $this->model->create($createData);
-            \Log::info('Maid created successfully with ID: ' . $maid->id);
+            $maid = DB::transaction(function () use ($createData, $data, $request, $experienceStatus, $jobTypeIds, $maritalStatusAr, $maritalStatusEn) {
+                $maid = $this->model->create($createData);
+                \Log::info('Maid created successfully with ID: ' . $maid->id);
 
-            // Handle translation fields
-            if (isset($maritalStatusAr)) {
-                $maid->translateOrNew('ar')->marital_status = $maritalStatusAr;
-            }
-            if (isset($maritalStatusEn)) {
-                $maid->translateOrNew('en')->marital_status = $maritalStatusEn;
-            }
-
-            // توليد cv_code بناءً على المكتب
-            if ($maid->office_id || $maid->office?->title) {
-                // أول 3 أحرف من اسم المكتب
-                $prefix = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $maid->office->title), 0, 3));
-                if ($prefix === '') $prefix = 'OFF';
-
-                // رقم تسلسلي حسب عدد العاملات في نفس المكتب
-                $count = $this->model->where('office_id', $maid->office_id)
-                    ->where('id', '<=', $maid->id)
-                    ->count();
-
-                $length = strlen((string) $count);
-                $cvCode = $prefix . "/" . str_pad($count, max(3, $length), '0', STR_PAD_LEFT);
-
-                $maid->cv_code = $cvCode;
+                if (isset($maritalStatusAr)) {
+                    $maid->translateOrNew('ar')->marital_status = $maritalStatusAr;
+                }
+                if (isset($maritalStatusEn)) {
+                    $maid->translateOrNew('en')->marital_status = $maritalStatusEn;
+                }
                 $maid->save();
 
-                \Log::info('Mahmod Amer $cvCode: ' . ($cvCode ?? 'no cv_code'));
-            }
+                if ($maid->office_id || $maid->office?->title) {
+                    $prefix = strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $maid->office->title), 0, 3));
+                    if ($prefix === '') {
+                        $prefix = 'OFF';
+                    }
+
+                    $count = $this->model->where('office_id', $maid->office_id)
+                        ->where('id', '<=', $maid->id)
+                        ->count();
+
+                    $length = strlen((string) $count);
+                    $cvCode = $prefix . "/" . str_pad($count, max(3, $length), '0', STR_PAD_LEFT);
+
+                    $maid->cv_code = $cvCode;
+                    $maid->save();
+
+                    \Log::info('Mahmod Amer $cvCode: ' . ($cvCode ?? 'no cv_code'));
+                }
+
+                if ($experienceStatus === 'has_experience' && isset($data['expertises'])) {
+                    foreach ($data['expertises'] as $expertise) {
+                        $expertise['maid_id'] = $maid->id;
+                        $this->maidExpertiseAction->store($expertise);
+                    }
+                }
+
+                if ($request->job_id) {
+                    \Log::info('About to attach job titles: ' . print_r($request->job_id, true));
+                    $maid->jobTitles()->attach($request->job_id);
+                    \Log::info('Job titles attached successfully');
+                } else {
+                    \Log::info('Skipping job titles attach - no job_id provided.');
+                }
+
+                \Log::info('About to sync job types: ' . print_r($jobTypeIds, true));
+                $maid->jobTypes()->sync($jobTypeIds);
+                \Log::info('Job types synced successfully');
+
+                $this->syncRentalMaidFinancialAdjustments($maid, $request);
+
+                if ($this->isRentalTypeRequest($request)) {
+                    $this->rentalMaidAccountingService->recordCreationEntries($maid);
+                }
+
+                if (($request->create_shelter_contract ?? '0') === '1') {
+                    $this->createShelterContractForMaid($maid);
+                    $request->merge(['create_shelter_contract' => '0']);
+                }
+
+                try {
+                    $createShelterContract = $request->create_shelter_contract ?? '0';
+
+                    if ($createShelterContract === '1') {
+                        DB::beginTransaction();
+                        $companyClient = ClientUser::where('name', 'like', '%شركة  بلاتنيوم الشرقية %')
+                            ->orWhere('email', 'company@platinumestern.com')
+                            ->orWhere('phone', '0500000002')
+                            ->first();
+
+                        if (!$companyClient) {
+                            $companyClient = ClientUser::create([
+                                'name' => ' شركة بلاتنيوم الشرقية للاستقدام ',
+                                'email' => 'company@platinumestern.com',
+                                'phone' => '0500000002',
+                                'password' => bcrypt('password123'),
+                            ]);
+                        }
+
+                        $contract = Contract::create([
+                            'user_id' => $companyClient->id,
+                            'maid_id' => $maid->id,
+                            'status' => ContractStatusEnum::Shelter->value,
+                            'contract_date' => now()->toDateString(),
+                        ]);
+
+                        ContractInfo::create([
+                            'contract_id' => $contract->id,
+                            'contract_date' => now()->toDateString(),
+                            'msaned_number' => '',
+                            'shelter_id' => 1,
+                            'wants_to_work' => 'unknown',
+                            'receipt_source' => 'company',
+                        ]);
+
+                        $maid->update([
+                            'status' => 'available',
+                            'maid_accommodation_type' => 2,
+                            'available' => 1,
+                            'available_at' => now()->toDateString(),
+                        ]);
+
+                        DB::commit();
+                        \Log::info('Shelter contract created by user choice for maid ID: ' . $maid->id . ' with contract ID: ' . $contract->id);
+                    }
+                } catch (\Throwable $t) {
+                    DB::rollBack();
+                    \Log::error('Failed to create shelter contract for maid: ' . $t->getMessage());
+                }
+
+                $maid->jobTypes()->sync($this->resolveRequiredJobTypeIds($request, $maid));
+
+                return $maid;
+            });
         } catch (\Exception $e) {
             \Log::error('Error creating maid: ' . $e->getMessage());
             \Log::error('Error trace: ' . $e->getTraceAsString());
             throw $e;
         }
 
-        if ($experienceStatus === 'has_experience' && isset($data['expertises'])) {
-            foreach ($data['expertises'] as $expertise) {
-                $expertise['maid_id'] = $maid->id;
-                $this->maidExpertiseAction->store($expertise);
-            }
-        }
-
-        if ($request->job_id) {
-            \Log::info('About to attach job titles: ' . print_r($request->job_id, true));
-            $maid->jobTitles()->attach($request->job_id);
-            \Log::info('Job titles attached successfully');
-        } else {
-            \Log::info('Skipping job titles attach - no job_id provided.');
-        }
-
-        \Log::info('About to sync job types: ' . print_r($jobTypeIds, true));
-        $maid->jobTypes()->sync($jobTypeIds);
-        \Log::info('Job types synced successfully');
-
-        $this->syncRentalMaidFinancialAdjustments($maid, $request);
-        if (($request->create_shelter_contract ?? '0') === '1') {
-            $this->createShelterContractForMaid($maid);
-            $request->merge(['create_shelter_contract' => '0']);
-        }
-
-        // Create Shelter contract if user selected the option
-        try {
-            $createShelterContract = $request->create_shelter_contract ?? '0';
-
-            if ($createShelterContract === '1') {
-                DB::beginTransaction();
-                // Find or create company client )
-                $companyClient = ClientUser::where('name', 'like', '%شركة  بلاتنيوم الشرقية %')
-                    ->orWhere('email', 'company@platinumestern.com')
-                    ->orWhere('phone', '0500000002')
-                    ->first();
-
-                if (!$companyClient) {
-                    $companyClient = ClientUser::create([
-                        'name' => ' شركة بلاتنيوم الشرقية للاستقدام ',
-                        'email' => 'company@platinumestern.com',
-                        'phone' => '0500000002',
-                        'password' => bcrypt('password123'),
-                    ]);
-                }
-
-                // Create shelter contract
-                $contract = Contract::create([
-                    'user_id' => $companyClient->id,
-                    'maid_id' => $maid->id,
-                    'status' => ContractStatusEnum::Shelter->value,
-                    'contract_date' => now()->toDateString(),
-                ]);
-
-                // Create contract info with complete data
-                ContractInfo::create([
-                    'contract_id' => $contract->id,
-                    'contract_date' => now()->toDateString(),
-                    'msaned_number' => '',
-                    'shelter_id' => 1, // Default shelter
-                    'wants_to_work' => 'unknown',
-                    'receipt_source' => 'company', // Use translatable key
-                ]);
-
-                // Update maid status to in accommodation but available for work
-                $maid->update([
-                    // 'status' => 'in_accommodation',
-                    'status' => 'available',
-                    'maid_accommodation_type' => 2,
-                    'available' => 1, // متاحة للعمل
-                    'available_at' => now()->toDateString(),
-                ]);
-
-                DB::commit();
-                \Log::info('Shelter contract created by user choice for maid ID: ' . $maid->id . ' with contract ID: ' . $contract->id);
-            }
-        } catch (\Throwable $t) {
-            DB::rollBack();
-            \Log::error('Failed to create shelter contract for maid: ' . $t->getMessage());
-        }
-
-        $maid->jobTypes()->sync($this->resolveRequiredJobTypeIds($request, $maid));
         $this->syncHrMaidRecord($maid->fresh(['jobTypes', 'nationality', 'office']));
         return $maid;
     }
@@ -524,6 +535,7 @@ class MaidAction extends MainAction
 
         foreach ($items as $item) {
             $maid->rentalFinancialAdjustments()->create([
+                'account_id' => $item['account_id'] ?? null,
                 'type' => $item['type'],
                 'label' => $item['label'],
                 'amount' => $item['amount'],
@@ -552,6 +564,7 @@ class MaidAction extends MainAction
 
         foreach ($items as $item) {
             $payload = [
+                'account_id' => $item['account_id'] ?? null,
                 'type' => $item['type'],
                 'label' => $item['label'],
                 'amount' => $item['amount'],
@@ -572,30 +585,7 @@ class MaidAction extends MainAction
             return [];
         }
 
-        $items = [];
-
-        foreach ((array) $request->input('rental_finance_items', []) as $item) {
-            $itemId = isset($item['id']) && is_numeric($item['id']) ? (int) $item['id'] : null;
-            $label = trim((string) ($item['label'] ?? ''));
-
-            if ($label === '') {
-                continue;
-            }
-
-            $type = in_array($item['type'] ?? 'expense', ['income', 'expense'], true)
-                ? $item['type']
-                : 'expense';
-            $amount = is_numeric($item['amount'] ?? null) ? (float) $item['amount'] : 0.0;
-
-            $items[] = [
-                'id' => $itemId,
-                'type' => $type,
-                'label' => $label,
-                'amount' => $amount,
-            ];
-        }
-
-        return $items;
+        return $this->rentalMaidFinanceService->resolveRequestItems($request);
     }
 
     private function getRentalJobTypeId(): ?int

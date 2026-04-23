@@ -819,6 +819,78 @@
                     <div class="section-card">
                         <div class="section-header">
                             <h3 class="section-title">
+                                <i class="fas fa-file-invoice-dollar"></i>
+                                المستندات المالية
+                            </h3>
+                        </div>
+
+                        @if ($contract->financeInvoice)
+                            <ul class="detail-list">
+                                <li>
+                                    <span class="label">رقم الفاتورة</span>
+                                    <span class="value highlight">#{{ $contract->financeInvoice->id }}</span>
+                                </li>
+                                <li>
+                                    <span class="label">إجمالي الفاتورة</span>
+                                    <span class="value">{{ number_format((float) $contract->financeInvoice->total_due, 2) }} ريال</span>
+                                </li>
+                                <li>
+                                    <span class="label">المبلغ المسدد</span>
+                                    <span class="value">{{ number_format((float) $contract->financeInvoice->paid_amount, 2) }} ريال</span>
+                                </li>
+                                <li>
+                                    <span class="label">المتبقي</span>
+                                    <span class="value">{{ number_format((float) $contract->financeInvoice->remaining_amount, 2) }} ريال</span>
+                                </li>
+                                <li>
+                                    <span class="label">حساب القبض</span>
+                                    <span class="value">{{ $contract->financeInvoice->receiptAccount?->name ?? 'غير محدد' }}</span>
+                                </li>
+                            </ul>
+
+                            <div class="d-flex flex-wrap gap-2 mt-3">
+                                <a href="{{ route('rental.invoice.download', ['id' => $contract->financeInvoice->id, 'autoprint' => 1]) }}"
+                                    target="_blank" class="btn btn-primary">
+                                    <i class="fas fa-file-invoice me-1"></i>
+                                    طباعة الفاتورة
+                                </a>
+
+                                @if ($contract->financeInvoice->receipt_bond_id)
+                                    <a href="{{ route('finance.bonds-print.show', ['bonds_print' => $contract->financeInvoice->receipt_bond_id, 'type' => 'qabd']) }}"
+                                        target="_blank" class="btn btn-outline-primary">
+                                        <i class="fas fa-receipt me-1"></i>
+                                        طباعة سند القبض
+                                    </a>
+                                @endif
+
+                                @if ($contract->financeInvoice->invoice_constraint_id)
+                                    <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $contract->financeInvoice->invoice_constraint_id, 'autoprint' => 1]) }}"
+                                        target="_blank" class="btn btn-outline-secondary">
+                                        <i class="fas fa-book me-1"></i>
+                                        قيد الفاتورة
+                                    </a>
+                                @endif
+
+                                @if ($contract->financeInvoice->receipt_constraint_id)
+                                    <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $contract->financeInvoice->receipt_constraint_id, 'autoprint' => 1]) }}"
+                                        target="_blank" class="btn btn-outline-secondary">
+                                        <i class="fas fa-book-open me-1"></i>
+                                        قيد سند القبض
+                                    </a>
+                                @endif
+                            </div>
+                        @else
+                            <div class="empty-state">
+                                لم يتم إنشاء مستندات مالية لهذا العقد حتى الآن.
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="col-xl-6">
+                    <div class="section-card">
+                        <div class="section-header">
+                            <h3 class="section-title">
                                 <i class="fas fa-route"></i>
                                 مراحل العقد
                             </h3>

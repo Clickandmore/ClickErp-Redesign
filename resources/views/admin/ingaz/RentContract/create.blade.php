@@ -1361,13 +1361,21 @@
                                         text: response.message,
                                         icon: 'success',
                                         showCancelButton: true,
-                                        confirmButtonText: 'طباعة العقد',
+                                        confirmButtonText: 'طباعة المستندات',
                                         cancelButtonText: 'الذهاب للقائمة',
                                         confirmButtonColor: '#2794eb',
                                         cancelButtonColor: '#6c757d'
                                     }).then((result) => {
-                                        if (result.isConfirmed && response.print_url) {
-                                            window.open(response.print_url, '_blank');
+                                        if (result.isConfirmed) {
+                                            if (response.print_url) {
+                                                window.open(response.print_url, '_blank');
+                                            }
+                                            if (response.invoice_print_url) {
+                                                window.open(response.invoice_print_url, '_blank');
+                                            }
+                                            if (response.receipt_bond_print_url) {
+                                                window.open(response.receipt_bond_print_url, '_blank');
+                                            }
                                             setTimeout(() => {
                                                 window.location.href = response.redirect_url;
                                             }, 1000);

@@ -15,6 +15,16 @@
         || str_contains($normalizedSelectedTypeTitle, 'ايجار')
         || str_contains($normalizedSelectedTypeTitle, 'تاجير')
         || str_contains($normalizedSelectedTypeTitle, 'rent');
+    $rentalFinanceItems = collect($rentalFinanceItems ?? [])->map(function ($item) {
+        return [
+            'id' => $item['id'] ?? null,
+            'account_id' => $item['account_id'] ?? null,
+            'account_code' => $item['account_code'] ?? '',
+            'type' => $item['type'] ?? 'expense',
+            'label' => $item['label'] ?? '',
+            'amount' => $item['amount'] ?? 0,
+        ];
+    })->values();
 @endphp
 
 @section('style')
@@ -456,17 +466,18 @@
                     </div>
                     <div class="col-12" id="rental_finance_preview" style="display: none;">
                         <input type="hidden" name="rental_finance_items_confirmed" id="rental_finance_items_confirmed"
-                            value="0">
+                            value="{{ old('rental_finance_items_confirmed', '0') }}">
                         <div class="card border-0 shadow-sm">
                             <div
                                 class="card-body d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
                                 <div>
                                     <h6 class="mb-1">بنود مالية التأجير</h6>
-                                    <p class="text-muted mb-2">تظهر البنود داخل نافذة منبثقة، ويمكنك إضافة بنود أخرى ثم
-                                        تأكيدها قبل حفظ العاملة.</p>
+                                    <p class="text-muted mb-2">تُسحب البنود من إعدادات الحساب، وتحمل نفس مسميات الشجرة
+                                        المالية وتُستخدم في القيد التلقائي عند حفظ عاملة التأجير.</p>
                                     <div class="fw-semibold text-danger" id="rental_finance_status">لم يتم تأكيد البنود بعد.</div>
                                     <small class="text-muted d-block mt-1" id="rental_finance_summary">
-                                        توجد 5 بنود افتراضية جاهزة للمراجعة ويمكن تعديلها أو إضافة غيرها.
+                                        تم تحميل {{ $rentalFinanceItems->count() }} بنداً من إعدادات الحساب. يمكن تعديل
+                                        المبالغ، وأي بند بقيمة صفر لن يدخل في القيد المحاسبي.
                                     </small>
                                     @error('rental_finance_items_confirmed')
                                         <small class="text-danger d-block mt-2">{{ $message }}</small>
@@ -492,47 +503,42 @@
                                 </div>
                                 <div class="modal-body">
                                     <div class="alert alert-info mb-3">
-                                        راجع البنود الافتراضية، ويمكنك إضافة أو حذف أو تعديل أي بند قبل التأكيد النهائي.
+                                        البنود التالية مرتبطة مباشرة بحسابات الشجرة المالية. عدّل المبالغ فقط، وسيتم
+                                        الترحيل على نفس الحساب ومركز تكلفة العاملات عند الحفظ.
                                     </div>
                                     <div class="table-responsive">
                                         <table class="table table-bordered align-middle mb-0">
                                             <thead class="table-light">
                                                 <tr>
-                                                    <th style="width: 18%;">النوع</th>
+                                                    <th style="width: 15%;">الحساب</th>
                                                     <th>البند</th>
                                                     <th style="width: 22%;">المبلغ</th>
-                                                    <th style="width: 10%;">حذف</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="rental_finance_items_body">
-                                                @php
-                                                    $defaultRentalFinanceItems = [
-                                                        ['type' => 'expense', 'label' => 'رسوم تأشيرة', 'amount' => 2000],
-                                                        ['type' => 'expense', 'label' => 'تفويض', 'amount' => 133],
-                                                        ['type' => 'expense', 'label' => 'الإقامة', 'amount' => 0],
-                                                        ['type' => 'expense', 'label' => 'كرت عمل', 'amount' => 0],
-                                                        ['type' => 'expense', 'label' => 'تأمين طبي', 'amount' => 0],
-                                                    ];
-                                                @endphp
-                                                @foreach ($defaultRentalFinanceItems as $index => $item)
+                                                @forelse ($rentalFinanceItems as $index => $item)
                                                     <tr class="rental-finance-row">
                                                         <td>
-                                                            <select class="form-control finance-type"
-                                                                name="rental_finance_items[{{ $index }}][type]">
-                                                                <option value="expense"
-                                                                    {{ $item['type'] === 'expense' ? 'selected' : '' }}>
-                                                                    مصروف
-                                                                </option>
-                                                                <option value="income"
-                                                                    {{ $item['type'] === 'income' ? 'selected' : '' }}>
-                                                                    إيراد
-                                                                </option>
-                                                            </select>
+                                                            <span class="badge bg-light text-dark border">
+                                                                {{ $item['account_code'] ?: '-' }}
+                                                            </span>
+                                                            @if (!empty($item['id']))
+                                                                <input type="hidden"
+                                                                    name="rental_finance_items[{{ $index }}][id]"
+                                                                    value="{{ $item['id'] }}">
+                                                            @endif
+                                                            <input type="hidden" class="finance-account-id"
+                                                                name="rental_finance_items[{{ $index }}][account_id]"
+                                                                value="{{ $item['account_id'] }}">
+                                                            <input type="hidden" class="finance-type"
+                                                                name="rental_finance_items[{{ $index }}][type]"
+                                                                value="{{ $item['type'] }}">
                                                         </td>
                                                         <td>
-                                                            <input type="text" class="form-control finance-label"
+                                                            <input type="text"
+                                                                class="form-control finance-label bg-light"
                                                                 name="rental_finance_items[{{ $index }}][label]"
-                                                                value="{{ $item['label'] }}" placeholder="اسم البند">
+                                                                value="{{ $item['label'] }}" readonly>
                                                         </td>
                                                         <td>
                                                             <input type="number"
@@ -541,23 +547,17 @@
                                                                 step="0.01" min="0"
                                                                 value="{{ $item['amount'] }}">
                                                         </td>
-                                                        <td class="text-center">
-                                                            <button type="button"
-                                                                class="btn btn-link text-danger p-0 remove-rental-finance-row"
-                                                                title="حذف البند">
-                                                                <i class="fa fa-trash"></i>
-                                                            </button>
+                                                    </tr>
+                                                @empty
+                                                    <tr>
+                                                        <td colspan="3" class="text-center text-danger py-4">
+                                                            لا توجد بنود تأجير مضبوطة حالياً في إعدادات الحساب.
                                                         </td>
                                                     </tr>
-                                                @endforeach
+                                                @endforelse
                                             </tbody>
                                         </table>
                                     </div>
-                                    <button type="button" class="btn btn-outline-success mt-3"
-                                        id="add_rental_finance_item">
-                                        <i class="fa fa-plus-circle me-1"></i>
-                                        إضافة بند آخر
-                                    </button>
                                 </div>
                                 <div class="modal-footer justify-content-between">
                                     <span class="text-muted" id="rental_finance_modal_total">إجمالي البنود: 0.00</span>
@@ -802,40 +802,11 @@
             const rentalFinanceModalTotal = $('#rental_finance_modal_total');
             let hasShownRentalFinanceModal = false;
 
-            function buildRentalFinanceRow(index, item = {}) {
-                const type = item.type === 'income' ? 'income' : 'expense';
-                const label = item.label || '';
-                const amount = item.amount ?? '';
-
-                return `
-                    <tr class="rental-finance-row">
-                        <td>
-                            <select class="form-control finance-type" name="rental_finance_items[${index}][type]">
-                                <option value="expense" ${type === 'expense' ? 'selected' : ''}>مصروف</option>
-                                <option value="income" ${type === 'income' ? 'selected' : ''}>إيراد</option>
-                            </select>
-                        </td>
-                        <td>
-                            <input type="text" class="form-control finance-label" name="rental_finance_items[${index}][label]"
-                                value="${label}" placeholder="اسم البند">
-                        </td>
-                        <td>
-                            <input type="number" class="form-control finance-amount text-end"
-                                name="rental_finance_items[${index}][amount]" step="0.01" min="0" value="${amount}">
-                        </td>
-                        <td class="text-center">
-                            <button type="button" class="btn btn-link text-danger p-0 remove-rental-finance-row" title="حذف البند">
-                                <i class="fa fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }
-
             function getRentalFinanceRows() {
                 return rentalFinanceBody.find('.rental-finance-row').map(function() {
                     const $row = $(this);
                     return {
+                        accountId: parseInt($row.find('.finance-account-id').val(), 10) || 0,
                         type: $row.find('.finance-type').val(),
                         label: ($row.find('.finance-label').val() || '').trim(),
                         amount: parseFloat($row.find('.finance-amount').val()) || 0
@@ -843,43 +814,39 @@
                 }).get();
             }
 
-            function updateRentalFinanceRemoveButtons() {
-                const hasMultipleRows = rentalFinanceBody.find('.rental-finance-row').length > 1;
-                rentalFinanceBody.find('.remove-rental-finance-row').toggle(hasMultipleRows);
-            }
-
             function updateRentalFinanceSummary() {
                 const rows = getRentalFinanceRows();
-                const filledRows = rows.filter(row => row.label !== '');
-                const totalAmount = filledRows.reduce((sum, row) => sum + row.amount, 0);
+                const configuredRows = rows.filter(row => row.accountId > 0 && row.label !== '');
+                const positiveRows = configuredRows.filter(row => row.amount > 0);
+                const totalAmount = positiveRows.reduce((sum, row) => sum + row.amount, 0);
                 const isConfirmed = rentalFinanceConfirmedInput.val() === '1';
 
-                if (filledRows.length === 0) {
+                if (configuredRows.length === 0) {
                     rentalFinanceStatus
                         .removeClass('text-success')
                         .addClass('text-danger')
-                        .text('لم يتم إدخال أي بند قابل للحفظ بعد.');
-                    rentalFinanceSummary.text('أضف بنداً واحداً على الأقل ثم أكد البنود قبل الحفظ.');
+                        .text('لا توجد بنود مالية مضبوطة لهذا النوع حالياً.');
+                    rentalFinanceSummary.text('راجع إعدادات الحساب وحدد حسابات مصاريف عاملة التأجير أولاً.');
                 } else if (isConfirmed) {
                     rentalFinanceStatus
                         .removeClass('text-danger')
                         .addClass('text-success')
                         .text('تم تأكيد البنود وجاهزة للحفظ.');
-                    rentalFinanceSummary.text(`عدد البنود المؤكدة: ${filledRows.length} | الإجمالي: ${totalAmount.toFixed(2)}`);
+                    rentalFinanceSummary.text(`عدد البنود: ${configuredRows.length} | البنود المرحلة: ${positiveRows.length} | الإجمالي المرحل: ${totalAmount.toFixed(2)}`);
                 } else {
                     rentalFinanceStatus
                         .removeClass('text-success')
                         .addClass('text-danger')
                         .text('توجد تعديلات غير مؤكدة على البنود.');
-                    rentalFinanceSummary.text(`عدد البنود الحالية: ${filledRows.length} | الإجمالي المتوقع: ${totalAmount.toFixed(2)}`);
+                    rentalFinanceSummary.text(`عدد البنود المضبوطة: ${configuredRows.length} | البنود غير الصفرية: ${positiveRows.length} | الإجمالي المتوقع: ${totalAmount.toFixed(2)}`);
                 }
 
                 rentalFinanceModalTotal.text(`إجمالي البنود: ${totalAmount.toFixed(2)}`);
-                updateRentalFinanceRemoveButtons();
             }
 
             function reindexRentalFinanceRows() {
                 rentalFinanceBody.find('.rental-finance-row').each(function(index) {
+                    $(this).find('.finance-account-id').attr('name', `rental_finance_items[${index}][account_id]`);
                     $(this).find('.finance-type').attr('name', `rental_finance_items[${index}][type]`);
                     $(this).find('.finance-label').attr('name', `rental_finance_items[${index}][label]`);
                     $(this).find('.finance-amount').attr('name', `rental_finance_items[${index}][amount]`);
@@ -916,35 +883,18 @@
                 updateRentalFinanceSummary();
             });
 
-            $('#add_rental_finance_item').on('click', function() {
-                const nextIndex = rentalFinanceBody.find('.rental-finance-row').length;
-                rentalFinanceBody.append(buildRentalFinanceRow(nextIndex));
-                invalidateRentalFinanceConfirmation();
-            });
-
-            $(document).on('click', '.remove-rental-finance-row', function() {
-                $(this).closest('.rental-finance-row').remove();
-
-                if (!rentalFinanceBody.find('.rental-finance-row').length) {
-                    rentalFinanceBody.append(buildRentalFinanceRow(0));
-                }
-
-                invalidateRentalFinanceConfirmation();
-                reindexRentalFinanceRows();
-            });
-
-            $(document).on('input change', '.finance-type, .finance-label, .finance-amount', function() {
+            $(document).on('input change', '.finance-amount', function() {
                 invalidateRentalFinanceConfirmation();
             });
 
             $('#confirm_rental_finance_items').on('click', function() {
-                const filledRows = getRentalFinanceRows().filter(row => row.label !== '');
+                const configuredRows = getRentalFinanceRows().filter(row => row.accountId > 0 && row.label !== '');
 
-                if (filledRows.length === 0) {
+                if (configuredRows.length === 0) {
                     Swal.fire({
                         icon: 'warning',
                         title: 'البنود مطلوبة',
-                        text: 'أضف بنداً واحداً على الأقل قبل تأكيد بنود التأجير',
+                        text: 'لا توجد حسابات مصاريف مضبوطة لعاملة التأجير في إعدادات الحساب',
                         confirmButtonText: 'حسناً'
                     });
                     return;
@@ -1109,7 +1059,6 @@
                     heightWeightFields.hide();
                     maritalStatusField.hide();
                     salaryField.hide();
-                    officeField.hide();
                     requestTypeField.hide();
                     languagesField.hide();
                     arrivalDateField.show();
@@ -1121,7 +1070,6 @@
                     heightWeightInputs.removeAttr('required');
                     maritalStatusSelect.removeAttr('required');
                     salaryInput.removeAttr('required');
-                    officeSelect.removeAttr('required');
                     requestTypeSelect.prop('disabled', true);
                     if (isRentalForm || typeContext.isRental) {
                         rentalFinanceSection.show();
@@ -1337,12 +1285,18 @@
                     isValid = false;
                 }
 
-                // التحقق من رقم الهوية فقط إذا لم يكن النوع استقدام أو استلام فوري أو تأجير
-                if (!typeContext.isRecruitment && !typeContext.isInstantTransfer && !typeContext.isRental) {
+                // التحقق من رقم الهوية وتاريخ الانتهاء لكل الأنواع التي تتطلبهما، ومنها التأجير
+                if (!typeContext.isRecruitment && !typeContext.isInstantTransfer) {
                     var idNumber = $('#id_number').val().trim();
                     var idPattern = /^[0-9a-zA-Z-]{5,30}$/;
                     if (!idNumber || !idPattern.test(idNumber)) {
                         errors.push('يجب إدخال رقم هوية صالح (5-30 خانة من الأرقام أو الحروف أو الشرطة)');
+                        isValid = false;
+                    }
+
+                    var idExpiryDate = $('input[name="id_expiry_date"]').val().trim();
+                    if (!idExpiryDate) {
+                        errors.push('تاريخ انتهاء الهوية مطلوب');
                         isValid = false;
                     }
                 }
@@ -1373,28 +1327,25 @@
                     }
                 }
 
-                // التحقق من الحقول المطلوبة فقط إذا لم يكن النوع استلام فوري أو تأجير
-                if (!typeContext.isInstantTransfer && !typeContext.isRental) {
-                    var additionalRequiredFields = {
-                        'office_id': 'مكتب التوظيف'
-                    };
-
-                    // التحقق من الحقول الإضافية المطلوبة
-                    for (var field in additionalRequiredFields) {
-                        var value = $('[name="' + field + '"]').val();
-                        if (!value || value.trim() === '') {
-                            errors.push(additionalRequiredFields[field] + ' مطلوب');
-                            isValid = false;
-                        }
+                // المكتب الخارجي مطلوب لكل الأنواع ما عدا الاستلام الفوري
+                if (!typeContext.isInstantTransfer) {
+                    var officeValue = $('[name="office_id"]').val();
+                    if (!officeValue || officeValue.trim() === '') {
+                        errors.push('المكتب الخارجي مطلوب');
+                        isValid = false;
                     }
+                }
 
+                if (!typeContext.isInstantTransfer) {
                     // التحقق من الوظائف
                     var jobs = $('select[name="job_id[]"]').val();
                     if (!jobs || jobs.length === 0) {
                         errors.push('معرف الوظيفة مطلوب');
                         isValid = false;
                     }
+                }
 
+                if (!typeContext.isInstantTransfer && !typeContext.isRental) {
                     var maritalStatus = $('select[name="marital_status:ar"]').val();
                     if (!maritalStatus || maritalStatus.trim() === '') {
                         errors.push('الحالة الاجتماعية مطلوبة');

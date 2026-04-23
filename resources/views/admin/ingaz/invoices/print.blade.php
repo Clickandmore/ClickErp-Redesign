@@ -390,7 +390,7 @@
         <div class="tools">
             <button type="button" class="btn" data-action="print">طباعة الفاتورة</button>
             <button type="button" class="btn" data-action="save-pdf">حفظ PDF</button>
-            <a class="btn secondary" href="{{ route('invoices.index') }}">رجوع</a>
+            <a class="btn secondary" href="{{ $backUrl ?? route('invoices.index') }}">رجوع</a>
         </div>
 
         <div class="invoice">

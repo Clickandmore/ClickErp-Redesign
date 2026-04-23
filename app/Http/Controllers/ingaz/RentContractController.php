@@ -26,6 +26,7 @@ use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 use App\Http\Actions\ingaz\RecruitmentOfficeAction;
 use App\Http\Requests\StoreRentalContractRequest;
+use App\Services\ingaz\RentalContractFinanceService;
 use Carbon\Carbon;
 
 class RentContractController extends Controller
@@ -38,7 +39,7 @@ class RentContractController extends Controller
         if ($request->ajax()) {
             $status = $request->get('status', $status);
 
-            $query = RentalContract::with(['user', 'maid', 'info', 'marketer'])
+            $query = RentalContract::with(['user', 'maid', 'info', 'marketer', 'financeInvoice'])
                 ->withCount('extensions');
 
             // Apply status filter with closure type consideration
@@ -201,6 +202,39 @@ class RentContractController extends Controller
                     $actions .= '<li><a class="dropdown-item" href="' . route('print.rental.contract', $row->id) . '" target="_blank">
                                     <i class="fas fa-print"></i> طباعة العقد
                                 </a></li>';
+
+                    if ($row->financeInvoice) {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('rental.invoice.download', ['id' => $row->financeInvoice->id, 'autoprint' => 1]) . '" target="_blank">
+                                        <i class="fas fa-file-invoice"></i> طباعة الفاتورة
+                                    </a></li>';
+
+                        if ($row->financeInvoice->receipt_bond_id) {
+                            $actions .= '<li><a class="dropdown-item" href="' . route('finance.bonds-print.show', [
+                                            'bonds_print' => $row->financeInvoice->receipt_bond_id,
+                                            'type' => 'qabd',
+                                        ]) . '" target="_blank">
+                                            <i class="fas fa-receipt"></i> طباعة سند القبض
+                                        </a></li>';
+                        }
+
+                        if ($row->financeInvoice->invoice_constraint_id) {
+                            $actions .= '<li><a class="dropdown-item" href="' . route('finance.add-constraint.show', [
+                                            'add_constraint' => $row->financeInvoice->invoice_constraint_id,
+                                            'autoprint' => 1,
+                                        ]) . '" target="_blank">
+                                            <i class="fas fa-book"></i> قيد الفاتورة
+                                        </a></li>';
+                        }
+
+                        if ($row->financeInvoice->receipt_constraint_id) {
+                            $actions .= '<li><a class="dropdown-item" href="' . route('finance.add-constraint.show', [
+                                            'add_constraint' => $row->financeInvoice->receipt_constraint_id,
+                                            'autoprint' => 1,
+                                        ]) . '" target="_blank">
+                                            <i class="fas fa-book-open"></i> قيد سند القبض
+                                        </a></li>';
+                        }
+                    }
 
                     if ($row->canSignContract()) {
                         $actions .= '<li><button class="dropdown-item text-success sign-contract" data-id="' . $row->id . '">
@@ -371,7 +405,7 @@ class RentContractController extends Controller
         ));
     }
 
-    public function store(StoreRentalContractRequest $request)
+    public function store(StoreRentalContractRequest $request, RentalContractFinanceService $rentalContractFinanceService)
     {
         try {
             DB::beginTransaction();
@@ -485,6 +519,13 @@ class RentContractController extends Controller
                 'notes' => $request->notes,
             ]);
 
+            $rentalContract->loadMissing(['user', 'maid.nationality', 'info']);
+            $financeResult = $rentalContractFinanceService->createForContract($rentalContract, $selectedPackage);
+            $financeInvoice = $financeResult['invoice'] ?? null;
+            $receiptBond = $financeResult['receipt_bond'] ?? null;
+            $invoiceConstraint = $financeResult['invoice_constraint'] ?? null;
+            $receiptConstraint = $financeResult['receipt_constraint'] ?? null;
+
             // تحديث حالة العاملة
             if ($request->maid_id) {
                 Maid::where('id', $request->maid_id)->update([
@@ -510,6 +551,18 @@ class RentContractController extends Controller
                     'contract_id' => $rentalContract->id,
                     'contract_number' => $rentalContract->contract_number,
                     'print_url' => route('print.rental.contract', $rentalContract->id),
+                    'invoice_print_url' => $financeInvoice
+                        ? route('rental.invoice.download', ['id' => $financeInvoice->id, 'autoprint' => 1])
+                        : null,
+                    'receipt_bond_print_url' => $receiptBond
+                        ? route('finance.bonds-print.show', ['bonds_print' => $receiptBond->id, 'type' => 'qabd'])
+                        : null,
+                    'invoice_constraint_print_url' => $invoiceConstraint
+                        ? route('finance.add-constraint.show', ['add_constraint' => $invoiceConstraint->id, 'autoprint' => 1])
+                        : null,
+                    'receipt_constraint_print_url' => $receiptConstraint
+                        ? route('finance.add-constraint.show', ['add_constraint' => $receiptConstraint->id, 'autoprint' => 1])
+                        : null,
                     'redirect_url' => route($this->mainRoute . '.index')
                 ]);
             }
@@ -544,7 +597,8 @@ class RentContractController extends Controller
             'maid.religion.translations',
             'info',
             'marketer',
-            'order'
+            'order',
+            'financeInvoice.receiptAccount',
         ])->findOrFail($id);
 
         $availableReplacementMaids = $this->getAvailableRentalMaidsQuery()

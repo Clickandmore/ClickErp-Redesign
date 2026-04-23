@@ -71,6 +71,7 @@ use App\Http\Controllers\ingaz\InvoiceController;
 use App\Http\Controllers\ingaz\ProfessionalApplicationController;
 use App\Http\Controllers\ingaz\RecruitmentRequestController;
 use App\Http\Controllers\ingaz\RenewContractController;
+use App\Http\Controllers\ingaz\RentalContractInvoiceController;
 use App\Http\Controllers\ingaz\RentalContractTermsController;
 use App\Http\Controllers\ingaz\RequirementsController;
 use App\Models\Client;
@@ -289,6 +290,7 @@ Route::group(
             Route::post('RecruitmentContract/{contractId}/change-maid', [RecruitmentContractController::class, 'changeMaid'])->name('RecruitmentContract.changeMaid');
             Route::post('RecruitmentContract/{contractId}/notes', [RecruitmentContractController::class, 'storeNote'])->name('RecruitmentContract.notes.store');
             Route::resource('RentContract', RentContractController::class);
+            Route::get('rental-invoices/download/{id}', [RentalContractInvoiceController::class, 'download'])->name('rental.invoice.download');
             Route::post('RentContract/{id}/complete', [RentContractController::class, 'completeContract'])->name('RentContract.complete');
             Route::get('RentContract/statistics/data', [RentContractController::class, 'statistics'])->name('RentContract.statistics');
             Route::get('RentContract/export/excel', [RentContractController::class, 'exportExcel'])->name('RentContract.export.excel');

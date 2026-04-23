@@ -6,6 +6,7 @@ use App\Models\ingaz\Nationality;
 use Astrotomic\Translatable\Translatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Nami\Finance\Models\Account;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -34,5 +35,10 @@ class RecruitmentOffices extends Model
     public function maids()
     {
         return $this->hasMany(\App\Models\ingaz\Maid::class, 'office_id');
+    }
+
+    public function account()
+    {
+        return $this->belongsTo(Account::class, 'account_id');
     }
 }

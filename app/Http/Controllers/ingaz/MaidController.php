@@ -20,6 +20,7 @@ use App\Models\ingaz\Maid as objModel;
 use App\Models\ingaz\Nationality;
 use App\Models\RecruitmentOffices;
 use App\Models\ingaz\Skill;
+use App\Services\ingaz\RentalMaidFinanceService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
@@ -1150,6 +1151,7 @@ class MaidController extends Controller
         [$types, $defaultTypeId] = $this->prepareJobTypesForForm($jobTypesAction->getJobsTypes());
         $offices = $officeAct->getAllOffices();
         $skills = $skillAction->get();
+        $rentalFinanceItems = $this->buildCreateRentalFinanceItems();
 
         $defaultShelterContract = '0';
         $defaultIsShow = true;
@@ -1171,7 +1173,8 @@ class MaidController extends Controller
                 'defaultIsShow',
                 'isRentalForm',
                 'formRedirectRoute',
-                'requireIdFields'
+                'requireIdFields',
+                'rentalFinanceItems'
             )
         );
     }
@@ -1205,6 +1208,7 @@ class MaidController extends Controller
         [$types, $defaultTypeId] = $this->prepareJobTypesForForm($jobTypesAction->getJobsTypes());
         $offices = $officeAct->getAllOffices();
         $skills = $skillAction->get();
+        $rentalFinanceItems = $this->buildCreateRentalFinanceItems();
 
         $defaultTypeId = $rentalTypeId ?? $defaultTypeId;
         $defaultShelterContract = '0';
@@ -1227,7 +1231,8 @@ class MaidController extends Controller
                 'defaultIsShow',
                 'isRentalForm',
                 'formRedirectRoute',
-                'requireIdFields'
+                'requireIdFields',
+                'rentalFinanceItems'
             )
         );
     }
@@ -1939,6 +1944,8 @@ class MaidController extends Controller
             if (!isset($extraData['defaultTypeId'])) {
                 $extraData['defaultTypeId'] = $defaultTypeId;
             }
+
+            $extraData['rentalFinanceItems'] = $extraData['rentalFinanceItems'] ?? $this->buildCreateRentalFinanceItems();
         } else {
             $types = $typesSource;
         }
@@ -1950,6 +1957,11 @@ class MaidController extends Controller
         $data = array_merge(compact('nationalities', 'offices', 'religions', 'jobs', 'types', 'skills'), $extraData);
         $returnHTML = view("{$this->folderPath}.{$viewName}", $data)->render();
         return jsonSuccess(['html' => $returnHTML]);
+    }
+
+    private function buildCreateRentalFinanceItems(): array
+    {
+        return app(RentalMaidFinanceService::class)->getFormItems((array) old('rental_finance_items', []));
     }
 
     private function normalizeArabicText(?string $text): string
