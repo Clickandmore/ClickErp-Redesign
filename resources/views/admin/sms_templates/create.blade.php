@@ -231,7 +231,7 @@
                 const clientPhone = $('#previewClientPhone').val() || '0501234567';
                 const clientEmail = $('#previewClientEmail').val() || 'client@example.com';
                 const contractNumber = $('#previewContractNumber').val() || '12345';
-                const companyName = 'شركة بلاتينيوم الشرقية للاستقدام';
+                const companyName = 'شركة ركن اديم للاستقدام';
                 const companyPhone = '0112345678';
                 const companyEmail = 'info@asas-alinjaz.com';
 

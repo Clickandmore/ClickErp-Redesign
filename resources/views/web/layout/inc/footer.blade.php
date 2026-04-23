@@ -178,7 +178,7 @@
                     <li>
                         <i class="fa-light fa-envelope"></i><b> {{ helperTrans('web.email') }}</b>
                         <a
-                            href="mailto:{{ $settings->email ?? 'info@platinumeastern.com' }}">{{ $settings->email ?? 'info@platinumeastern.com' }}</a>
+                            href="mailto:{{ $settings->email ?? 'info@ruknedem.com' }}">{{ $settings->email ?? 'info@ruknedem.com' }}</a>
                     </li>
                     <li>
                         <i class="fa-light fa-phone"></i><b>{{ helperTrans('web.tech_support') }}</b>

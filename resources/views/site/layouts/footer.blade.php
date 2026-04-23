@@ -3,13 +3,13 @@
     $footerLogo = (isset($settings) && !empty($settings->logo_footer)) ? showFile($settings->logo_footer) : $defaultCompanyLogo;
     $footerText = (isset($settings) && !empty($settings->footer_text))
         ? $settings->footer_text
-        : 'بلاتينيوم للاستقدام يقدم خدمات استقدام العمالة المنزلية باحترافية وجودة مميزة.';
+        : 'ركن اديم للاستقدام يقدم خدمات استقدام العمالة المنزلية باحترافية وجودة مميزة.';
     $taxLogo = (isset($settings) && !empty($settings->zatch_logo))
         ? showFile($settings->zatch_logo)
         : asset('site/assets/images/zatca-logo.png');
     $taxNumber = (isset($settings) && !empty($settings->tax_number)) ? $settings->tax_number : '314232024200003';
     $footerLocation = (isset($settings) && !empty($settings->location)) ? $settings->location : 'الدمام 32413';
-    $footerEmail = (isset($settings) && !empty($settings->email)) ? $settings->email : 'info@platinumeastern.com';
+    $footerEmail = (isset($settings) && !empty($settings->email)) ? $settings->email : 'info@ruknedem.com';
     $footerPhone = (isset($settings) && !empty($settings->phone)) ? $settings->phone : '920003174';
     $footerOtherPhone = (isset($settings) && !empty($settings->other_phone)) ? $settings->other_phone : '0552333182';
     $footerBrandName = isset($settings) ? optional($settings->translate(app()->getLocale()))->website_name : null;
