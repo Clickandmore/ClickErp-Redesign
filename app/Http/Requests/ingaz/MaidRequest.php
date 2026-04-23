@@ -41,14 +41,12 @@ class MaidRequest extends MainRequest
             'experience_status' => 'required|in:has_experience,no_experience',
             'religion_id' => 'nullable|exists:religions,id',
             'id_number' => [
-                Rule::requiredIf(fn () => $this->requiresIdentityFields()),
                 'nullable',
                 'string',
                 'max:30',
                 'regex:/^[0-9A-Za-z-]{5,30}$/',
             ],
             'id_expiry_date' => [
-                Rule::requiredIf(fn () => $this->requiresIdentityFields()),
                 'nullable',
                 'date',
             ],
@@ -110,10 +108,8 @@ class MaidRequest extends MainRequest
             'salary.numeric' => helperTrans('web.salary_must_be_numeric'),
             'religion_id.required' => helperTrans('web.religion_id_is_required'),
             'religion_id.exists' => helperTrans('web.invalid_religion_id'),
-            'id_number.required' => 'رقم الهوية مطلوب لعاملة التأجير',
             'id_number.max' => 'رقم الهوية يجب ألا يتجاوز 30 خانة',
             'id_number.regex' => 'يجب إدخال رقم هوية صالح من 5 إلى 30 خانة باستخدام الأرقام أو الحروف أو الشرطة (-)',
-            'id_expiry_date.required' => 'تاريخ انتهاء الهوية مطلوب لعاملة التأجير',
             'id_expiry_date.date' => 'تاريخ انتهاء الهوية يجب أن يكون تاريخاً صالحاً',
             'age.numeric' => helperTrans('web.age_must_be_numeric'),
             'age.min' => __('web.age_min', ['min'=> '20']),
@@ -169,11 +165,6 @@ class MaidRequest extends MainRequest
             || str_contains($normalizedTitle, 'ايجار')
             || str_contains($normalizedTitle, 'تاجير')
             || str_contains($normalizedTitle, 'rent');
-    }
-
-    private function requiresIdentityFields(): bool
-    {
-        return $this->isSelectedRentalType();
     }
 
     private function requiresOfficeField(): bool

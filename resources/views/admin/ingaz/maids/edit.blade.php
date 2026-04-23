@@ -307,6 +307,7 @@
                     <div class="col-4">
                         <label for="TextInput" class="form-label">
                             {{helperTrans("ingaz.id_number")}}
+                            <small class="text-muted">(اختياري لعاملة التأجير)</small>
                         </label>
                         <input type="text" name="id_number" id="id_number" class="form-control" maxlength="30"
                                value="{{$obj->id_number}}">
@@ -316,6 +317,7 @@
                     <div class="col-4">
                         <label for="TextInput" class="form-label">
                             {{helperTrans("ingaz.id_expiry_date")}}
+                            <small class="text-muted">(اختياري لعاملة التأجير)</small>
                         </label>
                         <input type="date" name="id_expiry_date" class="form-control"
                                value="{{$obj->id_expiry_date}}">
@@ -1243,6 +1245,7 @@
                     priceLabel.text('تكلفه الايجار الشهري');
                     maritalStatusEnField.val('');
                     shouldUpdateMaritalTranslation = false;
+                    idInputs.removeAttr('required');
                     heightWeightInputs.removeAttr('required');
                     maritalStatusSelect.removeAttr('required');
                     salaryInput.removeAttr('required');
@@ -1321,16 +1324,22 @@
                     isValid = false;
                 }
 
-                // التحقق من رقم الهوية وتاريخ الانتهاء لكل الأنواع التي تتطلبهما، ومنها التأجير
-                if (!typeContext.isRecruitment && !typeContext.isInstantTransfer) {
-                    var idNumber = $('#id_number').val().trim();
-                    var idPattern = /^[0-9a-zA-Z-]{5,30}$/;
+                var idNumber = $('#id_number').val().trim();
+                var idPattern = /^[0-9a-zA-Z-]{5,30}$/;
+                var idExpiryDate = $('input[name="id_expiry_date"]').val().trim();
+
+                // في التأجير تصبح الحقول اختيارية، لكن إذا أُدخل رقم هوية فيلزم أن يكون بصيغة صحيحة.
+                if (typeContext.isRental) {
+                    if (idNumber && !idPattern.test(idNumber)) {
+                        errors.push('يجب إدخال رقم هوية صالح (5-30 خانة من الأرقام أو الحروف أو الشرطة)');
+                        isValid = false;
+                    }
+                } else if (!typeContext.isRecruitment && !typeContext.isInstantTransfer) {
                     if (!idNumber || !idPattern.test(idNumber)) {
                         errors.push('يجب إدخال رقم هوية صالح (5-30 خانة من الأرقام أو الحروف أو الشرطة)');
                         isValid = false;
                     }
 
-                    var idExpiryDate = $('input[name="id_expiry_date"]').val().trim();
                     if (!idExpiryDate) {
                         errors.push('تاريخ انتهاء الهوية مطلوب');
                         isValid = false;
