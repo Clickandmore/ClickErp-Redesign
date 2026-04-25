@@ -92,18 +92,25 @@ if(!msg.isNull())
 		question = {"name":"new_request","replies":{"يمكنك الاطلاع على السير الذاتية من خلال اختيار احد الجنسيات الاتية"},"input":{"type":"select","options":optionList,"values":optionValues}};
 		response.put("questions",{question});
 	}
+	else if(msg.equalsIgnoreCase("الخدمات"))
+	{
+		response.put("action","reply");
+		response.put("replies",{"اختر الخدمة المطلوبة"});
+		response.put("input",{"type":"select","options":{"طلب استقدام جديد","خدمة مقيمة","إضافة شكوى"}});
+		return response;
+	}
 	else if(msg.equalsIgnoreCase("الصفحة الرئيسية"))
 	{
 		response.put("action","reply");
 		response.put("replies",{" مرحبا بك فى  بلاتينيوم الشرقية للاستقدام استقدم افضل العمالة المنزلية"});
-		response.put("input",{"type":"select","options":{"خدمة العملاء","طلب استقدام جديد","خدمة مقيمة","متابعة طلب سابق","إضافة شكوى"}});
+		response.put("input",{"type":"select","options":{"الخدمات","متابعة طلب سابق","خدمة العملاء"}});
 		return response;
 	}
 	else if(msg.equalsIgnoreCase("خدمة مقيمة") || msg.equalsIgnoreCase("طلب شهري") || msg.equalsIgnoreCase("الطلب الشهري") || msg.equalsIgnoreCase("التأجير") || msg.equalsIgnoreCase("تأجير") || msg.equalsIgnoreCase("ايجار") || msg.equalsIgnoreCase("إيجار"))
 	{
 		response.put("action","end");
 		url = "https://www.platinumeastern.com/all-workers?type=egar";
-		question = {"type":"links","text":"عزيزي العميل يمكنك تقديم طلب خدمة مقيمة أو التأجير الشهري من خلال الرابط الاتي","links":{{"url":url,"text":url}}};
+		question = {"type":"links","text":"عزيزي العميل يمكنك تقديم طلب خدمة مقيمة أو التأجير الشهري من خلال الرابط الاتي","links":{{"url":url,"text":"تقديم طلب خدمة مقيمة"}}};
 		response.put("replies",{question});
 		return response;
 	}
@@ -170,7 +177,7 @@ if(!msg.isNull())
 		response.put("action","reply");
 		response.put("replies",{" مرحبا بك فى  بلاتينيوم الشرقية للاستقدام استقدم افضل العمالة المنزلية"});
 		//modified line
-		response.put("input",{"type":"select","options":{"خدمة العملاء","طلب استقدام جديد","خدمة مقيمة","متابعة طلب سابق","إضافة شكوى"}});
+		response.put("input",{"type":"select","options":{"الخدمات","متابعة طلب سابق","خدمة العملاء"}});
 		return response;
 	}
 }

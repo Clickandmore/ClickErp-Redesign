@@ -32,14 +32,21 @@ if(context_id.equals("deals"))
 	{
 		response.put("action","reply");
 		response.put("replies"," مرحبا بك فى بلاتينيوم الشرقية  للاستقدام افضل العمالة المنزلية");
-		response.put("input",{"type":"select","options":{"خدمة العملاء","طلب استقدام جديد","خدمة مقيمة","متابعة طلب سابق","إضافة شكوى"}});
+		response.put("input",{"type":"select","options":{"الخدمات","متابعة طلب سابق","خدمة العملاء"}});
+		return response;
+	}
+	if(new_request.equalsIgnoreCase("الخدمات"))
+	{
+		response.put("action","reply");
+		response.put("replies",{"اختر الخدمة المطلوبة"});
+		response.put("input",{"type":"select","options":{"طلب استقدام جديد","خدمة مقيمة","إضافة شكوى"}});
 		return response;
 	}
 	if(new_request.equalsIgnoreCase("خدمة مقيمة") || new_request.equalsIgnoreCase("طلب شهري") || new_request.equalsIgnoreCase("الطلب الشهري") || new_request.equalsIgnoreCase("التأجير") || new_request.equalsIgnoreCase("تأجير") || new_request.equalsIgnoreCase("ايجار") || new_request.equalsIgnoreCase("إيجار"))
 	{
 		response.put("action","end");
 		url = "https://www.platinumeastern.com/all-workers?type=egar";
-		question = {"type":"links","text":"عزيزي العميل يمكنك تقديم طلب خدمة مقيمة أو التأجير الشهري من خلال الرابط الاتي","links":{{"url":url,"text":url}}};
+		question = {"type":"links","text":"عزيزي العميل يمكنك تقديم طلب خدمة مقيمة أو التأجير الشهري من خلال الرابط الاتي","links":{{"url":url,"text":"تقديم طلب خدمة مقيمة"}}};
 		response.put("replies",{question});
 		return response;
 	}
@@ -53,7 +60,7 @@ if(context_id.equals("deals"))
 		{
 			response.put("action","reply");
 			response.put("replies",{"تعذر تحميل الجنسيات حاليا. حاول مرة أخرى"});
-			response.put("input",{"type":"select","options":{"خدمة العملاء","طلب استقدام جديد","خدمة مقيمة","متابعة طلب سابق","إضافة شكوى"}});
+			response.put("input",{"type":"select","options":{"الخدمات","متابعة طلب سابق","خدمة العملاء"}});
 			return response;
 		}
 		nationality_index = nationalities_keys.indexOf(new_request);
@@ -62,7 +69,7 @@ if(context_id.equals("deals"))
 		url = "https://www.platinumeastern.com/all-workers?type=estqdam&nationality_id=" + id_nationality;
 	}
 	response.put("action","end");
-	question = {"type":"links","text":"عزيزي العميل يمكنك الحصول على عاملتك من خلال الرابط الاتي","links":{{"url":url,"text":url}}};
+	question = {"type":"links","text":"عزيزي العميل يمكنك الحصول على عاملتك من خلال الرابط الاتي","links":{{"url":url,"text":"عرض السير الذاتية"}}};
 	response.put("replies",{question});
 }
 else if(context_id.equals("help"))
@@ -78,14 +85,21 @@ else if(context_id.equals("help"))
 	{
 		response.put("action","reply");
 		response.put("replies"," مرحبا بك فى بلاتينيوم الشرقية  للاستقدام افضل العمالة المنزلية");
-		response.put("input",{"type":"select","options":{"خدمة العملاء","طلب استقدام جديد","خدمة مقيمة","متابعة طلب سابق","إضافة شكوى"}});
+		response.put("input",{"type":"select","options":{"الخدمات","متابعة طلب سابق","خدمة العملاء"}});
+		return response;
+	}
+	if(contract_reference != null && contract_reference.equalsIgnoreCase("الخدمات"))
+	{
+		response.put("action","reply");
+		response.put("replies",{"اختر الخدمة المطلوبة"});
+		response.put("input",{"type":"select","options":{"طلب استقدام جديد","خدمة مقيمة","إضافة شكوى"}});
 		return response;
 	}
 	if(contract_reference != null && (contract_reference.equalsIgnoreCase("خدمة مقيمة") || contract_reference.equalsIgnoreCase("طلب شهري") || contract_reference.equalsIgnoreCase("الطلب الشهري") || contract_reference.equalsIgnoreCase("التأجير") || contract_reference.equalsIgnoreCase("تأجير") || contract_reference.equalsIgnoreCase("ايجار") || contract_reference.equalsIgnoreCase("إيجار")))
 	{
 		response.put("action","end");
 		url = "https://www.platinumeastern.com/all-workers?type=egar";
-		question = {"type":"links","text":"عزيزي العميل يمكنك تقديم طلب خدمة مقيمة أو التأجير الشهري من خلال الرابط الاتي","links":{{"url":url,"text":url}}};
+		question = {"type":"links","text":"عزيزي العميل يمكنك تقديم طلب خدمة مقيمة أو التأجير الشهري من خلال الرابط الاتي","links":{{"url":url,"text":"تقديم طلب خدمة مقيمة"}}};
 		response.put("replies",{question});
 		return response;
 	}
@@ -135,14 +149,21 @@ else if(context_id.equals("complaints"))
 		{
 			response.put("action","reply");
 			response.put("replies"," مرحبا بك فى بلاتينيوم الشرقية  للاستقدام افضل العمالة المنزلية");
-			response.put("input",{"type":"select","options":{"خدمة العملاء","طلب استقدام جديد","خدمة مقيمة","متابعة طلب سابق","إضافة شكوى"}});
+			response.put("input",{"type":"select","options":{"الخدمات","متابعة طلب سابق","خدمة العملاء"}});
+			return response;
+		}
+		else if(complaints.equalsIgnoreCase("الخدمات"))
+		{
+			response.put("action","reply");
+			response.put("replies",{"اختر الخدمة المطلوبة"});
+			response.put("input",{"type":"select","options":{"طلب استقدام جديد","خدمة مقيمة","إضافة شكوى"}});
 			return response;
 		}
 		else if(complaints.equalsIgnoreCase("خدمة مقيمة") || complaints.equalsIgnoreCase("طلب شهري") || complaints.equalsIgnoreCase("الطلب الشهري") || complaints.equalsIgnoreCase("التأجير") || complaints.equalsIgnoreCase("تأجير") || complaints.equalsIgnoreCase("ايجار") || complaints.equalsIgnoreCase("إيجار"))
 		{
 			response.put("action","end");
 			url = "https://www.platinumeastern.com/all-workers?type=egar";
-			question = {"type":"links","text":"عزيزي العميل يمكنك تقديم طلب خدمة مقيمة أو التأجير الشهري من خلال الرابط الاتي","links":{{"url":url,"text":url}}};
+			question = {"type":"links","text":"عزيزي العميل يمكنك تقديم طلب خدمة مقيمة أو التأجير الشهري من خلال الرابط الاتي","links":{{"url":url,"text":"تقديم طلب خدمة مقيمة"}}};
 			response.put("replies",{question});
 			return response;
 		}
@@ -244,12 +265,12 @@ else if(context_id.equals("complaints"))
 			}
 			response.put("action","reply");
 			response.put("replies",{success_message});
-			response.put("input",{"type":"select","options":{"خدمة العملاء","طلب استقدام جديد","خدمة مقيمة","متابعة طلب سابق","إضافة شكوى","الصفحة الرئيسية"}});
+			response.put("input",{"type":"select","options":{"الخدمات","متابعة طلب سابق","خدمة العملاء"}});
 			return response;
 		}
 		response.put("action","reply");
 		response.put("replies",{"تعذر تسجيل الشكوى حاليا. حاول مرة أخرى لاحقا أو اختر خدمة العملاء للتواصل المباشر"});
-		response.put("input",{"type":"select","options":{"خدمة العملاء","طلب استقدام جديد","خدمة مقيمة","متابعة طلب سابق","إضافة شكوى","الصفحة الرئيسية"}});
+		response.put("input",{"type":"select","options":{"الخدمات","متابعة طلب سابق","خدمة العملاء"}});
 		return response;
 	}
 }
@@ -257,7 +278,7 @@ else
 {
 	response.put("action","reply");
 	response.put("replies"," مرحبا بك فى بلاتينيوم الشرقية  للاستقدام افضل العمالة المنزلية");
-	response.put("input",{"type":"select","options":{"خدمة العملاء","طلب استقدام جديد","خدمة مقيمة","متابعة طلب سابق","إضافة شكوى"}});
+	response.put("input",{"type":"select","options":{"الخدمات","متابعة طلب سابق","خدمة العملاء"}});
 	return response;
 }
 return response;
