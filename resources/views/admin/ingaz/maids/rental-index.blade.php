@@ -242,6 +242,10 @@
                     <form id="filterForm">
                         <div class="row align-items-end">
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
+                                <input type="text" class="form-control" id="keyword" name="keyword"
+                                    value="{{ $request->keyword }}" placeholder="بحث بالاسم أو الجواز أو الهوية">
+                            </div>
+                            <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                                 <input type="text" class="form-control" id="passport_num" name="passport_num"
                                     value="{{ $request->passport_num }}" placeholder="رقم الجواز">
                             </div>
@@ -299,6 +303,23 @@
                                     <option value="">جميع حالات الخبرة</option>
                                     <option value="has_experience" {{ $request->experience_status === 'has_experience' ? 'selected' : '' }}>سبق لها العمل</option>
                                     <option value="no_experience" {{ $request->experience_status === 'no_experience' ? 'selected' : '' }}>لم يسبق لها العمل</option>
+                                </select>
+                            </div>
+                            <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
+                                <select name="request_type" id="request_type" class="form-control">
+                                    <option value="">جميع أنواع الطلب</option>
+                                    @foreach (($filter['request_types'] ?? []) as $requestTypeKey => $requestTypeLabel)
+                                        <option value="{{ $requestTypeKey }}" {{ $request->request_type === $requestTypeKey ? 'selected' : '' }}>
+                                            {{ $requestTypeLabel }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
+                                <select name="pinned" id="pinned" class="form-control">
+                                    <option value="">كل حالات التثبيت</option>
+                                    <option value="only" {{ $request->pinned === 'only' ? 'selected' : '' }}>المثبتة فقط</option>
+                                    <option value="unpinned" {{ $request->pinned === 'unpinned' ? 'selected' : '' }}>غير المثبتة فقط</option>
                                 </select>
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
@@ -385,6 +406,62 @@
                     </div>
                 </div>
             </div>
+
+            <div class="modal fade" id="back_out_modal" tabindex="-1" role="dialog"
+                aria-labelledby="backOutModalTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header align-items-center">
+                            <h5 class="modal-title" id="backOutModalTitle">اضافة سبب</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="back_out_form" method="POST">
+                                @csrf
+                                <input type="hidden" name="maid_id" id="maid_id">
+                                <div class="mb-3">
+                                    <textarea rows="8" class="form-control" name="backout_reason" placeholder="سبب الباك اوت" required></textarea>
+                                </div>
+                                <div class="modal-footer">
+                                    <button class="btn btn-success px-4" type="button"
+                                        onclick="back_out_modal_func()">ارسال</button>
+                                    <button class="btn btn-danger px-4" type="button" data-bs-dismiss="modal">
+                                        اغلاق
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal fade" id="back_out_modal_on" tabindex="-1" role="dialog"
+                aria-labelledby="backOutOnModalTitle" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header align-items-center">
+                            <h5 class="modal-title" id="backOutOnModalTitle">ارجاع السيرة متاحة</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="back_out_modal_on_form" method="POST">
+                                @csrf
+                                <input type="hidden" name="maid_id" id="maid_id_on">
+                                <h5 class="mb-3">هل تريد ارجاع السيرة متاحة الان؟</h5>
+                                <div class="modal-footer">
+                                    <button class="btn btn-success px-4" type="button"
+                                        onclick="back_out_modal_on_func()">نعم</button>
+                                    <button class="btn btn-danger px-4" type="button" data-bs-dismiss="modal">
+                                        لا
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     @else
         @include('components.no_permissions')
@@ -393,12 +470,14 @@
 
 @section('js')
     <script src="{{ asset('admin/assets/js/bundle/dataTables.bundle.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function() {
             const dataTableBaseUrl = @json($dataTableUrl);
             const pageBaseUrl = @json($pageBaseUrl);
             const defaultFiltersConfig = @json($defaultFilters);
             const enforcedFiltersConfig = @json($enforcedFilters);
+            const csrfToken = $('meta[name="csrf-token"]').attr('content');
 
             let currentRentalStat = defaultFiltersConfig.rental_stat || '';
             const rentalFinanceItemsModalElement = document.getElementById('rentalFinanceItemsModal');
@@ -456,6 +535,7 @@
 
             function collectFilters() {
                 const filters = {
+                    keyword: $('#keyword').val(),
                     passport_num: $('#passport_num').val(),
                     nationality_id: $('#nationality_id').val(),
                     office_id: $('#office_id').val(),
@@ -464,6 +544,8 @@
                     cv_status: $('#cv_status').val(),
                     visibility: $('#visibility').val(),
                     experience_status: $('#experience_status').val(),
+                    request_type: $('#request_type').val(),
+                    pinned: $('#pinned').val(),
                     date_from: $('#date_from').val(),
                     date_to: $('#date_to').val()
                 };
@@ -611,6 +693,229 @@
                     rentalFinanceItemsModal.show();
                 }
             });
+
+            $(document).on('click', '.update-status', function(e) {
+                e.preventDefault();
+                const button = $(this);
+                const id = button.data('id');
+
+                Swal.fire({
+                    icon: 'question',
+                    title: '{{ helperTrans('ingaz.confirm_toggle_visibility') }}',
+                    showCancelButton: true,
+                    confirmButtonText: '{{ helperTrans('ingaz.confirm') }}',
+                    cancelButtonText: '{{ helperTrans('ingaz.cancel') }}'
+                }).then((result) => {
+                    if (!result.isConfirmed) {
+                        return;
+                    }
+
+                    button.prop('disabled', true);
+                    $.ajax({
+                        url: `/admin/maids/${id}`,
+                        method: 'GET',
+                        success: function(response) {
+                            if (response.success) {
+                                table.ajax.reload(null, false);
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: '{{ helperTrans('ingaz.updated_successfully') }}',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: '{{ helperTrans('ingaz.error') }}',
+                                    text: response.message || '{{ helperTrans('ingaz.unexpected_error') }}'
+                                });
+                            }
+                        },
+                        error: function(xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: '{{ helperTrans('ingaz.error') }}',
+                                text: xhr.responseJSON?.message || '{{ helperTrans('ingaz.unexpected_error') }}'
+                            });
+                        },
+                        complete: function() {
+                            button.prop('disabled', false);
+                        }
+                    });
+                });
+            });
+
+            $(document).on('click', '.toggle-pin', function(e) {
+                e.preventDefault();
+                const button = $(this);
+                const id = button.data('id');
+                const isPinned = button.data('pinned') === true || button.data('pinned') === 'true';
+
+                Swal.fire({
+                    icon: 'question',
+                    title: isPinned ? '{{ helperTrans('ingaz.confirm_unpin') }}' : '{{ helperTrans('ingaz.confirm_pin') }}',
+                    showCancelButton: true,
+                    confirmButtonText: '{{ helperTrans('ingaz.confirm') }}',
+                    cancelButtonText: '{{ helperTrans('ingaz.cancel') }}'
+                }).then((result) => {
+                    if (!result.isConfirmed) {
+                        return;
+                    }
+
+                    $.ajax({
+                        url: `/admin/maids/${id}/toggle-pin`,
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                table.ajax.reload(null, false);
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: '{{ helperTrans('ingaz.updated_successfully') }}',
+                                    timer: 1800,
+                                    showConfirmButton: false
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: '{{ helperTrans('ingaz.error') }}',
+                                    text: response.message || '{{ helperTrans('ingaz.unexpected_error') }}'
+                                });
+                            }
+                        },
+                        error: function(xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: '{{ helperTrans('ingaz.error') }}',
+                                text: xhr.responseJSON?.message || '{{ helperTrans('ingaz.unexpected_error') }}'
+                            });
+                        }
+                    });
+                });
+            });
+
+            window.back_out_modal_func = function() {
+                $('#back_out_modal').modal('hide');
+
+                $.ajax({
+                    url: "{{ route('maids.backout') }}",
+                    type: 'POST',
+                    data: $("#back_out_form").serialize(),
+                    success: function(response) {
+                        if (response.data && response.data.success === true) {
+                            table.ajax.reload(null, false);
+                            Swal.fire({
+                                icon: 'success',
+                                title: response.data.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: response.message || '{{ helperTrans('ingaz.unexpected_error') }}',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: '{{ helperTrans('ingaz.error') }}',
+                            text: xhr.responseJSON?.message || '{{ helperTrans('ingaz.unexpected_error') }}'
+                        });
+                    }
+                });
+            };
+
+            window.back_out_modal_on_func = function() {
+                $('#back_out_modal_on').modal('hide');
+
+                $.ajax({
+                    url: "{{ route('maids.remove_backout') }}",
+                    type: 'POST',
+                    data: $("#back_out_modal_on_form").serialize(),
+                    success: function(response) {
+                        if (response.data && response.data.success === true) {
+                            table.ajax.reload(null, false);
+                            Swal.fire({
+                                icon: 'success',
+                                title: response.data.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: response.message || '{{ helperTrans('ingaz.unexpected_error') }}',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: '{{ helperTrans('ingaz.error') }}',
+                            text: xhr.responseJSON?.message || '{{ helperTrans('ingaz.unexpected_error') }}'
+                        });
+                    }
+                });
+            };
+
+            window.back_out_on = function(id) {
+                $('#back_out_modal_on').modal('show', {
+                    backdrop: 'static'
+                });
+                $("#maid_id_on").val(id);
+            };
+
+            window.back_out = function(id) {
+                $('#back_out_modal').modal('show', {
+                    backdrop: 'static'
+                });
+                $("#maid_id").val(id);
+            };
+
+            window.suspendCv = function(id, status) {
+                $.ajax({
+                    type: "GET",
+                    url: "{{ route('maids.suspendCv') }}",
+                    data: {
+                        id: id,
+                        status: status
+                    },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.data && response.data.success === true) {
+                            table.ajax.reload(null, false);
+                            Swal.fire({
+                                icon: 'success',
+                                title: response.data.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: response.message || '{{ helperTrans('ingaz.unexpected_error') }}',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: '{{ helperTrans('ingaz.error') }}',
+                            text: xhr.responseJSON?.message || '{{ helperTrans('ingaz.unexpected_error') }}'
+                        });
+                    }
+                });
+            };
 
             $('#rentalFilterCollapse').on('shown.bs.collapse hidden.bs.collapse', function() {
                 updateFilterToggleState();

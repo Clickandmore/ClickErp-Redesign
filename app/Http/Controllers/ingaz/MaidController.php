@@ -552,6 +552,7 @@ class MaidController extends Controller
                     'nationality_id',
                     'religion_id',
                     'passport_num',
+                    'cv_code',
                     'price',
                     'salary',
                     'age',
@@ -561,8 +562,12 @@ class MaidController extends Controller
                     'created_at',
                     'is_pinned',
                     'status',
+                    'office_id',
+                    'experience_years',
+                    'experience_status',
                     'maid_accommodation_type',
                     'id_expiry_date',
+                    'request_type',
                 ])
                 ->orderByDesc('is_pinned')
                 ->orderByDesc('available')
@@ -583,10 +588,14 @@ class MaidController extends Controller
                 ->addColumn('name', function (Maid $row) {
                     $name = e($row->name ?: 'عاملة #' . $row->id);
                     $passport = e($row->passport_num ?: '-');
+                    $cvCode = $row->cv_code ? '<span class="small text-muted">كود السيرة: ' . e($row->cv_code) . '</span>' : '';
+                    $requestType = e($row->request_type_label);
 
                     return '<div class="d-flex flex-column gap-1">'
                         . '<a href="' . route('showMaidDetails', $row->id) . '" class="fw-semibold text-decoration-none">' . $name . '</a>'
                         . '<span class="small text-muted">جواز: ' . $passport . '</span>'
+                        . $cvCode
+                        . '<span class="small text-muted">نوع الطلب: ' . $requestType . '</span>'
                         . '</div>';
                 })
                 ->editColumn('nationality_id', fn(Maid $row) => e($row->nationality?->sub_title ?? '-'))
@@ -679,8 +688,9 @@ class MaidController extends Controller
                 ->addColumn('actions', function (Maid $row) {
                     $menuItems = [];
                     $canCreateRentalContract = $this->canCreateRentalContractForMaid($row);
+                    $canUseAvailableActions = (bool) $row->available && in_array($row->status, ['available', 'completed'], true);
 
-                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHOW)) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHOW) || @AdminGuardHasPerm(\App\PermKeys::MAIDS_RENTAL_VIEW)) {
                         $menuItems[] = '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '">
                             <i class="fas fa-eye text-primary me-2"></i>عرض التفاصيل
                         </a></li>';
@@ -696,6 +706,41 @@ class MaidController extends Controller
                         $menuItems[] = '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.edit', $row->id) . '">
                             <i class="fas fa-pen text-secondary me-2"></i>تعديل السيرة
                         </a></li>';
+                    }
+
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_STATUS)) {
+                        $menuItems[] = '<li><button class="dropdown-item update-status" data-id="' . $row->id . '">
+                            <i class="fas fa-adjust text-muted me-2"></i>' . helperTrans('ingaz.toggle_visibility') . '
+                        </button></li>';
+                    }
+
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
+                        if ($row->status === 'suspended') {
+                            $menuItems[] = '<li><button type="button" class="dropdown-item" onclick="suspendCv(' . $row->id . ',0)">
+                                <i class="fas fa-play-circle text-success me-2"></i>إلغاء تعليق السيرة
+                            </button></li>';
+                        } elseif ($canUseAvailableActions) {
+                            $menuItems[] = '<li><button type="button" class="dropdown-item" onclick="suspendCv(' . $row->id . ',1)">
+                                <i class="fas fa-pause-circle text-warning me-2"></i>تعليق السيرة
+                            </button></li>';
+                        }
+
+                        if ($row->status === 'backout') {
+                            $menuItems[] = '<li><button type="button" class="dropdown-item" onclick="back_out_on(' . $row->id . ')">
+                                <i class="fas fa-toggle-on text-success me-2"></i>ارجاع متاح
+                            </button></li>';
+                        } elseif (in_array($row->status, ['available', 'completed', 'suspended'], true)) {
+                            $menuItems[] = '<li><button type="button" class="dropdown-item" onclick="back_out(' . $row->id . ')">
+                                <i class="fas fa-toggle-off text-danger me-2"></i>باك اوت
+                            </button></li>';
+                        }
+                    }
+
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_PIN) && $canUseAvailableActions) {
+                        $pinLabel = $row->is_pinned ? helperTrans('ingaz.unpin_maid') : helperTrans('ingaz.pin_maid');
+                        $menuItems[] = '<li><button class="dropdown-item toggle-pin" data-id="' . $row->id . '" data-pinned="' . ($row->is_pinned ? 'true' : 'false') . '">
+                            <i class="fas fa-thumbtack text-warning me-2"></i>' . $pinLabel . '
+                        </button></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_DELETE)) {
@@ -723,9 +768,11 @@ class MaidController extends Controller
             'nationalities' => Nationality::orderByTranslation('sub_title', 'asc')->get(['id']),
             'offices' => $officeAct->getAllOffices(),
             'job_types' => JobType::with('translations')->orderByTranslation('title', 'asc')->get(['id']),
+            'request_types' => objModel::getRequestTypeOptions(),
         ];
 
         $defaultFilters = array_filter([
+            'keyword' => $request->keyword,
             'passport_num' => $request->passport_num,
             'nationality_id' => $request->nationality_id,
             'office_id' => $request->office_id,
@@ -734,6 +781,8 @@ class MaidController extends Controller
             'cv_status' => $request->cv_status,
             'visibility' => $request->visibility,
             'experience_status' => $request->experience_status,
+            'request_type' => $request->request_type,
+            'pinned' => $request->pinned,
             'date_from' => $request->date_from,
             'date_to' => $request->date_to,
             'rental_stat' => $request->rental_stat,
@@ -1625,7 +1674,7 @@ class MaidController extends Controller
             $maid = objModel::findOrFail($id);
             \Log::info('Maid found: ' . $maid->name . ', current pin status: ' . ($maid->is_pinned ? 'true' : 'false'));
 
-            if (!$maid->available || $maid->status !== 'available') {
+            if (!$maid->available || !in_array($maid->status, ['available', 'completed'], true)) {
                 \Log::warning('Attempt to pin a maid that is not currently available', ['maid_id' => $maid->id, 'status' => $maid->status, 'available' => $maid->available]);
                 return response()->json([
                     'success' => false,

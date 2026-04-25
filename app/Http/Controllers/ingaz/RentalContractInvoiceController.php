@@ -81,16 +81,17 @@ class RentalContractInvoiceController extends Controller
         };
 
         $serviceLongDescription = (string) ($invoice->service_description ?: 'عقد تأجير عاملة منزلية');
-        $items = $this->buildInvoiceItems($invoice);
+        $breakdown = $this->buildInvoiceBreakdown($invoice);
+        $items = $this->buildInvoiceItems($invoice, $breakdown);
         $printedBy = optional(Auth::guard('admin')->user())->name
             ?? optional(Auth::user())->name
             ?? 'النظام';
         $printedAt = now();
-        $subtotalBeforeDiscount = (float) $invoice->subtotal;
-        $discountTotal = (float) $invoice->discount;
-        $netSubtotal = round(max(0, $subtotalBeforeDiscount - $discountTotal), 2);
-        $vatAmount = (float) $invoice->vat_amount;
-        $grandTotal = (float) $invoice->total_due;
+        $subtotalBeforeDiscount = $breakdown['subtotal_before_discount'];
+        $discountTotal = $breakdown['discount'];
+        $netSubtotal = $breakdown['net_subtotal'];
+        $vatAmount = $breakdown['vat_amount'];
+        $grandTotal = $breakdown['grand_total'];
 
         return [
             'invoice' => $invoice,
@@ -131,26 +132,55 @@ class RentalContractInvoiceController extends Controller
         ];
     }
 
-    private function buildInvoiceItems(RentalContractInvoice $invoice): array
+    private function buildInvoiceItems(RentalContractInvoice $invoice, array $breakdown): array
     {
         $contract = $invoice->rentalContract;
         $durationMonths = (int) ($contract?->info?->contract_duration_months ?? 0);
         $durationDays = (int) ($contract?->info?->contract_duration_days ?? 0);
         $maidName = $contract?->maid?->name ?: 'غير محدد';
         $packageName = $invoice->package?->title ?: 'باقة إيجار';
+        $baseLabel = $this->buildItemLabel($packageName, $maidName, $durationMonths, $durationDays);
+        $salaryExemptAmount = (float) ($breakdown['salary_exempt_amount'] ?? 0);
+        $taxableSubtotal = (float) ($breakdown['taxable_subtotal'] ?? 0);
+        $vatAmount = (float) ($breakdown['vat_amount'] ?? 0);
 
-        $label = 'خدمة تأجير عاملة منزلية';
-        if ($durationMonths > 0 || $durationDays > 0) {
-            $label .= ' - ' . $packageName
-                . ' - ' . ($durationMonths > 0 ? $durationMonths . ' شهر' : '')
-                . ($durationMonths > 0 && $durationDays > 0 ? ' / ' : '')
-                . ($durationDays > 0 ? $durationDays . ' يوم' : '');
+        if ($salaryExemptAmount > 0) {
+            $items = [];
+
+            if ($taxableSubtotal > 0 || $vatAmount > 0) {
+                $items[] = [
+                    'key' => 'rental_service',
+                    'label' => $baseLabel . ' - خدمة التأجير',
+                    'qty' => 1,
+                    'unit' => $taxableSubtotal,
+                    'line_subtotal' => $taxableSubtotal,
+                    'line_discount' => 0.0,
+                    'line_total' => $taxableSubtotal,
+                    'vat_rate' => $vatAmount > 0 ? InvoiceCalculationService::VAT_RATE : 0.0,
+                    'vat_amount' => $vatAmount,
+                    'line_grand_total' => round($taxableSubtotal + $vatAmount, 2),
+                ];
+            }
+
+            $items[] = [
+                'key' => 'worker_salary_exempt',
+                'label' => 'راتب العاملة المعفى من الضريبة - العاملة: ' . $maidName,
+                'qty' => 1,
+                'unit' => $salaryExemptAmount,
+                'line_subtotal' => $salaryExemptAmount,
+                'line_discount' => 0.0,
+                'line_total' => $salaryExemptAmount,
+                'vat_rate' => 0.0,
+                'vat_amount' => 0.0,
+                'line_grand_total' => $salaryExemptAmount,
+            ];
+
+            return $items;
         }
-        $label .= ' - العاملة: ' . $maidName;
 
         return [[
             'key' => 'rental_service',
-            'label' => $label,
+            'label' => $baseLabel,
             'qty' => 1,
             'unit' => (float) $invoice->subtotal,
             'line_subtotal' => (float) $invoice->subtotal,
@@ -160,6 +190,64 @@ class RentalContractInvoiceController extends Controller
             'vat_amount' => (float) $invoice->vat_amount,
             'line_grand_total' => (float) $invoice->total_due,
         ]];
+    }
+
+    private function buildInvoiceBreakdown(RentalContractInvoice $invoice): array
+    {
+        $subtotalBeforeDiscount = (float) $invoice->subtotal;
+        $discount = (float) $invoice->discount;
+        $netSubtotal = round(max(0, $subtotalBeforeDiscount - $discount), 2);
+        $vatAmount = (float) $invoice->vat_amount;
+        $grandTotal = (float) $invoice->total_due;
+        $salaryExemptAmount = $this->resolveSalaryExemptAmount($invoice, $grandTotal);
+        $taxableSubtotal = $netSubtotal;
+
+        if ($salaryExemptAmount > 0) {
+            $taxableSubtotal = round(max(0, $netSubtotal - $salaryExemptAmount), 2);
+
+            if ($taxableSubtotal <= 0 && $grandTotal > $salaryExemptAmount) {
+                $taxableSubtotal = round(max(0, $grandTotal - $salaryExemptAmount - $vatAmount), 2);
+            }
+        }
+
+        return [
+            'subtotal_before_discount' => $subtotalBeforeDiscount,
+            'discount' => $discount,
+            'net_subtotal' => $netSubtotal,
+            'taxable_subtotal' => $taxableSubtotal,
+            'salary_exempt_amount' => $salaryExemptAmount,
+            'vat_amount' => $vatAmount,
+            'grand_total' => $grandTotal,
+        ];
+    }
+
+    private function buildItemLabel(string $packageName, string $maidName, int $durationMonths, int $durationDays): string
+    {
+        $label = 'خدمة تأجير عاملة منزلية';
+        if ($durationMonths > 0 || $durationDays > 0) {
+            $label .= ' - ' . $packageName
+                . ' - ' . ($durationMonths > 0 ? $durationMonths . ' شهر' : '')
+                . ($durationMonths > 0 && $durationDays > 0 ? ' / ' : '')
+                . ($durationDays > 0 ? $durationDays . ' يوم' : '');
+        }
+
+        return $label . ' - العاملة: ' . $maidName;
+    }
+
+    private function resolveSalaryExemptAmount(RentalContractInvoice $invoice, float $grandTotal): float
+    {
+        $contract = $invoice->rentalContract;
+        $monthlySalary = (float) ($contract?->info?->monthly_salary ?? 0);
+
+        if ($monthlySalary <= 0) {
+            $monthlySalary = (float) ($contract?->maid?->resolved_salary ?? $contract?->maid?->salary ?? 0);
+        }
+
+        if ($monthlySalary <= 0 || $grandTotal <= 0) {
+            return 0.0;
+        }
+
+        return round(min($grandTotal, $monthlySalary), 2);
     }
 
     private function formatPhone(string $code, string $phone): string

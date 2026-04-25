@@ -51,7 +51,7 @@ class AllWorkerController extends Controller
 
     public function show($id, Request $request, MaidAction $maidAction)
     {
-        $maid = $maidAction->find($id);
+        $maid = $maidAction->findAvailable($id);
         $type = $request->query('type') ?? null;
         $customerServices = Admin::query()
             ->whereNull('deleted_at')

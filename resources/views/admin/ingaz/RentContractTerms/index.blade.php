@@ -25,11 +25,18 @@
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h3 class="card-title">بنود عقد الإيجار</h3>
-                        @if ($canCreateTerm)
-                            <a href="{{ route('rent-contract-terms.create') }}" class="btn btn-primary">
-                                <i class="fas fa-plus"></i> إضافة بند جديد
-                            </a>
-                        @endif
+                        <div class="d-flex gap-2">
+                            @if ($canEditTerm)
+                                <button type="button" class="btn btn-outline-warning" id="importDefaultTerms">
+                                    <i class="fas fa-file-import"></i> استيراد البنود الافتراضية
+                                </button>
+                            @endif
+                            @if ($canCreateTerm)
+                                <a href="{{ route('rent-contract-terms.create') }}" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> إضافة بند جديد
+                                </a>
+                            @endif
+                        </div>
                     </div>
                     <div class="card-body">
                         <table class="table table-hover table-style">
@@ -92,6 +99,23 @@
 
     <script>
         $(document).ready(function() {
+            $('#importDefaultTerms').on('click', function() {
+                Swal.fire({
+                    title: 'استيراد البنود الافتراضية؟',
+                    text: 'سيتم حذف البنود الحالية واستبدالها ببنود العقد الافتراضية.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'نعم، استورد',
+                    cancelButtonText: 'إلغاء'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = "{{ route('rent-contract-terms.import-default') }}";
+                    }
+                });
+            });
+
             $(document).on('click', '.btn-delete', function() {
                 var id = $(this).data('id');
                 Swal.fire({

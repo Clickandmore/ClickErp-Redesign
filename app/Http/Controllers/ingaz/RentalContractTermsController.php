@@ -6,6 +6,7 @@ use App\Http\Controllers\admin\Controller;
 use App\Models\RentalContractTerm;
 use App\Models\Setting;
 use App\PermKeys;
+use App\Support\RentalContractDefaultTerms;
 use Illuminate\Http\Request;
 
 class RentalContractTermsController extends Controller
@@ -37,11 +38,11 @@ class RentalContractTermsController extends Controller
     {
         $this->authorizeTermsCreate();
 
-        $termsPage1 = RentalContractTerm::byPage(1)->ordered()->get();
-        $termsPage2 = RentalContractTerm::byPage(2)->ordered()->get();
-        $termsPage3 = RentalContractTerm::byPage(3)->ordered()->get();
+        $sectionTitles = $this->sectionTitles();
+        $nextSectionOrder = ((int) RentalContractTerm::max('section_order')) + 1;
+        $nextTermOrder = ((int) RentalContractTerm::where('page_number', old('page_number', 1))->max('term_order')) + 1;
 
-        return view('admin.ingaz.RentContractTerms.create', compact('termsPage1', 'termsPage2', 'termsPage3'));
+        return view('admin.ingaz.RentContractTerms.create', compact('sectionTitles', 'nextSectionOrder', 'nextTermOrder'));
     }
 
     public function store(Request $request)
@@ -61,11 +62,10 @@ class RentalContractTermsController extends Controller
     {
         $this->authorizeTermsEdit();
 
-        $termsPage1 = RentalContractTerm::byPage(1)->ordered()->get();
-        $termsPage2 = RentalContractTerm::byPage(2)->ordered()->get();
-        $termsPage3 = RentalContractTerm::byPage(3)->ordered()->get();
         $term = RentalContractTerm::findorfail($id);
-        return view('admin.ingaz.RentContractTerms.edit', compact('termsPage1', 'term', 'termsPage2', 'termsPage3'));
+        $sectionTitles = $this->sectionTitles();
+
+        return view('admin.ingaz.RentContractTerms.edit', compact('term', 'sectionTitles'));
     }
 
     /**
@@ -92,89 +92,8 @@ class RentalContractTermsController extends Controller
         // حذف البنود الحالية
         RentalContractTerm::truncate();
 
-        // البنود الافتراضية
-        $defaultTerms = [
-            // الصفحة الأولى
-            [
-                'section_title' => 'أولاً: موضوع العقد',
-                'section_order' => 1,
-                'term_number' => null,
-                'term_content' => 'يقر الطرف الأول بأنه يزاول نشاط تقديم خدمات العمالة المنزلية بموجب ترخيص رقم -------------- ويقدم الطرف الأول خدمات العمالة المنزلية للطرف الثاني بناء على طلبه وفقا للشروط والأحكام الواردة في هذا العقد.',
-                'term_order' => 1,
-                'page_number' => 1,
-                'is_active' => true
-            ],
-
-            // الصفحة الثانية
-            [
-                'section_title' => 'ثانياً: مدة العقد',
-                'section_order' => 2,
-                'term_number' => null,
-                'term_content' => 'مدة العقد -------------- يوما على أن تبدأ من -------------- قابلة للتجديد لمدة أو مدد مماثلة بموجب أشعار مكتوب من الطرف الثاني للطرف الأول قبل نهاية',
-                'term_order' => 1,
-                'page_number' => 2,
-                'is_active' => true
-            ],
-            [
-                'section_title' => 'ثالثاً: قيمة العقد',
-                'section_order' => 3,
-                'term_number' => 1,
-                'term_content' => 'يدفع الطرف الثاني للطرف الأول تكلفة مقابل تقديم خدمات العاملة المنزلية: وفقا للتكلفة الشهرية (------) المعلنة --- في تاريخ التعاقد: وفقا لما يلي:',
-                'term_order' => 1,
-                'page_number' => 2,
-                'is_active' => true
-            ],
-            [
-                'section_title' => 'ثالثاً: قيمة العقد',
-                'section_order' => 3,
-                'term_number' => 3,
-                'term_content' => 'في حال تجديد هذا العقد، ومرافقة العامل على الاستمرار في العمل لدى الطرف الثاني، يدفع الطرف الثاني للطرف الأول تكلفة مقابل تقديم خدمات العامل المنزلي للمدة الجديدة تعادل التكلفة السابقة.',
-                'term_order' => 2,
-                'page_number' => 2,
-                'is_active' => true
-            ],
-            [
-                'section_title' => 'رابعا: التزامات الطرف الأول',
-                'section_order' => 4,
-                'term_number' => 1,
-                'term_content' => 'أن يقدم للطرف الثاني عاملة منزلية ذو كفاءة وخبرة بمهنة خدمة المنازل.',
-                'term_order' => 1,
-                'page_number' => 2,
-                'is_active' => true
-            ],
-            [
-                'section_title' => 'رابعا: التزامات الطرف الأول',
-                'section_order' => 4,
-                'term_number' => 2,
-                'term_content' => 'إعداد العامل وتهيئته للعمل، والتأكد من جاهزيته لتقديم الخدمة.',
-                'term_order' => 2,
-                'page_number' => 2,
-                'is_active' => true
-            ],
-            [
-                'section_title' => 'رابعا: التزامات الطرف الأول',
-                'section_order' => 4,
-                'term_number' => 3,
-                'term_content' => 'تسليم العامل للطرف الثاني في الوقت والمكان المتفق عليه.',
-                'term_order' => 3,
-                'page_number' => 2,
-                'is_active' => true
-            ],
-            [
-                'section_title' => 'رابعا: التزامات الطرف الأول',
-                'section_order' => 4,
-                'term_number' => 4,
-                'term_content' => 'استبدال العامل في حال عدم كفاءته، أو رغبة الطرف الثاني في استبداله خلال (24) ساعة.',
-                'term_order' => 4,
-                'page_number' => 2,
-                'is_active' => true
-            ],
-
-            // يمكنك إضافة باقي البنود هنا...
-        ];
-
         // إدراج البنود الافتراضية
-        foreach ($defaultTerms as $term) {
+        foreach (RentalContractDefaultTerms::all() as $term) {
             RentalContractTerm::create($term);
         }
 
@@ -270,16 +189,52 @@ class RentalContractTermsController extends Controller
             'term_number' => ['nullable', 'integer', 'min:1'],
             'section_order' => ['nullable', 'integer', 'min:1'],
             'term_order' => ['nullable', 'integer', 'min:1'],
-            'page_number' => ['required', 'integer', 'in:1,2,3'],
+            'page_number' => ['required', 'integer', 'min:1'],
             'term_content' => ['required', 'string'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
-        $data['section_order'] = $data['section_order'] ?? 1;
-        $data['term_order'] = $data['term_order'] ?? 1;
+        $data['section_order'] = $data['section_order'] ?? $this->nextSectionOrder($data['section_title'], (int) $data['page_number']);
+        $data['term_order'] = $data['term_order'] ?? $this->nextTermOrder($data['section_title'], (int) $data['page_number']);
         $data['is_active'] = $request->boolean('is_active');
 
         return $data;
+    }
+
+    private function sectionTitles()
+    {
+        return RentalContractTerm::query()
+            ->select('section_title', 'section_order')
+            ->orderBy('section_order')
+            ->orderBy('section_title')
+            ->get()
+            ->pluck('section_title')
+            ->filter()
+            ->unique()
+            ->values();
+    }
+
+    private function nextSectionOrder(string $sectionTitle, int $pageNumber): int
+    {
+        $existingSectionOrder = RentalContractTerm::query()
+            ->where('page_number', $pageNumber)
+            ->where('section_title', $sectionTitle)
+            ->orderBy('section_order')
+            ->value('section_order');
+
+        if ($existingSectionOrder) {
+            return (int) $existingSectionOrder;
+        }
+
+        return ((int) RentalContractTerm::max('section_order')) + 1;
+    }
+
+    private function nextTermOrder(string $sectionTitle, int $pageNumber): int
+    {
+        return ((int) RentalContractTerm::query()
+            ->where('page_number', $pageNumber)
+            ->where('section_title', $sectionTitle)
+            ->max('term_order')) + 1;
     }
 
     private function authorizeTermsModuleAccess(): void

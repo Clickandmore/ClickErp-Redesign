@@ -162,15 +162,21 @@ class AdminContractController extends Controller
             $contractSettings['email'] = $contractSettings['email'] ?: documentSetting('email', '');
             $contractSettings['logo'] = documentSetting('document_logo', $contractSettings['logo'] ?? null);
 
-            // Get contract terms from the same source used by the admin editor.
-            $termsPage1 = RentalContractTerm::active()->byPage(1)->ordered()->get();
-            $termsPage2 = RentalContractTerm::active()->byPage(2)->ordered()->get();
-            $termsPage3 = RentalContractTerm::active()->byPage(3)->ordered()->get();
+            // Get all active terms from the same source used by the admin editor.
+            $termsByPage = RentalContractTerm::active()
+                ->orderBy('page_number')
+                ->ordered()
+                ->get()
+                ->groupBy('page_number')
+                ->sortKeys();
+            $termsPage1 = $termsByPage->get(1, collect());
+            $termsPage2 = $termsByPage->get(2, collect());
+            $termsPage3 = $termsByPage->get(3, collect());
 
             // Check if contract allows signature (after being sent)
             $allowSignature = in_array($contract->status, ['contract_sent', 'contract_signed', 'maid_delivered', 'active']);
 
-            return view('admin.print.rental-contract-dynamic', compact('contract', 'contractSettings', 'termsPage1', 'termsPage2', 'termsPage3', 'allowSignature'));
+            return view('admin.print.rental-contract-dynamic', compact('contract', 'contractSettings', 'termsByPage', 'termsPage1', 'termsPage2', 'termsPage3', 'allowSignature'));
 
         } catch (\Exception $e) {
             \Log::error('Error printing rental contract: ' . $e->getMessage());

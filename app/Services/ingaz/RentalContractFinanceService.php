@@ -78,7 +78,7 @@ class RentalContractFinanceService
 
         $invoiceConstraint = null;
         if ($amounts['total_due'] > 0) {
-            $invoiceConstraint = $this->storeInvoiceConstraint($invoice, $contract, $clientAccountId, $amounts['net_subtotal']);
+            $invoiceConstraint = $this->storeInvoiceConstraint($invoice, $contract, $clientAccountId, $amounts);
         }
 
         $receiptBond = null;
@@ -112,6 +112,28 @@ class RentalContractFinanceService
             $this->roundMoney((float) ($contract->info?->paid_amount ?? 0))
         );
         $remainingAmount = $this->roundMoney(max(0, $grossTotal - $paidAmount));
+        $salaryExemptAmount = $this->resolveSalaryExemptAmount($contract, $grossTotal);
+
+        if ($salaryExemptAmount > 0) {
+            $taxableGross = $this->roundMoney(max(0, $grossTotal - $salaryExemptAmount));
+            $taxableSubtotal = $taxableGross > 0
+                ? $this->roundMoney($taxableGross / (1 + InvoiceCalculationService::VAT_RATE))
+                : 0.0;
+            $vatAmount = $this->roundMoney(max(0, $taxableGross - $taxableSubtotal));
+            $netSubtotal = $this->roundMoney($salaryExemptAmount + $taxableSubtotal);
+
+            return [
+                'subtotal' => $netSubtotal,
+                'discount' => 0.0,
+                'net_subtotal' => $netSubtotal,
+                'taxable_subtotal' => $taxableSubtotal,
+                'salary_exempt_amount' => $salaryExemptAmount,
+                'vat_amount' => $vatAmount,
+                'total_due' => $grossTotal,
+                'paid_amount' => $paidAmount,
+                'remaining_amount' => $remainingAmount,
+            ];
+        }
 
         $canUsePackagePricing = $package
             && (int) ($contract->info?->package_id ?? 0) === (int) $package->id
@@ -135,6 +157,8 @@ class RentalContractFinanceService
             'subtotal' => $subtotal,
             'discount' => $discount,
             'net_subtotal' => $netSubtotal,
+            'taxable_subtotal' => $netSubtotal,
+            'salary_exempt_amount' => 0.0,
             'vat_amount' => $vatAmount,
             'total_due' => $grossTotal,
             'paid_amount' => $paidAmount,
@@ -146,7 +170,7 @@ class RentalContractFinanceService
         RentalContractInvoice $invoice,
         RentalContract $contract,
         int $clientAccountId,
-        float $netSubtotal
+        array $amounts
     ): ?Constraint {
         $date = optional($contract->contract_date)->format('Y-m-d') ?: now()->toDateString();
         $activeYear = $this->yearService->checkDateRange($date);
@@ -158,14 +182,28 @@ class RentalContractFinanceService
         $statement = $this->buildInvoiceStatement($invoice, $contract);
         $costCenterId = $this->ensureRentalContractCostCenter($contract)->id;
         $lines = [];
+        $deferredRevenueAccountId = $this->resolveDeferredRevenueAccountId();
+        $taxableSubtotal = $this->roundMoney((float) ($amounts['taxable_subtotal'] ?? $amounts['net_subtotal'] ?? 0));
+        $salaryExemptAmount = $this->roundMoney((float) ($amounts['salary_exempt_amount'] ?? 0));
 
-        if ($netSubtotal > 0) {
+        if ($taxableSubtotal > 0) {
             $this->appendConstraintPair(
                 $lines,
-                $this->resolveDeferredRevenueAccountId(),
+                $deferredRevenueAccountId,
                 $clientAccountId,
-                $netSubtotal,
-                $statement,
+                $taxableSubtotal,
+                $salaryExemptAmount > 0 ? $statement . ' / خدمات التأجير الخاضعة للضريبة' : $statement,
+                $costCenterId
+            );
+        }
+
+        if ($salaryExemptAmount > 0) {
+            $this->appendConstraintPair(
+                $lines,
+                $deferredRevenueAccountId,
+                $clientAccountId,
+                $salaryExemptAmount,
+                $statement . ' / راتب العاملة المعفى من الضريبة',
                 $costCenterId
             );
         }
@@ -293,6 +331,21 @@ class RentalContractFinanceService
             . $invoice->id
             . ' / العميل '
             . ($contract->user?->name ?: 'غير محدد');
+    }
+
+    private function resolveSalaryExemptAmount(RentalContract $contract, float $grossTotal): float
+    {
+        $monthlySalary = (float) ($contract->info?->monthly_salary ?? 0);
+
+        if ($monthlySalary <= 0) {
+            $monthlySalary = (float) ($contract->maid?->resolved_salary ?? $contract->maid?->salary ?? 0);
+        }
+
+        if ($monthlySalary <= 0 || $grossTotal <= 0) {
+            return 0.0;
+        }
+
+        return $this->roundMoney(min($grossTotal, $monthlySalary));
     }
 
     private function buildReceiptStatement(

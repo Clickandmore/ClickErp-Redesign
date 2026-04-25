@@ -497,10 +497,16 @@ class RentContractController extends Controller
                 ]);
             }
 
+            $selectedMaid = Maid::with('nationality')->find($request->maid_id);
+            $monthlySalary = (float) ($request->monthly_salary ?: 0);
+            if ($monthlySalary <= 0 && $selectedMaid) {
+                $monthlySalary = (float) ($selectedMaid->resolved_salary ?: 0);
+            }
+
             // إنشاء عقد التأجير
             $rentalContract = RentalContract::create([
                 'user_id' => $user->id,
-            'maid_id' => $request->maid_id,
+                'maid_id' => $request->maid_id,
                 'marketer_id' => $request->marketer_id,
                 'order_id' => $request->order_id,
                 'status' => 'contract_sent',
@@ -543,7 +549,7 @@ class RentContractController extends Controller
                 'payment_confirmed_by' => $paidAmount > 0 ? auth('admin')->id() : null,
                 'working_hours_per_day' => $request->working_hours ?: 8,
                 'hourly_rate' => $request->hourly_rate,
-                'monthly_salary' => $request->monthly_salary,
+                'monthly_salary' => $monthlySalary,
                 'sponsorship_transfer' => $request->sponsorship_transfer,
                 'rental_type' => $request->rental_type,
                 'monthly_cost' => $monthlyCost,
@@ -565,8 +571,8 @@ class RentContractController extends Controller
             $receiptConstraint = $financeResult['receipt_constraint'] ?? null;
 
             // تحديث حالة العاملة
-            if ($request->maid_id) {
-                Maid::where('id', $request->maid_id)->update([
+            if ($selectedMaid) {
+                $selectedMaid->update([
                     'status' => 'contracted',
                     'available' => false,
                 ]);
@@ -2067,14 +2073,20 @@ class RentContractController extends Controller
             $contractSettings['logo'] = documentSetting('document_logo', $contractSettings['logo'] ?? null);
 
             // Use the same structured terms managed from the admin terms screen.
-            $termsPage1 = RentalContractTerm::active()->byPage(1)->ordered()->get();
-            $termsPage2 = RentalContractTerm::active()->byPage(2)->ordered()->get();
-            $termsPage3 = RentalContractTerm::active()->byPage(3)->ordered()->get();
+            $termsByPage = RentalContractTerm::active()
+                ->orderBy('page_number')
+                ->ordered()
+                ->get()
+                ->groupBy('page_number')
+                ->sortKeys();
+            $termsPage1 = $termsByPage->get(1, collect());
+            $termsPage2 = $termsByPage->get(2, collect());
+            $termsPage3 = $termsByPage->get(3, collect());
 
             // التوقيع متاح عندما يكون العقد بانتظار التوقيع أو بعده
             $allowSignature = in_array($contract->status, ['waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active']);
 
-            return view('admin.print.rental-contract-dynamic', compact('contract', 'contractSettings', 'termsPage1', 'termsPage2', 'termsPage3', 'allowSignature'));
+            return view('admin.print.rental-contract-dynamic', compact('contract', 'contractSettings', 'termsByPage', 'termsPage1', 'termsPage2', 'termsPage3', 'allowSignature'));
 
         } catch (\Exception $e) {
             \Log::error('Error printing rental contract: ' . $e->getMessage());

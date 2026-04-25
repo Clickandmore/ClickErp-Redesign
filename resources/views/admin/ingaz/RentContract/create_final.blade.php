@@ -202,7 +202,7 @@
                                                 data-nationality="{{$maid->nationality->title ?? ''}}"
                                                 data-age="{{$maid->age}}"
                                                 data-experience="{{$maid->experience_years}}"
-                                                data-salary="{{$maid->salary}}"
+                                                data-salary="{{ $maid->resolved_salary ?? $maid->salary }}"
                                                 data-photo="{{$maid->photo}}">
                                                 {{$maid->name}} - {{$maid->passport_num}} - {{$maid->nationality->title ?? ''}}
                                             </option>

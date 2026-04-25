@@ -77,7 +77,7 @@
 @endsection
 
 @section('content')
-    @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW))
+    @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW) || @AdminGuardHasPerm(\App\PermKeys::MAIDS_SHOW) || ($isRentalMaid && @AdminGuardHasPerm(\App\PermKeys::MAIDS_RENTAL_VIEW)))
         @php
             $statusLabels = [
                 'available' => [

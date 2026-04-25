@@ -18,6 +18,11 @@
                     <form action="{{ route('rent-contract-terms.update', $term->id) }}" method="POST">
                         @csrf
                         @method('PUT')
+                        <datalist id="section_titles">
+                            @foreach($sectionTitles ?? [] as $sectionTitle)
+                                <option value="{{ $sectionTitle }}">
+                            @endforeach
+                        </datalist>
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-6">
@@ -26,7 +31,7 @@
                                                 class="text-danger">*</span></label>
                                         <input type="text"
                                                class="form-control @error('section_title') is-invalid @enderror"
-                                               id="section_title" name="section_title"
+                                               id="section_title" name="section_title" list="section_titles"
                                                value="{{ old('section_title', $term->section_title) }}" required>
                                         @error('section_title')
                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -74,7 +79,8 @@
                                         <input type="number"
                                                class="form-control @error('page_number') is-invalid @enderror"
                                                id="page_number" name="page_number"
-                                               value="{{ old('page_number', $term->page_number) }}" min="1" max="3" required>
+                                               value="{{ old('page_number', $term->page_number) }}" min="1" required>
+                                        <small class="text-muted">يمكن نقل البند إلى أي صفحة، وستظهر الصفحات النشطة فقط في الطباعة.</small>
                                         @error('page_number')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -83,16 +89,17 @@
                                 <div class="form-group">
                                     <label for="term_content">محتوى البند <span class="text-danger">*</span></label>
                                     <textarea class="form-control @error('term_content') is-invalid @enderror"
-                                              name="term_content" rows="5" required>{{ old('term_content', $term->term_content) }}</textarea>
+                                              name="term_content" rows="8" required>{{ old('term_content', $term->term_content) }}</textarea>
                                     @error('term_content')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
+                                    @include('admin.ingaz.RentContractTerms._placeholder-help')
                                 </div>
 
 
                                 <div class="form-group">
                                     <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" id="is_active" name="is_active"
+                                        <input type="checkbox" class="form-check-input" id="is_active" name="is_active" value="1"
                                             {{ old('is_active', $term->is_active) ? 'checked' : '' }}>
                                         <label class="form-check-label" for="is_active">
                                             البند نشط

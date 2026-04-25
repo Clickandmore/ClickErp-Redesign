@@ -14,6 +14,90 @@
             'rental_contract_intro_text',
             'حيث أن الطرف الأول مرخص ويسمح له بتقديم خدمات العمالة المنزلية ولديه الخبرات والإمكانيات اللازمة لتوفير خدمات العمالة المنزلية، وذلك وفق الأنظمة والقرارات والتعليمات المعمول بها في المملكة العربية السعودية وبما لا يتعارض مع أحكام الشريعة الإسلامية، وأحاجة الطرف الثاني لخدمات بعض العمالة المنزلية، فقد اتفق الطرفان وهما بكامل أهليتهما المعتبرة شرعا ونظاما على ما يلي:'
         ));
+        $formatRentalDate = function ($value, $fallback = '______') {
+            if (blank($value)) {
+                return $fallback;
+            }
+
+            try {
+                return \Carbon\Carbon::parse($value)->format('Y/m/d');
+            } catch (\Throwable $e) {
+                return $fallback;
+            }
+        };
+        $formatRentalMoney = function ($value, $fallback = '______') {
+            if ($value === null || $value === '') {
+                return $fallback;
+            }
+
+            return is_numeric($value) ? number_format((float) $value) : (string) $value;
+        };
+        $contractInfo = data_get($contract, 'info');
+        $contractDurationDays = data_get($contractInfo, 'contract_duration_days')
+            ?? data_get($contractInfo, 'contract_duration')
+            ?? '______';
+        $contractStartDate = data_get($contractInfo, 'ingaz_from')
+            ?? data_get($contractInfo, 'contract_date')
+            ?? data_get($contract, 'contract_date');
+        $contractEndDate = data_get($contractInfo, 'ingaz_to');
+        $monthlyCost = data_get($contractInfo, 'monthly_cost');
+        $contractValue = data_get($contractInfo, 'contract_value')
+            ?? data_get($contractInfo, 'total_cost');
+        $workingHours = data_get($contractInfo, 'working_hours_per_day')
+            ?? data_get($contractInfo, 'working_hours')
+            ?? 8;
+        $clientName = data_get($contract, 'user.name', 'اسم العميل');
+        $clientIdentityNumber = data_get($contract, 'user.national_num')
+            ?? data_get($contract, 'user.iqama_number')
+            ?? '';
+        $clientPhone = data_get($contract, 'user.phone', '');
+        $clientAddress = data_get($contract, 'user.address', '');
+        $clientNationality = data_get($contract, 'user.nationality.name')
+            ?? data_get($contract, 'user.nationality.title')
+            ?? 'السعودية';
+        $maidName = data_get($contract, 'maid.name', '______');
+        $maidNationality = data_get($contract, 'maid.nationality.title')
+            ?? data_get($contract, 'maid.nationality.name')
+            ?? '______';
+        $maidPassportNumber = data_get($contract, 'maid.passport_num', '______');
+        $maidExperience = data_get($contract, 'maid.experience', '-');
+        $termsByPage = isset($termsByPage)
+            ? collect($termsByPage)
+            : collect([
+                1 => collect($termsPage1 ?? []),
+                2 => collect($termsPage2 ?? []),
+                3 => collect($termsPage3 ?? []),
+            ]);
+        $termsByPage = $termsByPage
+            ->map(fn ($terms) => collect($terms))
+            ->filter(fn ($terms) => $terms->isNotEmpty())
+            ->sortKeys();
+        $pageOneTerms = $termsByPage->get(1, collect());
+        $extraTermPages = $termsByPage->reject(fn ($terms, $pageNumber) => (int) $pageNumber === 1);
+        $termReplacements = [
+            'اسم_الشركة' => $documentCompanyName,
+            'اسم_العميل' => $clientName,
+            'رقم_هوية_العميل' => $clientIdentityNumber ?: '______',
+            'جوال_العميل' => $clientPhone ?: '______',
+            'عنوان_العميل' => $clientAddress ?: '______',
+            'رقم_العقد' => data_get($contract, 'contract_number', '______'),
+            'تاريخ_العقد' => $formatRentalDate(data_get($contract, 'contract_date')),
+            'مدة_العقد' => $contractDurationDays ?: '______',
+            'تاريخ_البداية' => $formatRentalDate($contractStartDate),
+            'تاريخ_النهاية' => $formatRentalDate($contractEndDate),
+            'التكلفة_الشهرية' => $formatRentalMoney($monthlyCost),
+            'إجمالي_التكلفة' => $formatRentalMoney($contractValue),
+            'ساعات_العمل' => $workingHours ?: '______',
+            'اسم_العاملة' => $maidName,
+            'جنسية_العاملة' => $maidNationality,
+            'رقم_الجواز' => $maidPassportNumber,
+        ];
+        $formatRentalContractTerm = function ($term) use ($termReplacements) {
+            $content = replaceDocumentPlaceholders((string) data_get($term, 'term_content', ''), $termReplacements);
+            $content = str_replace('----------', '________', $content);
+
+            return nl2br(e($content));
+        };
     @endphp
     <title>{{ $documentTitle }}</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -53,7 +137,7 @@
             z-index: 0;
         }
 
-        .page-1, .page-2, .page-3 {
+        .contract-page, .page-1, .page-2, .page-3 {
             position: relative;
             z-index: 1;
             min-height: 297mm;
@@ -193,7 +277,7 @@
                 padding: 0;
             }
 
-            .page-1, .page-2, .page-3 {
+            .contract-page, .page-1, .page-2, .page-3 {
                 padding: 10mm;
                 page-break-after: always;
             }
@@ -362,7 +446,7 @@
      @endphp
      <img src="{{ $logoUrl }}" class="watermark" alt="">
         <!-- الصفحة الأولى -->
-        <div class="page-1">
+        <div class="contract-page page-1">
             <div class="header">
                 <div class="logo-container">
                     {{-- <img src="{{ $logoUrl }}" alt="شركة بلاتنيوم الشرقية"> --}}
@@ -372,7 +456,7 @@
             </div>
 
             <div class="contract-info">
-                <p style="text-align: center;">الحمد لله وحده وبعد ففي يوم الموافق {{ \Carbon\Carbon::parse($contract->contract_date ?? now())->format('Y/m/d') }} تم الاتفاق بمدينة الرياض بين كل من:</p>
+                <p style="text-align: center;">الحمد لله وحده وبعد ففي يوم الموافق {{ $formatRentalDate(data_get($contract, 'contract_date', now())) }} تم الاتفاق بمدينة الرياض بين كل من:</p>
             </div>
 
             <div class="parties-section">
@@ -385,8 +469,8 @@
                 </div>
 
                 <div class="party">
-                    <div class="party-title">2- {{ $contract->user->name ?? 'اسم العميل' }}</div>
-                    <div>الجنسية {{ $contract->user->nationality->name ?? 'السعودية' }} - بموجب هوية وطنية رقم {{ $contract->user->iqama_number ?? '' }} وعنوانه {{ $contract->user->address ?? '' }} الرمز البريدي مكتب جوال {{ $contract->user->phone ?? '' }}</div>
+                    <div class="party-title">2- {{ $clientName }}</div>
+                    <div>الجنسية {{ $clientNationality }} - بموجب هوية وطنية رقم {{ $clientIdentityNumber }} وعنوانه {{ $clientAddress }} الرمز البريدي مكتب جوال {{ $clientPhone }}</div>
                     <div>ويشار إليه فيما بعد بـ (الطرف الثاني) -------------- فاكس {{ $contractSettings['fax'] ?? '' }}</div>
                 </div>
             </div>
@@ -397,33 +481,11 @@
             </div>
 
             <div class="terms-section">
-                @if(isset($termsPage1) && $termsPage1->count() > 0)
-                    @php $currentSection = '' @endphp
-                    @foreach($termsPage1 as $term)
-                        @if($currentSection != $term->section_title)
-                            <h3>{{ $term->section_title }}</h3>
-                            @php $currentSection = $term->section_title @endphp
-                        @endif
-
-                        <div class="term-item">
-                            @if($term->term_number)
-                                <span class="term-number">{{ $term->term_number }}-</span>
-                            @endif
-                            @php
-                                // استبدال المتغيرات في النص
-                                $content = $term->term_content;
-                                $content = str_replace('----------', '________', $content);
-                                $content = str_replace('[مدة_العقد]', $contract->info->contract_duration ?? '______', $content);
-                                $content = str_replace('[تاريخ_البداية]', \Carbon\Carbon::parse($contract->info->contract_date ?? now())->format('Y/m/d'), $content);
-                                $content = str_replace('[التكلفة_الشهرية]', number_format($contract->info->monthly_cost ?? 0), $content);
-                                $content = str_replace('[إجمالي_التكلفة]', number_format($contract->info->total_cost ?? 0), $content);
-                                $content = str_replace('[اسم_العاملة]', $contract->maid->name ?? '______', $content);
-                                $content = str_replace('[جنسية_العاملة]', $contract->maid->nationality->name ?? '______', $content);
-                                $content = str_replace('[رقم_الجواز]', $contract->maid->passport_num ?? '______', $content);
-                            @endphp
-                            {!! nl2br(e($content)) !!}
-                        </div>
-                    @endforeach
+                @if($pageOneTerms->isNotEmpty())
+                    @include('admin.print.partials.rental-contract-terms', [
+                        'terms' => $pageOneTerms,
+                        'formatRentalContractTerm' => $formatRentalContractTerm,
+                    ])
                 @else
                     <h3>أولاً: موضوع العقد</h3>
                     <div class="term-item">
@@ -442,169 +504,48 @@
                         <td><strong>التكلفة الشهرية</strong></td>
                     </tr>
                     <tr>
-                        <td>{{ $contract->maid->nationality->name ?? '-' }}</td>
-                        <td>{{ $contract->maid->passport_num ?? '-' }}</td>
-                        <td>{{ $contract->maid->experience ?? '-' }}</td>
-                        <td>{{ $contract->info->working_hours ?? '8' }} ساعات</td>
-                        <td>{{ $contract->info->contract_duration ?? '-' }} يوم</td>
-                        <td>{{ $contract->info->monthly_cost ?? '-' }} ريال</td>
+                        <td>{{ $maidNationality }}</td>
+                        <td>{{ $maidPassportNumber }}</td>
+                        <td>{{ $maidExperience }}</td>
+                        <td>{{ $workingHours }} ساعات</td>
+                        <td>{{ $contractDurationDays }} يوم</td>
+                        <td>{{ $formatRentalMoney($monthlyCost, '-') }} ريال</td>
                     </tr>
                 </table>
             </div>
         </div>
 
-        <!-- الصفحة الثانية -->
-        <div class="page-2 page-break">
-            @if(isset($termsPage2) && $termsPage2->count() > 0)
-                @php $currentSection = '' @endphp
-                @foreach($termsPage2 as $term)
-                    @if($currentSection != $term->section_title)
-                        <h3>{{ $term->section_title }}</h3>
-                        @php $currentSection = $term->section_title @endphp
-                    @endif
+        @forelse($extraTermPages as $pageNumber => $pageTerms)
+            <div class="contract-page page-break">
+                @include('admin.print.partials.rental-contract-terms', [
+                    'terms' => $pageTerms,
+                    'formatRentalContractTerm' => $formatRentalContractTerm,
+                ])
 
-                    <div class="term-item">
-                        @if($term->term_number)
-                            <span class="term-number">{{ $term->term_number }}-</span>
-                        @endif
-                        @php
-                            // استبدال المتغيرات في النص
-                            $content = $term->term_content;
-                            $content = str_replace('----------', '________', $content);
-                            $content = str_replace('[مدة_العقد]', $contract->info->contract_duration ?? '______', $content);
-                            $content = str_replace('[تاريخ_البداية]', \Carbon\Carbon::parse($contract->info->contract_date ?? now())->format('Y/m/d'), $content);
-                            $content = str_replace('[التكلفة_الشهرية]', number_format($contract->info->monthly_cost ?? 0), $content);
-                            $content = str_replace('[إجمالي_التكلفة]', number_format($contract->info->total_cost ?? 0), $content);
-                            $content = str_replace('[اسم_العاملة]', $contract->maid->name ?? '______', $content);
-                            $content = str_replace('[جنسية_العاملة]', $contract->maid->nationality->name ?? '______', $content);
-                            $content = str_replace('[رقم_الجواز]', $contract->maid->passport_num ?? '______', $content);
-                        @endphp
-                        {!! nl2br(e($content)) !!}
-                    </div>
-                @endforeach
-            @else
-                <p>لا توجد بنود للصفحة الثانية</p>
-            @endif
-        </div>
-
-        <!-- الصفحة الثالثة -->
-        <div class="page-3 page-break">
-            @if(isset($termsPage3) && $termsPage3->count() > 0)
-                @php $currentSection = '' @endphp
-                @foreach($termsPage3 as $term)
-                    @if($currentSection != $term->section_title)
-                        <h3>{{ $term->section_title }}</h3>
-                        @php $currentSection = $term->section_title @endphp
-                    @endif
-
-                    <div class="term-item">
-                        @if($term->term_number)
-                            <span class="term-number">{{ $term->term_number }}-</span>
-                        @endif
-                        @php
-                            // استبدال المتغيرات في النص
-                            $content = $term->term_content;
-                            $content = str_replace('----------', '________', $content);
-                            $content = str_replace('[مدة_العقد]', $contract->info->contract_duration ?? '______', $content);
-                            $content = str_replace('[تاريخ_البداية]', \Carbon\Carbon::parse($contract->info->contract_date ?? now())->format('Y/m/d'), $content);
-                            $content = str_replace('[التكلفة_الشهرية]', number_format($contract->info->monthly_cost ?? 0), $content);
-                            $content = str_replace('[إجمالي_التكلفة]', number_format($contract->info->total_cost ?? 0), $content);
-                            $content = str_replace('[اسم_العاملة]', $contract->maid->name ?? '______', $content);
-                            $content = str_replace('[جنسية_العاملة]', $contract->maid->nationality->name ?? '______', $content);
-                            $content = str_replace('[رقم_الجواز]', $contract->maid->passport_num ?? '______', $content);
-                        @endphp
-                        {!! nl2br(e($content)) !!}
-                    </div>
-                @endforeach
-            @else
-                <p>لا توجد بنود للصفحة الثالثة</p>
-            @endif
-
-            <!-- قسم التوقيع التفاعلي -->
-            <div class="signature-container no-print">
-                <div class="signature-title">توقيع الطرف الثاني ({{ $contract->user->name ?? 'العميل' }})</div>
-
-                <!-- حالة التوقيع -->
-                <div class="signature-status {{ $contract->signature ? 'signed' : 'not-signed' }}">
-                    @if($contract->signature)
-                        ✅ تم التوقيع على العقد
-                    @else
-                        ❌ لم يتم التوقيع بعد
-                    @endif
-                </div>
-
-                <!-- عرض التوقيع المحفوظ -->
-                @if($contract->signature)
-                    <div class="signature-display">
-                        <img src="{{ asset('storage/signatures/' . $contract->signature) }}" alt="التوقيع المحفوظ">
-                    </div>
-                @elseif(isset($allowSignature) && $allowSignature)
-                    <!-- Canvas للتوقيع - يظهر عندما يكون العقد بانتظار التوقيع -->
-                    <div class="signature-canvas-container">
-                        <canvas id="signatureCanvas" width="400" height="150"></canvas>
-                    </div>
-
-                    <!-- أزرار التحكم -->
-                    <div class="signature-controls">
-                        <button type="button" class="signature-btn signature-btn-primary" onclick="saveSignature()">
-                            حفظ التوقيع
-                        </button>
-                        <button type="button" class="signature-btn signature-btn-secondary" onclick="clearSignature()">
-                            مسح التوقيع
-                        </button>
-                        <button type="button" class="signature-btn signature-btn-danger" onclick="downloadSignature()">
-                            تحميل التوقيع
-                        </button>
-                    </div>
-                @else
-                    <!-- رسالة عدم إمكانية التوقيع -->
-                    <div class="signature-not-available">
-                        <p style="color: #666; text-align: center; padding: 20px;">
-                            <i class="fas fa-info-circle"></i>
-                            التوقيع متاح عندما يكون العقد بانتظار التوقيع
-                        </p>
-                    </div>
+                @if($loop->last)
+                    @include('admin.print.partials.rental-contract-signatures')
                 @endif
             </div>
-
-            <!-- قسم التوقيعات -->
-            <div class="signature-section">
-                <div class="signature-box">
-                    <h4>الطرف الأول</h4>
-                    <div class="signature-line">الاسم: {{ $documentCompanyName }}</div>
-                    <div class="signature-line">التوقيع: ........................</div>
-                    <div class="signature-line">التاريخ: {{ \Carbon\Carbon::now()->format('Y/m/d') }}</div>
-                </div>
-
-                <div class="signature-box">
-                    <h4>الطرف الثاني</h4>
-                    <div class="signature-line">الاسم: {{ $contract->user->name ?? '' }}</div>
-                    <div class="signature-line">
-                        التوقيع:
-                        @if($contract->signature)
-                            <img src="{{ asset('storage/signatures/' . $contract->signature) }}" style="max-width: 150px; max-height: 60px; vertical-align: middle;">
-                        @else
-                            ........................
-                        @endif
-                    </div>
-                    <div class="signature-line">التاريخ: {{ \Carbon\Carbon::now()->format('Y/m/d') }}</div>
-                </div>
+        @empty
+            <div class="contract-page page-break">
+                @include('admin.print.partials.rental-contract-signatures')
             </div>
-        </div>
+        @endforelse
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // متغيرات التوقيع
         let canvas = document.getElementById('signatureCanvas');
-        let ctx = canvas.getContext('2d');
+        let ctx = canvas ? canvas.getContext('2d') : null;
         let isDrawing = false;
+        let hasDrawnSignature = false;
         let lastX = 0;
         let lastY = 0;
 
         // إعداد Canvas
         function setupCanvas() {
-            if (!canvas) return;
+            if (!canvas || !ctx) return;
 
             ctx.strokeStyle = '#000';
             ctx.lineWidth = 2;
@@ -620,13 +561,18 @@
 
         // بدء الرسم
         function startDrawing(e) {
+            if (!canvas || !ctx) return;
+            if (!hasDrawnSignature) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            hasDrawnSignature = true;
             isDrawing = true;
             [lastX, lastY] = [e.offsetX, e.offsetY];
         }
 
         // الرسم
         function draw(e) {
-            if (!isDrawing) return;
+            if (!isDrawing || !ctx) return;
 
             ctx.beginPath();
             ctx.moveTo(lastX, lastY);
@@ -643,17 +589,16 @@
 
         // مسح التوقيع
         function clearSignature() {
+            if (!canvas || !ctx) return;
+            hasDrawnSignature = false;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             setupCanvas();
         }
 
         // حفظ التوقيع
         function saveSignature() {
-            // التحقق من وجود توقيع
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const hasSignature = imageData.data.some(channel => channel !== 0);
-
-            if (!hasSignature) {
+            if (!canvas || !ctx) return;
+            if (!hasDrawnSignature) {
                 Swal.fire({
                     title: 'تنبيه!',
                     text: 'يرجى التوقيع أولاً قبل الحفظ',
@@ -714,6 +659,7 @@
 
         // تحميل التوقيع
         function downloadSignature() {
+            if (!canvas) return;
             const link = document.createElement('a');
             link.download = 'توقيع_العقد_{{ $contract->id }}.png';
             link.href = canvas.toDataURL();

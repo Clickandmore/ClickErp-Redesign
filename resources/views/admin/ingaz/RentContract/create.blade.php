@@ -496,7 +496,7 @@
                                                     data-job="{{$maid->jobTitles && $maid->jobTitles->first() ? $maid->jobTitles->first()->title : ''}}"
                                                     data-nationality-id="{{ $maid->nationality_id }}"
                                                     data-nationality="{{$maid->nationality ? $maid->nationality->sub_title : ''}}"
-                                                    data-salary="{{$maid->salary}}"
+                                                    data-salary="{{ $maid->resolved_salary ?? $maid->salary }}"
                                                     data-experience="{{$maid->experience_years}}"
                                                     data-request-type-label="{{$maid->request_type_label}}"
                                                     data-age="{{$maid->age}}">

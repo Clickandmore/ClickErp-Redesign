@@ -439,7 +439,7 @@
                                     data-passport="{{$maid->passport_num}}"
                                     data-age="{{$maid->age}}"
                                     data-experience="{{$maid->experience_years}}"
-                                    data-salary="{{$maid->salary}}"
+                                    data-salary="{{ $maid->resolved_salary ?? $maid->salary }}"
                                     data-photo="{{$maid->photo_url}}">
                                     {{$maid->name}} - {{$maid->passport_num}}
                                 </option>
