@@ -3,26 +3,23 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Actions\ingaz\UserAction as objAction;
-use App\Http\Controllers\Controller;
-use App\Models\ingaz\User as objModel;
-use App\Models\ingaz\Order;
-use App\Models\ingaz\Invoice;
-use App\Models\Country;
+use App\Http\Controllers\admin\Controller;
 use App\Models\City;
+use App\Models\Country;
+use App\Models\ingaz\Invoice;
+use App\Models\ingaz\Order;
+use App\Models\ingaz\User as objModel;
 use App\Models\RentalContract;
 use App\Models\SponsorshipTransfer;
-use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Nami\Finance\Enums\AccountStatusEnum;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Models\Client;
 use Nami\Finance\Models\ClientCategory;
 use Yajra\DataTables\Facades\DataTables;
-use Spatie\Activitylog\Models\Activity;
-use App\Keys;
 
 class UserController extends Controller
 {
@@ -123,7 +120,7 @@ class UserController extends Controller
             return DataTables::of($units)
                 ->addIndexColumn()
                 ->editColumn('name', function ($row) {
-                    
+
                     $badge = $row->is_blocked == 0
                         ? '<span class="badge bg-success-subtle text-success border border-success-subtle">' . helperTrans('ingaz.active') . '</span>'
                         : '<span class="badge bg-danger-subtle text-danger border border-danger-subtle">' . helperTrans('ingaz.blocked') . '</span>';
@@ -133,7 +130,7 @@ class UserController extends Controller
                             <span class="fw-semibold text-dark name">' . e($row->name) . '</span>
                             <div> ' . $badge . ' </div>
                         </div>
-                        
+
                     </div>';
                 })
                 ->editColumn('is_blocked', function ($row) {
@@ -222,7 +219,7 @@ class UserController extends Controller
                                         <i class="fas fa-exchange-alt me-1"></i>' . helperTrans('ingaz.transfer_requests_count') . ': ' . $transferCount . '
                                     </span>
                                 </div>
-                               
+
                             </div>';
                 })
                 ->addColumn('last_activity', function ($row) {
@@ -230,7 +227,7 @@ class UserController extends Controller
                     $lastRental = $row->last_rental_contract_at ? Carbon::parse($row->last_rental_contract_at)->diffForHumans() : helperTrans('ingaz.not_specified');
                     $lastTransfer = $row->last_transfer_request_at ? Carbon::parse($row->last_transfer_request_at)->diffForHumans() : helperTrans('ingaz.not_specified');
 
-                    return '<div class="d-flex flex-column gap-2">                               
+                    return '<div class="d-flex flex-column gap-2">
                                 <div class="small text-muted last-activity">
                                     <div><i class="fas fa-history me-1"></i>' . helperTrans('ingaz.last_order_activity') . ': <span>' . $lastOrder . '</span> </div>
                                     <div><i class="fas fa-handshake me-1"></i>' . helperTrans('ingaz.last_rental_activity') . ': <span>' . $lastRental . '</span></div>

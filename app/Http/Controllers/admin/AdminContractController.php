@@ -2,20 +2,19 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Keys;
-use App\Models\TravelHistory;
-use Carbon\Carbon;
-use App\Models\Contract;
-use App\Models\ingaz\Maid;
-use App\Models\ContractInfo;
-use App\Models\Setting;
-use Illuminate\Http\Request;
-use App\Models\ShelterWorkers;
-use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Validator;
 use App\Enums\ingaz\ContractStatusEnum;
+use App\Keys;
+use App\Models\Contract;
+use App\Models\ContractInfo;
+use App\Models\ingaz\Maid;
 use App\Models\RentalContractTerm;
+use App\Models\Setting;
+use App\Models\ShelterWorkers;
+use App\Models\TravelHistory;
 use App\Support\AutomationSettings;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class AdminContractController extends Controller
 {

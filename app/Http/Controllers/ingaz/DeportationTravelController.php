@@ -2,13 +2,11 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\TravelHistory;
+use App\Http\Controllers\admin\Controller;
 use App\Models\Contract;
-use App\Models\ingaz\User;
-use App\Models\ingaz\Maid;
 use App\Models\DeportationProcedure;
+use App\Models\TravelHistory;
+use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
 class DeportationTravelController extends Controller

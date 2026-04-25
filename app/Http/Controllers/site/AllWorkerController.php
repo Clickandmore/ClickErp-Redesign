@@ -6,7 +6,7 @@ use App\Enums\auth\AdminTypes;
 use App\Http\Actions\ingaz\JobTitleAction;
 use App\Http\Actions\ingaz\MaidAction;
 use App\Http\Actions\ingaz\NationalityAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Models\auth\Admin;
 use Illuminate\Http\Request;
 

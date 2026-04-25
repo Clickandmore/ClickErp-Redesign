@@ -2,25 +2,23 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use App\Http\Requests\ingaz\API\ResendOtpRequest;
-use App\Http\Requests\ingaz\auth\RegisterRequest;
-use App\Http\Actions\ingaz\UserAction as ObjAction;
-use App\Http\Requests\ingaz\auth\LoginRequest;
-use App\Http\Requests\ingaz\auth\PasswordRequest;
-use App\Http\Requests\ingaz\auth\UpdateProfileRequest;
-use App\Http\Resources\Api\UserResource;
-use App\Models\ingaz\User;
-use App\Models\ingaz\UserFirebaseToken;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Request;
-use Tymon\JWTAuth\Facades\JWTAuth;
 use App\Http\Actions\ingaz\PhoneVerificationAction;
 use App\Http\Actions\ingaz\UserAction;
+use App\Http\Actions\ingaz\UserAction as ObjAction;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\API\ChangePasswordRequest;
-use Illuminate\Support\Facades\RateLimiter;
+use App\Http\Requests\ingaz\API\ResendOtpRequest;
+use App\Http\Requests\ingaz\auth\LoginRequest;
+use App\Http\Requests\ingaz\auth\PasswordRequest;
+use App\Http\Requests\ingaz\auth\RegisterRequest;
+use App\Http\Requests\ingaz\auth\UpdateProfileRequest;
+use App\Http\Resources\Api\UserResource;
+use App\Models\ingaz\UserFirebaseToken;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class ApiAuthController extends Controller
 {

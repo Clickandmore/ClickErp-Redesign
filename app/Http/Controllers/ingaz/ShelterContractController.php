@@ -3,25 +3,23 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Enums\ingaz\ContractStatusEnum;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\ShelterContactStore;
-use App\PermKeys;
 use App\Models\Contract;
 use App\Models\ContractInfo;
 use App\Models\ingaz\JobType;
-use App\Models\ingaz\MaidJob;
-use Illuminate\Support\Facades\DB;
-use App\Models\RecruitmentOffices;
+use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
 use App\Models\ShelterPlaces;
+use App\PermKeys;
 use App\Support\AutomationSettings;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Yajra\DataTables\Facades\DataTables;
-use App\Models\ingaz\Maid;
 use PDF;
+use Yajra\DataTables\Facades\DataTables;
 
 class ShelterContractController extends Controller
 {

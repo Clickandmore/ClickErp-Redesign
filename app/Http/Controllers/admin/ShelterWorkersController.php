@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers\admin;
 
-use Illuminate\Http\Request;
-use App\Models\ShelterWorkers;
 use App\Models\ingaz\Nationality;
-use App\Http\Controllers\Controller;
+use App\Models\ShelterWorkers;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class ShelterWorkersController extends Controller

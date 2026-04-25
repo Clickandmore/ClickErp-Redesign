@@ -43,6 +43,11 @@ class RecruitmentContractsPermissionsSeeder extends Seeder
                 'guard_name' => 'admin'
             ],
             [
+                'name' => NewPermKeys::REC_CONTRACTS_UPDATE,
+                'display_name' => 'تحديث مراحل وبيانات عقد الاستقدام',
+                'guard_name' => 'admin'
+            ],
+            [
                 'name' => NewPermKeys::REC_CONTRACTS_DELETE,
                 'display_name' => 'حذف عقد الاستقدام',
                 'guard_name' => 'admin'
@@ -124,38 +129,6 @@ class RecruitmentContractsPermissionsSeeder extends Seeder
                 'guard_name' => 'admin'
             ],
 
-            // صلاحيات طلبات الإلغاء
-            [
-                'name' => NewPermKeys::REC_CONTRACTS_CANCEL_VIEW,
-                'display_name' => 'عرض طلبات إلغاء العقود',
-                'guard_name' => 'admin'
-            ],
-            [
-                'name' => NewPermKeys::REC_CONTRACTS_CANCEL_CREATE,
-                'display_name' => 'إنشاء طلب إلغاء عقد',
-                'guard_name' => 'admin'
-            ],
-            [
-                'name' => NewPermKeys::REC_CONTRACTS_CANCEL_EDIT,
-                'display_name' => 'تعديل طلب إلغاء العقد',
-                'guard_name' => 'admin'
-            ],
-            [
-                'name' => NewPermKeys::REC_CONTRACTS_CANCEL_DELETE,
-                'display_name' => 'حذف طلب إلغاء العقد',
-                'guard_name' => 'admin'
-            ],
-            [
-                'name' => NewPermKeys::REC_CONTRACTS_CANCEL_APPROVE,
-                'display_name' => 'الموافقة على إلغاء العقد',
-                'guard_name' => 'admin'
-            ],
-            [
-                'name' => NewPermKeys::REC_CONTRACTS_CANCEL_REJECT,
-                'display_name' => 'رفض إلغاء العقد',
-                'guard_name' => 'admin'
-            ],
-
             // صلاحيات المرتجعات
             [
                 'name' => NewPermKeys::REC_CONTRACTS_RETURN,
@@ -189,7 +162,91 @@ class RecruitmentContractsPermissionsSeeder extends Seeder
                 'display_name' => 'إحصائيات عقود الاستقدام',
                 'guard_name' => 'admin'
             ],
+
+            // صلاحيات طلبات الإلغاء
+            [
+                'name' => NewPermKeys::REC_CONTRACTS_CANCEL_VIEW,
+                'display_name' => 'عرض طلبات إلغاء العقود',
+                'guard_name' => 'admin'
+            ],
+            [
+                'name' => NewPermKeys::REC_CONTRACTS_CANCEL_CREATE,
+                'display_name' => 'إنشاء طلب إلغاء عقد',
+                'guard_name' => 'admin'
+            ],
+            [
+                'name' => NewPermKeys::REC_CONTRACTS_CANCEL_EDIT,
+                'display_name' => 'تعديل طلب إلغاء العقد',
+                'guard_name' => 'admin'
+            ],
+            [
+                'name' => NewPermKeys::REC_CONTRACTS_CANCEL_DELETE,
+                'display_name' => 'حذف طلب إلغاء العقد',
+                'guard_name' => 'admin'
+            ],
+            [
+                'name' => NewPermKeys::REC_CONTRACTS_CANCEL_APPROVE,
+                'display_name' => 'الموافقة على إلغاء العقد',
+                'guard_name' => 'admin'
+            ],
+            [
+                'name' => NewPermKeys::REC_CONTRACTS_CANCEL_REJECT,
+                'display_name' => 'رفض إلغاء العقد',
+                'guard_name' => 'admin'
+            ],
         ];
+
+        $descriptions = [
+            NewPermKeys::REC_CONTRACTS_VIEW => 'إمكانية عرض عقود الاستقدام ومتابعة مراحلها.',
+            NewPermKeys::REC_CONTRACTS_CREATE => 'إمكانية إنشاء عقد استقدام جديد.',
+            NewPermKeys::REC_CONTRACTS_EDIT => 'إمكانية تعديل بيانات عقد الاستقدام الأساسية.',
+            NewPermKeys::REC_CONTRACTS_UPDATE => 'إمكانية تحديث مراحل العقد، اختيار العاملة، إضافة الملاحظات، وإدارة الإرسالية.',
+            NewPermKeys::REC_CONTRACTS_DELETE => 'إمكانية حذف عقد الاستقدام.',
+            NewPermKeys::REC_CONTRACTS_EXPORT => 'إمكانية تصدير بيانات عقود الاستقدام.',
+            NewPermKeys::REC_CONTRACTS_PRINT => 'إمكانية طباعة وثائق عقود الاستقدام.',
+            NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED => 'إمكانية نقل العقد إلى مرحلة مساند.',
+            NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED => 'إمكانية نقل العقد إلى مرحلة التفويض.',
+            NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ => 'إمكانية نقل العقد إلى مرحلة التفييز.',
+            NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER => 'إمكانية نقل العقد إلى مرحلة التذكرة.',
+            NewPermKeys::REC_CONTRACTS_ADD_TRAVEL => 'إمكانية إضافة رحلة مرتبطة بعقد الاستقدام.',
+            NewPermKeys::REC_CONTRACTS_EDIT_TRAVEL => 'إمكانية تعديل بيانات رحلة عقد الاستقدام.',
+            NewPermKeys::REC_CONTRACTS_DELETE_TRAVEL => 'إمكانية حذف رحلة عقد الاستقدام.',
+            NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL => 'إمكانية اعتماد اكتمال الرحلة ونقل العقد إلى الوصول.',
+            NewPermKeys::REC_CONTRACTS_VIEW_TRAVEL => 'إمكانية عرض تفاصيل رحلة عقد الاستقدام.',
+            NewPermKeys::REC_CONTRACTS_WARRANTY_VIEW => 'إمكانية عرض عقود الاستقدام ضمن فترة الضمان.',
+            NewPermKeys::REC_CONTRACTS_WARRANTY_MANAGE => 'إمكانية إدارة فترة الضمان لعقود الاستقدام.',
+            NewPermKeys::REC_CONTRACTS_CLOSE_AFTER_WARRANTY => 'إمكانية إغلاق العقد بعد انتهاء الضمان.',
+            NewPermKeys::REC_CONTRACTS_CANCEL_VIEW => 'إمكانية عرض طلبات إلغاء عقود الاستقدام.',
+            NewPermKeys::REC_CONTRACTS_CANCEL_CREATE => 'إمكانية إنشاء طلب إلغاء لعقد الاستقدام.',
+            NewPermKeys::REC_CONTRACTS_CANCEL_EDIT => 'إمكانية تعديل طلب إلغاء عقد الاستقدام.',
+            NewPermKeys::REC_CONTRACTS_CANCEL_DELETE => 'إمكانية حذف طلب إلغاء عقد الاستقدام.',
+            NewPermKeys::REC_CONTRACTS_CANCEL_APPROVE => 'إمكانية الموافقة على طلب إلغاء عقد الاستقدام.',
+            NewPermKeys::REC_CONTRACTS_CANCEL_REJECT => 'إمكانية رفض طلب إلغاء عقد الاستقدام.',
+            NewPermKeys::REC_CONTRACTS_RETURN => 'إمكانية إرجاع عقد الاستقدام إلى المرحلة السابقة المسموح بها.',
+            NewPermKeys::REC_CONTRACTS_RETURN_VIEW => 'إمكانية عرض العقود المرتجعة.',
+            NewPermKeys::REC_CONTRACTS_RETURN_MANAGE => 'إمكانية إدارة عمليات إرجاع عقود الاستقدام.',
+            NewPermKeys::REC_CONTRACTS_MANAGE => 'إمكانية الإدارة الشاملة لجميع عمليات عقود الاستقدام.',
+            NewPermKeys::REC_CONTRACTS_REPORTS => 'إمكانية الوصول إلى تقارير عقود الاستقدام.',
+            NewPermKeys::REC_CONTRACTS_ANALYTICS => 'إمكانية الوصول إلى إحصائيات وتحليلات عقود الاستقدام.',
+        ];
+
+        $groupOverrides = [
+            NewPermKeys::REC_CONTRACTS_CANCEL_VIEW => 'cancel_contract',
+            NewPermKeys::REC_CONTRACTS_CANCEL_CREATE => 'cancel_contract',
+            NewPermKeys::REC_CONTRACTS_CANCEL_EDIT => 'cancel_contract',
+            NewPermKeys::REC_CONTRACTS_CANCEL_DELETE => 'cancel_contract',
+            NewPermKeys::REC_CONTRACTS_CANCEL_APPROVE => 'cancel_contract',
+            NewPermKeys::REC_CONTRACTS_CANCEL_REJECT => 'cancel_contract',
+        ];
+
+        $permissions = array_map(function (array $permission) use ($descriptions, $groupOverrides) {
+            return array_merge([
+                'guard_name' => 'admin',
+                'group_name' => $groupOverrides[$permission['name']] ?? 'rec_contracts',
+                'section_name' => 'recruitment_contracts',
+                'description' => $descriptions[$permission['name']] ?? ('إمكانية ' . $permission['display_name']),
+            ], $permission);
+        }, $permissions);
 
         // إنشاء الصلاحيات
         foreach ($permissions as $permission) {

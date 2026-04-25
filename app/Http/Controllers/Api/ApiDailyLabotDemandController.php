@@ -6,7 +6,7 @@ use App\Http\Actions\Api\DailyLabotDemandAction;
 use App\Http\Actions\ingaz\JobTitleAction;
 use App\Http\Actions\ingaz\TestimonialsAction;
 use App\Http\Actions\ingaz\WhyUsAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\API\DailyLabotDemandRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;

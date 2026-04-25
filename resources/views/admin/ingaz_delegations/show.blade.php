@@ -13,7 +13,9 @@
                     <p class="text-muted mb-0">عرض كامل لجميع البيانات المرتبطة بالتفويض.</p>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="{{ route('ingaz-delegations.edit', $delegation) }}" class="btn btn-primary">تعديل</a>
+                    @if ($canEditDelegation)
+                        <a href="{{ route('ingaz-delegations.edit', $delegation) }}" class="btn btn-primary">تعديل</a>
+                    @endif
                     <a href="{{ route('ingaz-delegations.index') }}" class="btn btn-outline-secondary">رجوع</a>
                 </div>
             </div>

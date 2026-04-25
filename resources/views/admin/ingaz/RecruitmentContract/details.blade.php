@@ -37,6 +37,11 @@
         optional($contract->user)->phone_code,
         optional($contract->user)->phone,
     ]))) ?: 'غير محدد';
+    $canSelectContractMaid = \AdminGuardHasAnyPerm([
+        \App\NewPermKeys::REC_CONTRACTS_CREATE,
+        \App\NewPermKeys::REC_CONTRACTS_UPDATE,
+        \App\NewPermKeys::REC_CONTRACTS_MANAGE,
+    ]);
 @endphp
 
 <style>
@@ -830,7 +835,7 @@
                                         <strong>بيانات عاملة مختصرة محفوظة</strong>
                                         <div class="text-muted small">تم إنشاء العقد بدون ربط عاملة فعلية حتى الآن.</div>
                                     </div>
-                                    @if ($contract->status == 'pending_maid_selection')
+                                    @if ($contract->status == 'pending_maid_selection' && $canSelectContractMaid)
                                         <a href="{{ route('RecruitmentContract.selectMaid', $contract->id) }}"
                                             class="btn btn-warning btn-sm">
                                             <i class="fas fa-user-plus me-1"></i>إضافة عاملة فعلية
@@ -869,7 +874,7 @@
                             <div class="alert alert-warning mb-0">
                                 <div class="text-center">
                                     <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
-                                    @if ($contract->status == 'pending_maid_selection')
+                                    @if ($contract->status == 'pending_maid_selection' && $canSelectContractMaid)
                                         <h5 class="text-warning"><strong>في انتظار اختيار العاملة</strong></h5>
                                         <p class="text-muted mb-2">هذا العقد في مرحلة انتظار اختيار العاملة المناسبة</p>
                                         <a href="{{ route('RecruitmentContract.selectMaid', $contract->id) }}"

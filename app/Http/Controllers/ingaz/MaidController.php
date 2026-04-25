@@ -10,7 +10,7 @@ use App\Http\Actions\ingaz\NationalityAction;
 use App\Http\Actions\ingaz\RecruitmentOfficeAction;
 use App\Http\Actions\ingaz\ReligionAction;
 use App\Http\Actions\ingaz\SkillAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\MaidRequest;
 use App\Http\Requests\StoreRapidCv;
 use App\Models\Contract;
@@ -18,15 +18,15 @@ use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Maid as objModel;
 use App\Models\ingaz\Nationality;
-use App\Models\RecruitmentOffices;
 use App\Models\ingaz\Skill;
+use App\Models\MaidUnavailableRecord;
+use App\Models\RecruitmentOffices;
 use App\Services\ingaz\RentalMaidFinanceService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
-use App\Models\MaidUnavailableRecord;
 
 class MaidController extends Controller
 {
@@ -121,7 +121,7 @@ class MaidController extends Controller
                     $cvCodeLine = $cvCode
                         ? '<div class="text-muted text-medium"><i class="fas fa-id-card me-1 text-secondary"></i>' . $cvCodeLabel . ': ' . $cvCode . '</div>'
                         : '';
-                    
+
 
                     return '<div class="d-flex flex-column gap-2">'
                         . '<div class="d-flex align-items-center gap-2">'
@@ -159,7 +159,7 @@ class MaidController extends Controller
                     $recentBadge = $isRecent
                         ? '<span class="badge bg-success-subtle text-success d-flex align-items-center gap-2 p-0"><i class="fas fa-star me-1"></i>' . $recentLabel . '</span>'
                         : '';
-                    
+
                     $officeTitle = $row->office?->title ? e(Str::limit($row->office->title, 30)) : helperTrans('ingaz.not_specified');
 
                     return '<div class="d-flex flex-column gap-2">'
@@ -174,7 +174,7 @@ class MaidController extends Controller
                         . ($recentBadge
                             ? '<div class="mt-1">' . $recentBadge . '</div>'
                             : '')
-                        
+
                         . '<div class="text-muted text-medium mt-1 d-flex align-items-center gap-2 p-0">'
                         . '<i class="fas fa-building text-secondary ps-1"></i>' . __('ingaz.recruitment_office') . ": " . $officeTitle
                         . '</div>'
@@ -401,7 +401,7 @@ class MaidController extends Controller
                     $activeOrders = $row->orders->whereIn('status', $this->activeOrderStatuses())->count();
                     $contractsTotal = $row->contracts->count();
                     $activeContracts = $row->contracts->whereIn('status', $this->recruitmentContractStatuses())->count();
-                    
+
                     $ordersLabel = helperTrans('ingaz.total_orders_count');
                     $activeOrdersLabel = helperTrans('ingaz.active_orders_count');
                     $contractsLabel = helperTrans('ingaz.rental_contracts_count');
@@ -412,7 +412,7 @@ class MaidController extends Controller
                     $activeOrdersHTML = $activeOrders > 0 ? '<span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="fas fa-tasks me-1"></i>' . $activeOrdersLabel . ': ' . $activeOrders . '</span>' : null;
                     $contractsHTML = $contractsTotal > 0 ? '<span class="badge bg-info-subtle text-info border border-info-subtle"><i class="fas fa-file-contract me-1"></i>' . $contractsLabel . ': ' . $contractsTotal . '</span>' : null;
                     $activeContractsHTML = $activeContracts > 0 ? '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle"><i class="fas fa-clipboard-check me-1"></i>' . $activeContractsLabel . ': ' . $activeContracts . '</span>' : null;
-                    
+
 
                     return $ordersTotal < 1 && $activeOrders < 1 && $contractsTotal < 1 && $activeContracts < 1 ? '<span class="text-primary text-center mx-auto">__</span>' : '<div class="d-flex flex-column gap-3">'
                         . '<div class="d-flex flex-wrap gap-3">'
@@ -535,6 +535,9 @@ class MaidController extends Controller
                     'jobTypes',
                     'contracts',
                     'orders',
+                    'rentalContracts' => function ($query) {
+                        $query->select(['id', 'maid_id', 'status']);
+                    },
                     'rentalFinancialAdjustments' => function ($query) {
                         $query->where('context', 'maid')
                             ->select(['id', 'maid_id', 'type', 'label', 'amount', 'settled_at']);
@@ -562,6 +565,7 @@ class MaidController extends Controller
                     'id_expiry_date',
                 ])
                 ->orderByDesc('is_pinned')
+                ->orderByDesc('available')
                 ->orderByDesc('created_at');
 
             $this->applyMaidFilter($request, $rows);
@@ -636,38 +640,80 @@ class MaidController extends Controller
                         return '<span class="badge bg-danger">باك اوت</span>';
                     }
 
-                    if ($row->maid_accommodation_type == 2) {
-                        return '<span class="badge bg-info text-dark">داخل الإيواء</span>';
+                    $hasActiveRecruitmentContracts = $row->contracts->whereIn('status', $this->recruitmentContractStatuses())->isNotEmpty();
+                    $hasActiveOrders = $row->orders->whereIn('status', $this->activeOrderStatuses())->isNotEmpty();
+                    $hasActiveRentalContracts = $row->rentalContracts->whereIn('status', $this->rentalActiveContractStatuses())->isNotEmpty();
+                    $canCreateRentalContract = $this->canCreateRentalContractForMaid($row);
+
+                    if ($canCreateRentalContract) {
+                        $badges = ['<span class="badge bg-success">جاهزة للعقد</span>'];
+
+                        if ((int) $row->maid_accommodation_type === 2) {
+                            $badges[] = '<span class="badge bg-info text-dark">داخل الإيواء</span>';
+                        }
+
+                        return implode(' ', $badges);
                     }
 
-                    $hasActiveRecruitmentContracts = $row->contracts->whereIn('status', $this->recruitmentContractStatuses())->isNotEmpty();
-                    $hasActiveOrders = $row->orders->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract'])->isNotEmpty();
+                    if ($hasActiveRentalContracts) {
+                        return '<span class="badge bg-primary">عليها عقد إيجار</span>';
+                    }
 
-                    if (!$row->available || $row->status === 'reserved' || $hasActiveRecruitmentContracts || $hasActiveOrders) {
+                    if (
+                        !$row->available
+                        || $row->status === 'reserved'
+                        || $hasActiveRecruitmentContracts
+                        || $hasActiveOrders
+                        || $hasActiveRentalContracts
+                    ) {
                         return '<span class="badge bg-warning text-dark">محجوزة</span>';
+                    }
+
+                    if ((int) $row->maid_accommodation_type === 2) {
+                        return '<span class="badge bg-info text-dark">داخل الإيواء</span>';
                     }
 
                     return '<span class="badge bg-success">متاحة</span>';
                 })
                 ->editColumn('created_at', fn(Maid $row) => $row->created_at?->format('Y-m-d h:i A') ?? '-')
                 ->addColumn('actions', function (Maid $row) {
-                    $actions = [];
+                    $menuItems = [];
+                    $canCreateRentalContract = $this->canCreateRentalContractForMaid($row);
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHOW)) {
-                        $actions[] = viewSingleButton(route('showMaidDetails', $row->id));
+                        $menuItems[] = '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '">
+                            <i class="fas fa-eye text-primary me-2"></i>عرض التفاصيل
+                        </a></li>';
+                    }
+
+                    if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE) && $canCreateRentalContract) {
+                        $menuItems[] = '<li><a class="dropdown-item" href="' . route('RentContract.create', ['maid_id' => $row->id]) . '">
+                            <i class="fas fa-file-signature text-success me-2"></i>إنشاء عقد إيجار
+                        </a></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
-                        $actions[] = '<a href="' . route($this->mainRoute . '.edit', $row->id) . '" class="btn btn-sm btn-primary" title="تعديل">
-                            <i class="fa fa-pencil"></i>
-                        </a>';
+                        $menuItems[] = '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.edit', $row->id) . '">
+                            <i class="fas fa-pen text-secondary me-2"></i>تعديل السيرة
+                        </a></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_DELETE)) {
-                        $actions[] = deleteButton(route($this->mainRoute . '.destroy', $row->id));
+                        $menuItems[] = '<li><div class="px-2 py-1">' . deleteButton(route($this->mainRoute . '.destroy', $row->id)) . '</div></li>';
                     }
 
-                    return implode(' ', array_filter($actions)) ?: '<span class="text-muted">-</span>';
+                    if (empty($menuItems)) {
+                        return '<span class="text-muted">-</span>';
+                    }
+
+                    return '<div class="dropdown actions-dropdown">
+                                <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-cogs me-1"></i>الإجراءات
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-lg">
+                                    ' . implode('', $menuItems) . '
+                                </ul>
+                            </div>';
                 })
                 ->rawColumns(['cv_file', 'name', 'financial_items', 'is_show', 'is_pinned', 'cv_status', 'actions'])
                 ->make(true);
@@ -686,6 +732,7 @@ class MaidController extends Controller
             'job_type' => $rentalJobTypeId,
             'experience_years' => $request->experience_years,
             'cv_status' => $request->cv_status,
+            'visibility' => $request->visibility,
             'experience_status' => $request->experience_status,
             'date_from' => $request->date_from,
             'date_to' => $request->date_to,
@@ -2090,7 +2137,6 @@ class MaidController extends Controller
 
         $today = Carbon::today();
         $expiryThreshold = Carbon::today()->addDays(30);
-
         $shelterContracts = Contract::insideShelter()->whereHas('maid', function ($maidQuery) use ($jobTypeId) {
             $maidQuery->whereHas('jobTypes', function ($jobTypeQuery) use ($jobTypeId) {
                 $jobTypeQuery->where('job_type_id', $jobTypeId);
@@ -2099,23 +2145,109 @@ class MaidController extends Controller
 
         return [
             'total' => (clone $baseQuery)->count(),
-            'available' => (clone $baseQuery)->where('status', 'available')->count(),
-            'reserved' => (clone $baseQuery)->where('status', 'reserved')->count(),
+            'available' => $this->countRentalMaidsByStatus($baseQuery, 'available'),
+            'reserved' => $this->countRentalMaidsByStatus($baseQuery, 'reserved'),
+            'visible' => (clone $baseQuery)->where('is_show', true)->count(),
+            'hidden' => (clone $baseQuery)->where('is_show', false)->count(),
             'in_accommodation' => (clone $shelterContracts)->select('maid_id')->distinct()->count('maid_id'),
-            'expiring' => (clone $baseQuery)->whereNotNull('id_expiry_date')->whereBetween('id_expiry_date', [$today, $expiryThreshold])->count(),
-            'wants_to_work' => (clone $shelterContracts)->whereHas('info', function ($infoQuery) {
-                $infoQuery->where('wants_to_work', 'yes');
-            })->select('maid_id')->distinct()->count('maid_id'),
-            'in_deportation' => (clone $shelterContracts)->whereHas('info', function ($infoQuery) {
-                $infoQuery->where('wants_to_work', 'no');
-            })->select('maid_id')->distinct()->count('maid_id'),
-            'undecided' => (clone $shelterContracts)->whereHas('info', function ($infoQuery) {
-                $infoQuery->where(function ($query) {
-                    $query->whereNull('wants_to_work')
-                        ->orWhere('wants_to_work', 'unknown');
-                });
-            })->select('maid_id')->distinct()->count('maid_id'),
         ];
+    }
+
+    private function countRentalMaidsByStatus($baseQuery, string $status): int
+    {
+        $query = clone $baseQuery;
+
+        if ($status === 'available') {
+            $this->applyRentalAvailableFilter($query);
+        } elseif ($status === 'reserved') {
+            $this->applyRentalReservedFilter($query);
+        } elseif ($status === 'backout') {
+            $this->applyRentalBackoutFilter($query);
+        } elseif ($status === 'completed_rental_contracts') {
+            $this->applyRentalCompletedContractsFilter($query);
+        } else {
+            $query->where('status', $status);
+        }
+
+        return $query->count();
+    }
+
+    private function applyRentalAvailableFilter($query): void
+    {
+        $query->where('available', true)
+            ->whereIn('status', ['available', 'completed'])
+            ->whereDoesntHave('contracts', function ($contractQuery) {
+                $contractQuery->whereIn('status', $this->recruitmentContractStatuses());
+            })
+            ->whereDoesntHave('orders', function ($orderQuery) {
+                $orderQuery->whereIn('status', $this->activeOrderStatuses());
+            })
+            ->whereDoesntHave('rentalContracts', function ($rentalQuery) {
+                $rentalQuery->whereIn('status', $this->rentalActiveContractStatuses());
+            });
+    }
+
+    private function applyRentalReservedFilter($query): void
+    {
+        $query->whereNotIn('status', ['backout', 'deported'])
+            ->where(function ($reservedQuery) {
+                $reservedQuery->where('status', 'reserved')
+                    ->orWhere('available', false)
+                    ->orWhereHas('contracts', function ($contractQuery) {
+                        $contractQuery->whereIn('status', $this->recruitmentContractStatuses());
+                    })
+                    ->orWhereHas('orders', function ($orderQuery) {
+                        $orderQuery->whereIn('status', $this->activeOrderStatuses());
+                    })
+                    ->orWhereHas('rentalContracts', function ($rentalQuery) {
+                        $rentalQuery->whereIn('status', $this->rentalActiveContractStatuses());
+                    });
+            });
+    }
+
+    private function applyRentalBackoutFilter($query): void
+    {
+        $query->where('status', 'backout')
+            ->where('available', false);
+    }
+
+    private function applyRentalActiveContractsFilter($query): void
+    {
+        $query->whereHas('rentalContracts', function ($contractQuery) {
+            $contractQuery->whereIn('status', $this->rentalActiveContractStatuses());
+        });
+    }
+
+    private function applyRentalCompletedContractsFilter($query): void
+    {
+        $query->whereHas('rentalContracts', function ($contractQuery) {
+            $contractQuery->where('status', 'completed');
+        })->whereDoesntHave('rentalContracts', function ($contractQuery) {
+            $contractQuery->whereIn('status', $this->rentalActiveContractStatuses());
+        });
+    }
+
+    private function canCreateRentalContractForMaid(Maid $maid): bool
+    {
+        $hasActiveRecruitmentContracts = $maid->contracts->whereIn('status', $this->recruitmentContractStatuses())->isNotEmpty();
+        $hasActiveOrders = $maid->orders->whereIn('status', $this->activeOrderStatuses())->isNotEmpty();
+        $hasActiveRentalContracts = $maid->rentalContracts->whereIn('status', $this->rentalActiveContractStatuses())->isNotEmpty();
+
+        return (bool) $maid->available
+            && in_array($maid->status, ['available', 'completed'], true)
+            && !$hasActiveRecruitmentContracts
+            && !$hasActiveOrders
+            && !$hasActiveRentalContracts;
+    }
+
+    private function isRentalFilterSelected($request): bool
+    {
+        $rentalJobTypeId = $this->getRentalJobTypeId();
+        $selectedJobTypes = $request->job_type_id ?? $request->job_type ?? null;
+        $selectedJobTypes = is_array($selectedJobTypes) ? $selectedJobTypes : [$selectedJobTypes];
+        $selectedJobTypes = array_map('strval', array_filter($selectedJobTypes, static fn($value) => $value !== null && $value !== ''));
+
+        return (bool) ($rentalJobTypeId && in_array((string) $rentalJobTypeId, $selectedJobTypes, true));
     }
 
     private function buildRecruitmentMaidStats($baseQuery): array
@@ -2330,47 +2462,43 @@ class MaidController extends Controller
             }
         }
 
+        $isRentalFilter = $this->isRentalFilterSelected($request);
+
         // فلتر حالة السيرة الذاتية - تحديث ليدعم حالة backout
         if ($request->has('cv_status') && $request->cv_status != null) {
             if ($request->cv_status == 'available') {
-                $rows->where('available', 1)
-                    ->where('status', 'available')
-                    ->where('maid_accommodation_type', '!=', 2)
-                    ->whereDoesntHave('contracts', function ($q) {
-                        $q->whereIn('status', $this->recruitmentContractStatuses());
-                    })
-                    ->whereDoesntHave('orders', function ($q) {
-                        $q->whereIn('status', $this->activeOrderStatuses());
-                    });
-            } elseif ($request->cv_status == 'reserved') {
-                $rows->where(function ($q) {
-                    $q->where('available', 0)
-                        ->where('status', 'reserved')
-                        ->orWhereHas('contracts', function ($subQ) {
-                            $subQ->whereIn('status', $this->recruitmentContractStatuses());
+                if ($isRentalFilter) {
+                    $this->applyRentalAvailableFilter($rows);
+                } else {
+                    $rows->where('available', 1)
+                        ->where('status', 'available')
+                        ->where('maid_accommodation_type', '!=', 2)
+                        ->whereDoesntHave('contracts', function ($q) {
+                            $q->whereIn('status', $this->recruitmentContractStatuses());
                         })
-                        ->orWhereHas('orders', function ($subQ) {
-                            $subQ->whereIn('status', $this->activeOrderStatuses());
+                        ->whereDoesntHave('orders', function ($q) {
+                            $q->whereIn('status', $this->activeOrderStatuses());
                         });
-                });
+                }
+            } elseif ($request->cv_status == 'reserved') {
+                if ($isRentalFilter) {
+                    $this->applyRentalReservedFilter($rows);
+                } else {
+                    $rows->where(function ($q) {
+                        $q->where('available', 0)
+                            ->where('status', 'reserved')
+                            ->orWhereHas('contracts', function ($subQ) {
+                                $subQ->whereIn('status', $this->recruitmentContractStatuses());
+                            })
+                            ->orWhereHas('orders', function ($subQ) {
+                                $subQ->whereIn('status', $this->activeOrderStatuses());
+                            });
+                    });
+                }
             } elseif ($request->cv_status == 'backout') {
                 // فلتر خاص للعاملات باك اوت
                 $rows->where('status', 'backout')
                     ->where('available', 0);
-            }
-        }
-
-        if (($request->cv_status ?? null) == 'available') {
-            $rentalJobTypeId = $this->getRentalJobTypeId();
-            $selectedJobTypes = $request->job_type_id ?? $request->job_type ?? null;
-            $selectedJobTypes = is_array($selectedJobTypes) ? $selectedJobTypes : [$selectedJobTypes];
-            $selectedJobTypes = array_map('strval', array_filter($selectedJobTypes, static fn($value) => $value !== null && $value !== ''));
-            $isRentalFilter = $rentalJobTypeId && in_array((string) $rentalJobTypeId, $selectedJobTypes, true);
-
-            if ($isRentalFilter) {
-                $rows->whereDoesntHave('rentalContracts', function ($q) {
-                    $q->whereIn('status', $this->rentalActiveContractStatuses());
-                });
             }
         }
 
@@ -2382,6 +2510,10 @@ class MaidController extends Controller
             if ($rentalStat === 'expiring') {
                 $rows->whereNotNull('id_expiry_date')
                     ->whereBetween('id_expiry_date', [$today, $expiryThreshold]);
+            } elseif ($rentalStat === 'active_contracts') {
+                $this->applyRentalActiveContractsFilter($rows);
+            } elseif ($rentalStat === 'completed_rental_contracts') {
+                $this->applyRentalCompletedContractsFilter($rows);
             } elseif ($rentalStat === 'in_accommodation') {
                 $rows->whereHas('contracts', function ($query) {
                     $query->insideShelter();

@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Models\TransferContractTerm;
-use Illuminate\Http\Request;
 use DataTables;
+use Illuminate\Http\Request;
 
 class TransferContractTermsController extends Controller
 {

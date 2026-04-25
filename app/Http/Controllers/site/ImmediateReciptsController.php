@@ -7,17 +7,12 @@ use App\Http\Actions\auth\AdminAction;
 use App\Http\Actions\ingaz\JobTypeAction;
 use App\Http\Actions\ingaz\MaidAction;
 use App\Http\Actions\ingaz\PackageAction;
-use App\Http\Actions\ingaz\SettingAction;
-use App\Http\Actions\ingaz\UserAction;
 use App\Http\Actions\ingaz\UserAddressAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\site\ImmediateReciptsRequest;
 use App\Models\auth\Admin;
 use App\Models\ingaz\OrderDetail;
 use App\Models\ingaz\RecruitmentRequest;
-use App\Models\ingaz\User;
-use Illuminate\Contracts\Queue\Job;
-use Illuminate\Http\Request;
 
 class ImmediateReciptsController extends Controller
 {

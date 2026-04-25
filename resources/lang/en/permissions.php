@@ -158,6 +158,10 @@ return [
     'rent_contract_edit' => 'Edit Rental Contracts',
     'rent_contract_delete' => 'Delete Rental Contracts',
     'rent_contract_control' => 'Control Rental Contracts',
+    'rent_contract_terms_view' => 'View Rental Contract Terms',
+    'rent_contract_terms_create' => 'Create Rental Contract Terms',
+    'rent_contract_terms_edit' => 'Edit Rental Contract Terms',
+    'rent_contract_terms_delete' => 'Delete Rental Contract Terms',
 
     // Shelter Contracts
     'shelter_contract_view' => 'View Shelter Contracts',
@@ -379,6 +383,7 @@ return [
     'recruitment_requests' => 'Special Requests',
     'renew_contracts' => 'Contract Renewal Requests',
     'rec_contracts' => 'Recruitment Contracts',
+    'ingaz_delegations' => 'Ingaz Delegations',
     'cancel_contracts' => 'Cancellation Contracts',
     'rent_contracts' => 'Rental Contracts',
     'rental_orders' => 'Rental Orders',
@@ -423,6 +428,13 @@ return [
     'rec_contracts_delete' => 'Delete Recruitment Contract',
     'rec_contracts_export' => 'Export Recruitment Contracts',
     'rec_contracts_print' => 'Print Recruitment Contract',
+    'ingaz_delegations_view' => 'View Ingaz Delegations',
+    'ingaz_delegations_create' => 'Create Ingaz Delegation',
+    'ingaz_delegations_edit' => 'Edit Ingaz Delegations',
+    'ingaz_delegations_delete' => 'Delete Ingaz Delegations',
+    'ingaz_delegations_print' => 'Print Ingaz Delegation',
+    'ingaz_delegations_change_status' => 'Change Ingaz Delegation Status',
+    'ingaz_delegations_control' => 'Manage Ingaz Delegations',
 
     // Contract Status Change Permissions (Step by Step)
     'rec_contracts_change_to_msaned' => 'Change from Pending Approval to Msaned',

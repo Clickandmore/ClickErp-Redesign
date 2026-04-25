@@ -3,22 +3,20 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Enums\ingaz\NotificationActionEnum;
-use App\Http\Actions\ingaz\ComplaintAction;
 use App\Http\Actions\ingaz\UserAction;
-use App\Http\Controllers\Controller;
-use App\Models\ingaz\Complaint as objModel;
-use App\Models\ingaz\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Yajra\DataTables\Facades\DataTables;
-use App\Models\ingaz\ComplaintType;
-use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Traits\SendSMSTrait;
 use App\Http\Traits\StoreMessageTrait;
-use App\Models\ingaz\Nationality;
 use App\Models\auth\Admin;
+use App\Models\ingaz\Complaint as objModel;
 use App\Models\ingaz\ComplaintComment;
+use App\Models\ingaz\ComplaintType;
+use App\Models\ingaz\Nationality;
+use App\Models\ingaz\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Yajra\DataTables\Facades\DataTables;
 
 class ComplaintController extends Controller
 {
@@ -467,7 +465,7 @@ class ComplaintController extends Controller
             $smsEnabled = env('SMS_FEEDBACK_ENABLED', false);
             if ($smsEnabled && $previousStatus != 'resolved' && $complaint->complainant_phone) {
                 try {
-                    \App\Http\Controllers\ComplaintFeedbackController::sendFeedbackSMS($complaint);
+                    \App\Http\Controllers\admin\ComplaintFeedbackController::sendFeedbackSMS($complaint);
                 } catch (\Exception $e) {
                     \Log::error('Failed to send feedback SMS: ' . $e->getMessage());
                 }

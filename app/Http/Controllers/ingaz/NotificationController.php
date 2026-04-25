@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Actions\ingaz\NotificationAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\StoreNotificationRequest;
-use App\Models\SmsTemplate;
 use App\Models\ingaz\User;
+use App\Models\SmsTemplate;
 use App\Services\WhatsApp\WhatsAppMessagingService;
 
 class NotificationController extends Controller

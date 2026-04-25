@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\site;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Controllers\ingaz\ContactController;
 use App\Http\Requests\site\ContactRequest;
 use App\Models\ingaz\Contact;

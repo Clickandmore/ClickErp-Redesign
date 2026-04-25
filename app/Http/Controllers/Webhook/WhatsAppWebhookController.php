@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Webhook;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Services\WhatsApp\MetaWhatsAppService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

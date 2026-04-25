@@ -6,15 +6,11 @@ use App\Http\Actions\ingaz\JobTitleAction;
 use App\Http\Actions\ingaz\JobTypeAction;
 use App\Http\Actions\ingaz\MaidAction as objAction;
 use App\Http\Actions\ingaz\NationalityAction;
-use App\Http\Actions\ingaz\OrderAction;
 use App\Http\Actions\ingaz\ReligionAction;
-use App\Http\Controllers\AdminController;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\AdminController;
 use App\Http\Requests\ingaz\MaidRequest as ObjRequest;
 use App\Models\ingaz\Maid as objModel;
-use App\Models\ingaz\Nationality;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
 
 class MaidTestController extends AdminController

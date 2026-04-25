@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Models\ingaz\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,7 +23,7 @@ class MakeAccountsForClientsController extends Controller
                     'message' => 'لا يوجد حساب رئيسي للعملاء في جدول الحسابات. يرجى إنشاء حساب من نوع Clients أولاً.'
                 ], 422);
             }
-            
+
             $lastCode = Account::where('parent_id', $parentAccount->id)->max('code');
             if (!$lastCode) {
                 $lastCode = (int)($parentAccount->code . '00000');

@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Http\Actions\ingaz\UserAction;
+use App\Http\Controllers\admin\Controller;
+use Illuminate\Http\Request;
 
 class ApiClientDashboard extends Controller
 {

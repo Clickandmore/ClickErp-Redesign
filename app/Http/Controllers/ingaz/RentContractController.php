@@ -2,38 +2,67 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Models\RentalContract;
-use App\Models\RentalContractInfo;
-use App\Models\RentalContractExtension;
-use App\Models\RentalContractTerm;
+use App\Enums\ingaz\ContractStatusEnum;
+use App\Enums\ingaz\OrderEnum;
+use App\Http\Actions\ingaz\RecruitmentOfficeAction;
+use App\Http\Controllers\admin\Controller;
+use App\Http\Requests\StoreRentalContractRequest;
+use App\Models\auth\Admin;
 use App\Models\Contract;
 use App\Models\ContractPayment;
+use App\Models\Country;
+use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
-use App\Models\ingaz\User;
+use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Order;
 use App\Models\ingaz\Package;
-use App\Models\ingaz\JobType;
-use App\Models\ingaz\Nationality;
-use App\Models\Country;
-use App\Models\auth\Admin;
+use App\Models\ingaz\User;
+use App\Models\RentalContract;
+use App\Models\RentalContractExtension;
+use App\Models\RentalContractInfo;
+use App\Models\RentalContractTerm;
+use App\Services\ingaz\RentalContractFinanceService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
-use App\Enums\ingaz\OrderEnum;
-use App\Enums\ingaz\ContractStatusEnum;
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
-use App\Http\Actions\ingaz\RecruitmentOfficeAction;
-use App\Http\Requests\StoreRentalContractRequest;
-use App\Services\ingaz\RentalContractFinanceService;
-use Carbon\Carbon;
 
 class RentContractController extends Controller
 {
     public $folderPath = "admin.ingaz.RentContract";
     public $mainRoute = "RentContract";
+
+    public function __construct()
+    {
+        $this->middleware('permission:' . \App\PermKeys::RENT_CONTRACT_VIEW . ',admin', [
+            'only' => ['index', 'show', 'statistics', 'exportExcel', 'getContractDetails'],
+        ]);
+        $this->middleware('permission:' . \App\PermKeys::RENT_CONTRACT_CREATE . ',admin', [
+            'only' => ['create', 'store', 'getExistingClients'],
+        ]);
+        $this->middleware('permission:' . \App\PermKeys::RENT_CONTRACT_EDIT . ',admin', [
+            'only' => ['edit', 'update', 'changeMaid'],
+        ]);
+        $this->middleware('permission:' . \App\PermKeys::RENT_CONTRACT_DELETE . ',admin', [
+            'only' => ['destroy'],
+        ]);
+        $this->middleware('permission:' . \App\PermKeys::RENT_CONTRACT_CONTROL . ',admin', [
+            'only' => [
+                'completeContract',
+                'closeAndMakeAvailable',
+                'transferSponsorship',
+                'sendContract',
+                'signContract',
+                'deliverMaid',
+                'activateContract',
+                'extend',
+                'saveSignature',
+            ],
+        ]);
+    }
 
     public function index(Request $request, $status = null)
     {
@@ -237,19 +266,19 @@ class RentContractController extends Controller
                         }
                     }
 
-                    if ($row->canSignContract()) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL) && $row->canSignContract()) {
                         $actions .= '<li><button class="dropdown-item text-success sign-contract" data-id="' . $row->id . '">
                                         <i class="fas fa-signature"></i> تأكيد توقيع العقد
                                     </button></li>';
                     }
 
-                    if ($row->canDeliverMaid()) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL) && $row->canDeliverMaid()) {
                         $actions .= '<li><button class="dropdown-item text-primary deliver-maid" data-id="' . $row->id . '">
                                         <i class="fas fa-handshake"></i> تأكيد تسليم العاملة
                                     </button></li>';
                     }
 
-                    if ($row->canActivateContract()) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL) && $row->canActivateContract()) {
                         $actions .= '<li><button class="dropdown-item text-success activate-contract" data-id="' . $row->id . '">
                                         <i class="fas fa-power-off"></i> تفعيل العقد
                                     </button></li>';
@@ -264,7 +293,11 @@ class RentContractController extends Controller
                     }
 
                     // إنهاء العقد
-                    if ($row->status !== 'completed' && $row->status !== 'cancelled') {
+                    if (
+                        @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL)
+                        && $row->status !== 'completed'
+                        && $row->status !== 'cancelled'
+                    ) {
                         $contractLabel = $row->contract_number ?: $row->id;
                         $currentEndDate = optional($row->info?->ingaz_to)->format('Y-m-d') ?: '';
                         $monthlyCost = (float) ($row->info->monthly_cost ?? 0);
@@ -278,7 +311,11 @@ class RentContractController extends Controller
                                     </button></li>';
                     }
 
-                    if ($row->status !== 'completed' && $row->status !== 'cancelled') {
+                    if (
+                        @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL)
+                        && $row->status !== 'completed'
+                        && $row->status !== 'cancelled'
+                    ) {
                         $actions .= '<li><button class="dropdown-item complete-contract" data-id="' . $row->id . '">
                                         <i class="fas fa-check"></i> إنهاء العقد
                                     </button></li>';
@@ -1165,7 +1202,6 @@ class RentContractController extends Controller
         $rentalJobTypeId = $this->getRentalJobTypeId();
 
         return Maid::query()
-            ->Shown()
             ->whereHas('jobTypes', function ($query) use ($rentalJobTypeId) {
                 $query->where('job_type_id', $rentalJobTypeId);
             })
@@ -1173,7 +1209,7 @@ class RentContractController extends Controller
             ->where(function ($query) use ($currentMaidId) {
                 $query->where(function ($availableQuery) {
                     $availableQuery->where('available', true)
-                        ->where('status', 'available');
+                        ->whereIn('status', ['available', 'completed']);
                 });
 
                 if ($currentMaidId) {

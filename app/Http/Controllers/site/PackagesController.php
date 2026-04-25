@@ -6,10 +6,8 @@ use App\Http\Actions\ingaz\JobTypeAction;
 use App\Http\Actions\ingaz\MaidAction;
 use App\Http\Actions\ingaz\PackageAction;
 use App\Http\Actions\ingaz\UserAddressAction;
-use App\Http\Actions\sharedCode\CountriesAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Models\Country;
-use Illuminate\Contracts\Queue\Job;
 
 class PackagesController extends Controller
 {

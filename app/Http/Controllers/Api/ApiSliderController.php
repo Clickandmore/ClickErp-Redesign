@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Actions\ingaz\SliderAction as objAction;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\ingaz\SliderRequest;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Resources\Api\SliderResource as objResource;
 use App\Models\ingaz\Slider as objModel;
 use Illuminate\Http\Request;

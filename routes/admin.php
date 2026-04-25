@@ -27,10 +27,10 @@ Route::group(
         'middleware' => ["adminLocale",'localeSessionRedirect', 'localizationRedirect', 'localeViewPath']
     ], function () {
         //--------------------------------------------------------
-        Route::get('dashboard', 'admin\\DashboardController@index')->name('dashboard.index')->middleware('admin');
-        Route::get('dashboard-pro', 'admin\\DashboardController@professional')->name('dashboard.professional')->middleware('admin');
-        Route::get('dashboard-old', 'admin\\DashboardController@indexOld')->name('dashboard.old')->middleware('admin');
-        Route::get('dashboard/employees/{employee}', 'admin\\DashboardController@employeeShow')->name('dashboard.employees.show')->middleware('admin');
+        Route::get('dashboard', 'admin\\DashboardController@index')->name('dashboard.index')->middleware(['admin', 'admin.route.permission']);
+        Route::get('dashboard-pro', 'admin\\DashboardController@professional')->name('dashboard.professional')->middleware(['admin', 'admin.route.permission']);
+        Route::get('dashboard-old', 'admin\\DashboardController@indexOld')->name('dashboard.old')->middleware(['admin', 'admin.route.permission']);
+        Route::get('dashboard/employees/{employee}', 'admin\\DashboardController@employeeShow')->name('dashboard.employees.show')->middleware(['admin', 'admin.route.permission']);
 //        Route::get('/', 'admin\\auth\AdminController@formLogin')->name("admin.form.login");
         Route::group(["namespace" => "admin\\auth",'prefix' =>"dashboard"], function () {
             Route::get('login', 'AdminController@formLogin')->name("admin.form.login");
@@ -41,7 +41,7 @@ Route::group(
             Route::post('reset-password', 'ResetPasswordController@update')->name('admin.password.update');
             Route::get('/logout', 'AdminController@logout')->name('admin.logout');
         });
-    Route::group(["middleware" => "admin",'prefix'=>"dashboard"], function () {
+    Route::group(["middleware" => ["admin", "admin.route.permission"],'prefix'=>"dashboard"], function () {
         Route::get('reports', function () {
             return redirect()->route('reports.index');
         })->name('dashboard.reports.index');

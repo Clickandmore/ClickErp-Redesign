@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Actions\ingaz\SkillAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\SkillRequest;
 use App\Models\ingaz\Skill as objModel;
 use Illuminate\Http\Request;

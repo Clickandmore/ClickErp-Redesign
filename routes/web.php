@@ -1,28 +1,25 @@
 <?php
 
-use App\Http\Controllers\Web\MaidController;
-use App\Http\Controllers\Web\ContractsController;
-use App\Http\Controllers\Web\OrderController;
-use Illuminate\Support\Str;
-use App\Http\Controllers\Web\ComplaintController;
-use App\Models\ingaz\Service;
-use App\Http\Controllers\Web\UserAddressController;
-use App\Http\Controllers\Web\NotificationController;
-use App\Http\Controllers\Web\ReturnRequestController;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Storage;
-use App\Http\Controllers\Web\ContactUsController as ContactUs;
-use App\Http\Controllers\Web\AuthController;
-use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Admin\AdminContractController;
-use App\Http\Controllers\Admin\IngazDelegationController;
-use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
-use App\Http\Controllers\ingaz\MaidController as IngazMaidController;
-use App\Http\Controllers\ingaz\UserController;
 use App\Http\Controllers\Admin\CountryController;
+use App\Http\Controllers\Admin\IngazDelegationController;
+use App\Http\Controllers\ingaz\MaidController as IngazMaidController;
 use App\Http\Controllers\ingaz\RecruitmentContractController;
 use App\Http\Controllers\ingaz\RecruitmentController;
+use App\Http\Controllers\ingaz\UserController;
+use App\Http\Controllers\Web\AuthController;
+use App\Http\Controllers\Web\ComplaintController;
+use App\Http\Controllers\Web\ContactUsController as ContactUs;
+use App\Http\Controllers\Web\ContractsController;
+use App\Http\Controllers\Web\HomeController;
+use App\Http\Controllers\Web\MaidController;
+use App\Http\Controllers\Web\NotificationController;
+use App\Http\Controllers\Web\OrderController;
+use App\Http\Controllers\Web\ReturnRequestController;
+use App\Http\Controllers\Web\UserAddressController;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Route;
+use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
 /*
 |--------------------------------------------------------------------------
@@ -92,13 +89,13 @@ Route::get('apis-generate', function () {
 
 
 // Laravel Migration System Routes
-Route::get('/migration', [App\Http\Controllers\MigrationController::class, 'index'])->name('migration.index');
-Route::post('/migration/status', [App\Http\Controllers\MigrationController::class, 'checkStatus'])->name('migration.status');
-Route::post('/migration/scan-columns', [App\Http\Controllers\MigrationController::class, 'scanColumns'])->name('migration.scan');
-Route::post('/migration/add-columns', [App\Http\Controllers\MigrationController::class, 'addMissingColumns'])->name('migration.add_columns');
-Route::post('/migration/apply-order', [App\Http\Controllers\MigrationController::class, 'applyCustomOrder'])->name('migration.order');
-Route::post('/migration/migrate-all', [App\Http\Controllers\MigrationController::class, 'migrateAllUsers'])->name('migration.migrate_all');
-Route::post('/migration/upload-customers', [App\Http\Controllers\MigrationController::class, 'uploadCustomers'])->name('migration.customers');
+Route::get('/migration', [\App\Http\Controllers\admin\MigrationController::class, 'index'])->name('migration.index');
+Route::post('/migration/status', [\App\Http\Controllers\admin\MigrationController::class, 'checkStatus'])->name('migration.status');
+Route::post('/migration/scan-columns', [\App\Http\Controllers\admin\MigrationController::class, 'scanColumns'])->name('migration.scan');
+Route::post('/migration/add-columns', [\App\Http\Controllers\admin\MigrationController::class, 'addMissingColumns'])->name('migration.add_columns');
+Route::post('/migration/apply-order', [\App\Http\Controllers\admin\MigrationController::class, 'applyCustomOrder'])->name('migration.order');
+Route::post('/migration/migrate-all', [\App\Http\Controllers\admin\MigrationController::class, 'migrateAllUsers'])->name('migration.migrate_all');
+Route::post('/migration/upload-customers', [\App\Http\Controllers\admin\MigrationController::class, 'uploadCustomers'])->name('migration.customers');
 
 // Simple Migration System (Stable Link)
 Route::get('/migration/simple', function () {
@@ -151,7 +148,7 @@ Route::get('/migration/legacy', function () {
     return redirect('/migration/file_only_migration.php');
 })->name('migration.legacy');
 
-Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin.route.permission']], function () {
     Route::group(['prefix' => 'ingaz'], function () {
         Route::get('/', [HomeController::class, 'index'])->name('home');
     });
@@ -331,7 +328,7 @@ Route::group(
     }
 );
 
-Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin.route.permission']], function () {
     // Orders routes will be handled by routes/ingaz.php
 
     Route::group(['prefix' => 'ingaz'], function () {
@@ -364,12 +361,6 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () 
         Route::patch('ingaz-delegations/{ingazDelegation}/status', [IngazDelegationController::class, 'updateStatus'])
             ->name('ingaz-delegations.update-status');
         Route::resource('ingaz-delegations', IngazDelegationController::class);
-        Route::get('cities', [App\Http\Controllers\admin\CountryController::class, 'citiesIndex'])->name('cities.index');
-        Route::get('cities/create', [App\Http\Controllers\admin\CountryController::class, 'createCity'])->name('cities.create');
-        Route::post('cities', [App\Http\Controllers\admin\CountryController::class, 'storeCity'])->name('cities.store');
-        Route::get('cities/{city}/edit', [App\Http\Controllers\admin\CountryController::class, 'editCity'])->name('cities.edit');
-        Route::put('cities/{city}', [App\Http\Controllers\admin\CountryController::class, 'updateCity'])->name('cities.update');
-        Route::delete('cities/{city}', [App\Http\Controllers\admin\CountryController::class, 'destroyCity'])->name('cities.destroy');
         Route::get('cities', [CountryController::class, 'citiesIndex'])->name('cities.index');
         Route::get('cities/create', [CountryController::class, 'createCity'])->name('cities.create');
         Route::post('cities', [CountryController::class, 'storeCity'])->name('cities.store');
@@ -401,7 +392,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin']], function () 
 });
 
 // Notification routes
-Route::prefix('admin')->middleware(['auth:admin'])->group(function () {
+Route::prefix('admin')->middleware(['auth:admin', 'admin.route.permission'])->group(function () {
     Route::get('/notifications', [App\Http\Controllers\Admin\NotificationController::class, 'index']);
     Route::post('/notifications/{id}/mark-as-read', [App\Http\Controllers\Admin\NotificationController::class, 'markAsRead']);
     Route::post('/notifications/mark-all-read', [App\Http\Controllers\Admin\NotificationController::class, 'markAllAsRead']);
@@ -419,8 +410,8 @@ Route::prefix('admin')->middleware(['auth:admin'])->group(function () {
 });
 
 // روابط التقييم العامة (بدون تسجيل دخول)
-Route::get('/feedback/{token}', [\App\Http\Controllers\ComplaintFeedbackController::class, 'show'])->name('complaint.feedback');
-Route::post('/feedback/submit', [\App\Http\Controllers\ComplaintFeedbackController::class, 'submit'])->name('complaint.feedback.submit');
+Route::get('/feedback/{token}', [\App\Http\Controllers\admin\ComplaintFeedbackController::class, 'show'])->name('complaint.feedback');
+Route::post('/feedback/submit', [\App\Http\Controllers\admin\ComplaintFeedbackController::class, 'submit'])->name('complaint.feedback.submit');
 
 // Stable Simple Migration Routes
 Route::get('/migration-system', function () {

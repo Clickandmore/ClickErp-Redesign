@@ -3,15 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\auth\AdminTypes;
+use App\Http\Actions\ingaz\ArrivalWorkerAction;
+use App\Http\Actions\ingaz\ClientAction;
 use App\Http\Actions\ingaz\JobTitleAction;
 use App\Http\Actions\ingaz\MaidAction;
 use App\Http\Actions\ingaz\NationalityAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Models\auth\Admin;
 use App\Models\ingaz\Maid;
 use Illuminate\Http\Request;
-use App\Http\Actions\ingaz\ArrivalWorkerAction;
-use App\Http\Actions\ingaz\ClientAction;
 
 class ApiMaidController extends Controller
 {

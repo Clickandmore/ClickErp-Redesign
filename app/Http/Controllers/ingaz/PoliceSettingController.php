@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Actions\ingaz\PoliceSettingAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\PoliceSettingRequest as objRequest;
 use App\Models\PoliceSetting as objModel;
 use Illuminate\Http\Request;

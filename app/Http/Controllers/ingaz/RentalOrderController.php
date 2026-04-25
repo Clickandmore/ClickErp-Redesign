@@ -2,26 +2,14 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Models\ingaz\Maid;
-use App\Models\ingaz\User;
-use App\Models\ingaz\Order;
-use Illuminate\Http\Request;
 use App\Enums\ingaz\OrderEnum;
-use App\Models\ingaz\JobTitle;
-use App\Models\ingaz\Religion;
-use App\Enums\auth\AdminTypeis;
-use App\Models\ingaz\Nationality;
-use App\Models\ingaz\UserAddress;
-use App\Models\ingaz\MaidJobTitles;
-use App\Models\ingaz\OrderDetail;
-use App\Http\Controllers\Controller;
-use App\Models\ingaz\OrderTransfers;
-use App\Support\AutomationSettings;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\File;
-use App\Models\ingaz\Order as objModel;
-use Yajra\DataTables\Facades\DataTables;
 use App\Http\Actions\ingaz\OrderAction as objAction;
+use App\Http\Controllers\admin\Controller;
+use App\Models\ingaz\JobTitle;
+use App\Models\ingaz\Order as objModel;
+use App\Support\AutomationSettings;
+use Illuminate\Http\Request;
+use Yajra\DataTables\Facades\DataTables;
 
 class RentalOrderController extends Controller
 {

@@ -12,10 +12,12 @@
                     <h3 class="mb-1">إدارة تفاويض الإنجاز</h3>
                     <p class="text-muted mb-0">متابعة تفاويض الإنجاز وعرض بيانات العميل وتحويل مساند والجنسية والمهنة.</p>
                 </div>
-                <a href="{{ route('ingaz-delegations.create') }}" class="btn btn-primary">
-                    <i class="fa fa-plus me-1"></i>
-                    إضافة تفويض جديد
-                </a>
+                @if ($canCreateDelegation)
+                    <a href="{{ route('ingaz-delegations.create') }}" class="btn btn-primary">
+                        <i class="fa fa-plus me-1"></i>
+                        إضافة تفويض جديد
+                    </a>
+                @endif
             </div>
 
             <div class="card shadow-sm border-0 mb-4">

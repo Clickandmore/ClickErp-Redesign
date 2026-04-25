@@ -5,7 +5,7 @@ namespace App\Http\Controllers\site;
 use App\Enums\Office\MaritalStatusEnum;
 use App\Http\Actions\ingaz\NationalityAction;
 use App\Http\Actions\site\RenewContractAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\site\RenewContractRequest;
 
 class RenewContractController extends Controller
@@ -19,11 +19,11 @@ class RenewContractController extends Controller
 
     public function store(RenewContractRequest $request, RenewContractAction $renewContractAction)
     {
-        
-        
+
+
         $data = $request->validated();
         unset($data['g-recaptcha-response']);
-        
+
         $renewContractAction->storeRenewContract($data);
         return jsonSuccess(null, __("ingaz.the_customer_contract_renewal_request_has_been_successfully_submitted"));
     }

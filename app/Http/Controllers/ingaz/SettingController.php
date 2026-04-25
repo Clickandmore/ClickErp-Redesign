@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Http\Controllers\Controller;
 use App\Http\Actions\dashboard\SettingAction as objAction;
-use App\Models\ingaz\Setting;
-
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\SettingRequest;
+use App\Models\ingaz\Setting;
 use Illuminate\Http\Request;
 
 class SettingController extends Controller

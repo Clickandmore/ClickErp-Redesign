@@ -4,7 +4,7 @@ namespace App\Http\Controllers\site;
 
 use App\Http\Actions\ingaz\UserAddressAction;
 use App\Http\Actions\ingaz\UserAddressAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use Illuminate\Http\Request;
 
 class UserAddressController extends Controller

@@ -3,22 +3,21 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Enums\ingaz\NotificationActionEnum;
-use App\Http\Controllers\Controller;
-use App\Models\ingaz\User;
-use App\Models\ingaz\Maid;
-use App\Models\auth\Admin;
-use App\Models\ingaz\Nationality;
-use App\Models\ingaz\Religion;
-use App\Models\ingaz\JobType;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
-use App\Models\ingaz\Client;
-use App\Models\ingaz\RecruitmentRequest;
-use App\Models\RecruitmentOffices;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Traits\SendSMSTrait;
 use App\Http\Traits\StoreMessageTrait;
-use App\Models\ingaz\Notification;
+use App\Models\auth\Admin;
+use App\Models\ingaz\Client;
+use App\Models\ingaz\JobType;
+use App\Models\ingaz\Maid;
+use App\Models\ingaz\Nationality;
+use App\Models\ingaz\RecruitmentRequest;
+use App\Models\ingaz\Religion;
+use App\Models\ingaz\User;
+use App\Models\RecruitmentOffices;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class RecruitmentController extends Controller

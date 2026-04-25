@@ -4,9 +4,9 @@ namespace App\Http\Controllers\ingaz;
 
 use App\Enums\ingaz\RequirementEnum;
 use App\Http\Actions\ingaz\FeatureAction as objAction;
-use App\Http\Controllers\Controller;
-use App\Models\Feature as objModel;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\FeatureRequest as objRequest;
+use App\Models\Feature as objModel;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 

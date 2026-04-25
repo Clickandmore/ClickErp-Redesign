@@ -43,6 +43,11 @@ class CleanAndAddRecruitmentContractsPermissionsSeeder extends Seeder
                 'description' => 'إمكانية تعديل بيانات عقد الاستقدام'
             ],
             [
+                'name' => 'rec_contracts_update',
+                'display_name' => 'تحديث مراحل وبيانات عقد الاستقدام',
+                'description' => 'إمكانية تحديث مراحل العقد، اختيار العاملة، إضافة الملاحظات، وإدارة الإرسالية'
+            ],
+            [
                 'name' => 'rec_contracts_delete',
                 'display_name' => 'حذف عقد الاستقدام',
                 'description' => 'إمكانية حذف عقد الاستقدام'
@@ -124,38 +129,6 @@ class CleanAndAddRecruitmentContractsPermissionsSeeder extends Seeder
                 'description' => 'إمكانية إغلاق العقد بعد انتهاء فترة الضمان'
             ],
 
-            // صلاحيات طلبات الإلغاء
-            [
-                'name' => 'rec_contracts_cancel_view',
-                'display_name' => 'عرض طلبات إلغاء العقود',
-                'description' => 'إمكانية عرض طلبات إلغاء العقود'
-            ],
-            [
-                'name' => 'rec_contracts_cancel_create',
-                'display_name' => 'إنشاء طلب إلغاء عقد',
-                'description' => 'إمكانية إنشاء طلب إلغاء عقد جديد'
-            ],
-            [
-                'name' => 'rec_contracts_cancel_edit',
-                'display_name' => 'تعديل طلب إلغاء العقد',
-                'description' => 'إمكانية تعديل طلب إلغاء العقد'
-            ],
-            [
-                'name' => 'rec_contracts_cancel_delete',
-                'display_name' => 'حذف طلب إلغاء العقد',
-                'description' => 'إمكانية حذف طلب إلغاء العقد'
-            ],
-            [
-                'name' => 'rec_contracts_cancel_approve',
-                'display_name' => 'الموافقة على إلغاء العقد',
-                'description' => 'إمكانية الموافقة على طلب إلغاء العقد'
-            ],
-            [
-                'name' => 'rec_contracts_cancel_reject',
-                'display_name' => 'رفض إلغاء العقد',
-                'description' => 'إمكانية رفض طلب إلغاء العقد'
-            ],
-
             // صلاحيات المرتجعات
             [
                 'name' => 'rec_contracts_return',
@@ -189,6 +162,47 @@ class CleanAndAddRecruitmentContractsPermissionsSeeder extends Seeder
                 'display_name' => 'إحصائيات عقود الاستقدام',
                 'description' => 'إمكانية عرض إحصائيات وتحليلات عقود الاستقدام'
             ],
+
+            // صلاحيات طلبات الإلغاء
+            [
+                'name' => 'rec_contracts_cancel_view',
+                'display_name' => 'عرض طلبات إلغاء العقود',
+                'description' => 'إمكانية عرض طلبات إلغاء العقود'
+            ],
+            [
+                'name' => 'rec_contracts_cancel_create',
+                'display_name' => 'إنشاء طلب إلغاء عقد',
+                'description' => 'إمكانية إنشاء طلب إلغاء عقد جديد'
+            ],
+            [
+                'name' => 'rec_contracts_cancel_edit',
+                'display_name' => 'تعديل طلب إلغاء العقد',
+                'description' => 'إمكانية تعديل طلب إلغاء العقد'
+            ],
+            [
+                'name' => 'rec_contracts_cancel_delete',
+                'display_name' => 'حذف طلب إلغاء العقد',
+                'description' => 'إمكانية حذف طلب إلغاء العقد'
+            ],
+            [
+                'name' => 'rec_contracts_cancel_approve',
+                'display_name' => 'الموافقة على إلغاء العقد',
+                'description' => 'إمكانية الموافقة على طلب إلغاء العقد'
+            ],
+            [
+                'name' => 'rec_contracts_cancel_reject',
+                'display_name' => 'رفض إلغاء العقد',
+                'description' => 'إمكانية رفض طلب إلغاء العقد'
+            ],
+        ];
+
+        $groupOverrides = [
+            'rec_contracts_cancel_view' => 'cancel_contract',
+            'rec_contracts_cancel_create' => 'cancel_contract',
+            'rec_contracts_cancel_edit' => 'cancel_contract',
+            'rec_contracts_cancel_delete' => 'cancel_contract',
+            'rec_contracts_cancel_approve' => 'cancel_contract',
+            'rec_contracts_cancel_reject' => 'cancel_contract',
         ];
 
         // إضافة الصلاحيات
@@ -197,7 +211,9 @@ class CleanAndAddRecruitmentContractsPermissionsSeeder extends Seeder
                 'name' => $permission['name'],
                 'display_name' => $permission['display_name'],
                 'description' => $permission['description'],
-                'guard_name' => 'admin'
+                'guard_name' => 'admin',
+                'group_name' => $groupOverrides[$permission['name']] ?? 'rec_contracts',
+                'section_name' => 'recruitment_contracts',
             ]);
         }
 

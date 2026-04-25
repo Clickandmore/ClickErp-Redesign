@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\site\profile;
 
 use App\Http\Actions\ingaz\OrderAction;
-use App\Http\Controllers\Controller;
-use App\Models\ingaz\RecruitmentRequest;
+use App\Http\Controllers\admin\Controller;
 use App\Models\ingaz\ReturnRequest;
 use App\Models\TravelHistory;
 use Illuminate\Support\Facades\Auth;
+
 class OrderController extends Controller
 {
     public function index(OrderAction $orderAction)

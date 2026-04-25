@@ -4,11 +4,10 @@ namespace App\Http\Controllers\ingaz;
 
 use App\Enums\ingaz\RequirementEnum;
 use App\Http\Actions\ingaz\SelectWorkerSettingsAction as objAction;
-use App\Http\Controllers\Controller;
-use App\Models\SelectSetting as objModel;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\SelectWorkerSettingsRequest as objRequest;
+use App\Models\SelectSetting as objModel;
 use Illuminate\Http\Request;
-use Yajra\DataTables\Facades\DataTables;
 
 class SelectWorkerSettingsController extends Controller
 {

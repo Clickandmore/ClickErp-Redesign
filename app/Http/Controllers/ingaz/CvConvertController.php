@@ -2,17 +2,12 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Enums\ingaz\RequirementEnum;
 use App\Http\Actions\dashboard\SettingAction;
 use App\Http\Actions\ingaz\MaidAction as objAction;
 use App\Http\Actions\ingaz\SkillAction;
-use App\Http\Controllers\Controller;
-use App\Models\Requirement as objModel;
-use App\Http\Requests\ingaz\RequirementRequest as objRequest;
+use App\Http\Controllers\admin\Controller;
 use App\Models\ingaz\Maid;
 use Illuminate\Http\Request;
-use Yajra\DataTables\Facades\DataTables;
-
 
 
 class CvConvertController extends Controller

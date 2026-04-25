@@ -2,15 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
+use App\Models\ingaz\Maid;
+use App\Models\ingaz\User;
+use App\Models\IstiqdasmContract;
 use App\Services\IstiqdasmService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-use App\Models\Contract;
-use App\Models\ingaz\User;
-use App\Models\ingaz\Maid;
-use App\Models\IstiqdasmContract;
+use Illuminate\Support\Facades\Validator;
 
 class IstiqdasmController extends Controller
 {

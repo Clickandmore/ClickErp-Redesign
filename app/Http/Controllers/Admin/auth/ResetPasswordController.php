@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\admin\auth;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Models\auth\Admin;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;

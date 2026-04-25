@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
-use Carbon\Carbon;
 use App\Models\Contract;
 use App\Models\NewSettings;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
 
 class PrintContractController extends Controller
 {

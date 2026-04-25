@@ -2,11 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Actions\ingaz\ContactAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\API\ContactUsRequest;
 use App\Http\Traits\API\ApiResponse;
-use App\Models\ingaz\Contact as objModel;
 use App\Models\ingaz\Contact;
 use Illuminate\Http\Request;
 

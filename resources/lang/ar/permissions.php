@@ -122,6 +122,10 @@ return [
     'rent_contract_edit' => 'تعديل عقود الإيجار',
     'rent_contract_delete' => 'حذف عقود الإيجار',
     'rent_contract_control' => 'التحكم في عقود الإيجار',
+    'rent_contract_terms_view' => 'عرض بنود عقد الإيجار',
+    'rent_contract_terms_create' => 'إضافة بنود عقد الإيجار',
+    'rent_contract_terms_edit' => 'تعديل بنود عقد الإيجار',
+    'rent_contract_terms_delete' => 'حذف بنود عقد الإيجار',
 
     // عقود الإيواء
     'shelter_contract_view' => 'عرض عقود الإيواء',
@@ -343,6 +347,7 @@ return [
     'recruitment_requests' => 'الطلبات الخاصة',
     'renew_contracts' => 'طلبات تجديد العقود',
     'rec_contracts' => 'عقود التوظيف',
+    'ingaz_delegations' => 'تفاويض الإنجاز',
     'cancel_contracts' => 'عقود الإلغاء',
     'rent_contracts' => 'عقود الإيجار',
     'rental_orders' => 'طلبات الإيجار',
@@ -423,6 +428,13 @@ return [
     'rec_contracts_delete' => 'حذف عقد الاستقدام',
     'rec_contracts_export' => 'تصدير عقود الاستقدام',
     'rec_contracts_print' => 'طباعة عقد الاستقدام',
+    'ingaz_delegations_view' => 'عرض تفاويض الإنجاز',
+    'ingaz_delegations_create' => 'إضافة تفويض إنجاز',
+    'ingaz_delegations_edit' => 'تعديل تفاويض الإنجاز',
+    'ingaz_delegations_delete' => 'حذف تفاويض الإنجاز',
+    'ingaz_delegations_print' => 'طباعة تفويض الإنجاز',
+    'ingaz_delegations_change_status' => 'تغيير حالة تفويض الإنجاز',
+    'ingaz_delegations_control' => 'إدارة تفاويض الإنجاز',
 
     // صلاحيات تغيير حالة العقد (مرحلة بمرحلة)
     'rec_contracts_change_to_msaned' => 'تغيير إلى عقود مساند',

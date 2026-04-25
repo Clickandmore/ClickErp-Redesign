@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Models\RentalContractTerm;
 use App\Models\Setting;
+use App\PermKeys;
 use Illuminate\Http\Request;
 
 class RentalContractTermsController extends Controller
@@ -15,6 +16,8 @@ class RentalContractTermsController extends Controller
 
     public function index()
     {
+        $this->authorizeTermsModuleAccess();
+
         $terms = RentalContractTerm::query()
             ->orderBy('page_number')
             ->ordered()
@@ -32,6 +35,8 @@ class RentalContractTermsController extends Controller
      */
     public function create()
     {
+        $this->authorizeTermsCreate();
+
         $termsPage1 = RentalContractTerm::byPage(1)->ordered()->get();
         $termsPage2 = RentalContractTerm::byPage(2)->ordered()->get();
         $termsPage3 = RentalContractTerm::byPage(3)->ordered()->get();
@@ -41,6 +46,8 @@ class RentalContractTermsController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorizeTermsCreate();
+
         $data = $this->validatedTermData($request);
 
         RentalContractTerm::create($data);
@@ -52,6 +59,8 @@ class RentalContractTermsController extends Controller
 
     public function edit($id)
     {
+        $this->authorizeTermsEdit();
+
         $termsPage1 = RentalContractTerm::byPage(1)->ordered()->get();
         $termsPage2 = RentalContractTerm::byPage(2)->ordered()->get();
         $termsPage3 = RentalContractTerm::byPage(3)->ordered()->get();
@@ -64,6 +73,8 @@ class RentalContractTermsController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $this->authorizeTermsEdit();
+
         $rentalContractTerm = RentalContractTerm::findOrFail($id);
         $rentalContractTerm->update($this->validatedTermData($request));
 
@@ -76,6 +87,8 @@ class RentalContractTermsController extends Controller
      */
     public function importDefault()
     {
+        $this->authorizeTermsEdit();
+
         // حذف البنود الحالية
         RentalContractTerm::truncate();
 
@@ -174,6 +187,8 @@ class RentalContractTermsController extends Controller
      */
     public function showSettings()
     {
+        abort_unless(\AdminGuardHasPerm(PermKeys::CONTRACT_SETTINGS), 403);
+
         // جلب الإعدادات الحالية
         $settings = [];
         $settingKeys = [
@@ -210,6 +225,8 @@ class RentalContractTermsController extends Controller
      */
     public function updateSettings(Request $request)
     {
+        abort_unless(\AdminGuardHasPerm(PermKeys::CONTRACT_SETTINGS), 403);
+
         $data = $request->except(['_token', '_method', 'logo']);
 
         // حفظ الإعدادات
@@ -235,6 +252,8 @@ class RentalContractTermsController extends Controller
 
     public function destroy($id)
     {
+        $this->authorizeTermsDelete();
+
         $rent_contract_term = RentalContractTerm::findOrFail($id);
         $rent_contract_term->delete();
 
@@ -261,5 +280,48 @@ class RentalContractTermsController extends Controller
         $data['is_active'] = $request->boolean('is_active');
 
         return $data;
+    }
+
+    private function authorizeTermsModuleAccess(): void
+    {
+        abort_unless(\AdminGuardHasAnyPerm([
+            PermKeys::RENT_CONTRACT_TERMS_VIEW,
+            PermKeys::RENT_CONTRACT_TERMS_CREATE,
+            PermKeys::RENT_CONTRACT_TERMS_EDIT,
+            PermKeys::RENT_CONTRACT_TERMS_DELETE,
+            PermKeys::RENT_CONTRACT_VIEW,
+            PermKeys::RENT_CONTRACT_CREATE,
+            PermKeys::RENT_CONTRACT_EDIT,
+            PermKeys::RENT_CONTRACT_DELETE,
+            PermKeys::RENT_CONTRACT_CONTROL,
+            PermKeys::CONTRACT_SETTINGS,
+        ]), 403);
+    }
+
+    private function authorizeTermsCreate(): void
+    {
+        abort_unless(\AdminGuardHasAnyPerm([
+            PermKeys::RENT_CONTRACT_TERMS_CREATE,
+            PermKeys::RENT_CONTRACT_CREATE,
+            PermKeys::CONTRACT_SETTINGS,
+        ]), 403);
+    }
+
+    private function authorizeTermsEdit(): void
+    {
+        abort_unless(\AdminGuardHasAnyPerm([
+            PermKeys::RENT_CONTRACT_TERMS_EDIT,
+            PermKeys::RENT_CONTRACT_EDIT,
+            PermKeys::CONTRACT_SETTINGS,
+        ]), 403);
+    }
+
+    private function authorizeTermsDelete(): void
+    {
+        abort_unless(\AdminGuardHasAnyPerm([
+            PermKeys::RENT_CONTRACT_TERMS_DELETE,
+            PermKeys::RENT_CONTRACT_DELETE,
+            PermKeys::CONTRACT_SETTINGS,
+        ]), 403);
     }
 }

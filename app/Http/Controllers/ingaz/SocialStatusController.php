@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Actions\ingaz\SocialStatusAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\SocialStatusRequest;
 use App\Models\ingaz\SocialStatus as objModel;
 use Illuminate\Http\Request;

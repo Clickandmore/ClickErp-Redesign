@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Enums\ingaz\ContractStatusEnum;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\makeTransferRequest;
 use App\Models\Contract;
-use App\Models\ingaz\User;
 use App\Models\ingaz\Order;
+use App\Models\ingaz\User;
 use App\Models\SponsorshipTransfer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;

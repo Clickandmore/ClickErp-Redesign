@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Models\Contract;
+use App\Models\ingaz\Invoice;
 use App\Models\MusanedTransfer;
 use App\Models\MusanedTransferItem;
-use App\Models\ingaz\Invoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;

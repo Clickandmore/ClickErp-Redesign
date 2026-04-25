@@ -2,15 +2,34 @@
 
 @section('title', 'بنود عقد الإيجار')
 @section('content')
+    @php
+        $canCreateTerm = @AdminGuardHasAnyPerm([
+            \App\PermKeys::RENT_CONTRACT_TERMS_CREATE,
+            \App\PermKeys::RENT_CONTRACT_CREATE,
+            \App\PermKeys::CONTRACT_SETTINGS,
+        ]);
+        $canEditTerm = @AdminGuardHasAnyPerm([
+            \App\PermKeys::RENT_CONTRACT_TERMS_EDIT,
+            \App\PermKeys::RENT_CONTRACT_EDIT,
+            \App\PermKeys::CONTRACT_SETTINGS,
+        ]);
+        $canDeleteTerm = @AdminGuardHasAnyPerm([
+            \App\PermKeys::RENT_CONTRACT_TERMS_DELETE,
+            \App\PermKeys::RENT_CONTRACT_DELETE,
+            \App\PermKeys::CONTRACT_SETTINGS,
+        ]);
+    @endphp
     <div class="container-fluid">
         <div class="row">
             <div class="col-12">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h3 class="card-title">بنود عقد الإيجار</h3>
-                        <a href="{{ route('rent-contract-terms.create') }}" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> إضافة بند جديد
-                        </a>
+                        @if ($canCreateTerm)
+                            <a href="{{ route('rent-contract-terms.create') }}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> إضافة بند جديد
+                            </a>
+                        @endif
                     </div>
                     <div class="card-body">
                         <table class="table table-hover table-style">
@@ -22,7 +41,7 @@
                                     <th>رقم البند </th>
                                     <th>محتوي البند</th>
                                     <th>ترتيب البند</th>
-                                    <th>رقم الصفحةد</th>
+                                    <th>رقم الصفحة</th>
                                     <th>الحالة</th>
                                     <th>الإجراءات</th>
                                 </tr>
@@ -39,16 +58,24 @@
                                         <td>{{ $term->page_number }}</td>
                                         <td>{{ $term->is_active == 1 ? 'نشط' : 'غير نشط' }}</td>
                                         <td>
-                                            <a href="{{ route('rent-contract-terms.edit', $term->id) }}" title="تعديل"
-                                                class="btn btn-sm btn-primary">
-                                                <i class="fa fa-pencil"></i>
-                                            </a>
+                                            @if ($canEditTerm)
+                                                <a href="{{ route('rent-contract-terms.edit', $term->id) }}" title="تعديل"
+                                                    class="btn btn-sm btn-primary">
+                                                    <i class="fa fa-pencil"></i>
+                                                </a>
+                                            @endif
 
-                                            <button type="button" class="btn btn-sm btn-danger btn-delete deleteButton" data-id="{{ $term->id }}"
-                                                title="حذف">
-                                                <i class="fa fa-trash-o"></i>
-                                            </button>
-                                        <td>
+                                            @if ($canDeleteTerm)
+                                                <button type="button" class="btn btn-sm btn-danger btn-delete deleteButton" data-id="{{ $term->id }}"
+                                                    title="حذف">
+                                                    <i class="fa fa-trash-o"></i>
+                                                </button>
+                                            @endif
+
+                                            @if (!$canEditTerm && !$canDeleteTerm)
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>

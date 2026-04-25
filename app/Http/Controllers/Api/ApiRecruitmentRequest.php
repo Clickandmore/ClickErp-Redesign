@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Enums\Office\MaritalStatusEnum;
 use App\Http\Actions\ingaz\JobTitleAction;
 use App\Http\Actions\ingaz\NationalityAction;
 use App\Http\Actions\ingaz\ReligionAction;
-use App\Enums\Office\MaritalStatusEnum;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\API\RecruitmentRequestRequest;
 use App\Models\Country;
 use App\Models\ingaz\RecruitmentRequestMaid;

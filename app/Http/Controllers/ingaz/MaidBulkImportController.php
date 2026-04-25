@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Actions\ingaz\MaidAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\BulkMaidImportUploadRequest;
 use App\Models\ingaz\MaidBulkImport;
 use App\Services\ingaz\MaidBulkImportService;

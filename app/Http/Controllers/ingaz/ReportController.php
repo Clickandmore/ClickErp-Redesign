@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Models\ingaz\Maid;
 use App\Services\ingaz\ReportExportService;
 use Illuminate\Http\Request;

@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Http\Controllers\Controller;
 use App\Http\Actions\ingaz\RecruitmentOfficeAction as objAction;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\RecruitmentOfficesRequest;
 use App\Models\ingaz\Nationality;
 use App\Models\RecruitmentOffices as objModel;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
 
 class RecruitmentOfficeController extends Controller

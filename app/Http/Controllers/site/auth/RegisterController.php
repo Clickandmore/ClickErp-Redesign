@@ -3,14 +3,9 @@
 namespace App\Http\Controllers\site\auth;
 
 use App\Http\Actions\ingaz\PhoneVerificationAction;
-use App\Http\Actions\ingaz\ServiceAction;
-use App\Http\Actions\ingaz\SliderAction;
-use App\Http\Actions\ingaz\StatisticAction;
-use App\Http\Actions\ingaz\StepAction;
 use App\Http\Actions\ingaz\UserAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\site\auth\RegisterRequest;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;

@@ -3,12 +3,10 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Actions\ingaz\TestimonialsAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\TestimonialRequest as objRequest;
 use App\Models\Testimonial as objModel;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 
 class TestimonialController extends Controller

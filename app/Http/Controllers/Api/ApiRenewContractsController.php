@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Enums\Office\MaritalStatusEnum;
 use App\Http\Actions\Api\RenewContractAction;
 use App\Http\Actions\ingaz\NationalityAction;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\API\RenewContractRequest;
 use App\Models\ingaz\Nationality;
 use App\Models\RenewContract;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class ApiRenewContractsController extends Controller
@@ -34,7 +34,7 @@ class ApiRenewContractsController extends Controller
             'maritalStatus' => $maritalStatus,
             'renewContracts' => $renewContracts,
         ];
-        
+
         return apiResponse(true, __('api.All items'), $data, 200);
     }
 
@@ -47,7 +47,7 @@ class ApiRenewContractsController extends Controller
             'nationalities' => $nationalities,
             'maritalStatus' => $maritalStatus,
         ];
-        
+
         return apiResponse(true, __('api.All items'), $data, 200);
     }
 
@@ -71,7 +71,7 @@ class ApiRenewContractsController extends Controller
     {
         $data = $request->validated();
         unset($data['g-recaptcha-response']);
-        
+
         $result = $renewContractAction->storeRenewContract($data);
 
         return apiResponse(true, __("ingaz.the_customer_contract_renewal_request_has_been_successfully_submitted"), [], 200);

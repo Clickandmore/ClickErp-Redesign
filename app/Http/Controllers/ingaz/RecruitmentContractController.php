@@ -2,41 +2,38 @@
 
 namespace App\Http\Controllers\ingaz;
 
+use App\Actions\ClientAction;
+use App\Actions\JobTitleAction;
+use App\Actions\JobTypeAction;
+use App\Actions\MaidAction;
+use App\Actions\NationalityAction;
+use App\Actions\OrderAction;
+use App\Actions\ReligionAction;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Enums\ingaz\OrderEnum;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\StoreContractRequest;
 use App\Http\Traits\ContractSMSTrait;
+use App\Models\City;
 use App\Models\Contract;
 use App\Models\ContractInfo;
-use App\Models\ContractStatusLog;
-use App\Models\ingaz\Contact;
+use App\Models\Country;
 use App\Models\ingaz\ContractNote;
+use App\Models\ingaz\Invoice;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Order;
 use App\Models\ingaz\User;
-use App\Models\ingaz\UserAddress;
-use App\Models\TravelHistory;
 use App\Models\RecruitmentOffices;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Yajra\DataTables\Facades\DataTables;
-use App\Models\City;
-use App\Models\Country;
-use App\Actions\OrderAction;
-use App\Actions\MaidAction;
-use App\Actions\ClientAction;
-use App\Actions\NationalityAction;
-use App\Actions\ReligionAction;
-use App\Actions\JobTitleAction;
-use App\Actions\JobTypeAction;
+use App\Models\TravelHistory;
+use App\NewPermKeys;
 use App\Services\ingaz\RecruitmentTripAccountingService;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use App\NewPermKeys;
 use PDF;
-use App\Models\ingaz\Invoice;
+use Yajra\DataTables\Facades\DataTables;
 
 class RecruitmentContractController extends Controller
 {
@@ -70,6 +67,39 @@ class RecruitmentContractController extends Controller
 
         return $admin->admin_type === 'super_admin'
             || adminHasAnyRoleSafe($admin, ['super_admin', 'admin', 'Administrator']);
+    }
+
+    private function canViewRecruitmentContracts(): bool
+    {
+        return @AdminGuardHasAnyPerm([
+            NewPermKeys::REC_CONTRACTS_VIEW,
+            NewPermKeys::REC_CONTRACTS_MANAGE,
+        ]);
+    }
+
+    private function canCreateRecruitmentContracts(): bool
+    {
+        return @AdminGuardHasAnyPerm([
+            NewPermKeys::REC_CONTRACTS_CREATE,
+            NewPermKeys::REC_CONTRACTS_MANAGE,
+        ]);
+    }
+
+    private function canUpdateRecruitmentContracts(): bool
+    {
+        return @AdminGuardHasAnyPerm([
+            NewPermKeys::REC_CONTRACTS_UPDATE,
+            NewPermKeys::REC_CONTRACTS_MANAGE,
+        ]);
+    }
+
+    private function canSelectMaidForRecruitmentContracts(): bool
+    {
+        return @AdminGuardHasAnyPerm([
+            NewPermKeys::REC_CONTRACTS_CREATE,
+            NewPermKeys::REC_CONTRACTS_UPDATE,
+            NewPermKeys::REC_CONTRACTS_MANAGE,
+        ]);
     }
 
     private function getManualStatusTransition(?string $status): ?array
@@ -326,7 +356,7 @@ class RecruitmentContractController extends Controller
     public function index(Request $request)
     {
         // التحقق من صلاحية عرض العقود
-        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW)) {
+        if (!$this->canViewRecruitmentContracts()) {
             return response()->json([
                 'success' => false,
                 'message' => 'ليس لديك صلاحية لعرض العقود'
@@ -1263,7 +1293,7 @@ class RecruitmentContractController extends Controller
                                         </button></li>';
                         }
                     }
-                    
+
                     // اضافة ملاحظة على العقد
                     $actions .= '<li><button class="dropdown-item add-contract-note-btn" data-contract-id="' . $row->id . '" data-notes-count="' . ($row->notes_count ?? 0) . '" data-bs-toggle="modal"
                                     data-bs-target="#addContractNoteModal">
@@ -1292,7 +1322,7 @@ class RecruitmentContractController extends Controller
     public function details($id)
     {
         // التحقق من صلاحية عرض تفاصيل العقد
-        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW)) {
+        if (!$this->canViewRecruitmentContracts()) {
             return response()->json([
                 'success' => false,
                 'message' => 'ليس لديك صلاحية لعرض تفاصيل العقد'
@@ -1741,7 +1771,7 @@ class RecruitmentContractController extends Controller
 
     public function storeNote(Request $request, $contractId)
     {
-        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE)) {
+        if (!$this->canUpdateRecruitmentContracts()) {
             if ($request->ajax() || $request->expectsJson()) {
                 return response()->json([
                     'success' => false,
@@ -1788,7 +1818,7 @@ class RecruitmentContractController extends Controller
     public function create()
     {
         // التحقق من صلاحية إنشاء عقد جديد
-        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE)) {
+        if (!$this->canCreateRecruitmentContracts()) {
             return response()->json([
                 'success' => false,
                 'message' => 'ليس لديك صلاحية لإنشاء عقد جديد'
@@ -1884,7 +1914,7 @@ class RecruitmentContractController extends Controller
     public function store(StoreContractRequest $request)
     {
         // التحقق من صلاحية إنشاء العقد
-        if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE)) {
+        if (!$this->canCreateRecruitmentContracts()) {
             return response()->json([
                 'success' => false,
                 'message' => 'ليس لديك صلاحية لإنشاء عقد جديد'
@@ -2194,6 +2224,13 @@ class RecruitmentContractController extends Controller
     public function show($id, Request $request)
     {
         try {
+            if (!$this->canViewRecruitmentContracts()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية لعرض العقد'
+                ], 403);
+            }
+
             $row = Contract::find($id);
 
             // التحقق من وجود العقد
@@ -3373,6 +3410,13 @@ class RecruitmentContractController extends Controller
         logger()->info('getAvailableMaids called', ['request' => $request->all()]);
 
         try {
+            if (!$this->canSelectMaidForRecruitmentContracts()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية لعرض العاملات المتاحات لعقود الاستقدام'
+                ], 403);
+            }
+
             $query = Maid::with(['nationality'])
                 ->where('available', true)
                 ->where('status', 'available') // التأكد من أن الحالة متاحة
@@ -3481,6 +3525,13 @@ class RecruitmentContractController extends Controller
      */
     public function getFilterOptions()
     {
+        if (!$this->canViewRecruitmentContracts()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ليس لديك صلاحية لعرض خيارات الفلترة'
+            ], 403);
+        }
+
         // استخدام cache لتسريع التحميل
         return \Cache::remember('recruitment_contract_filter_options', 300, function () { // 5 دقائق
             // جلب الجنسيات مع الترجمات وتحويلها للشكل المطلوب
@@ -3534,6 +3585,13 @@ class RecruitmentContractController extends Controller
     public function addMaidToContract(Request $request, $contractId)
     {
         try {
+            if (!$this->canSelectMaidForRecruitmentContracts()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية لاختيار عاملة للعقد'
+                ], 403);
+            }
+
             $contract = Contract::findOrFail($contractId);
 
             // التحقق من أن العقد في حالة بانتظار اختيار العاملة
@@ -3596,6 +3654,11 @@ class RecruitmentContractController extends Controller
     public function selectMaidForContract($contractId, Request $request)
     {
         try {
+            if (!$this->canSelectMaidForRecruitmentContracts()) {
+                return redirect()->route('RecruitmentContract.index')
+                    ->with('error', 'ليس لديك صلاحية لاختيار عاملة للعقد');
+            }
+
             $contract = Contract::with(['user', 'info', 'requiredMaidNationality'])->find($contractId);
 
             // التحقق من وجود العقد
@@ -3730,6 +3793,13 @@ class RecruitmentContractController extends Controller
     public function statistics(Request $request)
     {
         try {
+            if (!$this->canViewRecruitmentContracts()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية لعرض إحصائيات العقود'
+                ], 403);
+            }
+
             $baseQuery = Contract::query()
                 ->whereIn('type', ['recruitment', 'maid']);
 
@@ -3996,7 +4066,7 @@ class RecruitmentContractController extends Controller
     {
         try {
             // التحقق من الصلاحيات
-            if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE)) {
+            if (!$this->canUpdateRecruitmentContracts()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'ليس لديك صلاحية لتعديل العقود'
@@ -4254,7 +4324,7 @@ class RecruitmentContractController extends Controller
     {
         try {
             // التحقق من الصلاحيات
-            if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE)) {
+            if (!$this->canUpdateRecruitmentContracts()) {
                 return redirect()->back()->with('error', 'ليس لديك صلاحية لتعديل العقود');
             }
 

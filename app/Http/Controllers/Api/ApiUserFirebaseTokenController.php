@@ -3,11 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Actions\ingaz\UserFirebaseTokenAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\UserFirebaseTokenRequest;
-use App\Http\Resources\Api\UserFirebaseTokenResource as objResource;
-use App\Http\Resources\Api\UserFirebaseTokenResource;
-use App\Models\ingaz\UserFirebaseToken as objModel;
 use Illuminate\Http\Request;
 
 class ApiUserFirebaseTokenController extends Controller

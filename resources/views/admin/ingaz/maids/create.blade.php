@@ -8,6 +8,8 @@
     $formRedirectRoute = $formRedirectRoute ?? route('maids.index');
     $requireIdFields = $requireIdFields ?? true;
     $selectedTypeId = (int) old('type_id', $defaultTypeId ?? 0);
+    $shelterCompanyName = documentSetting('document_company_name', documentSetting('website_name', 'شركة بلاتنيوم الشرقية'));
+    $shelterCompanyHint = 'سيتم إنشاء عقد إيواء تلقائياً باسم ' . $shelterCompanyName;
     $selectedTypeTitle = collect($types ?? [])->firstWhere('id', $selectedTypeId)->title ?? '';
     $normalizedSelectedTypeTitle = mb_strtolower(trim((string) $selectedTypeTitle));
     $normalizedSelectedTypeTitle = str_replace(['أ', 'إ', 'آ'], 'ا', $normalizedSelectedTypeTitle);
@@ -132,7 +134,7 @@
                         <div id="shelter_auto_notice" class="text-muted mt-2" style="display: none;">
                             سيتم تسكينها تلقائياً للإيواء لهذا النوع.
                         </div>
-                        <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم شركة أسس الانجاز</small>
+                        <small class="text-muted">{{ $shelterCompanyHint }}</small>
                     </div>
 
                     <!-- الجنسية -->

@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers\admin;
 
-use App\Http\Controllers\Controller;
+use App\Http\Traits\SendSMSTrait;
 use App\Models\SmsTemplate;
 use Illuminate\Http\Request;
-use App\Http\Traits\SendSMSTrait;
 
 class SmsTemplateController extends Controller
 {

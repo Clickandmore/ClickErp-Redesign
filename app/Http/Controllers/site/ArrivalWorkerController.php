@@ -4,7 +4,7 @@ namespace App\Http\Controllers\site;
 
 use App\Http\Actions\ingaz\ArrivalWorkerAction;
 use App\Http\Actions\ingaz\ClientAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 
 class ArrivalWorkerController extends Controller
 {

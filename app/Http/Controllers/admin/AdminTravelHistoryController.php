@@ -4,25 +4,24 @@ namespace App\Http\Controllers\admin;
 
 use App\Constants;
 use App\Enums\ingaz\ContractStatusEnum;
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\ingaz\RecruitmentContractExternalOfficeDispatchController;
 use App\Http\Traits\SendSMSTrait;
 use App\Models\AdminNotification;
-use App\Models\Contract;
 use App\Models\auth\Admin;
+use App\Models\Contract;
 use App\Models\ingaz\Order;
 use App\Models\TravelHistory;
 use App\Models\TravelHistoryFiles;
 use App\Services\ingaz\RecruitmentTripAccountingService;
 use App\Support\AutomationSettings;
 use Carbon\Carbon;
+use DataTables;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use DataTables;
 
 class AdminTravelHistoryController extends Controller
 {

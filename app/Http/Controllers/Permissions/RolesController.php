@@ -2,21 +2,19 @@
 
 namespace App\Http\Controllers\Permissions;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Spatie\Permission\Models\Role;
 
 class RolesController extends Controller
 {
     public function __construct()
     {
         $this->middleware('permission:roles_view,admin', ['only' => ['index']]);
-        $this->middleware('permission:roles_create,admin', ['only' => ['store']]);
-        $this->middleware('permission:roles_edit,admin', ['only' => ['store']]);
         $this->middleware('permission:roles_delete,admin', ['only' => ['delete']]);
     }
 

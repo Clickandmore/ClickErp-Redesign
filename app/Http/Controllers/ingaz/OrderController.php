@@ -2,30 +2,27 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Models\ingaz\Maid;
-use App\Models\ingaz\User;
-use App\Models\ingaz\Order;
-use Illuminate\Http\Request;
-use App\Enums\ingaz\OrderEnum;
-use App\Models\ingaz\JobTitle;
-use App\Models\ingaz\Religion;
-use App\Enums\auth\AdminTypeis;
 use App\Enums\ingaz\NotificationActionEnum;
-use App\Models\ingaz\Nationality;
-use App\Models\ingaz\UserAddress;
-use App\Models\ingaz\MaidJobTitles;
-use App\Http\Controllers\Controller;
-use App\Models\ingaz\OrderTransfers;
-use App\Support\AutomationSettings;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\File;
-use Illuminate\Validation\Rule;
-use App\Models\ingaz\Order as objModel;
-use Yajra\DataTables\Facades\DataTables;
+use App\Enums\ingaz\OrderEnum;
 use App\Http\Actions\ingaz\OrderAction as objAction;
-use App\Models\ingaz\Notification;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Traits\SendSMSTrait;
 use App\Http\Traits\StoreMessageTrait;
+use App\Models\ingaz\JobTitle;
+use App\Models\ingaz\Maid;
+use App\Models\ingaz\MaidJobTitles;
+use App\Models\ingaz\Nationality;
+use App\Models\ingaz\Notification;
+use App\Models\ingaz\Order;
+use App\Models\ingaz\Order as objModel;
+use App\Models\ingaz\OrderTransfers;
+use App\Models\ingaz\Religion;
+use App\Models\ingaz\User;
+use App\Models\ingaz\UserAddress;
+use App\Support\AutomationSettings;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Yajra\DataTables\Facades\DataTables;
 
 class OrderController extends Controller
 {
@@ -169,7 +166,7 @@ class OrderController extends Controller
 
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT)) {
                         $statusHtml .= ' <button type="button" class="edit-status" data-id="' . $row->id . '" title="تعديل الحالة">
-                                <i class="fa fa-pen"></i> 
+                                <i class="fa fa-pen"></i>
                             </button>';
                     }
 

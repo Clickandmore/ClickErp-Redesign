@@ -4,7 +4,7 @@ namespace App\Http\Controllers\ingaz;
 
 use App\Enums\ingaz\OrderEnum;
 use App\Http\Actions\ingaz\ReturnRequestAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\NationalityRequest;
 use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\Nationality as NationalityModel;

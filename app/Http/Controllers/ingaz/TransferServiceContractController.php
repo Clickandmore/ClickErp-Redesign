@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Http\Controllers\Controller;
-use App\Models\TransferServiceContract;
+use App\Http\Controllers\admin\Controller;
 use App\Models\SponsorshipTransfer;
+use App\Models\TransferServiceContract;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
