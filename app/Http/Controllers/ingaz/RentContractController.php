@@ -1268,6 +1268,7 @@ class RentContractController extends Controller
 
     private function recruitmentBusyContractStatuses(): array
     {
+        // A shelter contract means the maid is in accommodation and can still be rented.
         return [
             ContractStatusEnum::New->value,
             ContractStatusEnum::AccreditationContracts->value,
@@ -1277,7 +1278,6 @@ class RentContractController extends Controller
             ContractStatusEnum::Tazker->value,
             ContractStatusEnum::Arrival->value,
             ContractStatusEnum::Sari->value,
-            ContractStatusEnum::Shelter->value,
             ContractStatusEnum::PendingMaidSelection->value,
             ContractStatusEnum::Trial->value,
             ContractStatusEnum::InProgress->value,

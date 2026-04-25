@@ -1627,7 +1627,7 @@
 
         function processCustomersStep() {
             // تأكيد إضافي لعملية الربط
-            if (!confirm('⚠️ عملية ربط حرجة!\n\nستقوم بربط جدول Customers مع Users في قاعدة البيانات الفعلية\n\nالمتابعة؟')) {
+            if (!confirm('⚠️ عملية ربط هامة!\n\nستقوم بربط جدول Customers مع Users في قاعدة البيانات الفعلية\n\nالمتابعة؟')) {
                 return;
             }
             const file = document.getElementById('customersFile').files[0];

@@ -235,7 +235,7 @@ $recent_batches = getRecentBatches(10);
             }
         }, 30000);
 
-        // تأكيد العمليات الحرجة
+        // تأكيد العمليات الهامة
         $('.confirm-action').on('click', function(e) {
             if (!confirm('هل أنت متأكد من هذا الإجراء؟')) {
                 e.preventDefault();

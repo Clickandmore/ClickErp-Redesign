@@ -15,6 +15,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Models\Client;
@@ -350,10 +351,9 @@ class UserController extends Controller
 
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20|unique:users,phone',
+            'phone' => 'required|string|max:20',
             'email' => 'nullable|email|max:255|unique:users,email',
             'client_category_id' => 'nullable|exists:fn_client_categories,id',
-            'password' => 'required|string|min:6',
             'nationality_id' => 'nullable|exists:countries,id',
             'national_num' => 'nullable|string|max:50',
             'birthdate' => 'nullable|date',
@@ -368,7 +368,32 @@ class UserController extends Controller
             // رسائل الفاليديشن
         ]);
 
-        $data['password'] = bcrypt($data['password']);
+        $normalizedPhone = $this->normalizeSaudiPhone($data['phone']);
+
+        if (!$normalizedPhone) {
+            throw ValidationException::withMessages([
+                'phone' => 'رقم الجوال غير صحيح. الصيغة المتاحة: 05XXXXXXXX أو 5XXXXXXXX أو +9665XXXXXXXX.',
+            ]);
+        }
+
+        $phoneCandidates = array_values(array_unique(array_filter([
+            $data['phone'],
+            $normalizedPhone,
+            '0' . $normalizedPhone,
+            '966' . $normalizedPhone,
+            '+966' . $normalizedPhone,
+        ])));
+
+        if (objModel::whereIn('phone', $phoneCandidates)->exists()) {
+            throw ValidationException::withMessages([
+                'phone' => 'رقم الجوال مستخدم مسبقاً.',
+            ]);
+        }
+
+        $data['phone'] = $normalizedPhone;
+        $data['phone_code'] = '+966';
+        $data['password'] = bcrypt('123456');
+        $data['register_from'] = 'dashboard';
         $data['is_blocked'] = 0;
 
         return DB::transaction(function () use ($data) {
@@ -401,13 +426,17 @@ class UserController extends Controller
             ]);
 
             $data['account_id'] = $newAccount->id;
+            $financeClientCategoryId = $this->resolveFinanceClientCategoryId($data['client_category_id'] ?? null);
 
             Client::create([
                 'is_company' => 0,
-                'client_category_id' => $data['client_category_id'],
+                'client_category_id' => $financeClientCategoryId,
                 'name' => $data['name'],
                 'phone' => $data['phone'],
-                'email' => $data['email'],
+                'email' => $data['email'] ?? '',
+                'address' => $data['address'] ?? '',
+                'city' => $data['city'] ?? null,
+                'tax_number' => $data['national_num'] ?? null,
                 'code' => $newAccount->code,
                 'days_credit_period' => 30,
                 'credit_limit' => 30,
@@ -421,6 +450,48 @@ class UserController extends Controller
                 'url' => route($this->mainRoute . '.index')
             ]);
         });
+    }
+
+    private function normalizeSaudiPhone(string $phone): ?string
+    {
+        $digits = preg_replace('/\D+/', '', $phone);
+
+        if (!$digits) {
+            return null;
+        }
+
+        if (str_starts_with($digits, '00966')) {
+            $digits = substr($digits, 5);
+        } elseif (str_starts_with($digits, '966')) {
+            $digits = substr($digits, 3);
+        }
+
+        if (str_starts_with($digits, '05')) {
+            $digits = substr($digits, 1);
+        }
+
+        return preg_match('/^5\d{8}$/', $digits) ? $digits : null;
+    }
+
+    private function resolveFinanceClientCategoryId($selectedCategoryId = null): int
+    {
+        if ($selectedCategoryId) {
+            return (int) $selectedCategoryId;
+        }
+
+        $existingCategoryId = ClientCategory::query()->value('id');
+
+        if ($existingCategoryId) {
+            return (int) $existingCategoryId;
+        }
+
+        $categoryData = ['name' => 'عام'];
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('fn_client_categories', 'created_by_id') && Auth::id()) {
+            $categoryData['created_by_id'] = Auth::id();
+        }
+
+        return (int) ClientCategory::query()->create($categoryData)->id;
     }
 
 
@@ -532,8 +603,9 @@ class UserController extends Controller
         $client = objModel::findOrFail($id);
         $countries = \App\Models\Country::active()->ordered()->get();
         $client_categories = ClientCategory::all();
+        $cities = \App\Models\City::active()->ordered()->get();
 
-        return view($this->folderPath . '.edit', compact('client', 'countries', 'client_categories'));
+        return view($this->folderPath . '.edit', compact('client', 'countries', 'cities', 'client_categories'));
     }
 
     /**
@@ -556,8 +628,7 @@ class UserController extends Controller
 
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'phone_code' => 'required|string|max:10',
-            'phone' => 'required|string|max:20|unique:users,phone,' . $client->id,
+            'phone' => 'required|string|max:20',
             'email' => 'nullable|email|max:255|unique:users,email,' . $client->id,
             'nationality_id' => 'nullable|exists:countries,id',
             'client_category_id' => 'nullable|exists:fn_client_categories,id',
@@ -575,9 +646,6 @@ class UserController extends Controller
             'name.required' => __('ingaz.client_name_required'),
             'name.string' => __('ingaz.client_name_required'),
             'name.max' => __('ingaz.client_name_max'),
-            'phone_code.required' => __('ingaz.client_phone_code_required'),
-            'phone_code.string' => __('ingaz.client_phone_code_required'),
-            'phone_code.max' => __('ingaz.client_phone_code_max'),
             'phone.required' => __('ingaz.client_phone_required'),
             'phone.string' => __('ingaz.client_phone_required'),
             'phone.max' => __('ingaz.client_phone_max'),
@@ -607,11 +675,44 @@ class UserController extends Controller
             'is_blocked.boolean' => __('ingaz.client_is_blocked_boolean')
         ]);
 
+        $normalizedPhone = $this->normalizeSaudiPhone($data['phone']);
+
+        if (!$normalizedPhone) {
+            throw ValidationException::withMessages([
+                'phone' => 'رقم الجوال غير صحيح. الصيغة المتاحة: 05XXXXXXXX أو 5XXXXXXXX أو +9665XXXXXXXX.',
+            ]);
+        }
+
+        $phoneCandidates = array_values(array_unique(array_filter([
+            $data['phone'],
+            $normalizedPhone,
+            '0' . $normalizedPhone,
+            '966' . $normalizedPhone,
+            '+966' . $normalizedPhone,
+        ])));
+
+        if (objModel::where('id', '!=', $client->id)->whereIn('phone', $phoneCandidates)->exists()) {
+            throw ValidationException::withMessages([
+                'phone' => 'رقم الجوال مستخدم مسبقاً.',
+            ]);
+        }
+
+        $data['phone'] = $normalizedPhone;
+        $data['phone_code'] = '+966';
+
         $client->update($data);
         $clientAccount = Account::find($client->account_id);
         $clientFinance = Client::where('account_id', $client->account_id)->first();
         if ($clientFinance) {
-            $clientFinance->update(['name' => $data['name']]);
+            $clientFinance->update([
+                'name' => $data['name'],
+                'phone' => $data['phone'],
+                'email' => $data['email'] ?? '',
+                'address' => $data['address'] ?? '',
+                'city' => $data['city'] ?? null,
+                'tax_number' => $data['national_num'] ?? null,
+                'client_category_id' => $data['client_category_id'] ?? $clientFinance->client_category_id,
+            ]);
         }
         if ($clientAccount) {
             $clientAccount->update(['name' => $data['name']]);
