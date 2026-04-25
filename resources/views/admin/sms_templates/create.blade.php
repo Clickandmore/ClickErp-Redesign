@@ -103,7 +103,8 @@
                                     <div class="mb-3">
                                         <div class="form-check form-switch">
                                             <input type="hidden" name="is_active" value="0">
-                                            <input class="form-check-input" type="checkbox" name="is_active" id="is_active" value="1" {{ old('is_active', 1) ? 'checked' : '' }}>
+                                            <input class="form-check-input" type="checkbox" name="is_active" id="is_active"
+                                                value="1" {{ old('is_active', 1) ? 'checked' : '' }}>
                                             <label class="form-check-label" for="is_active">
                                                 <i class="fas fa-toggle-on me-1"></i>
                                                 قالب نشط
@@ -209,9 +210,9 @@
 @section('js')
     <script>
         $(document).ready(function() {
-            $(document).on('change', '#is_active', function(e){
+            $(document).on('change', '#is_active', function(e) {
                 console.log("value", $(this).val());
-                
+
             });
             // معالج زر المعاينة
             window.previewMessage = function() {
@@ -231,7 +232,7 @@
                 const clientPhone = $('#previewClientPhone').val() || '0501234567';
                 const clientEmail = $('#previewClientEmail').val() || 'client@example.com';
                 const contractNumber = $('#previewContractNumber').val() || '12345';
-                const companyName = 'شركة ركن اديم للاستقدام';
+                const companyName = 'شركة بلاتينيوم الشرقية للاستقدام';
                 const companyPhone = '0112345678';
                 const companyEmail = 'info@asas-alinjaz.com';
 
@@ -280,4 +281,3 @@
         });
     </script>
 @endsection
-

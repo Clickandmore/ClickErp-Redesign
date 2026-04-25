@@ -400,11 +400,13 @@
     }
 
     @keyframes heroGlow {
+
         0%,
         100% {
             transform: translateY(0);
             opacity: 0.7;
         }
+
         50% {
             transform: translateY(12px);
             opacity: 1;
@@ -412,21 +414,25 @@
     }
 
     @keyframes serviceFloat {
+
         0%,
         100% {
             transform: translateY(0);
         }
+
         50% {
             transform: translateY(-6px);
         }
     }
 
     @keyframes cardSheen {
+
         0%,
         100% {
             transform: translateY(0);
             opacity: 0.6;
         }
+
         50% {
             transform: translateY(10px);
             opacity: 1;
@@ -540,12 +546,42 @@
 @section('content')
     @php
         $socials = [
-            ['url' => $settings->twitter ?? null, 'icon' => 'fab fa-twitter', 'title' => 'twitter page', 'class' => 'twitter'],
-            ['url' => $settings->facebook ?? null, 'icon' => 'fab fa-facebook-f', 'title' => 'facebook page', 'class' => 'facebook'],
-            ['url' => $settings->instagram ?? null, 'icon' => 'fab fa-instagram', 'title' => 'instagram page', 'class' => 'instagram'],
-            ['url' => $settings->linkedin ?? null, 'icon' => 'fab fa-linkedin-in', 'title' => 'linkedin page', 'class' => 'linkedin'],
-            ['url' => $settings->youtube ?? null, 'icon' => 'fab fa-youtube', 'title' => 'youtube page', 'class' => 'youtube'],
-            ['url' => $settings->snapchat ?? null, 'icon' => 'fab fa-snapchat-ghost', 'title' => 'snapchat page', 'class' => 'snapchat'],
+            [
+                'url' => $settings->twitter ?? null,
+                'icon' => 'fab fa-twitter',
+                'title' => 'twitter page',
+                'class' => 'twitter',
+            ],
+            [
+                'url' => $settings->facebook ?? null,
+                'icon' => 'fab fa-facebook-f',
+                'title' => 'facebook page',
+                'class' => 'facebook',
+            ],
+            [
+                'url' => $settings->instagram ?? null,
+                'icon' => 'fab fa-instagram',
+                'title' => 'instagram page',
+                'class' => 'instagram',
+            ],
+            [
+                'url' => $settings->linkedin ?? null,
+                'icon' => 'fab fa-linkedin-in',
+                'title' => 'linkedin page',
+                'class' => 'linkedin',
+            ],
+            [
+                'url' => $settings->youtube ?? null,
+                'icon' => 'fab fa-youtube',
+                'title' => 'youtube page',
+                'class' => 'youtube',
+            ],
+            [
+                'url' => $settings->snapchat ?? null,
+                'icon' => 'fab fa-snapchat-ghost',
+                'title' => 'snapchat page',
+                'class' => 'snapchat',
+            ],
         ];
 
         $whatsAppNumber = $settings->whatsapp ?? null;
@@ -560,7 +596,8 @@
     @if (!empty($socials))
         <div class="sideSocial d-md-flex snipcss-W5Bnr">
             @foreach ($socials as $social)
-                <a href="{{ $social['url'] }}" class="{{ $social['class'] ?? '' }}" target="_blank" rel="noopener" title="{{ $social['title'] }}">
+                <a href="{{ $social['url'] }}" class="{{ $social['class'] ?? '' }}" target="_blank" rel="noopener"
+                    title="{{ $social['title'] }}">
                     <i class="{{ $social['icon'] }}"></i>
                 </a>
             @endforeach
@@ -642,7 +679,7 @@
                     {{ __('web.our_services') }}
                 </i>
             </div>
-            <h2 class="title">{{ isset($whatDoSetting) ? $whatDoSetting->title : 'خدمات شركه ركن اديم' }}</h2>
+            <h2 class="title">{{ isset($whatDoSetting) ? $whatDoSetting->title : 'خدمات شركه بلاتينيوم الشرقية' }}</h2>
             <p class="hint">{{ isset($whatDoSetting) ? $whatDoSetting->description : ' خدماتنا مرخصه من وزاره الموارد البشريه والتنميه الاجتماعية لضمان راحتك وراحه اسرتك' }}
             </p>
         </div> --}}
@@ -919,7 +956,7 @@
             <div class="section-header" data-aos="fade-up" data-aos-duration="1000">
                 <h1 class="title"> دول الاستقدام</h1>
                 <p class="hint">
-                   اختر الدولة التي ترغب بالاستقدام منها
+                    اختر الدولة التي ترغب بالاستقدام منها
                 </p>
             </div>
             <div class="row justify-content-center">
@@ -1544,14 +1581,14 @@
             <div>
                 <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/mc.webp" data-aos="zoom-in"
                     data-aos-delay="200">
-                <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/visa.webp" data-aos="zoom-in"
-                    data-aos-delay="300">
-                <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/mada.webp" data-aos="zoom-in"
-                    data-aos-delay="400">
+                <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/visa.webp"
+                    data-aos="zoom-in" data-aos-delay="300">
+                <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/mada.webp"
+                    data-aos="zoom-in" data-aos-delay="400">
             </div>
             <div>
-                <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/tabby.png" data-aos="zoom-in"
-                    data-aos-delay="400">
+                <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/tabby.png"
+                    data-aos="zoom-in" data-aos-delay="400">
                 <img width="40px" height="40px" src="{{ asset('site') }}/assets/images/tamara.webp"
                     data-aos="zoom-in" data-aos-delay="400">
             </div>

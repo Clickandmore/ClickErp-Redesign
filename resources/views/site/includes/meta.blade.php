@@ -5,14 +5,14 @@
 
 <!-- SEO: Description, Keywords, Author, and Robots -->
 <meta name="description"
-    content="ركن اديم للاستقدام تقدم خدمات استقدام العمالة المنزلية والمهنية من مختلف الجنسيات، مع ضمان الجودة والالتزام بالمعايير." />
+    content="بلاتينيوم الشرقية للاستقدام تقدم خدمات استقدام العمالة المنزلية والمهنية من مختلف الجنسيات، مع ضمان الجودة والالتزام بالمعايير." />
 <meta name="keywords"
-    content="ركن اديم, استقدام, استقدام عمالة, استقدام العمالة المنزلية, استقدام مهني, شركة استقدام, مكتب استقدام" />
-<meta name="author" content="شركة ركن اديم للاستقدام" />
+    content="بلاتينيوم الشرقية, استقدام, استقدام عمالة, استقدام العمالة المنزلية, استقدام مهني, شركة استقدام, مكتب استقدام" />
+<meta name="author" content="شركة بلاتينيوم الشرقية للاستقدام" />
 <meta name="robots" content="index, follow" />
 
 <!-- Open Graph Data for Social Media -->
-<meta property="og:title" content="ركن اديم للاستقدام" />
+<meta property="og:title" content="بلاتينيوم الشرقية للاستقدام" />
 <meta property="og:description"
     content="شركة رائدة في مجال استقدام العمالة المنزلية والمهنية، بخدمات موثوقة تلبي احتياجات الأفراد والأعمال." />
 <meta property="og:image" content="assets/images/fav.svg" />
@@ -21,7 +21,7 @@
 
 <!-- Twitter Card Data -->
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="ركن اديم للاستقدام" />
+<meta name="twitter:title" content="بلاتينيوم الشرقية للاستقدام" />
 <meta name="twitter:description"
     content="نوفّر خدمات استقدام العمالة المنزلية والمهنية بأعلى معايير الجودة والموثوقية." />
 <meta name="twitter:image" content="assets/images/fav.svg" />

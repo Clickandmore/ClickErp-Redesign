@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,16 +13,20 @@
                 size: A4;
                 margin: 15mm;
             }
+
             .no-print {
                 display: none !important;
             }
+
             body {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
+
             .page-break {
                 page-break-before: always;
             }
+
             .signature-controls {
                 display: none !important;
             }
@@ -179,7 +184,7 @@
             border-radius: 8px;
             cursor: crosshair;
             background-color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .signature-buttons {
@@ -256,7 +261,7 @@
             background: white;
             padding: 15px;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
         .variable {
@@ -282,6 +287,7 @@
         }
     </style>
 </head>
+
 <body>
     <!-- أزرار التحكم -->
     <div class="print-controls no-print">
@@ -295,7 +301,8 @@
 
     <!-- العلامة المائية -->
     <div class="watermark">
-        <img src="{{ documentLogoUrl(asset('admin/assets/img/company_logo.png')) }}" alt="Logo" style="width: 100%; height: 100%; opacity: 0.1;">
+        <img src="{{ documentLogoUrl(asset('admin/assets/img/company_logo.png')) }}" alt="Logo"
+            style="width: 100%; height: 100%; opacity: 0.1;">
     </div>
 
     <div class="contract-container">
@@ -305,9 +312,13 @@
                 <img src="{{ documentLogoUrl(asset('admin/assets/img/company_logo.png')) }}" alt="شعار الشركة">
             </div>
             <h1>عقد نقل كفالة العمالة المنزلية</h1>
-            <p style="font-size: 14pt; margin: 5px 0;">{{ documentSetting('document_company_name', $contractSettings['company_name'] ?? 'شركة ركن اديم للاستقدام') }}</p>
-            <p style="font-size: 12pt; color: #666;">ترخيص رقم: {{ $contractSettings['license_number'] ?? '1234567890' }}</p>
-            <p style="font-size: 11pt; color: #888;">{{ $contractSettings['address'] ?? 'الرياض، المملكة العربية السعودية' }}</p>
+            <p style="font-size: 14pt; margin: 5px 0;">
+                {{ documentSetting('document_company_name', $contractSettings['company_name'] ?? 'شركة بلاتينيوم الشرقية للاستقدام') }}
+            </p>
+            <p style="font-size: 12pt; color: #666;">ترخيص رقم:
+                {{ $contractSettings['license_number'] ?? '1234567890' }}</p>
+            <p style="font-size: 11pt; color: #888;">
+                {{ $contractSettings['address'] ?? 'الرياض، المملكة العربية السعودية' }}</p>
         </div>
 
         <!-- تفاصيل العقد -->
@@ -319,7 +330,8 @@
             </div>
             <div class="detail-row">
                 <span class="detail-label">تاريخ الطلب:</span>
-                <span class="detail-value">{{ $transfer->created_at ? $transfer->created_at->format('Y-m-d') : 'غير محدد' }}</span>
+                <span
+                    class="detail-value">{{ $transfer->created_at ? $transfer->created_at->format('Y-m-d') : 'غير محدد' }}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">اسم العاملة:</span>
@@ -344,23 +356,23 @@
         </div>
 
         <!-- بنود العقد -->
-        @if(isset($contractTerms) && $contractTerms->count() > 0)
-            @foreach($contractTerms as $pageNumber => $pageTerms)
-                @if($pageNumber > 1)
+        @if (isset($contractTerms) && $contractTerms->count() > 0)
+            @foreach ($contractTerms as $pageNumber => $pageTerms)
+                @if ($pageNumber > 1)
                     <div class="page-break"></div>
                 @endif
 
                 <div class="terms-section">
                     @php $currentSection = ''; @endphp
 
-                    @foreach($pageTerms as $term)
-                        @if($currentSection !== $term->section_title)
+                    @foreach ($pageTerms as $term)
+                        @if ($currentSection !== $term->section_title)
                             @php $currentSection = $term->section_title; @endphp
                             <div class="section-title">{{ $term->section_title }}</div>
                         @endif
 
                         <div class="term-item">
-                            @if($term->term_number)
+                            @if ($term->term_number)
                                 <span class="term-number">{{ $term->term_number }}.</span>
                             @endif
                             <span class="term-content">
@@ -376,7 +388,7 @@
                                         '[فترة_التجربة]',
                                         '[قيمة_العقد]',
                                         '[طريقة_الدفع]',
-                                        '[تاريخ_التحرير]'
+                                        '[تاريخ_التحرير]',
                                     ],
                                     [
                                         '<span class="variable">' . ($transfer->contract->maid->name ?? 'غير محدد') . '</span>',
@@ -385,13 +397,17 @@
                                         '<span class="variable">' . ($transfer->contract->maid->passport_number ?? 'غير محدد') . '</span>',
                                         '<span class="variable">عاملة منزلية</span>',
                                         '<span class="variable">' . ($transfer->contract->contract_duration ?? 'سنتان') . '</span>',
-                                        '<span class="variable">' . ($transfer->trial_start_date ? $transfer->trial_start_date->format('Y-m-d') : 'يحدد لاحقاً') . '</span>',
+                                        '<span class="variable">' .
+                                        ($transfer->trial_start_date ? $transfer->trial_start_date->format('Y-m-d') : 'يحدد لاحقاً') .
+                                        '</span>',
                                         '<span class="variable">' . $transfer->trial_days . ' يوماً</span>',
                                         '<span class="variable">' . number_format($transfer->contract_value, 2) . ' ريال سعودي</span>',
                                         '<span class="variable">نقداً عند التسليم</span>',
-                                        '<span class="variable">' . ($transfer->created_at ? $transfer->created_at->format('Y-m-d') : date('Y-m-d')) . '</span>'
+                                        '<span class="variable">' .
+                                        ($transfer->created_at ? $transfer->created_at->format('Y-m-d') : date('Y-m-d')) .
+                                        '</span>',
                                     ],
-                                    $term->term_content
+                                    $term->term_content,
                                 ) !!}
                             </span>
                         </div>
@@ -411,16 +427,19 @@
         <div class="signatures-section">
             <div style="margin-top: 40px;">
                 <div style="font-weight: bold; margin-bottom: 20px;">أطراف العقد:</div>
-                <div>الطرف الأول: {{ documentSetting('document_company_name', $contractSettings['company_name'] ?? 'شركة ركن اديم للاستقدام') }}</div>
+                <div>الطرف الأول:
+                    {{ documentSetting('document_company_name', $contractSettings['company_name'] ?? 'شركة بلاتينيوم الشرقية للاستقدام') }}
+                </div>
                 <div>الطرف الثاني: {{ $transfer->newSponsor->name ?? '[اسم_العميل]' }}</div>
 
                 <!-- قسم التوقيع -->
                 <div class="signature-container no-print">
-                    <div class="signature-title">توقيع الطرف الثاني ({{ $transfer->newSponsor->name ?? 'العميل' }})</div>
+                    <div class="signature-title">توقيع الطرف الثاني ({{ $transfer->newSponsor->name ?? 'العميل' }})
+                    </div>
 
                     <!-- حالة التوقيع -->
                     <div class="signature-status {{ $transfer->signature ? 'signed' : 'not-signed' }}">
-                        @if($transfer->signature)
+                        @if ($transfer->signature)
                             ✅ تم التوقيع على العقد
                         @else
                             ❌ لم يتم التوقيع بعد
@@ -428,11 +447,12 @@
                     </div>
 
                     <!-- عرض التوقيع المحفوظ -->
-                    @if($transfer->signature)
+                    @if ($transfer->signature)
                         <div class="signature-display">
                             <img src="{{ asset('storage/signatures/' . $transfer->signature) }}" alt="التوقيع المحفوظ">
                             <div style="margin-top: 10px; font-size: 12pt; color: #666;">
-                                تاريخ التوقيع: {{ $transfer->contract_signed_at ? $transfer->contract_signed_at->format('Y-m-d H:i') : 'غير محدد' }}
+                                تاريخ التوقيع:
+                                {{ $transfer->contract_signed_at ? $transfer->contract_signed_at->format('Y-m-d H:i') : 'غير محدد' }}
                             </div>
                         </div>
                     @elseif($transfer->status === 'contract_sent')
@@ -441,7 +461,8 @@
                             <div style="margin-bottom: 15px; color: #007bff; font-weight: bold;">
                                 يرجى التوقيع في المنطقة أدناه:
                             </div>
-                            <canvas id="signatureCanvas" class="signature-canvas" width="400" height="150"></canvas>
+                            <canvas id="signatureCanvas" class="signature-canvas" width="400"
+                                height="150"></canvas>
                             <div class="signature-buttons">
                                 <button class="btn-save" onclick="saveSignature()">
                                     <i class="fas fa-save"></i> حفظ التوقيع
@@ -463,14 +484,15 @@
                 <div style="margin-top: 50px; display: flex; justify-content: space-between;">
                     <div style="text-align: center; width: 45%;">
                         <div style="border-top: 1px solid #000; padding-top: 10px; margin-top: 50px;">
-                            <strong>{{ documentSetting('document_company_name', $contractSettings['company_name'] ?? 'شركة ركن اديم للاستقدام') }}</strong><br>
+                            <strong>{{ documentSetting('document_company_name', $contractSettings['company_name'] ?? 'شركة بلاتينيوم الشرقية للاستقدام') }}</strong><br>
                             الطرف الأول
                         </div>
                     </div>
                     <div style="text-align: center; width: 45%;">
-                        @if($transfer->signature)
+                        @if ($transfer->signature)
                             <div style="margin-bottom: 10px;">
-                                <img src="{{ asset('storage/signatures/' . $transfer->signature) }}" alt="التوقيع" style="max-height: 60px; border: 1px solid #ccc;">
+                                <img src="{{ asset('storage/signatures/' . $transfer->signature) }}" alt="التوقيع"
+                                    style="max-height: 60px; border: 1px solid #ccc;">
                             </div>
                         @endif
                         <div style="border-top: 1px solid #000; padding-top: 10px; margin-top: 50px;">
@@ -579,45 +601,45 @@
                 }
             });
 
-            fetch('{{ route("sponsorship-transfer.save-signature", $transfer->id) }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({
-                    signature: signatureImage
+            fetch('{{ route('sponsorship-transfer.save-signature', $transfer->id) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        signature: signatureImage
+                    })
                 })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        title: 'تم الحفظ بنجاح!',
-                        text: 'تم حفظ التوقيع وتحديث حالة العقد إلى "تم توقيع العقد"',
-                        icon: 'success',
-                        confirmButtonText: 'حسناً'
-                    }).then(() => {
-                        location.reload();
-                    });
-                } else {
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            title: 'تم الحفظ بنجاح!',
+                            text: 'تم حفظ التوقيع وتحديث حالة العقد إلى "تم توقيع العقد"',
+                            icon: 'success',
+                            confirmButtonText: 'حسناً'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'خطأ!',
+                            text: data.message || 'حدث خطأ أثناء حفظ التوقيع',
+                            icon: 'error',
+                            confirmButtonText: 'حسناً'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
                     Swal.fire({
                         title: 'خطأ!',
-                        text: data.message || 'حدث خطأ أثناء حفظ التوقيع',
+                        text: 'حدث خطأ في الاتصال بالخادم',
                         icon: 'error',
                         confirmButtonText: 'حسناً'
                     });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    title: 'خطأ!',
-                    text: 'حدث خطأ في الاتصال بالخادم',
-                    icon: 'error',
-                    confirmButtonText: 'حسناً'
                 });
-            });
         }
 
         // تهيئة Canvas عند تحميل الصفحة
@@ -661,4 +683,5 @@
         });
     </script>
 </body>
+
 </html>

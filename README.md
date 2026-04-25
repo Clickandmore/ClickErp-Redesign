@@ -1,6 +1,120 @@
+# ClickERP / Platinum ERP
 
-## 00. تشغيل Seeder الخاص بالصلاحيات
-قم بتشغيل Seeders :
+هذا الملف مخصص لأوامر التشغيل على الاستضافة، خصوصا تحديث المشروع وتجهيز الصلاحيات والشجرة المالية الخاصة بالرابط:
+
+```text
+https://www.platinumeastern.com/finance/accounts
+```
+
+## 1. قبل أي تحديث على الاستضافة
+
+ادخل إلى مسار المشروع:
+
+```bash
+cd /home/platinum/public_html
+```
+
+راجع حالة الملفات قبل السحب:
+
+```bash
+git status
+git submodule status --recursive
+```
+
+إذا ظهرت ملفات معدلة على السيرفر مثل `.htaccess` أو `composer.lock` أو ملفات داخل `packages/*`، لا تنفذ `git pull` قبل حفظها أو معرفة سبب التعديل.
+
+## 2. تحديث الكود والحزم
+
+تحديث المشروع الرئيسي:
+
+```bash
+git pull --ff-only origin main
+```
+
+تحديث الحزم الفرعية:
+
+```bash
+git submodule sync --recursive
+git submodule update --init --recursive
+```
+
+الحزم التالية هي `git submodules` وليست مجلدات عادية:
+
+```text
+packages/access-control
+packages/crm
+packages/finance
+packages/hr
+```
+
+محليا يمكن استخدام السكربت الآمن قبل تحديث الحزم:
+
+```bash
+./scripts/safe-submodule-update.sh
+./scripts/safe-submodule-update.sh --remote
+```
+
+## 3. Composer والكاش
+
+بعد أي تحديث للكود أو الحزم:
+
+```bash
+composer install --no-dev --optimize-autoloader
+composer dump-autoload -o
+php artisan optimize:clear
+```
+
+في الإنتاج يجب أن تكون الإعدادات:
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+```
+
+ثم:
+
+```bash
+php artisan config:clear
+php artisan config:cache
+```
+
+## 4. Migrations المطلوبة
+
+تشغيل migrations العامة:
+
+```bash
+php artisan migrate --force
+```
+
+إذا كانت جداول Laratrust مثل `permission_role` غير موجودة:
+
+```bash
+php artisan migrate --path=database/migrations/permissions --force
+```
+
+جداول المالية تأتي من `packages/finance/database/migrations` لأن `FinanceServiceProvider` يحملها تلقائيا. إذا احتجت تشغيلها صراحة:
+
+```bash
+php artisan migrate --path=packages/finance/database/migrations --force
+```
+
+للتحقق:
+
+```bash
+php artisan migrate:status
+```
+
+## 5. الصلاحيات بعد النشر
+
+الأمر المفضل لتجهيز صلاحيات السيرفر وإعطائها للدور الرئيسي:
+
+```bash
+php artisan permissions:prepare-server --role-id=1 --role-name=Administrator --attach-first-admin
+php artisan permission:cache-reset
+```
+
+أوامر الصلاحيات اليدوية عند الحاجة:
+
 ```bash
 php artisan access-control:sync-permissions --registry-only --no-assign-roles
 php artisan access-control:sync-permissions --include-main
@@ -9,149 +123,117 @@ php artisan admin:assign-permissions-to-first
 php artisan permission:cache-reset
 ```
 
-### Seeder صلاحيات عقود الاستقدام
-إذا أردت تحديث صلاحيات عقود الاستقدام فقط وتشمل ترتيبها في `/dash/perms/1`:
+صلاحيات عقود الاستقدام فقط:
+
 ```bash
-php artisan db:seed --class=RecruitmentContractsPermissionsSeeder
-php artisan db:seed --class=AssignRecruitmentContractsPermissionsSeeder
-php artisan db:seed --class=AddRecContractsUpdatePermissionSeeder
+php artisan db:seed --class=RecruitmentContractsPermissionsSeeder --force
+php artisan db:seed --class=AssignRecruitmentContractsPermissionsSeeder --force
+php artisan db:seed --class=AddRecContractsUpdatePermissionSeeder --force
 ```
 
-ولتشغيلها ضمن التهيئة العامة للمشروع:
+## 6. الشجرة المالية والحسابات
+
+صفحة الحسابات:
+
+```text
+/finance/accounts
+```
+
+أهم الجداول:
+
+```text
+fn_accounts
+fn_constraints
+fn_constraint_details
+fn_bonds
+fn_years
+fn_cost_centers
+```
+
+### تجهيز جداول المالية
+
+```bash
+php artisan migrate --path=packages/finance/database/migrations --force
+composer dump-autoload -o
+php artisan optimize:clear
+```
+
+### إنشاء الشجرة المالية من الصفر
+
+تحذير: هذا الأمر يمسح جدول `fn_accounts` ثم يعيد بناء الشجرة الأساسية. لا تستخدمه على قاعدة إنتاج بها قيود أو حسابات فعلية إلا بعد backup.
+
+```bash
+php artisan db:seed --class="Nami\\Finance\\Database\\Seeders\\AccountSeeder" --force
+```
+
+### إضافة حسابات الاستقدام والتأجير بدون مسح الشجرة
+
+هذا الأمر يستخدم `update/create` للحسابات الخاصة بالاستقدام والتأجير، ويحتاج أن تكون الشجرة الأساسية موجودة أولا:
+
+```bash
+php artisan db:seed --class="Nami\\Finance\\Database\\Seeders\\RecruitmentRentalAccountsSeeder" --force
+```
+
+### تشغيل Seeders المالية كاملة
+
+تحذير: `FinanceDatabaseSeeder` يشغل `AccountSeeder`، لذلك سيعيد بناء `fn_accounts`.
+
+```bash
+php artisan db:seed --class="Nami\\Finance\\Database\\Seeders\\FinanceDatabaseSeeder" --force
+```
+
+استخدمه فقط في تركيب جديد أو بعد أخذ نسخة احتياطية.
+
+### التحقق من مسارات الحسابات
+
+```bash
+php artisan route:list | grep finance.accounts
+php artisan route:list | grep accounting-guide-management
+```
+
+روابط مهمة:
+
+```text
+/finance/accounts
+/finance/accounting-guide-management
+/finance/accounts-balances
+/finance/account-statement
+```
+
+## 7. أوامر آمنة بعد أي تعديل
+
+```bash
+composer dump-autoload -o
+php artisan optimize:clear
+php artisan config:cache
+php artisan route:clear
+php artisan view:cache
+```
+
+إذا ظهرت أخطاء class not found بعد pull:
+
+```bash
+composer dump-autoload -o
+php artisan optimize:clear
+```
+
+## 8. أوامر لا تشغلها على الإنتاج بدون Backup
+
+هذه الأوامر قد تمسح أو تغير بيانات أساسية:
+
 ```bash
 php artisan db:seed
+php artisan db:seed --class=LaratrustSeeder --force
+php artisan db:seed --class="Nami\\Finance\\Database\\Seeders\\AccountSeeder" --force
+php artisan db:seed --class="Nami\\Finance\\Database\\Seeders\\FinanceDatabaseSeeder" --force
+php artisan migrate:fresh
+php artisan migrate:refresh
 ```
 
-## حماية packages من ضياع التعديلات
+قبل أي أمر خطر:
 
-- المجلدات `packages/crm` و`packages/finance` و`packages/hr` هي `git submodules` وليست مجلدات عادية.
-- قبل أي `pull` أو `submodule update` شغّل:
 ```bash
-./scripts/safe-submodule-update.sh
+mysqldump -u DB_USER -p DB_DATABASE > backup-before-change.sql
 ```
-- إذا أردت سحب آخر تحديثات الحزم من الريموت بشكل آمن:
-```bash
-./scripts/safe-submodule-update.sh --remote
-```
-- أي تعديل داخل `packages/*` يجب أن يُعمل له `commit` و`push` داخل الحزمة نفسها أولًا، ثم تعمل `commit` في المشروع الرئيسي لتحديث مؤشر الـ submodule.
 
----
-
-**1. Run the Command to Start a New Project:**
-   bash
-   Copy code
-
-
-
-   cd your-project-name
-   Save to grepper
-   This will create a new Laravel project and navigate into its directory.
-
-**2. Run the Custom Command to Generate Files from Migrations:**
-   bash
-   Copy code
-`   **php artisan generate:files_from_migrations --resources**
-`   Save to grepper
-   This command seems to generate files based on your database migrations. The --resources flag indicates that it should generate resources, possibly for API endpoints.
-
-**3. Run the Route to Generate APIs:**
-
-##    Visit the specified URL link
-****({url_link}/apis-generate)****
-in your browser. This route seems to trigger the generation of API-related files. Ensure that your web server (e.g., Apache, Nginx) is running.
-
-**4. Join and Handle Controllers, Actions, Routes, and Views:**
-   This step is likely an invitation for developers to join the project and start working on handling controllers, actions, routes, and views. It implies that the initial setup and API generation have been completed, and developers can now focus on building and organizing the application logic.
-
-**Important Notes:**
-Command and Route Customization: If these commands and routes are part of a custom package or workflow specific to your project, make sure to check the documentation or source code for any additional details or options.
-
-Dependencies: Ensure that any dependencies required by your custom command or route are installed and configured correctly.
-
-Custom Artisan Commands: If you are using custom Artisan commands, they should be defined in your Laravel project. Check the app/Console/Commands directory for any custom commands.
-
-API Routes: If you are working with APIs, check the routes/api.php file for the generated API routes.
-
-Documentation: If you are working in a team, it's essential to have documentation explaining the custom commands, routes, and any specific workflow followed in your Laravel project.
-
-
-## Ingaz dashboard demo data
-
-- Run `php artisan ingaz:refresh-demo-data` to drop the schema, execute the default DatabaseSeeder, and fill the system with rich demo clients, maids, orders, contracts, shelter logs, and complaints. The command refuses to run in production and asks for confirmation before wiping data.
-- Need to regenerate fake data without touching the schema? Use `php artisan ingaz:refresh-demo-data --seed-only`.
-- Every generated client account uses the password `password`, so you can log in instantly for demos.
-- You can also trigger the seeder manually via `php artisan db:seed --class=IngazDemoSeeder` if you need to combine it with other workflows.
-
-## Quick non-destructive dashboard data
-
-- Use `php artisan ingaz:seed-sample-data` when you only need a handful of demo countries, users, CVs, instant orders, shelter contracts, and rental contracts. This command never truncates tables; it simply inserts (or updates) deterministic "DEMO-SEED" records.
-- Generated users are tagged with `register_from = demo_seed` and use the password `password`. Orders use codes like `DEMO-SEED-ORD-001`, so you can filter or remove them later if needed.
-
-## Anonymize remaining production-like rows
-
-- If you kept a small subset of real users/maids and need to mask them in-place, run `php artisan ingaz:anonymize-data --users=200 --maids=200`. It rewrites names, phones, IDs, passports, and media paths to dummy values without deleting rows; add `--dry-run` to see the impact first.
-
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400"></a></p>
-
-<p align="center">
-<a href="https://travis-ci.org/laravel/framework"><img src="https://travis-ci.org/laravel/framework.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
-
-## About Laravel
-
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 1500 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-## Laravel Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+استبدل `DB_USER` و`DB_DATABASE` بقيم الاستضافة الفعلية من ملف `.env`.
